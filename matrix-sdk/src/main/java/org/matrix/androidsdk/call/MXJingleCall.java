@@ -166,6 +166,10 @@ public class MXJingleCall extends MXCall {
                 PeerConnectionFactory.initializeFieldTrials(null);
                 mIsSupported = true;
                 Log.d(LOG_TAG,"## initializeAndroidGlobals(): mIsInitialized="+mIsInitialized);
+            } catch (UnsatisfiedLinkError e) {
+                Log.e(LOG_TAG, "## initializeAndroidGlobals(): Exception Msg=" + e.getMessage());
+                mIsInitialized = true;
+                mIsSupported = false;
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## initializeAndroidGlobals(): Exception Msg=" + e.getMessage());
                 mIsInitialized = true;
@@ -600,7 +604,7 @@ public class MXJingleCall extends MXCall {
                                         try {
                                             Event lastEvent = mPendingEvents.get(mPendingEvents.size() - 1);
 
-                                            if (TextUtils.equals(lastEvent.type, Event.EVENT_TYPE_CALL_CANDIDATES)) {
+                                            if (TextUtils.equals(lastEvent.getType(), Event.EVENT_TYPE_CALL_CANDIDATES)) {
                                                 // return the content cast as a JsonObject
                                                 // it is not a copy
                                                 JsonObject lastContent = lastEvent.getContentAsJsonObject();
@@ -1308,23 +1312,25 @@ public class MXJingleCall extends MXCall {
     @Override
     public void handleCallEvent(Event event){
         if (event.isCallEvent()) {
-            Log.d(LOG_TAG, "handleCallEvent " + event.type);
+            String eventType = event.getType();
+
+            Log.d(LOG_TAG, "handleCallEvent " + eventType);
 
             // event from other member
             if (!TextUtils.equals(event.getSender(), mSession.getMyUserId())) {
-                if (Event.EVENT_TYPE_CALL_ANSWER.equals(event.type) && !mIsIncoming) {
+                if (Event.EVENT_TYPE_CALL_ANSWER.equals(eventType) && !mIsIncoming) {
                     onCallAnswer(event);
-                } else if (Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type)) {
+                } else if (Event.EVENT_TYPE_CALL_CANDIDATES.equals(eventType)) {
                     JsonObject eventContent = event.getContentAsJsonObject();
 
                     JsonArray candidates = eventContent.getAsJsonArray("candidates");
                     addCandidates(candidates);
-                } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)) {
+                } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(eventType)) {
                     onCallHangup(event, IMXCall.END_CALL_REASON_PEER_HANG_UP);
                 }
 
             } else { // event from the current member, but sent from another device
-                switch (event.type) {
+                switch (eventType) {
                     case Event.EVENT_TYPE_CALL_INVITE:
                         // warn in the UI thread
                         mUIThreadHandler.post(new Runnable() {

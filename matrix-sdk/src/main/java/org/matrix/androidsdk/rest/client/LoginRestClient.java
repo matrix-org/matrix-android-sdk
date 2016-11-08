@@ -190,5 +190,22 @@ public class LoginRestClient extends RestClient<LoginApi> {
         });
     }
 
+    /**
+     * Invalidate the access token, so that it can no longer be used for authorization.
+     * @param callback the callback success and failure callback
+     */
+    public void logout(final ApiCallback<JsonObject> callback) {
+        // privacy
+        final String description = "logout user";
+
+        mApi.logout(new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        logout(callback);
+                    }
+                }
+        ));
+    }
 
 }

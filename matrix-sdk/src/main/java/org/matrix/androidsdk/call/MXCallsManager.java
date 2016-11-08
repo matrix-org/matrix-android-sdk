@@ -27,7 +27,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.data.IMXStore;
+import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -122,7 +122,7 @@ public class MXCallsManager {
         mSession.getDataHandler().addListener(new MXEventListener() {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
-                if (TextUtils.equals(event.type, Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
                     // Listen to the membership join/leave events to detect the conference user activity.
                     // This mechanism detects the presence of an established conf call
                     if (TextUtils.equals(event.sender, MXCallsManager.getConferenceUserId(event.roomId))) {
@@ -353,7 +353,7 @@ public class MXCallsManager {
      */
     public void handleCallEvent(final IMXStore store, final Event event) {
         if (event.isCallEvent() && isSupported()) {
-            Log.d(LOG_TAG, "handleCallEvent " + event.type);
+            Log.d(LOG_TAG, "handleCallEvent " + event.getType());
 
             // always run the call event in the UI thread
             // MXChromeCall does not work properly in other thread (because of the webview)
@@ -375,7 +375,7 @@ public class MXCallsManager {
                     // sanity check
                     if ((null != callId) && (null != room)) {
                         // receive an invitation
-                        if (Event.EVENT_TYPE_CALL_INVITE.equals(event.type)) {
+                        if (Event.EVENT_TYPE_CALL_INVITE.equals(event.getType())) {
                             long lifeTime = System.currentTimeMillis() - event.getOriginServerTs();
 
                             // ignore older call messages
@@ -400,7 +400,7 @@ public class MXCallsManager {
                                 }
                             }
 
-                        } else if (Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type)) {
+                        } else if (Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.getType())) {
                             if (!isMyEvent) {
                                 IMXCall call = getCallWithCallId(callId);
 
@@ -411,7 +411,7 @@ public class MXCallsManager {
                                     call.handleCallEvent(event);
                                 }
                             }
-                        } else if (Event.EVENT_TYPE_CALL_ANSWER.equals(event.type)) {
+                        } else if (Event.EVENT_TYPE_CALL_ANSWER.equals(event.getType())) {
                             IMXCall call = getCallWithCallId(callId);
 
                             if (null != call) {
@@ -430,7 +430,7 @@ public class MXCallsManager {
                                     call.handleCallEvent(event);
                                 }
                             }
-                        } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)) {
+                        } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(event.getType())) {
                             final IMXCall call = getCallWithCallId(callId);
                             if (null != call) {
                                 // trigger call events only if the call is active

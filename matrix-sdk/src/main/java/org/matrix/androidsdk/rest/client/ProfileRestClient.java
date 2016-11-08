@@ -28,7 +28,6 @@ import org.matrix.androidsdk.rest.model.AuthParams;
 import org.matrix.androidsdk.rest.model.ChangePasswordParams;
 import org.matrix.androidsdk.rest.model.ForgetPasswordParams;
 import org.matrix.androidsdk.rest.model.ForgetPasswordResponse;
-import org.matrix.androidsdk.rest.model.PublicRoomsResponse;
 import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.ThreePid;
 import org.matrix.androidsdk.rest.model.ThreePidCreds;
@@ -40,7 +39,6 @@ import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import retrofit.client.Response;
 

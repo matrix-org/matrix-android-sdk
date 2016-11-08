@@ -14,10 +14,15 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.data;
+package org.matrix.androidsdk.data.store;
 
 import android.content.Context;
 
+import org.matrix.androidsdk.data.EventTimeline;
+import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomAccountData;
+import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -27,6 +32,7 @@ import org.matrix.androidsdk.rest.model.User;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * An interface for storing and retrieving Matrix objects.
@@ -34,6 +40,14 @@ import java.util.List;
 public interface IMXStore {
 
     interface MXStoreListener {
+        /**
+         * The store has loaded its internal data.
+         * Let any post processing data management.
+         * It is called in the store thread.
+         * @param accountId the account id
+         */
+        void postProcess(String accountId);
+
         /**
          * Called when the store is initialized
          */
@@ -116,10 +130,16 @@ public interface IMXStore {
     void setEventStreamToken(String token);
 
     /**
-     * Define a MXStore listener.
+     * Add a MXStore listener.
      * @param listener the listener
      */
-    void setMXStoreListener(MXStoreListener listener);
+    void addMXStoreListener(MXStoreListener listener);
+
+    /**
+     * remive a MXStore listener.
+     * @param listener the listener
+     */
+    void removeMXStoreListener(MXStoreListener listener);
 
     /**
      * profile information
@@ -131,6 +151,7 @@ public interface IMXStore {
     List<ThirdPartyIdentifier> thirdPartyIdentifiers();
     void setThirdPartyIdentifiers(List<ThirdPartyIdentifier> identifiers);
     void setIgnoredUserIdsList(List<String>users);
+    void setDirectChatRoomsDict(Map<String, List<String>> directChatRoomsDict);
 
     /**
      * getters.
@@ -140,6 +161,7 @@ public interface IMXStore {
     Collection<User> getUsers();
     User getUser(String userId);
     List<String> getIgnoredUserIdsList();
+    Map<String, List<String>> getDirectChatRoomsDict();
 
     /**
      * flush methods

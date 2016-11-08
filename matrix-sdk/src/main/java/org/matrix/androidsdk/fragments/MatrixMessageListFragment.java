@@ -46,7 +46,7 @@ import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.adapters.MessageRow;
 import org.matrix.androidsdk.adapters.MessagesAdapter;
 import org.matrix.androidsdk.data.EventTimeline;
-import org.matrix.androidsdk.data.IMXStore;
+import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomPreviewData;
 import org.matrix.androidsdk.data.RoomState;
@@ -286,6 +286,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         @Override
         public void onBingRulesUpdate() {
             mBingRulesByEventId.clear();
+        }
+
+        @Override
+        public void onEventEncrypted(Event event) {
+            getUiHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    mAdapter.notifyDataSetChanged();
+                }
+            });
         }
     };
 
@@ -736,28 +746,33 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * Redact an event from its event id.
      * @param eventId the event id.
      */
-    protected void redactEvent(String eventId) {
+    protected void redactEvent(final String eventId) {
         // Do nothing on success, the event will be hidden when the redaction event comes down the event stream
         mMatrixMessagesFragment.redact(eventId, new ApiCallback<Event>() {
             @Override
-            public void onSuccess(Event redactedEvent) {
+            public void onSuccess(final Event redactedEvent) {
+                getUiHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        // create a dummy redacted event to manage the redaction.
+                        // some redacted events are not removed from the history but they are pruned.
 
-                // create a dummy redacted event to manage the redaction.
-                // some redated events are not removed from the history but they are pruned.
-                Event redacterEvent = new Event();
-                redacterEvent.roomId = redactedEvent.roomId;
-                redacterEvent.redacts = redactedEvent.eventId;
-                redacterEvent.type = Event.EVENT_TYPE_REDACTION;
+                        Event redacterEvent = new Event();
+                        redacterEvent.roomId = redactedEvent.roomId;
+                        redacterEvent.redacts = redactedEvent.eventId;
+                        redacterEvent.setType(Event.EVENT_TYPE_REDACTION);
 
-                onEvent(redacterEvent, EventTimeline.Direction.FORWARDS, mRoom.getLiveState());
+                        onEvent(redacterEvent, EventTimeline.Direction.FORWARDS, mRoom.getLiveState());
 
-                if (null != mEventSendingListener) {
-                    try {
-                        mEventSendingListener.onMessageRedacted(redactedEvent);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "redactEvent fails : " + e.getMessage());
+                        if (null != mEventSendingListener) {
+                            try {
+                                mEventSendingListener.onMessageRedacted(redactedEvent);
+                            } catch (Exception e) {
+                                Log.e(LOG_TAG, "redactEvent fails : " + e.getMessage());
+                            }
+                        }
                     }
-                }
+                });
             }
 
             private void onError() {
@@ -789,11 +804,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @return true it is supported.
      */
     private boolean canAddEvent(Event event) {
-        String type = event.type;
+        String type = event.getType();
 
         return mDisplayAllEvents ||
                 Event.EVENT_TYPE_MESSAGE.equals(type)          ||
                 Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(type)||
+                Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(type) ||
                 Event.EVENT_TYPE_STATE_ROOM_NAME.equals(type)  ||
                 Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(type) ||
                 Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(type) ||
@@ -861,14 +877,19 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             mMatrixMessagesFragment.sendEvent(event, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
-                    onMessageSendingSucceeded(event);
-                    mAdapter.updateEventById(event, prevEventId);
+                    getUiHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            onMessageSendingSucceeded(event);
+                            mAdapter.updateEventById(event, prevEventId);
 
-                    // pending resending ?
-                    if ((null != mResendingEventsList) && (mResendingEventsList.size() > 0)) {
-                        resend(mResendingEventsList.get(0));
-                        mResendingEventsList.remove(0);
-                    }
+                            // pending resending ?
+                            if ((null != mResendingEventsList) && (mResendingEventsList.size() > 0)) {
+                                resend(mResendingEventsList.get(0));
+                                mResendingEventsList.remove(0);
+                            }
+                        }
+                    });
                 }
 
                 private void commonFailure(final Event event) {
@@ -884,9 +905,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.getLocalizedMessage() + ".", Toast.LENGTH_LONG).show();
                         }
 
-                        mAdapter.notifyDataSetChanged();
-
-                        onMessageSendingFailed(event);
+                        getUiHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mAdapter.notifyDataSetChanged();
+                                onMessageSendingFailed(event);
+                            }
+                        });
                     }
                 }
 
@@ -1077,7 +1102,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         message.url = contentUri;
 
                         // update the event content with the new message info
-                        messageRow.getEvent().content = JsonUtils.toJson(message);
+                        messageRow.getEvent().updateContent(JsonUtils.toJson(message));
 
                         Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
@@ -1249,7 +1274,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             message.url = contentUri;
 
                             // update the event content with the new message info
-                            videoRow.getEvent().content = JsonUtils.toJson(message);
+                            videoRow.getEvent().updateContent(JsonUtils.toJson(message));
 
                             Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
@@ -1360,7 +1385,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         }
 
                         // update the event content with the new message info
-                        imageRow.getEvent().content = JsonUtils.toJson(message);
+                        imageRow.getEvent().updateContent(JsonUtils.toJson(message));
 
                         Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
@@ -1444,7 +1469,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             @Override
             public void onUploadComplete(final String uploadId, final String contentUri) {
-
                 getUiHandler().post(new Runnable() {
                     @Override
                     public void run() {
@@ -1457,7 +1481,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         message.thumbnail_url = contentUri;
 
                         // update the event content with the new message info
-                        locationRow.getEvent().content = JsonUtils.toJson(message);
+                        locationRow.getEvent().updateContent(JsonUtils.toJson(message));
 
                         Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
@@ -1571,7 +1595,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mPendingRelaunchTimersByEventId.remove(event.eventId);
 
         // send it again
-        final Message message = JsonUtils.toMessage(event.content);
+        final Message message = JsonUtils.toMessage(event.getContent());
 
         // resend an image ?
         if (message instanceof ImageMessage) {
@@ -1989,7 +2013,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             getUiHandler().post(new Runnable() {
                 @Override
                 public void run() {
-                    if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
+                    if (Event.EVENT_TYPE_REDACTION.equals(event.getType())) {
                         MessageRow messageRow = mAdapter.getMessageRow(event.getRedacts());
 
                         if (null != messageRow) {
@@ -2018,7 +2042,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                             mAdapter.notifyDataSetChanged();
                         }
-                    } else if (Event.EVENT_TYPE_TYPING.equals(event.type)) {
+                    } else if (Event.EVENT_TYPE_TYPING.equals(event.getType())) {
                         if (null != mRoom) {
                             mAdapter.setTypingUsers(mRoom.getTypingUsers());
                         }
@@ -2507,7 +2531,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             boolean isValidMessage = false;
 
-            if ((null != searchResult.result) && (null != searchResult.result.content)) {
+            if ((null != searchResult.result) && (null != searchResult.result.getContent())) {
                 JsonObject object = searchResult.result.getContentAsJsonObject();
 
                 if (null != object) {
@@ -2570,20 +2594,30 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 ApiCallback<SearchResponse> searchCallback = new ApiCallback<SearchResponse>() {
                     @Override
                     public void onSuccess(final SearchResponse searchResponse) {
-                        // check that the pattern was not modified before the end of the search
-                        if (TextUtils.equals(mPattern, pattern)) {
-                            onSearchResponse(searchResponse, onSearchResultListener);
-                        }
+                        getUiHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                // check that the pattern was not modified before the end of the search
+                                if (TextUtils.equals(mPattern, pattern)) {
+                                    onSearchResponse(searchResponse, onSearchResultListener);
+                                }
+                            }
+                        });
                     }
 
                     private void onError() {
-                        if (null != onSearchResultListener) {
-                            try {
-                                onSearchResultListener.onSearchFailed();
-                            } catch (Exception e) {
-                                Log.e(LOG_TAG, "onSearchResultListener failed with " + e.getLocalizedMessage());
+                        getUiHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (null != onSearchResultListener) {
+                                    try {
+                                        onSearchResultListener.onSearchFailed();
+                                    } catch (Exception e) {
+                                        Log.e(LOG_TAG, "onSearchResultListener failed with " + e.getLocalizedMessage());
+                                    }
+                                }
                             }
-                        }
+                        });
                     }
 
                     // the request will be auto restarted when a valid network will be found

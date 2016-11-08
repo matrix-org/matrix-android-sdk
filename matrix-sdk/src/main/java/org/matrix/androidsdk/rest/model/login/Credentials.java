@@ -28,6 +28,7 @@ public class Credentials {
     public String homeServer;  // This is the server name and not a URI, e.g. "matrix.org"
     public String accessToken;
     public String refreshToken;
+    public String deviceId;
 
     public JSONObject toJson() throws JSONException {
         JSONObject json = new JSONObject();
@@ -36,6 +37,8 @@ public class Credentials {
         json.put("home_server", homeServer);
         json.put("access_token", accessToken);
         json.put("refresh_token", TextUtils.isEmpty(refreshToken) ? JSONObject.NULL : refreshToken);
+        json.put("device_id", deviceId);
+
         return json;
     }
 
@@ -44,6 +47,10 @@ public class Credentials {
         creds.userId = obj.getString("user_id");
         creds.homeServer = obj.getString("home_server");
         creds.accessToken = obj.getString("access_token");
+
+        if (obj.has("device_id")) {
+            creds.deviceId =  obj.getString("device_id");
+        }
 
         // refresh_token is mandatory
         if (obj.has("refresh_token")) {

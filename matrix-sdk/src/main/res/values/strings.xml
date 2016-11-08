@@ -21,7 +21,7 @@
     <string name="notice_avatar_url_changed">%1$s changed their avatar</string>
     <string name="notice_display_name_set">%1$s set their display name to %2$s</string>
     <string name="notice_display_name_changed_from">%1$s changed their display name from %2$s to %3$s</string>
-    <string name="notice_display_name_removed">%1$s removed their display name</string>
+    <string name="notice_display_name_removed">%1$s removed their display name (%2$s)</string>
     <string name="notice_display_name_changed">%1$s changed their display name to %2$s</string>
     <string name="notice_topic_changed">%1$s changed the topic to: %2$s</string>
     <string name="notice_room_name_changed">%1$s changed the room name to: %2$s</string>
@@ -37,6 +37,7 @@
     <string name="notice_room_visibility_shared">all room members.</string>
     <string name="notice_room_visibility_world_readable">anyone.</string>
     <string name="notice_room_visibility_unknown">unknown (%s).</string>
+    <string name="notice_end_to_end">%1$s turned on end-to-end encryption (%2$s)</string>
 
     <string name="notice_requested_voip_conference">%1$s requested a VoIP conference</string>
     <string name="notice_voip_started">VoIP conference started</string>
@@ -103,5 +104,8 @@
 
     <!-- room error messages -->
     <string name="room_error_join_failed_empty_room">It is not currently possible to re-join an empty room.</string>
+
+
+    <string name="encrypted_message">Encrypted message</string>
 
 </resources>

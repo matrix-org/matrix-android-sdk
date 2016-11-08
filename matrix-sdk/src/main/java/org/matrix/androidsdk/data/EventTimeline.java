@@ -23,6 +23,9 @@ import android.util.Log;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.crypto.MXCryptoError;
+import org.matrix.androidsdk.data.store.IMXStore;
+import org.matrix.androidsdk.data.store.MXMemoryStore;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
@@ -537,10 +540,12 @@ public class EventTimeline {
                             if (RoomSummary.isSupportedEvent(event)) {
                                 summary = mStore.storeSummary(event.roomId, event, mState, myUserId);
 
+                                String eventType = event.getType();
+
                                 // Watch for potential room name changes
-                                if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
-                                        || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
-                                        || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+                                if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType)
+                                        || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(eventType)
+                                        || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
 
 
                                     if (null != summary) {
@@ -606,11 +611,12 @@ public class EventTimeline {
 
         if (RoomSummary.isSupportedEvent(event)) {
             RoomSummary summary = mStore.storeSummary(event.roomId, event, mState, myUserId);
+            String eventType = event.getType();
 
             // Watch for potential room name changes
-            if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
-                    || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
-                    || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+            if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType)
+                    || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(eventType)
+                    || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
                 if (null != summary) {
                     summary.setName(mRoom.getName(myUserId));
                 }
@@ -627,7 +633,7 @@ public class EventTimeline {
         boolean store = false;
         String myUserId = mDataHandler.getCredentials().userId;
 
-        if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
+        if (Event.EVENT_TYPE_REDACTION.equals(event.getType())) {
             if (event.getRedacts() != null) {
                 Event eventToPrune = mStore.getEvent(event.getRedacts(), event.roomId);
 
@@ -672,12 +678,12 @@ public class EventTimeline {
             }
         }  else {
             // the candidate events are not stored.
-            store = !event.isCallEvent() || !Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type);
+            store = !event.isCallEvent() || !Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.getType());
 
             // thread issue
             // if the user leaves a room,
-            if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && myUserId.equals(event.stateKey)) {
-                String membership = event.content.getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
+            if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.getType()) && myUserId.equals(event.stateKey)) {
+                String membership = event.getContent().getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
 
                 if (RoomMember.MEMBERSHIP_LEAVE.equals(membership) || RoomMember.MEMBERSHIP_BAN.equals(membership)) {
                     store = mIsHistorical;
@@ -691,13 +697,13 @@ public class EventTimeline {
         }
 
         // warn the listener that a new room has been created
-        if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
+        if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.getType())) {
             mDataHandler.onNewRoom(event.roomId);
         }
 
         // warn the listeners that a room has been joined
-        if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && myUserId.equals(event.stateKey)) {
-            String membership = event.content.getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
+        if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.getType()) && myUserId.equals(event.stateKey)) {
+            String membership = event.getContent().getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
 
             if (RoomMember.MEMBERSHIP_JOIN.equals(membership)) {
                 mDataHandler.onJoinRoom(event.roomId);
@@ -724,14 +730,16 @@ public class EventTimeline {
 
         BingRulesManager bingRulesManager = mDataHandler.getBingRulesManager();
 
+        String eventType = event.getType();
+
         // If the bing rules apply, bing
         if (!outOfTimeEvent
                 // some events are not bingable
-                && !TextUtils.equals(event.type, Event.EVENT_TYPE_PRESENCE)
-                && !TextUtils.equals(event.type, Event.EVENT_TYPE_TYPING)
-                && !TextUtils.equals(event.type, Event.EVENT_TYPE_REDACTION)
-                && !TextUtils.equals(event.type, Event.EVENT_TYPE_RECEIPT)
-                && !TextUtils.equals(event.type, Event.EVENT_TYPE_TAGS)
+                && !TextUtils.equals(eventType, Event.EVENT_TYPE_PRESENCE)
+                && !TextUtils.equals(eventType, Event.EVENT_TYPE_TYPING)
+                && !TextUtils.equals(eventType, Event.EVENT_TYPE_REDACTION)
+                && !TextUtils.equals(eventType, Event.EVENT_TYPE_RECEIPT)
+                && !TextUtils.equals(eventType, Event.EVENT_TYPE_TAGS)
                 && (bingRulesManager != null)
                 && (null != (bingRule = bingRulesManager.fulfilledBingRule(event)))
                 && bingRule.shouldNotify()) {
@@ -757,7 +765,7 @@ public class EventTimeline {
 
             // the candidates events are not tracked
             // because the users don't need to see the peer exchanges.
-            if (!TextUtils.equals(event.type, Event.EVENT_TYPE_CALL_CANDIDATES)) {
+            if (!TextUtils.equals(event.getType(), Event.EVENT_TYPE_CALL_CANDIDATES)) {
                 // warn the listeners
                 // general listeners
                 mDataHandler.onLiveEvent(event, mState);
@@ -778,7 +786,7 @@ public class EventTimeline {
             if (null != storedEvent) {
 
                 // an event has been echoed
-                if (storedEvent.getAge() == Long.MAX_VALUE) {
+                if (storedEvent.getAge() == Event.DUMMY_EVENT_AGE) {
                     mStore.deleteEvent(storedEvent);
                     mStore.storeLiveRoomEvent(event);
                     mStore.commit();
@@ -797,7 +805,7 @@ public class EventTimeline {
                 // check if the room has been joined
                 // the initial sync + the first requestHistory call is done here
                 // instead of being done in the application
-                if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && TextUtils.equals(event.getSender(), mDataHandler.getUserId())) {
+                if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.getType()) && TextUtils.equals(event.getSender(), mDataHandler.getUserId())) {
                     EventContent eventContent = JsonUtils.toEventContent(event.getContentAsJsonObject());
                     EventContent prevEventContent = event.getPrevContent();
 
@@ -846,6 +854,16 @@ public class EventTimeline {
                     }
                 }
 
+                // Decrypt event if necessary
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
+                    if (null != mDataHandler.getCrypto()) {
+                        event.setClearEvent(mDataHandler.getCrypto().decryptEvent(event));
+                    } else {
+                        event.setClearEvent(null);
+                        event.setCryptoError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLE));
+                    }
+                }
+
                 storeLiveRoomEvent(event, checkRedactedStateEvent);
 
                 // warn the listeners
@@ -860,7 +878,7 @@ public class EventTimeline {
                     triggerPush(event);
                 }
             } else {
-                Log.e(LOG_TAG, "Unknown live event type: " + event.type);
+                Log.e(LOG_TAG, "Unknown live event type: " + event.getType());
             }
         }
     }
@@ -960,6 +978,16 @@ public class EventTimeline {
             if (event.stateKey != null) {
                 deepCopyState(direction);
                 processedEvent = processStateEvent(event, direction);
+            }
+
+            // Decrypt event if necessary
+            if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
+                if (null != mDataHandler.getCrypto()) {
+                    event.setClearEvent(mDataHandler.getCrypto().decryptEvent(event));
+                } else {
+                    event.setClearEvent(null);
+                    event.setCryptoError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLE));
+                }
             }
 
             if (processedEvent) {

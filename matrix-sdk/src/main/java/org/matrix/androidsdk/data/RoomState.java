@@ -107,6 +107,9 @@ public class RoomState implements java.io.Serializable {
     /**  the room visibility in the directory list (i.e. public, private...) **/
     public String visibility;
 
+    // the encryption algorithm
+    public String algorithm;
+
     /**
      * The number of unread messages that match the push notification rules.
      * It is based on the notificationCount field in /sync response.
@@ -448,6 +451,7 @@ public class RoomState implements java.io.Serializable {
         copy.mMembership = mMembership;
         copy.mIsLive = mIsLive;
         copy.mIsConferenceUserRoom = mIsConferenceUserRoom;
+        copy.algorithm = algorithm;
 
         synchronized (this) {
             Iterator it = mMembers.entrySet().iterator();
@@ -650,6 +654,20 @@ public class RoomState implements java.io.Serializable {
     }
 
     /**
+     * @return true if the room is encrypted
+     */
+    public boolean isEncrypted() {
+        return !TextUtils.isEmpty(algorithm);
+    }
+
+    /**
+     * @return the encryption algorithm
+     */
+    public String encryptionAlgorithm() {
+        return algorithm;
+    }
+
+    /**
      * Apply the given event (relevant for state changes) to our state.
      * @param event the event
      * @param direction how the event should affect the state: Forwards for applying, backwards for un-applying (applying the previous state)
@@ -661,24 +679,25 @@ public class RoomState implements java.io.Serializable {
         }
 
         JsonObject contentToConsider = (direction == EventTimeline.Direction.FORWARDS) ? event.getContentAsJsonObject() : event.getPrevContentAsJsonObject();
+        String eventType = event.getType();
 
         try {
-            if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
+            if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType)) {
                 RoomState roomState = JsonUtils.toRoomState(contentToConsider);
                 name = (roomState == null) ? null : roomState.name;
-            } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)) {
+            } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType)) {
                 RoomState roomState = JsonUtils.toRoomState(contentToConsider);
                 topic = (roomState == null) ? null : roomState.topic;
-            } else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
+            } else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(eventType)) {
                 RoomState roomState = JsonUtils.toRoomState(contentToConsider);
                 creator = (roomState == null) ? null : roomState.creator;
-            } else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(event.type)) {
+            } else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(eventType)) {
                 RoomState roomState = JsonUtils.toRoomState(contentToConsider);
                 join_rule = (roomState == null) ? null : roomState.join_rule;
-            } else if (Event.EVENT_TYPE_STATE_ROOM_GUEST_ACCESS.equals(event.type)) {
+            } else if (Event.EVENT_TYPE_STATE_ROOM_GUEST_ACCESS.equals(eventType)) {
                 RoomState roomState = JsonUtils.toRoomState(contentToConsider);
                 guest_access = (roomState == null) ? null : roomState.guest_access;
-            } else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)) {
+            } else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(eventType)) {
                 if (!TextUtils.isEmpty(event.stateKey)) {
                     RoomState roomState = JsonUtils.toRoomState(contentToConsider);
 
@@ -692,18 +711,21 @@ public class RoomState implements java.io.Serializable {
                         mAliasesByDomain.put(event.stateKey, new ArrayList<String>());
                     }
                 }
-            } else if (Event.EVENT_TYPE_STATE_CANONICAL_ALIAS.equals(event.type)) {
+            } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
+                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                algorithm = (roomState == null) ? null : roomState.algorithm;
+            } else if (Event.EVENT_TYPE_STATE_CANONICAL_ALIAS.equals(eventType)) {
                 // SPEC-125
                 RoomState roomState = JsonUtils.toRoomState(contentToConsider);
                 alias = (roomState == null) ? null : roomState.alias;
-            } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(event.type)) {
+            } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(eventType)) {
                 // SPEC-134
                 RoomState roomState = JsonUtils.toRoomState(contentToConsider);
                 history_visibility = (roomState == null) ? null : roomState.history_visibility;
-            } else if (Event.EVENT_TYPE_STATE_ROOM_AVATAR.equals(event.type)) {
+            } else if (Event.EVENT_TYPE_STATE_ROOM_AVATAR.equals(eventType)) {
                 RoomState roomState = JsonUtils.toRoomState(contentToConsider);
                 url = (roomState == null) ? null : roomState.url;
-            } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+            } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
                 RoomMember member = JsonUtils.toRoomMember(contentToConsider);
                 String userId = event.stateKey;
                 if (member == null) {
@@ -752,9 +774,9 @@ public class RoomState implements java.io.Serializable {
 
                     setMember(userId, member);
                 }
-            } else if (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(event.type)) {
+            } else if (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(eventType)) {
                 powerLevels = JsonUtils.toPowerLevels(contentToConsider);
-            } else if (Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.type)) {
+            } else if (Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.getType())) {
                 RoomThirdPartyInvite thirdPartyInvite  = JsonUtils.toRoomThirdPartyInvite(contentToConsider);
 
                 thirdPartyInvite.token = event.stateKey;

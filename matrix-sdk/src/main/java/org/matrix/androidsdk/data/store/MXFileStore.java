@@ -14,16 +14,19 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.data;
+package org.matrix.androidsdk.data.store;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.HandlerThread;
-import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Log;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.data.EventTimeline;
+import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomAccountData;
+import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -31,6 +34,7 @@ import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.ContentUtils;
+import org.matrix.androidsdk.util.MXOsHandler;
 
 import java.io.EOFException;
 import java.io.File;
@@ -100,7 +104,7 @@ public class MXFileStore extends MXMemoryStore {
 
     // the background thread
     private HandlerThread mHandlerThread = null;
-    private android.os.Handler mFileStoreHandler = null;
+    private MXOsHandler mFileStoreHandler = null;
 
     private boolean mIsKilled = false;
 
@@ -203,7 +207,7 @@ public class MXFileStore extends MXMemoryStore {
             mIsNewStorage = true;
             mIsOpening = true;
             mHandlerThread.start();
-            mFileStoreHandler = new android.os.Handler(mHandlerThread.getLooper());
+            mFileStoreHandler = new MXOsHandler(mHandlerThread.getLooper());
 
             mMetadata = new MXFileStoreMetaData();
             mMetadata.mUserId = mCredentials.userId;
@@ -267,6 +271,7 @@ public class MXFileStore extends MXMemoryStore {
     /**
      * Open the store.
      */
+    @Override
     public void open() {
         super.open();
 
@@ -288,7 +293,7 @@ public class MXFileStore extends MXMemoryStore {
                         // already started
                         return;
                     }
-                    mFileStoreHandler = new android.os.Handler(mHandlerThread.getLooper());
+                    mFileStoreHandler = new MXOsHandler(mHandlerThread.getLooper());
                 }
 
                 Runnable r = new Runnable() {
@@ -426,17 +431,32 @@ public class MXFileStore extends MXMemoryStore {
                                 }
                                 mIsOpening = false;
 
-                                if (null != mListener) {
-                                    if (!succeed && !mIsNewStorage) {
-                                        Log.e(LOG_TAG, "The store is corrupted.");
-                                        mListener.onStoreCorrupted(mCredentials.userId, errorDescription);
-                                    } else {
-                                        Log.e(LOG_TAG, "The store is opened.");
-                                        mListener.onStoreReady(mCredentials.userId);
-                                    }
+                                if (!succeed && !mIsNewStorage) {
+                                    Log.e(LOG_TAG, "The store is corrupted.");
+                                    dispatchOnStoreCorrupted(mCredentials.userId, errorDescription);
+                                } else {
+                                    // post processing
+                                    Log.e(LOG_TAG, "Management post processing.");
+                                    dispatchpostProcess(mCredentials.userId);
+
+                                    Log.e(LOG_TAG, "The store is opened.");
+                                    dispatchOnStoreReady(mCredentials.userId);
                                 }
                             }
                         });
+                    }
+                };
+
+                Thread t = new Thread(r);
+                t.start();
+            } else if (mIsReady) {
+                Runnable r = new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.e(LOG_TAG, "Management post processing.");
+                        dispatchpostProcess(mCredentials.userId);
+                        Log.e(LOG_TAG, "The store is opened.");
+                        dispatchOnStoreReady(mCredentials.userId);
                     }
                 };
 
@@ -597,9 +617,16 @@ public class MXFileStore extends MXMemoryStore {
 
     @Override
     public void setIgnoredUserIdsList(List<String> users) {
-        Log.d(LOG_TAG, "Set setIgnoredUsers to " + users);
+        Log.d(LOG_TAG, "## setIgnoredUsers() : " + users);
         mMetaDataHasChanged = true;
         super.setIgnoredUserIdsList(users);
+    }
+
+    @Override
+    public void setDirectChatRoomsDict(Map<String, List<String>> directChatRoomsDict) {
+        Log.d(LOG_TAG, "## setDirectChatRoomsDict() : " + directChatRoomsDict);
+        mMetaDataHasChanged = true;
+        super.setDirectChatRoomsDict(directChatRoomsDict);
     }
 
     @Override
@@ -1713,7 +1740,7 @@ public class MXFileStore extends MXMemoryStore {
      * flush the metadata info from the file system.
      */
     private void saveMetaData() {
-        if ((mMetaDataHasChanged) && (null != mFileStoreHandler)) {
+        if ((mMetaDataHasChanged) && (null != mFileStoreHandler) && (null != mMetadata)) {
             mMetaDataHasChanged = false;
 
             final MXFileStoreMetaData fMetadata = mMetadata.deepCopy();
