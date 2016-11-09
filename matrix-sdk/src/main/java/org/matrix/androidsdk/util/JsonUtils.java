@@ -27,6 +27,7 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.json.ConditionDeserializer;
 import org.matrix.androidsdk.rest.model.ContentResponse;
+import org.matrix.androidsdk.rest.model.EncryptedEventContent;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.FileMessage;
@@ -135,6 +136,10 @@ public class JsonUtils {
 
     public static Event toEvent(JsonElement jsonObject) {
         return gson.fromJson(jsonObject, Event.class);
+    }
+
+    public static EncryptedEventContent toEncryptedEventContent(JsonElement jsonObject) {
+        return gson.fromJson(jsonObject, EncryptedEventContent.class);
     }
 
     public static EventContent toEventContent(JsonElement jsonObject) {
