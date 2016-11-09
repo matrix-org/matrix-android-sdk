@@ -195,15 +195,13 @@ public class EventDisplay {
 
                 if (null != mEvent.getCryptoError()) {
                     message = mEvent.getCryptoError().getLocalizedMessage();
-
-                    if (!TextUtils.isEmpty(message)) {
-                        message = "**" + message + "**";
-                    }
                 }
 
                 if (TextUtils.isEmpty(message) ) {
                     message = mContext.getString(R.string.encrypted_message);
                 }
+
+				message = "**" + message + "**";
 
                 SpannableString spannableStr = new SpannableString(message);
                 spannableStr.setSpan(new android.text.style.StyleSpan(Typeface.ITALIC), 0, message.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
