@@ -171,7 +171,7 @@ public class MXCrypto {
 
         myDevices.put(mMyDevice.deviceId, mMyDevice);
 
-        mCryptoStore.storeDevicesForUser(mSession.getMyUserId(), myDevices);
+        mCryptoStore.storeDevicesForUser(mSession.getMyUserId(), myDevices, true);
         mSession.getDataHandler().setCryptoEventsListener(mEventListener);
         mLastNewDeviceMessageTsByUserDeviceRoom = new MXUsersDevicesMap<>();
     }
@@ -545,10 +545,14 @@ public class MXCrypto {
                         }
 
                         // Update the store. Note
-                        mCryptoStore.storeDevicesForUser(userId, devices);
+                        mCryptoStore.storeDevicesForUser(userId, devices, false);
 
                         // And the response result
                         stored.setObjects(devices, userId);
+                    }
+
+                    if (deviceKeys.userIds().size() >= 0) {
+                        mCryptoStore.flushDevicesForUser();
                     }
 
                     if (null != callback) {
@@ -800,6 +804,8 @@ public class MXCrypto {
                 Log.d(LOG_TAG, "## claimOneTimeKeysForUsersDevices() : keysClaimResponse.oneTimeKeys: " + oneTimeKeys);
 
                 if ((null != oneTimeKeys) && (null != oneTimeKeys.userIds())) {
+                    boolean hasNewOutboundSession = false;
+
                     ArrayList<String> userIds = new ArrayList<>(oneTimeKeys.userIds());
 
                     for (String userId : userIds) {
@@ -827,6 +833,7 @@ public class MXCrypto {
                                         String signKey = device.keys.get(signKeyId);
 
                                         if (mOlmDevice.verifySignature(signKey, key.signalableJSONDictionary(), signature)) {
+                                            hasNewOutboundSession = true;
                                             olmSessionResult.mSessionId = mOlmDevice.createOutboundSession(device.identityKey(), key.value);
                                             Log.d(LOG_TAG, "Started new sessionid " + olmSessionResult.mSessionId + " for device " + device);
                                         } else {
@@ -838,6 +845,10 @@ public class MXCrypto {
                                 }
                             }
                         }
+                    }
+
+                    if (hasNewOutboundSession) {
+                        mCryptoStore.flushSessions();
                     }
                 }
 

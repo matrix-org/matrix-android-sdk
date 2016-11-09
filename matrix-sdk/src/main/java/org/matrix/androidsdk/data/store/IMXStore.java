@@ -43,7 +43,7 @@ public interface IMXStore {
         /**
          * The store has loaded its internal data.
          * Let any post processing data management.
-         * It is called in the store thread.
+         * It is called in the store thread before calling onStoreReady.
          * @param accountId the account id
          */
         void postProcess(String accountId);

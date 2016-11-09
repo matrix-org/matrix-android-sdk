@@ -94,6 +94,7 @@ public class MXOlmEncryption implements IMXEncrypting {
                         messageMap.put("content", eventContent);
 
                         mCrypto.encryptMessage(messageMap, participantKeys);
+                        mCrypto.mCryptoStore.flushSessions();
                         callback.onSuccess(JsonUtils.getGson(false).toJsonTree(messageMap));
                     }
 

@@ -110,8 +110,14 @@ public interface IMXCryptoStore {
      * Store the known devices for a user.
      * @param userId  The user's id.
      * @param devices A map from device id to 'MXDevice' object for the device.
+     * @param flush true to flush the devices information
      */
-    void storeDevicesForUser(String userId, Map<String, MXDeviceInfo> devices);
+    void storeDevicesForUser(String userId, Map<String, MXDeviceInfo> devices, boolean flush);
+
+    /**
+     * Flush the devices for user data
+     */
+    void flushDevicesForUser();
 
     /**
      * Retrieve the known devices for a user.
@@ -138,8 +144,14 @@ public interface IMXCryptoStore {
      * Store a session between the logged-in user and another device.
      * @param session the end-to-end session.
      * @param deviceKey the public key of the other device.
+     * @param flush set to true to flush the session
      */
-    void storeSession(OlmSession session, String deviceKey);
+    void storeSession(OlmSession session, String deviceKey, boolean flush);
+
+    /**
+     * Flush the sessions data
+     */
+    void flushSessions();
 
     /**
      * Retrieve the end-to-end sessions between the logged-in user and another
