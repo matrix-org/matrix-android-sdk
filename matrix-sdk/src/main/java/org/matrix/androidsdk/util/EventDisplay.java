@@ -194,13 +194,10 @@ public class EventDisplay {
                 String message = null;
 
                 if (null != mEvent.getCryptoError()) {
-                    if (TextUtils.equals(mEvent.getCryptoError().errcode, MXCryptoError.ENCRYPTING_NOT_ENABLE)) {
-                        message = mContext.getString(R.string.encrypted_message);
-                    } else {
-                        message = mEvent.getCryptoError().getLocalizedMessage();
-                        if (!TextUtils.isEmpty(message)) {
-                            message = "**" + message + "**";
-                        }
+                    message = mEvent.getCryptoError().getLocalizedMessage();
+
+                    if (!TextUtils.isEmpty(message)) {
+                        message = "**" + message + "**";
                     }
                 }
 
