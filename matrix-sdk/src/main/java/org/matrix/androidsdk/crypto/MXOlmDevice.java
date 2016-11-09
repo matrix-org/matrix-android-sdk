@@ -228,8 +228,7 @@ public class MXOlmDevice {
             Log.d(LOG_TAG, "## createInboundSession() : OlmSession creation failed " + e.getMessage());
         }
 
-        if (olmSession == olmSession.initInboundSessionWithAccountFrom(mOlmAccount, theirDeviceIdentityKey, ciphertext)) {
-
+        if (olmSession.initInboundSessionWithAccountFrom(mOlmAccount, theirDeviceIdentityKey, ciphertext) >= 0) {
             Log.d(LOG_TAG, "## createInboundSession() : " + olmSession.sessionIdentifier());
 
             mOlmAccount.removeOneTimeKeysForSession(olmSession);
