@@ -471,7 +471,13 @@ public class MXOlmDevice {
             // Check that the room id matches the original one for the session. This stops
             // the HS pretending a message was targeting a different room.
             if (TextUtils.equals(roomId, session.mRoomId)) {
-                String payloadString = session.mSession.decryptMessage(body);
+                String payloadString = null;
+
+                try {
+                    payloadString = session.mSession.decryptMessage(body);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## decryptGroupMessage () : decryptMessage failed " + e.getMessage());
+                }
 
                 if (null != payloadString) {
                     mStore.storeInboundGroupSession(session);
