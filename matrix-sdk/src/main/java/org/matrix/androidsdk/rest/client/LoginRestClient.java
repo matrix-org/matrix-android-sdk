@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.rest.client;
 
+import android.os.Build;
+
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
@@ -124,6 +126,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
         }
 
         params.password = password;
+        params.initial_device_display_name = Build.MODEL.trim();
 
         mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
 
@@ -170,6 +173,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
         params.user = user;
         params.token = token;
         params.txn_id = txn_id;
+        params.initial_device_display_name = Build.MODEL.trim();
 
         mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
 

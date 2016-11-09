@@ -29,4 +29,6 @@ public class PasswordLoginParams extends LoginParams {
     // common
     public String password;
 
+    // A display name to assign to the newly-created device
+    public String initial_device_display_name;
 }
