@@ -55,6 +55,7 @@ import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
+import org.matrix.androidsdk.rest.model.DevicesListResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -1707,5 +1708,13 @@ public class MXSession {
                 callback.onSuccess(null);
             }
         }
+    }
+
+    /**
+     * Retrieves the devices list
+     * @param callback the asynchronous callback
+     */
+    public void getDevicesList(ApiCallback<DevicesListResponse> callback) {
+        mCryptoRestClient.getDevices(callback);
     }
 }

@@ -26,6 +26,7 @@ import org.matrix.androidsdk.rest.api.CryptoApi;
 
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.model.DevicesListResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysClaimResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
@@ -196,6 +197,25 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
             @Override
             public void onRetry() {
                 sendToDevice(eventType, contentMap, callback);
+            }
+        }));
+    }
+
+    /**
+     * Retrieves the devices informaty
+     * @param callback the asynchronous callback.
+     */
+    public void getDevices(final ApiCallback<DevicesListResponse> callback) {
+        final String description = "getDevicesListInfo";
+
+        mApi.getDevices(new RestAdapterCallback<DevicesListResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    getDevices(callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend getDevices : failed " + e.getMessage());
+                }
             }
         }));
     }

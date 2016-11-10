@@ -17,10 +17,12 @@ package org.matrix.androidsdk.rest.api;
 
 import retrofit.Callback;
 import retrofit.http.Body;
+import retrofit.http.GET;
 import retrofit.http.POST;
 import retrofit.http.PUT;
 import retrofit.http.Path;
 
+import org.matrix.androidsdk.rest.model.DevicesListResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysClaimResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
@@ -71,5 +73,12 @@ public interface CryptoApi {
      */
     @PUT("/sendToDevice/{eventType}/{random}")
     void sendToDevice(@Path("eventType") String eventType, @Path("random") int randomTransactionId, @Body Map<String, Object> params, Callback<Void> callback);
+
+
+    /**
+     * Get the devices list
+     */
+    @GET("/devices")
+    void getDevices(Callback<DevicesListResponse> callback);
 
 }

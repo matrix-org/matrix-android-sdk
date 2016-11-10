@@ -75,10 +75,10 @@ public class RestClient<T> {
         this(hsConfig, type, uriPrefix, withNullSerialization, false);
     }
 
-        /**
-         * Public constructor.
-         * @param hsConfig The homeserver connection config.
-         */
+    /**
+     * Public constructor.
+     * @param hsConfig The homeserver connection config.
+     */
     public RestClient(HomeserverConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization, boolean useIdentityServer) {
         // The JSON -> object mapper
         gson = JsonUtils.getGson(withNullSerialization);
@@ -97,7 +97,6 @@ public class RestClient<T> {
         } catch (Exception e) {
             Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage());
         }
-
 
         // remove any trailing http in the uri prefix
         if (uriPrefix.startsWith("http://")) {
