@@ -196,7 +196,7 @@ public class MXOlmDevice {
         try {
             OlmSession olmSession = new OlmSession();
             olmSession.initOutboundSessionWithAccount(mOlmAccount, theirIdentityKey, theirOneTimeKey);
-            mStore.storeSession(olmSession, theirIdentityKey);
+            mStore.storeSession(olmSession, theirIdentityKey, false);
 
             Log.d(LOG_TAG, "## createOutboundSession() ;  olmSession.sessionIdentifier: " + olmSession.sessionIdentifier());
 
@@ -246,7 +246,7 @@ public class MXOlmDevice {
             olmMessage.mType = messageType;
 
             String payloadString = olmSession.decryptMessage(olmMessage);
-            mStore.storeSession(olmSession, theirDeviceIdentityKey);
+            mStore.storeSession(olmSession, theirDeviceIdentityKey, true);
 
             HashMap<String, String> res = new HashMap<>();
 
@@ -315,7 +315,7 @@ public class MXOlmDevice {
 
             olmMessage = olmSession.encryptMessage(payloadString);
 
-            mStore.storeSession(olmSession, theirDeviceIdentityKey);
+            mStore.storeSession(olmSession, theirDeviceIdentityKey, false);
             res = new HashMap<>();
 
             res.put("body", olmMessage.mCipherText);
@@ -344,7 +344,7 @@ public class MXOlmDevice {
             olmMessage.mType = messageType;
             payloadString = olmSession.decryptMessage(olmMessage);
 
-            mStore.storeSession(olmSession, theirDeviceIdentityKey);
+            mStore.storeSession(olmSession, theirDeviceIdentityKey, true);
         }
 
         return payloadString;

@@ -513,6 +513,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                 }
 
                 if (haveTargets) {
+                    mCrypto.mCryptoStore.flushSessions();
                     mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, contentMap, new ApiCallback<Void>() {
                                 @Override
                                 public void onSuccess(Void info) {

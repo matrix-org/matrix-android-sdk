@@ -275,8 +275,16 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public void storeDevicesForUser(String userId, Map<String, MXDeviceInfo> devices) {
+    public void storeDevicesForUser(String userId, Map<String, MXDeviceInfo> devices, boolean flush) {
         mUsersDevicesInfoMap.setObjects(devices, userId);
+
+        if (flush) {
+            flushDevicesForUser();
+        }
+    }
+
+    @Override
+    public void flushDevicesForUser() {
         storeObject(mUsersDevicesInfoMap, mDevicesFile, "storeDeviceForUser");
     }
 
@@ -307,16 +315,24 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public void storeSession(OlmSession session, String deviceKey) {
+    public void storeSession(OlmSession session, String deviceKey, boolean flush) {
         if ((null != session) && (null != deviceKey) && (null != session.sessionIdentifier())) {
+
             if (!mOlmSessions.containsKey(deviceKey)) {
                 mOlmSessions.put(deviceKey, new HashMap<String, OlmSession>());
             }
 
             mOlmSessions.get(deviceKey).put(session.sessionIdentifier(), session);
 
-            storeObject(mOlmSessions, mSessionsFile, "storeSession");
+            if (flush) {
+                flushSessions();
+            }
         }
+    }
+
+    @Override
+    public void flushSessions() {
+        storeObject(mOlmSessions, mSessionsFile, "storeSession");
     }
 
     @Override
