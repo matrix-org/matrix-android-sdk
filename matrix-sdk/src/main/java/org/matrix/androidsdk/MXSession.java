@@ -1246,8 +1246,11 @@ public class MXSession {
     public List<String> getDirectChatRoomIdsList() {
         IMXStore store = getDataHandler().getStore();
         ArrayList<String> directChatRoomIdsList = new ArrayList<>();
+        Collection<List<String>> listOfList = null;
 
-        Collection<List<String>> listOfList = store.getDirectChatRoomsDict().values();
+        if (null != store.getDirectChatRoomsDict()) {
+            listOfList = store.getDirectChatRoomsDict().values();
+        }
 
         // if the direct messages entry has been defined
         if (null != listOfList) {
