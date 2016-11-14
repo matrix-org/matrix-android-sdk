@@ -269,7 +269,7 @@ public class JsonUtils {
     /**
      * Convert a string to an UTF8 String
      * @param s the string to convert
-     * @return the utf-16 string
+     * @return the utf-8 string
      */
     public static String convertToUTF8(String s) {
         String out = s;

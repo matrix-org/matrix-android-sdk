@@ -21,5 +21,5 @@ import java.util.List;
  * This class describes the
  */
 public class DevicesListResponse {
-    List<DeviceInfo> devices;
+    public List<DeviceInfo> devices;
 }

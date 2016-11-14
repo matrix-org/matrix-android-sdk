@@ -66,11 +66,13 @@ import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 import org.matrix.androidsdk.sync.DefaultEventsThreadListener;
 import org.matrix.androidsdk.sync.EventsThread;
 import org.matrix.androidsdk.sync.EventsThreadListener;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.ContentManager;
+import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.UnsentEventsManager;
 import org.matrix.olm.OlmManager;
 
@@ -135,7 +137,7 @@ public class MXSession {
     private boolean mIsCatchupPending = false;
 
     // load the crypto libs.
-    public static OlmManager mOlmManager = new OlmManager();
+    public static OlmManager mOlmManager = new OlmManager(android.os.Build.VERSION.SDK_INT < 23);
 
     // regex pattern to find matrix user ids in a string.
     public static final String MATRIX_USER_IDENTIFIER_REGEX = "@[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}";
@@ -1727,16 +1729,64 @@ public class MXSession {
      * @param password the passwoerd
      * @param callback the asynchronous callback.
      */
-    public void deleteDevice(String deviceId, String session, String password, ApiCallback<Void> callback) {
-        DeleteDeviceParams params = new DeleteDeviceParams();
+    public void deleteDevice(final String deviceId, final String password, final ApiCallback<Void> callback) {
+        DeleteDeviceParams dummyparams = new DeleteDeviceParams();
 
-        params.auth = new DeleteDeviceAuth();
+        mCryptoRestClient.deleteDevice(deviceId, dummyparams, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                // should never happen
+                if (null != callback) {
+                    callback.onSuccess(null);
+                }
+            }
 
-        params.auth.session = session;
-        params.auth.type = "m.login.password";
-        params.auth.user = mCredentials.userId;
-        params.auth.password = password;
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
 
-        mCryptoRestClient.deleteDevice(deviceId, params, callback);
+            @Override
+            public void onMatrixError(MatrixError matrixError) {
+                Log.d(LOG_TAG, "## checkNameAvailability(): The registration continues");
+                RegistrationFlowResponse registrationFlowResponse = null;
+
+                // expected status code is 401
+                if ((null != matrixError.mStatus) && (matrixError.mStatus == 401)) {
+                    try {
+                        registrationFlowResponse = JsonUtils.toRegistrationFlowResponse(matrixError.mErrorBodyAsString);
+                    } catch (Exception castExcept) {
+                        Log.e(LOG_TAG, "## deleteDevice(): Received status 401 - Exception - JsonUtils.toRegistrationFlowResponse()");
+                    }
+                } else {
+                    Log.d(LOG_TAG, "## deleteDevice(): Received not expected status 401 ="+ matrixError.mStatus);
+                }
+
+                // check if the server response can be casted
+                if (null != registrationFlowResponse) {
+                    DeleteDeviceParams params = new DeleteDeviceParams();
+
+                    params.auth = new DeleteDeviceAuth();
+                    params.auth.session = registrationFlowResponse.session;
+                    params.auth.type = "m.login.password";
+                    params.auth.user = mCredentials.userId;
+                    params.auth.password = password;
+                    mCryptoRestClient.deleteDevice(deviceId, params, callback);
+                } else {
+                    if (null != callback) {
+                        callback.onMatrixError(matrixError);
+                    }
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+        });
     }
 }
