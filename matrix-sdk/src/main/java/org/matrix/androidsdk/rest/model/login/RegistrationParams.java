@@ -32,4 +32,7 @@ public class RegistrationParams {
 
     // With email
     public Boolean bind_email;
+
+    // device name
+    public String initial_device_display_name;
 }

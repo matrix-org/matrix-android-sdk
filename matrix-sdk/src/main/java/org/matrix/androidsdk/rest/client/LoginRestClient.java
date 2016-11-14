@@ -16,6 +16,7 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.os.Build;
+import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
 
@@ -88,6 +89,11 @@ public class LoginRestClient extends RestClient<LoginApi> {
      */
     public void register(final RegistrationParams params, final ApiCallback<Credentials> callback) {
         final String description = "register";
+
+        // define a default device name
+        if (TextUtils.isEmpty(params.initial_device_display_name)) {
+            params.initial_device_display_name = Build.MODEL.trim();
+        }
 
         mApi.register(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
