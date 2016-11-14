@@ -16,6 +16,7 @@
 
 package org.matrix.androidsdk.crypto.algorithms.olm;
 
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.Gson;
@@ -45,9 +46,12 @@ public class MXOlmDecryption implements IMXDecrypting {
     // The olm device interface
     private MXOlmDevice mOlmDevice;
 
+    // the matrix session
+    private MXSession mSession;
 
     @Override
     public void initWithMatrixSession(MXSession matrixSession) {
+        mSession = matrixSession;
         mOlmDevice = matrixSession.getCrypto().getOlmDevice();
     }
 
@@ -88,6 +92,82 @@ public class MXOlmDecryption implements IMXDecrypting {
 
             result = new MXDecryptionResult();
             result.mPayload = new JsonParser().parse(JsonUtils.convertFromUTF8(payloadString));
+
+            if (null != result.mPayload) {
+                JsonObject payloadAsJSon = result.mPayload.getAsJsonObject();
+
+                if (!payloadAsJSon.has("recipient")) {
+                    Log.e(LOG_TAG,  "Olm event (id=" + event.eventId + ") contains no " +"'recipient' property; cannot prevent unknown-key attack");
+                } else {
+                    try {
+                        String recipient = payloadAsJSon.get("recipient").getAsString();
+
+                        if (!TextUtils.equals(recipient, mSession.getMyUserId())) {
+                            Log.e(LOG_TAG, "Event " + event.eventId + ": Intended recipient " + recipient + " does not match our id " + mSession.getMyUserId());
+                            result.mPayload = null;
+                            result.mCryptoError = new MXCryptoError(MXCryptoError.MESSAGE_NOT_INTENDED_FOR_THIS_DEVICE);
+                            return result;
+                        }
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## decryptEvent() : " + e.getMessage());
+                    }
+                }
+
+                if (!payloadAsJSon.has("recipient_keys")) {
+                    Log.e(LOG_TAG,  "Olm event (id=" + event.eventId + ") contains no " +"'recipient_keys' property; cannot prevent unknown-key attack");
+                } else {
+                    try {
+                        String ed25519 =  payloadAsJSon.getAsJsonObject("recipient_keys").get("ed25519").getAsString();
+
+                        if (!TextUtils.equals(ed25519, mOlmDevice.getDeviceEd25519Key())) {
+                            Log.e(LOG_TAG, "Event " + event.eventId + ": Intended recipient ed25519 key " + ed25519 + " did not match ours");
+
+                            result.mPayload = null;
+                            result.mCryptoError = new MXCryptoError(MXCryptoError.MESSAGE_NOT_INTENDED_FOR_THIS_DEVICE);
+                            return result;
+                        }
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## decryptEvent() : " + e.getMessage());
+                    }
+                }
+
+                if (!payloadAsJSon.has("sender")) {
+                    Log.e(LOG_TAG, "Olm event (id=" + event.eventId + ") contains no " + "'sender' property; cannot prevent unknown-key attack");
+                } else {
+                    try {
+                        String sender = payloadAsJSon.get("sender").getAsString();
+
+                        if (!TextUtils.equals(sender, event.getSender())) {
+                            Log.e(LOG_TAG, "Event " + event.eventId + ": original sender " + sender + " does not match reported sender " + event.getSender());
+
+                            result.mPayload = null;
+                            result.mCryptoError = new MXCryptoError(MXCryptoError.MESSAGE_NOT_INTENDED_FOR_THIS_DEVICE);
+                            return result;
+                        }
+                    }
+                    catch (Exception e) {
+                        Log.e(LOG_TAG, "## decryptEvent() : " + e.getMessage());
+                    }
+                }
+
+                String expectedRoomId = null;
+
+                if (payloadAsJSon.has("room_id")) {
+                    try {
+                        expectedRoomId = payloadAsJSon.get("room_id").getAsString();
+                    }
+                    catch (Exception e) {
+                        Log.e(LOG_TAG, "## decryptEvent() : " + e.getMessage());
+                    }
+                }
+
+                if (!TextUtils.equals(event.roomId, expectedRoomId)) {
+                    Log.e(LOG_TAG, "Event " + event.eventId + ": original room " + expectedRoomId + " does not match reported room " + event.roomId);
+                    result.mPayload = null;
+                    result.mCryptoError = new MXCryptoError(MXCryptoError.MESSAGE_NOT_INTENDED_FOR_THIS_DEVICE);
+                    return result;
+                }
+            }
 
             HashMap<String, String> keysProved = new HashMap<>();
             keysProved.put("curve25519", deviceKey);

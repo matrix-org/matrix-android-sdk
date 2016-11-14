@@ -64,7 +64,7 @@ public class MXOlmEncryption implements IMXEncrypting {
         ensureSession(users, new ApiCallback<Void>() {
                     @Override
                     public void onSuccess(Void info) {
-                        ArrayList<String> participantKeys = new ArrayList<>();
+                        ArrayList<MXDeviceInfo> deviceInfos = new ArrayList<>();
 
                         for(String userId : users) {
                             List<MXDeviceInfo> devices = mCrypto.storedDevicesForUser(userId);
@@ -83,7 +83,7 @@ public class MXOlmEncryption implements IMXEncrypting {
                                         continue;
                                     }
 
-                                    participantKeys.add(key);
+                                    deviceInfos.add(device);
                                 }
                             }
                         }
@@ -93,7 +93,7 @@ public class MXOlmEncryption implements IMXEncrypting {
                         messageMap.put("type", eventType);
                         messageMap.put("content", eventContent);
 
-                        mCrypto.encryptMessage(messageMap, participantKeys);
+                        mCrypto.encryptMessage(messageMap, deviceInfos);
                         mCrypto.mCryptoStore.flushSessions();
                         callback.onSuccess(JsonUtils.getGson(false).toJsonTree(messageMap));
                     }
