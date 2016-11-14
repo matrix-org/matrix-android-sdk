@@ -26,6 +26,7 @@ import org.matrix.androidsdk.rest.api.CryptoApi;
 
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.model.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.DevicesListResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysClaimResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
@@ -37,7 +38,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import retrofit.Callback;
 import retrofit.client.Response;
+import retrofit.http.Body;
+import retrofit.http.Path;
 
 public class CryptoRestClient extends RestClient<CryptoApi> {
 
@@ -215,6 +219,27 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
                     getDevices(callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend getDevices : failed " + e.getMessage());
+                }
+            }
+        }));
+    }
+
+    /**
+     * Delete a device.
+     * @param deviceId the device id
+     * @param params the deletion parameters
+     * @param callback the asynchronous callacbk
+     */
+    public void deleteDevice(final String deviceId, final DeleteDeviceParams params, final ApiCallback<Void> callback) {
+        final String description = "deleteDevice";
+
+        mApi.deleteDevice(deviceId, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    deleteDevice(deviceId, params, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend deleteDevice : failed " + e.getMessage());
                 }
             }
         }));

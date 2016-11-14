@@ -17,11 +17,15 @@ package org.matrix.androidsdk.rest.api;
 
 import retrofit.Callback;
 import retrofit.http.Body;
+import retrofit.http.DELETE;
 import retrofit.http.GET;
 import retrofit.http.POST;
 import retrofit.http.PUT;
 import retrofit.http.Path;
 
+import org.matrix.androidsdk.rest.model.ChangePasswordParams;
+import org.matrix.androidsdk.rest.model.DeleteDeviceAuth;
+import org.matrix.androidsdk.rest.model.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.DevicesListResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysClaimResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
@@ -74,11 +78,18 @@ public interface CryptoApi {
     @PUT("/sendToDevice/{eventType}/{random}")
     void sendToDevice(@Path("eventType") String eventType, @Path("random") int randomTransactionId, @Body Map<String, Object> params, Callback<Void> callback);
 
-
     /**
      * Get the devices list
      */
     @GET("/devices")
     void getDevices(Callback<DevicesListResponse> callback);
 
+    /**
+     * Delete a device.
+     * @param deviceId the device id;
+     * @param params the deletion parameters
+     * @param callback the callback
+     */
+    @DELETE("/devices/{device_id}")
+    void deleteDevice(@Path("device_id")String deviceId, @Body DeleteDeviceParams params, Callback<Void> callback);
 }

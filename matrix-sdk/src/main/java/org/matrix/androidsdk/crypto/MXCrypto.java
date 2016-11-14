@@ -130,7 +130,7 @@ public class MXCrypto {
 
         String deviceId = mSession.getCredentials().deviceId;
 
-        if (null == deviceId) {
+        if (TextUtils.isEmpty(deviceId)) {
             // use the stored one
             mSession.getCredentials().deviceId = deviceId = mCryptoStore.getDeviceId();
         }

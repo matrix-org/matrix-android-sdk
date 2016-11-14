@@ -55,6 +55,8 @@ import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
+import org.matrix.androidsdk.rest.model.DeleteDeviceAuth;
+import org.matrix.androidsdk.rest.model.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.DevicesListResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
@@ -1716,5 +1718,25 @@ public class MXSession {
      */
     public void getDevicesList(ApiCallback<DevicesListResponse> callback) {
         mCryptoRestClient.getDevices(callback);
+    }
+
+    /**
+     * Delete a device
+     * @param deviceId the device id
+     * @param session the session
+     * @param password the passwoerd
+     * @param callback the asynchronous callback.
+     */
+    public void deleteDevice(String deviceId, String session, String password, ApiCallback<Void> callback) {
+        DeleteDeviceParams params = new DeleteDeviceParams();
+
+        params.auth = new DeleteDeviceAuth();
+
+        params.auth.session = session;
+        params.auth.type = "m.login.password";
+        params.auth.user = mCredentials.userId;
+        params.auth.password = password;
+
+        mCryptoRestClient.deleteDevice(deviceId, params, callback);
     }
 }
