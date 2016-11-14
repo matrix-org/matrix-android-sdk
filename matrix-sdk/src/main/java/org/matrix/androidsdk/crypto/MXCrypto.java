@@ -1511,7 +1511,7 @@ public class MXCrypto {
         MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>();
 
         HashMap<String, Object> submap = new HashMap<>();
-        submap.put("device_id", deviceId);
+        submap.put("device_id", mSession.getCredentials().deviceId);
         submap.put("rooms", Arrays.asList(roomId));
 
         HashMap<String, Map<String,Object>> map = new HashMap<>();
