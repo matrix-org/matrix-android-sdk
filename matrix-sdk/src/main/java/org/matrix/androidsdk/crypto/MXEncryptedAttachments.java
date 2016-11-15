@@ -92,6 +92,12 @@ public class MXEncryptedAttachments {
                 read = attachmentStream.read(data);
             }
 
+            byte[] encodedBytes = cipher.doFinal();
+            if (null != encodedBytes) {
+                messageDigest.update(encodedBytes, 0, encodedBytes.length);
+                outStream.write(encodedBytes);
+            }
+
             EncryptionResult result = new EncryptionResult();
             result.mCipher = cipher;
 
