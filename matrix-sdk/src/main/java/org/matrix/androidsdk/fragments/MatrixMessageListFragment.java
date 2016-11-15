@@ -24,6 +24,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.MemoryFile;
 import android.provider.Browser;
 import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
@@ -45,6 +46,7 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.adapters.MessageRow;
 import org.matrix.androidsdk.adapters.MessagesAdapter;
+import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.Room;
@@ -74,6 +76,7 @@ import org.matrix.androidsdk.util.JsonUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -1302,7 +1305,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param mediaFilename the mediaFilename
      * @param mimeType the image mine type
      */
-    public void uploadImageContent(final String thumbnailUrl, final String imageUrl, final String mediaFilename, final String mimeType) {
+    public void uploadImageContent(final String thumbnailUrl, final String imageUrl, final String mediaFilename, String mimeType) {
         // create a tmp row
         final ImageMessage tmpImageMessage = new ImageMessage();
 
@@ -1310,14 +1313,28 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         tmpImageMessage.thumbnailUrl = thumbnailUrl;
         tmpImageMessage.body = mediaFilename;
 
-        FileInputStream imageStream = null;
+        MXEncryptedAttachments.EncryptionResult encryptionResult = null;
+
+        InputStream imageStream = null;
 
         try {
             Uri uri = Uri.parse(imageUrl);
             Room.fillImageInfo(getActivity(), tmpImageMessage, uri, mimeType);
 
             String filename = uri.getPath();
-            imageStream = new FileInputStream (new File(filename));
+            imageStream = new FileInputStream(new File(filename));
+
+            if (mRoom.isEncrypted() && mSession.isCryptoEnabled() && (null != imageStream)) {
+                MemoryFile memoryFile = new MemoryFile(filename, imageStream.available() * 2);
+
+                encryptionResult = MXEncryptedAttachments.encryptAttachment(imageStream, mimeType, memoryFile.getOutputStream());
+
+                if (null != encryptionResult) {
+                    imageStream.close();
+                    imageStream = memoryFile.getInputStream();
+                    mimeType = "application/octet-stream";
+                }
+            }
 
             if (null == tmpImageMessage.body) {
                 tmpImageMessage.body = uri.getLastPathSegment();
@@ -1330,6 +1347,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         // to avoid duplicate
         final MessageRow imageRow = addMessageRow(tmpImageMessage);
         imageRow.getEvent().mSentState = Event.SentState.SENDING;
+
+        final MXEncryptedAttachments.EncryptionResult fEncryptionResult = encryptionResult;
 
         getSession().getMediasCache().uploadContent(imageStream, tmpImageMessage.body, mimeType, imageUrl, new MXMediaUploadListener() {
 
@@ -1377,7 +1396,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         getMXMediasCache().saveFileMediaForUrl(contentUri, imageUrl, tmpImageMessage.getMimeType());
 
                         message.thumbnailUrl = null;
-                        message.url = contentUri;
+
+                        if (null != fEncryptionResult) {
+                            message.file = fEncryptionResult.mEncryptedFileInfo;
+                        } else {
+                            message.url = contentUri;
+                        }
+
                         message.info = tmpImageMessage.info;
 
                         if (TextUtils.isEmpty(message.body)) {

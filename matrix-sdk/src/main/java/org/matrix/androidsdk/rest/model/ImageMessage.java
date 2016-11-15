@@ -29,12 +29,17 @@ public class ImageMessage extends Message {
     public String url;
     public String thumbnailUrl;
 
+    // encrypted medias
+    // url and thumbnailUrl are replaced by their dedicated file
+    public EncryptedFileInfo file;
+    public EncryptedFileInfo thumbnail_file;
+
     public ImageMessage() {
         msgtype = MSGTYPE_IMAGE;
     }
 
     /**
-     * Make a deep copy of this VideoMessage.
+     * Make a deep copy of this ImageMessage.
      * @return the copy
      */
     public ImageMessage deepCopy() {
@@ -50,6 +55,14 @@ public class ImageMessage extends Message {
 
         if (null != thumbnailInfo) {
             copy.thumbnailInfo = thumbnailInfo.deepCopy();
+        }
+
+        if (null != file) {
+            copy.file = file.deepCopy();
+        }
+
+        if (null != thumbnail_file) {
+            copy.thumbnail_file = thumbnail_file.deepCopy();
         }
 
         return copy;

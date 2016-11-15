@@ -25,6 +25,11 @@ public class VideoMessage extends Message {
     public VideoInfo info;
     public String url;
 
+    // encrypted medias
+    // url and thumbnailUrl are replaced by their dedicated file
+    public EncryptedFileInfo file;
+    public EncryptedFileInfo thumbnail_file;
+
     public VideoMessage() {
         msgtype = MSGTYPE_VIDEO;
     }
@@ -42,6 +47,15 @@ public class VideoMessage extends Message {
         if (null != info) {
             copy.info = info.deepCopy();
         }
+
+        if (null != file) {
+            copy.file = file.deepCopy();
+        }
+
+        if (null != thumbnail_file) {
+            copy.thumbnail_file = thumbnail_file.deepCopy();
+        }
+
         return copy;
     }
 

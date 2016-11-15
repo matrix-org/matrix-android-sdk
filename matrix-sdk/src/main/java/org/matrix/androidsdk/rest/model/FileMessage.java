@@ -29,6 +29,10 @@ public class FileMessage extends Message {
     public FileInfo info;
     public String url;
 
+    // encrypted medias
+    // url and thumbnailUrl are replaced by their dedicated file
+    public EncryptedFileInfo file;
+
     public FileMessage() {
         msgtype = MSGTYPE_FILE;
     }
@@ -45,6 +49,10 @@ public class FileMessage extends Message {
 
         if (null != info) {
             copy.info = info.deepCopy();
+        }
+
+        if (null != file) {
+            copy.file = file.deepCopy();
         }
 
         return copy;

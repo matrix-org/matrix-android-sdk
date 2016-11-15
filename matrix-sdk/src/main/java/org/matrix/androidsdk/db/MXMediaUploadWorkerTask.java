@@ -224,9 +224,12 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
      */
     private void publishProgress(long startUploadTime) {
         mUploadStats.mElapsedTime = (int)((System.currentTimeMillis() - startUploadTime) / 1000);
-        // Uploading data is 90% of the job
-        // the other 10s is the end of the connection related actions
-        mUploadStats.mProgress = (int)(((long)mUploadStats.mUploadedSize) * 96 / mUploadStats.mFileSize);
+
+        if (0 != mUploadStats.mFileSize) {
+            // Uploading data is 90% of the job
+            // the other 10s is the end of the connection related actions
+            mUploadStats.mProgress = (int) (((long) mUploadStats.mUploadedSize) * 96 / mUploadStats.mFileSize);
+        }
 
         // avoid zero div
         if (System.currentTimeMillis() != startUploadTime) {
