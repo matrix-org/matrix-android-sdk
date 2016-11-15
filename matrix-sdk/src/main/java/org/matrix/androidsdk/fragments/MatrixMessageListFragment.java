@@ -1325,13 +1325,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             imageStream = new FileInputStream(new File(filename));
 
             if (mRoom.isEncrypted() && mSession.isCryptoEnabled() && (null != imageStream)) {
-                MemoryFile memoryFile = new MemoryFile(filename, imageStream.available() * 2);
-
-                encryptionResult = MXEncryptedAttachments.encryptAttachment(imageStream, mimeType, memoryFile.getOutputStream());
+                encryptionResult = MXEncryptedAttachments.encryptAttachment(imageStream, mimeType);
 
                 if (null != encryptionResult) {
                     imageStream.close();
-                    imageStream = memoryFile.getInputStream();
+                    imageStream = encryptionResult.mMemoryFile.getInputStream();
                     mimeType = "application/octet-stream";
                 }
             }
@@ -1399,6 +1397,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                         if (null != fEncryptionResult) {
                             message.file = fEncryptionResult.mEncryptedFileInfo;
+                            message.file.url = contentUri;
                         } else {
                             message.url = contentUri;
                         }
