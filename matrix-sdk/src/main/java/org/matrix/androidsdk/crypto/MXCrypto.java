@@ -1050,11 +1050,7 @@ public class MXCrypto {
             deviceInfoParticipantKey.put(di.identityKey(), di);
         }
 
-        Collections.sort(participantKeys);
-        String participantHash = mOlmDevice.sha256(TextUtils.join(", ", participantKeys));
-
         HashMap<String, Object> payloadJson = new HashMap<>(payloadFields);
-        payloadJson.put("fingerprint", participantHash);
 
         payloadJson.put("sender", mSession.getMyUserId());
         payloadJson.put("sender_device", mSession.getCredentials().deviceId);
