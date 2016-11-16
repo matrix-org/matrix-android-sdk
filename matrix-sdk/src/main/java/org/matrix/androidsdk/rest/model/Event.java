@@ -232,6 +232,21 @@ public class Event implements java.io.Serializable {
     }
 
     /**
+     * @return true if content has some entries
+     */
+    public boolean hasContentFields() {
+        boolean res = false;
+        JsonObject json = getContentAsJsonObject();
+
+        if (null != json) {
+            Set<Map.Entry<String, JsonElement>> entries = getContentAsJsonObject().entrySet();
+
+            res = (null != entries) && (0 != entries.size());
+        }
+        return res;
+    }
+
+    /**
      * @return true if this event was redacted
      */
     public boolean isRedacted() {
@@ -808,6 +823,11 @@ public class Event implements java.io.Serializable {
             allowedKeys = new ArrayList<>(Arrays.asList("alias"));
         } else if (TextUtils.equals(Event.EVENT_TYPE_FEEDBACK, type)) {
             allowedKeys = new ArrayList<>(Arrays.asList("type", "target_event_id"));
+        } else if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, type)) {
+            mClearEvent = null;
+            mKeysProved = null;
+            mKeysClaimed = null;
+            allowedKeys = null;
         } else {
             allowedKeys = null;
         }

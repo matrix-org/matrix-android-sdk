@@ -646,6 +646,13 @@ public class EventTimeline {
                     for (int index = events.size() - 1; index >= 0; index--) {
                         Event anEvent = events.get(index);
                         if (RoomSummary.isSupportedEvent(anEvent)) {
+                            // Decrypt event if necessary
+                            if (TextUtils.equals(anEvent.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
+                                if (null != mDataHandler.getCrypto()) {
+                                    anEvent.setClearEvent(mDataHandler.getCrypto().decryptEvent(anEvent));
+                                }
+                            }
+
                             EventDisplay eventDisplay = new EventDisplay(mStore.getContext(), anEvent, mState);
 
                             // ensure that message can be displayed

@@ -99,6 +99,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -2431,7 +2433,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(eventType)) {
             return true;
         } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(eventType) || Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
-            return true;
+            return event.hasContentFields();
         }
         return false;
     }

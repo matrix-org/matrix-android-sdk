@@ -27,6 +27,9 @@ import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
 
+import java.util.Map;
+import java.util.Set;
+
 /**
  * Stores summarised information about the room.
  */
@@ -115,6 +118,8 @@ public class RoomSummary implements java.io.Serializable {
             } catch (Exception e) {
                 Log.e(LOG_TAG, "isSupportedEvent failed " + e.getMessage());
             }
+        } else if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, type)) {
+            isSupported = event.hasContentFields();
         } else if (!TextUtils.isEmpty(type)){
             isSupported = TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_TOPIC, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, type) ||
