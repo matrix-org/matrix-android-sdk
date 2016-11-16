@@ -783,7 +783,13 @@ public class MXMediasCache {
         }
 
         Bitmap defaultBimap = (null == aDefaultBitmap) ? mDefaultBitmap : aDefaultBitmap;
-        String downloadableUrl = downloadableUrl(url, width, height);
+        String downloadableUrl;
+
+        if (null == encryptionInfo) {
+            downloadableUrl = downloadableUrl(url, width, height);
+        } else {
+            downloadableUrl = downloadableUrl(url, -1, -1);
+        }
 
         // the thumbnail params are ignored when encrypted
         if ((null == encryptionInfo) && (rotationAngle == Integer.MAX_VALUE) && (orientation != ExifInterface.ORIENTATION_UNDEFINED) && (orientation != ExifInterface.ORIENTATION_NORMAL)) {
