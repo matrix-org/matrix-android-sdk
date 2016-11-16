@@ -1332,6 +1332,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             if (null == fEncryptionResult) {
                                 message.url = contentUri;
                             } else {
+                                fEncryptionResult.mEncryptedFileInfo.url = contentUri;
                                 message.file = fEncryptionResult.mEncryptedFileInfo;
                                 message.url = null;
                             }
@@ -1349,6 +1350,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             if (null == fEncryptionResult) {
                                 fVideoMessage.info.thumbnail_url = contentUri;
                             } else {
+                                fEncryptionResult.mEncryptedFileInfo.url = contentUri;
                                 fVideoMessage.thumbnail_file = fEncryptionResult.mEncryptedFileInfo;
                                 fVideoMessage.info.thumbnail_url = null;
                             }
