@@ -46,7 +46,7 @@ public class MXEncryptedAttachments implements Serializable {
      */
     public static class EncryptionResult {
         public EncryptedFileInfo mEncryptedFileInfo;
-        public InputStream mDecodedStream;
+        public InputStream mEncryptedStream;
 
         public EncryptionResult() {
         }
@@ -105,7 +105,7 @@ public class MXEncryptedAttachments implements Serializable {
             result.mEncryptedFileInfo.hashes = new HashMap();
             result.mEncryptedFileInfo.hashes.put("sha256", base64ToUnpaddedBase64(Base64.encodeToString(messageDigest.digest(), Base64.DEFAULT)));
 
-            result.mDecodedStream = new ByteArrayInputStream(outStream.toByteArray());
+            result.mEncryptedStream = new ByteArrayInputStream(outStream.toByteArray());
             outStream.close();
             return result;
         } catch (Exception e) {

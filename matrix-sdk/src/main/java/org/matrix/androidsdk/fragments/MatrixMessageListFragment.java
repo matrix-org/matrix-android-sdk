@@ -26,7 +26,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.MemoryFile;
 import android.provider.Browser;
 import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
@@ -1054,7 +1053,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 if (null != encryptionResult) {
                     fileStream.close();
-                    fileStream = encryptionResult.mDecodedStream;
+                    fileStream = encryptionResult.mEncryptedStream;
                     mimeType = "application/octet-stream";
                 } else {
                     displayEncryptionAlert();
@@ -1249,7 +1248,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                     if (null != encryptionResult) {
                         imageStream.close();
-                        imageStream = encryptionResult.mDecodedStream;
+                        imageStream = encryptionResult.mEncryptedStream;
                         mimeType = "application/octet-stream";
                     } else {
                         displayEncryptionAlert();
@@ -1267,7 +1266,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                     if (null != encryptionResult) {
                         imageStream.close();
-                        imageStream = encryptionResult.mDecodedStream;
+                        imageStream = encryptionResult.mEncryptedStream;
                         mimeType = "application/octet-stream";
                     } else {
                         displayEncryptionAlert();
@@ -1414,7 +1413,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 if (null != encryptionResult) {
                     imageStream.close();
-                    imageStream = encryptionResult.mDecodedStream;
+                    imageStream = encryptionResult.mEncryptedStream;
                     mimeType = "application/octet-stream";
                 } else {
                     displayEncryptionAlert();
