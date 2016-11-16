@@ -467,6 +467,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      * @param url the media url
      * @param rotation the rotation
      * @param mimeType the mime type.
+     * @param encryptedFileInfo the encryption information
      */
     public MXMediaDownloadWorkerTask(Context appContext, HomeserverConnectionConfig hsConfig, File directoryFile, String url, int rotation, String mimeType, EncryptedFileInfo encryptedFileInfo) {
         commonInit(appContext, url, mimeType);

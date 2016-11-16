@@ -785,6 +785,7 @@ public class MXMediasCache {
         Bitmap defaultBimap = (null == aDefaultBitmap) ? mDefaultBitmap : aDefaultBitmap;
         String downloadableUrl;
 
+        // it is not possible to resize an encrypted image
         if (null == encryptionInfo) {
             downloadableUrl = downloadableUrl(url, width, height);
         } else {
