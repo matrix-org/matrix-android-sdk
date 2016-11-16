@@ -745,7 +745,6 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                         int len;
                         while ((len = is.read(buf)) != -1) {
                             fos.write(buf, 0, len);
-                            mDownloadStats.mDownloadedSize += len;
                         }
                     } else {
                         mDownloadStats.mProgress = 0;

@@ -1863,7 +1863,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         // test if the media is downloading the thumbnail is not downloading
         if (null == downloadId) {
             if (message instanceof VideoMessage) {
-                downloadId = mMediasCache.downloadIdFromUrl(((VideoMessage) message).url);
+                downloadId = mMediasCache.downloadIdFromUrl(((VideoMessage) message).getUrl());
             } else {
                 downloadId = mMediasCache.downloadIdFromUrl(((ImageMessage) message).getUrl());
             }

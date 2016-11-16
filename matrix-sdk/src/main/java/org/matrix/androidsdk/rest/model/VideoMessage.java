@@ -42,9 +42,9 @@ public class VideoMessage extends Message {
             return url;
         } else if (null != file) {
             return file.url;
+        } else {
+            return null;
         }
-
-        return null;
     }
 
     /**

@@ -41,6 +41,11 @@ import javax.crypto.spec.SecretKeySpec;
 public class MXEncryptedAttachments implements Serializable {
     private static final String LOG_TAG = "MXEncryptAtt";
 
+    private static final int CRYPTO_BUFFER_SIZE = 32 * 1024;
+    private static final String CIPHER_ALGORITHM = "AES/CTR/NoPadding";
+    private static final String SECRET_KEY_SPEC_ALGORITHM = "AES";
+    private static final String MESSAGE_DIGEST_ALGORITHM = "SHA-256";
+
     /**
      * Define the result of an encryption file
      */
@@ -61,8 +66,8 @@ public class MXEncryptedAttachments implements Serializable {
         SecureRandom secureRandom = new SecureRandom();
 
         // generate a random iv key
-        byte[] ivBytes = new byte[16];
-        secureRandom.nextBytes(ivBytes);
+        byte[] initVectorBytes = new byte[16];
+        secureRandom.nextBytes(initVectorBytes);
 
         byte[] key = new byte[32];
         secureRandom.nextBytes(key);
@@ -70,24 +75,25 @@ public class MXEncryptedAttachments implements Serializable {
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
 
         try {
-            Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding");
-            SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
-            IvParameterSpec ivParameterSpec = new IvParameterSpec(ivBytes);
-            cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec);
+            Cipher encryptCipher = Cipher.getInstance(CIPHER_ALGORITHM);
+            SecretKeySpec secretKeySpec = new SecretKeySpec(key, SECRET_KEY_SPEC_ALGORITHM);
+            IvParameterSpec ivParameterSpec = new IvParameterSpec(initVectorBytes);
+            encryptCipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec);
 
-            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+            MessageDigest messageDigest = MessageDigest.getInstance(MESSAGE_DIGEST_ALGORITHM);
 
-            byte[] data = new byte[32 * 1024];
-            int read = attachmentStream.read(data);
+            byte[] data = new byte[CRYPTO_BUFFER_SIZE];
+            int read;
+            byte[] encodedBytes;
 
-            while (read != -1) {
-                byte[] encodedBytes = cipher.update(data, 0, read);
+            while (-1 != (read = attachmentStream.read(data))) {
+                encodedBytes = encryptCipher.update(data, 0, read);
                 messageDigest.update(encodedBytes, 0, encodedBytes.length);
                 outStream.write(encodedBytes);
-                read = attachmentStream.read(data);
             }
 
-            byte[] encodedBytes = cipher.doFinal();
+            // encrypt the latest chunk
+            encodedBytes = encryptCipher.doFinal();
             messageDigest.update(encodedBytes, 0, encodedBytes.length);
             outStream.write(encodedBytes);
 
@@ -100,7 +106,7 @@ public class MXEncryptedAttachments implements Serializable {
             result.mEncryptedFileInfo.key.key_ops = Arrays.asList("encrypt", "decrypt");
             result.mEncryptedFileInfo.key.kty = "oct";
             result.mEncryptedFileInfo.key.k = base64ToBase64Url(Base64.encodeToString(key, Base64.DEFAULT));
-            result.mEncryptedFileInfo.iv = Base64.encodeToString(ivBytes, Base64.DEFAULT).replace("\n", "").replace("=", "");
+            result.mEncryptedFileInfo.iv = Base64.encodeToString(initVectorBytes, Base64.DEFAULT).replace("\n", "").replace("=", "");
 
             result.mEncryptedFileInfo.hashes = new HashMap();
             result.mEncryptedFileInfo.hashes.put("sha256", base64ToUnpaddedBase64(Base64.encodeToString(messageDigest.digest(), Base64.DEFAULT)));
@@ -158,29 +164,27 @@ public class MXEncryptedAttachments implements Serializable {
 
         try {
             byte[] key = Base64.decode(base64UrlToBase64(encryptedFileInfo.key.k), Base64.DEFAULT);
-            byte[] ivBytes =  Base64.decode(encryptedFileInfo.iv, Base64.DEFAULT);
+            byte[] initVectorBytes =  Base64.decode(encryptedFileInfo.iv, Base64.DEFAULT);
 
-            Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding");
-            SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
-            IvParameterSpec ivParameterSpec = new IvParameterSpec(ivBytes);
-            cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec);
+            Cipher decryptCipher = Cipher.getInstance(CIPHER_ALGORITHM);
+            SecretKeySpec secretKeySpec = new SecretKeySpec(key, SECRET_KEY_SPEC_ALGORITHM);
+            IvParameterSpec ivParameterSpec = new IvParameterSpec(initVectorBytes);
+            decryptCipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec);
 
-            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+            MessageDigest messageDigest = MessageDigest.getInstance(MESSAGE_DIGEST_ALGORITHM);
 
-            byte[] data = new byte[32 * 1024];
-            int read = attachmentStream.read(data);
-
+            int read;
+            byte[] data = new byte[CRYPTO_BUFFER_SIZE];
             byte[] decodedBytes;
 
-            while (read != -1) {
+            while (-1 != (read = attachmentStream.read(data))) {
                 messageDigest.update(data, 0, read);
-
-                decodedBytes = cipher.update(data, 0, read);
+                decodedBytes = decryptCipher.update(data, 0, read);
                 outStream.write(decodedBytes);
-                read = attachmentStream.read(data);
             }
 
-            decodedBytes = cipher.doFinal();
+            // decrypt the last chunk
+            decodedBytes = decryptCipher.doFinal();
             messageDigest.update(decodedBytes);
             outStream.write(decodedBytes);
 
@@ -191,26 +195,19 @@ public class MXEncryptedAttachments implements Serializable {
                 outStream.close();
                 return null;
             }
-
             return new ByteArrayInputStream(outStream.toByteArray());
         } catch (Exception e) {
             Log.e(LOG_TAG, "## decryptAttachment() :  failed " + e.getMessage());
-
-            try {
-                outStream.close();
-                outStream = null;
-            } catch (Exception closeException) {
-                Log.e(LOG_TAG, "## decryptAttachment() :  fail to close the file");
-            }
         } catch (OutOfMemoryError oom) {
             Log.e(LOG_TAG, "## decryptAttachment() :  failed " + oom.getMessage());
+        }
 
-            try {
+        try {
+            if (null != outStream) {
                 outStream.close();
-                outStream = null;
-            } catch (Exception closeException) {
-                Log.e(LOG_TAG, "## decryptAttachment() :  fail to close the file");
             }
+        } catch (Exception closeException) {
+            Log.e(LOG_TAG, "## decryptAttachment() :  fail to close the file");
         }
 
         return null;
