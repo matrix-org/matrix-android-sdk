@@ -1081,8 +1081,11 @@ public class MXCrypto {
                 MXDeviceInfo deviceInfo = deviceInfoParticipantKey.get(deviceKey);
 
                 payloadJson.put("recipient", deviceInfo.userId);
+
                 HashMap<String, String> recipientsKeysMap = new HashMap<>();
                 recipientsKeysMap.put("ed25519", deviceInfo.fingerprint());
+                payloadJson.put("recipient_keys", recipientsKeysMap);
+
 
                 String payloadString = JsonUtils.convertToUTF8(JsonUtils.canonicalize(JsonUtils.getGson(false).toJsonTree(payloadJson)).toString());
                 ciphertext.put(deviceKey, mOlmDevice.encryptMessage(deviceKey, sessionId, payloadString));

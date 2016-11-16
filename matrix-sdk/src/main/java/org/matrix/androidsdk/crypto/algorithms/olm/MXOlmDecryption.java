@@ -164,7 +164,7 @@ public class MXOlmDecryption implements IMXDecrypting {
                 if (!TextUtils.equals(event.roomId, expectedRoomId)) {
                     Log.e(LOG_TAG, "Event " + event.eventId + ": original room " + expectedRoomId + " does not match reported room " + event.roomId);
                     result.mPayload = null;
-                    result.mCryptoError = new MXCryptoError(MXCryptoError.MESSAGE_NOT_INTENDED_FOR_THIS_DEVICE);
+                    result.mCryptoError = new MXCryptoError(MXCryptoError.MESSAGE_NOT_INTENDED_FOR_THIS_ROOM);
                     return result;
                 }
             }
