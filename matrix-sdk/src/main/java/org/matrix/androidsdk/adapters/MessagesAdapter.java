@@ -75,6 +75,7 @@ import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
 import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
 import org.matrix.androidsdk.listeners.MXMediaDownloadListener;
 import org.matrix.androidsdk.listeners.MXMediaUploadListener;
+import org.matrix.androidsdk.rest.model.EncryptedFileInfo;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.FileMessage;
@@ -1803,16 +1804,20 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         int thumbWidth = -1;
         int thumbHeight = -1;
 
+        EncryptedFileInfo encryptedFileInfo = null;
+
         // retrieve the common items
         if (message instanceof ImageMessage) {
             ImageMessage imageMessage = (ImageMessage)message;
             imageMessage.checkMediaUrls();
 
             // Backwards compatibility with events from before Synapse 0.6.0
-            if (imageMessage.thumbnailUrl != null) {
-                thumbUrl = imageMessage.thumbnailUrl;
-            } else if (imageMessage.url != null) {
-                thumbUrl = imageMessage.url;
+            if (imageMessage.getThumbnailUrl() != null) {
+                thumbUrl = imageMessage.getThumbnailUrl();
+                encryptedFileInfo = imageMessage.thumbnail_file;
+            } else if (imageMessage.getUrl() != null) {
+                thumbUrl = imageMessage.getUrl();
+                encryptedFileInfo = imageMessage.file;
             }
 
             rotationAngle = imageMessage.getRotation();
@@ -1833,11 +1838,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             VideoMessage videoMessage = (VideoMessage) message;
             videoMessage.checkMediaUrls();
 
+            thumbUrl = videoMessage.getThumbnailUrl();
+            encryptedFileInfo = videoMessage.thumbnail_file;
+
             VideoInfo videoinfo = videoMessage.info;
 
             if (null != videoinfo) {
-                thumbUrl = videoinfo.thumbnail_url;
-
                 if ((null != videoMessage.info.thumbnail_info) && (null != videoMessage.info.thumbnail_info.w) && (null != videoMessage.info.thumbnail_info.h)) {
                     thumbWidth = videoMessage.info.thumbnail_info.w;
                     thumbHeight = videoMessage.info.thumbnail_info.h;
@@ -1854,14 +1860,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         final FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) informationLayout.getLayoutParams();
 
         // the thumbnails are always pre - rotated
-        String downloadId = mMediasCache.loadBitmap(mSession.getHomeserverConfig(), imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, ExifInterface.ORIENTATION_UNDEFINED, "image/jpeg");
+        String downloadId = mMediasCache.loadBitmap(mSession.getHomeserverConfig(), imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, ExifInterface.ORIENTATION_UNDEFINED, "image/jpeg", encryptedFileInfo);
 
         // test if the media is downloading the thumbnail is not downloading
         if (null == downloadId) {
             if (message instanceof VideoMessage) {
-                downloadId = mMediasCache.downloadIdFromUrl(((VideoMessage) message).url);
+                downloadId = mMediasCache.downloadIdFromUrl(((VideoMessage) message).getUrl());
             } else {
-                downloadId = mMediasCache.downloadIdFromUrl(((ImageMessage) message).url);
+                downloadId = mMediasCache.downloadIdFromUrl(((ImageMessage) message).getUrl());
             }
 
             // check the progress value
@@ -2031,7 +2037,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // upload management
         if (type == ROW_TYPE_IMAGE) {
-            managePendingUpload(convertView, event, type, ((ImageMessage)message).url);
+            managePendingUpload(convertView, event, type, ((ImageMessage)message).getUrl());
         } else {
             managePendingVideoUpload(convertView, event, (VideoMessage) message);
         }
@@ -2184,7 +2190,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param position the position in the listview.
      */
     private void managePendingFileDownload(View convertView, final Event event, FileMessage fileMessage, final int position) {
-        String downloadId = mMediasCache.downloadIdFromUrl(fileMessage.url);
+        String downloadId = mMediasCache.downloadIdFromUrl(fileMessage.getUrl());
 
         // check the progress value
         // display the progress layout only if the file is downloading
@@ -2393,7 +2399,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         uploadSpinner.setVisibility(((progress < 0) && videoEvent.isSending()) ? View.VISIBLE : View.GONE);
         refreshUploadViews(videoEvent, mSession.getMediasCache().getStatsForUploadId(uploadingUrl), uploadProgressLayout);
 
-        if (TextUtils.equals(uploadingUrl, videoMessage.url)) {
+        if (TextUtils.equals(uploadingUrl, videoMessage.getUrl())) {
             progress = 10 + (progress * 90 / 100);
         } else {
             progress = (progress * 10 / 100);
