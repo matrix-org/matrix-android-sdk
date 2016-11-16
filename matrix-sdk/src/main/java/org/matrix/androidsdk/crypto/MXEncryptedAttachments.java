@@ -16,42 +16,35 @@
 
 package org.matrix.androidsdk.crypto;
 
-import android.os.MemoryFile;
 import android.util.Base64;
 import android.util.Log;
 
 import org.matrix.androidsdk.rest.model.EncryptedFileInfo;
 import org.matrix.androidsdk.rest.model.EncryptedFileKey;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
-import java.security.acl.LastOwnerException;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Map;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
-import javax.crypto.CipherOutputStream;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 public class MXEncryptedAttachments {
     private static final String LOG_TAG = "MXEncryptAtt";
 
-
     /**
      * Define the result of an encryption file
      */
     public static class EncryptionResult {
-        public Cipher mCipher;
         public EncryptedFileInfo mEncryptedFileInfo;
-        public MemoryFile mMemoryFile;
+        public InputStream mDecodedStream;
 
         public EncryptionResult() {
         }
@@ -73,38 +66,31 @@ public class MXEncryptedAttachments {
         secureRandom.nextBytes(key);
 
         try {
-            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding");
             SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
             IvParameterSpec ivParameterSpec = new IvParameterSpec(ivBytes);
             cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec);
 
             MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
 
-            byte[] data = new byte[1024 * 32];
+            byte[] data = new byte[32 * 1024];
             int read = attachmentStream.read(data);
 
             ByteArrayOutputStream outStream = new ByteArrayOutputStream();
 
             while (read != -1) {
-                byte[] encodedBytes = cipher.update(data, 0, data.length);
+                byte[] encodedBytes = cipher.update(data, 0, read);
                 messageDigest.update(encodedBytes, 0, encodedBytes.length);
                 outStream.write(encodedBytes);
                 read = attachmentStream.read(data);
             }
 
             byte[] encodedBytes = cipher.doFinal();
-            if (null != encodedBytes) {
-                messageDigest.update(encodedBytes, 0, encodedBytes.length);
-                outStream.write(encodedBytes);
-            }
+            messageDigest.update(encodedBytes, 0, encodedBytes.length);
+            outStream.write(encodedBytes);
 
             EncryptionResult result = new EncryptionResult();
-            result.mCipher = cipher;
-
-            byte[] encyptedData = outStream.toByteArray();
-            result.mMemoryFile = new MemoryFile(System.currentTimeMillis() + "", encyptedData.length);
-            result.mMemoryFile.getOutputStream().write(encyptedData);
-
+            result.mDecodedStream = new ByteArrayInputStream(outStream.toByteArray());
             result.mEncryptedFileInfo = new EncryptedFileInfo();
             result.mEncryptedFileInfo.key = new EncryptedFileKey();
             result.mEncryptedFileInfo.mimetype = mimetype;
@@ -120,6 +106,8 @@ public class MXEncryptedAttachments {
             return result;
         } catch (Exception e) {
             Log.e(LOG_TAG, "## encryptAttachment failed " + e.getMessage());
+        } catch (OutOfMemoryError oom) {
+            Log.e(LOG_TAG, "## encryptAttachment failed " + oom.getMessage());
         }
 
         return null;
@@ -132,34 +120,14 @@ public class MXEncryptedAttachments {
      * @return the decrypted stream
      */
     public static void decryptAttachment(InputStream attachmentStream, EncryptedFileInfo encryptedFileInfo, OutputStream outputStream) {
-        try {
-            byte[] key = Base64.decode(base64UrlToBase64(encryptedFileInfo.key.k), Base64.DEFAULT);
-            byte[] ivBytes = Base64.decode(encryptedFileInfo.iv, Base64.DEFAULT);
-
-            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-            SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
-            IvParameterSpec ivParameterSpec = new IvParameterSpec(ivBytes);
-            cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec);
-
-            CipherInputStream cis;
-
-            cis = new CipherInputStream(attachmentStream, cipher);
-
-            byte[] data = new byte[1024];
-            int written;
-
-            while ((written = cis.read(data)) != -1) {
-                outputStream.write(data, 0, written);
-            }
-
-
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## encryptAttachment failed " + e.getMessage());
-        }
+        // TODO
     }
 
+    /**
+     * Base64 URL conversion methods
+     */
 
-    public static String base64UrlToBase64(String base64Url) {
+    private static String base64UrlToBase64(String base64Url) {
         if (null != base64Url) {
             base64Url = base64Url.replaceAll("-", "+");
             base64Url = base64Url.replaceAll("_", "/");
@@ -168,7 +136,7 @@ public class MXEncryptedAttachments {
         return base64Url;
     }
 
-    public static String base64ToBase64Url(String base64) {
+    private static String base64ToBase64Url(String base64) {
         if (null != base64) {
             base64 = base64.replaceAll("\n", "");
             base64 = base64.replaceAll("\\+", "-");
@@ -178,7 +146,7 @@ public class MXEncryptedAttachments {
         return base64;
     }
 
-    public static String base64ToUnpaddedBase64(String base64) {
+    private static String base64ToUnpaddedBase64(String base64) {
         if (null != base64) {
             base64 = base64.replaceAll("\n", "");
             base64 = base64.replaceAll("=", "");
