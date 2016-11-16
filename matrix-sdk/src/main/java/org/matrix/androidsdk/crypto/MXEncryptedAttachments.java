@@ -16,6 +16,7 @@
 
 package org.matrix.androidsdk.crypto;
 
+import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
 
@@ -25,14 +26,14 @@ import org.matrix.androidsdk.rest.model.EncryptedFileKey;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.io.OutputStream;
+
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+
 import java.util.Arrays;
 import java.util.HashMap;
 
 import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -65,6 +66,8 @@ public class MXEncryptedAttachments {
         byte[] key = new byte[32];
         secureRandom.nextBytes(key);
 
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+
         try {
             Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding");
             SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
@@ -75,8 +78,6 @@ public class MXEncryptedAttachments {
 
             byte[] data = new byte[32 * 1024];
             int read = attachmentStream.read(data);
-
-            ByteArrayOutputStream outStream = new ByteArrayOutputStream();
 
             while (read != -1) {
                 byte[] encodedBytes = cipher.update(data, 0, read);
@@ -90,7 +91,6 @@ public class MXEncryptedAttachments {
             outStream.write(encodedBytes);
 
             EncryptionResult result = new EncryptionResult();
-            result.mDecodedStream = new ByteArrayInputStream(outStream.toByteArray());
             result.mEncryptedFileInfo = new EncryptedFileInfo();
             result.mEncryptedFileInfo.key = new EncryptedFileKey();
             result.mEncryptedFileInfo.mimetype = mimetype;
@@ -103,6 +103,9 @@ public class MXEncryptedAttachments {
 
             result.mEncryptedFileInfo.hashes = new HashMap();
             result.mEncryptedFileInfo.hashes.put("sha256", base64ToUnpaddedBase64(Base64.encodeToString(messageDigest.digest(), Base64.DEFAULT)));
+
+            result.mDecodedStream = new ByteArrayInputStream(outStream.toByteArray());
+            outStream.close();
             return result;
         } catch (Exception e) {
             Log.e(LOG_TAG, "## encryptAttachment failed " + e.getMessage());
@@ -110,17 +113,107 @@ public class MXEncryptedAttachments {
             Log.e(LOG_TAG, "## encryptAttachment failed " + oom.getMessage());
         }
 
+        if (null != outStream) {
+            try {
+                outStream.close();
+                outStream = null;
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## encryptAttachment() : fail to close outStream");
+            }
+        }
+
         return null;
     }
 
     /**
-     * Decrypt an attachment stream.
-     * @param attachmentStream the attachment stream to decode
-     * @param encryptedFileInfo the encryption info
-     * @return the decrypted stream
+     * Decrypt an attachment
+     * @param attachmentStream the attahcment stream
+     * @param encryptedFileInfo the encryption file info
+     * @return the decrypted attachment stream
      */
-    public static void decryptAttachment(InputStream attachmentStream, EncryptedFileInfo encryptedFileInfo, OutputStream outputStream) {
-        // TODO
+    public static InputStream decryptAttachment(InputStream attachmentStream, EncryptedFileInfo encryptedFileInfo) {
+        // sanity checks
+        if ((null == attachmentStream) || (null == encryptedFileInfo)) {
+            Log.e(LOG_TAG, "## decryptAttachment() : null parameters");
+            return null;
+        }
+
+        if (TextUtils.isEmpty(encryptedFileInfo.iv) ||
+                (null == encryptedFileInfo.key) ||
+                (null == encryptedFileInfo.hashes) ||
+                !encryptedFileInfo.hashes.containsKey("sha256")
+                ) {
+            Log.e(LOG_TAG, "## decryptAttachment() : some fields are not defined");
+            return null;
+        }
+
+        if (!TextUtils.equals(encryptedFileInfo.key.alg, "A256CTR") ||
+                !TextUtils.equals(encryptedFileInfo.key.kty, "oct") ||
+                TextUtils.isEmpty(encryptedFileInfo.key.k)) {
+            Log.e(LOG_TAG, "## decryptAttachment() : invalid key fields");
+            return null;
+        }
+
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+
+        try {
+            byte[] key = Base64.decode(base64UrlToBase64(encryptedFileInfo.key.k), Base64.DEFAULT);
+            byte[] ivBytes =  Base64.decode(encryptedFileInfo.iv, Base64.DEFAULT);
+
+            Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding");
+            SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
+            IvParameterSpec ivParameterSpec = new IvParameterSpec(ivBytes);
+            cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec);
+
+            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+
+            byte[] data = new byte[32 * 1024];
+            int read = attachmentStream.read(data);
+
+            byte[] decodedBytes;
+
+            while (read != -1) {
+                messageDigest.update(data, 0, read);
+
+                decodedBytes = cipher.update(data, 0, read);
+                outStream.write(decodedBytes);
+                read = attachmentStream.read(data);
+            }
+
+            decodedBytes = cipher.doFinal();
+            messageDigest.update(decodedBytes);
+            outStream.write(decodedBytes);
+
+            String currentDigestValue = base64ToUnpaddedBase64(Base64.encodeToString(messageDigest.digest(), Base64.DEFAULT));
+
+            if (!TextUtils.equals(encryptedFileInfo.hashes.get("sha256"), currentDigestValue)) {
+                Log.e(LOG_TAG, "## decryptAttachment() :  Digest value mismatch");
+                outStream.close();
+                return null;
+            }
+
+            return new ByteArrayInputStream(outStream.toByteArray());
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## decryptAttachment() :  failed " + e.getMessage());
+
+            try {
+                outStream.close();
+                outStream = null;
+            } catch (Exception closeException) {
+                Log.e(LOG_TAG, "## decryptAttachment() :  fail to close the file");
+            }
+        } catch (OutOfMemoryError oom) {
+            Log.e(LOG_TAG, "## decryptAttachment() :  failed " + oom.getMessage());
+
+            try {
+                outStream.close();
+                outStream = null;
+            } catch (Exception closeException) {
+                Log.e(LOG_TAG, "## decryptAttachment() :  fail to close the file");
+            }
+        }
+
+        return null;
     }
 
     /**
