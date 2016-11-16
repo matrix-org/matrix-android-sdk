@@ -1306,7 +1306,8 @@ public class MXSession {
 
         HashMap<String, List<String>> params;
 
-        if(null != (params = new HashMap<>(store.getDirectChatRoomsDict()))){
+        if(null != store.getDirectChatRoomsDict()) {
+            params = new HashMap<>(store.getDirectChatRoomsDict());
             if (params.containsKey(aSearchedUserId)) {
                 directChatRoomIdsList = new ArrayList<>();
 
@@ -1320,7 +1321,7 @@ public class MXSession {
                 Log.w(LOG_TAG,"## getDirectChatRoomIdsList(): UserId "+aSearchedUserId+" has no entry in account_data");
             }
         } else {
-            Log.e(LOG_TAG,"## getDirectChatRoomIdsList(): failure - getDirectChatRoomsDict()=null");
+            Log.w(LOG_TAG,"## getDirectChatRoomIdsList(): failure - getDirectChatRoomsDict()=null");
         }
 
         return directChatRoomIdsList;
@@ -1420,12 +1421,19 @@ public class MXSession {
                 params.put(chosenUserId, roomIdsList);
             } else {
                 // remove the current room from the direct chat list rooms
-               Collection<List<String>> listOfList = store.getDirectChatRoomsDict().values();
+                if (null != store.getDirectChatRoomsDict()) {
+                    Collection<List<String>> listOfList = store.getDirectChatRoomsDict().values();
 
-                for (List<String> list : listOfList) {
-                    if (list.contains(roomId)) {
-                        list.remove(roomId);
+                    for (List<String> list : listOfList) {
+                        if (list.contains(roomId)) {
+                            list.remove(roomId);
+                        }
                     }
+                } else {
+                    // should not happen: if the room has to be removed, it means the room has been
+                    //  previously detected as being part of the listOfList
+                    Log.e(LOG_TAG, "## toggleDirectChatRoom(): failed to remove a direct chat room (not seen as direct chat room)");
+                    return;
                 }
             }
 
