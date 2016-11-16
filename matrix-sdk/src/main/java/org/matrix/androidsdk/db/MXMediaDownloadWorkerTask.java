@@ -33,7 +33,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
+import org.matrix.androidsdk.rest.model.EncryptedFileInfo;
 import org.matrix.androidsdk.ssl.CertUtil;
 import org.matrix.androidsdk.util.ImageUtils;
 
@@ -144,6 +146,11 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      * The bitmap to use when the URL is unreachable.
      */
     private Bitmap mDefaultBitmap;
+
+    /**
+     * the encrypted file information
+     */
+    private EncryptedFileInfo mEncryptedFileInfo;
 
     /**
      * Download constants
@@ -348,7 +355,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                         return null;
                     }
 
-                    FileInputStream fis = new FileInputStream (file);
+                    InputStream fis = new FileInputStream (file);
 
                     // read the metadata
                     if (Integer.MAX_VALUE == rotation) {
@@ -442,12 +449,14 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      * @param directoryFile the directory in which the media must be stored
      * @param url the media url
      * @param mimeType the mime type.
+     * @param encryptedFileInfo the encryption information
      */
-    public MXMediaDownloadWorkerTask(Context appContext, HomeserverConnectionConfig hsConfig, File directoryFile, String url, String mimeType) {
+    public MXMediaDownloadWorkerTask(Context appContext, HomeserverConnectionConfig hsConfig, File directoryFile, String url, String mimeType, EncryptedFileInfo encryptedFileInfo) {
         commonInit(appContext, url, mimeType);
         mDirectoryFile = directoryFile;
         mImageViewReferences = new ArrayList<>();
         mHsConfig = hsConfig;
+        mEncryptedFileInfo = encryptedFileInfo;
     }
 
     /**
@@ -459,12 +468,13 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      * @param rotation the rotation
      * @param mimeType the mime type.
      */
-    public MXMediaDownloadWorkerTask(Context appContext, HomeserverConnectionConfig hsConfig, File directoryFile, String url, int rotation, String mimeType) {
+    public MXMediaDownloadWorkerTask(Context appContext, HomeserverConnectionConfig hsConfig, File directoryFile, String url, int rotation, String mimeType, EncryptedFileInfo encryptedFileInfo) {
         commonInit(appContext, url, mimeType);
         mImageViewReferences = new ArrayList<>();
         mDirectoryFile = directoryFile;
         mRotation = rotation;
         mHsConfig = hsConfig;
+        mEncryptedFileInfo = encryptedFileInfo;
     }
 
     /**
@@ -481,6 +491,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
         mMimeType = task.mMimeType;
         mImageViewReferences = task.mImageViewReferences;
         mHsConfig = task.mHsConfig;
+        mEncryptedFileInfo = task.mEncryptedFileInfo;
     }
 
     /**
@@ -717,6 +728,28 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                 close(stream);
                 fos.flush();
                 fos.close();
+
+                if (null != mEncryptedFileInfo) {
+                    File file = new File(mDirectoryFile, filename);
+                    FileInputStream fis = new FileInputStream(file);
+                    InputStream is = MXEncryptedAttachments.decryptAttachment(fis, mEncryptedFileInfo);
+                    fis.close();
+
+                    // if the decryption succeeds, replace the encrypted file content by the unencrypted one
+                    if (null != is) {
+                        mApplicationContext.deleteFile(filename);
+
+                        fos = new FileOutputStream(file);
+                        byte[] buf = new byte[DOWNLOAD_BUFFER_READ_SIZE];
+                        int len;
+                        while ((len = is.read(buf)) != -1) {
+                            fos.write(buf, 0, len);
+                            mDownloadStats.mDownloadedSize += len;
+                        }
+                    } else {
+                        mDownloadStats.mProgress = 0;
+                    }
+                }
 
                 uiHandler.post(new Runnable() {
                     @Override

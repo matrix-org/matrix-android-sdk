@@ -27,6 +27,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 
+import java.io.Serializable;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 
@@ -37,7 +38,7 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-public class MXEncryptedAttachments {
+public class MXEncryptedAttachments implements Serializable {
     private static final String LOG_TAG = "MXEncryptAtt";
 
     /**
@@ -116,7 +117,6 @@ public class MXEncryptedAttachments {
         if (null != outStream) {
             try {
                 outStream.close();
-                outStream = null;
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## encryptAttachment() : fail to close outStream");
             }

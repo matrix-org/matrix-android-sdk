@@ -68,6 +68,30 @@ public class ImageMessage extends Message {
         return copy;
     }
 
+    /**
+     * @return the media URL
+     */
+    public String getUrl() {
+        if (null != url) {
+            return url;
+        } else if (null != file) {
+            return file.url;
+        }
+        return null;
+    }
+
+    /**
+     * @return the thumbnail url
+     */
+    public String getThumbnailUrl() {
+        if (null != thumbnailUrl) {
+            return thumbnailUrl;
+        } else if (null != thumbnail_file) {
+            return thumbnail_file.url;
+        } else {
+            return null;
+        }
+    }
 
     public boolean isLocalContent() {
         return (null != url) && (url.startsWith("file://"));
@@ -77,7 +101,9 @@ public class ImageMessage extends Message {
      * @return The image mimetype. null is not defined.
      */
     public String getMimeType() {
-        if (null != info) {
+        if (null != file) {
+            return file.mimetype;
+        } else if (null != info) {
             return info.mimetype;
         } else {
             return null;

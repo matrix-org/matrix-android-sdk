@@ -38,6 +38,19 @@ public class FileMessage extends Message {
     }
 
     /**
+     * @return the file url
+     */
+    public String getUrl() {
+        if (null != url) {
+            return url;
+        } else if (null != file) {
+            return file.url;
+        }
+
+        return null;
+    }
+
+    /**
      * Make a deep copy of this VideoMessage.
      * @return the copy
      */

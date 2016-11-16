@@ -15,9 +15,10 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import java.io.Serializable;
 import java.util.Map;
 
-public class EncryptedFileInfo {
+public class EncryptedFileInfo implements Serializable{
     public String url;
     public String mimetype;
     public EncryptedFileKey key;

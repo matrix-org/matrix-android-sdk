@@ -35,6 +35,32 @@ public class VideoMessage extends Message {
     }
 
     /**
+     * @return the media url
+     */
+    public String getUrl() {
+        if (null != url) {
+            return url;
+        } else if (null != file) {
+            return file.url;
+        }
+
+        return null;
+    }
+
+    /**
+     * @return the thumbnail url
+     */
+    public String getThumbnailUrl() {
+        if ((null != info) && (null != info.thumbnail_url)) {
+            return info.thumbnail_url;
+        } else if (null != thumbnail_file) {
+            return thumbnail_file.url;
+        }
+
+        return null;
+    }
+
+    /**
      * Make a deep copy of this VideoMessage.
      * @return the copy
      */

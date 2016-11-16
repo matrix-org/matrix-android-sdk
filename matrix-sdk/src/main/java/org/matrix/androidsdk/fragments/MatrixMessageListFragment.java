@@ -1125,6 +1125,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         if (null != fEncryptionResult) {
                             message.file = fEncryptionResult.mEncryptedFileInfo;
                             message.file.url = contentUri;
+                            message.url = null;
                         } else {
                             message.url = contentUri;
                         }
@@ -1332,6 +1333,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                 message.url = contentUri;
                             } else {
                                 message.file = fEncryptionResult.mEncryptedFileInfo;
+                                message.url = null;
                             }
 
                             // update the event content with the new message info
@@ -1348,6 +1350,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                 fVideoMessage.info.thumbnail_url = contentUri;
                             } else {
                                 fVideoMessage.thumbnail_file = fEncryptionResult.mEncryptedFileInfo;
+                                fVideoMessage.info.thumbnail_url = null;
                             }
 
                             // upload the video
@@ -1481,6 +1484,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         if (null != fEncryptionResult) {
                             message.file = fEncryptionResult.mEncryptedFileInfo;
                             message.file.url = contentUri;
+                            message.url = null;
                         } else {
                             message.url = contentUri;
                         }

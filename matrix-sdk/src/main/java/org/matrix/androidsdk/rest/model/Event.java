@@ -583,24 +583,24 @@ public class Event implements java.io.Serializable {
             if (Message.MSGTYPE_IMAGE.equals(msgType)) {
                 ImageMessage imageMessage = JsonUtils.toImageMessage(content);
 
-                if (null != imageMessage.url) {
-                    urls.add(imageMessage.url);
+                if (null != imageMessage.getUrl()) {
+                    urls.add(imageMessage.getUrl());
                 }
 
-                if (null != imageMessage.thumbnailUrl) {
-                    urls.add(imageMessage.thumbnailUrl);
+                if (null != imageMessage.getThumbnailUrl()) {
+                    urls.add(imageMessage.getThumbnailUrl());
                 }
             } else if (Message.MSGTYPE_FILE.equals(msgType)) {
                 FileMessage fileMessage = JsonUtils.toFileMessage(content);
 
-                if (null != fileMessage.url) {
-                    urls.add(fileMessage.url);
+                if (null != fileMessage.getUrl()) {
+                    urls.add(fileMessage.getUrl());
                 }
             } else if (Message.MSGTYPE_VIDEO.equals(msgType)) {
                 VideoMessage videoMessage = JsonUtils.toVideoMessage(content);
 
-                if (null != videoMessage.url) {
-                    urls.add(videoMessage.url);
+                if (null != videoMessage.getUrl()) {
+                    urls.add(videoMessage.getUrl());
                 }
             }
         }
