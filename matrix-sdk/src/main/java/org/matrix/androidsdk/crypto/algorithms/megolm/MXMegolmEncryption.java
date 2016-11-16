@@ -38,6 +38,7 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -501,13 +502,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                         }
 
                         Log.e(LOG_TAG, "## shareKey() : Sharing keys with device " + userId + ":" + deviceID);
-
-                        MXDeviceInfo deviceInfo = sessionResult.mDevice;
-
-                        ArrayList<String> participantsKey = new ArrayList<>();
-                        participantsKey.add(deviceInfo.identityKey());
-
-                        contentMap.setObject(mCrypto.encryptMessage(payload, participantsKey), userId, deviceID);
+                        contentMap.setObject(mCrypto.encryptMessage(payload, Arrays.asList(sessionResult.mDevice)), userId, deviceID);
                         haveTargets = true;
                     }
                 }

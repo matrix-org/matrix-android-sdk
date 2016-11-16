@@ -1038,16 +1038,22 @@ public class MXCrypto {
     /**
      * Encrypt an event payload for a list of devices.
      * @param payloadFields fields to include in the encrypted payload.
-     * @param participantKeys list of curve25519 keys to encrypt for.
-      * @return the content for an m.room.encrypted event.
+     * @param deviceInfos list of device infos to encrypt for.
+     * @return the content for an m.room.encrypted event.
      */
-    public Map<String, Object> encryptMessage(Map<String, Object> payloadFields, List<String> participantKeys) {
-        Collections.sort(participantKeys);
-        String participantHash = mOlmDevice.sha256(TextUtils.join(", ", participantKeys));
+    public Map<String, Object> encryptMessage(Map<String, Object> payloadFields, List<MXDeviceInfo> deviceInfos) {
+        ArrayList<String> participantKeys = new ArrayList<>();
+        HashMap<String, MXDeviceInfo> deviceInfoParticipantKey = new HashMap<>();
+
+        for(MXDeviceInfo di : deviceInfos) {
+            participantKeys.add(di.identityKey());
+            deviceInfoParticipantKey.put(di.identityKey(), di);
+        }
 
         HashMap<String, Object> payloadJson = new HashMap<>(payloadFields);
-        payloadJson.put("fingerprint", participantHash);
-        payloadJson.put("sender_device", mSession.getMyUserId());
+
+        payloadJson.put("sender", mSession.getMyUserId());
+        payloadJson.put("sender_device", mSession.getCredentials().deviceId);
 
         // Include the Ed25519 key so that the recipient knows what
         // device this message came from.
@@ -1061,8 +1067,6 @@ public class MXCrypto {
         keysMap.put("ed25519", mOlmDevice.getDeviceEd25519Key());
         payloadJson.put("keys", keysMap);
 
-        String payloadString = JsonUtils.convertToUTF8(JsonUtils.canonicalize(JsonUtils.getGson(false).toJsonTree(payloadJson)).toString());
-
         HashMap<String, Object> ciphertext = new HashMap<>();
 
         for (String deviceKey : participantKeys) {
@@ -1070,6 +1074,16 @@ public class MXCrypto {
 
             if (!TextUtils.isEmpty(sessionId)) {
                 Log.d(LOG_TAG, "Using sessionid " + sessionId + " for device " + deviceKey);
+                MXDeviceInfo deviceInfo = deviceInfoParticipantKey.get(deviceKey);
+
+                payloadJson.put("recipient", deviceInfo.userId);
+
+                HashMap<String, String> recipientsKeysMap = new HashMap<>();
+                recipientsKeysMap.put("ed25519", deviceInfo.fingerprint());
+                payloadJson.put("recipient_keys", recipientsKeysMap);
+
+
+                String payloadString = JsonUtils.convertToUTF8(JsonUtils.canonicalize(JsonUtils.getGson(false).toJsonTree(payloadJson)).toString());
                 ciphertext.put(deviceKey, mOlmDevice.encryptMessage(deviceKey, sessionId, payloadString));
             }
         }
