@@ -72,6 +72,14 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
     private final ArrayList<MXQueuedEncryption> mPendingEncryptions = new ArrayList<>();
 
+    // Session rotation periods
+    private int mSessionRotationPeriodMsgs;
+    private int mSessionRotationPeriodMs;
+
+    // Outbound session information
+    private int mUseCount;
+    private long mCreationTime;
+
     @Override
     public void initWithMatrixSession(MXSession matrixSession, String roomId) {
         mSession = matrixSession;
@@ -79,6 +87,11 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
         mRoomId = roomId;
         mDeviceId = matrixSession.getCredentials().deviceId;
+
+        // Default rotation periods
+        // TODO: Make it configurable via parameters
+        mSessionRotationPeriodMsgs = 100;
+        mSessionRotationPeriodMs = 7 * 24 * 3600 * 1000;
     }
 
     /**
@@ -272,6 +285,9 @@ public class MXMegolmEncryption implements IMXEncrypting {
                             Log.e(LOG_TAG, "## prepareNewSessionInRoom() : complete, but discarding");
                         } else {
                             mOutboundSessionId = sessionId;
+
+                            mCreationTime = System.currentTimeMillis();
+                            mUseCount = 0;
                         }
 
                         mDiscardNewSession = false;
@@ -345,7 +361,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
         }
 
         // Need to make a brand new session?
-        if (TextUtils.isEmpty(mOutboundSessionId)) {
+        if (TextUtils.isEmpty(mOutboundSessionId) || needsRotation()) {
             mPrepOperationIsProgress = true;
 
             prepareNewSessionInRoom(room, new ApiCallback<String>() {
@@ -616,10 +632,28 @@ public class MXMegolmEncryption implements IMXEncrypting {
             map.put("device_id", mDeviceId);
 
             queuedEncryption.mApiCallback.onSuccess(JsonUtils.getGson(false).toJsonTree(map));
+
+            mUseCount++;
         }
 
         synchronized (mPendingEncryptions) {
             mPendingEncryptions.removeAll(queuedEncryptions);
         }
+    }
+    
+    /**
+     * Check if it's time to rotate the session
+     * @return true if a rotation is required
+     */
+    private boolean needsRotation() {
+        boolean needsRotation = false;
+        long sessionLifetime = System.currentTimeMillis() - mCreationTime;
+
+        if ((mUseCount > mSessionRotationPeriodMsgs) || (sessionLifetime > mSessionRotationPeriodMs)) {
+            Log.d(LOG_TAG, "## needsRotation() : Rotating megolm session after " + mUseCount + " messages, " + sessionLifetime + " ms");
+            needsRotation = true;
+        }
+
+        return needsRotation;
     }
 }
