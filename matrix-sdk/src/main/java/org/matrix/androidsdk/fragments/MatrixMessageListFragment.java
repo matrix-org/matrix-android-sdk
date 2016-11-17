@@ -755,28 +755,30 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mMatrixMessagesFragment.redact(eventId, new ApiCallback<Event>() {
             @Override
             public void onSuccess(final Event redactedEvent) {
-                getUiHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        // create a dummy redacted event to manage the redaction.
-                        // some redacted events are not removed from the history but they are pruned.
+                if (null != redactedEvent) {
+                    getUiHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            // create a dummy redacted event to manage the redaction.
+                            // some redacted events are not removed from the history but they are pruned.
 
-                        Event redacterEvent = new Event();
-                        redacterEvent.roomId = redactedEvent.roomId;
-                        redacterEvent.redacts = redactedEvent.eventId;
-                        redacterEvent.setType(Event.EVENT_TYPE_REDACTION);
+                            Event redacterEvent = new Event();
+                            redacterEvent.roomId = redactedEvent.roomId;
+                            redacterEvent.redacts = redactedEvent.eventId;
+                            redacterEvent.setType(Event.EVENT_TYPE_REDACTION);
 
-                        onEvent(redacterEvent, EventTimeline.Direction.FORWARDS, mRoom.getLiveState());
+                            onEvent(redacterEvent, EventTimeline.Direction.FORWARDS, mRoom.getLiveState());
 
-                        if (null != mEventSendingListener) {
-                            try {
-                                mEventSendingListener.onMessageRedacted(redactedEvent);
-                            } catch (Exception e) {
-                                Log.e(LOG_TAG, "redactEvent fails : " + e.getMessage());
+                            if (null != mEventSendingListener) {
+                                try {
+                                    mEventSendingListener.onMessageRedacted(redactedEvent);
+                                } catch (Exception e) {
+                                    Log.e(LOG_TAG, "redactEvent fails : " + e.getMessage());
+                                }
                             }
                         }
-                    }
-                });
+                    });
+                }
             }
 
             private void onError() {
