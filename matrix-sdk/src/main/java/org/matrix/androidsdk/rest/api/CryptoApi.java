@@ -90,6 +90,6 @@ public interface CryptoApi {
      * @param params the deletion parameters
      * @param callback the callback
      */
-    @DELETE("/devices/{device_id}")
+    @RetrofitDeleteWithBody("/devices/{device_id}")
     void deleteDevice(@Path("device_id")String deviceId, @Body DeleteDeviceParams params, Callback<Void> callback);
 }
