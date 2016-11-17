@@ -650,7 +650,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
         long sessionLifetime = System.currentTimeMillis() - mCreationTime;
 
         if ((mUseCount > mSessionRotationPeriodMsgs) || (sessionLifetime > mSessionRotationPeriodMs)) {
-            Log.d(LOG_TAG, "## needsRotation() : Rotating megolm session after " + mUseCount + " messages, " + " ms");
+            Log.d(LOG_TAG, "## needsRotation() : Rotating megolm session after " + mUseCount + " messages, " + sessionLifetime + " ms");
             needsRotation = true;
         }
 
