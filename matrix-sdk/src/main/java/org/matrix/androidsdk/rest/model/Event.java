@@ -497,10 +497,10 @@ public class Event implements java.io.Serializable {
      * @return true if the event if a call event.
      */
     public boolean isCallEvent() {
-        return EVENT_TYPE_CALL_INVITE.equals(type) ||
-                EVENT_TYPE_CALL_CANDIDATES.equals(type) ||
-                EVENT_TYPE_CALL_ANSWER.equals(type) ||
-                EVENT_TYPE_CALL_HANGUP.equals(type);
+        return EVENT_TYPE_CALL_INVITE.equals(getType()) ||
+                EVENT_TYPE_CALL_CANDIDATES.equals(getType()) ||
+                EVENT_TYPE_CALL_ANSWER.equals(getType()) ||
+                EVENT_TYPE_CALL_HANGUP.equals(getType());
     }
 
     /**
