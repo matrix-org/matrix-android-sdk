@@ -37,6 +37,7 @@ public class MXCryptoError extends MatrixError {
     public static final String BAD_ENCRYPTED_MESSAGE = "Bad Encrypted Message";
     public static final String MESSAGE_NOT_INTENDED_FOR_THIS_DEVICE = "Message not intended for this device";
     public static final String MESSAGE_NOT_INTENDED_FOR_THIS_ROOM = "Message not intended for this room";
+    public static final String MISSING_PROPERTY_CODE = "No %s property. Cannot prevent unknown-key attack";
 
     public MXCryptoError(String anErrcode) {
         errcode = anErrcode;
