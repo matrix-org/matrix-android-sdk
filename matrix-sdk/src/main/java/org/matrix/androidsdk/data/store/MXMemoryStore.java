@@ -1128,6 +1128,11 @@ public class MXMemoryStore implements IMXStore {
         ArrayList<Event> events = new ArrayList<>();
 
         // sanity check
+        if (null == eventId) {
+            return events;
+        }
+
+        // sanity check
         if (null != roomId) {
             synchronized (mRoomEventsLock) {
                 LinkedHashMap<String, Event> roomEvents = mRoomEvents.get(roomId);
