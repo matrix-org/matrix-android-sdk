@@ -90,6 +90,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private File mSessionsFile;
     private File mInboundGroupSessionsFile;
 
+    // tell if the store is corrupted
+    private boolean mIsCorrupted = false;
+
     public MXFileCryptoStore() {
     }
 
@@ -142,6 +145,13 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
         return result;
     }
+
+
+    @Override
+    public boolean isCorrupted() {
+        return  mIsCorrupted;
+    }
+
 
     @Override
     public void deleteStore() {
@@ -431,6 +441,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 object = out.readObject();
             }
         } catch (Exception e) {
+            // warn that some file loading fails
+            mIsCorrupted = true;
             Log.e(LOG_TAG, description  + "failed : " + e.getMessage());
         }
 
@@ -447,6 +459,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             try {
                 mMetaData = (MXFileCryptoStoreMetaData) metadataAsVoid;
             } catch (Exception e) {
+                mIsCorrupted = true;
                 Log.e(LOG_TAG, "## loadMetadata() : metadata has been corrupted");
             }
         }
@@ -462,6 +475,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             try {
                 mOlmAccount = (OlmAccount)olmAccountAsVoid;
             } catch (Exception e) {
+                mIsCorrupted = true;
                 Log.e(LOG_TAG, "## preloadCryptoData() - invalid mAccountFile " + e.getMessage());
             }
         }
@@ -473,6 +487,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 MXUsersDevicesMap objectAsMap = (MXUsersDevicesMap)usersDevicesInfoMapAsVoid;
                 mUsersDevicesInfoMap = new MXUsersDevicesMap<>(objectAsMap.getMap());
             } catch (Exception e) {
+                mIsCorrupted = true;
                 Log.e(LOG_TAG, "## preloadCryptoData() - invalid mUsersDevicesInfoMap " + e.getMessage());
             }
         }
@@ -484,6 +499,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 Map<String, String> algorithmsMap = (Map<String, String>)algorithmsAsVoid;
                 mRoomsAlgorithms = new HashMap<>(algorithmsMap);
             } catch (Exception e) {
+                mIsCorrupted = true;
                 Log.e(LOG_TAG, "## preloadCryptoData() - invalid mAlgorithmsFile " + e.getMessage());
             }
         }
@@ -500,6 +516,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     mOlmSessions.put(key, new HashMap<>(olmSessionMap.get(key)));
                 }
             } catch (Exception e) {
+                mIsCorrupted = true;
                 Log.e(LOG_TAG, "## preloadCryptoData() - invalid mAlgorithmsFile " + e.getMessage());
             }
         }
@@ -516,6 +533,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     mInboundGroupSessions.put(key, new HashMap<>(inboundGroupSessionsMap.get(key)));
                 }
             } catch (Exception e) {
+                mIsCorrupted = true;
                 Log.e(LOG_TAG, "## preloadCryptoData() - invalid mInboundGroupSessions " + e.getMessage());
             }
         }

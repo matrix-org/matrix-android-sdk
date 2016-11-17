@@ -39,6 +39,11 @@ public interface IMXCryptoStore {
     void initWithCredentials(Context context, Credentials credentials);
 
     /**
+     * @return if the corrupted is corrupted.
+     */
+    boolean isCorrupted();
+
+    /**
      * Indicate if the store contains data for the passed account.
      * @return true means that the user enabled the crypto in a previous session
      */

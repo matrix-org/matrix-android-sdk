@@ -203,6 +203,13 @@ public class MXCrypto {
     }
 
     /**
+     * @return true if some saved data is corrupted
+     */
+    public boolean isCorrupted() {
+        return mCryptoStore.isCorrupted();
+    }
+
+    /**
      * Start the timer to periodically upload the keys
      * @param delayed true when the keys upload must be delayed
      */
