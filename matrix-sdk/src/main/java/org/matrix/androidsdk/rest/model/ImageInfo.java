@@ -21,8 +21,11 @@ public class ImageInfo {
     public Integer h;
     public Long size;
     public Integer rotation;
+
     // ExifInterface.ORIENTATION_XX values
     public Integer orientation;
+
+    public EncryptedFileInfo thumbnail_file;
 
     /**
      * Make a deep copy.
@@ -36,6 +39,12 @@ public class ImageInfo {
         copy.size = size;
         copy.rotation = rotation;
         copy.orientation = orientation;
+
+        if (null != thumbnail_file) {
+            copy.thumbnail_file = thumbnail_file.deepCopy();
+        }
+
+
         return copy;
     }
 }

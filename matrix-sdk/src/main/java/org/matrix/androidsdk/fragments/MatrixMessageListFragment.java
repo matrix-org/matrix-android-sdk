@@ -70,6 +70,7 @@ import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResult;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.VideoInfo;
 import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.util.EventDisplay;
@@ -1352,7 +1353,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                 fVideoMessage.info.thumbnail_url = contentUri;
                             } else {
                                 fEncryptionResult.mEncryptedFileInfo.url = contentUri;
-                                fVideoMessage.thumbnail_file = fEncryptionResult.mEncryptedFileInfo;
+                                fVideoMessage.info.thumbnail_file = fEncryptionResult.mEncryptedFileInfo;
                                 fVideoMessage.info.thumbnail_url = null;
                             }
 

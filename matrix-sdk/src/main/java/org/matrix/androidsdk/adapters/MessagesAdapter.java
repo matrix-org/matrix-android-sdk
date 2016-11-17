@@ -1814,7 +1814,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             // Backwards compatibility with events from before Synapse 0.6.0
             if (imageMessage.getThumbnailUrl() != null) {
                 thumbUrl = imageMessage.getThumbnailUrl();
-                encryptedFileInfo = imageMessage.thumbnail_file;
+
+                if (null != imageMessage.info) {
+                    encryptedFileInfo = imageMessage.info.thumbnail_file;
+                }
+
             } else if (imageMessage.getUrl() != null) {
                 thumbUrl = imageMessage.getUrl();
                 encryptedFileInfo = imageMessage.file;
@@ -1839,7 +1843,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             videoMessage.checkMediaUrls();
 
             thumbUrl = videoMessage.getThumbnailUrl();
-            encryptedFileInfo = videoMessage.thumbnail_file;
+            if (null != videoMessage.info) {
+                encryptedFileInfo = videoMessage.info.thumbnail_file;
+            }
 
             VideoInfo videoinfo = videoMessage.info;
 

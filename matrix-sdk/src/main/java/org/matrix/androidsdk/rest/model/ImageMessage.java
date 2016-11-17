@@ -32,7 +32,6 @@ public class ImageMessage extends Message {
     // encrypted medias
     // url and thumbnailUrl are replaced by their dedicated file
     public EncryptedFileInfo file;
-    public EncryptedFileInfo thumbnail_file;
 
     public ImageMessage() {
         msgtype = MSGTYPE_IMAGE;
@@ -61,10 +60,6 @@ public class ImageMessage extends Message {
             copy.file = file.deepCopy();
         }
 
-        if (null != thumbnail_file) {
-            copy.thumbnail_file = thumbnail_file.deepCopy();
-        }
-
         return copy;
     }
 
@@ -87,8 +82,8 @@ public class ImageMessage extends Message {
     public String getThumbnailUrl() {
         if (null != thumbnailUrl) {
             return thumbnailUrl;
-        } else if (null != thumbnail_file) {
-            return thumbnail_file.url;
+        } else if ((null != info) && (null != info.thumbnail_file)) {
+            return info.thumbnail_file.url;
         } else {
             return null;
         }
