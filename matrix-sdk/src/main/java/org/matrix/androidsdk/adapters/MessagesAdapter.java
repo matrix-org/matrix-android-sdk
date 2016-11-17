@@ -2439,7 +2439,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(eventType)) {
             return true;
         } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(eventType) || Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
-            return event.hasContentFields();
+            // if we can display text for it, it's valid.
+            EventDisplay display = new EventDisplay(mContext, event, roomState);
+            return event.hasContentFields() && (display.getTextualDisplay() != null);
         }
         return false;
     }

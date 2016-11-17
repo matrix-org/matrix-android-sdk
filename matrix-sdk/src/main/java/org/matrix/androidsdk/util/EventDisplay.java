@@ -191,21 +191,32 @@ public class EventDisplay {
             } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
                 text = mContext.getString(R.string.notice_end_to_end, userDisplayName, mEvent.getWireEventContent().algorithm);
             } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(eventType)) {
-                String message = null;
+                // don't display
+                if (mEvent.isRedacted()) {
+                    String redactedInfo = EventDisplay.getRedactionMessage(mContext, mEvent, mRoomState);
 
-                if (null != mEvent.getCryptoError()) {
-                    message = mEvent.getCryptoError().getLocalizedMessage();
+                    if (TextUtils.isEmpty(redactedInfo)) {
+                        return null;
+                    } else {
+                        return redactedInfo;
+                    }
+                } else {
+                    String message = null;
+
+                    if (null != mEvent.getCryptoError()) {
+                        message = mEvent.getCryptoError().getLocalizedMessage();
+                    }
+
+                    if (TextUtils.isEmpty(message)) {
+                        message = mContext.getString(R.string.encrypted_message);
+                    }
+
+                    message = "**" + message + "**";
+
+                    SpannableString spannableStr = new SpannableString(message);
+                    spannableStr.setSpan(new android.text.style.StyleSpan(Typeface.ITALIC), 0, message.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    text = spannableStr;
                 }
-
-                if (TextUtils.isEmpty(message) ) {
-                    message = mContext.getString(R.string.encrypted_message);
-                }
-
-				message = "**" + message + "**";
-
-                SpannableString spannableStr = new SpannableString(message);
-                spannableStr.setSpan(new android.text.style.StyleSpan(Typeface.ITALIC), 0, message.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                text = spannableStr;
             } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType)) {
                 String topic = jsonEventContent.getAsJsonPrimitive("topic").getAsString();
 
