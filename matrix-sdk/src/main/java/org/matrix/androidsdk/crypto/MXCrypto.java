@@ -894,15 +894,6 @@ public class MXCrypto {
      * @param callback the asynchronous callback
      */
     public void encryptEventContent(JsonElement eventContent, String eventType, Room room, final ApiCallback<MXEncryptEventContentResult> callback) {
-        if (!TextUtils.equals(eventType, Event.EVENT_TYPE_MESSAGE)) {
-            // We only encrypt m.room.message
-            if (null != callback) {
-                callback.onSuccess(new MXEncryptEventContentResult(eventContent, eventType));
-            }
-
-            return;
-        }
-
         IMXEncrypting alg = mRoomAlgorithms.get(room.getRoomId());
 
         if (null == alg) {

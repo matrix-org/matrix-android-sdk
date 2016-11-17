@@ -752,6 +752,9 @@ public class EventTimeline {
     private void handleLiveEvent(Event event, boolean checkRedactedStateEvent, boolean withPush) {
         MyUser myUser = mDataHandler.getMyUser();
 
+        // Decrypt event if necessary
+        mDataHandler.decryptEvent(event);
+
         // dispatch the call events to the calls manager
         if (event.isCallEvent()) {
             mDataHandler.getCallsManager().handleCallEvent(event);
@@ -779,7 +782,6 @@ public class EventTimeline {
 
             // avoid processing event twice
             if (null != storedEvent) {
-
                 // an event has been echoed
                 if (storedEvent.getAge() == Event.DUMMY_EVENT_AGE) {
                     mStore.deleteEvent(storedEvent);
@@ -846,16 +848,6 @@ public class EventTimeline {
                         // not processed -> do not warn the application
                         // assume that the event is a duplicated one.
                         return;
-                    }
-                }
-
-                // Decrypt event if necessary
-                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
-                    if (null != mDataHandler.getCrypto()) {
-                        event.setClearEvent(mDataHandler.getCrypto().decryptEvent(event));
-                    } else {
-                        event.setClearEvent(null);
-                        event.setCryptoError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLE));
                     }
                 }
 
@@ -976,14 +968,7 @@ public class EventTimeline {
             }
 
             // Decrypt event if necessary
-            if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
-                if (null != mDataHandler.getCrypto()) {
-                    event.setClearEvent(mDataHandler.getCrypto().decryptEvent(event));
-                } else {
-                    event.setClearEvent(null);
-                    event.setCryptoError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLE));
-                }
-            }
+            mDataHandler.decryptEvent(event);
 
             if (processedEvent) {
                 // warn the listener only if the message is processed.

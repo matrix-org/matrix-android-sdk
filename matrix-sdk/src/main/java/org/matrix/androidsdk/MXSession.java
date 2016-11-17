@@ -1647,16 +1647,7 @@ public class MXSession {
         Collection<RoomSummary> summaries = getDataHandler().getStore().getSummaries();
 
         for(RoomSummary summary :summaries) {
-            Event latestEvent = summary.getLatestReceivedEvent();
-
-            if ((null != latestEvent) && TextUtils.equals(latestEvent.getWireType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
-                if (null != mCrypto) {
-                    latestEvent.setClearEvent(mDataHandler.getCrypto().decryptEvent(latestEvent));
-                } else {
-                    latestEvent.setClearEvent(null);
-                    latestEvent.setCryptoError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLE));
-                }
-            }
+            mDataHandler.decryptEvent(summary.getLatestReceivedEvent());
         }
     }
 

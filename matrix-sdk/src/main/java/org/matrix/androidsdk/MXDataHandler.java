@@ -22,6 +22,7 @@ import android.util.Log;
 
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCrypto;
+import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.MyUser;
@@ -1082,16 +1083,27 @@ public class MXDataHandler implements IMXEventListener {
      */
     private void handleToDeviceEvent(Event event) {
         // Decrypt event if necessary
-        if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
-            if (null != getCrypto()) {
-                event.setClearEvent(getCrypto().decryptEvent(event));
-            }
-        }
+        decryptEvent(event);
 
         if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && (null != event.getContent()) && TextUtils.equals(JsonUtils.getMessageMsgType(event.getContent()), "m.bad.encrypted")) {
             Log.e(LOG_TAG, "## handleToDeviceEvent() : Warning: Unable to decrypt to-device event : " + event.getContent());
         } else {
             onToDeviceEvent(event);
+        }
+    }
+
+    /**
+     * Decrypt an encrypted event
+     * @param event the event to decrypt
+     */
+    public void decryptEvent(Event event) {
+        if ((null != event) && TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
+            if (null != getCrypto()) {
+                event.setClearEvent(getCrypto().decryptEvent(event));
+            } else {
+                event.setClearEvent(null);
+                event.setCryptoError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLE));
+            }
         }
     }
 
