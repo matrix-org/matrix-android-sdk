@@ -218,6 +218,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
      */
     private void storeObject(Object object, File file, String description) {
         try {
+            long t0 = System.currentTimeMillis();
+
             if (file.exists()) {
                 file.delete();
             }
@@ -226,6 +228,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             ObjectOutputStream out = new ObjectOutputStream(fos);
             out.writeObject(object);
             out.close();
+
+            Log.d(LOG_TAG, "## storeObject () : " + description + " done in " + (System.currentTimeMillis() - t0) + " ms");
         } catch (OutOfMemoryError oom) {
             Log.e(LOG_TAG, "storeObject failed : " + description + " -- " + oom.getMessage());
         } catch (Exception e) {
@@ -239,7 +243,6 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private void saveMetaData() {
         storeObject(mMetaData, mMetaDataFile, "saveMetaData");
     }
-
 
     @Override
     public void storeAccount(OlmAccount account) {
