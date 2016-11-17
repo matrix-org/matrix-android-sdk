@@ -98,6 +98,10 @@ public class MXOlmDecryption implements IMXDecrypting {
 
                 if (!payloadAsJSon.has("recipient")) {
                     Log.e(LOG_TAG,  "Olm event (id=" + event.eventId + ") contains no " +"'recipient' property; cannot prevent unknown-key attack");
+
+                    result = new MXDecryptionResult();
+                    result.mCryptoError = new MXCryptoError(String.format(MXCryptoError.MISSING_PROPERTY_CODE, "recipient"));
+                    return result;
                 } else {
                     try {
                         String recipient = payloadAsJSon.get("recipient").getAsString();
@@ -115,6 +119,10 @@ public class MXOlmDecryption implements IMXDecrypting {
 
                 if (!payloadAsJSon.has("recipient_keys")) {
                     Log.e(LOG_TAG,  "Olm event (id=" + event.eventId + ") contains no " +"'recipient_keys' property; cannot prevent unknown-key attack");
+
+                    result = new MXDecryptionResult();
+                    result.mCryptoError = new MXCryptoError(String.format(MXCryptoError.MISSING_PROPERTY_CODE, "recipient_keys"));
+                    return result;
                 } else {
                     try {
                         String ed25519 =  payloadAsJSon.getAsJsonObject("recipient_keys").get("ed25519").getAsString();
@@ -133,6 +141,10 @@ public class MXOlmDecryption implements IMXDecrypting {
 
                 if (!payloadAsJSon.has("sender")) {
                     Log.e(LOG_TAG, "Olm event (id=" + event.eventId + ") contains no " + "'sender' property; cannot prevent unknown-key attack");
+
+                    result = new MXDecryptionResult();
+                    result.mCryptoError = new MXCryptoError(String.format(MXCryptoError.MISSING_PROPERTY_CODE, "sender"));
+                    return result;
                 } else {
                     try {
                         String sender = payloadAsJSon.get("sender").getAsString();
