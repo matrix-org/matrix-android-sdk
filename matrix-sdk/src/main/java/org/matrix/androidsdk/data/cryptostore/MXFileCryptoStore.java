@@ -23,6 +23,7 @@ import android.util.Log;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
+import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.ContentUtils;
 import org.matrix.olm.OlmAccount;
@@ -36,7 +37,10 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * the crypto data store
@@ -235,7 +239,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             }
 
             FileOutputStream fos = new FileOutputStream(file);
-            ObjectOutputStream out = new ObjectOutputStream(fos);
+            GZIPOutputStream gz = new GZIPOutputStream(fos);
+            ObjectOutputStream out = new ObjectOutputStream(gz);
+
             out.writeObject(object);
             out.close();
 
@@ -433,19 +439,29 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private Object loadObject(File file, String description) {
         Object object = null;
 
-        try {
-            if (file.exists()) {
+        if (file.exists()) {
+            try {
+                // the files are now zipped to reduce saving time
                 FileInputStream fis = new FileInputStream(file);
-                ObjectInputStream out = new ObjectInputStream(fis);
+                GZIPInputStream gz = new GZIPInputStream(fis);
+                ObjectInputStream ois = new ObjectInputStream(gz);
+                object = ois.readObject();
+                ois.close();
+            } catch (Exception e) {
+                // if the zip unflating fails, try to use the former file saving method
+                try {
+                    FileInputStream fis2 = new FileInputStream(file);
+                    ObjectInputStream out = new ObjectInputStream(fis2);
 
-                object = out.readObject();
+                    object = out.readObject();
+                    fis2.close();
+                } catch (Exception subEx) {
+                    // warn that some file loading fails
+                    mIsCorrupted = true;
+                    Log.e(LOG_TAG, description  + "failed : " + e.getMessage());
+                }
             }
-        } catch (Exception e) {
-            // warn that some file loading fails
-            mIsCorrupted = true;
-            Log.e(LOG_TAG, description  + "failed : " + e.getMessage());
         }
-
         return object;
     }
 
