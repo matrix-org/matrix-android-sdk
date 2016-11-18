@@ -59,14 +59,17 @@ public class MatrixError implements java.io.Serializable {
 
     /**
      * Creator with error description
-     * @param anErrcode
-     * @param anError
+     * @param anErrcode the error code.
+     * @param anError the error message.
      */
     public MatrixError(String anErrcode, String anError) {
         errcode = anErrcode;
         error = anError;
     }
 
+    /**
+     * @return a localized error message.
+     */
     public String getLocalizedMessage() {
         String localizedMessage = "";
 
@@ -77,6 +80,13 @@ public class MatrixError implements java.io.Serializable {
         }
 
         return localizedMessage;
+    }
+
+    /**
+     * @return a  error message.
+     */
+    public String getMessage() {
+        return getLocalizedMessage();
     }
 
     /**

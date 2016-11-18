@@ -17,9 +17,10 @@ android {
         minSdkVersion 11
         targetSdkVersion 21
         // use version to define a version code.
-        versionCode 602
-        version "0.6.2"
-        versionName "0.6.2"
+        versionCode 700
+        version "0.7.0"
+        versionName "0.7.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
      }
 
     // prevent the "superClassName is empty" error for classes not annotated as tests
@@ -67,6 +68,12 @@ android {
     lintOptions {
         disable 'InvalidPackage'
     }
+
+    repositories {
+        flatDir {
+            dir 'libs'
+        }
+    }
 }
 
 def gitRevision() {
@@ -93,6 +100,8 @@ dependencies {
     compile 'com.squareup.okhttp:okhttp:2.0.0'
     compile 'io.pristine:libjingle:9690@aar'
 
+    compile(name: 'olm-sdk', ext: 'aar')
+
     // Robolectric
     testCompile 'com.android.support.test:runner:0.3'
     testCompile 'com.android.support.test:rules:0.3'
@@ -104,4 +113,10 @@ dependencies {
         exclude group: 'commons-logging', module: 'commons-logging'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }
+
+    testCompile 'junit:junit:4.12'
+    androidTestCompile 'junit:junit:4.12'
+    androidTestCompile 'com.android.support:support-annotations:21.0.0'
+    androidTestCompile 'com.android.support.test:runner:0.5'
+    androidTestCompile 'com.android.support.test:rules:0.5'
 }

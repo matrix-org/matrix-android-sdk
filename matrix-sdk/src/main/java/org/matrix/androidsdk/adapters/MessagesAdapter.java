@@ -68,13 +68,14 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
-import org.matrix.androidsdk.data.IMXStore;
+import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
 import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
 import org.matrix.androidsdk.listeners.MXMediaDownloadListener;
 import org.matrix.androidsdk.listeners.MXMediaUploadListener;
+import org.matrix.androidsdk.rest.model.EncryptedFileInfo;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.FileMessage;
@@ -99,6 +100,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -265,6 +268,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     protected int mDefaultMessageTextColor;
     protected int mNotSentMessageTextColor;
     protected int mSendingMessageTextColor;
+    protected int mEncryptingMessageTextColor;
     protected int mHighlightMessageTextColor;
     protected int mSearchHighlightMessageTextColor;
 
@@ -287,6 +291,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     // list of patterns to find some matrix item.
     private static final List<Pattern> mMatrixItemPatterns = Arrays.asList(
+            MXSession.PATTERN_CONTAIN_MATRIX_TO_PERMALINK_ROOM_ID,
+            MXSession.PATTERN_CONTAIN_MATRIX_TO_PERMALINK_ROOM_ALIAS,
+            MXSession.PATTERN_CONTAIN_APP_LINK_PERMALINK_ROOM_ID,
+            MXSession.PATTERN_CONTAIN_APP_LINK_PERMALINK_ROOM_ALIAS,
             MXSession.PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER,
             MXSession.PATTERN_CONTAIN_MATRIX_ALIAS,
             MXSession.PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER,
@@ -355,10 +363,15 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                     }
                 } else {
                     Uri uri = Uri.parse(getURL());
-                    Context context = widget.getContext();
-                    Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-                    intent.putExtra(Browser.EXTRA_APPLICATION_ID, context.getPackageName());
-                    context.startActivity(intent);
+
+                    if (null != mMessagesAdapterEventsListener) {
+                        mMessagesAdapterEventsListener.onURLClick(uri);
+                    } else {
+                        Context context = widget.getContext();
+                        Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                        intent.putExtra(Browser.EXTRA_APPLICATION_ID, context.getPackageName());
+                        context.startActivity(intent);
+                    }
                 }
             } catch (Exception e) {
                 Log.e(LOG_TAG, "MatrixURLSpan : on click failed " + e.getLocalizedMessage());
@@ -374,6 +387,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     public int getNotSentMessageTextColor(Context context) {
         return context.getResources().getColor(R.color.message_not_sent);
+    }
+
+    public int getEncryptingMessageTextColor(Context context) {
+        return context.getResources().getColor(R.color.message_encryting);
     }
 
     public int getSendingMessageTextColor(Context context) {
@@ -508,6 +525,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         mDefaultMessageTextColor = getDefaultMessageTextColor(context);
         mNotSentMessageTextColor = getNotSentMessageTextColor(context);
         mSendingMessageTextColor = getSendingMessageTextColor(context);
+        mEncryptingMessageTextColor = getEncryptingMessageTextColor(context);
         mHighlightMessageTextColor = getHighlightMessageTextColor(context);
         mSearchHighlightMessageTextColor = getSearchHighlightMessageTextColor(context);
 
@@ -734,7 +752,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 // waiting for echo
                 // the message is displayed as sent event if the echo has not been received
                 // it avoids displaying a pending message whereas the message has been sent
-                if (currentRow.getEvent().getAge() == Long.MAX_VALUE) {
+                if (currentRow.getEvent().getAge() == Event.DUMMY_EVENT_AGE) {
                     currentRow.updateEvent(row.getEvent());
                 }
             }
@@ -760,10 +778,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         int viewType;
+        String eventType = event.getType();
 
-        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
+        if (Event.EVENT_TYPE_MESSAGE.equals(eventType)) {
 
-            String msgType = JsonUtils.getMessageMsgType(event.content);
+            String msgType = JsonUtils.getMessageMsgType(event.getContent());
 
             if (Message.MSGTYPE_TEXT.equals(msgType)) {
                 viewType = ROW_TYPE_TEXT;
@@ -781,21 +800,21 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 // Default is to display the body as text
                 viewType = ROW_TYPE_TEXT;
             }
-        } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(event.type)) {
+        } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(eventType)) {
             viewType = ROW_TYPE_TEXT;
         }
         else if (
                 event.isCallEvent() ||
-                        Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(event.type) ||
-                        Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
-                        Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) ||
-                        Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type) ||
-                        Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.type)
-                ) {
+                        Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(eventType) ||
+                        Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType) ||
+                        Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType) ||
+                        Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType) ||
+                        Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(eventType) ||
+                        Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
             viewType = ROW_TYPE_NOTICE;
 
         } else {
-            throw new RuntimeException("Unknown event type: " + event.type);
+            throw new RuntimeException("Unknown event type: " +eventType);
         }
 
         if (null != eventId) {
@@ -1046,7 +1065,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @return true if the avatar must be displayed on right side.
      */
     protected boolean isAvatarDisplayedOnRightSide(Event event) {
-        return mSession.getMyUserId().equals(event.getSender()) || Event.EVENT_TYPE_CALL_INVITE.equals(event.type);
+        return mSession.getMyUserId().equals(event.getSender()) || Event.EVENT_TYPE_CALL_INVITE.equals(event.getType());
     }
 
     /**
@@ -1070,7 +1089,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         boolean res = true;
 
         // user profile update should not be merged
-        if (TextUtils.equals(event.type, Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
+        if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
 
             EventContent eventContent = JsonUtils.toEventContent(event.getContentAsJsonObject());
             EventContent prevEventContent = event.getPrevContent();
@@ -1149,13 +1168,15 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 textView.setVisibility(View.GONE);
             }
             else {
+                String eventType = event.getType();
+
                 // theses events are managed like notice ones
                 // but they are dedicated behaviour i.e the sender must not be displayed
                 if (event.isCallEvent() ||
-                            Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type) ||
-                            Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) ||
-                            Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type) ||
-                            Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.type)
+                            Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType) ||
+                            Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType) ||
+                            Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType) ||
+                            Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(eventType)
                             ) {
                     textView.setVisibility(View.GONE);
                 } else {
@@ -1601,7 +1622,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         MessageRow row = getItem(position);
         Event event = row.getEvent();
-        Message message = JsonUtils.toMessage(event.content);
+        Message message = JsonUtils.toMessage(event.getContent());
         RoomState roomState = row.getRoomState();
 
         EventDisplay display = new EventDisplay(mContext, event, roomState);
@@ -1624,7 +1645,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         int textColor;
 
-        if (row.getEvent().isSending()) {
+        if (row.getEvent().isEncrypting()) {
+            textColor = mEncryptingMessageTextColor;
+        } else if (row.getEvent().isSending()) {
             textColor = mSendingMessageTextColor;
         } else if (row.getEvent().isUndeliverable()) {
             textColor = mNotSentMessageTextColor;
@@ -1655,7 +1678,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         bodyTextView.setTextColor(textColor);
 
-        this.manageSubView(position, convertView, bodyTextView, ROW_TYPE_TEXT);
+        View textLayout =  convertView.findViewById(R.id.messagesAdapter_text_layout);
+        this.manageSubView(position, convertView, textLayout, ROW_TYPE_TEXT);
 
         addContentViewListeners(convertView, bodyTextView, position);
 
@@ -1738,7 +1762,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 @Override
                 public void onUploadCancel(String uploadId) {
                     if (TextUtils.equals((String)uploadProgressLayout.getTag(), uploadId)) {
-                        onUploadStop(null);;
+                        onUploadStop(null);
                     }
                 }
 
@@ -1780,16 +1804,24 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         int thumbWidth = -1;
         int thumbHeight = -1;
 
+        EncryptedFileInfo encryptedFileInfo = null;
+
         // retrieve the common items
         if (message instanceof ImageMessage) {
             ImageMessage imageMessage = (ImageMessage)message;
             imageMessage.checkMediaUrls();
 
             // Backwards compatibility with events from before Synapse 0.6.0
-            if (imageMessage.thumbnailUrl != null) {
-                thumbUrl = imageMessage.thumbnailUrl;
-            } else if (imageMessage.url != null) {
-                thumbUrl = imageMessage.url;
+            if (imageMessage.getThumbnailUrl() != null) {
+                thumbUrl = imageMessage.getThumbnailUrl();
+
+                if (null != imageMessage.info) {
+                    encryptedFileInfo = imageMessage.info.thumbnail_file;
+                }
+
+            } else if (imageMessage.getUrl() != null) {
+                thumbUrl = imageMessage.getUrl();
+                encryptedFileInfo = imageMessage.file;
             }
 
             rotationAngle = imageMessage.getRotation();
@@ -1810,11 +1842,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             VideoMessage videoMessage = (VideoMessage) message;
             videoMessage.checkMediaUrls();
 
+            thumbUrl = videoMessage.getThumbnailUrl();
+            if (null != videoMessage.info) {
+                encryptedFileInfo = videoMessage.info.thumbnail_file;
+            }
+
             VideoInfo videoinfo = videoMessage.info;
 
             if (null != videoinfo) {
-                thumbUrl = videoinfo.thumbnail_url;
-
                 if ((null != videoMessage.info.thumbnail_info) && (null != videoMessage.info.thumbnail_info.w) && (null != videoMessage.info.thumbnail_info.h)) {
                     thumbWidth = videoMessage.info.thumbnail_info.w;
                     thumbHeight = videoMessage.info.thumbnail_info.h;
@@ -1831,14 +1866,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         final FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) informationLayout.getLayoutParams();
 
         // the thumbnails are always pre - rotated
-        String downloadId = mMediasCache.loadBitmap(mSession.getHomeserverConfig(), imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, ExifInterface.ORIENTATION_UNDEFINED, "image/jpeg");
+        String downloadId = mMediasCache.loadBitmap(mSession.getHomeserverConfig(), imageView, thumbUrl, maxImageWidth, maxImageHeight, rotationAngle, ExifInterface.ORIENTATION_UNDEFINED, "image/jpeg", encryptedFileInfo);
 
         // test if the media is downloading the thumbnail is not downloading
         if (null == downloadId) {
             if (message instanceof VideoMessage) {
-                downloadId = mMediasCache.downloadIdFromUrl(((VideoMessage) message).url);
+                downloadId = mMediasCache.downloadIdFromUrl(((VideoMessage) message).getUrl());
             } else {
-                downloadId = mMediasCache.downloadIdFromUrl(((ImageMessage) message).url);
+                downloadId = mMediasCache.downloadIdFromUrl(((ImageMessage) message).getUrl());
             }
 
             // check the progress value
@@ -1974,7 +2009,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         int waterMarkResourceId = -1;
 
         if (type == ROW_TYPE_IMAGE) {
-            ImageMessage imageMessage = JsonUtils.toImageMessage(event.content);
+            ImageMessage imageMessage = JsonUtils.toImageMessage(event.getContent());
 
             if ("image/gif".equals(imageMessage.getMimeType())) {
                 waterMarkResourceId = R.drawable.filetype_gif;
@@ -1982,7 +2017,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             message = imageMessage;
 
         } else {
-            message = JsonUtils.toVideoMessage(event.content);
+            message = JsonUtils.toVideoMessage(event.getContent());
             waterMarkResourceId = R.drawable.filetype_video;
         }
 
@@ -2008,7 +2043,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         // upload management
         if (type == ROW_TYPE_IMAGE) {
-            managePendingUpload(convertView, event, type, ((ImageMessage)message).url);
+            managePendingUpload(convertView, event, type, ((ImageMessage)message).getUrl());
         } else {
             managePendingVideoUpload(convertView, event, (VideoMessage) message);
         }
@@ -2062,7 +2097,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             refreshMatrixSpans(strBuilder);
             noticeTextView.setText(strBuilder);
         }
-        this.manageSubView(position, convertView, noticeTextView, ROW_TYPE_NOTICE);
+
+        View textLayout =  convertView.findViewById(R.id.messagesAdapter_text_layout);
+        this.manageSubView(position, convertView, textLayout, ROW_TYPE_NOTICE);
 
         addContentViewListeners(convertView, noticeTextView, position);
 
@@ -2112,7 +2149,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             return convertView;
         }
 
-        Message message = JsonUtils.toMessage(event.content);
+        Message message = JsonUtils.toMessage(event.getContent());
         String userDisplayName = roomState.getMemberName(event.getSender());
 
         String body = "* " + userDisplayName +  " " + message.body;
@@ -2131,7 +2168,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         int textColor;
 
-        if (row.getEvent().isSending()) {
+        if (row.getEvent().isEncrypting()) {
+            textColor = mEncryptingMessageTextColor;
+        } else if (row.getEvent().isSending()) {
             textColor = mSendingMessageTextColor;
         } else if (row.getEvent().isUndeliverable()) {
             textColor = mNotSentMessageTextColor;
@@ -2141,7 +2180,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         emoteTextView.setTextColor(textColor);
 
-        this.manageSubView(position, convertView, emoteTextView, ROW_TYPE_EMOTE);
+        View textLayout =  convertView.findViewById(R.id.messagesAdapter_text_layout);
+        this.manageSubView(position, convertView, textLayout, ROW_TYPE_EMOTE);
 
         addContentViewListeners(convertView, emoteTextView, position);
 
@@ -2156,7 +2196,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param position the position in the listview.
      */
     private void managePendingFileDownload(View convertView, final Event event, FileMessage fileMessage, final int position) {
-        String downloadId = mMediasCache.downloadIdFromUrl(fileMessage.url);
+        String downloadId = mMediasCache.downloadIdFromUrl(fileMessage.getUrl());
 
         // check the progress value
         // display the progress layout only if the file is downloading
@@ -2244,7 +2284,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         MessageRow row = getItem(position);
         Event event = row.getEvent();
 
-        final FileMessage fileMessage = JsonUtils.toFileMessage(event.content);
+        final FileMessage fileMessage = JsonUtils.toFileMessage(event.getContent());
         final TextView fileTextView = (TextView) convertView.findViewById(R.id.messagesAdapter_filename);
 
         if (null == fileTextView) {
@@ -2365,7 +2405,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         uploadSpinner.setVisibility(((progress < 0) && videoEvent.isSending()) ? View.VISIBLE : View.GONE);
         refreshUploadViews(videoEvent, mSession.getMediasCache().getStatsForUploadId(uploadingUrl), uploadProgressLayout);
 
-        if (TextUtils.equals(uploadingUrl, videoMessage.url)) {
+        if (TextUtils.equals(uploadingUrl, videoMessage.getUrl())) {
             progress = 10 + (progress * 90 / 100);
         } else {
             progress = (progress * 10 / 100);
@@ -2382,28 +2422,32 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @return true if the event is managed.
      */
     private boolean isDisplayableEvent(Event event, RoomState roomState) {
-        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
+        String eventType = event.getType();
+
+        if (Event.EVENT_TYPE_MESSAGE.equals(eventType)) {
             // A message is displayable as long as it has a body
-            Message message = JsonUtils.toMessage(event.content);
+            Message message = JsonUtils.toMessage(event.getContent());
             return (message.body != null) && (!message.body.equals(""));
-        } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(event.type)
-                || Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)) {
+        } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType)
+                || Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType)) {
             EventDisplay display = new EventDisplay(mContext, event, roomState);
             return display.getTextualDisplay() != null;
         } else if (event.isCallEvent()) {
-            return Event.EVENT_TYPE_CALL_INVITE.equals(event.type) ||
-                    Event.EVENT_TYPE_CALL_ANSWER.equals(event.type) ||
-                    Event.EVENT_TYPE_CALL_HANGUP.equals(event.type)
+            return Event.EVENT_TYPE_CALL_INVITE.equals(eventType) ||
+                    Event.EVENT_TYPE_CALL_ANSWER.equals(eventType) ||
+                    Event.EVENT_TYPE_CALL_HANGUP.equals(eventType)
                     ;
         }
-        else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) || Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.type)) {
+        else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType) || Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(eventType)) {
             // if we can display text for it, it's valid.
             EventDisplay display = new EventDisplay(mContext, event, roomState);
             return display.getTextualDisplay() != null;
-        } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(event.type)) {
+        } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(eventType)) {
             return true;
-        } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(event.type)) {
-            return true;
+        } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(eventType) || Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
+            // if we can display text for it, it's valid.
+            EventDisplay display = new EventDisplay(mContext, event, roomState);
+            return event.hasContentFields() && (display.getTextualDisplay() != null);
         }
         return false;
     }

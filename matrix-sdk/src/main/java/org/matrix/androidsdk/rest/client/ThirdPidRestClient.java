@@ -63,8 +63,8 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
      * @param address the email address
      * @param clientSecret the client secret number
      * @param attempt the attemp count
-     * @param
-     * @param callback
+     * @param nextLink the next link.
+     * @param callback the callback.
      */
     public void requestValidationToken(final String address, final String clientSecret, final int attempt, final String nextLink, final ApiCallback<RequestEmailValidationResponse> callback) {
         final String description = "requestValidationToken";
@@ -79,6 +79,7 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
         ) {
             @Override
             public void success(RequestEmailValidationResponse requestEmailValidationResponse, Response response) {
+                onEventSent();
                 requestEmailValidationResponse.email = address;
                 requestEmailValidationResponse.clientSecret = clientSecret;
                 requestEmailValidationResponse.sendAttempt = attempt;

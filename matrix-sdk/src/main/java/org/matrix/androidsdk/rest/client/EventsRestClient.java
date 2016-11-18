@@ -17,9 +17,6 @@ package org.matrix.androidsdk.rest.client;
 
 import android.text.TextUtils;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.EventsApi;
@@ -27,14 +24,13 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.PublicRoom;
+import org.matrix.androidsdk.rest.model.PublicRoomsFilter;
+import org.matrix.androidsdk.rest.model.PublicRoomsParams;
+import org.matrix.androidsdk.rest.model.PublicRoomsResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchParams;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
-import org.matrix.androidsdk.rest.model.Search.SearchResult;
 import org.matrix.androidsdk.rest.model.Search.SearchRoomEventCategoryParams;
-import org.matrix.androidsdk.rest.model.Search.SearchRoomEventResults;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,7 +43,7 @@ import retrofit.client.Response;
  */
 public class EventsRestClient extends RestClient<EventsApi> {
 
-    public static final int EVENT_STREAM_TIMEOUT_MS = 30000;
+    private static final int EVENT_STREAM_TIMEOUT_MS = 30000;
 
     private String mSearchPattern = null;
     private String mSearchMediaName = null;
@@ -64,24 +60,62 @@ public class EventsRestClient extends RestClient<EventsApi> {
     }
 
     /**
-     * Get the list of the home server's public rooms.
-     *
-     * @param callback callback to provide the list of public rooms on success
+     * Get the public rooms count.
+     * The count can be null.
+     * @param callback the public rooms count callbacks
      */
-    public void loadPublicRooms(final ApiCallback<List<PublicRoom>> callback) {
-        final String description = "loadPublicRooms";
+    public void getPublicRoomsCount(final ApiCallback<Integer> callback) {
+        final String description = "getPublicRoomsCount";
 
-        mApi.publicRooms(new RestAdapterCallback<TokensChunkResponse<PublicRoom>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        PublicRoomsParams publicRoomsParams = new PublicRoomsParams();
+
+        publicRoomsParams.server = null;
+        publicRoomsParams.limit = 0;
+        publicRoomsParams.since = null;
+
+        mApi.publicRooms(publicRoomsParams, new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                loadPublicRooms(callback);
+                getPublicRoomsCount(callback);
             }
         }) {
             @Override
-            public void success(TokensChunkResponse<PublicRoom> typedResponse, Response response) {
-                callback.onSuccess(typedResponse.chunk);
+            public void success(PublicRoomsResponse publicRoomsResponse, Response response) {
+                onEventSent();
+                callback.onSuccess(publicRoomsResponse.total_room_count_estimate);
             }
         });
+    }
+
+
+    /**
+     * Get the list of the public rooms.
+     * @param server search on this home server only (null for any one)
+     * @param pattern the pattern to search
+     * @param since the pagination token
+     * @param limit the maximum number of public rooms
+     * @param callback the public rooms callbacks
+     */
+    public void loadPublicRooms(final String server, final String pattern, final String since, final int limit, final ApiCallback<PublicRoomsResponse> callback) {
+        final String description = "loadPublicRooms";
+
+        PublicRoomsParams publicRoomsParams = new PublicRoomsParams();
+
+        publicRoomsParams.server = server;
+        publicRoomsParams.limit = Math.max(1, limit);
+        publicRoomsParams.since = since;
+
+        if (!TextUtils.isEmpty(pattern)) {
+            publicRoomsParams.filter = new PublicRoomsFilter();
+            publicRoomsParams.filter.generic_search_term = pattern;
+        }
+
+        mApi.publicRooms(publicRoomsParams, new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                loadPublicRooms(server, pattern, since, limit, callback);
+            }
+        }));
     }
 
     /**
@@ -104,7 +138,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * @param callback The request callback
      */
     public void syncFromToken(final String token, final int serverTimeout, final int clientTimeout, final String setPresence, final String filterId, final ApiCallback<SyncResponse> callback) {
-        HashMap<String, Object> params = new HashMap<String, Object>();
+        HashMap<String, Object> params = new HashMap<>();
         int timeout = (EVENT_STREAM_TIMEOUT_MS / 1000);
 
         if (!TextUtils.isEmpty(token)) {
@@ -130,7 +164,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
         // Disable retry because it interferes with clientTimeout
         // Let the client manage retries on events streams
-        mApi.sync(params, new RestAdapterCallback<SyncResponse>(description, null, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.sync(params, new RestAdapterCallback<SyncResponse>(description, null, false, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 syncFromToken(token, serverTimeout, clientTimeout, setPresence, filterId, callback);
@@ -148,24 +182,24 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * @param nextBatch   the token to pass for doing pagination from a previous response.
      * @param callback    the request callback
      */
-    public void searchMessageText(final String text, final List<String> rooms, final int beforeLimit, final int afterLimit, final String nextBatch, final ApiCallback<SearchResponse> callback) {
+    public void searchMessagesByText(final String text, final List<String> rooms, final int beforeLimit, final int afterLimit, final String nextBatch, final ApiCallback<SearchResponse> callback) {
         SearchParams searchParams = new SearchParams();
         SearchRoomEventCategoryParams searchEventParams = new SearchRoomEventCategoryParams();
 
         searchEventParams.search_term = text;
         searchEventParams.order_by = "recent";
 
-        searchEventParams.event_context = new HashMap<String, Object>();
+        searchEventParams.event_context = new HashMap<>();
         searchEventParams.event_context.put("before_limit", beforeLimit);
         searchEventParams.event_context.put("after_limit", afterLimit);
         searchEventParams.event_context.put("include_profile", true);
 
         if (null != rooms) {
-            searchEventParams.filter = new HashMap<String, Object>();
+            searchEventParams.filter = new HashMap<>();
             searchEventParams.filter.put("rooms", rooms);
         }
 
-        searchParams.search_categories = new HashMap<String, Object>();
+        searchParams.search_categories = new HashMap<>();
         searchParams.search_categories.put("room_events", searchEventParams);
 
         final String description = "searchMessageText";
@@ -222,7 +256,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
         }, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                searchMessageText(text, rooms, beforeLimit, afterLimit, nextBatch, callback);
+                searchMessagesByText(text, rooms, beforeLimit, afterLimit, nextBatch, callback);
             }
         }));
     }
@@ -232,58 +266,47 @@ public class EventsRestClient extends RestClient<EventsApi> {
      *
      * @param name          the text to search for.
      * @param rooms         a list of rooms to search in. nil means all rooms the user is in.
-     * @param messageTypes  a list of medias type (m.image, m.video...)
      * @param beforeLimit   the number of events to get before the matching results.
      * @param afterLimit    the number of events to get after the matching results.
      * @param nextBatch     the token to pass for doing pagination from a previous response.
      * @param callback      the request callback
      */
-    public void searchMediaName(final String name, final List<String> rooms, final List<String> messageTypes, final int beforeLimit, final int afterLimit, String nextBatch, final ApiCallback<SearchResponse> callback) {
-        mediaSearch(null, name, rooms, messageTypes, beforeLimit, afterLimit, nextBatch, callback);
-    }
-
-    /**
-     * Recursive method to search a media by its name.
-     * It does not seem to have a msgtype filter in the current Server APi.
-     * So, the reponses are merged until to find at least 10 medias or there is no more message
-     * @param response      the recursive response.
-     * @param name          the file name to search
-     * @param rooms         the rooms list to search in
-     * @param messageTypes  the supported media types.
-     * @param beforeLimit   the number of events to get before the matching results.
-     * @param afterLimit    the number of events to get after the matching results.
-     * @param nextBatch     the token to pass for doing pagination from a previous response.
-     * @param callback      the request callback
-     */
-    private void mediaSearch(final SearchResponse response, final String name, final List<String> rooms, final List<String> messageTypes, final int beforeLimit, final int afterLimit, final String nextBatch, final ApiCallback<SearchResponse> callback) {
-
+    public void searchMediasByText(final String name, final List<String> rooms, final int beforeLimit, final int afterLimit, final String nextBatch, final ApiCallback<SearchResponse> callback) {
         SearchParams searchParams = new SearchParams();
         SearchRoomEventCategoryParams searchEventParams = new SearchRoomEventCategoryParams();
 
         searchEventParams.search_term = name;
         searchEventParams.order_by = "recent";
 
-        searchEventParams.event_context = new HashMap<String, Object>();
+        searchEventParams.event_context = new HashMap<>();
         searchEventParams.event_context.put("before_limit", beforeLimit);
         searchEventParams.event_context.put("after_limit", afterLimit);
         searchEventParams.event_context.put("include_profile", true);
 
-        searchEventParams.filter = new HashMap<String, Object>();
+        searchEventParams.filter = new HashMap<>();
 
         if (null != rooms) {
             searchEventParams.filter.put("rooms", rooms);
         }
 
-        ArrayList<String> types = new ArrayList<String>();
-        types.add("m.room.message");
-        searchEventParams.filter.put("types", rooms);
+        ArrayList<String> types = new ArrayList<>();
+        types.add(Event.EVENT_TYPE_MESSAGE);
+        searchEventParams.filter.put("types", types);
 
-        searchParams.search_categories = new HashMap<String, Object>();
+        searchEventParams.filter.put("contains_url", true);
+
+        searchParams.search_categories = new HashMap<>();
         searchParams.search_categories.put("room_events", searchEventParams);
 
+        // other unused filter items
+        // not_types
+        // not_rooms
+        // senders
+        // not_senders
+        
         mSearchMediaName = name;
 
-        final String description = "mediaSearch";
+        final String description = "searchMediasByText";
 
         // don't retry to send the request
         // if the search fails, stop it
@@ -291,26 +314,8 @@ public class EventsRestClient extends RestClient<EventsApi> {
             @Override
             public void onSuccess(SearchResponse newSearchResponse) {
                 if (TextUtils.equals(mSearchMediaName, name)) {
-                    // no more message with the pattern
-                    if ((null == newSearchResponse.searchCategories.roomEvents.results)
-                            || (0 ==newSearchResponse.searchCategories.roomEvents.results.size())) {
-                        callback.onSuccess(response);
-                        mSearchMediaName = null;
-                    } else {
-
-                        // merge the responses
-                        SearchResponse mergedResponse = mergeAndFilterResponse(response, newSearchResponse, messageTypes);
-
-                        // at least matched event ?
-                        if (mergedResponse.searchCategories.roomEvents.results.size() >= 10) {
-                            // weel done
-                            callback.onSuccess(mergedResponse);
-                            mSearchMediaName = null;
-                        } else {
-                            // search again
-                            mediaSearch(mergedResponse, name, rooms, messageTypes, beforeLimit, afterLimit, mergedResponse.searchCategories.roomEvents.nextBatch, callback);
-                        }
-                    }
+                    callback.onSuccess(newSearchResponse);
+                    mSearchMediaName = null;
                 }
             }
 
@@ -341,93 +346,22 @@ public class EventsRestClient extends RestClient<EventsApi> {
         }, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                mediaSearch(response, name, rooms, messageTypes, beforeLimit, afterLimit, nextBatch, callback);
+                searchMediasByText(name, rooms, beforeLimit, afterLimit, nextBatch, callback);
             }
         }));
     }
 
     /**
-     *
-     * @param response
-     * @param responseToMerge
-     * @param supportedMediasList
-     * @return
-     */
-    private SearchResponse mergeAndFilterResponse(SearchResponse response, SearchResponse responseToMerge, List<String> supportedMediasList) {
-        SearchRoomEventResults roomEventsToMerge = responseToMerge.searchCategories.roomEvents;
-
-        // filter first by media type ?
-        if (responseToMerge.searchCategories.roomEvents.results.size() > 0) {
-            // check first if the message
-            ArrayList<SearchResult> filteredResultList = new ArrayList<SearchResult>();
-
-            for(SearchResult result : roomEventsToMerge.results) {
-                boolean isSupported = false;
-
-                Event event = result.result;
-
-                // should always be true
-                if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
-                    JsonObject eventContent = event.getContentAsJsonObject();
-                    String msgType = "";
-
-                    JsonElement element = eventContent.get("msgtype");
-
-                    if (null != element) {
-                        msgType = element.getAsString();
-                    }
-
-                    if (!TextUtils.isEmpty(msgType)) {
-                        isSupported = supportedMediasList.indexOf(msgType) >= 0;
-                    }
-                }
-
-                if (isSupported) {
-                    filteredResultList.add(result);
-                }
-                responseToMerge.searchCategories.roomEvents.results = filteredResultList;
-            }
-
-            if (null != response) {
-                // merge the events
-                ArrayList<SearchResult> searchResults = new ArrayList<SearchResult>();
-                searchResults.addAll(response.searchCategories.roomEvents.results);
-                searchResults.addAll(responseToMerge.searchCategories.roomEvents.results);
-                responseToMerge.searchCategories.roomEvents.results = searchResults;
-
-                // merge the states
-                HashMap<String, List<Event>> states = response.searchCategories.roomEvents.state;
-                HashMap<String, List<Event>> statesToMerge = responseToMerge.searchCategories.roomEvents.state;
-
-                if ((null != states) && (null != statesToMerge)) {
-                    for (String key : states.keySet()) {
-                        if (!statesToMerge.containsKey(key)) {
-                            statesToMerge.put(key, states.get(key));
-                        }
-                    }
-                } else if (null == statesToMerge) {
-                    responseToMerge.searchCategories.roomEvents.state = response.searchCategories.roomEvents.state;
-                }
-            }
-        }
-
-        responseToMerge.searchCategories.roomEvents.count = null;
-        responseToMerge.searchCategories.roomEvents.groups = null;
-
-        return responseToMerge;
-    }
-
-    /**
      * Cancel any pending file search request
      */
-    public void cancelSearchMediaName() {
+    public void cancelSearchMediasByText() {
         mSearchMediaName = null;
     }
 
     /**
      * Cancel any pending search request
      */
-    public void cancelSearchMessageText() {
+    public void cancelSearchMessagesByText() {
         mSearchPattern = null;
     }
 }

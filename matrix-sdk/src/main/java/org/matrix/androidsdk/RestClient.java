@@ -15,9 +15,12 @@
  */
 package org.matrix.androidsdk;
 
+import android.util.Log;
+
 import com.google.gson.Gson;
 import com.squareup.okhttp.OkHttpClient;
 
+import org.matrix.androidsdk.rest.client.MXRestExecutor;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.ssl.CertUtil;
 
@@ -65,14 +68,17 @@ public class RestClient<T> {
 
     protected HomeserverConnectionConfig mHsConfig;
 
+    // unitary tests only
+    public static boolean mUseMXExececutor = false;
+
     public RestClient(HomeserverConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization) {
         this(hsConfig, type, uriPrefix, withNullSerialization, false);
     }
 
-        /**
-         * Public constructor.
-         * @param hsConfig The homeserver connection config.
-         */
+    /**
+     * Public constructor.
+     * @param hsConfig The homeserver connection config.
+     */
     public RestClient(HomeserverConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization, boolean useIdentityServer) {
         // The JSON -> object mapper
         gson = JsonUtils.getGson(withNullSerialization);
@@ -89,8 +95,8 @@ public class RestClient<T> {
             okHttpClient.setSslSocketFactory(CertUtil.newPinnedSSLSocketFactory(hsConfig));
             okHttpClient.setHostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
         } catch (Exception e) {
+            Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage());
         }
-
 
         // remove any trailing http in the uri prefix
         if (uriPrefix.startsWith("http://")) {
@@ -102,7 +108,7 @@ public class RestClient<T> {
         final String endPoint = (useIdentityServer ? hsConfig.getIdentityServerUri().toString() : hsConfig.getHomeserverUri().toString()) + uriPrefix;
 
         // Rest adapter for turning API interfaces into actual REST-calling objects
-        RestAdapter restAdapter = new RestAdapter.Builder()
+        RestAdapter.Builder builder = new RestAdapter.Builder()
                 .setEndpoint(endPoint)
                 .setConverter(new GsonConverter(gson))
                 .setClient(new OkClient(okHttpClient))
@@ -114,8 +120,13 @@ public class RestClient<T> {
                             request.addEncodedQueryParam(PARAM_ACCESS_TOKEN, mCredentials.accessToken);
                         }
                     }
-                })
-                .build();
+                });
+
+        if (mUseMXExececutor) {
+            builder.setExecutors(new MXRestExecutor(), new MXRestExecutor());
+        }
+
+        RestAdapter restAdapter = builder.build();
 
         restAdapter.setLogLevel(RestAdapter.LogLevel.FULL);
 

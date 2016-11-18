@@ -30,16 +30,16 @@ public class BingRule {
 
     private static final String LOG_TAG = "BingRule";
 
-    public static String RULE_ID_DISABLE_ALL = ".m.rule.master";
-    public static String RULE_ID_CONTAIN_USER_NAME= ".m.rule.contains_user_name";
-    public static String RULE_ID_CONTAIN_DISPLAY_NAME= ".m.rule.contains_display_name";
-    public static String RULE_ID_ONE_TO_ONE_ROOM = ".m.rule.room_one_to_one";
-    public static String RULE_ID_INVITE_ME = ".m.rule.invite_for_me";
-    public static String RULE_ID_PEOPLE_JOIN_LEAVE = ".m.rule.member_event";
-    public static String RULE_ID_CALL = ".m.rule.call";
-    public static String RULE_ID_SUPPRESS_BOTS_NOTIFICATIONS = ".m.rule.suppress_notices";
-    public static String RULE_ID_ALL_OTHER_MESSAGES_ROOMS = ".m.rule.message";
-    public static String RULE_ID_FALLBACK = ".m.rule.fallback";
+    public static final String RULE_ID_DISABLE_ALL = ".m.rule.master";
+    public static final String RULE_ID_CONTAIN_USER_NAME= ".m.rule.contains_user_name";
+    public static final String RULE_ID_CONTAIN_DISPLAY_NAME= ".m.rule.contains_display_name";
+    public static final String RULE_ID_ONE_TO_ONE_ROOM = ".m.rule.room_one_to_one";
+    public static final String RULE_ID_INVITE_ME = ".m.rule.invite_for_me";
+    public static final String RULE_ID_PEOPLE_JOIN_LEAVE = ".m.rule.member_event";
+    public static final String RULE_ID_CALL = ".m.rule.call";
+    public static final String RULE_ID_SUPPRESS_BOTS_NOTIFICATIONS = ".m.rule.suppress_notices";
+    public static final String RULE_ID_ALL_OTHER_MESSAGES_ROOMS = ".m.rule.message";
+    public static final String RULE_ID_FALLBACK = ".m.rule.fallback";
 
     public static final String ACTION_NOTIFY = "notify";
     public static final String ACTION_DONT_NOTIFY = "dont_notify";

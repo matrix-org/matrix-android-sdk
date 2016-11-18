@@ -27,6 +27,9 @@ import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
 
+import java.util.Map;
+import java.util.Set;
+
 /**
  * Stores summarised information about the room.
  */
@@ -86,7 +89,7 @@ public class RoomSummary implements java.io.Serializable {
      * @return true if the event can be summarized
      */
     public static boolean isSupportedEvent(Event event) {
-        String type = event.type;
+        String type = event.getType();
         boolean isSupported = false;
 
         // check if the msgtype is supported
@@ -115,9 +118,12 @@ public class RoomSummary implements java.io.Serializable {
             } catch (Exception e) {
                 Log.e(LOG_TAG, "isSupportedEvent failed " + e.getMessage());
             }
+        } else if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, type)) {
+            isSupported = event.hasContentFields();
         } else if (!TextUtils.isEmpty(type)){
             isSupported = TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_TOPIC, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, type) ||
+                    TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTION, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_NAME, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_CREATE, type) ||
@@ -362,7 +368,7 @@ public class RoomSummary implements java.io.Serializable {
 
     /**
      * Update the latest read event Id
-     * @param eventId
+     * @param eventId the event id.
      */
     public void setLatestReadEventId(String eventId) {
         mLatestReadEventId = eventId;
@@ -377,7 +383,7 @@ public class RoomSummary implements java.io.Serializable {
 
     /**
      * Update the unread message counter
-     * @param count
+     * @param count the unread events count.
      */
     public void setUnreadEventsCount(int count) {
         mUnreadEventsCount = count;

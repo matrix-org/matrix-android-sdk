@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 OpenMarket Ltd
+ * Copyright 2016 OpenMarket Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,15 +22,12 @@ import android.util.Log;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.DefaultHttpClient;
-
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 /**
  * UrlPostTask triggers a POST with no param.
@@ -40,6 +37,7 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
     public interface IPostTaskListener {
         /**
          * The post succceeds.
+         *
          * @param object the object retrieves in the response.
          */
         void onSucceed(JsonObject object);
@@ -61,24 +59,20 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
         String result = "";
 
         try {
-            // Create a new HttpClient and Post Header
-            HttpClient httpclient = new DefaultHttpClient();
-            HttpPost httppost = new HttpPost(params[0]);
-            // Execute HTTP Post Request
-            HttpResponse response = httpclient.execute(httppost);
+            URL url = new URL(params[0]);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
 
-            HttpEntity entity = response.getEntity();
+            InputStream is = new BufferedInputStream(conn.getInputStream());
 
-            if (entity != null) {
-                // A Simple JSON Response Read
-                InputStream instream = entity.getContent();
-                result = convertStreamToString(instream);
+            if (is != null) {
+                result = convertStreamToString(is);
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             // Do something about exceptions
             result = e.getMessage();
         }
-        return  result;
+        return result;
     }
 
     /**
@@ -124,6 +118,7 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
             JsonParser parser = new JsonParser();
             object = parser.parse(result).getAsJsonObject();
         } catch (Exception e) {
+            Log.e(LOG_TAG, "## onPostExecute() failed" + e.getMessage());
         }
 
         if (null != mListener) {

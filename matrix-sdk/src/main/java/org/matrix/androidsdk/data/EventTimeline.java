@@ -23,6 +23,9 @@ import android.util.Log;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.crypto.MXCryptoError;
+import org.matrix.androidsdk.data.store.IMXStore;
+import org.matrix.androidsdk.data.store.MXMemoryStore;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
@@ -525,10 +528,12 @@ public class EventTimeline {
                             if (RoomSummary.isSupportedEvent(event)) {
                                 summary = mStore.storeSummary(event.roomId, event, mState, myUserId);
 
+                                String eventType = event.getType();
+
                                 // Watch for potential room name changes
-                                if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
-                                        || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
-                                        || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+                                if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType)
+                                        || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(eventType)
+                                        || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
 
 
                                     if (null != summary) {
@@ -594,11 +599,12 @@ public class EventTimeline {
 
         if (RoomSummary.isSupportedEvent(event)) {
             RoomSummary summary = mStore.storeSummary(event.roomId, event, mState, myUserId);
+            String eventType = event.getType();
 
             // Watch for potential room name changes
-            if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(event.type)
-                    || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(event.type)
-                    || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type)) {
+            if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType)
+                    || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(eventType)
+                    || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
                 if (null != summary) {
                     summary.setName(mRoom.getName(myUserId));
                 }
@@ -615,7 +621,7 @@ public class EventTimeline {
         boolean store = false;
         String myUserId = mDataHandler.getCredentials().userId;
 
-        if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
+        if (Event.EVENT_TYPE_REDACTION.equals(event.getType())) {
             if (event.getRedacts() != null) {
                 Event eventToPrune = mStore.getEvent(event.getRedacts(), event.roomId);
 
@@ -640,6 +646,13 @@ public class EventTimeline {
                     for (int index = events.size() - 1; index >= 0; index--) {
                         Event anEvent = events.get(index);
                         if (RoomSummary.isSupportedEvent(anEvent)) {
+                            // Decrypt event if necessary
+                            if (TextUtils.equals(anEvent.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
+                                if (null != mDataHandler.getCrypto()) {
+                                    anEvent.setClearEvent(mDataHandler.getCrypto().decryptEvent(anEvent));
+                                }
+                            }
+
                             EventDisplay eventDisplay = new EventDisplay(mStore.getContext(), anEvent, mState);
 
                             // ensure that message can be displayed
@@ -660,12 +673,12 @@ public class EventTimeline {
             }
         }  else {
             // the candidate events are not stored.
-            store = !event.isCallEvent() || !Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.type);
+            store = !event.isCallEvent() || !Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.getType());
 
             // thread issue
             // if the user leaves a room,
-            if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && myUserId.equals(event.stateKey)) {
-                String membership = event.content.getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
+            if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.getType()) && myUserId.equals(event.stateKey)) {
+                String membership = event.getContent().getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
 
                 if (RoomMember.MEMBERSHIP_LEAVE.equals(membership) || RoomMember.MEMBERSHIP_BAN.equals(membership)) {
                     store = false;
@@ -679,13 +692,13 @@ public class EventTimeline {
         }
 
         // warn the listener that a new room has been created
-        if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.type)) {
+        if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.getType())) {
             mDataHandler.onNewRoom(event.roomId);
         }
 
         // warn the listeners that a room has been joined
-        if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && myUserId.equals(event.stateKey)) {
-            String membership = event.content.getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
+        if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.getType()) && myUserId.equals(event.stateKey)) {
+            String membership = event.getContent().getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
 
             if (RoomMember.MEMBERSHIP_JOIN.equals(membership)) {
                 mDataHandler.onJoinRoom(event.roomId);
@@ -712,14 +725,16 @@ public class EventTimeline {
 
         BingRulesManager bingRulesManager = mDataHandler.getBingRulesManager();
 
+        String eventType = event.getType();
+
         // If the bing rules apply, bing
         if (!outOfTimeEvent
                 // some events are not bingable
-                && !TextUtils.equals(event.type, Event.EVENT_TYPE_PRESENCE)
-                && !TextUtils.equals(event.type, Event.EVENT_TYPE_TYPING)
-                && !TextUtils.equals(event.type, Event.EVENT_TYPE_REDACTION)
-                && !TextUtils.equals(event.type, Event.EVENT_TYPE_RECEIPT)
-                && !TextUtils.equals(event.type, Event.EVENT_TYPE_TAGS)
+                && !TextUtils.equals(eventType, Event.EVENT_TYPE_PRESENCE)
+                && !TextUtils.equals(eventType, Event.EVENT_TYPE_TYPING)
+                && !TextUtils.equals(eventType, Event.EVENT_TYPE_REDACTION)
+                && !TextUtils.equals(eventType, Event.EVENT_TYPE_RECEIPT)
+                && !TextUtils.equals(eventType, Event.EVENT_TYPE_TAGS)
                 && (bingRulesManager != null)
                 && (null != (bingRule = bingRulesManager.fulfilledBingRule(event)))
                 && bingRule.shouldNotify()) {
@@ -737,6 +752,9 @@ public class EventTimeline {
     private void handleLiveEvent(Event event, boolean checkRedactedStateEvent, boolean withPush) {
         MyUser myUser = mDataHandler.getMyUser();
 
+        // Decrypt event if necessary
+        mDataHandler.decryptEvent(event);
+
         // dispatch the call events to the calls manager
         if (event.isCallEvent()) {
             mDataHandler.getCallsManager().handleCallEvent(event);
@@ -745,7 +763,7 @@ public class EventTimeline {
 
             // the candidates events are not tracked
             // because the users don't need to see the peer exchanges.
-            if (!TextUtils.equals(event.type, Event.EVENT_TYPE_CALL_CANDIDATES)) {
+            if (!TextUtils.equals(event.getType(), Event.EVENT_TYPE_CALL_CANDIDATES)) {
                 // warn the listeners
                 // general listeners
                 mDataHandler.onLiveEvent(event, mState);
@@ -764,9 +782,8 @@ public class EventTimeline {
 
             // avoid processing event twice
             if (null != storedEvent) {
-
                 // an event has been echoed
-                if (storedEvent.getAge() == Long.MAX_VALUE) {
+                if (storedEvent.getAge() == Event.DUMMY_EVENT_AGE) {
                     mStore.deleteEvent(storedEvent);
                     mStore.storeLiveRoomEvent(event);
                     mStore.commit();
@@ -785,7 +802,7 @@ public class EventTimeline {
                 // check if the room has been joined
                 // the initial sync + the first requestHistory call is done here
                 // instead of being done in the application
-                if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.type) && TextUtils.equals(event.getSender(), mDataHandler.getUserId())) {
+                if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.getType()) && TextUtils.equals(event.getSender(), mDataHandler.getUserId())) {
                     EventContent eventContent = JsonUtils.toEventContent(event.getContentAsJsonObject());
                     EventContent prevEventContent = event.getPrevContent();
 
@@ -848,7 +865,7 @@ public class EventTimeline {
                     triggerPush(event);
                 }
             } else {
-                Log.e(LOG_TAG, "Unknown live event type: " + event.type);
+                Log.e(LOG_TAG, "Unknown live event type: " + event.getType());
             }
         }
     }
@@ -935,9 +952,8 @@ public class EventTimeline {
      * Add some events in a dedicated direction.
      * @param events the events list
      * @param direction the direction
-     * @param callback the callback.
      */
-    private void addPaginationEvents(List<Event> events, Direction direction, final ApiCallback<Integer> callback) {
+    private void addPaginationEvents(List<Event> events, Direction direction) {
         final String myUserId = mDataHandler.getUserId();
         RoomSummary summary = mStore.getSummary(mRoomId);
         boolean shouldCommitStore = false;
@@ -950,6 +966,9 @@ public class EventTimeline {
                 deepCopyState(direction);
                 processedEvent = processStateEvent(event, direction);
             }
+
+            // Decrypt event if necessary
+            mDataHandler.decryptEvent(event);
 
             if (processedEvent) {
                 // warn the listener only if the message is processed.
@@ -974,6 +993,16 @@ public class EventTimeline {
         if (shouldCommitStore) {
             mStore.commit();
         }
+    }
+
+    /**
+     * Add some events in a dedicated direction.
+     * @param events the events list
+     * @param direction the direction
+     * @param callback the callback.
+     */
+    private void addPaginationEvents(List<Event> events, Direction direction, final ApiCallback<Integer> callback) {
+        addPaginationEvents(events, direction);
 
         if (direction == Direction.BACKWARDS) {
             manageBackEvents(callback);
@@ -1228,7 +1257,7 @@ public class EventTimeline {
      * @param limit the maximum number of messages to get around the initial event.
      * @param callback the operation callback
      */
-    public void resetPaginationAroundInitialEvent(int limit, final ApiCallback<Void> callback) {
+    public void resetPaginationAroundInitialEvent(final int limit, final ApiCallback<Void> callback) {
         // Reset the store
         mStore.deleteRoomData(mRoomId);
 
@@ -1238,45 +1267,45 @@ public class EventTimeline {
         mDataHandler.getDataRetriever().getRoomsRestClient().getContextOfEvent(mRoomId, mInitialEventId, limit, new ApiCallback<EventContext>() {
             @Override
             public void onSuccess(EventContext eventContext) {
-                // And fill the timelime with received data
+                // the state is the one after the latest event of the chunk i.e. the last message of eventContext.eventsAfter
                 for(Event event : eventContext.state) {
                     processStateEvent(event, Direction.FORWARDS);
                 }
 
-                mState.setToken(eventContext.start);
-
                 // init the room states
                 initHistory();
 
-                // selected event
-                storeLiveRoomEvent(eventContext.event, false);
-                onEvent(eventContext.event, Direction.BACKWARDS, mState);
+                // build the events list
+                ArrayList<Event> events = new ArrayList<>();
 
-                // add events before
-                addPaginationEvents(eventContext.eventsBefore, Direction.BACKWARDS, new ApiCallback<Integer>() {
-                    @Override
-                    public void onSuccess(Integer info) {
-                        Log.d(LOG_TAG, "addPaginationEvents succeeds");
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
-                    }
-                });
+                Collections.reverse(eventContext.eventsAfter);
+                events.addAll(eventContext.eventsAfter);
+                events.add(eventContext.event);
+                events.addAll(eventContext.eventsBefore);
 
                 // add events after
-                addPaginationEvents(eventContext.eventsAfter, Direction.FORWARDS, new ApiCallback<Integer>() {
+                addPaginationEvents(events, Direction.BACKWARDS);
+
+                // create dummy forward events list
+                // to center the selected event id
+                // else if might be out of screen
+                ArrayList<SnapshotEvent> nextSnapshotEvents = new ArrayList<>(mSnapshotEvents.subList(0, (mSnapshotEvents.size() + 1) / 2));
+
+                // put in the right order
+                Collections.reverse(nextSnapshotEvents);
+
+                // send them one by one
+                for(SnapshotEvent snapshotEvent : nextSnapshotEvents) {
+                    mSnapshotEvents.remove(snapshotEvent);
+                    onEvent(snapshotEvent.mEvent, Direction.FORWARDS, snapshotEvent.mState);
+                }
+
+                // init the tokens
+                mBackState.setToken(eventContext.start);
+                mForwardsPaginationToken = eventContext.end;
+
+                // send the back events to complete pagination
+                manageBackEvents(new ApiCallback<Integer>() {
                     @Override
                     public void onSuccess(Integer info) {
                         Log.d(LOG_TAG, "addPaginationEvents succeeds");
@@ -1298,8 +1327,7 @@ public class EventTimeline {
                     }
                 });
 
-                mForwardsPaginationToken = eventContext.end;
-
+                // everything is done
                 callback.onSuccess(null);
             }
 

@@ -15,6 +15,9 @@
  */
 package org.matrix.androidsdk.rest.client;
 
+import android.text.TextUtils;
+import android.util.Log;
+
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.ProfileApi;
@@ -23,7 +26,8 @@ import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.AddThreePidsParams;
 import org.matrix.androidsdk.rest.model.AuthParams;
 import org.matrix.androidsdk.rest.model.ChangePasswordParams;
-import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.ForgetPasswordParams;
+import org.matrix.androidsdk.rest.model.ForgetPasswordResponse;
 import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.ThreePid;
 import org.matrix.androidsdk.rest.model.ThreePidCreds;
@@ -42,6 +46,7 @@ import retrofit.client.Response;
  * Class used to make requests to the profile API.
  */
 public class ProfileRestClient extends RestClient<ProfileApi> {
+    private static final String LOG_TAG = "ProfileRestClient";
 
     /**
      * {@inheritDoc}
@@ -66,6 +71,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         }) {
             @Override
             public void success(User user, Response response) {
+                onEventSent();
                 callback.onSuccess(user.displayname);
             }
         });
@@ -79,7 +85,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     public void updateDisplayname(final String newName, final ApiCallback<Void> callback) {
         // privacy
         //final String description = "updateDisplayname newName : " + newName;
-        final String description = "update Displayname";
+        final String description = "update display name";
 
         User user = new User();
         user.displayname = newName;
@@ -110,6 +116,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         }) {
             @Override
             public void success(User user, Response response) {
+                onEventSent();
                 callback.onSuccess(user.getAvatarUrl());
             }
         });
@@ -162,6 +169,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
                 try {
                     updatePassword(userId, oldPassword, newPassword, callback);
                 } catch (Exception e) {
+                    Log.e(LOG_TAG, "## updatePassword() failed" + e.getMessage());
                 }
             }
         }));
@@ -191,9 +199,48 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
                 try {
                     resetPassword(newPassword, threepid_creds, callback);
                 } catch (Exception e) {
+                    Log.e(LOG_TAG, "## resetPassword() failed" + e.getMessage());
                 }
             }
         }));
+    }
+
+    /**
+     * Reset the password server side.
+     * @param email the email to send the password reset.
+     * @param callback the callback
+     */
+    public void forgetPassword(final String email, final ApiCallback<ThreePid> callback) {
+        final String description = "forget password";
+
+        if (!TextUtils.isEmpty(email)) {
+            final ThreePid pid = new ThreePid(email, ThreePid.MEDIUM_EMAIL);
+
+            final ForgetPasswordParams forgetPasswordParams = new ForgetPasswordParams();
+            forgetPasswordParams.email = email;
+            forgetPasswordParams.client_secret = pid.clientSecret;
+            forgetPasswordParams.send_attempt = 1;
+            forgetPasswordParams.id_server = mHsConfig.getIdentityServerUri().getHost();
+
+            mApi.forgetPassword(forgetPasswordParams, new RestAdapterCallback<ForgetPasswordResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    try {
+                        forgetPassword(email, callback);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## forgetPassword() failed" + e.getMessage());
+                    }
+                }
+            }) {
+                @Override
+                public void success(ForgetPasswordResponse forgetPasswordResponse, Response response) {
+                    onEventSent();
+
+                    pid.sid = forgetPasswordResponse.sid;
+                    callback.onSuccess(pid);
+                }
+            });
+        }
     }
 
     /**
@@ -209,40 +256,11 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         mApi.tokenrefresh(params, new RestAdapterCallback<TokenRefreshResponse>(description, mUnsentEventsManager, callback, null) {
             @Override
             public void success(TokenRefreshResponse tokenreponse, Response response) {
+                onEventSent();
                 mCredentials.refreshToken = tokenreponse.refresh_token;
                 mCredentials.accessToken = tokenreponse.access_token;
                 if (null != callback) {
                     callback.onSuccess(mCredentials);
-                }
-            }
-
-            /**
-             * Called if there is a network error.
-             * @param e the exception
-             */
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            /**
-             * Called in case of a Matrix error.
-             * @param e the Matrix error
-             */
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            /**
-             * Called for some other type of error.
-             * @param e the exception
-             */
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
                 }
             }
         });
@@ -258,38 +276,9 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         mApi.threePIDs(new RestAdapterCallback<ThreePidsResponse>(description, mUnsentEventsManager, callback, null) {
             @Override
             public void success(ThreePidsResponse threePidsResponse, Response response) {
+                onEventSent();
                 if (null != callback) {
                     callback.onSuccess(threePidsResponse.threepids);
-                }
-            }
-
-            /**
-             * Called if there is a network error.
-             * @param e the exception
-             */
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            /**
-             * Called in case of a Matrix error.
-             * @param e the Matrix error
-             */
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            /**
-             * Called for some other type of error.
-             * @param e the exception
-             */
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
                 }
             }
         });

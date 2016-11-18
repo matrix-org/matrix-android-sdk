@@ -33,8 +33,10 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
-import org.matrix.androidsdk.call.MXCall;
 import org.matrix.androidsdk.call.MXCallsManager;
+import org.matrix.androidsdk.crypto.MXCryptoError;
+import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
+import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -58,7 +60,6 @@ import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.ThumbnailInfo;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
-import org.matrix.androidsdk.rest.model.UnsignedData;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoInfo;
 import org.matrix.androidsdk.rest.model.VideoMessage;
@@ -67,12 +68,9 @@ import org.matrix.androidsdk.util.JsonUtils;
 
 import java.io.File;
 
-import java.lang.reflect.Member;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -195,7 +193,7 @@ public class Room {
             event.roomId = getRoomId();
 
             try {
-                if (Event.EVENT_TYPE_RECEIPT.equals(event.type)) {
+                if (Event.EVENT_TYPE_RECEIPT.equals(event.getType())) {
                     if (event.roomId != null) {
                         List<String> senders = handleReceiptEvent(event);
 
@@ -203,7 +201,7 @@ public class Room {
                             mDataHandler.onReceiptEvent(event.roomId, senders);
                         }
                     }
-                } else if (Event.EVENT_TYPE_TYPING.equals(event.type)) {
+                } else if (Event.EVENT_TYPE_TYPING.equals(event.getType())) {
                     mDataHandler.onLiveEvent(event, getState());
                 }
             } catch (Exception e) {
@@ -747,16 +745,15 @@ public class Room {
 
         // detect if it is a room with no more than 2 members (i.e. an alone or a 1:1 chat)
         if (null == res) {
-            Collection<RoomMember> members = getState().getMembers();
+            ArrayList<RoomMember> members = new ArrayList<>(getState().getMembers());
 
-            if (members.size() < 3) {
-                // use the member avatar only it is an active member
-                for (RoomMember roomMember : members) {
-                    if (TextUtils.equals(RoomMember.MEMBERSHIP_JOIN, roomMember.membership) && ((members.size() == 1) || !TextUtils.equals(mMyUserId, roomMember.getUserId()))) {
-                        res = roomMember.avatarUrl;
-                        break;
-                    }
-                }
+            if (members.size() == 1) {
+                res = members.get(0).avatarUrl;
+            } else if (members.size() == 2) {
+                RoomMember m1 = members.get(0);
+                RoomMember m2 = members.get(1);
+
+                res = TextUtils.equals(m1.getUserId(), mMyUserId) ? m2.avatarUrl : m1.avatarUrl;
             }
         }
 
@@ -769,7 +766,7 @@ public class Room {
      * @return the call avatar URL.
      */
     public String getCallAvatarUrl() {
-        String avatarURL = null;
+        String avatarURL;
 
         ArrayList<RoomMember> joinedMembers = new ArrayList<>(getJoinedMembers());
 
@@ -921,7 +918,7 @@ public class Room {
      */
     private String getCallConferenceUserId() {
         if (null == mCallConferenceUserId) {
-            mCallConferenceUserId = MXCallsManager.getConferenceUserId(getRoomId());;
+            mCallConferenceUserId = MXCallsManager.getConferenceUserId(getRoomId());
         }
 
         return mCallConferenceUserId;
@@ -968,7 +965,7 @@ public class Room {
             //              value dict key ts
             //                    dict value ts value
             Type type = new TypeToken<HashMap<String, HashMap<String, HashMap<String, HashMap<String, Object>>>>>(){}.getType();
-            HashMap<String, HashMap<String, HashMap<String, HashMap<String, Object>>>> receiptsDict = gson.fromJson(event.content, type);
+            HashMap<String, HashMap<String, HashMap<String, HashMap<String, Object>>>> receiptsDict = gson.fromJson(event.getContent(), type);
 
             for (String eventId : receiptsDict.keySet() ) {
                 HashMap<String, HashMap<String, HashMap<String, Object>>> receiptDict = receiptsDict.get(eventId);
@@ -1035,6 +1032,7 @@ public class Room {
      * @return true if the read receipt request is sent, false otherwise
      */
     public boolean sendReadReceipt(Event anEvent, final ApiCallback<Void> aRespCallback) {
+        final Event lastEvent = mStore.getLatestEvent(getRoomId());
         final Event fEvent;
 
         // the event is provided
@@ -1050,7 +1048,12 @@ public class Room {
             }
         } else {
             Log.d(LOG_TAG, "## sendReadReceipt(): roomId=" + getRoomId() + " to the latest event");
-            fEvent = mStore.getLatestEvent(getRoomId());
+            fEvent = lastEvent;
+        }
+
+        if (null == fEvent) {
+            Log.e(LOG_TAG, "## sendReadReceipt(): there is no latest message");
+            return false;
         }
 
         boolean isSendReadReceiptSent = false;
@@ -1100,6 +1103,17 @@ public class Room {
                     }
                 }
             });
+
+            // Clear the unread counters if the latest message is displayed
+            // We don't try to compute the unread counters for oldest messages :
+            // ---> it would require too much time.
+            // The counters are cleared to avoid displaying invalid values
+            // when the device is offline.
+            // The read receipts will be sent later
+            // (asap there is a valid network connection)
+            if (TextUtils.equals(lastEvent.eventId, fEvent.eventId)) {
+                clearUnreadCounters(mStore.getSummary(getRoomId()));
+            }
         } else {
             Log.d(LOG_TAG, "## sendReadReceipt(): don't send the read receipt");
         }
@@ -1436,7 +1450,7 @@ public class Room {
             for (Event accountDataEvent : accountDataEvents) {
                 mAccountData.handleEvent(accountDataEvent);
 
-                if (accountDataEvent.type.equals(Event.EVENT_TYPE_TAGS)) {
+                if (accountDataEvent.getType().equals(Event.EVENT_TYPE_TAGS)) {
                     mDataHandler.onRoomTagEvent(getRoomId());
                 }
             }
@@ -1459,8 +1473,7 @@ public class Room {
             mDataHandler.getDataRetriever().getRoomsRestClient().addTag(getRoomId(), tag, order, callback);
         } else {
             if (null != callback) {
-                // warn that something was wrong
-                callback.onUnexpectedError(null);
+                callback.onSuccess(null);
             }
         }
     }
@@ -1477,8 +1490,7 @@ public class Room {
             mDataHandler.getDataRetriever().getRoomsRestClient().removeTag(getRoomId(), tag, callback);
         } else {
             if (null != callback) {
-                // warn that something was wrong
-                callback.onUnexpectedError(null);
+                callback.onSuccess(null);
             }
         }
     }
@@ -1566,7 +1578,7 @@ public class Room {
                 // Filter out events for other rooms and events while we are joining (before the room is ready)
                 if (TextUtils.equals(getRoomId(), event.roomId) && mIsReady) {
 
-                    if (TextUtils.equals(event.type, Event.EVENT_TYPE_TYPING)) {
+                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_TYPING)) {
                         // Typing notifications events are not room messages nor room state events
                         // They are just volatile information
 
@@ -1605,6 +1617,18 @@ public class Room {
                     eventListener.onLiveEventsChunkProcessed();
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "onLiveEventsChunkProcessed exception " + e.getMessage());
+                }
+            }
+
+            @Override
+            public void onEventEncrypted(Event event) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), event.roomId)) {
+                    try {
+                        eventListener.onEventEncrypted(event);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onEventEncrypted exception " + e.getMessage());
+                    }
                 }
             }
 
@@ -1842,12 +1866,64 @@ public class Room {
             }
         };
 
-        event.mSentState = Event.SentState.SENDING;
+        if (isEncrypted() && (null != mDataHandler.getCrypto())) {
+            event.mSentState = Event.SentState.ENCRYPTING;
 
-        if (Event.EVENT_TYPE_MESSAGE.equals(event.type)) {
-            mDataHandler.getDataRetriever().getRoomsRestClient().sendMessage(event.originServerTs + "", getRoomId(), JsonUtils.toMessage(event.content), localCB);
+            // Encrypt the content before sending
+            mDataHandler.getCrypto().encryptEventContent(event.getContent().getAsJsonObject(), event.getType(), this, new ApiCallback<MXEncryptEventContentResult>() {
+                @Override
+                public void onSuccess(MXEncryptEventContentResult encryptEventContentResult) {
+                    // update the event content with the encrypted data
+                    event.type = encryptEventContentResult.mEventType;
+                    event.updateContent(encryptEventContentResult.mEventContent.getAsJsonObject());
+                    event.setClearEvent(mDataHandler.getCrypto().decryptEvent(event));
+
+                    // warn the upper layer
+                    mDataHandler.onEventEncrypted(event);
+
+                    // sending in progress
+                    event.mSentState = Event.SentState.SENDING;
+                    mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(getRoomId(), encryptEventContentResult.mEventType, encryptEventContentResult.mEventContent.getAsJsonObject(), localCB);
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    event.mSentState = Event.SentState.UNDELIVERABLE;
+                    event.unsentException = e;
+
+                    if (null != callback) {
+                        callback.onNetworkError(e);
+                    }
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    event.mSentState = Event.SentState.UNDELIVERABLE;
+                    event.unsentMatrixError = e;
+
+                    if (null != callback) {
+                        callback.onMatrixError(e);
+                    }
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    event.mSentState = Event.SentState.UNDELIVERABLE;
+                    event.unsentException = e;
+
+                    if (null != callback) {
+                        callback.onUnexpectedError(e);
+                    }
+                }
+            });
         } else {
-            mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(getRoomId(), event.type, event.content.getAsJsonObject(), localCB);
+            event.mSentState = Event.SentState.SENDING;
+
+            if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
+                mDataHandler.getDataRetriever().getRoomsRestClient().sendMessage(event.originServerTs + "", getRoomId(), JsonUtils.toMessage(event.getContent()), localCB);
+            } else {
+                mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(getRoomId(), event.getType(), event.getContent().getAsJsonObject(), localCB);
+            }
         }
     }
 
@@ -1861,7 +1937,8 @@ public class Room {
         if (null != event) {
             if ((Event.SentState.UNSENT == event.mSentState) ||
                     (Event.SentState.SENDING == event.mSentState) ||
-                    (Event.SentState.WAITING_RETRY == event.mSentState)) {
+                    (Event.SentState.WAITING_RETRY == event.mSentState) ||
+                    (Event.SentState.ENCRYPTING == event.mSentState)) {
 
                 // the message cannot be sent anymore
                 event.mSentState = Event.SentState.UNDELIVERABLE;
@@ -1933,7 +2010,6 @@ public class Room {
     public void report(String eventId, int score, String reason, ApiCallback<Void> callback) {
         mDataHandler.getDataRetriever().getRoomsRestClient().reportEvent(getRoomId(), eventId, score, reason, callback);
     }
-
 
     //================================================================================
     // Member actions
@@ -2126,4 +2202,83 @@ public class Room {
         kick(userId, callback);
     }
 
+    //================================================================================
+    // Encryption
+    //================================================================================
+
+    private ApiCallback<Void> mRoomEncryptionCallback;
+
+    private MXEventListener mEncryptionListener = new MXEventListener() {
+        @Override
+        public void onLiveEvent(Event event, RoomState roomState) {
+            if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTION)) {
+                if (null != mRoomEncryptionCallback) {
+                    mRoomEncryptionCallback.onSuccess(null);
+                    mRoomEncryptionCallback = null;
+                }
+            }
+        }
+    };
+
+    /**
+     * @return if the room content is encrypted
+     */
+    public boolean isEncrypted() {
+        return !TextUtils.isEmpty(getLiveState().algorithm);
+    }
+
+    /**
+     * Enable the encryption.
+     * @param algorithm the used algorithm
+     * @param callback the asynchronous callback
+     */
+    public void enableEncryptionWithAlgorithm(final String algorithm, final ApiCallback<Void> callback) {
+        // ensure that the crypto has been update
+        if (null != mDataHandler.getCrypto() && !TextUtils.isEmpty(algorithm)) {
+            HashMap<String, Object> params = new HashMap<>();
+            params.put("algorithm", algorithm);
+
+            if (null != callback) {
+                mRoomEncryptionCallback = callback;
+                addEventListener(mEncryptionListener);
+            }
+
+            mDataHandler.getDataRetriever().getRoomsRestClient().sendStateEvent(getRoomId(), Event.EVENT_TYPE_MESSAGE_ENCRYPTION, params, new ApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    // Wait for the event coming back from the hs
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    if (null != callback) {
+                        callback.onNetworkError(e);
+                        removeEventListener(mEncryptionListener);
+                    }
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    if (null != callback) {
+                        callback.onMatrixError(e);
+                        removeEventListener(mEncryptionListener);
+                    }
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    if (null != callback) {
+                        callback.onUnexpectedError(e);
+                        removeEventListener(mEncryptionListener);
+                    }
+                }
+            });
+        } else if (null != callback) {
+            if (null == mDataHandler.getCrypto()) {
+                callback.onMatrixError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLE));
+            } else {
+                callback.onMatrixError(new MXCryptoError(MXCryptoError.MISSING_FIELDS));
+            }
+        }
+    }
 }

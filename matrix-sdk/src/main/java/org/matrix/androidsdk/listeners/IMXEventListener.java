@@ -48,6 +48,11 @@ public interface IMXEventListener {
     void onIgnoredUsersListUpdate();
 
     /**
+     * The direct chat rooms list have been updated.
+     */
+    void onDirectMessageChatRoomsListUpdate();
+
+    /**
      * A live room event was received.
      * @param event the event
      * @param roomState the room state right before the event
@@ -69,6 +74,12 @@ public interface IMXEventListener {
      * @param bingRule the bing rule
      */
     void onBingEvent(Event event, RoomState roomState, BingRule bingRule);
+
+    /**
+     * An event has been successfully encrypted.
+     * @param event the encrypted event
+     */
+    void onEventEncrypted(Event event);
 
     /**
      * An event has been sent.
@@ -153,4 +164,10 @@ public interface IMXEventListener {
      * @param roomId the roomID
      */
     void onRoomTagEvent(String roomId);
+
+    /**
+     * An event was sent to the current device.
+     * @param event the event
+     */
+    void onToDeviceEvent(Event event);
 }

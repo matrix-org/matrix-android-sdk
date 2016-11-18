@@ -17,6 +17,8 @@
 package org.matrix.androidsdk.fragments;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.media.ThumbnailUtils;
@@ -45,8 +47,9 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.adapters.MessageRow;
 import org.matrix.androidsdk.adapters.MessagesAdapter;
+import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.data.EventTimeline;
-import org.matrix.androidsdk.data.IMXStore;
+import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomPreviewData;
 import org.matrix.androidsdk.data.RoomState;
@@ -57,7 +60,6 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.listeners.MXMediaUploadListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.rest.callback.ToastErrorHandler;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageMessage;
@@ -68,6 +70,7 @@ import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResult;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.VideoInfo;
 import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.util.EventDisplay;
@@ -75,17 +78,16 @@ import org.matrix.androidsdk.util.JsonUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ExecutionException;
 
 import retrofit.RetrofitError;
 
@@ -186,7 +188,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private boolean mIsScrollListenerSet;
 
     // timeline management
-    protected boolean mIsLive = true;
+    protected final boolean mIsLive = true;
 
     // by default the
     protected EventTimeline mEventTimeLine;
@@ -290,6 +292,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         public void onBingRulesUpdate() {
             mBingRulesByEventId.clear();
         }
+
+        @Override
+        public void onEventEncrypted(Event event) {
+            getUiHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    mAdapter.notifyDataSetChanged();
+                }
+            });
+        }
     };
 
     /**
@@ -323,8 +335,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
          * Warns that the list has been scrolled.
          * @param view the list view
          * @param firstVisibleItem the first visible indew
-         * @param visibleItemCount
-         * @param totalItemCount
+         * @param visibleItemCount the number of visible items
+         * @param totalItemCount the total number of items
          */
         private void manageScrollListener(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
             if (null != mActivityOnScrollListener) {
@@ -341,11 +353,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     // the latest event is not displayed
                     isLatestEventDisplayed = false;
                 } else {
-                    AbsListView absListView = view;
-                    View childview = absListView.getChildAt(visibleItemCount-1);
+                    View childView = view.getChildAt(visibleItemCount-1);
 
                     // test if the bottom of the latest item is equals to the list height
-                    isLatestEventDisplayed = (null != childview) && ((childview.getTop() + childview.getHeight()) <= view.getHeight());
+                    isLatestEventDisplayed = (null != childView) && ((childView.getTop() + childView.getHeight()) <= view.getHeight());
                 }
 
                 try {
@@ -740,27 +751,34 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * Redact an event from its event id.
      * @param eventId the event id.
      */
-    protected void redactEvent(String eventId) {
+    protected void redactEvent(final String eventId) {
         // Do nothing on success, the event will be hidden when the redaction event comes down the event stream
         mMatrixMessagesFragment.redact(eventId, new ApiCallback<Event>() {
             @Override
-            public void onSuccess(Event redactedEvent) {
+            public void onSuccess(final Event redactedEvent) {
+                if (null != redactedEvent) {
+                    getUiHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            // create a dummy redacted event to manage the redaction.
+                            // some redacted events are not removed from the history but they are pruned.
 
-                // create a dummy redacted event to manage the redaction.
-                // some redated events are not removed from the history but they are pruned.
-                Event redacterEvent = new Event();
-                redacterEvent.roomId = redactedEvent.roomId;
-                redacterEvent.redacts = redactedEvent.eventId;
-                redacterEvent.type = Event.EVENT_TYPE_REDACTION;
+                            Event redacterEvent = new Event();
+                            redacterEvent.roomId = redactedEvent.roomId;
+                            redacterEvent.redacts = redactedEvent.eventId;
+                            redacterEvent.setType(Event.EVENT_TYPE_REDACTION);
 
-                onEvent(redacterEvent, EventTimeline.Direction.FORWARDS, mRoom.getLiveState());
+                            onEvent(redacterEvent, EventTimeline.Direction.FORWARDS, mRoom.getLiveState());
 
-                if (null != mEventSendingListener) {
-                    try {
-                        mEventSendingListener.onMessageRedacted(redactedEvent);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "redactEvent fails : " + e.getMessage());
-                    }
+                            if (null != mEventSendingListener) {
+                                try {
+                                    mEventSendingListener.onMessageRedacted(redactedEvent);
+                                } catch (Exception e) {
+                                    Log.e(LOG_TAG, "redactEvent fails : " + e.getMessage());
+                                }
+                            }
+                        }
+                    });
                 }
             }
 
@@ -793,11 +811,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @return true it is supported.
      */
     private boolean canAddEvent(Event event) {
-        String type = event.type;
+        String type = event.getType();
 
         return mDisplayAllEvents ||
                 Event.EVENT_TYPE_MESSAGE.equals(type)          ||
                 Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(type)||
+                Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(type) ||
                 Event.EVENT_TYPE_STATE_ROOM_NAME.equals(type)  ||
                 Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(type) ||
                 Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(type) ||
@@ -865,14 +884,19 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             mMatrixMessagesFragment.sendEvent(event, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
-                    onMessageSendingSucceeded(event);
-                    mAdapter.updateEventById(event, prevEventId);
+                    getUiHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            onMessageSendingSucceeded(event);
+                            mAdapter.updateEventById(event, prevEventId);
 
-                    // pending resending ?
-                    if ((null != mResendingEventsList) && (mResendingEventsList.size() > 0)) {
-                        resend(mResendingEventsList.get(0));
-                        mResendingEventsList.remove(0);
-                    }
+                            // pending resending ?
+                            if ((null != mResendingEventsList) && (mResendingEventsList.size() > 0)) {
+                                resend(mResendingEventsList.get(0));
+                                mResendingEventsList.remove(0);
+                            }
+                        }
+                    });
                 }
 
                 private void commonFailure(final Event event) {
@@ -888,9 +912,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.getLocalizedMessage() + ".", Toast.LENGTH_LONG).show();
                         }
 
-                        mAdapter.notifyDataSetChanged();
-
-                        onMessageSendingFailed(event);
+                        getUiHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mAdapter.notifyDataSetChanged();
+                                onMessageSendingFailed(event);
+                            }
+                        });
                     }
                 }
 
@@ -954,7 +982,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     /**
      * Send an emote
      * @param emote the emote
-     * @param formattedBody the formatted text message (optional)
+     * @param formattedEmote the formatted text message (optional)
      * @param format the format
      */
     public void sendEmote(String emote, String formattedEmote, String format) {
@@ -1006,14 +1034,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param mimeType the media mime type
      * @param mediaFilename the media filename
      */
-    public void uploadFileContent(final String mediaUrl, final String mimeType, final String mediaFilename) {
+    public void uploadFileContent(final String mediaUrl, String mimeType, final String mediaFilename) {
         // create a tmp row
         final FileMessage tmpFileMessage = new FileMessage();
 
         tmpFileMessage.url = mediaUrl;
         tmpFileMessage.body = mediaFilename;
 
-        FileInputStream fileStream = null;
+        MXEncryptedAttachments.EncryptionResult encryptionResult = null;
+        InputStream fileStream = null;
 
         try {
             Uri uri = Uri.parse(mediaUrl);
@@ -1021,6 +1050,19 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             String filename = uri.getPath();
             fileStream = new FileInputStream (new File(filename));
+
+            if (mRoom.isEncrypted() && mSession.isCryptoEnabled() && (null != fileStream)) {
+                encryptionResult = MXEncryptedAttachments.encryptAttachment(fileStream, mimeType);
+
+                if (null != encryptionResult) {
+                    fileStream.close();
+                    fileStream = encryptionResult.mEncryptedStream;
+                    mimeType = "application/octet-stream";
+                } else {
+                    displayEncryptionAlert();
+                    return;
+                }
+            }
 
             if (null == tmpFileMessage.body) {
                 tmpFileMessage.body = uri.getLastPathSegment();
@@ -1034,6 +1076,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         // to avoid duplicate
         final MessageRow messageRow = addMessageRow(tmpFileMessage);
         messageRow.getEvent().mSentState = Event.SentState.SENDING;
+
+        final String fMimeType = mimeType;
+        final MXEncryptedAttachments.EncryptionResult fEncryptionResult = encryptionResult;
 
         getSession().getMediasCache().uploadContent(fileStream, tmpFileMessage.body, mimeType, mediaUrl, new MXMediaUploadListener() {
             @Override
@@ -1078,10 +1123,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                         // replace the thumbnail and the media contents by the computed ones
                         getMXMediasCache().saveFileMediaForUrl(contentUri, mediaUrl, tmpFileMessage.getMimeType());
-                        message.url = contentUri;
+
+                        if (null != fEncryptionResult) {
+                            message.file = fEncryptionResult.mEncryptedFileInfo;
+                            message.file.url = contentUri;
+                            message.url = null;
+                        } else {
+                            message.url = contentUri;
+                        }
 
                         // update the event content with the new message info
-                        messageRow.getEvent().content = JsonUtils.toJson(message);
+                        messageRow.getEvent().updateContent(JsonUtils.toJson(message));
 
                         Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
@@ -1181,22 +1233,49 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         final MessageRow videoRow = (null == aVideoRow) ? addMessageRow(tmpVideoMessage) : aVideoRow;
         videoRow.getEvent().mSentState = Event.SentState.SENDING;
 
-        FileInputStream imageStream = null;
+        InputStream imageStream = null;
         String filename = "";
         String uploadId = "";
         String mimeType = "";
 
+        MXEncryptedAttachments.EncryptionResult encryptionResult = null;
         try {
             // the thumbnail has been uploaded ?
             if (tmpVideoMessage.isThumbnailLocalContent()) {
                 uploadId = thumbnailUrl;
                 imageStream = new FileInputStream(new File(thumbUri.getPath()));
                 mimeType = thumbnailMimeType;
+
+                if (mRoom.isEncrypted() && mSession.isCryptoEnabled() && (null != imageStream)) {
+                    encryptionResult = MXEncryptedAttachments.encryptAttachment(imageStream, thumbnailMimeType);
+
+                    if (null != encryptionResult) {
+                        imageStream.close();
+                        imageStream = encryptionResult.mEncryptedStream;
+                        mimeType = "application/octet-stream";
+                    } else {
+                        displayEncryptionAlert();
+                        return;
+                    }
+                }
             } else {
                 uploadId = videoUrl;
                 imageStream = new FileInputStream(new File(uri.getPath()));
                 filename = tmpVideoMessage.body;
                 mimeType = videoMimeType;
+
+                if (mRoom.isEncrypted() && mSession.isCryptoEnabled() && (null != imageStream)) {
+                    encryptionResult = MXEncryptedAttachments.encryptAttachment(imageStream, thumbnailMimeType);
+
+                    if (null != encryptionResult) {
+                        imageStream.close();
+                        imageStream = encryptionResult.mEncryptedStream;
+                        mimeType = "application/octet-stream";
+                    } else {
+                        displayEncryptionAlert();
+                        return;
+                    }
+                }
             }
         } catch (Exception e) {
             Log.e(LOG_TAG, "uploadVideoContent : media parsing failed " + e.getLocalizedMessage());
@@ -1204,6 +1283,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         final boolean isContentUpload = TextUtils.equals(uploadId, videoUrl);
         final VideoMessage fVideoMessage = tmpVideoMessage;
+        final MXEncryptedAttachments.EncryptionResult fEncryptionResult = encryptionResult;
 
         getSession().getMediasCache().uploadContent(imageStream, filename, mimeType, uploadId, new MXMediaUploadListener() {
             @Override
@@ -1250,10 +1330,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                             // replace the thumbnail and the media contents by the computed ones
                             getMXMediasCache().saveFileMediaForUrl(contentUri, videoUrl, videoMimeType);
-                            message.url = contentUri;
+
+                            if (null == fEncryptionResult) {
+                                message.url = contentUri;
+                            } else {
+                                fEncryptionResult.mEncryptedFileInfo.url = contentUri;
+                                message.file = fEncryptionResult.mEncryptedFileInfo;
+                                message.url = null;
+                            }
 
                             // update the event content with the new message info
-                            videoRow.getEvent().content = JsonUtils.toJson(message);
+                            videoRow.getEvent().updateContent(JsonUtils.toJson(message));
 
                             Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
@@ -1261,7 +1348,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         } else {
                             // ony upload the thumbnail
                             getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), thumbnailMimeType, true);
-                            fVideoMessage.info.thumbnail_url = contentUri;
+
+                            if (null == fEncryptionResult) {
+                                fVideoMessage.info.thumbnail_url = contentUri;
+                            } else {
+                                fEncryptionResult.mEncryptedFileInfo.url = contentUri;
+                                fVideoMessage.info.thumbnail_file = fEncryptionResult.mEncryptedFileInfo;
+                                fVideoMessage.info.thumbnail_url = null;
+                            }
 
                             // upload the video
                             uploadVideoContent(fVideoMessage, videoRow, thumbnailUrl, thumbnailMimeType, videoUrl, fVideoMessage.body, videoMimeType);
@@ -1273,6 +1367,23 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
+     * Display an encyption alert
+     */
+    private void displayEncryptionAlert() {
+        if (null != getActivity()) {
+            new AlertDialog.Builder(getActivity())
+                    .setMessage("Fail to encrypt?")
+                    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            // continue with delete
+                        }
+                    })
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .show();
+        }
+    }
+
+    /**
      * upload an image content.
      * It might be triggered from a media selection : imageUri is used to compute thumbnails.
      * Or, it could have been called to resend an image.
@@ -1281,7 +1392,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param mediaFilename the mediaFilename
      * @param mimeType the image mine type
      */
-    public void uploadImageContent(final String thumbnailUrl, final String imageUrl, final String mediaFilename, final String mimeType) {
+    public void uploadImageContent(final String thumbnailUrl, final String imageUrl, final String mediaFilename, String mimeType) {
         // create a tmp row
         final ImageMessage tmpImageMessage = new ImageMessage();
 
@@ -1289,14 +1400,29 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         tmpImageMessage.thumbnailUrl = thumbnailUrl;
         tmpImageMessage.body = mediaFilename;
 
-        FileInputStream imageStream = null;
+        MXEncryptedAttachments.EncryptionResult encryptionResult = null;
+
+        InputStream imageStream = null;
 
         try {
             Uri uri = Uri.parse(imageUrl);
             Room.fillImageInfo(getActivity(), tmpImageMessage, uri, mimeType);
 
             String filename = uri.getPath();
-            imageStream = new FileInputStream (new File(filename));
+            imageStream = new FileInputStream(new File(filename));
+
+            if (mRoom.isEncrypted() && mSession.isCryptoEnabled() && (null != imageStream)) {
+                encryptionResult = MXEncryptedAttachments.encryptAttachment(imageStream, mimeType);
+
+                if (null != encryptionResult) {
+                    imageStream.close();
+                    imageStream = encryptionResult.mEncryptedStream;
+                    mimeType = "application/octet-stream";
+                } else {
+                    displayEncryptionAlert();
+                    return;
+                }
+            }
 
             if (null == tmpImageMessage.body) {
                 tmpImageMessage.body = uri.getLastPathSegment();
@@ -1309,6 +1435,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         // to avoid duplicate
         final MessageRow imageRow = addMessageRow(tmpImageMessage);
         imageRow.getEvent().mSentState = Event.SentState.SENDING;
+
+        final MXEncryptedAttachments.EncryptionResult fEncryptionResult = encryptionResult;
 
         getSession().getMediasCache().uploadContent(imageStream, tmpImageMessage.body, mimeType, imageUrl, new MXMediaUploadListener() {
 
@@ -1356,7 +1484,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         getMXMediasCache().saveFileMediaForUrl(contentUri, imageUrl, tmpImageMessage.getMimeType());
 
                         message.thumbnailUrl = null;
-                        message.url = contentUri;
+
+                        if (null != fEncryptionResult) {
+                            message.file = fEncryptionResult.mEncryptedFileInfo;
+                            message.file.url = contentUri;
+                            message.url = null;
+                        } else {
+                            message.url = contentUri;
+                        }
+
                         message.info = tmpImageMessage.info;
 
                         if (TextUtils.isEmpty(message.body)) {
@@ -1364,7 +1500,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         }
 
                         // update the event content with the new message info
-                        imageRow.getEvent().content = JsonUtils.toJson(message);
+                        imageRow.getEvent().updateContent(JsonUtils.toJson(message));
 
                         Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
@@ -1448,7 +1584,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             @Override
             public void onUploadComplete(final String uploadId, final String contentUri) {
-
                 getUiHandler().post(new Runnable() {
                     @Override
                     public void run() {
@@ -1461,7 +1596,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         message.thumbnail_url = contentUri;
 
                         // update the event content with the new message info
-                        locationRow.getEvent().content = JsonUtils.toJson(message);
+                        locationRow.getEvent().updateContent(JsonUtils.toJson(message));
 
                         Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
@@ -1575,7 +1710,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mPendingRelaunchTimersByEventId.remove(event.eventId);
 
         // send it again
-        final Message message = JsonUtils.toMessage(event.content);
+        final Message message = JsonUtils.toMessage(event.getContent());
 
         // resend an image ?
         if (message instanceof ImageMessage) {
@@ -1833,15 +1968,19 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             return;
         }
 
-        if (!mMatrixMessagesFragment.canBackPaginate()) {
-            Log.d(LOG_TAG, "backPaginate : cannot back paginating again");
-            setMessageListViewScrollListener();
-            return;
-        }
-            // in search mode,
+        // search mode
+        // The search mode uses remote requests only
+        // i.e the eventtimeline is not used.
+        // so the dedicated method must manage the back pagination
         if (!TextUtils.isEmpty(mPattern)) {
             Log.d(LOG_TAG, "backPaginate with pattern " + mPattern);
             requestSearchHistory();
+            return;
+        }
+
+        if (!mMatrixMessagesFragment.canBackPaginate()) {
+            Log.d(LOG_TAG, "backPaginate : cannot back paginating again");
+            setMessageListViewScrollListener();
             return;
         }
 
@@ -1989,7 +2128,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             getUiHandler().post(new Runnable() {
                 @Override
                 public void run() {
-                    if (Event.EVENT_TYPE_REDACTION.equals(event.type)) {
+                    if (Event.EVENT_TYPE_REDACTION.equals(event.getType())) {
                         MessageRow messageRow = mAdapter.getMessageRow(event.getRedacts());
 
                         if (null != messageRow) {
@@ -2018,7 +2157,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                             mAdapter.notifyDataSetChanged();
                         }
-                    } else if (Event.EVENT_TYPE_TYPING.equals(event.type)) {
+                    } else if (Event.EVENT_TYPE_TYPING.equals(event.getType())) {
                         if (null != mRoom) {
                             mAdapter.setTypingUsers(mRoom.getTypingUsers());
                         }
@@ -2104,6 +2243,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         getUiHandler().post(new Runnable() {
             @Override
             public void run() {
+                // should never happen but reported by GA
+                if (null == mMessageListView) {
+                    return;
+                }
+
                 hideLoadingBackProgress();
 
                 if (null == mMessageListView.getAdapter()) {
@@ -2469,11 +2613,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
 
         if (mIsMediaSearch) {
-            String[] mediaTypes = {"m.image", "m.video", "m.file"};
-            mSession.searchMediaName(mPattern, roomIds, Arrays.asList(mediaTypes), mNextBatch, callback);
+            mSession.searchMediasByName(mPattern, roomIds, mNextBatch, callback);
 
         } else {
-            mSession.searchMessageText(mPattern, roomIds, mNextBatch, callback);
+            mSession.searchMessagesByText(mPattern, roomIds, mNextBatch, callback);
         }
     }
 
@@ -2503,7 +2646,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             boolean isValidMessage = false;
 
-            if ((null != searchResult.result) && (null != searchResult.result.content)) {
+            if ((null != searchResult.result) && (null != searchResult.result.getContent())) {
                 JsonObject object = searchResult.result.getContentAsJsonObject();
 
                 if (null != object) {
@@ -2566,20 +2709,30 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 ApiCallback<SearchResponse> searchCallback = new ApiCallback<SearchResponse>() {
                     @Override
                     public void onSuccess(final SearchResponse searchResponse) {
-                        // check that the pattern was not modified before the end of the search
-                        if (TextUtils.equals(mPattern, pattern)) {
-                            onSearchResponse(searchResponse, onSearchResultListener);
-                        }
+                        getUiHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                // check that the pattern was not modified before the end of the search
+                                if (TextUtils.equals(mPattern, pattern)) {
+                                    onSearchResponse(searchResponse, onSearchResultListener);
+                                }
+                            }
+                        });
                     }
 
                     private void onError() {
-                        if (null != onSearchResultListener) {
-                            try {
-                                onSearchResultListener.onSearchFailed();
-                            } catch (Exception e) {
-                                Log.e(LOG_TAG, "onSearchResultListener failed with " + e.getLocalizedMessage());
+                        getUiHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (null != onSearchResultListener) {
+                                    try {
+                                        onSearchResultListener.onSearchFailed();
+                                    } catch (Exception e) {
+                                        Log.e(LOG_TAG, "onSearchResultListener failed with " + e.getLocalizedMessage());
+                                    }
+                                }
                             }
-                        }
+                        });
                     }
 
                     // the request will be auto restarted when a valid network will be found
@@ -2603,11 +2756,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 };
 
                 if (isMediaSearch) {
-                    String[] mediaTypes = {"m.image", "m.video", "m.file"};
-                    mSession.searchMediaName(mPattern, roomIds, Arrays.asList(mediaTypes), null, searchCallback);
+                    mSession.searchMediasByName(mPattern, roomIds, null, searchCallback);
 
                 } else {
-                    mSession.searchMessageText(mPattern, roomIds, null, searchCallback);
+                    mSession.searchMessagesByText(mPattern, roomIds, null, searchCallback);
                 }
             }
         }

@@ -179,14 +179,12 @@ public class ImageUtils {
 
         // we're done with the input stream now so get rid of it (bearing in mind this could be several MB..)
         fullImageStream.close();
-        fullImageStream = null;
 
         // get the width/height of the image without decoding ALL THE THINGS (though this still makes a copy of the compressed image :/)
         ByteArrayInputStream bais = new ByteArrayInputStream(outstream.toByteArray());
 
         // allow it to GC..
         outstream.close();
-        outstream = null;
 
         BitmapFactory.Options o = decodeBitmapDimensions(bais);
         if (o == null) {
@@ -210,7 +208,6 @@ public class ImageUtils {
             }
 
             bais.close();
-            bais = null;
 
             // recopy it back into an input stream :/
             outstream = new ByteArrayOutputStream();
@@ -218,7 +215,6 @@ public class ImageUtils {
 
             // cleanup
             bitmap.recycle();
-            bitmap = null;
 
             return new ByteArrayInputStream(outstream.toByteArray());
         }

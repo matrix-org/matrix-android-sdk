@@ -16,14 +16,47 @@
 package org.matrix.androidsdk.rest.model;
 
 import android.net.Uri;
+import android.util.Log;
 
 import java.io.File;
 public class VideoMessage extends Message {
+    private static final String LOG_TAG = "VideoMessage";
+
     public VideoInfo info;
     public String url;
 
+    // encrypted medias
+    // url and thumbnailUrl are replaced by their dedicated file
+    public EncryptedFileInfo file;
+
     public VideoMessage() {
         msgtype = MSGTYPE_VIDEO;
+    }
+
+    /**
+     * @return the media url
+     */
+    public String getUrl() {
+        if (null != url) {
+            return url;
+        } else if (null != file) {
+            return file.url;
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * @return the thumbnail url
+     */
+    public String getThumbnailUrl() {
+        if ((null != info) && (null != info.thumbnail_url)) {
+            return info.thumbnail_url;
+        } else if ((null != info) &&  (null != info.thumbnail_file)) {
+            return info.thumbnail_file.url;
+        }
+
+        return null;
     }
 
     /**
@@ -39,6 +72,11 @@ public class VideoMessage extends Message {
         if (null != info) {
             copy.info = info.deepCopy();
         }
+
+        if (null != file) {
+            copy.file = file.deepCopy();
+        }
+
         return copy;
     }
 
@@ -75,7 +113,7 @@ public class VideoMessage extends Message {
                     info.thumbnail_url = null;
                 }
             } catch (Exception e) {
-
+                Log.e(LOG_TAG, "## checkMediaUrls() failed" + e.getMessage());
             }
         }
 
@@ -87,7 +125,7 @@ public class VideoMessage extends Message {
                     url = null;
                 }
             } catch (Exception e) {
-
+                Log.e(LOG_TAG, "## checkMediaUrls() failed" + e.getMessage());
             }
         }
     }

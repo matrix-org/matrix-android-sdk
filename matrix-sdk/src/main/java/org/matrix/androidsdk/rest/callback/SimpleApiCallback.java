@@ -17,6 +17,7 @@ package org.matrix.androidsdk.rest.callback;
 
 import android.app.Activity;
 import android.content.Context;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -79,6 +80,7 @@ public class SimpleApiCallback<T> implements ApiCallback<T> {
             try {
                 ((ApiCallback) failureCallback).onSuccess(info);
             }  catch (Exception exception) {
+                Log.e(LOG_TAG, "## onSuccess() failed" + exception.getMessage());
             }
         }
     }
@@ -107,6 +109,7 @@ public class SimpleApiCallback<T> implements ApiCallback<T> {
             try {
                 failureCallback.onNetworkError(e);
             }catch (Exception exception) {
+                Log.e(LOG_TAG, "## onNetworkError() failed" + exception.getMessage());
             }
         } else {
             displayToast("Network Error");
@@ -119,6 +122,7 @@ public class SimpleApiCallback<T> implements ApiCallback<T> {
             try {
                 failureCallback.onMatrixError(e);
             } catch (Exception exception) {
+                Log.e(LOG_TAG, "## onMatrixError() failed" + exception.getMessage());
             }
         } else {
             displayToast("Matrix Error : " + e.getLocalizedMessage());
@@ -131,6 +135,7 @@ public class SimpleApiCallback<T> implements ApiCallback<T> {
             try {
                 failureCallback.onUnexpectedError(e);
             } catch (Exception exception) {
+                Log.e(LOG_TAG, "## onUnexpectedError() failed" + exception.getMessage());
             }
         } else {
             displayToast(e.getLocalizedMessage());

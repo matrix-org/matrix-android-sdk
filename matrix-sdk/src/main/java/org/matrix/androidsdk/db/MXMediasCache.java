@@ -35,6 +35,7 @@ import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
 import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
 import org.matrix.androidsdk.listeners.MXMediaDownloadListener;
+import org.matrix.androidsdk.rest.model.EncryptedFileInfo;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.ContentUtils;
 
@@ -62,11 +63,6 @@ public class MXMediasCache {
      * The content manager
      */
     private ContentManager mContentManager = null;
-
-    /**
-     * The account user ID
-     */
-    private String mUserID = null;
 
     /**
      * The medias folders list.
@@ -107,7 +103,6 @@ public class MXMediasCache {
      */
     public MXMediasCache(ContentManager contentManager, String userID, Context context) {
         mContentManager = contentManager;
-        mUserID = userID;
 
         File mediaBaseFolderFile = new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER);
 
@@ -117,7 +112,7 @@ public class MXMediasCache {
         }
 
         // create the dir tree
-        mMediasFolderFile = new File(mediaBaseFolderFile, mUserID);
+        mMediasFolderFile = new File(mediaBaseFolderFile, userID);
         mImagesFolderFile = new File(mMediasFolderFile, MXMEDIA_STORE_IMAGES_FOLDER);
         mOthersFolderFile = new File(mMediasFolderFile, MXMEDIA_STORE_OTHERS_FOLDER);
 
@@ -531,7 +526,7 @@ public class MXMediasCache {
      * @return a download identifier if the image is not cached.
      */
     public String loadAvatarThumbnail(HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int side, Bitmap aDefaultAvatar) {
-        return loadBitmap(imageView.getContext(), hsConfig, imageView, url, side, side, 0, ExifInterface.ORIENTATION_UNDEFINED, null, getThumbnailsFolderFile(), aDefaultAvatar);
+        return loadBitmap(imageView.getContext(), hsConfig, imageView, url, side, side, 0, ExifInterface.ORIENTATION_UNDEFINED, null, getThumbnailsFolderFile(), aDefaultAvatar, null);
     }
 
     /**
@@ -562,10 +557,11 @@ public class MXMediasCache {
      * @param rotationAngle the rotation angle (degrees)
      * @param orientation   the orientation (ExifInterface.ORIENTATION_XXX value)
      * @param mimeType      the mimeType.
+     * @param encryptionInfo the encryption file info
      * @return a download identifier if the image is not cached.
      */
-    public String loadBitmap(HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int rotationAngle, int orientation, String mimeType) {
-        return loadBitmap(hsConfig, imageView, url, -1, -1, rotationAngle, orientation, mimeType);
+    public String loadBitmap(HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int rotationAngle, int orientation, String mimeType, EncryptedFileInfo encryptionInfo) {
+        return loadBitmap(hsConfig, imageView, url, -1, -1, rotationAngle, orientation, mimeType, encryptionInfo);
     }
 
     /**
@@ -578,10 +574,11 @@ public class MXMediasCache {
      * @param rotationAngle the rotation angle (degrees)
      * @param orientation   the orientation (ExifInterface.ORIENTATION_XXX value)
      * @param mimeType      the mimeType.
+     * @param encryptionInfo the encryption file info
      * @return a download identifier if the image is not cached.
      */
-    public String loadBitmap(Context context, HomeserverConnectionConfig hsConfig, String url, int rotationAngle, int orientation, String mimeType) {
-        return loadBitmap(context, hsConfig, null, url, -1, -1, rotationAngle, orientation, mimeType, getFolderFile(mimeType));
+    public String loadBitmap(Context context, HomeserverConnectionConfig hsConfig, String url, int rotationAngle, int orientation, String mimeType, EncryptedFileInfo encryptionInfo) {
+        return loadBitmap(context, hsConfig, null, url, -1, -1, rotationAngle, orientation, mimeType, getFolderFile(mimeType), encryptionInfo);
     }
 
     /**
@@ -598,10 +595,11 @@ public class MXMediasCache {
      * @param rotationAngle the rotation angle (degrees)
      * @param orientation   the orientation (ExifInterface.ORIENTATION_XXX value)
      * @param mimeType      the mimeType.
+     * @param encryptionInfo the encryption file info
      * @return a download identifier if the image is not cached
      */
-    public String loadBitmap(HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int width, int height, int rotationAngle,  int orientation, String mimeType) {
-        return loadBitmap(imageView.getContext(), hsConfig, imageView, url, width, height, rotationAngle, orientation, mimeType, getFolderFile(mimeType));
+    public String loadBitmap(HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int width, int height, int rotationAngle,  int orientation, String mimeType, EncryptedFileInfo encryptionInfo) {
+        return loadBitmap(imageView.getContext(), hsConfig, imageView, url, width, height, rotationAngle, orientation, mimeType, getFolderFile(mimeType), encryptionInfo);
     }
 
     // some tasks have been stacked because there are too many running ones.
@@ -623,9 +621,10 @@ public class MXMediasCache {
      * @param hsConfig the home server config.
      * @param url      the media url
      * @param mimeType the media mimetype
+     * @param encryptionInfo the encryption information
      * @return the download identifier.
      */
-    public String downloadMedia(Context context, HomeserverConnectionConfig hsConfig, String url, String mimeType) {
+    public String downloadMedia(Context context, HomeserverConnectionConfig hsConfig, String url, String mimeType, EncryptedFileInfo encryptionInfo) {
         // sanity checks
         if ((null == mimeType) || (null == url) || (null == context)) {
             return null;
@@ -644,7 +643,7 @@ public class MXMediasCache {
         }
 
         // download it in background
-        MXMediaDownloadWorkerTask task = new MXMediaDownloadWorkerTask(context, hsConfig, getFolderFile(mimeType), downloadableUrl, mimeType);
+        MXMediaDownloadWorkerTask task = new MXMediaDownloadWorkerTask(context, hsConfig, getFolderFile(mimeType), downloadableUrl, mimeType, encryptionInfo);
 
         // avoid crash if there are too many running task
         try {
@@ -738,10 +737,11 @@ public class MXMediasCache {
      * @param orientation   the orientation (ExifInterface.ORIENTATION_XXX value)
      * @param mimeType the mimeType.
      * @param folderFile the folder where the media should be stored
+     * @param encryptionInfo the encryption file information.
      * @return a download identifier if the image is not cached
      */
-    public String loadBitmap(Context context, HomeserverConnectionConfig hsConfig, final ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, File folderFile) {
-        return loadBitmap(context, hsConfig, imageView, url, width, height, rotationAngle, orientation, mimeType, folderFile, null);
+    public String loadBitmap(Context context, HomeserverConnectionConfig hsConfig, final ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, File folderFile, EncryptedFileInfo encryptionInfo) {
+        return loadBitmap(context, hsConfig, imageView, url, width, height, rotationAngle, orientation, mimeType, folderFile, null, encryptionInfo);
     }
 
     /**
@@ -765,9 +765,10 @@ public class MXMediasCache {
      * @param mimeType the mimeType.
      * @param folderFile the folder where the media should be stored
      * @param aDefaultBitmap the default bitmap to use when the url media cannot be retrieved.
+     * @param encryptionInfo the file encryption info
      * @return a download identifier if the image is not cached
      */
-    public String loadBitmap(Context context, HomeserverConnectionConfig hsConfig, final ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, File folderFile, Bitmap aDefaultBitmap) {
+    public String loadBitmap(Context context, HomeserverConnectionConfig hsConfig, final ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, File folderFile, Bitmap aDefaultBitmap, EncryptedFileInfo encryptionInfo) {
         if (null == url) {
             return null;
         }
@@ -782,9 +783,17 @@ public class MXMediasCache {
         }
 
         Bitmap defaultBimap = (null == aDefaultBitmap) ? mDefaultBitmap : aDefaultBitmap;
-        String downloadableUrl = downloadableUrl(url, width, height);
+        String downloadableUrl;
 
-        if ((rotationAngle == Integer.MAX_VALUE) && (orientation != ExifInterface.ORIENTATION_UNDEFINED) && (orientation != ExifInterface.ORIENTATION_NORMAL)) {
+        // it is not possible to resize an encrypted image
+        if (null == encryptionInfo) {
+            downloadableUrl = downloadableUrl(url, width, height);
+        } else {
+            downloadableUrl = downloadableUrl(url, -1, -1);
+        }
+
+        // the thumbnail params are ignored when encrypted
+        if ((null == encryptionInfo) && (rotationAngle == Integer.MAX_VALUE) && (orientation != ExifInterface.ORIENTATION_UNDEFINED) && (orientation != ExifInterface.ORIENTATION_NORMAL)) {
             if (downloadableUrl.indexOf("?") != -1) {
                 downloadableUrl += "&apply_orientation=true";
             } else {
@@ -831,8 +840,8 @@ public class MXMediasCache {
                         }
                     });
                 }
-
             }
+
             downloadableUrl = null;
         } else {
             MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadableUrl);
@@ -843,7 +852,7 @@ public class MXMediasCache {
                 }
             } else {
                 // download it in background
-                MXMediaDownloadWorkerTask task = new MXMediaDownloadWorkerTask(context, hsConfig, folderFile, downloadableUrl, rotationAngle, mimeType);
+                MXMediaDownloadWorkerTask task = new MXMediaDownloadWorkerTask(context, hsConfig, folderFile, downloadableUrl, rotationAngle, mimeType, encryptionInfo);
 
                 if (null != imageView) {
                     task.addImageView(imageView);

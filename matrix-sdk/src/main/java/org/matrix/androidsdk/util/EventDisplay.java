@@ -31,6 +31,7 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.call.MXCallsManager;
+import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
@@ -52,8 +53,6 @@ public class EventDisplay {
     private final RoomState mRoomState;
     private boolean mPrependAuthor;
 
-    public static final CharSequence DEFAULT_MESSAGE_ENCRYPTED_NOT_YET_SUPPORTED = "Encrypted message";
-
     // let the application defines if the redacted events must be displayed
     public static boolean mDisplayRedactedEvents = false;
 
@@ -63,7 +62,6 @@ public class EventDisplay {
         mEvent = event;
         mRoomState = roomState;
     }
-
     /**
      * <p>Prepend the text with the author's name if they have not been mentioned in the text.</p>
      * This will prepend text messages with the author's name. This will NOT prepend things like
@@ -108,9 +106,10 @@ public class EventDisplay {
             JsonObject jsonEventContent = mEvent.getContentAsJsonObject();
 
             String userDisplayName = getUserDisplayName(mEvent.getSender(), mRoomState);
+            String eventType = mEvent.getType();
 
             if (mEvent.isCallEvent()) {
-                if (Event.EVENT_TYPE_CALL_INVITE.equals(mEvent.type)) {
+                if (Event.EVENT_TYPE_CALL_INVITE.equals(eventType)) {
                     boolean isVideo = false;
                     // detect call type from the sdp
                     try {
@@ -127,14 +126,14 @@ public class EventDisplay {
                     } else {
                         return mContext.getString(R.string.notice_placed_voice_call, userDisplayName);
                     }
-                } else if (Event.EVENT_TYPE_CALL_ANSWER.equals(mEvent.type)) {
+                } else if (Event.EVENT_TYPE_CALL_ANSWER.equals(eventType)) {
                     return mContext.getString(R.string.notice_answered_call, userDisplayName);
-                } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(mEvent.type)) {
+                } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(eventType)) {
                     return mContext.getString(R.string.notice_ended_call, userDisplayName);
                 } else {
-                    return mEvent.type;
+                    return eventType;
                 }
-            } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(mEvent.type)) {
+            } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(eventType)) {
                 CharSequence subpart;
                 String historyVisibility = (null != jsonEventContent.get("history_visibility")) ? jsonEventContent.get("history_visibility").getAsString() : RoomState.HISTORY_VISIBILITY_SHARED;
 
@@ -151,10 +150,10 @@ public class EventDisplay {
                 }
 
                 text = mContext.getString(R.string.notice_made_future_room_visibility, userDisplayName, subpart);
-            } else if (Event.EVENT_TYPE_RECEIPT.equals(mEvent.type)) {
+            } else if (Event.EVENT_TYPE_RECEIPT.equals(eventType)) {
                 // the read receipt should not be displayed
                 text = "Read Receipt";
-            } else if (Event.EVENT_TYPE_MESSAGE.equals(mEvent.type)) {
+            } else if (Event.EVENT_TYPE_MESSAGE.equals(eventType)) {
                 String msgtype = (null != jsonEventContent.get("msgtype")) ? jsonEventContent.get("msgtype").getAsString() : "";
 
                 // all m.room.message events should support the 'body' key fallback, so use it.
@@ -189,12 +188,36 @@ public class EventDisplay {
                         ((SpannableStringBuilder)text).setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, userDisplayName.length()+1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
                 }
-            } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(mEvent.type)) {
-                // TODO to be removed - temporary patch (wait for e2e encryption final version)
-                SpannableString spannableStr = new SpannableString(DEFAULT_MESSAGE_ENCRYPTED_NOT_YET_SUPPORTED);
-                spannableStr.setSpan(new android.text.style.StyleSpan(Typeface.ITALIC), 0, DEFAULT_MESSAGE_ENCRYPTED_NOT_YET_SUPPORTED.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                text = spannableStr;
-            } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(mEvent.type)) {
+            } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
+                text = mContext.getString(R.string.notice_end_to_end, userDisplayName, mEvent.getWireEventContent().algorithm);
+            } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(eventType)) {
+                // don't display
+                if (mEvent.isRedacted()) {
+                    String redactedInfo = EventDisplay.getRedactionMessage(mContext, mEvent, mRoomState);
+
+                    if (TextUtils.isEmpty(redactedInfo)) {
+                        return null;
+                    } else {
+                        return redactedInfo;
+                    }
+                } else {
+                    String message = null;
+
+                    if (null != mEvent.getCryptoError()) {
+                        message = mEvent.getCryptoError().getLocalizedMessage();
+                    }
+
+                    if (TextUtils.isEmpty(message)) {
+                        message = mContext.getString(R.string.encrypted_message);
+                    }
+
+                    message = "**" + message + "**";
+
+                    SpannableString spannableStr = new SpannableString(message);
+                    spannableStr.setSpan(new android.text.style.StyleSpan(Typeface.ITALIC), 0, message.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    text = spannableStr;
+                }
+            } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType)) {
                 String topic = jsonEventContent.getAsJsonPrimitive("topic").getAsString();
 
                 if (mEvent.isRedacted()) {
@@ -213,7 +236,7 @@ public class EventDisplay {
                     text = mContext.getString(R.string.notice_room_topic_removed, userDisplayName);
                 }
             }
-            else if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(mEvent.type)) {
+            else if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType)) {
                 String roomName = jsonEventContent.getAsJsonPrimitive("name").getAsString();
 
                 if (mEvent.isRedacted()) {
@@ -232,8 +255,8 @@ public class EventDisplay {
                     text = mContext.getString(R.string.notice_room_name_removed, userDisplayName);
                 }
             }
-            else if (Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(mEvent.type)) {
-                RoomThirdPartyInvite invite = JsonUtils.toRoomThirdPartyInvite(mEvent.content);
+            else if (Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(eventType)) {
+                RoomThirdPartyInvite invite = JsonUtils.toRoomThirdPartyInvite(mEvent.getContent());
                 String displayName = invite.display_name;
 
                 if (mEvent.isRedacted()) {
@@ -248,7 +271,7 @@ public class EventDisplay {
 
                 text =  mContext.getString(R.string.notice_room_third_party_invite, userDisplayName, displayName);
             }
-            else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(mEvent.type)) {
+            else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
                 text = getMembershipNotice(mContext, mEvent, mRoomState);
             }
         }
@@ -309,7 +332,7 @@ public class EventDisplay {
      * @param roomState the room state
      * @return the "human readable" display name
      */
-    private static String senderDisplayNameForEvent(Event event, EventContent eventContent, RoomState roomState) {
+    private static String senderDisplayNameForEvent(Event event, EventContent eventContent, EventContent prevEventContent,  RoomState roomState) {
         String senderDisplayName = event.getSender();
 
         if (!event.isRedacted()) {
@@ -319,9 +342,12 @@ public class EventDisplay {
             }
 
             // Check whether this sender name is updated by the current event (This happens in case of new joined member)
-            if (null != eventContent) {
-                if (TextUtils.equals("join", eventContent.membership) && !TextUtils.isEmpty(eventContent.displayname)) {
-                    // Use the actual display name
+            if ((null != eventContent) && TextUtils.equals(RoomMember.MEMBERSHIP_JOIN, eventContent.membership)) {
+                // detect if it is displayname update
+                // a display name update is detected when the previous state was join and there was a displayname
+                if (!TextUtils.isEmpty(eventContent.displayname) ||
+                        ((null != prevEventContent) && TextUtils.equals(RoomMember.MEMBERSHIP_JOIN, prevEventContent.membership) && !TextUtils.isEmpty(prevEventContent.displayname))
+                        ) {
                     senderDisplayName = eventContent.displayname;
                 }
             }
@@ -348,7 +374,7 @@ public class EventDisplay {
         EventContent eventContent = JsonUtils.toEventContent(event.getContentAsJsonObject());
         EventContent prevEventContent = event.getPrevContent();
 
-        String senderDisplayName = senderDisplayNameForEvent(event, eventContent, roomState);
+        String senderDisplayName = senderDisplayNameForEvent(event, eventContent, prevEventContent, roomState);
         String prevUserDisplayName = null;
 
         String prevMembership = null;
@@ -361,10 +387,16 @@ public class EventDisplay {
             prevUserDisplayName = prevEventContent.displayname;
         }
 
-        String targetDisplayName = event.stateKey;
+        // use by default the provided display name
+        String targetDisplayName = eventContent.displayname;
 
-        if ((null != targetDisplayName) && (null != roomState) && !event.isRedacted()) {
-            targetDisplayName = roomState.getMemberName(targetDisplayName);
+        // if it is not provided, use the stateKey value
+        // and try to retrieve a valid display name
+        if (null == targetDisplayName) {
+            targetDisplayName = event.stateKey;
+            if ((null != targetDisplayName) && (null != roomState) && !event.isRedacted()) {
+                targetDisplayName = roomState.getMemberName(targetDisplayName);
+            }
         }
 
         // Check whether the sender has updated his profile (the membership is then unchanged)
@@ -385,9 +417,11 @@ public class EventDisplay {
 
                 if (!TextUtils.equals(senderDisplayName, prevUserDisplayName)) {
                     if (TextUtils.isEmpty(prevUserDisplayName)) {
-                        displayText = context.getString(R.string.notice_display_name_set, event.getSender(), senderDisplayName);
+                        if (!TextUtils.equals(event.getSender(), senderDisplayName)) {
+                            displayText = context.getString(R.string.notice_display_name_set, event.getSender(), senderDisplayName);
+                        }
                     } else if (TextUtils.isEmpty(senderDisplayName)) {
-                        displayText = context.getString(R.string.notice_display_name_removed, event.getSender());
+                        displayText = context.getString(R.string.notice_display_name_removed, event.getSender(), prevUserDisplayName);
                     } else {
                         displayText = context.getString(R.string.notice_display_name_changed_from, event.getSender(), prevUserDisplayName, senderDisplayName);
                     }
@@ -454,7 +488,18 @@ public class EventDisplay {
 
             // 2 cases here: this member may have left voluntarily or they may have been "left" by someone else ie. kicked
             if (TextUtils.equals(event.getSender(), event.stateKey)) {
-                return context.getString(R.string.notice_room_leave, senderDisplayName);
+                if ((null != prevEventContent) && TextUtils.equals(prevEventContent.membership, RoomMember.MEMBERSHIP_INVITE)) {
+                    return context.getString(R.string.notice_room_reject, senderDisplayName);
+                } else {
+
+                    // use the latest known displayname
+                    if ((null == eventContent.displayname) && (null != prevUserDisplayName)) {
+                        senderDisplayName = prevUserDisplayName;
+                    }
+
+                    return context.getString(R.string.notice_room_leave, senderDisplayName);
+                }
+
             } else if (null != prevMembership) {
                 if (prevMembership.equals(RoomMember.MEMBERSHIP_INVITE)) {
                     return context.getString(R.string.notice_room_withdraw, senderDisplayName, targetDisplayName);

@@ -22,6 +22,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.util.JsonUtils;
 
@@ -45,6 +46,7 @@ public class Event implements java.io.Serializable {
 
     public enum SentState {
         UNSENT,  // the event has not been sent
+        ENCRYPTING, // the event is encrypting
         SENDING, // the event is currently sending
         WAITING_RETRY, // the event is going to be resent asap
         SENT,    // the event has been sent
@@ -59,11 +61,14 @@ public class Event implements java.io.Serializable {
     public static final String EVENT_TYPE_PRESENCE = "m.presence";
     public static final String EVENT_TYPE_MESSAGE = "m.room.message";
     public static final String EVENT_TYPE_MESSAGE_ENCRYPTED = "m.room.encrypted";
+    public static final String EVENT_TYPE_MESSAGE_ENCRYPTION = "m.room.encryption";
     public static final String EVENT_TYPE_FEEDBACK = "m.room.message.feedback";
     public static final String EVENT_TYPE_TYPING = "m.typing";
     public static final String EVENT_TYPE_REDACTION = "m.room.redaction";
     public static final String EVENT_TYPE_RECEIPT = "m.receipt";
     public static final String EVENT_TYPE_TAGS = "m.tag";
+    public static final String EVENT_TYPE_NEW_DEVICE = "m.new_device";
+    public static final String EVENT_TYPE_ROOM_KEY = "m.room_key";
 
     // State events
     public static final String EVENT_TYPE_STATE_ROOM_NAME = "m.room.name";
@@ -84,6 +89,8 @@ public class Event implements java.io.Serializable {
     public static final String EVENT_TYPE_CALL_CANDIDATES = "m.call.candidates";
     public static final String EVENT_TYPE_CALL_ANSWER = "m.call.answer";
     public static final String EVENT_TYPE_CALL_HANGUP = "m.call.hangup";
+
+    public static final long DUMMY_EVENT_AGE = Long.MAX_VALUE - 1;
 
     public String type;
     public transient JsonElement content = null;
@@ -225,6 +232,21 @@ public class Event implements java.io.Serializable {
     }
 
     /**
+     * @return true if content has some entries
+     */
+    public boolean hasContentFields() {
+        boolean res = false;
+        JsonObject json = getContentAsJsonObject();
+
+        if (null != json) {
+            Set<Map.Entry<String, JsonElement>> entries = getContentAsJsonObject().entrySet();
+
+            res = (null != entries) && (0 != entries.size());
+        }
+        return res;
+    }
+
+    /**
      * @return true if this event was redacted
      */
     public boolean isRedacted() {
@@ -263,11 +285,58 @@ public class Event implements java.io.Serializable {
     }
 
     /**
+     * @return the event type
+     */
+    public String getType() {
+        if (null != mClearEvent) {
+            return mClearEvent.type;
+        } else {
+            return type;
+        }
+    }
+
+    /**
+     * Update the event type
+     * @param aType the new type
+     */
+    public void setType(String aType) {
+        // TODO manage encryption
+        type = aType;
+    }
+
+    /**
+     * @return the wire event type
+     */
+    public String getWireType() {
+        return type;
+    }
+
+    /**
+     * @return the event content
+     */
+    public JsonElement getContent() {
+        if (null != mClearEvent) {
+            return mClearEvent.content;
+        } else {
+            return content;
+        }
+    }
+
+    /**
+     * @return the wired event content
+     */
+    public JsonElement getWireContent() {
+        return content;
+    }
+
+    /**
      * @return the content casted as JsonObject.
      */
     public JsonObject getContentAsJsonObject() {
-        if ((null != content) && content.isJsonObject()) {
-            return content.getAsJsonObject();
+        JsonElement cont = getContent();
+
+        if ((null != cont) && cont.isJsonObject()) {
+            return cont.getAsJsonObject();
         }
         return null;
     }
@@ -294,8 +363,18 @@ public class Event implements java.io.Serializable {
      * @return the content formatted as EventContent.
      */
     public EventContent getEventContent() {
-        if (null != content) {
-            return JsonUtils.toEventContent(content);
+        if (null != getContent()) {
+            return JsonUtils.toEventContent(getContent());
+        }
+        return null;
+    }
+
+    /**
+     * @return the content formatted as EventContent.
+     */
+    public EventContent getWireEventContent() {
+        if (null != getWireContent()) {
+            return JsonUtils.toEventContent(getWireContent());
         }
         return null;
     }
@@ -380,7 +459,7 @@ public class Event implements java.io.Serializable {
      */
     public void createDummyEventId() {
         eventId = roomId + "-" + originServerTs;
-        age = Long.MAX_VALUE;
+        age = DUMMY_EVENT_AGE;
     }
 
     /**
@@ -418,10 +497,10 @@ public class Event implements java.io.Serializable {
      * @return true if the event if a call event.
      */
     public boolean isCallEvent() {
-        return EVENT_TYPE_CALL_INVITE.equals(type) ||
-                EVENT_TYPE_CALL_CANDIDATES.equals(type) ||
-                EVENT_TYPE_CALL_ANSWER.equals(type) ||
-                EVENT_TYPE_CALL_HANGUP.equals(type);
+        return EVENT_TYPE_CALL_INVITE.equals(getType()) ||
+                EVENT_TYPE_CALL_CANDIDATES.equals(getType()) ||
+                EVENT_TYPE_CALL_ANSWER.equals(getType()) ||
+                EVENT_TYPE_CALL_HANGUP.equals(getType());
     }
 
     /**
@@ -472,6 +551,15 @@ public class Event implements java.io.Serializable {
     }
 
     /**
+     * Check if the current event is encrypting.
+     *
+     * @return true if the message encryption is in progress.
+     */
+    public boolean isEncrypting() {
+        return (mSentState == SentState.ENCRYPTING);
+    }
+
+    /**
      * Check if the current event is sending.
      *
      * @return true if it is sending.
@@ -510,24 +598,24 @@ public class Event implements java.io.Serializable {
             if (Message.MSGTYPE_IMAGE.equals(msgType)) {
                 ImageMessage imageMessage = JsonUtils.toImageMessage(content);
 
-                if (null != imageMessage.url) {
-                    urls.add(imageMessage.url);
+                if (null != imageMessage.getUrl()) {
+                    urls.add(imageMessage.getUrl());
                 }
 
-                if (null != imageMessage.thumbnailUrl) {
-                    urls.add(imageMessage.thumbnailUrl);
+                if (null != imageMessage.getThumbnailUrl()) {
+                    urls.add(imageMessage.getThumbnailUrl());
                 }
             } else if (Message.MSGTYPE_FILE.equals(msgType)) {
                 FileMessage fileMessage = JsonUtils.toFileMessage(content);
 
-                if (null != fileMessage.url) {
-                    urls.add(fileMessage.url);
+                if (null != fileMessage.getUrl()) {
+                    urls.add(fileMessage.getUrl());
                 }
             } else if (Message.MSGTYPE_VIDEO.equals(msgType)) {
                 VideoMessage videoMessage = JsonUtils.toVideoMessage(content);
 
-                if (null != videoMessage.url) {
-                    urls.add(videoMessage.url);
+                if (null != videoMessage.getUrl()) {
+                    urls.add(videoMessage.getUrl());
                 }
             }
         }
@@ -735,12 +823,20 @@ public class Event implements java.io.Serializable {
             allowedKeys = new ArrayList<>(Arrays.asList("alias"));
         } else if (TextUtils.equals(Event.EVENT_TYPE_FEEDBACK, type)) {
             allowedKeys = new ArrayList<>(Arrays.asList("type", "target_event_id"));
+        } else if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, type)) {
+            mClearEvent = null;
+            mKeysProved = null;
+            mKeysClaimed = null;
+            allowedKeys = null;
         } else {
             allowedKeys = null;
         }
 
         this.content = filterInContentWithKeys(getContentAsJsonObject(), allowedKeys);
         this.prev_content = filterInContentWithKeys(getPrevContentAsJsonObject(), allowedKeys);
+
+        this.prev_content_as_string = null;
+        this.contentAsString = null;
 
         if (null != redactionEvent) {
             if (null == unsigned) {
@@ -767,5 +863,131 @@ public class Event implements java.io.Serializable {
 
             }
         }
+    }
+
+    //==============================================================================================================
+    // Crypto
+    //==============================================================================================================
+
+    /**
+     * For encrypted events, the plaintext payload for the event.
+     * This is a small MXEvent instance with typically value for `type` and 'content' fields.
+     */
+    private transient Event mClearEvent;
+
+    /**
+     * The keys that must have been owned by the sender of this encrypted event.
+     * @discussion
+     * These don't necessarily have to come from this event itself, but may be
+     * implied by the cryptographic session.
+     */
+    private transient Map<String, String> mKeysProved;
+
+    /**
+     * The additional keys the sender of this encrypted event claims to possess.
+     * @discussion
+     * These don't necessarily have to come from this event itself, but may be
+     * implied by the cryptographic session.
+     * For example megolm messages don't claim keys directly, but instead
+     * inherit a claim from the olm message that established the session.
+     * The keys that must have been owned by the sender of this encrypted event.
+     */
+    private transient Map<String, String> mKeysClaimed;
+
+    // linked crypto error
+    private MXCryptoError mCryptoError;
+
+    /**
+     * True if this event is encrypted.
+     */
+    public boolean isEncrypted() {
+        return TextUtils.equals(getWireType(), EVENT_TYPE_MESSAGE_ENCRYPTED);
+    }
+
+    /**
+     * The curve25519 key that sent this event.
+     */
+    public String senderKey() {
+        if (null != getKeysProved()) {
+            return  getKeysProved().get("curve25519");
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * @return the keys proved
+     */
+    public Map<String, String> getKeysProved() {
+        if (null != mClearEvent) {
+            return mClearEvent.mKeysProved;
+        }
+
+        return mKeysProved;
+    }
+
+    /**
+     * Update the key proved
+     * @param keysProved the keys proved
+     */
+    public void setKeysProved(Map<String, String> keysProved) {
+        if (null != mClearEvent) {
+            mClearEvent.mKeysProved = keysProved;
+        } else {
+            mKeysProved = keysProved;
+        }
+    }
+
+    /**
+     * @return the keys claimed map
+     */
+    public Map<String, String> getKeysClaimed() {
+        if (null != mClearEvent) {
+            return mClearEvent.mKeysClaimed;
+        }
+
+        return mKeysClaimed;
+    }
+
+    /**
+     * Update tke ley claimed
+     * @param keysClaimed the new key claimed map
+     */
+    public void setKeysClaimed(Map<String, String> keysClaimed) {
+        if (null != mClearEvent) {
+            mClearEvent.mKeysClaimed = keysClaimed;
+        } else {
+            mKeysClaimed = keysClaimed;
+        }
+    }
+
+    /**
+     * @return the linked crypto error
+     */
+    public MXCryptoError getCryptoError() {
+        return mCryptoError;
+    }
+
+    /**
+     * Update the linked crypto error
+     * @param error the new crypto error.
+     */
+    public void setCryptoError(MXCryptoError error) {
+        mCryptoError = error;
+    }
+
+    /**
+     * Update the clear event
+     * @param aClearEvent the clean event.
+     */
+    public void setClearEvent(Event aClearEvent) {
+        mClearEvent = aClearEvent;
+    }
+
+    /**
+     * @return the clear event
+     */
+    public Event getClearEvent() {
+        return mClearEvent;
     }
 }

@@ -23,9 +23,16 @@ import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.google.gson.JsonObject;
+
 import org.matrix.androidsdk.call.MXCallsManager;
+import org.matrix.androidsdk.crypto.MXCrypto;
+import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.data.DataRetriever;
-import org.matrix.androidsdk.data.IMXStore;
+import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
+import org.matrix.androidsdk.data.store.IMXStore;
+import org.matrix.androidsdk.data.cryptostore.MXFileCryptoStore;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
@@ -39,26 +46,35 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.AccountDataRestClient;
 import org.matrix.androidsdk.rest.client.BingRulesRestClient;
 import org.matrix.androidsdk.rest.client.CallRestClient;
+import org.matrix.androidsdk.rest.client.CryptoRestClient;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
+import org.matrix.androidsdk.rest.client.LoginRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
+import org.matrix.androidsdk.rest.model.DeleteDeviceAuth;
+import org.matrix.androidsdk.rest.model.DeleteDeviceParams;
+import org.matrix.androidsdk.rest.model.DevicesListResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 import org.matrix.androidsdk.sync.DefaultEventsThreadListener;
 import org.matrix.androidsdk.sync.EventsThread;
 import org.matrix.androidsdk.sync.EventsThreadListener;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.ContentManager;
+import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.UnsentEventsManager;
+import org.matrix.olm.OlmManager;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -91,6 +107,8 @@ public class MXSession {
     private ThirdPidRestClient mThirdPidRestClient;
     private CallRestClient mCallRestClient;
     private AccountDataRestClient mAccountDataRestClient;
+    private CryptoRestClient mCryptoRestClient;
+    private LoginRestClient mLoginRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -118,29 +136,32 @@ public class MXSession {
     // so, mEventsThread.start might be not ready
     private boolean mIsCatchupPending = false;
 
-    // regex pattern to test if a string is a valid matrix user id.
-    public static final Pattern PATTERN_MATRIX_USER_IDENTIFIER =  Pattern.compile("^@[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}$", Pattern.CASE_INSENSITIVE);
-
-    // regex pattern to test if a string is a valid room alias.
-    public static final Pattern PATTERN_MATRIX_ALIAS =  Pattern.compile("^#[A-Z0-9._%+-]+:[A-Z0-9.-]+\\.[A-Z]{2,}$", Pattern.CASE_INSENSITIVE);
-
-    // regex pattern to test if a string is a valid room id.
-    public static final Pattern PATTERN_MATRIX_ROOM_IDENTIFIER =  Pattern.compile("^![A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}$", Pattern.CASE_INSENSITIVE);
-
-    // regex pattern to test if a string is a valid message id.
-    public static final Pattern PATTERN_MATRIX_MESSAGE_IDENTIFIER =  Pattern.compile("^\\$[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}$", Pattern.CASE_INSENSITIVE);
+    // load the crypto libs.
+    public static OlmManager mOlmManager = new OlmManager(android.os.Build.VERSION.SDK_INT < 23);
 
     // regex pattern to find matrix user ids in a string.
-    public static final Pattern PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER =  Pattern.compile("@[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}", Pattern.CASE_INSENSITIVE);
+    public static final String MATRIX_USER_IDENTIFIER_REGEX = "@[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}";
+    public static final Pattern PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER =  Pattern.compile(MATRIX_USER_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
 
     // regex pattern to find room aliases in a string.
-    public static final Pattern PATTERN_CONTAIN_MATRIX_ALIAS =  Pattern.compile("#[A-Z0-9._%+-]+:[A-Z0-9.-]+\\.[A-Z]{2,}", Pattern.CASE_INSENSITIVE);
+    public static final String MATRIX_ROOM_ALIAS_REGEX = "#[A-Z0-9._%+-\\\\#]+:[A-Z0-9.-]+\\.[A-Z]{2,}";
+    public static final Pattern PATTERN_CONTAIN_MATRIX_ALIAS =  Pattern.compile(MATRIX_ROOM_ALIAS_REGEX, Pattern.CASE_INSENSITIVE);
 
     // regex pattern to find room ids in a string.
-    public static final Pattern PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER =  Pattern.compile("![A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}", Pattern.CASE_INSENSITIVE);
+    public static final String MATRIX_ROOM_IDENTIFIER_REGEX = "![A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}";
+    public static final Pattern PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER =  Pattern.compile(MATRIX_ROOM_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
 
     // regex pattern to find message ids in a string.
-    public static final Pattern PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER =  Pattern.compile("\\$[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}", Pattern.CASE_INSENSITIVE);
+    public static final String MATRIX_MESSAGE_IDENTIFIER_REGEX = "\\$[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}";
+    public static final Pattern PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER =  Pattern.compile(MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
+
+    // regex pattern to find permalink with message id.
+    // Android does not support in URL so extract it.
+    public static final Pattern PATTERN_CONTAIN_MATRIX_TO_PERMALINK_ROOM_ID =  Pattern.compile("https:\\/\\/matrix\\.to\\/#\\/"+ MATRIX_ROOM_IDENTIFIER_REGEX  +"\\/" + MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
+    public static final Pattern PATTERN_CONTAIN_MATRIX_TO_PERMALINK_ROOM_ALIAS =  Pattern.compile("https:\\/\\/matrix\\.to\\/#\\/"+ MATRIX_ROOM_ALIAS_REGEX  +"\\/" + MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
+
+    public static final Pattern PATTERN_CONTAIN_APP_LINK_PERMALINK_ROOM_ID =  Pattern.compile("https:\\/\\/[A-Z0-9.-]+\\.[A-Z]{2,}\\/[A-Z]{3,}\\/#\\/room\\/"+ MATRIX_ROOM_IDENTIFIER_REGEX  +"\\/" + MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
+    public static final Pattern PATTERN_CONTAIN_APP_LINK_PERMALINK_ROOM_ALIAS =  Pattern.compile("https:\\/\\/[A-Z0-9.-]+\\.[A-Z]{2,}\\/[A-Z]{3,}\\/#\\/room\\/"+ MATRIX_ROOM_ALIAS_REGEX  +"\\/" + MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
 
     /**
      * Create a basic session for direct API calls.
@@ -160,6 +181,8 @@ public class MXSession {
         mThirdPidRestClient = new ThirdPidRestClient(hsConfig);
         mCallRestClient = new CallRestClient(hsConfig);
         mAccountDataRestClient = new AccountDataRestClient(hsConfig);
+        mCryptoRestClient = new CryptoRestClient(hsConfig);
+        mLoginRestClient = new LoginRestClient(hsConfig);
     }
 
     /**
@@ -172,6 +195,40 @@ public class MXSession {
     public MXSession(HomeserverConnectionConfig hsConfig, MXDataHandler dataHandler, Context appContext) {
         this(hsConfig);
         mDataHandler = dataHandler;
+
+        mDataHandler.getStore().addMXStoreListener(new IMXStore.MXStoreListener() {
+            @Override
+            public void postProcess(String accountId) {
+                MXFileCryptoStore store = new MXFileCryptoStore();
+                store.initWithCredentials(mAppContent, mCredentials);
+
+                if (store.hasData() || mEnableCryptoWhenStartingMXSession) {
+                    // open the store
+                    store.open();
+
+                    // enable
+                    mCrypto = new MXCrypto(MXSession.this, store);
+                    mDataHandler.setCrypto(mCrypto);
+
+                    // the room summaries are not stored with decrypted content
+                    decryptRoomSummaries();
+                }
+            }
+
+            @Override
+            public void onStoreReady(String accountId) {
+            }
+
+            @Override
+            public void onStoreCorrupted(String accountId, String description) {
+
+            }
+
+            @Override
+            public void onStoreOOM(String accountId, String description) {
+
+            }
+        });
 
         // Initialize a data retriever with rest clients
         mDataRetriever = new DataRetriever();
@@ -187,7 +244,7 @@ public class MXSession {
 
         mNetworkConnectivityReceiver = new NetworkConnectivityReceiver();
         mNetworkConnectivityReceiver.checkNetworkConnection(appContext);
-
+        mDataHandler.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
         mAppContent.registerReceiver(mNetworkConnectivityReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
 
         mBingRulesManager = new BingRulesManager(this, mNetworkConnectivityReceiver);
@@ -211,6 +268,8 @@ public class MXSession {
         mThirdPidRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mCallRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mAccountDataRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mCryptoRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mLoginRestClient.setUnsentEventsManager(mUnsentEventsManager);
 
         // return the default cache manager
         mLatestChatMessageCache = new MXLatestChatMessageCache(mCredentials.userId);
@@ -246,6 +305,17 @@ public class MXSession {
             }
         }
         return versionName;
+    }
+
+    /**
+     * @return the crypto lib version
+     */
+    public String getCryptoVersion() {
+        if (null != mOlmManager) {
+            return mOlmManager.getOlmLibVersion();
+        }
+
+        return "";
     }
 
     /**
@@ -368,6 +438,11 @@ public class MXSession {
         return mPushersRestClient;
     }
 
+    public CryptoRestClient getCryptoRestClient() {
+        checkIfAlive();
+        return mCryptoRestClient;
+    }
+
     public HomeserverConnectionConfig getHomeserverConfig() {
         checkIfAlive();
         return mHsConfig;
@@ -438,6 +513,10 @@ public class MXSession {
 
         mLatestChatMessageCache.clearCache(context);
         mMediasCache.clear();
+
+        if (null != mCrypto) {
+            mCrypto.close();
+        }
     }
 
     /**
@@ -628,7 +707,7 @@ public class MXSession {
     }
 
     /**
-     * Shorthand for {@link #startEventStream(org.matrix.androidsdk.sync.EventsThreadListener)} with no eventListener
+     * Shorthand for {@link #startEventStream(EventsThreadListener, NetworkConnectivityReceiver, String)} with no eventListener
      * using a DataHandler and no specific failure callback.
      *
      * @param initialToken the initial sync token (null to sync from scratch).
@@ -672,6 +751,10 @@ public class MXSession {
         } else {
             Log.e(LOG_TAG, "pauseEventStream : mEventsThread is null");
         }
+
+        if (null != mCrypto) {
+            mCrypto.pause();
+        }
     }
 
     /**
@@ -695,6 +778,10 @@ public class MXSession {
             mEventsThread.unpause();
         } else {
             Log.e(LOG_TAG, "resumeEventStream : mEventsThread is null");
+        }
+
+        if (null != mCrypto) {
+            mCrypto.resume();
         }
     }
 
@@ -856,7 +943,37 @@ public class MXSession {
             mDataRetriever.getRoomsRestClient().joinRoom(roomIdOrAlias, new SimpleApiCallback<RoomResponse>(callback) {
                 @Override
                 public void onSuccess(final RoomResponse roomResponse) {
-                    callback.onSuccess(roomResponse.roomId);
+                    final String roomId = roomResponse.roomId;
+                    Room joinedRoom = mDataHandler.getRoom(roomId);
+                    RoomMember member = joinedRoom.getState().getMember(mCredentials.userId);
+                    String state = (null != member) ? member.membership : null;
+
+                    // wait until the initial sync is done
+                    if ((state == null) || TextUtils.equals(state, RoomMember.MEMBERSHIP_INVITE)) {
+                        joinedRoom.setOnInitialSyncCallback(new ApiCallback<Void>() {
+                            @Override
+                            public void onSuccess(Void info) {
+                                callback.onSuccess(roomId);
+                            }
+
+                            @Override
+                            public void onNetworkError(Exception e) {
+                                callback.onNetworkError(e);
+                            }
+
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                                callback.onMatrixError(e);
+                            }
+
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+                                callback.onUnexpectedError(e);
+                            }
+                        });
+                    } else {
+                        callback.onSuccess(roomId);
+                    }
                 }
             });
         }
@@ -901,7 +1018,7 @@ public class MXSession {
     public void searchMessageText(String text, List<String> rooms, int beforeLimit, int afterLimit, String nextBatch, final ApiCallback<SearchResponse> callback) {
         checkIfAlive();
         if (null != callback) {
-            mEventsRestClient.searchMessageText(text, rooms, beforeLimit, afterLimit, nextBatch, callback);
+            mEventsRestClient.searchMessagesByText(text, rooms, beforeLimit, afterLimit, nextBatch, callback);
         }
     }
 
@@ -913,10 +1030,10 @@ public class MXSession {
      * @param nextBatch the token to pass for doing pagination from a previous response.
      * @param callback  the request callback
      */
-    public void searchMessageText(String text, List<String> rooms, String nextBatch, final ApiCallback<SearchResponse> callback) {
+    public void searchMessagesByText(String text, List<String> rooms, String nextBatch, final ApiCallback<SearchResponse> callback) {
         checkIfAlive();
         if (null != callback) {
-            mEventsRestClient.searchMessageText(text, rooms, 0, 0, nextBatch, callback);
+            mEventsRestClient.searchMessagesByText(text, rooms, 0, 0, nextBatch, callback);
         }
     }
 
@@ -927,19 +1044,19 @@ public class MXSession {
      * @param nextBatch the token to pass for doing pagination from a previous response.
      * @param callback  the request callback
      */
-    public void searchMessageText(String text, String nextBatch, final ApiCallback<SearchResponse> callback) {
+    public void searchMessagesByText(String text, String nextBatch, final ApiCallback<SearchResponse> callback) {
         checkIfAlive();
         if (null != callback) {
-            mEventsRestClient.searchMessageText(text, null, 0, 0, nextBatch, callback);
+            mEventsRestClient.searchMessagesByText(text, null, 0, 0, nextBatch, callback);
         }
     }
 
     /**
      * Cancel any pending search request
      */
-    public void cancelSearchMessageText() {
+    public void cancelSearchMessagesByText() {
         checkIfAlive();
-        mEventsRestClient.cancelSearchMessageText();
+        mEventsRestClient.cancelSearchMessagesByText();
     }
 
     /**
@@ -947,24 +1064,23 @@ public class MXSession {
      *
      * @param name         the text to search for.
      * @param rooms        a list of rooms to search in. nil means all rooms the user is in.
-     * @param messageTypes a list of media types to search (m.image, m.video..).
      * @param nextBatch    the token to pass for doing pagination from a previous response.
      * @param callback     the request callback
      */
-    public void searchMediaName(String name, List<String> rooms, List<String> messageTypes, String nextBatch, final ApiCallback<SearchResponse> callback) {
+    public void searchMediasByName(String name, List<String> rooms, String nextBatch, final ApiCallback<SearchResponse> callback) {
         checkIfAlive();
 
         if (null != callback) {
-            mEventsRestClient.searchMediaName(name, rooms, messageTypes, 0, 0, nextBatch, callback);
+            mEventsRestClient.searchMediasByText(name, rooms, 0, 0, nextBatch, callback);
         }
     }
 
     /**
      * Cancel any pending file search request
      */
-    public void cancelSearchMediaName() {
+    public void cancelSearchMediasByText() {
         checkIfAlive();
-        mEventsRestClient.cancelSearchMediaName();
+        mEventsRestClient.cancelSearchMediasByText();
     }
 
     /**
@@ -997,7 +1113,7 @@ public class MXSession {
      * @return the rooms list.
      */
     public List<Room> roomsWithTag(final String tag) {
-        ArrayList<Room> taggedRooms = new ArrayList<Room>();
+        ArrayList<Room> taggedRooms = new ArrayList<>();
 
         if (!TextUtils.equals(tag, RoomTag.ROOM_TAG_NO_TAG)) {
             Collection<Room> rooms = mDataHandler.getStore().getRooms();
@@ -1067,7 +1183,7 @@ public class MXSession {
     public List<String> roomIdsWithTag(final String tag) {
         List<Room> roomsWithTag = roomsWithTag(tag);
 
-        ArrayList<String> roomIdsList = new ArrayList<String>();
+        ArrayList<String> roomIdsList = new ArrayList<>();
 
         for (Room room : roomsWithTag) {
             roomIdsList.add(room.getRoomId());
@@ -1130,6 +1246,210 @@ public class MXSession {
     }
 
     /**
+     * @return the direct chat room ids list
+     */
+    public List<String> getDirectChatRoomIdsList() {
+        IMXStore store = getDataHandler().getStore();
+        ArrayList<String> directChatRoomIdsList = new ArrayList<>();
+        Collection<List<String>> listOfList = null;
+
+        if (null != store.getDirectChatRoomsDict()) {
+            listOfList = store.getDirectChatRoomsDict().values();
+        }
+
+        // if the direct messages entry has been defined
+        if (null != listOfList) {
+            for (List<String> list : listOfList) {
+                for (String roomId : list) {
+                    // test if the room is defined once and exists
+                    if ((directChatRoomIdsList.indexOf(roomId) < 0) && (null != store.getRoom(roomId))) {
+                        directChatRoomIdsList.add(roomId);
+                    }
+                }
+            }
+        } else {
+            // background compatibility heuristic (named looksLikeDirectMessageRoom in the JS)
+            ArrayList<Room> rooms = new ArrayList<>(store.getRooms());
+
+            for (Room r : rooms) {
+                // Show 1:1 chats in separate "Direct Messages" section as long as they haven't
+                // been moved to a different tag section
+                if ((r.getMembers().size() == 2) && (null != r.getAccountData()) && (!r.getAccountData().hasTags())) {
+                    RoomMember roomMember = r.getMember(getMyUserId());
+
+                    if (null != roomMember) {
+                        String membership = roomMember.membership;
+
+                        if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_JOIN) ||
+                                TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN) ||
+                                TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE)) {
+                            directChatRoomIdsList.add(r.getRoomId());
+                        }
+                    }
+                }
+            }
+        }
+
+        return directChatRoomIdsList;
+    }
+
+    /**
+     * Return the list of the direct chat room IDs for the user given in parameter.<br>
+     * Based on the account_data map content, the entry associated with aSearchedUserId is returned.
+     * @param aSearchedUserId user ID
+     * @return the list of the direct chat room Id
+     */
+    public List<String> getDirectChatRoomIdsList(String aSearchedUserId) {
+        ArrayList<String> directChatRoomIdsList = new ArrayList<>();
+        IMXStore store = getDataHandler().getStore();
+        Room room;
+
+        HashMap<String, List<String>> params;
+
+        if(null != store.getDirectChatRoomsDict()) {
+            params = new HashMap<>(store.getDirectChatRoomsDict());
+            if (params.containsKey(aSearchedUserId)) {
+                directChatRoomIdsList = new ArrayList<>();
+
+                for(String roomId: params.get(aSearchedUserId)) {
+                    room = store.getRoom(roomId);
+                    if(null != room) { // skipp empty rooms
+                        directChatRoomIdsList.add(roomId);
+                    }
+                }
+            } else {
+                Log.w(LOG_TAG,"## getDirectChatRoomIdsList(): UserId "+aSearchedUserId+" has no entry in account_data");
+            }
+        } else {
+            Log.w(LOG_TAG,"## getDirectChatRoomIdsList(): failure - getDirectChatRoomsDict()=null");
+        }
+
+        return directChatRoomIdsList;
+    }
+
+    /**
+     * Toggles the direct chat status of a room.<br>
+     * Create a new direct chat room in the account data section if the room does not exist,
+     * otherwise the room is removed from the account data section.
+     * Direct chat room user ID choice algorithm:<br>
+     * 1- oldest joined room member
+     * 2- oldest invited room member
+     * 3- the user himself
+     * @param roomId the room roomId
+     * @param callback the asynchronous callback
+     */
+    public void toggleDirectChatRoom(String roomId, String aParticipantUserId, ApiCallback<Void> callback) {
+        IMXStore store = getDataHandler().getStore();
+        Room room = store.getRoom(roomId);
+
+        if (null != room) {
+            HashMap<String, List<String>> params;
+
+            if (null != store.getDirectChatRoomsDict()) {
+                params = new HashMap<>(store.getDirectChatRoomsDict());
+            } else {
+                params = new HashMap<>();
+            }
+
+            // if the room was not yet seen as direct chat
+            if (getDirectChatRoomIdsList().indexOf(roomId) < 0) {
+                ArrayList<String> roomIdsList = new ArrayList<>();
+                RoomMember directChatMember = null;
+                String chosenUserId;
+
+                if(null == aParticipantUserId) {
+                    ArrayList<RoomMember> members = new ArrayList<>(room.getActiveMembers());
+
+                    if(members.size()>1) {
+                        // sort algo: oldest join first, then oldest invited
+                        Collections.sort(members, new Comparator<RoomMember>() {
+                            @Override
+                            public int compare(RoomMember r1, RoomMember r2) {
+                                int res;
+                                long diff;
+
+                                if (RoomMember.MEMBERSHIP_JOIN.equals(r2.membership) && RoomMember.MEMBERSHIP_INVITE.equals(r1.membership)) {
+                                    res = 1;
+                                } else if (r2.membership.equals(r1.membership)) {
+                                    diff = r1.getOriginServerTs() - r2.getOriginServerTs();
+                                    res = (0 == diff) ? 0 : ((diff > 0) ? 1 : -1);
+                                } else {
+                                    res = -1;
+                                }
+                                return res;
+                            }
+                        });
+
+                        int nextIndexSearch = 0;
+
+                        // take the oldest join member
+                        if (!TextUtils.equals(members.get(0).getUserId(), getMyUserId())) {
+                            if (RoomMember.MEMBERSHIP_JOIN.equals(members.get(0).membership)) {
+                                directChatMember = members.get(0);
+                            }
+                        } else {
+                            nextIndexSearch = 1;
+                            if (RoomMember.MEMBERSHIP_JOIN.equals(members.get(1).membership)) {
+                                directChatMember = members.get(1);
+                            }
+                        }
+
+                        // no join member found, test the oldest join member
+                        if (null == directChatMember) {
+                            if (RoomMember.MEMBERSHIP_INVITE.equals(members.get(nextIndexSearch).membership)) {
+                                directChatMember = members.get(nextIndexSearch);
+                            }
+                        }
+                    }
+
+                    // last option: get the logged user
+                    if (null == directChatMember) {
+                        directChatMember = members.get(0);
+                    }
+
+                    chosenUserId = directChatMember.getUserId();
+                } else {
+                    chosenUserId = aParticipantUserId;
+                }
+
+                // search if there is an entry with the same user
+                if (params.containsKey(chosenUserId)) {
+                    roomIdsList = new ArrayList<>(params.get(chosenUserId));
+                }
+
+                roomIdsList.add(roomId); // update room list with the new room
+                params.put(chosenUserId, roomIdsList);
+            } else {
+                // remove the current room from the direct chat list rooms
+                if (null != store.getDirectChatRoomsDict()) {
+                    Collection<List<String>> listOfList = store.getDirectChatRoomsDict().values();
+
+                    for (List<String> list : listOfList) {
+                        if (list.contains(roomId)) {
+                            list.remove(roomId);
+                        }
+                    }
+                } else {
+                    // should not happen: if the room has to be removed, it means the room has been
+                    //  previously detected as being part of the listOfList
+                    Log.e(LOG_TAG, "## toggleDirectChatRoom(): failed to remove a direct chat room (not seen as direct chat room)");
+                    return;
+                }
+            }
+
+            HashMap<String, Object> requestParams = new HashMap<>();
+            Collection<String> userIds = params.keySet();
+
+            for(String userId : userIds) {
+                requestParams.put(userId, params.get(userId));
+            }
+
+            mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, requestParams, callback);
+        }
+    }
+
+
+    /**
      * Update the account password
      *
      * @param oldPassword the former account password
@@ -1157,13 +1477,13 @@ public class MXSession {
      * @param callback the callback
      */
     private void updateUsers(ArrayList<String> userIds, ApiCallback<Void> callback) {
-        HashMap<String, Object> ignoredUsersDict = new HashMap<String, Object>();
+        HashMap<String, Object> ignoredUsersDict = new HashMap<>();
 
         for (String userId : userIds) {
             ignoredUsersDict.put(userId, new ArrayList<>());
         }
 
-        HashMap<String, Object> params = new HashMap<String, Object>();
+        HashMap<String, Object> params = new HashMap<>();
         params.put(AccountDataRestClient.ACCOUNT_DATA_KEY_IGNORED_USERS, ignoredUsersDict);
 
         mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_IGNORED_USER_LIST,  params, callback);
@@ -1189,7 +1509,7 @@ public class MXSession {
      */
     public void ignoreUsers(ArrayList<String> userIds, ApiCallback<Void> callback) {
         List<String> curUserIdsToIgnore = getDataHandler().getIgnoredUserIds();
-        ArrayList<String> userIdsToIgnore = new ArrayList<String>(getDataHandler().getIgnoredUserIds());
+        ArrayList<String> userIdsToIgnore = new ArrayList<>(getDataHandler().getIgnoredUserIds());
 
         // something to add
         if ((null !=  userIds) && (userIds.size() > 0)) {
@@ -1214,7 +1534,7 @@ public class MXSession {
      */
     public void unIgnoreUsers(ArrayList<String> userIds, ApiCallback<Void> callback) {
         List<String> curUserIdsToIgnore = getDataHandler().getIgnoredUserIds();
-        ArrayList<String> userIdsToIgnore = new ArrayList<String>(getDataHandler().getIgnoredUserIds());
+        ArrayList<String> userIdsToIgnore = new ArrayList<>(getDataHandler().getIgnoredUserIds());
 
         // something to add
         if ((null != userIds) && (userIds.size() > 0)) {
@@ -1235,5 +1555,240 @@ public class MXSession {
      */
     public NetworkConnectivityReceiver getNetworkConnectivityReceiver() {
         return mNetworkConnectivityReceiver;
+    }
+
+    /**
+     * Invalidate the access token, so that it can no longer be used for authorization.
+     * @param context the application context
+     * @param callback the callback success and failure callback
+     */
+    public void logout(final Context context, final ApiCallback<Void> callback) {
+        // Clear crypto data
+        // For security and because it will be no more useful as we will get a new device id
+        // on the next log in
+        enableCrypto(false, null);
+
+        mLoginRestClient.logout(new ApiCallback<JsonObject>() {
+            @Override
+            public void onSuccess(JsonObject info) {
+                clear(context);
+                if (null != callback) {
+                    callback.onSuccess(null);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                clear(context);
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                clear(context);
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                clear(context);
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        });
+    }
+
+    //==============================================================================================================
+    // Crypto
+    //==============================================================================================================
+
+    /**
+     * The module that manages E2E encryption.
+     * Null if the feature is not enabled
+     */
+    private MXCrypto mCrypto;
+
+    /**
+     * @return the crypto instance
+     */
+    public MXCrypto getCrypto() {
+        return mCrypto;
+    }
+
+    /**
+     * @return true if the crypto is enabled
+     */
+    public boolean isCryptoEnabled() {
+        return null != mCrypto;
+    }
+
+    /**
+     * enable encryption by default when launching the session
+     */
+    private boolean mEnableCryptoWhenStartingMXSession = false;
+
+    /**
+     * Enable the crypto when initializing a new session.
+     */
+    public void enableCryptoWhenStarting() {
+        mEnableCryptoWhenStartingMXSession = true;
+    }
+
+    /**
+     * When the encryption is toogled, the room summaries must be updated
+     * to display the right messages.
+     */
+    private void decryptRoomSummaries() {
+        Collection<RoomSummary> summaries = getDataHandler().getStore().getSummaries();
+
+        for(RoomSummary summary :summaries) {
+            mDataHandler.decryptEvent(summary.getLatestReceivedEvent());
+        }
+    }
+
+    /**
+     * Enable / disable the crypto
+     * @param cryptoEnabled true to enable the crypto
+     */
+    public void enableCrypto(boolean cryptoEnabled, final ApiCallback<Void> callback) {
+        if (cryptoEnabled != isCryptoEnabled()) {
+            if (cryptoEnabled) {
+                Log.d(LOG_TAG, "Crypto is enabled");
+                MXFileCryptoStore fileCryptoStore = new MXFileCryptoStore();
+                fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
+                fileCryptoStore.open();
+                mCrypto = new MXCrypto(this, fileCryptoStore);
+                mCrypto.start(new ApiCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void info) {
+                        decryptRoomSummaries();
+                        if (null != callback) {
+                            callback.onSuccess(null);
+                        }
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        if (null != callback) {
+                            callback.onNetworkError(e);
+                        }
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        if (null != callback) {
+                            callback.onMatrixError(e);
+                        }
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        if (null != callback) {
+                            callback.onUnexpectedError(e);
+                        }
+                    }
+                });
+            } else if (null != mCrypto) {
+                Log.d(LOG_TAG, "Crypto is disabled");
+                IMXCryptoStore store = mCrypto.mCryptoStore;
+                mCrypto.close();
+                store.deleteStore();
+                mCrypto = null;
+                mDataHandler.setCrypto(null);
+
+                decryptRoomSummaries();
+
+                if (null != callback) {
+                    callback.onSuccess(null);
+                }
+            }
+
+            mDataHandler.setCrypto(mCrypto);
+        } else {
+            if (null != callback) {
+                callback.onSuccess(null);
+            }
+        }
+    }
+
+    /**
+     * Retrieves the devices list
+     * @param callback the asynchronous callback
+     */
+    public void getDevicesList(ApiCallback<DevicesListResponse> callback) {
+        mCryptoRestClient.getDevices(callback);
+    }
+
+    /**
+     * Delete a device
+     * @param deviceId the device id
+     * @param session the session
+     * @param password the passwoerd
+     * @param callback the asynchronous callback.
+     */
+    public void deleteDevice(final String deviceId, final String password, final ApiCallback<Void> callback) {
+        DeleteDeviceParams dummyparams = new DeleteDeviceParams();
+
+        mCryptoRestClient.deleteDevice(deviceId, dummyparams, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                // should never happen
+                if (null != callback) {
+                    callback.onSuccess(null);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError matrixError) {
+                Log.d(LOG_TAG, "## checkNameAvailability(): The registration continues");
+                RegistrationFlowResponse registrationFlowResponse = null;
+
+                // expected status code is 401
+                if ((null != matrixError.mStatus) && (matrixError.mStatus == 401)) {
+                    try {
+                        registrationFlowResponse = JsonUtils.toRegistrationFlowResponse(matrixError.mErrorBodyAsString);
+                    } catch (Exception castExcept) {
+                        Log.e(LOG_TAG, "## deleteDevice(): Received status 401 - Exception - JsonUtils.toRegistrationFlowResponse()");
+                    }
+                } else {
+                    Log.d(LOG_TAG, "## deleteDevice(): Received not expected status 401 ="+ matrixError.mStatus);
+                }
+
+                // check if the server response can be casted
+                if (null != registrationFlowResponse) {
+                    DeleteDeviceParams params = new DeleteDeviceParams();
+
+                    params.auth = new DeleteDeviceAuth();
+                    params.auth.session = registrationFlowResponse.session;
+                    params.auth.type = "m.login.password";
+                    params.auth.user = mCredentials.userId;
+                    params.auth.password = password;
+                    mCryptoRestClient.deleteDevice(deviceId, params, callback);
+                } else {
+                    if (null != callback) {
+                        callback.onMatrixError(matrixError);
+                    }
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+        });
     }
 }

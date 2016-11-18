@@ -19,10 +19,7 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.rest.model.login.LoginFlowResponse;
 import org.matrix.androidsdk.rest.model.login.LoginParams;
-import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 import org.matrix.androidsdk.rest.model.login.RegistrationParams;
-import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
-import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
 
 import retrofit.Callback;
 import retrofit.http.Body;
@@ -56,4 +53,11 @@ public interface LoginApi {
      */
     @POST("/login")
     void login(@Body LoginParams loginParams, Callback<JsonObject> callback);
+
+    /**
+     * Invalidate the access token, so that it can no longer be used for authorization.
+     * @param callback the asynchronous callback called with the response
+     */
+    @POST("/logout")
+    void logout(Callback<JsonObject> callback);
 }

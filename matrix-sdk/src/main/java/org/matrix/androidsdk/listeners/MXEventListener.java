@@ -59,6 +59,10 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
+    public void onEventEncrypted(Event event) {
+    }
+
+    @Override
     public void onFailedSendingEvent(Event event) {
     }
 
@@ -104,5 +108,13 @@ public class MXEventListener implements IMXEventListener {
 
     @Override
     public void onIgnoredUsersListUpdate() {
+    }
+    
+    @Override
+    public void onToDeviceEvent(Event event) {
+    }
+
+    @Override
+    public void onDirectMessageChatRoomsListUpdate() {
     }
 }

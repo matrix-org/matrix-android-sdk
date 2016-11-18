@@ -20,7 +20,6 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.JsonObject;
-import com.google.gson.internal.ObjectConstructor;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
@@ -617,6 +616,28 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     }
 
     /**
+     * Send a state events.
+     * @param roomId the dedicated room id
+     * @param eventType the event type
+     * @param params the put parameters
+     * @param callback the asynchronous callback
+     */
+    public void sendStateEvent(final String roomId, final String eventType, final Map<String, Object> params, final ApiCallback<Void> callback) {
+        final String description = "sendStateEvent : roomId " + roomId + " - eventType "+ eventType;
+
+        mApi.sendStateEvent(roomId, eventType, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    sendStateEvent(roomId, eventType, params, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend sendStateEvent failed " + e.getLocalizedMessage());
+                }
+            }
+        }));
+    }
+
+    /**
      * send typing notification
      * @param roomId the room id
      * @param userId the user id
@@ -673,7 +694,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         // empty body by now
         JsonObject content = new JsonObject();
 
-        mApi.sendReadReceipt(roomId, eventId, content, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.sendReadReceipt(roomId, eventId, content, new RestAdapterCallback<Void>(description, mUnsentEventsManager, true, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {

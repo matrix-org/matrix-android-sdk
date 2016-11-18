@@ -77,8 +77,13 @@ public class ThreePid {
      * @param aMedium the address medium
      */
     public ThreePid(String anAddress, String aMedium) {
-        address = anAddress;
         medium = aMedium;
+        address = anAddress;
+
+        if (TextUtils.equals(MEDIUM_EMAIL, medium) && !TextUtils.isEmpty(anAddress)) {
+            address = address.toLowerCase();
+        }
+
         clientSecret =  UUID.randomUUID().toString();
     }
 

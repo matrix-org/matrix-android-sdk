@@ -15,6 +15,9 @@
  */
 package org.matrix.androidsdk.rest.client;
 
+import android.os.Build;
+import android.text.TextUtils;
+
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
@@ -45,6 +48,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
     public static final String LOGIN_FLOW_TYPE_EMAIL_URL = "m.login.email.url";
     public static final String LOGIN_FLOW_TYPE_EMAIL_IDENTITY = "m.login.email.identity";
     public static final String LOGIN_FLOW_TYPE_EMAIL_RECAPTCHA = "m.login.recaptcha";
+    public static final String LOGIN_FLOW_TYPE_DUMMY = "m.login.dummy";
 
     /**
      * Public constructor.
@@ -72,6 +76,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
         ) {
             @Override
             public void success(LoginFlowResponse loginFlowResponse, Response response) {
+                onEventSent();
                 callback.onSuccess(loginFlowResponse.flows);
             }
         });
@@ -85,6 +90,11 @@ public class LoginRestClient extends RestClient<LoginApi> {
     public void register(final RegistrationParams params, final ApiCallback<Credentials> callback) {
         final String description = "register";
 
+        // define a default device name
+        if (TextUtils.isEmpty(params.initial_device_display_name)) {
+            params.initial_device_display_name = Build.MODEL.trim();
+        }
+
         mApi.register(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
@@ -95,6 +105,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
         ) {
             @Override
             public void success(JsonObject jsonObject, Response response) {
+                onEventSent();
                 mCredentials = gson.fromJson(jsonObject, Credentials.class);
                 callback.onSuccess(mCredentials);
             }
@@ -114,13 +125,14 @@ public class LoginRestClient extends RestClient<LoginApi> {
         params.type = "m.login.password";
         
         if (android.util.Patterns.EMAIL_ADDRESS.matcher(user).matches()) {
-            params.address = user;
+            params.address = user.toLowerCase();
             params.medium = "email";
         } else {
             params.user = user;
         }
 
         params.password = password;
+        params.initial_device_display_name = Build.MODEL.trim();
 
         mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
 
@@ -134,6 +146,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
                 ) {
             @Override
             public void success(JsonObject jsonObject, Response response) {
+                onEventSent();
                 mCredentials = gson.fromJson(jsonObject, Credentials.class);
                 callback.onSuccess(mCredentials);
             }
@@ -166,6 +179,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
         params.user = user;
         params.token = token;
         params.txn_id = txn_id;
+        params.initial_device_display_name = Build.MODEL.trim();
 
         mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
 
@@ -179,11 +193,29 @@ public class LoginRestClient extends RestClient<LoginApi> {
         ) {
             @Override
             public void success(JsonObject jsonObject, Response response) {
+                onEventSent();
                 mCredentials = gson.fromJson(jsonObject, Credentials.class);
                 callback.onSuccess(mCredentials);
             }
         });
     }
 
+    /**
+     * Invalidate the access token, so that it can no longer be used for authorization.
+     * @param callback the callback success and failure callback
+     */
+    public void logout(final ApiCallback<JsonObject> callback) {
+        // privacy
+        final String description = "logout user";
+
+        mApi.logout(new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        logout(callback);
+                    }
+                }
+        ));
+    }
 
 }

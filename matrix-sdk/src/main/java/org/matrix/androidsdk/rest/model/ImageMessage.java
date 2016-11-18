@@ -17,21 +17,28 @@ package org.matrix.androidsdk.rest.model;
 
 import android.media.ExifInterface;
 import android.net.Uri;
+import android.util.Log;
 
 import java.io.File;
 
 public class ImageMessage extends Message {
+    private static final String LOG_TAG = "ImageMessage";
+
     public ImageInfo info;
     public ImageInfo thumbnailInfo;
     public String url;
     public String thumbnailUrl;
+
+    // encrypted medias
+    // url and thumbnailUrl are replaced by their dedicated file
+    public EncryptedFileInfo file;
 
     public ImageMessage() {
         msgtype = MSGTYPE_IMAGE;
     }
 
     /**
-     * Make a deep copy of this VideoMessage.
+     * Make a deep copy of this ImageMessage.
      * @return the copy
      */
     public ImageMessage deepCopy() {
@@ -49,9 +56,38 @@ public class ImageMessage extends Message {
             copy.thumbnailInfo = thumbnailInfo.deepCopy();
         }
 
+        if (null != file) {
+            copy.file = file.deepCopy();
+        }
+
         return copy;
     }
 
+    /**
+     * @return the media URL
+     */
+    public String getUrl() {
+        if (null != url) {
+            return url;
+        } else if (null != file) {
+            return file.url;
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * @return the thumbnail url
+     */
+    public String getThumbnailUrl() {
+        if (null != thumbnailUrl) {
+            return thumbnailUrl;
+        } else if ((null != info) && (null != info.thumbnail_file)) {
+            return info.thumbnail_file.url;
+        } else {
+            return null;
+        }
+    }
 
     public boolean isLocalContent() {
         return (null != url) && (url.startsWith("file://"));
@@ -61,7 +97,9 @@ public class ImageMessage extends Message {
      * @return The image mimetype. null is not defined.
      */
     public String getMimeType() {
-        if (null != info) {
+        if (null != file) {
+            return file.mimetype;
+        } else if (null != info) {
             return info.mimetype;
         } else {
             return null;
@@ -104,7 +142,7 @@ public class ImageMessage extends Message {
                     thumbnailUrl = null;
                 }
             } catch (Exception e) {
-
+                Log.e(LOG_TAG, "## checkMediaUrls() failed " + e.getMessage());
             }
         }
 
@@ -116,7 +154,7 @@ public class ImageMessage extends Message {
                     url = null;
                 }
             } catch (Exception e) {
-
+                Log.e(LOG_TAG, "## checkMediaUrls() failed " + e.getMessage());
             }
         }
     }

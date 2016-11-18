@@ -22,6 +22,11 @@ import java.util.Map;
 public class SyncResponse implements java.io.Serializable {
 
     /**
+     * The user private data.
+     */
+    public Map<String, Object> accountData;
+
+    /**
      * The opaque token for the end.
      */
     public String nextBatch;
@@ -31,13 +36,15 @@ public class SyncResponse implements java.io.Serializable {
      */
     public PresenceSyncResponse presence;
 
+    /*
+     * Data directly sent to one of user's devices.
+     */
+    public ToDeviceSyncResponse toDevice;
+
     /**
      * List of rooms.
      */
     public RoomsSyncResponse rooms;
 
-    /**
-     * The user private data.
-     */
-    public Map<String, Object> accountData;
+
 }

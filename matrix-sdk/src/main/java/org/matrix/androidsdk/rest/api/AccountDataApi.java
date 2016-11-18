@@ -15,7 +15,7 @@
  */
 package org.matrix.androidsdk.rest.api;
 
-import java.util.HashMap;
+import java.util.Map;
 
 import retrofit.Callback;
 import retrofit.http.Body;
@@ -30,5 +30,5 @@ public interface AccountDataApi {
      * @param callback the asynchronous callback called when finished
      */
     @PUT("/user/{userId}/account_data/{type}")
-    void setAccountData(@Path("userId") String userId, @Path("type") String type, @Body HashMap<String, Object> params, Callback<Void> callback);
+    void setAccountData(@Path("userId") String userId, @Path("type") String type, @Body Map<String, Object> params, Callback<Void> callback);
 }

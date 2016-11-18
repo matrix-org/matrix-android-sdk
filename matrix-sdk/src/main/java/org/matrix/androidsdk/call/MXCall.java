@@ -569,7 +569,7 @@ public class MXCall implements IMXCall {
 
                         private void commonFailure() {
                             // let try next candidate event
-                            if (TextUtils.equals(mPendingEvent.type, Event.EVENT_TYPE_CALL_CANDIDATES)) {
+                            if (TextUtils.equals(mPendingEvent.getType(), Event.EVENT_TYPE_CALL_CANDIDATES)) {
                                 mUIThreadHandler.post(new Runnable() {
                                     @Override
                                     public void run() {

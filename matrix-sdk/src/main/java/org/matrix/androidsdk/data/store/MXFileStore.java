@@ -14,16 +14,19 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.data;
+package org.matrix.androidsdk.data.store;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.HandlerThread;
-import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Log;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.data.EventTimeline;
+import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomAccountData;
+import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -31,6 +34,7 @@ import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.ContentUtils;
+import org.matrix.androidsdk.util.MXOsHandler;
 
 import java.io.EOFException;
 import java.io.File;
@@ -54,33 +58,27 @@ public class MXFileStore extends MXMemoryStore {
     private static final String LOG_TAG = "MXFileStore";
 
     // some constant values
-    private final int MXFILE_VERSION = 3;
+    private static final int MXFILE_VERSION = 3;
 
     // ensure that there is enough messages to fill a tablet screen
-    private final int MAX_STORED_MESSAGES_COUNT = 50;
+    private static final int MAX_STORED_MESSAGES_COUNT = 50;
 
-    private final String MXFILE_STORE_FOLDER = "MXFileStore";
-    private final String MXFILE_STORE_METADATA_FILE_NAME = "MXFileStore";
+    private static final String MXFILE_STORE_FOLDER = "MXFileStore";
+    private static final String MXFILE_STORE_METADATA_FILE_NAME = "MXFileStore";
 
-    private final String MXFILE_STORE_GZ_ROOMS_MESSAGES_FOLDER = "messages_gz";
-    private final String MXFILE_STORE_ROOMS_TOKENS_FOLDER = "tokens";
-    private final String MXFILE_STORE_GZ_ROOMS_STATE_FOLDER = "state_gz";
-    private final String MXFILE_STORE_ROOMS_SUMMARY_FOLDER = "summary";
-    private final String MXFILE_STORE_ROOMS_RECEIPT_FOLDER = "receipts";
-    private final String MXFILE_STORE_ROOMS_ACCOUNT_DATA_FOLDER = "accountData";
-    private final String MXFILE_STORE_USER_FOLDER = "users";
+    private static final String MXFILE_STORE_GZ_ROOMS_MESSAGES_FOLDER = "messages_gz";
+    private static final String MXFILE_STORE_ROOMS_TOKENS_FOLDER = "tokens";
+    private static final String MXFILE_STORE_GZ_ROOMS_STATE_FOLDER = "state_gz";
+    private static final String MXFILE_STORE_ROOMS_SUMMARY_FOLDER = "summary";
+    private static final String MXFILE_STORE_ROOMS_RECEIPT_FOLDER = "receipts";
+    private static final String MXFILE_STORE_ROOMS_ACCOUNT_DATA_FOLDER = "accountData";
+    private static final String MXFILE_STORE_USER_FOLDER = "users";
 
     // the data is read from the file system
     private boolean mIsReady = false;
 
-    private boolean mIsCorrupted = false;
-
     // the store is currently opening
     private boolean mIsOpening = false;
-
-    private MXStoreListener mListener = null;
-
-    private final String mPreferencesStatusKey;
 
     // List of rooms to save on [MXStore commit]
     // filled with roomId
@@ -106,7 +104,7 @@ public class MXFileStore extends MXMemoryStore {
 
     // the background thread
     private HandlerThread mHandlerThread = null;
-    private android.os.Handler mFileStoreHandler = null;
+    private MXOsHandler mFileStoreHandler = null;
 
     private boolean mIsKilled = false;
 
@@ -184,8 +182,6 @@ public class MXFileStore extends MXMemoryStore {
 
         mHandlerThread = new HandlerThread("MXFileStoreBackgroundThread_" + mCredentials.userId, Thread.MIN_PRIORITY);
 
-        mPreferencesStatusKey = "MXfileStore_saved_status_" + mCredentials.userId;
-
         createDirTree(mCredentials.userId);
 
         // updated data
@@ -211,7 +207,7 @@ public class MXFileStore extends MXMemoryStore {
             mIsNewStorage = true;
             mIsOpening = true;
             mHandlerThread.start();
-            mFileStoreHandler = new android.os.Handler(mHandlerThread.getLooper());
+            mFileStoreHandler = new MXOsHandler(mHandlerThread.getLooper());
 
             mMetadata = new MXFileStoreMetaData();
             mMetadata.mUserId = mCredentials.userId;
@@ -273,19 +269,9 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     /**
-     * Save the committing status
-     * @param status true if the store is saving data.
-     */
-    private void committing(boolean status) {
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(mContext);
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putBoolean(mPreferencesStatusKey, !status);
-        editor.commit();
-    }
-
-    /**
      * Open the store.
      */
+    @Override
     public void open() {
         super.open();
 
@@ -307,7 +293,7 @@ public class MXFileStore extends MXMemoryStore {
                         // already started
                         return;
                     }
-                    mFileStoreHandler = new android.os.Handler(mHandlerThread.getLooper());
+                    mFileStoreHandler = new MXOsHandler(mHandlerThread.getLooper());
                 }
 
                 Runnable r = new Runnable() {
@@ -317,11 +303,8 @@ public class MXFileStore extends MXMemoryStore {
                             public void run() {
                                 Log.e(LOG_TAG, "Open the store in the background thread.");
 
-                                // clear the preferences
-                                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(mContext);
-
                                 String errorDescription = null;
-                                boolean succeed = preferences.getBoolean(mPreferencesStatusKey, true);
+                                boolean succeed = true;
 
                                 if (!succeed) {
                                     errorDescription = "The latest save did not work properly";
@@ -448,17 +431,32 @@ public class MXFileStore extends MXMemoryStore {
                                 }
                                 mIsOpening = false;
 
-                                if (null != mListener) {
-                                    if (!succeed && !mIsNewStorage) {
-                                        Log.e(LOG_TAG, "The store is corrupted.");
-                                        mListener.onStoreCorrupted(mCredentials.userId, errorDescription);
-                                    } else {
-                                        Log.e(LOG_TAG, "The store is opened.");
-                                        mListener.onStoreReady(mCredentials.userId);
-                                    }
+                                // post processing
+                                Log.e(LOG_TAG, "Management post processing.");
+                                dispatchpostProcess(mCredentials.userId);
+
+                                if (!succeed && !mIsNewStorage) {
+                                    Log.e(LOG_TAG, "The store is corrupted.");
+                                    dispatchOnStoreCorrupted(mCredentials.userId, errorDescription);
+                                } else {
+                                    Log.e(LOG_TAG, "The store is opened.");
+                                    dispatchOnStoreReady(mCredentials.userId);
                                 }
                             }
                         });
+                    }
+                };
+
+                Thread t = new Thread(r);
+                t.start();
+            } else if (mIsReady) {
+                Runnable r = new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.e(LOG_TAG, "Management post processing.");
+                        dispatchpostProcess(mCredentials.userId);
+                        Log.e(LOG_TAG, "The store is opened.");
+                        dispatchOnStoreReady(mCredentials.userId);
                     }
                 };
 
@@ -541,9 +539,7 @@ public class MXFileStore extends MXMemoryStore {
      */
     @Override
     public boolean isCorrupted() {
-        synchronized (this) {
-            return mIsCorrupted;
-        }
+        return false;
     }
 
     /**
@@ -621,9 +617,16 @@ public class MXFileStore extends MXMemoryStore {
 
     @Override
     public void setIgnoredUserIdsList(List<String> users) {
-        Log.d(LOG_TAG, "Set setIgnoredUsers to " + users);
+        Log.d(LOG_TAG, "## setIgnoredUsers() : " + users);
         mMetaDataHasChanged = true;
         super.setIgnoredUserIdsList(users);
+    }
+
+    @Override
+    public void setDirectChatRoomsDict(Map<String, List<String>> directChatRoomsDict) {
+        Log.d(LOG_TAG, "## setDirectChatRoomsDict() : " + directChatRoomsDict);
+        mMetaDataHasChanged = true;
+        super.setDirectChatRoomsDict(directChatRoomsDict);
     }
 
     @Override
@@ -632,15 +635,6 @@ public class MXFileStore extends MXMemoryStore {
             mUserIdsToCommit.add(user.user_id);
         }
         super.storeUser(user);
-    }
-
-    /**
-     * Define a MXStore listener.
-     * @param listener the listener
-     */
-    @Override
-    public void setMXStoreListener(MXStoreListener listener) {
-        mListener = listener;
     }
 
     @Override
@@ -860,6 +854,8 @@ public class MXFileStore extends MXMemoryStore {
                                         out.writeObject(usersGroups.get(hashKey));
                                         out.close();
 
+                                    } catch (OutOfMemoryError oom) {
+                                        dispatchOOM(oom);
                                     } catch (Exception e) {
                                         Log.e(LOG_TAG, "saveUser failed " + e.getMessage());
                                     }
@@ -914,6 +910,8 @@ public class MXFileStore extends MXMemoryStore {
     //================================================================================
 
     private void saveRoomMessages(String roomId) {
+        createTmpFile(mGzStoreRoomsMessagesFolderFile, roomId);
+
         try {
             deleteRoomMessagesFiles(roomId);
 
@@ -986,6 +984,10 @@ public class MXFileStore extends MXMemoryStore {
 
                 Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") : " + eventsList.size() + " messages saved in " +  (System.currentTimeMillis() - t0) + " ms");
             }
+
+            deleteTmpFile(mGzStoreRoomsMessagesFolderFile, roomId);
+        } catch (OutOfMemoryError oom) {
+            dispatchOOM(oom);
         } catch (Exception e) {
             //Toast.makeText(mContext, "saveRoomsMessage  " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
             Log.e(LOG_TAG, "saveRoomsMessage failed ");
@@ -1008,7 +1010,6 @@ public class MXFileStore extends MXMemoryStore {
                     mFileStoreHandler.post(new Runnable() {
                         public void run() {
                             if (!isKilled()) {
-                                committing(true);
                                 long start = System.currentTimeMillis();
 
                                 for (String roomId : fRoomsToCommitForMessages) {
@@ -1016,7 +1017,6 @@ public class MXFileStore extends MXMemoryStore {
                                 }
 
                                 Log.d(LOG_TAG, "saveRoomsMessages : " + fRoomsToCommitForMessages.size() + " rooms in " + (System.currentTimeMillis() - start) + " ms");
-                                committing(false);
                             }
                         }
                     });
@@ -1039,6 +1039,11 @@ public class MXFileStore extends MXMemoryStore {
         LinkedHashMap<String, Event> events = null;
 
         try {
+            if (tmpFileExists(mGzStoreRoomsMessagesFolderFile, roomId)) {
+                Log.e(LOG_TAG, "## loadRoomMessages (): " + roomId + " is corrupted");
+                return false;
+            }
+
             File messagesListFile = new File(mGzStoreRoomsMessagesFolderFile, roomId);
 
             if (messagesListFile.exists()) {
@@ -1059,7 +1064,11 @@ public class MXFileStore extends MXMemoryStore {
                 // finalizes the deserialization
                 for (Event event : events.values()) {
                     // if a message was not sent, mark at as UNDELIVERABLE
-                    if ((event.mSentState == Event.SentState.UNDELIVERABLE) || (event.mSentState == Event.SentState.UNSENT) || (event.mSentState == Event.SentState.SENDING) || (event.mSentState == Event.SentState.WAITING_RETRY)) {
+                    if ((event.mSentState == Event.SentState.UNDELIVERABLE) ||
+                            (event.mSentState == Event.SentState.UNSENT) ||
+                            (event.mSentState == Event.SentState.SENDING) ||
+                            (event.mSentState == Event.SentState.WAITING_RETRY) ||
+                            (event.mSentState == Event.SentState.ENCRYPTING)) {
                         event.mSentState = Event.SentState.UNDELIVERABLE;
                         event.originServerTs = undeliverableTs++;
                         shouldSave = true;
@@ -1112,6 +1121,11 @@ public class MXFileStore extends MXMemoryStore {
             String token = null;
 
             try {
+                if (tmpFileExists(mStoreRoomsTokensFolderFile, roomId)) {
+                    Log.e(LOG_TAG, "## loadRoomToken (): " + roomId + " is corrupted");
+                    return false;
+                }
+
                 File messagesListFile = new File(mStoreRoomsTokensFolderFile, roomId);
 
                 FileInputStream fis = new FileInputStream(messagesListFile);
@@ -1222,6 +1236,8 @@ public class MXFileStore extends MXMemoryStore {
      * @param roomId the room id.
      */
     private void saveRoomState(String roomId) {
+        createTmpFile(mGzStoreRoomsStateFolderFile, roomId);
+
         try {
             deleteRoomStateFile(roomId);
 
@@ -1239,10 +1255,14 @@ public class MXFileStore extends MXMemoryStore {
                 Log.d(LOG_TAG, "saveRoomsState " + room.getState().getMembers().size() + " : " + (System.currentTimeMillis() - start1) + " ms");
             }
 
+            deleteTmpFile(mGzStoreRoomsStateFolderFile, roomId);
+        } catch (OutOfMemoryError oom) {
+            dispatchOOM(oom);
         } catch (Exception e) {
             // (mContext, "saveRoomsState failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
             Log.e(LOG_TAG, "saveRoomsState failed : " + e.getLocalizedMessage());
         }
+
     }
 
     /**
@@ -1260,8 +1280,6 @@ public class MXFileStore extends MXMemoryStore {
                     mFileStoreHandler.post(new Runnable() {
                         public void run() {
                             if (!isKilled()) {
-                                committing(true);
-
                                 long start = System.currentTimeMillis();
 
                                 for (String roomId : fRoomsToCommitForStates) {
@@ -1269,8 +1287,6 @@ public class MXFileStore extends MXMemoryStore {
                                 }
 
                                 Log.d(LOG_TAG, "saveRoomsState : " + fRoomsToCommitForStates.size() + " rooms in " + (System.currentTimeMillis() - start) + " ms");
-
-                                committing(false);
                             }
                         }
                     });
@@ -1297,6 +1313,11 @@ public class MXFileStore extends MXMemoryStore {
             RoomState liveState = null;
 
             try {
+                if (tmpFileExists(mGzStoreRoomsStateFolderFile, roomId)) {
+                    Log.e(LOG_TAG, "## loadRoomState (): " + roomId + " is corrupted");
+                    return false;
+                }
+
                 // the room state is not zipped
                 File messagesListFile = new File(mGzStoreRoomsStateFolderFile, roomId);
 
@@ -1307,7 +1328,6 @@ public class MXFileStore extends MXMemoryStore {
                     ObjectInputStream ois = new ObjectInputStream(gz);
                     liveState = (RoomState) ois.readObject();
                     ois.close();
-
                 }
             } catch (Exception e) {
                 succeed = false;
@@ -1396,12 +1416,12 @@ public class MXFileStore extends MXMemoryStore {
                     mFileStoreHandler.post(new Runnable() {
                         public void run() {
                             if (!isKilled()) {
-                                committing(true);
-
                                 long start = System.currentTimeMillis();
 
                                 for (String roomId : fRoomsToCommitForAccountData) {
                                     try {
+                                        createTmpFile(mStoreRoomsAccountDataFolderFile, roomId);
+
                                         deleteRoomAccountDataFile(roomId);
 
                                         RoomAccountData accountData = mRoomAccountData.get(roomId);
@@ -1414,6 +1434,9 @@ public class MXFileStore extends MXMemoryStore {
                                             out.close();
                                         }
 
+                                        deleteTmpFile(mStoreRoomsAccountDataFolderFile, roomId);
+                                    } catch (OutOfMemoryError oom) {
+                                        dispatchOOM(oom);
                                     } catch (Exception e) {
                                         //Toast.makeText(mContext, "saveRoomsAccountData failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                                         Log.e(LOG_TAG, "saveRoomsAccountData failed : " + e.getLocalizedMessage());
@@ -1421,8 +1444,6 @@ public class MXFileStore extends MXMemoryStore {
                                 }
 
                                 Log.d(LOG_TAG, "saveSummaries : " + fRoomsToCommitForAccountData.size() + " account data in " + (System.currentTimeMillis() - start) + " ms");
-
-                                committing(false);
                             }
                         }
                     });
@@ -1444,6 +1465,11 @@ public class MXFileStore extends MXMemoryStore {
         RoomAccountData roomAccountData = null;
 
         try {
+            if (tmpFileExists(mStoreRoomsAccountDataFolderFile, roomId)) {
+                Log.e(LOG_TAG, "## loadRoomAccountData (): " + roomId + " is corrupted");
+                return false;
+            }
+
             File accountDataFile = new File(mStoreRoomsAccountDataFolderFile, roomId);
 
             if (accountDataFile.exists()) {
@@ -1552,12 +1578,12 @@ public class MXFileStore extends MXMemoryStore {
                     mFileStoreHandler.post(new Runnable() {
                         public void run() {
                             if (!isKilled()) {
-                                committing(true);
-
                                 long start = System.currentTimeMillis();
 
                                 for (String roomId : fRoomsToCommitForSummaries) {
                                     try {
+                                        createTmpFile(mStoreRoomsSummaryFolderFile, roomId);
+
                                         deleteRoomSummaryFile(roomId);
 
                                         File roomSummaryFile = new File(mStoreRoomsSummaryFolderFile, roomId);
@@ -1573,6 +1599,10 @@ public class MXFileStore extends MXMemoryStore {
                                             out.close();
                                         }
 
+                                        deleteTmpFile(mStoreRoomsSummaryFolderFile, roomId);
+
+                                    } catch (OutOfMemoryError oom) {
+                                        dispatchOOM(oom);
                                     } catch (Exception e) {
                                         Log.e(LOG_TAG, "saveSummaries failed : " + e.getLocalizedMessage());
                                         // Toast.makeText(mContext, "saveSummaries failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
@@ -1580,8 +1610,6 @@ public class MXFileStore extends MXMemoryStore {
                                 }
 
                                 Log.d(LOG_TAG, "saveSummaries : " + fRoomsToCommitForSummaries.size() + " summaries in " + (System.currentTimeMillis() - start) + " ms");
-
-                                committing(false);
                             }
                         }
                     });
@@ -1606,6 +1634,11 @@ public class MXFileStore extends MXMemoryStore {
         RoomSummary summary = null;
 
         try {
+            if (tmpFileExists(mStoreRoomsSummaryFolderFile, roomId)) {
+                Log.e(LOG_TAG, "## loadSummary (): " + roomId + " is corrupted");
+                return false;
+            }
+
             File messagesListFile = new File(mStoreRoomsSummaryFolderFile, roomId);
 
             FileInputStream fis = new FileInputStream(messagesListFile);
@@ -1675,6 +1708,11 @@ public class MXFileStore extends MXMemoryStore {
         mEventStreamToken = null;
         mMetadata = null;
 
+        if (tmpFileExists(mStoreFolderFile, MXFILE_STORE_METADATA_FILE_NAME)) {
+            Log.e(LOG_TAG, "## loadMetaData() : is corrupted");
+            return;
+        }
+
         try {
             File metaDataFile = new File(mStoreFolderFile, MXFILE_STORE_METADATA_FILE_NAME);
 
@@ -1706,7 +1744,7 @@ public class MXFileStore extends MXMemoryStore {
      * flush the metadata info from the file system.
      */
     private void saveMetaData() {
-        if ((mMetaDataHasChanged) && (null != mFileStoreHandler)) {
+        if ((mMetaDataHasChanged) && (null != mFileStoreHandler) && (null != mMetadata)) {
             mMetaDataHasChanged = false;
 
             final MXFileStoreMetaData fMetadata = mMetadata.deepCopy();
@@ -1717,9 +1755,9 @@ public class MXFileStore extends MXMemoryStore {
                     mFileStoreHandler.post(new Runnable() {
                         public void run() {
                             if (!mIsKilled) {
-                                committing(true);
-
                                 long start = System.currentTimeMillis();
+
+                                createTmpFile(mStoreFolderFile, MXFILE_STORE_METADATA_FILE_NAME);
 
                                 try {
                                     File metaDataFile = new File(mStoreFolderFile, MXFILE_STORE_METADATA_FILE_NAME);
@@ -1733,13 +1771,16 @@ public class MXFileStore extends MXMemoryStore {
 
                                     out.writeObject(fMetadata);
                                     out.close();
+
+                                    deleteTmpFile(mStoreFolderFile, MXFILE_STORE_METADATA_FILE_NAME);
+                                } catch (OutOfMemoryError oom) {
+                                    dispatchOOM(oom);
                                 } catch (Exception e) {
                                     // Toast.makeText(mContext, "saveMetaData failed  " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                                     Log.e(LOG_TAG, "saveMetaData failed : " + e.getLocalizedMessage());
                                 }
 
                                 Log.d(LOG_TAG, "saveMetaData : " + (System.currentTimeMillis() - start) + " ms");
-                                committing(false);
                             }
                         }
                     });
@@ -1784,6 +1825,11 @@ public class MXFileStore extends MXMemoryStore {
     private boolean loadReceipts(String roomId) {
         Map<String, ReceiptData> receipts = null;
         try {
+            if (tmpFileExists(mStoreRoomsTokensFolderFile, roomId)) {
+                Log.e(LOG_TAG, "## loadReceipts (): " + roomId + " is corrupted");
+                return false;
+            }
+
             File file = new File(mStoreRoomsMessagesReceiptsFolderFile, roomId);
 
             FileInputStream fis = new FileInputStream(file);
@@ -1820,7 +1866,6 @@ public class MXFileStore extends MXMemoryStore {
             long start = System.currentTimeMillis();
 
             for(int index = 0; succeed && (index < filenames.length); index++) {
-
                 succeed &= loadReceipts(filenames[index]);
             }
 
@@ -1848,7 +1893,6 @@ public class MXFileStore extends MXMemoryStore {
                 mFileStoreHandler.post(new Runnable() {
                     public void run() {
                         if (!mIsKilled) {
-                            committing(true);
 
                             File receiptFile = new File(mStoreRoomsMessagesReceiptsFolderFile, roomId);
 
@@ -1861,10 +1905,14 @@ public class MXFileStore extends MXMemoryStore {
                                 long start = System.currentTimeMillis();
 
                                 try {
+                                    createTmpFile(mStoreRoomsMessagesReceiptsFolderFile, roomId);
                                     FileOutputStream fos = new FileOutputStream(receiptFile);
                                     ObjectOutputStream out = new ObjectOutputStream(fos);
                                     out.writeObject(receipts);
                                     out.close();
+                                    deleteTmpFile(mStoreRoomsMessagesReceiptsFolderFile, roomId);
+                                } catch (OutOfMemoryError oom) {
+                                    dispatchOOM(oom);
                                 } catch (Exception e) {
                                     //Toast.makeText(mContext, "saveReceipts failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                                     Log.e(LOG_TAG, "saveReceipts failed : " + e.getLocalizedMessage());
@@ -1872,8 +1920,6 @@ public class MXFileStore extends MXMemoryStore {
 
                                 Log.d(LOG_TAG, "saveReceipts : roomId " + roomId + " eventId : " + (System.currentTimeMillis() - start) + " ms");
                             }
-
-                            committing(false);
                         }
                     }
                 });
@@ -1914,5 +1960,71 @@ public class MXFileStore extends MXMemoryStore {
                 Log.d(LOG_TAG,"deleteReceiptsFile - failed " + e.getLocalizedMessage());
             }
         }
+    }
+
+    //================================================================================
+    // tmp files markers
+    // when the application crashes with an OOM, some files are corrupted.
+    // using a share preferences entry is not enough
+    //================================================================================
+
+    /**
+     * Create a tmp file file.
+     * @param folder the folder
+     * @param fileName the filename
+     * @return the file marker
+     */
+    private static File createTmpFileFile(File folder, String fileName) {
+        return new File(folder, fileName + ".tmp");
+    }
+
+    /**
+     * Create a tmp file
+     * @param folder the folder
+     * @param fileName the file name
+     */
+    private static void createTmpFile(File folder, String fileName) {
+        File tmpFile = createTmpFileFile(folder, fileName);
+
+        // test if it does not exist
+        if (!tmpFile.exists()) {
+            try {
+                FileOutputStream fos = new FileOutputStream(tmpFile);
+                ObjectOutputStream out = new ObjectOutputStream(fos);
+
+                out.writeShort(1);
+                out.close();
+            } catch (Exception e) {
+                Log.e(LOG_TAG,"createTmpFileMaker - failed " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Delete a tmp file
+     * @param folder the folder
+     * @param fileName the file name
+     */
+    private static void deleteTmpFile(File folder, String fileName) {
+        File markerFile = createTmpFileFile(folder, fileName);
+
+        // test if it does not exist
+        if (markerFile.exists()) {
+            try {
+                markerFile.delete();
+            } catch (Exception e) {
+                Log.e(LOG_TAG,"deleteTmpFileMaker - failed " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Tell if a tmp file exists
+     * @param folder the folder
+     * @param fileName the file name
+     * @return true if the file exists
+     */
+    private static boolean tmpFileExists(File folder, String fileName) {
+        return createTmpFileFile(folder, fileName).exists();
     }
 }

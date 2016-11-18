@@ -44,7 +44,7 @@ public class RoomMemberCountConditionTest {
     }
 
     private void setUpThreeRoomMembers() {
-        ArrayList<RoomMember> members = new ArrayList<RoomMember>();
+        ArrayList<RoomMember> members = new ArrayList<>();
 
         RoomMember rm1 = new RoomMember();
         rm1.membership = RoomMember.MEMBERSHIP_JOIN;

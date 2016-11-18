@@ -18,16 +18,36 @@ package org.matrix.androidsdk.rest.model;
 import android.content.ClipDescription;
 import android.net.Uri;
 import android.text.TextUtils;
+import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import java.io.File;
 
 public class FileMessage extends Message {
+    private static final String LOG_TAG = "FileMessage";
+
     public FileInfo info;
     public String url;
 
+    // encrypted medias
+    // url and thumbnailUrl are replaced by their dedicated file
+    public EncryptedFileInfo file;
+
     public FileMessage() {
         msgtype = MSGTYPE_FILE;
+    }
+
+    /**
+     * @return the file url
+     */
+    public String getUrl() {
+        if (null != url) {
+            return url;
+        } else if (null != file) {
+            return file.url;
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -42,6 +62,10 @@ public class FileMessage extends Message {
 
         if (null != info) {
             copy.info = info.deepCopy();
+        }
+
+        if (null != file) {
+            copy.file = file.deepCopy();
         }
 
         return copy;
@@ -63,7 +87,7 @@ public class FileMessage extends Message {
                 try {
                     info.mimetype = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.toLowerCase());
                 } catch (Exception e) {
-
+                    Log.e(LOG_TAG, "## getMimeType() : getMimeTypeFromExtensionfailed " + e.getMessage());
                 }
             }
 
@@ -91,7 +115,7 @@ public class FileMessage extends Message {
                     url = null;
                 }
             } catch (Exception e) {
-
+                Log.e(LOG_TAG, "## checkMediaUrls() failed " + e.getMessage());
             }
         }
     }

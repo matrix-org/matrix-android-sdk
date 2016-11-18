@@ -1,3 +1,24 @@
+Changes to Matrix Android SDK in 0.7.0 (2016-11-18)
+=======================================================
+
+Features:
+* Encryption
+* DirectChat management
+* Devices list management
+
+Bugfixes:
+* GA issues
+* #529 : the unread notified messages are not properly cleared when the network connection is lost / unstable
+* #540 : All the store data is lost if there is an OOM error while saving it.
+* #546 : Invite a left user doesn't display his displayname.
+* #558 ! Global search : the back pagination does not work anymore
+* #561 : URLs containing $s aren't linkified correctly 
+* #562 : Some redacted events were restored at next application launch
+* #589 : Login as email is case sensistive 
+* #590 : Email validation token is sent even to invalid emails 
+* #602 : The 1:1 room avatar must be the other member avatar if no room avatar was set
+* #611 : Remove display name event is blank 
+
 Changes to Matrix Android SDK in 0.6.2 (2016-09-19)
 =======================================================
 

@@ -57,8 +57,6 @@ public class IconAndTextDialogFragment extends DialogFragment {
     }
 
     private ListView mListView;
-    private IconAndTextAdapter mAdapter;
-
 
     private ArrayList<Integer> mIconResourcesList;
     private ArrayList<Integer> mTextResourcesList;
@@ -76,8 +74,8 @@ public class IconAndTextDialogFragment extends DialogFragment {
         IconAndTextDialogFragment f = new IconAndTextDialogFragment();
         Bundle args = new Bundle();
 
-        args.putIntegerArrayList(ARG_ICONS_LIST_ID,  new ArrayList<Integer>(Arrays.asList(iconResourcesList)));
-        args.putIntegerArrayList(ARG_TEXTS_LIST_ID,  new ArrayList<Integer>(Arrays.asList(textResourcesList)));
+        args.putIntegerArrayList(ARG_ICONS_LIST_ID,  new ArrayList<>(Arrays.asList(iconResourcesList)));
+        args.putIntegerArrayList(ARG_TEXTS_LIST_ID,  new ArrayList<>(Arrays.asList(textResourcesList)));
 
         if (null != backgroundColor) {
             args.putInt(ARG_BACKGROUND_COLOR, backgroundColor);
@@ -136,22 +134,22 @@ public class IconAndTextDialogFragment extends DialogFragment {
      */
     void initView(View v) {
         mListView = ((ListView)v.findViewById(R.id.listView_icon_and_text));
-        mAdapter = new IconAndTextAdapter(getActivity(), R.layout.adapter_item_icon_and_text);
+        IconAndTextAdapter adapter = new IconAndTextAdapter(getActivity(), R.layout.adapter_item_icon_and_text);
 
         for(int index = 0; index < mIconResourcesList.size(); index++) {
-            mAdapter.add(mIconResourcesList.get(index), mTextResourcesList.get(index));
+            adapter.add(mIconResourcesList.get(index), mTextResourcesList.get(index));
         }
 
         if (null != mBackgroundColor) {
             mListView.setBackgroundColor(mBackgroundColor);
-            mAdapter.setBackgroundColor(mBackgroundColor);
+            adapter.setBackgroundColor(mBackgroundColor);
         }
 
         if (null != mTextColor) {
-            mAdapter.setTextColor(mTextColor);
+            adapter.setTextColor(mTextColor);
         }
 
-        mListView.setAdapter(mAdapter);
+        mListView.setAdapter(adapter);
     }
 
     /**
