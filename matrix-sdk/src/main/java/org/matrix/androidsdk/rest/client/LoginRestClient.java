@@ -90,8 +90,8 @@ public class LoginRestClient extends RestClient<LoginApi> {
     public void register(final RegistrationParams params, final ApiCallback<Credentials> callback) {
         final String description = "register";
 
-        // define a default device name
-        if (TextUtils.isEmpty(params.initial_device_display_name)) {
+        // define a default device name only there is a password
+        if (!TextUtils.isEmpty(params.password) && TextUtils.isEmpty(params.initial_device_display_name)) {
             params.initial_device_display_name = Build.MODEL.trim();
         }
 
