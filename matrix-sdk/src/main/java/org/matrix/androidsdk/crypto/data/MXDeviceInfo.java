@@ -175,39 +175,4 @@ public class MXDeviceInfo implements Serializable {
     public java.lang.String toString() {
         return "MXDeviceInfo " + userId + ":" + deviceId;
     }
-
-    /**
-     * @return a deep copy
-     */
-    public MXDeviceInfo deepCopy() {
-        MXDeviceInfo copy = new MXDeviceInfo(deviceId);
-
-        copy.userId = userId;
-
-        if (null != algorithms) {
-            copy.algorithms = new ArrayList<>(algorithms);
-        }
-
-        if (null != keys) {
-            copy.keys = new HashMap<>(keys);
-        }
-
-        if (null != signatures) {
-            copy.signatures = new HashMap<>();
-
-            Set<String> keySet =  signatures.keySet();
-
-            for(String k : keySet) {
-                copy.signatures.put(k, new HashMap<>(signatures.get(k)));
-            }
-        }
-
-        if (null != unsigned) {
-            copy.unsigned = new HashMap<>(unsigned);
-        }
-
-        copy.mVerified = mVerified;
-
-        return copy;
-    }
 }

@@ -727,7 +727,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
             Set<String> subKeys = subMap.keySet();
             for(String subKey : subKeys) {
-                subMapClone.put(subKey, subMap.get(subKey).deepCopy());
+                subMapClone.put(subKey, cloneDeviceInfo(subMap.get(subKey)));
             }
 
             copy.put(key, subMapClone);
@@ -750,5 +750,41 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         }
 
         return clone;
+    }
+
+
+    /**
+     * @return a deep copy
+     */
+    public static MXDeviceInfo cloneDeviceInfo(MXDeviceInfo di) {
+        MXDeviceInfo copy = new MXDeviceInfo(di.deviceId);
+
+        copy.userId = di.userId;
+
+        if (null != di.algorithms) {
+            copy.algorithms = new ArrayList<>(di.algorithms);
+        }
+
+        if (null != di.keys) {
+            copy.keys = new HashMap<>(di.keys);
+        }
+
+        if (null != di.signatures) {
+            copy.signatures = new HashMap<>();
+
+            Set<String> keySet = di.signatures.keySet();
+
+            for(String k : keySet) {
+                copy.signatures.put(k, new HashMap<>(di.signatures.get(k)));
+            }
+        }
+
+        if (null != di.unsigned) {
+            copy.unsigned = new HashMap<>(di.unsigned);
+        }
+
+        copy.mVerified = di.mVerified;
+
+        return copy;
     }
 }
