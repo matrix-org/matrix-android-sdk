@@ -1,3 +1,12 @@
+Changes to Matrix Android SDK in 0.7.1 (2016-11-21)
+=======================================================
+
+Improvements: 
+* Improve the cryptostore management to avoid working on UI thread.
+
+Bugfixes:
+* Add try / catch block in JSonUtils methods (GA issues)
+
 Changes to Matrix Android SDK in 0.7.0 (2016-11-18)
 =======================================================
 

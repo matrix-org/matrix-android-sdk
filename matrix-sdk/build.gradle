@@ -18,8 +18,8 @@ android {
         targetSdkVersion 21
         // use version to define a version code.
         versionCode 701
-        version "0.7.1-dev"
-        versionName "0.7.1-dev"
+        version "0.7.1"
+        versionName "0.7.1"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
      }
 
