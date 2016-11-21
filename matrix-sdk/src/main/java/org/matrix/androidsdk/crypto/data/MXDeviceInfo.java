@@ -16,13 +16,16 @@
 
 package org.matrix.androidsdk.crypto.data;
 
+import android.app.Service;
 import android.text.TextUtils;
 
 import java.io.Serializable;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class MXDeviceInfo implements Serializable {
     //
@@ -171,5 +174,40 @@ public class MXDeviceInfo implements Serializable {
     @Override
     public java.lang.String toString() {
         return "MXDeviceInfo " + userId + ":" + deviceId;
+    }
+
+    /**
+     * @return a deep copy
+     */
+    public MXDeviceInfo deepCopy() {
+        MXDeviceInfo copy = new MXDeviceInfo(deviceId);
+
+        copy.userId = userId;
+
+        if (null != algorithms) {
+            copy.algorithms = new ArrayList<>(algorithms);
+        }
+
+        if (null != keys) {
+            copy.keys = new HashMap<>(keys);
+        }
+
+        if (null != signatures) {
+            copy.signatures = new HashMap<>();
+
+            Set<String> keySet =  signatures.keySet();
+
+            for(String k : keySet) {
+                copy.signatures.put(k, new HashMap<>(signatures.get(k)));
+            }
+        }
+
+        if (null != unsigned) {
+            copy.unsigned = new HashMap<>(unsigned);
+        }
+
+        copy.mVerified = mVerified;
+
+        return copy;
     }
 }
