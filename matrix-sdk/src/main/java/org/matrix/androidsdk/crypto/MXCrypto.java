@@ -645,6 +645,22 @@ public class MXCrypto {
     }
 
     /**
+     * Provides the device information for a device id and an user Id
+     * @param userId the user id
+     * @param deviceId the device id
+     * @return the device info if it exists
+     */
+    public MXDeviceInfo getDeviceInfo(String userId, String deviceId) {
+        MXDeviceInfo di = null;
+
+        if (!TextUtils.isEmpty(userId) &&  !TextUtils.isEmpty(deviceId)) {
+            di = mCryptoStore.deviceWithDeviceId(deviceId, userId);
+        }
+
+        return di;
+    }
+
+    /**
      * Update the blocked/verified state of the given device
      * @param verificationStatus the new verification status.
      * @param deviceId the unique identifier for the device.
