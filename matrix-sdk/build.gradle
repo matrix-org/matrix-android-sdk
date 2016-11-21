@@ -17,9 +17,9 @@ android {
         minSdkVersion 11
         targetSdkVersion 21
         // use version to define a version code.
-        versionCode 701
-        version "0.7.1"
-        versionName "0.7.1"
+        versionCode 702
+        version "0.7.2-dev"
+        versionName "0.7.2-dev"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
      }
 
