@@ -709,8 +709,12 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 Log.e(LOG_TAG, "## preloadCryptoData() - invalid mInboundGroupSessions " + e.getMessage());
             }
         }
-    }
 
+        if ((null == mOlmAccount) && (mUsersDevicesInfoMap.getMap().size() > 0)) {
+            mIsCorrupted = true;
+            Log.e(LOG_TAG, "## preloadCryptoData() - there is no account but some devices are defined");
+        }
+    }
 
     /**
      * @return a, users devices map deep copy
