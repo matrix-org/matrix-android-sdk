@@ -63,6 +63,7 @@ public class MXEncryptedAttachments implements Serializable {
      * @return the encryption file info
      */
     public static EncryptionResult encryptAttachment(InputStream attachmentStream, String mimetype) {
+        long t0 = System.currentTimeMillis();
         SecureRandom secureRandom = new SecureRandom();
 
         // generate a random iv key
@@ -113,6 +114,8 @@ public class MXEncryptedAttachments implements Serializable {
 
             result.mEncryptedStream = new ByteArrayInputStream(outStream.toByteArray());
             outStream.close();
+
+            Log.d(LOG_TAG, "Encrypt in " + (System.currentTimeMillis() - t0) + " ms");
             return result;
         } catch (Exception e) {
             Log.e(LOG_TAG, "## encryptAttachment failed " + e.getMessage());
@@ -160,6 +163,8 @@ public class MXEncryptedAttachments implements Serializable {
             return null;
         }
 
+        long t0 = System.currentTimeMillis();
+
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
 
         try {
@@ -195,6 +200,8 @@ public class MXEncryptedAttachments implements Serializable {
                 outStream.close();
                 return null;
             }
+
+            Log.d(LOG_TAG, "Decrypt in " + (System.currentTimeMillis() - t0) + " ms");
             return new ByteArrayInputStream(outStream.toByteArray());
         } catch (Exception e) {
             Log.e(LOG_TAG, "## decryptAttachment() :  failed " + e.getMessage());
