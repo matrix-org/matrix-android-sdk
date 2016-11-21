@@ -595,7 +595,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 } catch (Exception subEx) {
                     // warn that some file loading fails
                     mIsCorrupted = true;
-                    Log.e(LOG_TAG, description  + "failed : " + e.getMessage());
+                    Log.e(LOG_TAG, description  + "failed : " + subEx.getMessage());
                 }
             }
         }
