@@ -77,113 +77,245 @@ public class JsonUtils {
     }
 
     public static RoomState toRoomState(JsonElement jsonObject) {
-        return gson.fromJson(jsonObject, RoomState.class);
+        try {
+            return gson.fromJson(jsonObject, RoomState.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toRoomState failed " + e.getMessage());
+        }
+
+        return new RoomState();
     }
 
     public static User toUser(JsonElement jsonObject) {
-        return gson.fromJson(jsonObject, User.class);
+        try {
+            return gson.fromJson(jsonObject, User.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toUser failed " + e.getMessage());
+        }
+
+        return new User();
     }
 
     public static RoomMember toRoomMember(JsonElement jsonObject) {
-        return gson.fromJson(jsonObject, RoomMember.class);
+        try {
+            return gson.fromJson(jsonObject, RoomMember.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toRoomMember failed " + e.getMessage());
+        }
+
+        return new RoomMember();
     }
 
     public static RoomTags toRoomTags(JsonElement jsonObject) {
-        return gson.fromJson(jsonObject, RoomTags.class);
+        try {
+            return gson.fromJson(jsonObject, RoomTags.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toRoomTags failed " + e.getMessage());
+        }
+
+        return new RoomTags();
     }
 
     public static MatrixError toMatrixError(JsonElement jsonObject) {
-        return gson.fromJson(jsonObject, MatrixError.class);
+        try {
+            return gson.fromJson(jsonObject, MatrixError.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toMatrixError failed " + e.getMessage());
+        }
+
+        return new MatrixError();
     }
 
     public static JsonElement toJson(RoomMember roomMember) {
-        return gson.toJsonTree(roomMember);
+        try {
+            return gson.toJsonTree(roomMember);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toJson failed " + e.getMessage());
+        }
+
+        return null;
     }
 
     public static String getMessageMsgType(JsonElement jsonObject) {
-        Message message = gson.fromJson(jsonObject, Message.class);
-        return message.msgtype;
+        try {
+            Message message = gson.fromJson(jsonObject, Message.class);
+            return message.msgtype;
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## getMessageMsgType failed " + e.getMessage());
+        }
+
+        return null;
     }
 
     public static Message toMessage(JsonElement jsonObject) {
-        Message message = gson.fromJson(jsonObject, Message.class);
+        try {
+            Message message = gson.fromJson(jsonObject, Message.class);
 
-        // Try to return the right subclass
-        if (Message.MSGTYPE_IMAGE.equals(message.msgtype)) {
-            return toImageMessage(jsonObject);
+            // Try to return the right subclass
+            if (Message.MSGTYPE_IMAGE.equals(message.msgtype)) {
+                return toImageMessage(jsonObject);
+            }
+
+            if (Message.MSGTYPE_VIDEO.equals(message.msgtype)) {
+                return toVideoMessage(jsonObject);
+            }
+
+            if (Message.MSGTYPE_LOCATION.equals(message.msgtype)) {
+                return toLocationMessage(jsonObject);
+            }
+
+            // Try to return the right subclass
+            if (Message.MSGTYPE_FILE.equals(message.msgtype)) {
+                return toFileMessage(jsonObject);
+            }
+
+            // Fall back to the generic Message type
+            return message;
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toMessage failed " + e.getMessage());
         }
 
-        if (Message.MSGTYPE_VIDEO.equals(message.msgtype)) {
-            return toVideoMessage(jsonObject);
-        }
-
-        if (Message.MSGTYPE_LOCATION.equals(message.msgtype)) {
-            return toLocationMessage(jsonObject);
-        }
-
-        // Try to return the right subclass
-        if (Message.MSGTYPE_FILE.equals(message.msgtype)) {
-            return toFileMessage(jsonObject);
-        }
-
-        // Fall back to the generic Message type
-        return message;
+        return new Message();
     }
 
     public static JsonObject toJson(Message message) {
-        return (JsonObject) gson.toJsonTree(message);
+        try {
+            return (JsonObject) gson.toJsonTree(message);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toJson failed " + e.getMessage());
+        }
+
+        return null;
     }
 
     public static Event toEvent(JsonElement jsonObject) {
-        return gson.fromJson(jsonObject, Event.class);
+        try {
+            return gson.fromJson(jsonObject, Event.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toEvent failed " + e.getMessage());
+        }
+
+        return new Event();
     }
 
     public static EncryptedEventContent toEncryptedEventContent(JsonElement jsonObject) {
-        return gson.fromJson(jsonObject, EncryptedEventContent.class);
+        try {
+            return gson.fromJson(jsonObject, EncryptedEventContent.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toEncryptedEventContent failed " + e.getMessage());
+        }
+
+        return new EncryptedEventContent();
     }
 
     public static EventContent toEventContent(JsonElement jsonObject) {
-        return gson.fromJson(jsonObject, EventContent.class);
+        try {
+            return gson.fromJson(jsonObject, EventContent.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toEventContent failed " + e.getMessage());
+        }
+
+        return new EventContent();
     }
 
     public static ImageMessage toImageMessage(JsonElement jsonObject) {
-        return gson.fromJson(jsonObject, ImageMessage.class);
+        try {
+            return gson.fromJson(jsonObject, ImageMessage.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toImageMessage failed " + e.getMessage());
+        }
+
+        return new ImageMessage();
     }
 
     public static FileMessage toFileMessage(JsonElement jsonObject) {
-        return gson.fromJson(jsonObject, FileMessage.class);
+        try {
+            return gson.fromJson(jsonObject, FileMessage.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toFileMessage failed " + e.getMessage());
+        }
+
+        return new FileMessage();
     }
 
     public static VideoMessage toVideoMessage(JsonElement jsonObject) {
-        return gson.fromJson(jsonObject, VideoMessage.class);
+        try {
+            return gson.fromJson(jsonObject, VideoMessage.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toVideoMessage failed " + e.getMessage());
+        }
+
+        return new VideoMessage();
     }
 
     public static LocationMessage toLocationMessage(JsonElement jsonObject) {
-        return gson.fromJson(jsonObject, LocationMessage.class);
+        try {
+            return gson.fromJson(jsonObject, LocationMessage.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toLocationMessage failed " + e.getMessage());
+        }
+
+        return new LocationMessage();
     }
 
     public static ContentResponse toContentResponse(String jsonString) {
-        return gson.fromJson(jsonString, ContentResponse.class);
+        try {
+            return gson.fromJson(jsonString, ContentResponse.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toContentResponse failed " + e.getMessage());
+        }
+
+        return new ContentResponse();
     }
 
     public static PowerLevels toPowerLevels(JsonElement jsonObject) {
-        return gson.fromJson(jsonObject, PowerLevels.class);
+        try {
+            return gson.fromJson(jsonObject, PowerLevels.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toPowerLevels failed " + e.getMessage());
+        }
+
+        return new PowerLevels();
     }
 
     public static RoomThirdPartyInvite toRoomThirdPartyInvite(JsonElement jsonObject) {
-        return gson.fromJson(jsonObject, RoomThirdPartyInvite.class);
+        try {
+            return gson.fromJson(jsonObject, RoomThirdPartyInvite.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toRoomThirdPartyInvite failed " + e.getMessage());
+        }
+
+        return new RoomThirdPartyInvite();
     }
 
     public static RegistrationFlowResponse toRegistrationFlowResponse(String jsonString) {
-        return gson.fromJson(jsonString, RegistrationFlowResponse.class);
+        try {
+            return gson.fromJson(jsonString, RegistrationFlowResponse.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toRegistrationFlowResponse failed " + e.getMessage());
+        }
+
+        return new RegistrationFlowResponse();
     }
 
     public static JsonObject toJson(Event event) {
-        return (JsonObject) gson.toJsonTree(event);
+        try {
+            return (JsonObject) gson.toJsonTree(event);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toJson failed " + e.getMessage());
+        }
+
+        return new JsonObject();
     }
 
     public static NewDeviceContent toNewDeviceContent(JsonElement jsonObject) {
-        return gson.fromJson(jsonObject, NewDeviceContent.class);
+        try {
+            return gson.fromJson(jsonObject, NewDeviceContent.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toNewDeviceContent failed " + e.getMessage());
+        }
+
+        return new NewDeviceContent();
     }
 
     /**
