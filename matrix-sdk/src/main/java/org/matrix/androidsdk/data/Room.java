@@ -417,6 +417,24 @@ public class Room {
         return TextUtils.equals(membership, RoomMember.MEMBERSHIP_INVITE);
     }
 
+    /**
+     * @return true if the user is invited in a direct chat room
+     */
+    public boolean isDirectChatInvitation() {
+        if (isInvited()) {
+            // Is it an initial sync for this room ?
+            RoomState state = getState();
+
+            RoomMember selfMember = state.getMember(mMyUserId);
+
+            if ((null != selfMember) && (null != selfMember.is_direct)) {
+                return selfMember.is_direct;
+            }
+        }
+
+        return false;
+    }
+
     //================================================================================
     // Join
     //================================================================================

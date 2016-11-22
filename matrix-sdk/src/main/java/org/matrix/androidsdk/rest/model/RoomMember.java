@@ -32,6 +32,8 @@ public class RoomMember implements java.io.Serializable {
     public String membership;
     public Invite thirdPartyInvite;
 
+    // tells that the inviter starts a direct chat room
+    public Boolean is_direct;
 
     private String userId = null;
     // timestamp of the event which has created this member
