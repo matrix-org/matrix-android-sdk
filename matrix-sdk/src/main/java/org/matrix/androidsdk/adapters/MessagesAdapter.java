@@ -2333,18 +2333,21 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         String uploadingUrl;
+        final boolean isUploadingThumbnail;
 
         if (isVideoMessage) {
             uploadingUrl = ((VideoMessage)message).info.thumbnail_url;
+            isUploadingThumbnail = ((VideoMessage)message).isThumbnailLocalContent();
         } else {
             uploadingUrl = ((ImageMessage)message).thumbnailUrl;
+            isUploadingThumbnail = ((ImageMessage)message).isThumbnailLocalContent();
         }
 
-        int progress = mSession.getMediasCache().getProgressValueForUploadId(uploadingUrl);
-        final boolean isMediaUrl = (progress < 0);
+        int progress;
 
-        // the thumbnail has been uploaded, upload the video
-        if (progress < 0) {
+        if (isUploadingThumbnail) {
+            progress = mSession.getMediasCache().getProgressValueForUploadId(uploadingUrl);
+        } else {
             if (isVideoMessage) {
                 uploadingUrl = ((VideoMessage)message).url;
             } else {
@@ -2363,7 +2366,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
                         int progress;
 
-                        if (isMediaUrl) {
+                        if (!isUploadingThumbnail) {
                             progress = 10 + (uploadStats.mProgress * 90 / 100);
                         } else {
                             progress = (uploadStats.mProgress * 10 / 100);
@@ -2412,7 +2415,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         uploadSpinner.setVisibility(((progress < 0) && event.isSending()) ? View.VISIBLE : View.GONE);
         refreshUploadViews(event, mSession.getMediasCache().getStatsForUploadId(uploadingUrl), uploadProgressLayout);
 
-        if (isMediaUrl) {
+        if (!isUploadingThumbnail) {
             progress = 10 + (progress * 90 / 100);
         } else {
             progress = (progress * 10 / 100);

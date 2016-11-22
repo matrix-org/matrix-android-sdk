@@ -1390,11 +1390,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param thumbnailUrl the thumbnail Url
      * @param imageUrl the image Uri
      * @param mediaFilename the mediaFilename
-     * @param mimeType the image mine type
+     * @param imageMimeType the image mine type
      */
-    public void uploadImageContent(ImageMessage imageMessage, final MessageRow aImageRow,  final String thumbnailUrl, final String imageUrl, final String mediaFilename, final String imageMimeType) {
+    public void uploadImageContent(ImageMessage imageMessage, final MessageRow aImageRow,  final String thumbnailUrl, final String anImageUrl, final String mediaFilename, final String imageMimeType) {
         if (null == imageMessage) {
-            imageMessage.url = imageUrl;
+            imageMessage = new ImageMessage();
+            imageMessage.url = anImageUrl;
             imageMessage.thumbnailUrl = thumbnailUrl;
             imageMessage.body = mediaFilename;
         }
@@ -1402,12 +1403,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         String mimeType = null;
         MXEncryptedAttachments.EncryptionResult encryptionResult = null;
         InputStream imageStream = null;
+        String url = null;
 
         try {
-            Uri imageUri = Uri.parse(imageUrl);
-            Room.fillImageInfo(getActivity(), imageMessage, imageUri, imageMimeType);
+            Uri imageUri = Uri.parse(anImageUrl);
 
-            if (null != thumbnailUrl) {
+            if (null == imageMessage.info) {
+                Room.fillImageInfo(getActivity(), imageMessage, imageUri, imageMimeType);
+            }
+
+            if ((null != thumbnailUrl) && (null == imageMessage.thumbnailInfo)) {
                 Uri thumbUri = Uri.parse(thumbnailUrl);
                 Room.fillThumbnailInfo(getActivity(), imageMessage, thumbUri, "image/jpeg");
             }
@@ -1415,9 +1420,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             String filename;
 
             if (imageMessage.isThumbnailLocalContent()) {
+                url = thumbnailUrl;
                 mimeType = "image/jpeg";
                 filename = Uri.parse(thumbnailUrl).getPath();
             } else {
+                url = anImageUrl;
                 mimeType = imageMimeType;
                 filename = imageUri.getPath();
             }
@@ -1456,8 +1463,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         final MXEncryptedAttachments.EncryptionResult fEncryptionResult = encryptionResult;
 
-        getSession().getMediasCache().uploadContent(imageStream, imageMessage.isThumbnailLocalContent() ? (imageMessage.body + "-thumb") : imageMessage.body, mimeType, imageUrl, new MXMediaUploadListener() {
-
+        getSession().getMediasCache().uploadContent(imageStream, imageMessage.isThumbnailLocalContent() ? ("thumb" + imageMessage.body) : imageMessage.body, mimeType, url, new MXMediaUploadListener() {
             @Override
             public void onUploadStart(String uploadId) {
                 getUiHandler().post(new Runnable() {
@@ -1494,41 +1500,37 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 getUiHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        // Build the image message
-                        ImageMessage message = fImageMessage.deepCopy();
-
                         if (fImageMessage.isThumbnailLocalContent()) {
+                            // replace the thumbnail and the media contents by the computed one
                             getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
 
                             if (null != fEncryptionResult) {
-                                message.thumbnailInfo.thumbnail_file = fEncryptionResult.mEncryptedFileInfo;
-                                message.thumbnailInfo.thumbnail_file.url = contentUri;
-                                message.thumbnailUrl = null;
+                                fImageMessage.thumbnailInfo.thumbnail_file = fEncryptionResult.mEncryptedFileInfo;
+                                fImageMessage.thumbnailInfo.thumbnail_file.url = contentUri;
+                                fImageMessage.thumbnailUrl = null;
                             } else {
-                                message.thumbnailUrl = contentUri;
+                                fImageMessage.thumbnailUrl = contentUri;
                             }
-
-                            // upload the high res picture
-                            uploadImageContent(message, imageRow,  thumbnailUrl, imageUrl, mediaFilename,  fMimeType);
-                        } else {
-                            // replace the thumbnail and the media contents by the computed ones
-                            getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
-                            getMXMediasCache().saveFileMediaForUrl(contentUri, imageUrl, message.getMimeType());
-
-                            message.thumbnailUrl = null;
-
-                            if (null != fEncryptionResult) {
-                                message.file = fEncryptionResult.mEncryptedFileInfo;
-                                message.file.url = contentUri;
-                                message.url = null;
-                            } else {
-                                message.url = contentUri;
-                            }
-
-
 
                             // update the event content with the new message info
-                            imageRow.getEvent().updateContent(JsonUtils.toJson(message));
+                            imageRow.getEvent().updateContent(JsonUtils.toJson(fImageMessage));
+
+                            // upload the high res picture
+                            uploadImageContent(fImageMessage, imageRow,  contentUri, anImageUrl, mediaFilename,  fMimeType);
+                        } else {
+                            // replace the thumbnail and the media contents by the computed one
+                            getMXMediasCache().saveFileMediaForUrl(contentUri, anImageUrl, fImageMessage.getMimeType());
+
+                            if (null != fEncryptionResult) {
+                                fImageMessage.file = fEncryptionResult.mEncryptedFileInfo;
+                                fImageMessage.file.url = contentUri;
+                                fImageMessage.url = null;
+                            } else {
+                                fImageMessage.url = contentUri;
+                            }
+
+                            // update the event content with the new message info
+                            imageRow.getEvent().updateContent(JsonUtils.toJson(fImageMessage));
 
                             Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
