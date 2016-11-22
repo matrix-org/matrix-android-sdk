@@ -405,7 +405,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                             mDevicesFile.renameTo(mDevicesFileTmp);
                         }
 
-                        storeObject(devicesMapClone, mDevicesFile, "flushDevicesForUser");
+                        storeObject(devicesMapClone, mDevicesFile, "flushDevicesForUser - in background");
 
                         // remove the tmp file
                         if (mDevicesFileTmp.exists()) {
@@ -453,7 +453,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                                 mAlgorithmsFile.renameTo(mAlgorithmsFileTmp);
                             }
 
-                            storeObject(roomsAlgorithms, mAlgorithmsFile, "storeAlgorithmForRoom");
+                            storeObject(roomsAlgorithms, mAlgorithmsFile, "storeAlgorithmForRoom - in background");
 
                             // remove the tmp file
                             if (mAlgorithmsFileTmp.exists()) {
@@ -516,7 +516,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                             mSessionsFile.renameTo(mSessionsFileTmp);
                         }
 
-                        storeObject(olmSessions, mSessionsFile, "storeSession");
+                        storeObject(olmSessions, mSessionsFile, "storeSession - in background");
 
                         // remove the tmp file
                         if (mSessionsFileTmp.exists()) {
@@ -550,19 +550,34 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             mInboundGroupSessions.get(session.mSenderKey).put(session.mSession.sessionIdentifier(), session);
         }
 
-        if (mInboundGroupSessionsFileTmp.exists()) {
-            mInboundGroupSessionsFileTmp.delete();
-        }
+        final HashMap<String, HashMap<String,MXOlmInboundGroupSession>> fInboundGroupSessions = cloneInboundGroupSessions(mInboundGroupSessions);
 
-        if (mInboundGroupSessionsFile.exists()) {
-            mInboundGroupSessionsFile.renameTo(mInboundGroupSessionsFileTmp);
-        }
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                getThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mInboundGroupSessionsFileTmp.exists()) {
+                            mInboundGroupSessionsFileTmp.delete();
+                        }
 
-        storeObject(mInboundGroupSessions, mInboundGroupSessionsFile, "storeInboundGroupSession");
+                        if (mInboundGroupSessionsFile.exists()) {
+                            mInboundGroupSessionsFile.renameTo(mInboundGroupSessionsFileTmp);
+                        }
 
-        if (mInboundGroupSessionsFileTmp.exists()) {
-            mInboundGroupSessionsFileTmp.delete();
-        }
+                        storeObject(fInboundGroupSessions, mInboundGroupSessionsFile, "storeInboundGroupSession - in background");
+
+                        if (mInboundGroupSessionsFileTmp.exists()) {
+                            mInboundGroupSessionsFileTmp.delete();
+                        }
+                    }
+                });
+            }
+        };
+
+        Thread t = new Thread(r);
+        t.start();
     }
 
     @Override
@@ -834,7 +849,6 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         return clone;
     }
 
-
     /**
      * @return a deep copy
      */
@@ -866,6 +880,23 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         }
 
         copy.mVerified = di.mVerified;
+
+        return copy;
+    }
+
+    /**
+     * Clone an inbound group sessions map
+     * @param inboundSession the inbound group sessions map to clone
+     * @return the clone
+     */
+    private static HashMap<String, HashMap<String ,MXOlmInboundGroupSession>> cloneInboundGroupSessions(HashMap<String, HashMap<String ,MXOlmInboundGroupSession>> inboundSession) {
+        HashMap<String, HashMap<String ,MXOlmInboundGroupSession>> copy = new HashMap<>();
+
+        Set<String> keys = inboundSession.keySet();
+
+        for(String k : keys) {
+            copy.put(k, new HashMap<>(inboundSession.get(k)));
+        }
 
         return copy;
     }
