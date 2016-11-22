@@ -52,16 +52,25 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private static final int MXFILE_CRYPTO_VERSION = 1;
 
     private static final String MXFILE_CRYPTO_STORE_FOLDER = "MXFileCryptoStore";
+
     private static final String MXFILE_CRYPTO_STORE_METADATA_FILE = "MXFileCryptoStore";
+    private static final String MXFILE_CRYPTO_STORE_METADATA_FILE_TMP = "MXFileCryptoStore.tmp";
 
     private static final String MXFILE_CRYPTO_STORE_ACCOUNT_FILE = "account";
+    private static final String MXFILE_CRYPTO_STORE_ACCOUNT_FILE_TMP = "account.tmp";
+
     private static final String MXFILE_CRYPTO_STORE_DEVICES_FILE = "devices";
     private static final String MXFILE_CRYPTO_STORE_DEVICES_FILE_TMP = "devices.tmp";
+
     private static final String MXFILE_CRYPTO_STORE_ALGORITHMS_FILE = "roomsAlgorithms";
     private static final String MXFILE_CRYPTO_STORE_ALGORITHMS_FILE_TMP = "roomsAlgorithms";
+
     private static final String MXFILE_CRYPTO_STORE_SESSIONS_FILE = "sessions";
     private static final String MXFILE_CRYPTO_STORE_SESSIONS_FILE_TMP = "sessions.tmp";
+
     private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE = "inboundGroupSessions";
+    private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE_TMP = "inboundGroupSessions.tmp";
+
 
     // The credentials used for this store
     private Credentials mCredentials;
@@ -91,15 +100,24 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     // The path of the MXFileCryptoStore folder
     private File mStoreFile;
+
     private File mMetaDataFile;
+    private File mMetaDataFileTmp;
+
     private File mAccountFile;
+    private File mAccountFileTmp;
+
     private File mDevicesFile;
     private File mDevicesFileTmp;
+
     private File mAlgorithmsFile;
     private File mAlgorithmsFileTmp;
+
     private File mSessionsFile;
     private File mSessionsFileTmp;
+
     private File mInboundGroupSessionsFile;
+    private File mInboundGroupSessionsFileTmp;
 
     // tell if the store is corrupted
     private boolean mIsCorrupted = false;
@@ -117,8 +135,12 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         mCredentials = credentials;
 
         mStoreFile = new File(new File(mContext.getApplicationContext().getFilesDir(), MXFILE_CRYPTO_STORE_FOLDER), mCredentials.userId);
+
         mMetaDataFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_METADATA_FILE);
+        mMetaDataFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_METADATA_FILE_TMP);
+
         mAccountFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_ACCOUNT_FILE);
+        mAccountFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_ACCOUNT_FILE_TMP);
 
         mDevicesFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_DEVICES_FILE);
         mDevicesFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_DEVICES_FILE_TMP);
@@ -130,6 +152,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         mSessionsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_SESSIONS_FILE_TMP);
 
         mInboundGroupSessionsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE);
+        mInboundGroupSessionsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE_TMP);
 
         // Build default metadata
         if ((null == mMetaData)
@@ -290,13 +313,38 @@ public class MXFileCryptoStore implements IMXCryptoStore {
      * Save the metadata into the crypto file store
      */
     private void saveMetaData() {
+        if (mMetaDataFileTmp.exists()) {
+            mMetaDataFileTmp.delete();
+        }
+
+        if (mMetaDataFile.exists()) {
+            mMetaDataFile.renameTo(mMetaDataFileTmp);
+        }
+
         storeObject(mMetaData, mMetaDataFile, "saveMetaData");
+
+        if (mMetaDataFileTmp.exists()) {
+            mMetaDataFileTmp.delete();
+        }
     }
 
     @Override
     public void storeAccount(OlmAccount account) {
         mOlmAccount = account;
+
+        if (mAccountFileTmp.exists()) {
+            mAccountFileTmp.delete();
+        }
+
+        if (mAccountFile.exists()) {
+            mAccountFile.renameTo(mAccountFileTmp);
+        }
+
         storeObject(mOlmAccount, mAccountFile, "storeAccount");
+
+        if (mAccountFileTmp.exists()) {
+            mAccountFileTmp.delete();
+        }
     }
 
     @Override
@@ -502,7 +550,19 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             mInboundGroupSessions.get(session.mSenderKey).put(session.mSession.sessionIdentifier(), session);
         }
 
+        if (mInboundGroupSessionsFileTmp.exists()) {
+            mInboundGroupSessionsFileTmp.delete();
+        }
+
+        if (mInboundGroupSessionsFile.exists()) {
+            mInboundGroupSessionsFile.renameTo(mInboundGroupSessionsFileTmp);
+        }
+
         storeObject(mInboundGroupSessions, mInboundGroupSessionsFile, "storeInboundGroupSession");
+
+        if (mInboundGroupSessionsFileTmp.exists()) {
+            mInboundGroupSessionsFileTmp.delete();
+        }
     }
 
     @Override
@@ -606,7 +666,13 @@ public class MXFileCryptoStore implements IMXCryptoStore {
      * Load the metadata from the store
      */
     private void loadMetaData() {
-        Object metadataAsVoid = loadObject(mMetaDataFile, "loadMetadata");
+        Object metadataAsVoid;
+
+        if (mMetaDataFileTmp.exists()) {
+            metadataAsVoid = loadObject(mMetaDataFileTmp, "loadMetadata");
+        } else {
+            metadataAsVoid = loadObject(mMetaDataFile, "loadMetadata");
+        }
 
         if (null != metadataAsVoid) {
             try {
@@ -622,7 +688,13 @@ public class MXFileCryptoStore implements IMXCryptoStore {
      * Preload the crypto data
      */
     private void preloadCryptoData() {
-        Object olmAccountAsVoid = loadObject(mAccountFile, "preloadCryptoData - mAccountFile");
+        Object olmAccountAsVoid;
+
+        if (mAccountFileTmp.exists()) {
+            olmAccountAsVoid = loadObject(mAccountFileTmp, "preloadCryptoData - mAccountFile - tmp");
+        } else {
+            olmAccountAsVoid = loadObject(mAccountFile, "preloadCryptoData - mAccountFile");
+        }
 
         if (null != olmAccountAsVoid) {
             try {
@@ -693,7 +765,13 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             }
         }
 
-        Object inboundGroupSessionsAsVoid = loadObject(mInboundGroupSessionsFile, "preloadCryptoData - mInboundGroupSessions");
+        Object inboundGroupSessionsAsVoid;
+
+        if (mInboundGroupSessionsFileTmp.exists()) {
+            inboundGroupSessionsAsVoid = loadObject(mInboundGroupSessionsFileTmp, "preloadCryptoData - mInboundGroupSessions - tmp");
+        } else {
+            inboundGroupSessionsAsVoid = loadObject(mInboundGroupSessionsFile, "preloadCryptoData - mInboundGroupSessions");
+        }
 
         if (null != inboundGroupSessionsAsVoid) {
             try {
