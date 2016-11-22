@@ -1505,8 +1505,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
 
                             if (null != fEncryptionResult) {
-                                fImageMessage.thumbnailInfo.thumbnail_file = fEncryptionResult.mEncryptedFileInfo;
-                                fImageMessage.thumbnailInfo.thumbnail_file.url = contentUri;
+                                fImageMessage.info.thumbnail_file = fEncryptionResult.mEncryptedFileInfo;
+                                fImageMessage.info.thumbnail_file.url = contentUri;
                                 fImageMessage.thumbnailUrl = null;
                             } else {
                                 fImageMessage.thumbnailUrl = contentUri;
