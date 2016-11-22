@@ -48,7 +48,6 @@ import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1264,7 +1263,7 @@ public class MXCrypto {
      * Called when a new device announces itself.
      * @param event the announcement event.
      */
-    private void onNewDeviceEvent(Event event) {
+    private void onNewDeviceEvent(final Event event) {
         final String userId = event.sender;
         final NewDeviceContent newDeviceContent = JsonUtils.toNewDeviceContent(event.getContent());
 
@@ -1289,6 +1288,9 @@ public class MXCrypto {
                         encrypting.onNewDevice(newDeviceContent.deviceId, userId);
                     }
                 }
+
+                // warn again that ToDeviceEvet has been processed
+                mSession.getDataHandler().onToDeviceEvent(event);
             }
 
             @Override
