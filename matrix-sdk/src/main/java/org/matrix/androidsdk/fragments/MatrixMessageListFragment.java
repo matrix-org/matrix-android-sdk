@@ -1325,22 +1325,19 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     public void run() {
                         // the video content has been uploaded
                         if (isContentUpload) {
-                            // Build the image message
-                            VideoMessage message = fVideoMessage.deepCopy();
-
                             // replace the thumbnail and the media contents by the computed ones
                             getMXMediasCache().saveFileMediaForUrl(contentUri, videoUrl, videoMimeType);
 
                             if (null == fEncryptionResult) {
-                                message.url = contentUri;
+                                fVideoMessage.url = contentUri;
                             } else {
                                 fEncryptionResult.mEncryptedFileInfo.url = contentUri;
-                                message.file = fEncryptionResult.mEncryptedFileInfo;
-                                message.url = null;
+                                fVideoMessage.file = fEncryptionResult.mEncryptedFileInfo;
+                                fVideoMessage.url = null;
                             }
 
                             // update the event content with the new message info
-                            videoRow.getEvent().updateContent(JsonUtils.toJson(message));
+                            videoRow.getEvent().updateContent(JsonUtils.toJson(fVideoMessage));
 
                             Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
@@ -1356,6 +1353,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                 fVideoMessage.info.thumbnail_file = fEncryptionResult.mEncryptedFileInfo;
                                 fVideoMessage.info.thumbnail_url = null;
                             }
+
+                            // update the event content with the new message info
+                            videoRow.getEvent().updateContent(JsonUtils.toJson(fVideoMessage));
 
                             // upload the video
                             uploadVideoContent(fVideoMessage, videoRow, thumbnailUrl, thumbnailMimeType, videoUrl, fVideoMessage.body, videoMimeType);
