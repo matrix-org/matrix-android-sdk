@@ -1392,23 +1392,36 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param mediaFilename the mediaFilename
      * @param mimeType the image mine type
      */
-    public void uploadImageContent(final String thumbnailUrl, final String imageUrl, final String mediaFilename, String mimeType) {
-        // create a tmp row
-        final ImageMessage tmpImageMessage = new ImageMessage();
+    public void uploadImageContent(ImageMessage imageMessage, final MessageRow aImageRow,  final String thumbnailUrl, final String imageUrl, final String mediaFilename, final String imageMimeType) {
+        if (null == imageMessage) {
+            imageMessage.url = imageUrl;
+            imageMessage.thumbnailUrl = thumbnailUrl;
+            imageMessage.body = mediaFilename;
+        }
 
-        tmpImageMessage.url = imageUrl;
-        tmpImageMessage.thumbnailUrl = thumbnailUrl;
-        tmpImageMessage.body = mediaFilename;
-
+        String mimeType = null;
         MXEncryptedAttachments.EncryptionResult encryptionResult = null;
-
         InputStream imageStream = null;
 
         try {
-            Uri uri = Uri.parse(imageUrl);
-            Room.fillImageInfo(getActivity(), tmpImageMessage, uri, mimeType);
+            Uri imageUri = Uri.parse(imageUrl);
+            Room.fillImageInfo(getActivity(), imageMessage, imageUri, imageMimeType);
 
-            String filename = uri.getPath();
+            if (null != thumbnailUrl) {
+                Uri thumbUri = Uri.parse(thumbnailUrl);
+                Room.fillThumbnailInfo(getActivity(), imageMessage, thumbUri, "image/jpeg");
+            }
+
+            String filename;
+
+            if (imageMessage.isThumbnailLocalContent()) {
+                mimeType = "image/jpeg";
+                filename = Uri.parse(thumbnailUrl).getPath();
+            } else {
+                mimeType = imageMimeType;
+                filename = imageUri.getPath();
+            }
+
             imageStream = new FileInputStream(new File(filename));
 
             if (mRoom.isEncrypted() && mSession.isCryptoEnabled() && (null != imageStream)) {
@@ -1424,21 +1437,26 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
             }
 
-            if (null == tmpImageMessage.body) {
-                tmpImageMessage.body = uri.getLastPathSegment();
-            }
+            imageMessage.body = imageUri.getLastPathSegment();
+
         } catch (Exception e) {
-            Log.e(LOG_TAG, "uploadImageContent failed with " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "uploadImageContent failed with " + e.getMessage());
+        }
+
+        if (TextUtils.isEmpty(imageMessage.body)) {
+            imageMessage.body = "Image";
         }
 
         // remove any displayed MessageRow with this URL
         // to avoid duplicate
-        final MessageRow imageRow = addMessageRow(tmpImageMessage);
+        final String fMimeType = mimeType;
+        final MessageRow imageRow = (null == aImageRow) ? addMessageRow(imageMessage) : aImageRow;
+        final ImageMessage fImageMessage = imageMessage;
         imageRow.getEvent().mSentState = Event.SentState.SENDING;
 
         final MXEncryptedAttachments.EncryptionResult fEncryptionResult = encryptionResult;
 
-        getSession().getMediasCache().uploadContent(imageStream, tmpImageMessage.body, mimeType, imageUrl, new MXMediaUploadListener() {
+        getSession().getMediasCache().uploadContent(imageStream, imageMessage.isThumbnailLocalContent() ? (imageMessage.body + "-thumb") : imageMessage.body, mimeType, imageUrl, new MXMediaUploadListener() {
 
             @Override
             public void onUploadStart(String uploadId) {
@@ -1477,34 +1495,45 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     @Override
                     public void run() {
                         // Build the image message
-                        ImageMessage message = tmpImageMessage.deepCopy();
+                        ImageMessage message = fImageMessage.deepCopy();
 
-                        // replace the thumbnail and the media contents by the computed ones
-                        getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
-                        getMXMediasCache().saveFileMediaForUrl(contentUri, imageUrl, tmpImageMessage.getMimeType());
+                        if (fImageMessage.isThumbnailLocalContent()) {
+                            getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
 
-                        message.thumbnailUrl = null;
+                            if (null != fEncryptionResult) {
+                                message.thumbnailInfo.thumbnail_file = fEncryptionResult.mEncryptedFileInfo;
+                                message.thumbnailInfo.thumbnail_file.url = contentUri;
+                                message.thumbnailUrl = null;
+                            } else {
+                                message.thumbnailUrl = contentUri;
+                            }
 
-                        if (null != fEncryptionResult) {
-                            message.file = fEncryptionResult.mEncryptedFileInfo;
-                            message.file.url = contentUri;
-                            message.url = null;
+                            // upload the high res picture
+                            uploadImageContent(message, imageRow,  thumbnailUrl, imageUrl, mediaFilename,  fMimeType);
                         } else {
-                            message.url = contentUri;
+                            // replace the thumbnail and the media contents by the computed ones
+                            getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
+                            getMXMediasCache().saveFileMediaForUrl(contentUri, imageUrl, message.getMimeType());
+
+                            message.thumbnailUrl = null;
+
+                            if (null != fEncryptionResult) {
+                                message.file = fEncryptionResult.mEncryptedFileInfo;
+                                message.file.url = contentUri;
+                                message.url = null;
+                            } else {
+                                message.url = contentUri;
+                            }
+
+
+
+                            // update the event content with the new message info
+                            imageRow.getEvent().updateContent(JsonUtils.toJson(message));
+
+                            Log.d(LOG_TAG, "Uploaded to " + contentUri);
+
+                            send(imageRow);
                         }
-
-                        message.info = tmpImageMessage.info;
-
-                        if (TextUtils.isEmpty(message.body)) {
-                            message.body = "Image";
-                        }
-
-                        // update the event content with the new message info
-                        imageRow.getEvent().updateContent(JsonUtils.toJson(message));
-
-                        Log.d(LOG_TAG, "Uploaded to " + contentUri);
-
-                        send(imageRow);
                     }
                 });
             }
@@ -1717,8 +1746,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             ImageMessage imageMessage = (ImageMessage)message;
 
             // media has not been uploaded
-            if (imageMessage.isLocalContent()) {
-                uploadImageContent(imageMessage.thumbnailUrl, imageMessage.url, imageMessage.body, imageMessage.getMimeType());
+            if (imageMessage.isLocalContent() || imageMessage.isThumbnailLocalContent()) {
+                uploadImageContent(imageMessage, null, imageMessage.thumbnailUrl, imageMessage.url, imageMessage.body, imageMessage.getMimeType());
                 return;
             }
         } else if (message instanceof FileMessage) {

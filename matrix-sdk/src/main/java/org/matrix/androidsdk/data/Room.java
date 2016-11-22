@@ -1351,17 +1351,17 @@ public class Room {
         }
     }
 
+
     /**
-     * Fills the imageMessage imageInfo.
+     * Define ImageInfo for an image uri
      * @param context Application context for the content resolver.
-     * @param imageMessage The imageMessage to fill.
      * @param imageUri The full size image uri.
      * @param mimeType The image mimeType
      */
-    public static void fillImageInfo(Context context, ImageMessage imageMessage, Uri imageUri, String mimeType) {
-        try {
-            ImageInfo imageInfo = new ImageInfo();
+    public static ImageInfo getImageInfo(Context context, Uri imageUri, String mimeType) {
+        ImageInfo imageInfo = new ImageInfo();
 
+        try {
             String filename = imageUri.getPath();
             File file = new File(filename);
 
@@ -1380,9 +1380,9 @@ public class Room {
             if ((null != sWidth) && (null != sHeight)) {
 
                 if ( (imageInfo.orientation  == ExifInterface.ORIENTATION_TRANSPOSE) ||
-                     (imageInfo.orientation  == ExifInterface.ORIENTATION_ROTATE_90) ||
-                     (imageInfo.orientation  == ExifInterface.ORIENTATION_TRANSVERSE) ||
-                     (imageInfo.orientation  == ExifInterface.ORIENTATION_ROTATE_270)) {
+                        (imageInfo.orientation  == ExifInterface.ORIENTATION_ROTATE_90) ||
+                        (imageInfo.orientation  == ExifInterface.ORIENTATION_TRANSVERSE) ||
+                        (imageInfo.orientation  == ExifInterface.ORIENTATION_ROTATE_270)) {
                     height = Integer.parseInt(sWidth);
                     width = Integer.parseInt(sHeight);
                 } else {
@@ -1417,12 +1417,34 @@ public class Room {
 
             imageInfo.mimetype = mimeType;
             imageInfo.size = file.length();
-
-            imageMessage.info = imageInfo;
-
         } catch (Exception e) {
             Log.e(LOG_TAG, "fillImageInfo : failed" + e.getLocalizedMessage());
+            imageInfo = null;
         }
+
+        return imageInfo;
+    }
+
+    /**
+     * Fills the imageMessage imageInfo.
+     * @param context Application context for the content resolver.
+     * @param imageMessage The imageMessage to fill.
+     * @param imageUri The full size image uri.
+     * @param mimeType The image mimeType
+     */
+    public static void fillImageInfo(Context context, ImageMessage imageMessage, Uri imageUri, String mimeType) {
+        imageMessage.info = getImageInfo(context, imageUri, mimeType);
+    }
+
+    /**
+     * Fills the imageMessage imageInfo.
+     * @param context Application context for the content resolver.
+     * @param imageMessage The imageMessage to fill.
+     * @param imageUri The full size image uri.
+     * @param mimeType The image mimeType
+     */
+    public static void fillThumbnailInfo(Context context, ImageMessage imageMessage, Uri thumbUri, String mimeType) {
+        imageMessage.thumbnailInfo = getImageInfo(context, thumbUri, mimeType);
     }
 
     //================================================================================

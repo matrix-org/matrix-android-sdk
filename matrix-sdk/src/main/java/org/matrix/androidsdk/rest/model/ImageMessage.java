@@ -89,6 +89,16 @@ public class ImageMessage extends Message {
         }
     }
 
+    /**
+     * @return true if the thumbnail is a file url
+     */
+    public boolean isThumbnailLocalContent() {
+        return (null != info) && (null != thumbnailUrl) && (thumbnailUrl.startsWith("file://"));
+    }
+
+    /**
+     * @return true if the media url is a file one.
+     */
     public boolean isLocalContent() {
         return (null != url) && (url.startsWith("file://"));
     }
