@@ -1053,9 +1053,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             if (mRoom.isEncrypted() && mSession.isCryptoEnabled() && (null != fileStream)) {
                 encryptionResult = MXEncryptedAttachments.encryptAttachment(fileStream, mimeType);
-
+                fileStream.close();
                 if (null != encryptionResult) {
-                    fileStream.close();
                     fileStream = encryptionResult.mEncryptedStream;
                     mimeType = "application/octet-stream";
                 } else {
@@ -1248,9 +1247,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 if (mRoom.isEncrypted() && mSession.isCryptoEnabled() && (null != imageStream)) {
                     encryptionResult = MXEncryptedAttachments.encryptAttachment(imageStream, thumbnailMimeType);
+                    imageStream.close();
 
                     if (null != encryptionResult) {
-                        imageStream.close();
                         imageStream = encryptionResult.mEncryptedStream;
                         mimeType = "application/octet-stream";
                     } else {
@@ -1266,9 +1265,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 if (mRoom.isEncrypted() && mSession.isCryptoEnabled() && (null != imageStream)) {
                     encryptionResult = MXEncryptedAttachments.encryptAttachment(imageStream, thumbnailMimeType);
+                    imageStream.close();
 
                     if (null != encryptionResult) {
-                        imageStream.close();
                         imageStream = encryptionResult.mEncryptedStream;
                         mimeType = "application/octet-stream";
                     } else {
@@ -1432,9 +1431,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             if (mRoom.isEncrypted() && mSession.isCryptoEnabled() && (null != imageStream)) {
                 encryptionResult = MXEncryptedAttachments.encryptAttachment(imageStream, mimeType);
+                imageStream.close();
 
                 if (null != encryptionResult) {
-                    imageStream.close();
                     imageStream = encryptionResult.mEncryptedStream;
                     mimeType = "application/octet-stream";
                 } else {

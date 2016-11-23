@@ -16,6 +16,7 @@
 
 package org.matrix.androidsdk.crypto;
 
+import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
@@ -211,8 +212,12 @@ public class MXEncryptedAttachments implements Serializable {
                 return null;
             }
 
+            InputStream decryptedStream =  new ByteArrayInputStream(outStream.toByteArray());
+            outStream.close();
+
             Log.d(LOG_TAG, "Decrypt in " + (System.currentTimeMillis() - t0) + " ms");
-            return new ByteArrayInputStream(outStream.toByteArray());
+
+            return decryptedStream;
         } catch (Exception e) {
             Log.e(LOG_TAG, "## decryptAttachment() :  failed " + e.getMessage());
         } catch (OutOfMemoryError oom) {
