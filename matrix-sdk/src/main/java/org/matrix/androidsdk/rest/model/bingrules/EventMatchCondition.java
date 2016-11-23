@@ -42,9 +42,19 @@ public class EventMatchCondition extends Condition {
      * @return true if the event satisfies the condition
      */
     public boolean isSatisfied(Event event) {
-        JsonObject eventJson = JsonUtils.toJson(event);
-        // Extract the value that we want to match
-        String fieldVal = extractField(eventJson, key);
+        String fieldVal = null;
+
+        // some informations are in the decrypted event (like type)
+        if (event.isEncrypted() && (null != event.getClearEvent())) {
+            JsonObject eventJson = JsonUtils.toJson(event.getClearEvent());
+            fieldVal = extractField(eventJson, key);
+        }
+
+        if (TextUtils.isEmpty(fieldVal)) {
+            JsonObject eventJson = JsonUtils.toJson(event);
+            fieldVal = extractField(eventJson, key);
+        }
+
         if (TextUtils.isEmpty(fieldVal)) {
             return false;
         }
