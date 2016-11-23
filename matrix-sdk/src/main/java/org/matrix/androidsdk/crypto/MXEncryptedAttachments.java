@@ -68,16 +68,16 @@ public class MXEncryptedAttachments implements Serializable {
         SecureRandom secureRandom = new SecureRandom();
 
         // generate a random iv key
-	// Half of the IV is random, the lower order bits are zeroed
-	// such that the counter never wraps.
-	// See https://github.com/matrix-org/matrix-ios-kit/blob/3dc0d8e46b4deb6669ed44f72ad79be56471354c/MatrixKit/Models/Room/MXEncryptedAttachments.m#L75
+	    // Half of the IV is random, the lower order bits are zeroed
+	    // such that the counter never wraps.
+	    // See https://github.com/matrix-org/matrix-ios-kit/blob/3dc0d8e46b4deb6669ed44f72ad79be56471354c/MatrixKit/Models/Room/MXEncryptedAttachments.m#L75
         byte[] initVectorBytes = new byte[16];
+        Arrays.fill(initVectorBytes, (byte)0);
 
-	byte[] ivRandomPart = new byte[8];
+	    byte[] ivRandomPart = new byte[8];
         secureRandom.nextBytes(ivRandomPart);
 
-	System.arrayCopy(ivRandomPart, 0, initVectorBytes, 0, 8);
-        Arrays.fill(initVectorBytes, 8, 16, 0);
+	    System.arraycopy(ivRandomPart, 0, initVectorBytes, 0, ivRandomPart.length);
 
         byte[] key = new byte[32];
         secureRandom.nextBytes(key);

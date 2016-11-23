@@ -51,7 +51,6 @@ public class AttachmentEncryptionTest {
         return Base64.encodeToString(buffer, 0, len, Base64.DEFAULT).replaceAll("\n", "").replaceAll("=", "");
     }
 
-
     @Test
     public void checkDecrypt1() throws Exception {
         EncryptedFileInfo encryptedFileInfo = new EncryptedFileInfo();
@@ -95,7 +94,7 @@ public class AttachmentEncryptionTest {
         EncryptedFileInfo encryptedFileInfo = new EncryptedFileInfo();
         encryptedFileInfo.v = "v2";
         HashMap<String, String> hashMap = new HashMap<>();
-        hashMap.put("sha256", "YzF08lARDdOCzJpzuSwsjTNlQc4pHxpdHcXiD/wpK6k");
+        hashMap.put("sha256", "IOq7/dHHB+mfHfxlRY5XMeCWEwTPmlf4cJcgrkf6fVU");
         encryptedFileInfo.hashes = hashMap;
 
         encryptedFileInfo.key = new EncryptedFileKey();
@@ -106,7 +105,8 @@ public class AttachmentEncryptionTest {
 
         encryptedFileInfo.iv = "//////////8AAAAAAAAAAA";
 
-        assertTrue(TextUtils.equals(checkDecryption("zhtFStAeFx0s+9L/sSQO+WQMtldqYEHqTxMduJrCIpnkyer09kxJJuA4K+adQE4w+7jZe/vR9kIcqj9rOhDR8Q",
+        assertTrue(TextUtils.equals(checkDecryption(
+                "zhtFStAeFx0s+9L/sSQO+WQMtldqYEHqTxMduJrCIpnkyer09kxJJuA4K+adQE4w+7jZe/vR9kIcqj9rOhDR8Q",
                 encryptedFileInfo),
                 "YWxwaGFudW1lcmljYWxseWFscGhhbnVtZXJpY2FsbHlhbHBoYW51bWVyaWNhbGx5YWxwaGFudW1lcmljYWxseQ"));
     }
