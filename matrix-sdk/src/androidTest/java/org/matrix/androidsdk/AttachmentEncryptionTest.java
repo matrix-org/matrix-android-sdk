@@ -76,7 +76,7 @@ public class AttachmentEncryptionTest {
         EncryptedFileInfo encryptedFileInfo = new EncryptedFileInfo();
         encryptedFileInfo.v = "v1";
         HashMap<String, String> hashMap = new HashMap<>();
-        hashMap.put("sha256", "geLWS2ptBew5aPLJRTK+QnI3Krdl3UaxN8qfahHWhfc");
+        hashMap.put("sha256", "YzF08lARDdOCzJpzuSwsjTNlQc4pHxpdHcXiD/wpK6k");
         encryptedFileInfo.hashes = hashMap;
 
         encryptedFileInfo.key = new EncryptedFileKey();
@@ -85,17 +85,17 @@ public class AttachmentEncryptionTest {
         encryptedFileInfo.key.key_ops = Arrays.asList("encrypt","decrypt");
         encryptedFileInfo.key.kty = "oct";
 
-        encryptedFileInfo.iv = "/////////////////////w";
+        encryptedFileInfo.iv = "//////////8AAAAAAAAAAA";
 
-        assertTrue(TextUtils.equals(checkDecryption("nZxRAVw962fwUQ5/", encryptedFileInfo), "SGVsbG8sIFdvcmxk"));
+        assertTrue(TextUtils.equals(checkDecryption("5xJZTt5cQicm+9f4", encryptedFileInfo), "SGVsbG8sIFdvcmxk"));
     }
 
     @Test
     public void checkDecrypt3() throws Exception {
         EncryptedFileInfo encryptedFileInfo = new EncryptedFileInfo();
-        encryptedFileInfo.v = "v1";
+        encryptedFileInfo.v = "v2";
         HashMap<String, String> hashMap = new HashMap<>();
-        hashMap.put("sha256", "/K4w3G4zlLK312k66KxNPKDkWCn2QAH5aphAkuncTrQ");
+        hashMap.put("sha256", "YzF08lARDdOCzJpzuSwsjTNlQc4pHxpdHcXiD/wpK6k");
         encryptedFileInfo.hashes = hashMap;
 
         encryptedFileInfo.key = new EncryptedFileKey();
@@ -104,9 +104,9 @@ public class AttachmentEncryptionTest {
         encryptedFileInfo.key.key_ops = Arrays.asList("encrypt","decrypt");
         encryptedFileInfo.key.kty = "oct";
 
-        encryptedFileInfo.iv = "/////////////////////w";
+        encryptedFileInfo.iv = "//////////8AAAAAAAAAAA";
 
-        assertTrue(TextUtils.equals(checkDecryption("tJVNBVJ/vl36UQt4Y5e5myqUL3M8OtjRVQljZ+LlwbJeucRIM7CeKDJGGOjlJ1bqpqUdl6zytXJ3dCyvnUi4eQ",
+        assertTrue(TextUtils.equals(checkDecryption("zhtFStAeFx0s+9L/sSQO+WQMtldqYEHqTxMduJrCIpnkyer09kxJJuA4K+adQE4w+7jZe/vR9kIcqj9rOhDR8Q",
                 encryptedFileInfo),
                 "YWxwaGFudW1lcmljYWxseWFscGhhbnVtZXJpY2FsbHlhbHBoYW51bWVyaWNhbGx5YWxwaGFudW1lcmljYWxseQ"));
     }
