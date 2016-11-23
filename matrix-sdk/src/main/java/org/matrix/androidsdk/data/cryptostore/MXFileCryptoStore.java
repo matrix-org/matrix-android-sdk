@@ -422,7 +422,6 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             t.start();
         } catch (OutOfMemoryError oom) {
             Log.e(LOG_TAG, "## flushDevicesForUser() : cannot clone mUsersDevicesInfoMap");
-            System.gc();
         }
     }
 

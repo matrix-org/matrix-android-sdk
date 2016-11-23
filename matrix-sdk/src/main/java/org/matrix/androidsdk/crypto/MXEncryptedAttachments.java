@@ -130,7 +130,6 @@ public class MXEncryptedAttachments implements Serializable {
             Log.e(LOG_TAG, "## encryptAttachment failed " + e.getMessage());
         } catch (OutOfMemoryError oom) {
             Log.e(LOG_TAG, "## encryptAttachment failed " + oom.getMessage());
-            System.gc();
         }
 
         if (null != outStream) {
@@ -230,7 +229,6 @@ public class MXEncryptedAttachments implements Serializable {
             Log.e(LOG_TAG, "## decryptAttachment() :  failed " + e.getMessage());
         } catch (OutOfMemoryError oom) {
             Log.e(LOG_TAG, "## decryptAttachment() :  failed " + oom.getMessage());
-            System.gc();
         }
 
         try {

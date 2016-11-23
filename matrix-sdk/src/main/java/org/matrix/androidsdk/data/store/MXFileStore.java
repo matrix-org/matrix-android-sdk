@@ -857,7 +857,6 @@ public class MXFileStore extends MXMemoryStore {
                                             out.close();
 
                                         } catch (OutOfMemoryError oom) {
-                                            System.gc();
                                             dispatchOOM(oom);
                                         } catch (Exception e) {
                                             Log.e(LOG_TAG, "saveUser failed " + e.getMessage());
@@ -875,7 +874,6 @@ public class MXFileStore extends MXMemoryStore {
                 t.start();
             } catch (OutOfMemoryError oom) {
                 Log.e(LOG_TAG, "saveUser : cannot clone the users list" + oom.getMessage());
-                System.gc();
             }
         }
     }
@@ -1264,7 +1262,6 @@ public class MXFileStore extends MXMemoryStore {
 
             deleteTmpFile(mGzStoreRoomsStateFolderFile, roomId);
         } catch (OutOfMemoryError oom) {
-            System.gc();
             dispatchOOM(oom);
         } catch (Exception e) {
             // (mContext, "saveRoomsState failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
@@ -1444,7 +1441,6 @@ public class MXFileStore extends MXMemoryStore {
 
                                         deleteTmpFile(mStoreRoomsAccountDataFolderFile, roomId);
                                     } catch (OutOfMemoryError oom) {
-                                        System.gc();
                                         dispatchOOM(oom);
                                     } catch (Exception e) {
                                         //Toast.makeText(mContext, "saveRoomsAccountData failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
@@ -1611,7 +1607,6 @@ public class MXFileStore extends MXMemoryStore {
                                         deleteTmpFile(mStoreRoomsSummaryFolderFile, roomId);
 
                                     } catch (OutOfMemoryError oom) {
-                                        System.gc();
                                         dispatchOOM(oom);
                                     } catch (Exception e) {
                                         Log.e(LOG_TAG, "saveSummaries failed : " + e.getLocalizedMessage());
@@ -1784,7 +1779,6 @@ public class MXFileStore extends MXMemoryStore {
 
                                     deleteTmpFile(mStoreFolderFile, MXFILE_STORE_METADATA_FILE_NAME);
                                 } catch (OutOfMemoryError oom) {
-                                    System.gc();
                                     dispatchOOM(oom);
                                 } catch (Exception e) {
                                     // Toast.makeText(mContext, "saveMetaData failed  " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
@@ -1923,7 +1917,6 @@ public class MXFileStore extends MXMemoryStore {
                                     out.close();
                                     deleteTmpFile(mStoreRoomsMessagesReceiptsFolderFile, roomId);
                                 } catch (OutOfMemoryError oom) {
-                                    System.gc();
                                     dispatchOOM(oom);
                                 } catch (Exception e) {
                                     //Toast.makeText(mContext, "saveReceipts failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
