@@ -55,8 +55,9 @@ public class RestClient<T> {
 
     private static final String PARAM_ACCESS_TOKEN = "access_token";
 
-    private static final int CONNECTION_TIMEOUT_MS = 15000;
+    private static final int CONNECTION_TIMEOUT_MS = 30000;
     private static final int READ_TIMEOUT_MS = 60000;
+    private static final int WRITE_TIMEOUT_MS = 60000;
 
     protected Credentials mCredentials;
 
@@ -90,6 +91,7 @@ public class RestClient<T> {
 
         okHttpClient.setConnectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         okHttpClient.setReadTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        okHttpClient.setWriteTimeout(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
         try {
             okHttpClient.setSslSocketFactory(CertUtil.newPinnedSSLSocketFactory(hsConfig));
