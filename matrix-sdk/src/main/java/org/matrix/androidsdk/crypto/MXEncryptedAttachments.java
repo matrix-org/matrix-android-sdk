@@ -16,7 +16,6 @@
 
 package org.matrix.androidsdk.crypto;
 
-import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
@@ -123,6 +122,7 @@ public class MXEncryptedAttachments implements Serializable {
             Log.e(LOG_TAG, "## encryptAttachment failed " + e.getMessage());
         } catch (OutOfMemoryError oom) {
             Log.e(LOG_TAG, "## encryptAttachment failed " + oom.getMessage());
+            System.gc();
         }
 
         if (null != outStream) {
@@ -222,6 +222,7 @@ public class MXEncryptedAttachments implements Serializable {
             Log.e(LOG_TAG, "## decryptAttachment() :  failed " + e.getMessage());
         } catch (OutOfMemoryError oom) {
             Log.e(LOG_TAG, "## decryptAttachment() :  failed " + oom.getMessage());
+            System.gc();
         }
 
         try {
