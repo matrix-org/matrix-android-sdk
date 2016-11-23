@@ -73,10 +73,10 @@ public class MXEncryptedAttachments implements Serializable {
         byte[] initVectorBytes = new byte[16];
         Arrays.fill(initVectorBytes, (byte)0);
 
-	    byte[] ivRandomPart = new byte[8];
+        byte[] ivRandomPart = new byte[8];
         secureRandom.nextBytes(ivRandomPart);
 
-	    System.arraycopy(ivRandomPart, 0, initVectorBytes, 0, ivRandomPart.length);
+        System.arraycopy(ivRandomPart, 0, initVectorBytes, 0, ivRandomPart.length);
 
         byte[] key = new byte[32];
         secureRandom.nextBytes(key);
