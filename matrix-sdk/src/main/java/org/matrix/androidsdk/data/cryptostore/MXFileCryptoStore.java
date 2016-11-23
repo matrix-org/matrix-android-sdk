@@ -18,6 +18,7 @@ package org.matrix.androidsdk.data.cryptostore;
 
 import android.content.Context;
 import android.os.HandlerThread;
+import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -385,39 +386,44 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public void flushDevicesForUser() {
-        final MXUsersDevicesMap<MXDeviceInfo> devicesMapClone = cloneUsersDevicesInfoMap(mUsersDevicesInfoMap);
+        try {
+            final MXUsersDevicesMap<MXDeviceInfo> devicesMapClone = cloneUsersDevicesInfoMap(mUsersDevicesInfoMap);
 
-        Runnable r = new Runnable() {
-            @Override
-            public void run() {
-                getThreadHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        // the file is temporary copied to avoid loosing data if the application crashes.
+            Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    getThreadHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            // the file is temporary copied to avoid loosing data if the application crashes.
 
-                        // delete the previous tmp
-                        if (mDevicesFileTmp.exists()) {
-                            mDevicesFileTmp.delete();
+                            // delete the previous tmp
+                            if (mDevicesFileTmp.exists()) {
+                                mDevicesFileTmp.delete();
+                            }
+
+                            // copy the existing file
+                            if (mDevicesFile.exists()) {
+                                mDevicesFile.renameTo(mDevicesFileTmp);
+                            }
+
+                            storeObject(devicesMapClone, mDevicesFile, "flushDevicesForUser - in background");
+
+                            // remove the tmp file
+                            if (mDevicesFileTmp.exists()) {
+                                mDevicesFileTmp.delete();
+                            }
                         }
+                    });
+                }
+            };
 
-                        // copy the existing file
-                        if (mDevicesFile.exists()) {
-                            mDevicesFile.renameTo(mDevicesFileTmp);
-                        }
-
-                        storeObject(devicesMapClone, mDevicesFile, "flushDevicesForUser - in background");
-
-                        // remove the tmp file
-                        if (mDevicesFileTmp.exists()) {
-                            mDevicesFileTmp.delete();
-                        }
-                    }
-                });
-            }
-        };
-
-        Thread t = new Thread(r);
-        t.start();
+            Thread t = new Thread(r);
+            t.start();
+        } catch (OutOfMemoryError oom) {
+            Log.e(LOG_TAG, "## flushDevicesForUser() : cannot clone mUsersDevicesInfoMap");
+            System.gc();
+        }
     }
 
     @Override
@@ -433,39 +439,44 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     public void storeAlgorithmForRoom(String roomId, String algorithm) {
         if ((null != roomId) && (null != algorithm)) {
             mRoomsAlgorithms.put(roomId, algorithm);
-            final HashMap<String, String> roomsAlgorithms = new HashMap<>(mRoomsAlgorithms);
 
-            Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    getThreadHandler().post(new Runnable() {
-                        @Override
-                        public void run() {
-                            // the file is temporary copied to avoid loosing data if the application crashes.
+            try {
+                final HashMap<String, String> roomsAlgorithms = new HashMap<>(mRoomsAlgorithms);
 
-                            // delete the previous tmp
-                            if (mAlgorithmsFileTmp.exists()) {
-                                mAlgorithmsFileTmp.delete();
+                Runnable r = new Runnable() {
+                    @Override
+                    public void run() {
+                        getThreadHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                // the file is temporary copied to avoid loosing data if the application crashes.
+
+                                // delete the previous tmp
+                                if (mAlgorithmsFileTmp.exists()) {
+                                    mAlgorithmsFileTmp.delete();
+                                }
+
+                                // copy the existing file
+                                if (mAlgorithmsFile.exists()) {
+                                    mAlgorithmsFile.renameTo(mAlgorithmsFileTmp);
+                                }
+
+                                storeObject(roomsAlgorithms, mAlgorithmsFile, "storeAlgorithmForRoom - in background");
+
+                                // remove the tmp file
+                                if (mAlgorithmsFileTmp.exists()) {
+                                    mAlgorithmsFileTmp.delete();
+                                }
                             }
+                        });
+                    }
+                };
 
-                            // copy the existing file
-                            if (mAlgorithmsFile.exists()) {
-                                mAlgorithmsFile.renameTo(mAlgorithmsFileTmp);
-                            }
-
-                            storeObject(roomsAlgorithms, mAlgorithmsFile, "storeAlgorithmForRoom - in background");
-
-                            // remove the tmp file
-                            if (mAlgorithmsFileTmp.exists()) {
-                                mAlgorithmsFileTmp.delete();
-                            }
-                        }
-                    });
-                }
-            };
-
-            Thread t = new Thread(r);
-            t.start();
+                Thread t = new Thread(r);
+                t.start();
+            } catch (OutOfMemoryError oom) {
+                Log.e(LOG_TAG, "## storeAlgorithmForRoom() : oom");
+            }
         }
     }
 
@@ -496,39 +507,43 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public void flushSessions() {
-        final HashMap<String, HashMap<String,  OlmSession>> olmSessions = cloneOlmSessions(mOlmSessions);
+        try {
+            final HashMap<String, HashMap<String, OlmSession>> olmSessions = cloneOlmSessions(mOlmSessions);
 
-        Runnable r = new Runnable() {
-            @Override
-            public void run() {
-                getThreadHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        // the file is temporary copied to avoid loosing data if the application crashes.
+            Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    getThreadHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            // the file is temporary copied to avoid loosing data if the application crashes.
 
-                        // delete the previous tmp
-                        if (mSessionsFileTmp.exists()) {
-                            mSessionsFileTmp.delete();
+                            // delete the previous tmp
+                            if (mSessionsFileTmp.exists()) {
+                                mSessionsFileTmp.delete();
+                            }
+
+                            // copy the existing file
+                            if (mSessionsFile.exists()) {
+                                mSessionsFile.renameTo(mSessionsFileTmp);
+                            }
+
+                            storeObject(olmSessions, mSessionsFile, "storeSession - in background");
+
+                            // remove the tmp file
+                            if (mSessionsFileTmp.exists()) {
+                                mSessionsFileTmp.delete();
+                            }
                         }
+                    });
+                }
+            };
 
-                        // copy the existing file
-                        if (mSessionsFile.exists()) {
-                            mSessionsFile.renameTo(mSessionsFileTmp);
-                        }
-
-                        storeObject(olmSessions, mSessionsFile, "storeSession - in background");
-
-                        // remove the tmp file
-                        if (mSessionsFileTmp.exists()) {
-                            mSessionsFileTmp.delete();
-                        }
-                    }
-                });
-            }
-        };
-
-        Thread t = new Thread(r);
-        t.start();
+            Thread t = new Thread(r);
+            t.start();
+        } catch (OutOfMemoryError oom) {
+            Log.e(LOG_TAG, "## flushSessions() : oom");
+        }
     }
 
     @Override
