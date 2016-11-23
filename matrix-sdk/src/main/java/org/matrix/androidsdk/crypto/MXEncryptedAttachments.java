@@ -164,6 +164,15 @@ public class MXEncryptedAttachments implements Serializable {
             return null;
         }
 
+        // detect if there is no data to decrypt
+        try {
+            if (0 == attachmentStream.available()) {
+                return new ByteArrayInputStream(new byte[0]);
+            }
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Fail to retrieve the file size");
+        }
+
         long t0 = System.currentTimeMillis();
 
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
