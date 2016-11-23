@@ -28,6 +28,7 @@ import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.olm.OlmAccount;
+import org.matrix.olm.OlmInboundGroupSession;
 import org.matrix.olm.OlmMessage;
 import org.matrix.olm.OlmOutboundGroupSession;
 import org.matrix.olm.OlmSession;
@@ -473,7 +474,8 @@ public class MXOlmDevice {
                 String payloadString = null;
 
                 try {
-                    payloadString = session.mSession.decryptMessage(body);
+                    OlmInboundGroupSession.DecryptIndex index = new OlmInboundGroupSession.DecryptIndex();
+                    payloadString = session.mSession.decryptMessage(body, index);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "## decryptGroupMessage () : decryptMessage failed " + e.getMessage());
                 }

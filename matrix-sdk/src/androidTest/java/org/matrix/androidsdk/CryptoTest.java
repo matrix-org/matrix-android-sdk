@@ -19,6 +19,7 @@ package org.matrix.androidsdk;
 
 import android.content.Context;
 import android.net.Uri;
+import android.os.SystemClock;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
 import android.text.TextUtils;
@@ -364,6 +365,9 @@ public class CryptoTest {
         mBobSession.getCrypto().setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED, aliceDeviceFromBobPOV.deviceId, mAliceSession.getMyUserId());
         assertTrue (aliceDeviceFromBobPOV.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED);
 
+        // the device informations are saved in background thread so give a breath to save everything
+        SystemClock.sleep(300);
+
         Credentials bobCredentials = mBobSession.getCredentials();
 
         Uri uri = Uri.parse(CryptoTestHelper.TESTS_HOME_SERVER_URL);
@@ -427,7 +431,7 @@ public class CryptoTest {
 
         assertTrue (null != aliceDeviceFromBobPOV2);
         assertTrue (TextUtils.equals(aliceDeviceFromBobPOV2.fingerprint(), mAliceSession.getCrypto().getOlmDevice().getDeviceEd25519Key()));
-        assertTrue (aliceDeviceFromBobPOV2.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED);
+        assertTrue (aliceDeviceFromBobPOV2.mVerified + " instead of " + MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED, aliceDeviceFromBobPOV2.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED);
 
         // Download again alice device
         final CountDownLatch lock5 = new CountDownLatch(1);
@@ -1273,7 +1277,6 @@ public class CryptoTest {
         doE2ETestWithAliceAndBobInARoomWithCryptedMessages(true);
 
         Credentials bobCredentials = mBobSession.getCredentials();
-
         mBobSession.clear(context);
 
         Uri uri = Uri.parse(CryptoTestHelper.TESTS_HOME_SERVER_URL);
@@ -1345,7 +1348,7 @@ public class CryptoTest {
 
         lock2.await(1000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("backPaginate"));
-        assertTrue(5 == receivedEvents.size());
+        assertTrue(receivedEvents.size() + " instead of 5",5 == receivedEvents.size());
 
         checkEncryptedEvent(receivedEvents.get(0), mRoomId, messagesFromAlice.get(1), mAliceSession);
 
@@ -2216,6 +2219,10 @@ public class CryptoTest {
         roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(1), mAliceSession), callback);
         lock.await(1000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(mMessagesCount == 5);
+
+        // the crypto store data is saved in background thread
+        // so add a delay to let save the data
+        SystemClock.sleep(500);
     }
 
     private boolean checkEncryptedEvent(Event event, String roomId, String clearMessage, MXSession senderSession) throws Exception {
