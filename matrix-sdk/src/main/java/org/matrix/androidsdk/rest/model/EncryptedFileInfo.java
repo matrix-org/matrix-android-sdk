@@ -24,6 +24,7 @@ public class EncryptedFileInfo implements Serializable{
     public EncryptedFileKey key;
     public String iv;
     public Map<String, String> hashes;
+    public String v;
 
     /**
      * Make a deep copy.

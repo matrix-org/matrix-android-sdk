@@ -108,6 +108,7 @@ public class MXEncryptedAttachments implements Serializable {
             result.mEncryptedFileInfo.key.kty = "oct";
             result.mEncryptedFileInfo.key.k = base64ToBase64Url(Base64.encodeToString(key, Base64.DEFAULT));
             result.mEncryptedFileInfo.iv = Base64.encodeToString(initVectorBytes, Base64.DEFAULT).replace("\n", "").replace("=", "");
+            result.mEncryptedFileInfo.v = "v1";
 
             result.mEncryptedFileInfo.hashes = new HashMap();
             result.mEncryptedFileInfo.hashes.put("sha256", base64ToUnpaddedBase64(Base64.encodeToString(messageDigest.digest(), Base64.DEFAULT)));
