@@ -1,3 +1,22 @@
+Changes to Matrix Android SDK in 0.7.2 (2016-11-23)
+=======================================================
+
+Features:
+* Add room.isDirectChatInvitation method
+* Send thumbnail for the image messages
+* Update to the attachment encryptions V2
+
+Improvements: 
+* Improve the cryptostore management to avoid working on UI thread.
+* Improve the crypto store to avoid application logout when the files are corrupted
+* Update the olm lib.
+
+Bugfixes:
+* #680 : Unsupported TLS protocol version
+* #731 : Crypto : Some device informations are not displayed whereas the messages can be decrypted.
+* #739 : [e2e] Ringtone from call is different according to the encryption state of the room
+* #742 : Unable to send messages in #megolm since build 810: Network error 
+
 Changes to Matrix Android SDK in 0.7.1 (2016-11-21)
 =======================================================
 
