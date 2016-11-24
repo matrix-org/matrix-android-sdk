@@ -366,7 +366,7 @@ public class CryptoTest {
         assertTrue (aliceDeviceFromBobPOV.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED);
 
         // the device informations are saved in background thread so give a breath to save everything
-        SystemClock.sleep(300);
+        SystemClock.sleep(500);
 
         Credentials bobCredentials = mBobSession.getCredentials();
 
