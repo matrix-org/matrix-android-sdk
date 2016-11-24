@@ -1,3 +1,12 @@
+Changes to Matrix Android SDK in 0.7.3 (2016-11-24)
+=======================================================
+
+Improvements: 
+* reduce the memory use to avoid having out of memory error.
+
+Bugfixes:
+* The rest clients did not with http v2 servers.
+
 Changes to Matrix Android SDK in 0.7.2 (2016-11-23)
 =======================================================
 
