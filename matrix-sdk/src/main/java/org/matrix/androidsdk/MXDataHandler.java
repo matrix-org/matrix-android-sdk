@@ -1626,13 +1626,16 @@ public class MXDataHandler implements IMXEventListener {
         });
     }
 
-
     @Override
     public void onToDeviceEvent(final Event event) {
         if (null != mCryptoEventsListener) {
             mCryptoEventsListener.onToDeviceEvent(event);
         }
 
+        dispatchOnToDeviceEvent(event);
+    }
+
+    public void dispatchOnToDeviceEvent(final Event event) {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1648,7 +1651,7 @@ public class MXDataHandler implements IMXEventListener {
             }
         });
     }
-    
+
     @Override
     public void onDirectMessageChatRoomsListUpdate() {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();

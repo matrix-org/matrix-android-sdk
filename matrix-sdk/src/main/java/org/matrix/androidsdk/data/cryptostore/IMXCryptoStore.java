@@ -115,14 +115,8 @@ public interface IMXCryptoStore {
      * Store the known devices for a user.
      * @param userId  The user's id.
      * @param devices A map from device id to 'MXDevice' object for the device.
-     * @param flush true to flush the devices information
      */
-    void storeDevicesForUser(String userId, Map<String, MXDeviceInfo> devices, boolean flush);
-
-    /**
-     * Flush the devices for user data
-     */
-    void flushDevicesForUser();
+    void storeDevicesForUser(String userId, Map<String, MXDeviceInfo> devices);
 
     /**
      * Retrieve the known devices for a user.
