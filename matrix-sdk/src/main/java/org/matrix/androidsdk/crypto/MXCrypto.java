@@ -170,7 +170,7 @@ public class MXCrypto {
 
         myDevices.put(mMyDevice.deviceId, mMyDevice);
 
-        mCryptoStore.storeDevicesForUser(mSession.getMyUserId(), myDevices, true);
+        mCryptoStore.storeDevicesForUser(mSession.getMyUserId(), myDevices);
         mSession.getDataHandler().setCryptoEventsListener(mEventListener);
         mLastNewDeviceMessageTsByUserDeviceRoom = new MXUsersDevicesMap<>();
     }
@@ -551,14 +551,10 @@ public class MXCrypto {
                         }
 
                         // Update the store. Note
-                        mCryptoStore.storeDevicesForUser(userId, devices, false);
+                        mCryptoStore.storeDevicesForUser(userId, devices);
 
                         // And the response result
                         stored.setObjects(devices, userId);
-                    }
-
-                    if (deviceKeys.userIds().size() >= 0) {
-                        mCryptoStore.flushDevicesForUser();
                     }
 
                     if (null != callback) {
@@ -1290,7 +1286,7 @@ public class MXCrypto {
                 }
 
                 // warn again that ToDeviceEvet has been processed
-                mSession.getDataHandler().onToDeviceEvent(event);
+                mSession.getDataHandler().dispatchOnToDeviceEvent(event);
             }
 
             @Override
