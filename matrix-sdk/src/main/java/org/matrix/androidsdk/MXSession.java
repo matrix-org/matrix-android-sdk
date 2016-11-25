@@ -835,11 +835,6 @@ public class MXSession {
             if (android.util.Patterns.EMAIL_ADDRESS.matcher(aParticipantUserId).matches()) {
                 // retrieve the identity server
                 String identityServer = mHsConfig.getIdentityServerUri().toString();
-                if (identityServer.startsWith("http://")) {
-                    identityServer = identityServer.substring("http://".length());
-                } else if (identityServer.startsWith("https://")) {
-                    identityServer = identityServer.substring("https://".length());
-                }
 
                 // build the invite third party object
                 HashMap<String, String> parameters = new HashMap<>();
