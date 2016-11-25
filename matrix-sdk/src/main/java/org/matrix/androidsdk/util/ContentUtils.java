@@ -17,6 +17,7 @@ package org.matrix.androidsdk.util;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import org.matrix.androidsdk.rest.model.ImageInfo;
@@ -27,6 +28,7 @@ import java.io.File;
  * Static content utility methods.
  */
 public class ContentUtils {
+    private static final String LOG_TAG = "ContentUtils";
 
     /**
      * Build an ImageInfo object based on the image at the given path.
@@ -35,14 +37,18 @@ public class ContentUtils {
      */
     public static ImageInfo getImageInfoFromFile(String filePath) {
         ImageInfo imageInfo = new ImageInfo();
-        Bitmap imageBitmap = BitmapFactory.decodeFile(filePath);
-        imageInfo.w = imageBitmap.getWidth();
-        imageInfo.h = imageBitmap.getHeight();
+        try {
+            Bitmap imageBitmap = BitmapFactory.decodeFile(filePath);
+            imageInfo.w = imageBitmap.getWidth();
+            imageInfo.h = imageBitmap.getHeight();
 
-        File file = new File(filePath);
-        imageInfo.size = file.length();
+            File file = new File(filePath);
+            imageInfo.size = file.length();
 
-        imageInfo.mimetype = getMimeType(filePath);
+            imageInfo.mimetype = getMimeType(filePath);
+        } catch (OutOfMemoryError oom) {
+            Log.e(LOG_TAG, "## getImageInfoFromFile() : oom");
+        }
 
         return imageInfo;
     }

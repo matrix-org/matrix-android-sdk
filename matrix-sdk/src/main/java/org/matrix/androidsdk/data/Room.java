@@ -1406,6 +1406,8 @@ public class Room {
 
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "fillImageInfo : failed" + e.getLocalizedMessage());
+                } catch (OutOfMemoryError oom) {
+                    Log.e(LOG_TAG, "fillImageInfo : oom");
                 }
             }
 

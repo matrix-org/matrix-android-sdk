@@ -1356,6 +1356,12 @@ public class MXSession {
     public List<String> getDirectChatRoomIdsList() {
         IMXStore store = getDataHandler().getStore();
         ArrayList<String> directChatRoomIdsList = new ArrayList<>();
+
+        if (null == store) {
+            Log.e(LOG_TAG,"## getDirectChatRoomIdsList() : null store");
+            return directChatRoomIdsList;
+        }
+
         Collection<List<String>> listOfList = null;
 
         if (null != store.getDirectChatRoomsDict()) {

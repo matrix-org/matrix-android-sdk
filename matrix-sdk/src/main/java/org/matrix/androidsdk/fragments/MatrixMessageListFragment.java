@@ -1053,9 +1053,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             if (mRoom.isEncrypted() && mSession.isCryptoEnabled() && (null != fileStream)) {
                 encryptionResult = MXEncryptedAttachments.encryptAttachment(fileStream, mimeType);
-
+                fileStream.close();
                 if (null != encryptionResult) {
-                    fileStream.close();
                     fileStream = encryptionResult.mEncryptedStream;
                     mimeType = "application/octet-stream";
                 } else {
@@ -1248,9 +1247,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 if (mRoom.isEncrypted() && mSession.isCryptoEnabled() && (null != imageStream)) {
                     encryptionResult = MXEncryptedAttachments.encryptAttachment(imageStream, thumbnailMimeType);
+                    imageStream.close();
 
                     if (null != encryptionResult) {
-                        imageStream.close();
                         imageStream = encryptionResult.mEncryptedStream;
                         mimeType = "application/octet-stream";
                     } else {
@@ -1266,9 +1265,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 if (mRoom.isEncrypted() && mSession.isCryptoEnabled() && (null != imageStream)) {
                     encryptionResult = MXEncryptedAttachments.encryptAttachment(imageStream, thumbnailMimeType);
+                    imageStream.close();
 
                     if (null != encryptionResult) {
-                        imageStream.close();
                         imageStream = encryptionResult.mEncryptedStream;
                         mimeType = "application/octet-stream";
                     } else {
@@ -1343,15 +1342,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                             send(videoRow);
                         } else {
-                            // ony upload the thumbnail
-                            getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), thumbnailMimeType, true);
-
                             if (null == fEncryptionResult) {
                                 fVideoMessage.info.thumbnail_url = contentUri;
+                                getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), thumbnailMimeType, true);
                             } else {
                                 fEncryptionResult.mEncryptedFileInfo.url = contentUri;
                                 fVideoMessage.info.thumbnail_file = fEncryptionResult.mEncryptedFileInfo;
                                 fVideoMessage.info.thumbnail_url = null;
+                                getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, -1, -1, thumbnailMimeType, true);
                             }
 
                             // update the event content with the new message info
@@ -1433,9 +1431,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             if (mRoom.isEncrypted() && mSession.isCryptoEnabled() && (null != imageStream)) {
                 encryptionResult = MXEncryptedAttachments.encryptAttachment(imageStream, mimeType);
+                imageStream.close();
 
                 if (null != encryptionResult) {
-                    imageStream.close();
                     imageStream = encryptionResult.mEncryptedStream;
                     mimeType = "application/octet-stream";
                 } else {
@@ -1501,15 +1499,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     @Override
                     public void run() {
                         if (fImageMessage.isThumbnailLocalContent()) {
-                            // replace the thumbnail and the media contents by the computed one
-                            getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
-
                             if (null != fEncryptionResult) {
                                 fImageMessage.info.thumbnail_file = fEncryptionResult.mEncryptedFileInfo;
                                 fImageMessage.info.thumbnail_file.url = contentUri;
                                 fImageMessage.thumbnailUrl = null;
+                                getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, -1, -1, "image/jpeg");
+
                             } else {
                                 fImageMessage.thumbnailUrl = contentUri;
+                                getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
                             }
 
                             // update the event content with the new message info

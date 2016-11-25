@@ -18,6 +18,7 @@ package org.matrix.androidsdk.data.store;
 
 import android.content.Context;
 import android.os.HandlerThread;
+import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -807,69 +808,73 @@ public class MXFileStore extends MXMemoryStore {
             final ArrayList<String> fUserIds = mUserIdsToCommit;
             mUserIdsToCommit = new ArrayList<>();
 
-            final ArrayList<User> fUsers= new ArrayList<>(mUsers.values());
+            try {
+                final ArrayList<User> fUsers = new ArrayList<>(mUsers.values());
 
-            Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    mFileStoreHandler.post(new Runnable() {
-                        public void run() {
-                            if (!isKilled()) {
-                                Log.d(LOG_TAG, "saveUsers " + fUserIds.size()  + " users (" + fUsers.size() + " known ones)");
+                Runnable r = new Runnable() {
+                    @Override
+                    public void run() {
+                        mFileStoreHandler.post(new Runnable() {
+                            public void run() {
+                                if (!isKilled()) {
+                                    Log.d(LOG_TAG, "saveUsers " + fUserIds.size() + " users (" + fUsers.size() + " known ones)");
 
-                                long start = System.currentTimeMillis();
+                                    long start = System.currentTimeMillis();
 
-                                // the users are split into groups to save time
-                                HashMap<Integer, ArrayList<User>> usersGroups = new HashMap<>();
+                                    // the users are split into groups to save time
+                                    HashMap<Integer, ArrayList<User>> usersGroups = new HashMap<>();
 
-                                // finds the group for each updated user
-                                for(String userId : fUserIds) {
-                                    User user = mUsers.get(userId);
-                                    if (null != user) {
-                                        int hashCode = user.getStorageHashKey();
+                                    // finds the group for each updated user
+                                    for (String userId : fUserIds) {
+                                        User user = mUsers.get(userId);
+                                        if (null != user) {
+                                            int hashCode = user.getStorageHashKey();
 
-                                        if (!usersGroups.containsKey(hashCode)) {
-                                            usersGroups.put(hashCode, new ArrayList<User>());
+                                            if (!usersGroups.containsKey(hashCode)) {
+                                                usersGroups.put(hashCode, new ArrayList<User>());
+                                            }
                                         }
                                     }
-                                }
 
-                                // gather the user to the dedicated group if they need to be updated
-                                for(User user : fUsers) {
-                                    if(usersGroups.containsKey(user.getStorageHashKey())) {
-                                        usersGroups.get(user.getStorageHashKey()).add(user);
+                                    // gather the user to the dedicated group if they need to be updated
+                                    for (User user : fUsers) {
+                                        if (usersGroups.containsKey(user.getStorageHashKey())) {
+                                            usersGroups.get(user.getStorageHashKey()).add(user);
+                                        }
                                     }
-                                }
 
-                                // save the groups
-                                for(int hashKey : usersGroups.keySet()) {
+                                    // save the groups
+                                    for (int hashKey : usersGroups.keySet()) {
 
-                                    File presenceFile = new File(mStoreUserFolderFile, hashKey + "");
+                                        File presenceFile = new File(mStoreUserFolderFile, hashKey + "");
 
-                                    try {
-                                        FileOutputStream fos = new FileOutputStream(presenceFile);
-                                        GZIPOutputStream gz = new GZIPOutputStream(fos);
-                                        ObjectOutputStream out = new ObjectOutputStream(gz);
+                                        try {
+                                            FileOutputStream fos = new FileOutputStream(presenceFile);
+                                            GZIPOutputStream gz = new GZIPOutputStream(fos);
+                                            ObjectOutputStream out = new ObjectOutputStream(gz);
 
-                                        out.writeObject(usersGroups.get(hashKey));
-                                        out.close();
+                                            out.writeObject(usersGroups.get(hashKey));
+                                            out.close();
 
-                                    } catch (OutOfMemoryError oom) {
-                                        dispatchOOM(oom);
-                                    } catch (Exception e) {
-                                        Log.e(LOG_TAG, "saveUser failed " + e.getMessage());
+                                        } catch (OutOfMemoryError oom) {
+                                            dispatchOOM(oom);
+                                        } catch (Exception e) {
+                                            Log.e(LOG_TAG, "saveUser failed " + e.getMessage());
+                                        }
                                     }
-                                }
 
-                                Log.d(LOG_TAG, "saveUsers done in " + (System.currentTimeMillis() - start) + " ms");
+                                    Log.d(LOG_TAG, "saveUsers done in " + (System.currentTimeMillis() - start) + " ms");
+                                }
                             }
-                        }
-                    });
-                }
-            };
+                        });
+                    }
+                };
 
-            Thread t = new Thread(r);
-            t.start();
+                Thread t = new Thread(r);
+                t.start();
+            } catch (OutOfMemoryError oom) {
+                Log.e(LOG_TAG, "saveUser : cannot clone the users list" + oom.getMessage());
+            }
         }
     }
 

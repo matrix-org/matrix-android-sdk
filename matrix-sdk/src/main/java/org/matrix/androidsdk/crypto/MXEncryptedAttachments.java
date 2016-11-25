@@ -67,8 +67,16 @@ public class MXEncryptedAttachments implements Serializable {
         SecureRandom secureRandom = new SecureRandom();
 
         // generate a random iv key
+	    // Half of the IV is random, the lower order bits are zeroed
+	    // such that the counter never wraps.
+	    // See https://github.com/matrix-org/matrix-ios-kit/blob/3dc0d8e46b4deb6669ed44f72ad79be56471354c/MatrixKit/Models/Room/MXEncryptedAttachments.m#L75
         byte[] initVectorBytes = new byte[16];
-        secureRandom.nextBytes(initVectorBytes);
+        Arrays.fill(initVectorBytes, (byte)0);
+
+        byte[] ivRandomPart = new byte[8];
+        secureRandom.nextBytes(ivRandomPart);
+
+        System.arraycopy(ivRandomPart, 0, initVectorBytes, 0, ivRandomPart.length);
 
         byte[] key = new byte[32];
         secureRandom.nextBytes(key);
@@ -108,7 +116,7 @@ public class MXEncryptedAttachments implements Serializable {
             result.mEncryptedFileInfo.key.kty = "oct";
             result.mEncryptedFileInfo.key.k = base64ToBase64Url(Base64.encodeToString(key, Base64.DEFAULT));
             result.mEncryptedFileInfo.iv = Base64.encodeToString(initVectorBytes, Base64.DEFAULT).replace("\n", "").replace("=", "");
-            result.mEncryptedFileInfo.v = "v1";
+            result.mEncryptedFileInfo.v = "v2";
 
             result.mEncryptedFileInfo.hashes = new HashMap();
             result.mEncryptedFileInfo.hashes.put("sha256", base64ToUnpaddedBase64(Base64.encodeToString(messageDigest.digest(), Base64.DEFAULT)));
@@ -164,6 +172,15 @@ public class MXEncryptedAttachments implements Serializable {
             return null;
         }
 
+        // detect if there is no data to decrypt
+        try {
+            if (0 == attachmentStream.available()) {
+                return new ByteArrayInputStream(new byte[0]);
+            }
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Fail to retrieve the file size");
+        }
+
         long t0 = System.currentTimeMillis();
 
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
@@ -202,8 +219,12 @@ public class MXEncryptedAttachments implements Serializable {
                 return null;
             }
 
+            InputStream decryptedStream =  new ByteArrayInputStream(outStream.toByteArray());
+            outStream.close();
+
             Log.d(LOG_TAG, "Decrypt in " + (System.currentTimeMillis() - t0) + " ms");
-            return new ByteArrayInputStream(outStream.toByteArray());
+
+            return decryptedStream;
         } catch (Exception e) {
             Log.e(LOG_TAG, "## decryptAttachment() :  failed " + e.getMessage());
         } catch (OutOfMemoryError oom) {

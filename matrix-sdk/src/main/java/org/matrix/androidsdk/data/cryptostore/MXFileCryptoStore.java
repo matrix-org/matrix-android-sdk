@@ -59,6 +59,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private static final String MXFILE_CRYPTO_STORE_ACCOUNT_FILE = "account";
     private static final String MXFILE_CRYPTO_STORE_ACCOUNT_FILE_TMP = "account.tmp";
 
+    private static final String MXFILE_CRYPTO_STORE_DEVICES_FOLDER = "devicesFolder";
     private static final String MXFILE_CRYPTO_STORE_DEVICES_FILE = "devices";
     private static final String MXFILE_CRYPTO_STORE_DEVICES_FILE_TMP = "devices.tmp";
 
@@ -107,6 +108,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private File mAccountFile;
     private File mAccountFileTmp;
 
+    private File mDevicesFolder;
     private File mDevicesFile;
     private File mDevicesFileTmp;
 
@@ -144,6 +146,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
         mDevicesFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_DEVICES_FILE);
         mDevicesFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_DEVICES_FILE_TMP);
+        mDevicesFolder = new File(mStoreFile, MXFILE_CRYPTO_STORE_DEVICES_FOLDER);
 
         mAlgorithmsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_ALGORITHMS_FILE);
         mAlgorithmsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_ALGORITHMS_FILE_TMP);
@@ -366,7 +369,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     @Override
     public void storeDeviceForUser(String userId, MXDeviceInfo device) {
         mUsersDevicesInfoMap.setObject(device, userId, device.deviceId);
-        flushDevicesForUser();
+        flushDevicesForUser(userId);
     }
 
     @Override
@@ -375,17 +378,17 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public void storeDevicesForUser(String userId, Map<String, MXDeviceInfo> devices, boolean flush) {
+    public void storeDevicesForUser(String userId, Map<String, MXDeviceInfo> devices) {
         mUsersDevicesInfoMap.setObjects(devices, userId);
-
-        if (flush) {
-            flushDevicesForUser();
-        }
+        flushDevicesForUser(userId);
     }
 
-    @Override
-    public void flushDevicesForUser() {
-        final MXUsersDevicesMap<MXDeviceInfo> devicesMapClone = cloneUsersDevicesInfoMap(mUsersDevicesInfoMap);
+    /**
+     * Flush the devices list for an userId
+     * @param userId the userId
+     */
+    private void flushDevicesForUser(final String userId) {
+        final HashMap<String, MXDeviceInfo> devicesMap = cloneUserDevicesInfoMap(userId);
 
         Runnable r = new Runnable() {
             @Override
@@ -393,24 +396,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 getThreadHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        // the file is temporary copied to avoid loosing data if the application crashes.
-
-                        // delete the previous tmp
-                        if (mDevicesFileTmp.exists()) {
-                            mDevicesFileTmp.delete();
-                        }
-
-                        // copy the existing file
-                        if (mDevicesFile.exists()) {
-                            mDevicesFile.renameTo(mDevicesFileTmp);
-                        }
-
-                        storeObject(devicesMapClone, mDevicesFile, "flushDevicesForUser - in background");
-
-                        // remove the tmp file
-                        if (mDevicesFileTmp.exists()) {
-                            mDevicesFileTmp.delete();
-                        }
+                        storeObject(devicesMap, new File(mDevicesFolder, userId), "flushDevicesForUser " + userId);
                     }
                 });
             }
@@ -433,39 +419,44 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     public void storeAlgorithmForRoom(String roomId, String algorithm) {
         if ((null != roomId) && (null != algorithm)) {
             mRoomsAlgorithms.put(roomId, algorithm);
-            final HashMap<String, String> roomsAlgorithms = new HashMap<>(mRoomsAlgorithms);
 
-            Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    getThreadHandler().post(new Runnable() {
-                        @Override
-                        public void run() {
-                            // the file is temporary copied to avoid loosing data if the application crashes.
+            try {
+                final HashMap<String, String> roomsAlgorithms = new HashMap<>(mRoomsAlgorithms);
 
-                            // delete the previous tmp
-                            if (mAlgorithmsFileTmp.exists()) {
-                                mAlgorithmsFileTmp.delete();
+                Runnable r = new Runnable() {
+                    @Override
+                    public void run() {
+                        getThreadHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                // the file is temporary copied to avoid loosing data if the application crashes.
+
+                                // delete the previous tmp
+                                if (mAlgorithmsFileTmp.exists()) {
+                                    mAlgorithmsFileTmp.delete();
+                                }
+
+                                // copy the existing file
+                                if (mAlgorithmsFile.exists()) {
+                                    mAlgorithmsFile.renameTo(mAlgorithmsFileTmp);
+                                }
+
+                                storeObject(roomsAlgorithms, mAlgorithmsFile, "storeAlgorithmForRoom - in background");
+
+                                // remove the tmp file
+                                if (mAlgorithmsFileTmp.exists()) {
+                                    mAlgorithmsFileTmp.delete();
+                                }
                             }
+                        });
+                    }
+                };
 
-                            // copy the existing file
-                            if (mAlgorithmsFile.exists()) {
-                                mAlgorithmsFile.renameTo(mAlgorithmsFileTmp);
-                            }
-
-                            storeObject(roomsAlgorithms, mAlgorithmsFile, "storeAlgorithmForRoom - in background");
-
-                            // remove the tmp file
-                            if (mAlgorithmsFileTmp.exists()) {
-                                mAlgorithmsFileTmp.delete();
-                            }
-                        }
-                    });
-                }
-            };
-
-            Thread t = new Thread(r);
-            t.start();
+                Thread t = new Thread(r);
+                t.start();
+            } catch (OutOfMemoryError oom) {
+                Log.e(LOG_TAG, "## storeAlgorithmForRoom() : oom");
+            }
         }
     }
 
@@ -496,39 +487,43 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public void flushSessions() {
-        final HashMap<String, HashMap<String,  OlmSession>> olmSessions = cloneOlmSessions(mOlmSessions);
+        try {
+            final HashMap<String, HashMap<String, OlmSession>> olmSessions = cloneOlmSessions(mOlmSessions);
 
-        Runnable r = new Runnable() {
-            @Override
-            public void run() {
-                getThreadHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        // the file is temporary copied to avoid loosing data if the application crashes.
+            Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    getThreadHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            // the file is temporary copied to avoid loosing data if the application crashes.
 
-                        // delete the previous tmp
-                        if (mSessionsFileTmp.exists()) {
-                            mSessionsFileTmp.delete();
+                            // delete the previous tmp
+                            if (mSessionsFileTmp.exists()) {
+                                mSessionsFileTmp.delete();
+                            }
+
+                            // copy the existing file
+                            if (mSessionsFile.exists()) {
+                                mSessionsFile.renameTo(mSessionsFileTmp);
+                            }
+
+                            storeObject(olmSessions, mSessionsFile, "storeSession - in background");
+
+                            // remove the tmp file
+                            if (mSessionsFileTmp.exists()) {
+                                mSessionsFileTmp.delete();
+                            }
                         }
+                    });
+                }
+            };
 
-                        // copy the existing file
-                        if (mSessionsFile.exists()) {
-                            mSessionsFile.renameTo(mSessionsFileTmp);
-                        }
-
-                        storeObject(olmSessions, mSessionsFile, "storeSession - in background");
-
-                        // remove the tmp file
-                        if (mSessionsFileTmp.exists()) {
-                            mSessionsFileTmp.delete();
-                        }
-                    }
-                });
-            }
-        };
-
-        Thread t = new Thread(r);
-        t.start();
+            Thread t = new Thread(r);
+            t.start();
+        } catch (OutOfMemoryError oom) {
+            Log.e(LOG_TAG, "## flushSessions() : oom");
+        }
     }
 
     @Override
@@ -639,6 +634,10 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             mStoreFile.mkdirs();
         }
 
+        if (!mDevicesFolder.exists()) {
+            mDevicesFolder.mkdirs();
+        }
+
         mMetaData = null;
     }
 
@@ -720,23 +719,59 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             }
         }
 
-        Object usersDevicesInfoMapAsVoid;
+        // previous store
+        if (!mDevicesFolder.exists()) {
+            Object usersDevicesInfoMapAsVoid;
 
-        // if the tmp exists, it means that the latest file backup has been killed / stopped
-        if (mDevicesFileTmp.exists()) {
-            usersDevicesInfoMapAsVoid = loadObject(mDevicesFileTmp, "preloadCryptoData - mUsersDevicesInfoMap - tmp");
-        } else {
-            usersDevicesInfoMapAsVoid = loadObject(mDevicesFile, "preloadCryptoData - mUsersDevicesInfoMap");
-        }
-
-        if (null != usersDevicesInfoMapAsVoid) {
-            try {
-                MXUsersDevicesMap objectAsMap = (MXUsersDevicesMap)usersDevicesInfoMapAsVoid;
-                mUsersDevicesInfoMap = new MXUsersDevicesMap<>(objectAsMap.getMap());
-            } catch (Exception e) {
-                mIsCorrupted = true;
-                Log.e(LOG_TAG, "## preloadCryptoData() - invalid mUsersDevicesInfoMap " + e.getMessage());
+            // if the tmp exists, it means that the latest file backup has been killed / stopped
+            if (mDevicesFileTmp.exists()) {
+                usersDevicesInfoMapAsVoid = loadObject(mDevicesFileTmp, "preloadCryptoData - mUsersDevicesInfoMap - tmp");
+            } else {
+                usersDevicesInfoMapAsVoid = loadObject(mDevicesFile, "preloadCryptoData - mUsersDevicesInfoMap");
             }
+
+            if (null != usersDevicesInfoMapAsVoid) {
+                try {
+                    MXUsersDevicesMap objectAsMap = (MXUsersDevicesMap) usersDevicesInfoMapAsVoid;
+                    mUsersDevicesInfoMap = new MXUsersDevicesMap<>(objectAsMap.getMap());
+                } catch (Exception e) {
+                    mIsCorrupted = true;
+                    Log.e(LOG_TAG, "## preloadCryptoData() - invalid mUsersDevicesInfoMap " + e.getMessage());
+                }
+            }
+
+            mDevicesFolder.mkdirs();
+
+            if (null != mUsersDevicesInfoMap) {
+                HashMap<String, HashMap<String, MXDeviceInfo>> map = mUsersDevicesInfoMap.getMap();
+
+                Set<String> userIds = map.keySet();
+
+                for(String userId : userIds) {
+                    storeObject(map.get(userId), new File(mDevicesFolder, userId), "convert devices map of " + userId);
+                }
+
+                mDevicesFileTmp.delete();
+                mDevicesFile.delete();
+            }
+        } else {
+            String[] files = mDevicesFolder.list();
+            HashMap<String, Map<String, MXDeviceInfo>> map = new HashMap<>();
+
+            for(int i = 0; i < files.length; i++) {
+                String userId = files[i];
+                Object devicesMapAsVoid = loadObject(new File(mDevicesFolder, userId), "load devices of " + userId);
+
+                if (null != devicesMapAsVoid) {
+                    try {
+                        map.put(userId, (Map<String, MXDeviceInfo>)devicesMapAsVoid);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## preloadCryptoData() - cannot cast to map");
+                    }
+                }
+            }
+
+            mUsersDevicesInfoMap = new MXUsersDevicesMap<>(map);
         }
 
         Object algorithmsAsVoid;
@@ -810,27 +845,20 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     /**
-     * @return a, users devices map deep copy
+     * @return clone the device infos map
      */
-    private static MXUsersDevicesMap<MXDeviceInfo> cloneUsersDevicesInfoMap (MXUsersDevicesMap<MXDeviceInfo> devicesInfos) {
-        HashMap<String, HashMap<String, MXDeviceInfo>> map = devicesInfos.getMap();
-        HashMap<String, Map<String, MXDeviceInfo>> copy = new HashMap<>();
+    private HashMap<String, MXDeviceInfo> cloneUserDevicesInfoMap(String user) {
+        HashMap<String, MXDeviceInfo> clone = new HashMap<>();
+        HashMap<String, MXDeviceInfo> source = mUsersDevicesInfoMap.getMap().get(user);
 
-        Set<String> keys = map.keySet();
-
-        for(String key : keys) {
-            HashMap<String, MXDeviceInfo> subMapClone = new HashMap<>();
-            HashMap<String, MXDeviceInfo> subMap = map.get(key);
-
-            Set<String> subKeys = subMap.keySet();
-            for(String subKey : subKeys) {
-                subMapClone.put(subKey, cloneDeviceInfo(subMap.get(subKey)));
+        if (null != source) {
+            Set<String> deviceIds = source.keySet();
+            for (String deviceId : deviceIds) {
+                clone.put(deviceId, cloneDeviceInfo(source.get(deviceId)));
             }
-
-            copy.put(key, subMapClone);
         }
 
-        return new MXUsersDevicesMap<>(copy);
+        return clone;
     }
 
 
