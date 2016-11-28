@@ -400,7 +400,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         Log.d(LOG_TAG, "onCreateView");
 
-        super.onCreateView(inflater, container, savedInstanceState);
+        View defaultView = super.onCreateView(inflater, container, savedInstanceState);
         Bundle args = getArguments();
 
         // for dispatching data to add to the adapter we need to be on the main thread
@@ -410,10 +410,22 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mSession = getSession(mMatrixId);
 
         if (null == mSession) {
+            if (null != getActivity()) {
+                Log.e(LOG_TAG, "Must have valid default MXSession.");
+                getActivity().finish();
+                return defaultView;
+            }
+
             throw new RuntimeException("Must have valid default MXSession.");
         }
 
         if (null == getMXMediasCache()) {
+            if (null != getActivity()) {
+                Log.e(LOG_TAG, "Must have valid default MediasCache.");
+                getActivity().finish();
+                return defaultView;
+            }
+
             throw new RuntimeException("Must have valid default MediasCache.");
         }
 
