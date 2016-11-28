@@ -965,9 +965,10 @@ public class MXCrypto {
     /**
      * Decrypt a received event
      * @param event the raw event.
+     * @param timeline the id of the timeline where the event is decrypted. It is used to prevent replay attack.
      * @return a cleared event or null.
      */
-    public Event decryptEvent(Event event) {
+    public Event decryptEvent(Event event, String timeline) {
         EventContent eventContent = event.getWireEventContent();
         Class<IMXDecrypting> decryptingClass = null;
 
@@ -998,7 +999,7 @@ public class MXCrypto {
 
         alg.initWithMatrixSession(mSession);
 
-        MXDecryptionResult result = alg.decryptEvent(event);
+        MXDecryptionResult result = alg.decryptEvent(event, timeline);
         Event clearedEvent = null;
 
         if ((null != result) && (null != result.mPayload) && (null == result.mCryptoError)) {

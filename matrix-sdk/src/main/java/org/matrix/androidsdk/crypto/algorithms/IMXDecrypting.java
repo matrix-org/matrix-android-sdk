@@ -33,9 +33,10 @@ public interface IMXDecrypting {
     /**
      * Decrypt a message
      * @param event the raw event.
+     * @param timeline the id of the timeline where the event is decrypted. It is used to prevent replay attack.
      * @return the decryption result. Nil if the event referred to an unknown megolm session.
      */
-    MXDecryptionResult decryptEvent(Event event);
+    MXDecryptionResult decryptEvent(Event event, String timeline);
 
     /**
      * Handle a key event.

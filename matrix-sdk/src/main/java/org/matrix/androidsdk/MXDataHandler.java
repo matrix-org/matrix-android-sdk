@@ -1083,7 +1083,7 @@ public class MXDataHandler implements IMXEventListener {
      */
     private void handleToDeviceEvent(Event event) {
         // Decrypt event if necessary
-        decryptEvent(event);
+        decryptEvent(event, null);
 
         if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && (null != event.getContent()) && TextUtils.equals(JsonUtils.getMessageMsgType(event.getContent()), "m.bad.encrypted")) {
             Log.e(LOG_TAG, "## handleToDeviceEvent() : Warning: Unable to decrypt to-device event : " + event.getContent());
@@ -1095,15 +1095,26 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Decrypt an encrypted event
      * @param event the event to decrypt
+     * @param timelineId the timeline identifier
      */
-    public void decryptEvent(Event event) {
+    public void decryptEvent(Event event, String timelineId) {
         if ((null != event) && TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
             if (null != getCrypto()) {
-                event.setClearEvent(getCrypto().decryptEvent(event));
+                event.setClearEvent(getCrypto().decryptEvent(event, timelineId));
             } else {
                 event.setClearEvent(null);
                 event.setCryptoError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLE));
             }
+        }
+    }
+
+    /**
+     * Reset replay attack data for the given timeline.
+     * @param timelineId the timeline id
+     */
+    public void resetReplayAttackCheckInTimeline(String timelineId) {
+        if (null != timelineId) {
+            mCrypto.getOlmDevice().resetReplayAttackCheckInTimeline(timelineId);
         }
     }
 
