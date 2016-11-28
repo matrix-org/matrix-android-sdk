@@ -56,7 +56,7 @@ public class MXOlmDecryption implements IMXDecrypting {
     }
 
     @Override
-    public MXDecryptionResult decryptEvent(Event event) {
+    public MXDecryptionResult decryptEvent(Event event, String timeline) {
         MXDecryptionResult result = null;
 
         try {

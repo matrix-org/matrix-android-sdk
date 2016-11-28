@@ -1753,7 +1753,7 @@ public class MXSession {
         Collection<RoomSummary> summaries = getDataHandler().getStore().getSummaries();
 
         for(RoomSummary summary :summaries) {
-            mDataHandler.decryptEvent(summary.getLatestReceivedEvent());
+            mDataHandler.decryptEvent(summary.getLatestReceivedEvent(), null);
         }
     }
 

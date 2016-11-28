@@ -1918,7 +1918,7 @@ public class Room {
                     // update the event content with the encrypted data
                     event.type = encryptEventContentResult.mEventType;
                     event.updateContent(encryptEventContentResult.mEventContent.getAsJsonObject());
-                    event.setClearEvent(mDataHandler.getCrypto().decryptEvent(event));
+                    event.setClearEvent(mDataHandler.getCrypto().decryptEvent(event, null));
 
                     // warn the upper layer
                     mDataHandler.onEventEncrypted(event);

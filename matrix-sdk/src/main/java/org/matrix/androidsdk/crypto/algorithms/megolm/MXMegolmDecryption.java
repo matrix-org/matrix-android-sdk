@@ -43,13 +43,8 @@ public class MXMegolmDecryption implements IMXDecrypting {
         mOlmDevice = matrixSession.getCrypto().getOlmDevice();
     }
 
-    /**
-     * Decrypt a message
-     * @param event the raw event.
-     * @return the decryption result. Nil if the event referred to an unknown megolm session.
-     */
     @Override
-    public MXDecryptionResult decryptEvent(Event event) {
+    public MXDecryptionResult decryptEvent(Event event, String timeline) {
         JsonObject object = event.content.getAsJsonObject();
 
         if (null == object) {
@@ -75,7 +70,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
             return result;
         }
 
-        return mOlmDevice.decryptGroupMessage(ciphertext, event.roomId, sessionId, senderKey);
+        return mOlmDevice.decryptGroupMessage(ciphertext, event.roomId, timeline, sessionId, senderKey);
     }
 
     /**

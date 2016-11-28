@@ -65,6 +65,19 @@ public class MXOlmDevice {
     // The key is the session id, the value the outbound group session.
     private final HashMap<String, OlmOutboundGroupSession> mOutboundGroupSessionStore;
 
+    // Store a set of decrypted message indexes for each group session.
+    // This partially mitigates a replay attack where a MITM resends a group
+    // message into the room.
+    //
+    // The Matrix SDK exposes events through MXEventTimelines. A developer can open several
+    // timelines from a same room so that a message can be decrypted several times but from
+    // a different timeline.
+    // So, store these message indexes per timeline id.
+    //
+    // The first level keys are timeline ids.
+    // The second level keys are strings of form "<senderKey>|<session_id>|<message_index>"
+    // Values are true.
+    private HashMap<String, HashMap<String, Boolean>> mInboundGroupSessionMessageIndexes;
     /**
      * Constructor
      * @param store the used store
@@ -101,6 +114,8 @@ public class MXOlmDevice {
         } catch (Exception e) {
             Log.e(LOG_TAG, "## MXOlmDevice : cannot find " + OlmAccount.JSON_KEY_FINGER_PRINT_KEY);
         }
+
+        mInboundGroupSessionMessageIndexes = new HashMap();
     }
 
     /**
@@ -459,11 +474,12 @@ public class MXOlmDevice {
      * Decrypt a received message with an inbound group session.
      * @param body the base64-encoded body of the encrypted message.
      * @param roomId theroom in which the message was received.
+     * @param timeline the id of the timeline where the event is decrypted. It is used to prevent replay attack.
      * @param sessionId the session identifier.
      * @param senderKey the base64-encoded curve25519 key of the sender.
      * @return the decrypting result. Nil if the sessionId is unknown.
      */
-    public MXDecryptionResult decryptGroupMessage(String body, String roomId, String sessionId, String senderKey) {
+    public MXDecryptionResult decryptGroupMessage(String body, String roomId, String timeline, String sessionId, String senderKey) {
         MXDecryptionResult result = new MXDecryptionResult();
         MXOlmInboundGroupSession session = mStore.inboundGroupSessionWithId(sessionId, senderKey);
 
@@ -472,15 +488,34 @@ public class MXOlmDevice {
             // the HS pretending a message was targeting a different room.
             if (TextUtils.equals(roomId, session.mRoomId)) {
                 String payloadString = null;
-                StringBuffer errorMessage = new StringBuffer();
+				StringBuffer errorMessage = new StringBuffer();
+				
                 try {
                     OlmInboundGroupSession.DecryptIndex index = new OlmInboundGroupSession.DecryptIndex();
                     payloadString = session.mSession.decryptMessage(body, index, errorMessage);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "## decryptGroupMessage () : decryptMessage failed " + e.getMessage());
                 }
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## decryptGroupMessage () : decryptMessage failed " + e.getMessage());
+                }
 
                 if (null != payloadString) {
+                    if (null != timeline) {
+                        if (!mInboundGroupSessionMessageIndexes.containsKey(timeline)) {
+                            mInboundGroupSessionMessageIndexes.put(timeline, new HashMap<String, Boolean>());
+                        }
+
+                        String messageIndexKey = senderKey + "|" + sessionId + "|" +  index.mIndex;
+
+                        if (null != mInboundGroupSessionMessageIndexes.get(timeline).get(messageIndexKey)) {
+                            result.mCryptoError = new MXCryptoError(MXCryptoError.DUPLICATE_MESSAGE_INDEX, messageIndexKey);
+                            return result;
+                        }
+
+                        mInboundGroupSessionMessageIndexes.get(timeline).put(messageIndexKey, true);
+                    }
+
                     mStore.storeInboundGroupSession(session);
                     try {
                         JsonParser parser = new JsonParser();
@@ -517,6 +552,16 @@ public class MXOlmDevice {
         }
 
         return result;
+    }
+
+    /**
+     * Reset replay attack data for the given timeline.
+     * @param timeline the id of the timeline.
+     */
+    public void resetReplayAttackCheckInTimeline(String timeline) {
+       if (null != timeline) {
+           mInboundGroupSessionMessageIndexes.remove(timeline);
+       }
     }
 
     //  Utilities
