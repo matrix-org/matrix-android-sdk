@@ -506,7 +506,7 @@ public class MXOlmDevice {
 
                         if (null != mInboundGroupSessionMessageIndexes.get(timeline).get(messageIndexKey)) {
                             result.mCryptoError = new MXCryptoError(MXCryptoError.DUPLICATE_MESSAGE_INDEX, messageIndexKey);
-                            return null;
+                            return result;
                         }
 
                         mInboundGroupSessionMessageIndexes.get(timeline).put(messageIndexKey, true);
