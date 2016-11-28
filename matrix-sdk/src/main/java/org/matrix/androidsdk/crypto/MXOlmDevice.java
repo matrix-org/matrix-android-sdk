@@ -489,13 +489,10 @@ public class MXOlmDevice {
             if (TextUtils.equals(roomId, session.mRoomId)) {
                 String payloadString = null;
 				StringBuffer errorMessage = new StringBuffer();
-				
+                OlmInboundGroupSession.DecryptIndex index = new OlmInboundGroupSession.DecryptIndex();
+
                 try {
-                    OlmInboundGroupSession.DecryptIndex index = new OlmInboundGroupSession.DecryptIndex();
                     payloadString = session.mSession.decryptMessage(body, index, errorMessage);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## decryptGroupMessage () : decryptMessage failed " + e.getMessage());
-                }
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "## decryptGroupMessage () : decryptMessage failed " + e.getMessage());
                 }

@@ -1037,9 +1037,11 @@ public class MXDataHandler implements IMXEventListener {
                 manageAccountData(syncResponse.accountData, isInitialSync);
             }
 
-            if (!isEmptyResponse && (null !=  getStore())) {
-                getStore().setEventStreamToken(syncResponse.nextBatch);
-                getStore().commit();
+            IMXStore store = getStore();
+
+            if (!isEmptyResponse && (null != store)) {
+                store.setEventStreamToken(syncResponse.nextBatch);
+                store.commit();
             }
         }
 
