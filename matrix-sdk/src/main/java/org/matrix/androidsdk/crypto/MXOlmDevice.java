@@ -472,10 +472,10 @@ public class MXOlmDevice {
             // the HS pretending a message was targeting a different room.
             if (TextUtils.equals(roomId, session.mRoomId)) {
                 String payloadString = null;
-
+                StringBuffer errorMessage = new StringBuffer();
                 try {
                     OlmInboundGroupSession.DecryptIndex index = new OlmInboundGroupSession.DecryptIndex();
-                    payloadString = session.mSession.decryptMessage(body, index);
+                    payloadString = session.mSession.decryptMessage(body, index, errorMessage);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "## decryptGroupMessage () : decryptMessage failed " + e.getMessage());
                 }
@@ -503,7 +503,7 @@ public class MXOlmDevice {
                     map.put("curve25519", senderKey);
                     result.mKeysProved = map;
                 }  else {
-                    result.mCryptoError = new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT, body);
+                    result.mCryptoError = new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT, errorMessage.toString());
                     Log.e(LOG_TAG, "## decryptGroupMessage() : failed to decode the message");
                 }
             } else {
