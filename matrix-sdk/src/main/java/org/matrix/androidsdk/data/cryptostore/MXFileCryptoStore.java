@@ -98,6 +98,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             HashMap<String /*inboundGroupSessionId*/,MXOlmInboundGroupSession>> mInboundGroupSessions;
 
 
+    // OlmSessions to release after the next flush
+    private ArrayList<OlmSession> mOlmSessionsToRelease = new ArrayList<>();
+
     private Context mContext;
 
     // The path of the MXFileCryptoStore folder
@@ -484,7 +487,15 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 mOlmSessions.put(deviceKey, new HashMap<String, OlmSession>());
             }
 
-            mOlmSessions.get(deviceKey).put(session.sessionIdentifier(), session);
+            // test if the session is a new one
+            if (session != mOlmSessions.get(deviceKey).get(session.sessionIdentifier())) {
+                synchronized (mOlmSessionsToRelease) {
+                    if (mOlmSessionsToRelease.indexOf(session) < 0) {
+                        mOlmSessionsToRelease.add(session);
+                    }
+                }
+                mOlmSessions.get(deviceKey).put(session.sessionIdentifier(), session);
+            }
 
             if (flush) {
                 flushSessions();
@@ -496,6 +507,14 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     public void flushSessions() {
         try {
             final HashMap<String, HashMap<String, OlmSession>> olmSessions = cloneOlmSessions(mOlmSessions);
+            final ArrayList<OlmSession> fSessionsToRelease;
+
+            synchronized (mOlmSessionsToRelease) {
+                fSessionsToRelease = new ArrayList<>(mOlmSessionsToRelease);
+                mOlmSessionsToRelease.clear();
+
+                Log.d(LOG_TAG, "flushSessions " + mOlmSessionsToRelease.size() + " sessions to release");
+            }
 
             Runnable r = new Runnable() {
                 @Override
@@ -521,6 +540,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                             if (mSessionsFileTmp.exists()) {
                                 mSessionsFileTmp.delete();
                             }
+
+                            for (OlmSession session : fSessionsToRelease) {
+                                session.releaseSession();
+                            }
+
                         }
                     });
                 }
@@ -549,37 +573,51 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 mInboundGroupSessions.put(session.mSenderKey, new HashMap<String, MXOlmInboundGroupSession>());
             }
 
-            mInboundGroupSessions.get(session.mSenderKey).put(session.mSession.sessionIdentifier(), session);
-        }
+            final MXOlmInboundGroupSession fOlmInboundGroupSessionToRelease;
 
-        final HashMap<String, HashMap<String,MXOlmInboundGroupSession>> fInboundGroupSessions = cloneInboundGroupSessions(mInboundGroupSessions);
+            if (session != mInboundGroupSessions.get(session.mSenderKey).get(session.mSession.sessionIdentifier())) {
+                fOlmInboundGroupSessionToRelease = mInboundGroupSessions.get(session.mSenderKey).get(session.mSession.sessionIdentifier());
+                mInboundGroupSessions.get(session.mSenderKey).put(session.mSession.sessionIdentifier(), session);
 
-        Runnable r = new Runnable() {
-            @Override
-            public void run() {
-                getThreadHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (mInboundGroupSessionsFileTmp.exists()) {
-                            mInboundGroupSessionsFileTmp.delete();
-                        }
-
-                        if (mInboundGroupSessionsFile.exists()) {
-                            mInboundGroupSessionsFile.renameTo(mInboundGroupSessionsFileTmp);
-                        }
-
-                        storeObject(fInboundGroupSessions, mInboundGroupSessionsFile, "storeInboundGroupSession - in background");
-
-                        if (mInboundGroupSessionsFileTmp.exists()) {
-                            mInboundGroupSessionsFileTmp.delete();
-                        }
-                    }
-                });
+                Log.e(LOG_TAG, "storeInboundGroupSession : release session" +  session.mSession.sessionIdentifier());
+            } else {
+                fOlmInboundGroupSessionToRelease = null;
             }
-        };
 
-        Thread t = new Thread(r);
-        t.start();
+            final HashMap<String, HashMap<String, MXOlmInboundGroupSession>> fInboundGroupSessions = cloneInboundGroupSessions(mInboundGroupSessions);
+
+            Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    getThreadHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (mInboundGroupSessionsFileTmp.exists()) {
+                                mInboundGroupSessionsFileTmp.delete();
+                            }
+
+                            if (mInboundGroupSessionsFile.exists()) {
+                                mInboundGroupSessionsFile.renameTo(mInboundGroupSessionsFileTmp);
+                            }
+
+                            storeObject(fInboundGroupSessions, mInboundGroupSessionsFile, "storeInboundGroupSession - in background");
+
+                            if (mInboundGroupSessionsFileTmp.exists()) {
+                                mInboundGroupSessionsFileTmp.delete();
+                            }
+
+                            if (null != fOlmInboundGroupSessionToRelease) {
+                                // JNI release
+                                fOlmInboundGroupSessionToRelease.mSession.releaseSession();
+                            }
+                        }
+                    });
+                }
+            };
+
+            Thread t = new Thread(r);
+            t.start();
+        }
     }
 
 
