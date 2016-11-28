@@ -44,6 +44,7 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
 
         /**
          * The post failed
+         *
          * @param errorMessage
          */
         void onError(String errorMessage);
@@ -77,6 +78,7 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
 
     /**
      * Set the post listener
+     *
      * @param listener the listener
      */
     public void setListener(IPostTaskListener listener) {
@@ -85,6 +87,7 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
 
     /**
      * Convert a stream to a string
+     *
      * @param is the input stream to convert
      * @return the string
      */
