@@ -913,20 +913,20 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 private void commonFailure(final Event event) {
                     if (null != MatrixMessageListFragment.this.getActivity()) {
-                        // display the error message only if the message cannot be resent
-                        if ((null != event.unsentException) && (event.isUndeliverable())) {
-                            if ((event.unsentException instanceof RetrofitError) && ((RetrofitError) event.unsentException).isNetworkError()) {
-                                Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + getActivity().getString(R.string.network_error), Toast.LENGTH_LONG).show();
-                            } else {
-                                Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                            }
-                        } else if (null != event.unsentMatrixError) {
-                            Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.getLocalizedMessage() + ".", Toast.LENGTH_LONG).show();
-                        }
-
                         getUiHandler().post(new Runnable() {
                             @Override
                             public void run() {
+                                // display the error message only if the message cannot be resent
+                                if ((null != event.unsentException) && (event.isUndeliverable())) {
+                                    if ((event.unsentException instanceof RetrofitError) && ((RetrofitError) event.unsentException).isNetworkError()) {
+                                        Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + getActivity().getString(R.string.network_error), Toast.LENGTH_LONG).show();
+                                    } else {
+                                        Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                                    }
+                                } else if (null != event.unsentMatrixError) {
+                                    Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.getLocalizedMessage() + ".", Toast.LENGTH_LONG).show();
+                                }
+
                                 mAdapter.notifyDataSetChanged();
                                 onMessageSendingFailed(event);
                             }
