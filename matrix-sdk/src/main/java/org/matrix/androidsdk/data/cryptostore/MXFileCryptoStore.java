@@ -18,6 +18,7 @@ package org.matrix.androidsdk.data.cryptostore;
 
 import android.content.Context;
 import android.os.HandlerThread;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -275,7 +276,13 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         if (null == mFileStoreHandler) {
             mHandlerThread = new HandlerThread("MXFileCryptoStoreBackgroundThread_" + mCredentials.userId + System.currentTimeMillis(), Thread.MIN_PRIORITY);
             mHandlerThread.start();
-            mFileStoreHandler = new MXOsHandler(mHandlerThread.getLooper());
+
+            // GA issue
+            if (null != mHandlerThread.getLooper()) {
+                mFileStoreHandler = new MXOsHandler(mHandlerThread.getLooper());
+            } else {
+                return new MXOsHandler(Looper.getMainLooper());
+            }
         }
 
         return mFileStoreHandler;
@@ -574,6 +581,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         Thread t = new Thread(r);
         t.start();
     }
+
 
     @Override
     public  MXOlmInboundGroupSession inboundGroupSessionWithId(String sessionId, String senderKey) {
