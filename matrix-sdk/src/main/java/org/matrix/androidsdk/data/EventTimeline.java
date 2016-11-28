@@ -163,6 +163,11 @@ public class EventTimeline {
     private String mBackwardTopToken = "not yet found";
 
     /**
+     * Unique identifier
+     */
+    private final String mTimelineId = System.currentTimeMillis() + "";
+
+    /**
      * Constructor from room.
      * @param room the linked room.
      * @param isLive true if it is a live EventTimeline
@@ -199,6 +204,13 @@ public class EventTimeline {
 
         mState.setDataHandler(dataHandler);
         mBackState.setDataHandler(dataHandler);
+    }
+
+    /**
+     * @return the unique identifier
+     */
+    public String getTimelineId() {
+        return mTimelineId;
     }
 
     /**
@@ -263,6 +275,7 @@ public class EventTimeline {
 
         // sanity check
         if ((null != mDataHandler) && (null != mDataHandler.getDataRetriever())) {
+            mDataHandler.resetReplayAttackCheckInTimeline(getTimelineId());
             mDataHandler.getDataRetriever().cancelHistoryRequest(mRoomId);
         }
     }
@@ -649,7 +662,7 @@ public class EventTimeline {
                             // Decrypt event if necessary
                             if (TextUtils.equals(anEvent.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
                                 if (null != mDataHandler.getCrypto()) {
-                                    anEvent.setClearEvent(mDataHandler.getCrypto().decryptEvent(anEvent));
+                                    anEvent.setClearEvent(mDataHandler.getCrypto().decryptEvent(anEvent, getTimelineId()));
                                 }
                             }
 
@@ -753,7 +766,7 @@ public class EventTimeline {
         MyUser myUser = mDataHandler.getMyUser();
 
         // Decrypt event if necessary
-        mDataHandler.decryptEvent(event);
+        mDataHandler.decryptEvent(event, getTimelineId());
 
         // dispatch the call events to the calls manager
         if (event.isCallEvent()) {
@@ -968,7 +981,7 @@ public class EventTimeline {
             }
 
             // Decrypt event if necessary
-            mDataHandler.decryptEvent(event);
+            mDataHandler.decryptEvent(event, getTimelineId());
 
             if (processedEvent) {
                 // warn the listener only if the message is processed.
@@ -1260,6 +1273,8 @@ public class EventTimeline {
     public void resetPaginationAroundInitialEvent(final int limit, final ApiCallback<Void> callback) {
         // Reset the store
         mStore.deleteRoomData(mRoomId);
+
+        mDataHandler.resetReplayAttackCheckInTimeline(getTimelineId());
 
         mForwardsPaginationToken = null;
         mHasReachedHomeServerForwardsPaginationEnd = false;

@@ -487,11 +487,15 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 mOlmSessions.put(deviceKey, new HashMap<String, OlmSession>());
             }
 
+            OlmSession prevSession = mOlmSessions.get(deviceKey).get(session.sessionIdentifier());
+
             // test if the session is a new one
-            if (session != mOlmSessions.get(deviceKey).get(session.sessionIdentifier())) {
-                synchronized (mOlmSessionsToRelease) {
-                    if (mOlmSessionsToRelease.indexOf(session) < 0) {
-                        mOlmSessionsToRelease.add(session);
+            if (session != prevSession) {
+                if (null != prevSession) {
+                    synchronized (mOlmSessionsToRelease) {
+                        if (mOlmSessionsToRelease.indexOf(prevSession) < 0) {
+                            mOlmSessionsToRelease.add(prevSession);
+                        }
                     }
                 }
                 mOlmSessions.get(deviceKey).put(session.sessionIdentifier(), session);
@@ -579,7 +583,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 fOlmInboundGroupSessionToRelease = mInboundGroupSessions.get(session.mSenderKey).get(session.mSession.sessionIdentifier());
                 mInboundGroupSessions.get(session.mSenderKey).put(session.mSession.sessionIdentifier(), session);
 
-                Log.e(LOG_TAG, "storeInboundGroupSession : release session" +  session.mSession.sessionIdentifier());
+                Log.d(LOG_TAG, "storeInboundGroupSession : release session" +  session.mSession.sessionIdentifier());
             } else {
                 fOlmInboundGroupSessionToRelease = null;
             }

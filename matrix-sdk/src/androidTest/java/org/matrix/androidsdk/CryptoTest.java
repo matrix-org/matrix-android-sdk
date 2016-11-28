@@ -74,7 +74,7 @@ public class CryptoTest {
 
     private static final String MXTESTS_SAM = "mxSam";
     private static final String MXTESTS_SAM_PWD = "samsam";
-
+    
     @Test
     public void test01_testCryptoNoDeviceId() throws Exception {
         Context context = InstrumentationRegistry.getContext();
@@ -424,7 +424,7 @@ public class CryptoTest {
         bobSession2.getDataHandler().addListener(eventListener);
 
         bobSession2.startEventStream(null);
-        lock4b.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock4b.await(2000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onInitialSyncComplete"));
 
         MXDeviceInfo aliceDeviceFromBobPOV2 = bobSession2.getCrypto().deviceWithIdentityKey(mAliceSession.getCrypto().getOlmDevice().getDeviceCurve25519Key(), mAliceSession.getMyUserId(), MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM);
@@ -1588,7 +1588,7 @@ public class CryptoTest {
                 lock0.countDown();
             }
         });
-        lock0.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock0.await(2000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("send0") && results.containsKey("alice0") && results.containsKey("sam0"));
 
         roomFromAlicePOV.removeEventListener(aliceEventsListener0);
@@ -2251,5 +2251,66 @@ public class CryptoTest {
         assertTrue(TextUtils.equals(event.sender, senderSession.getMyUserId()));
 
         return true;
+    }
+
+    @Test
+    public void test15_testReplayAttack() throws Exception {
+        final HashMap<String, Object> results = new HashMap<>();
+
+        doE2ETestWithAliceAndBobInARoom(true);
+
+        String messageFromAlice = "Hello I'm Alice!";
+
+        final Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
+        final Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
+
+        assertTrue(roomFromBobPOV.isEncrypted());
+        assertTrue(roomFromAlicePOV.isEncrypted());
+
+        final CountDownLatch lock1 = new CountDownLatch(1);
+        MXEventListener bobEventListener = new MXEventListener() {
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), mBobSession.getMyUserId())) {
+                    results.put("bobEcho", event);
+
+                    event.setClearEvent(null);
+
+                    mBobSession.getDataHandler().decryptEvent(event, roomFromBobPOV.getLiveTimeLine().getTimelineId());
+                    results.put("decrypted", event);
+
+                    lock1.countDown();
+                }
+            }
+        };
+
+        roomFromBobPOV.addEventListener(bobEventListener);
+
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+            }
+        });
+
+        lock1.await(100000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("bobEcho"));
+        assertTrue(results.containsKey("decrypted"));
+
+        Event decryptedEvent = (Event)results.get("decrypted");
+
+        assertTrue(null == decryptedEvent.getClearEvent());
+        assertTrue(TextUtils.equals(decryptedEvent.getCryptoError().errcode, MXCryptoError.DUPLICATE_MESSAGE_INDEX));
     }
 }
