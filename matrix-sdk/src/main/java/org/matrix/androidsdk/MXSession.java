@@ -77,6 +77,7 @@ import org.matrix.androidsdk.util.UnsentEventsManager;
 import org.matrix.olm.OlmManager;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -813,6 +814,105 @@ public class MXSession {
             mEventsThread.setFailureCallback(failureCallback);
         }
     }
+
+    /**
+     * Create a direct message room with one participant.<br>
+     * The participant can be a user ID or mail address. Once the room is created, on success, the room
+     * is set as a "direct message" with the participant.
+     * @param aParticipantUserId user ID (or user mail) to be invited in the direct message room
+     * @param aCreateRoomCallBack async call back response
+     * @return true if the invite was performed, false otherwise
+     */
+    public boolean createRoomDirectMessage(final String aParticipantUserId, final ApiCallback<String> aCreateRoomCallBack) {
+        boolean retCode = false;
+
+        if(!TextUtils.isEmpty(aParticipantUserId)) {
+            retCode = true;
+            HashMap<String, Object> params = new HashMap<>();
+            params.put("preset","trusted_private_chat");
+            params.put("is_direct", true);
+
+            if (android.util.Patterns.EMAIL_ADDRESS.matcher(aParticipantUserId).matches()) {
+                // retrieve the identity server
+                String identityServer = mHsConfig.getIdentityServerUri().toString();
+
+                // build the invite third party object
+                HashMap<String, String> parameters = new HashMap<>();
+                parameters.put("id_server", identityServer);
+                parameters.put("medium", "email");
+                parameters.put("address", aParticipantUserId);
+
+                params.put("invite_3pid", Arrays.asList(parameters));
+            } else {
+                if (!aParticipantUserId.equals(getMyUserId())) {
+                    // send invite only if the participant ID is not the user ID
+                    params.put("invite", Arrays.asList(aParticipantUserId));
+                }
+            }
+
+            createRoom(params, new ApiCallback<String>() {
+                @Override
+                public void onSuccess(String roomId) {
+                    final Room room = getDataHandler().getRoom(roomId);
+                    final String fRoomId = roomId;
+
+                    toggleDirectChatRoom(roomId, aParticipantUserId, new ApiCallback<Void>() {
+                        @Override
+                        public void onSuccess(Void info) {
+                            if(null != aCreateRoomCallBack) {
+                                aCreateRoomCallBack.onSuccess(fRoomId);
+                            }
+                        }
+
+                        @Override
+                        public void onNetworkError(Exception e) {
+                            if(null != aCreateRoomCallBack) {
+                                aCreateRoomCallBack.onNetworkError(e);
+                            }
+                        }
+
+                        @Override
+                        public void onMatrixError(MatrixError e) {
+                            if(null != aCreateRoomCallBack) {
+                                aCreateRoomCallBack.onMatrixError(e);
+                            }
+                        }
+
+                        @Override
+                        public void onUnexpectedError(Exception e) {
+                            if(null != aCreateRoomCallBack) {
+                                aCreateRoomCallBack.onUnexpectedError(e);
+                            }
+                        }
+                    });
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    if(null != aCreateRoomCallBack) {
+                        aCreateRoomCallBack.onNetworkError(e);
+                    }
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    if(null != aCreateRoomCallBack) {
+                        aCreateRoomCallBack.onMatrixError(e);
+                    }
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    if(null != aCreateRoomCallBack) {
+                        aCreateRoomCallBack.onUnexpectedError(e);
+                    }
+                }
+            });
+        }
+
+        return retCode;
+    }
+
 
     /**
      * Create a new room.
@@ -1733,7 +1833,6 @@ public class MXSession {
     /**
      * Delete a device
      * @param deviceId the device id
-     * @param session the session
      * @param password the passwoerd
      * @param callback the asynchronous callback.
      */
