@@ -74,7 +74,7 @@ public class CryptoTest {
 
     private static final String MXTESTS_SAM = "mxSam";
     private static final String MXTESTS_SAM_PWD = "samsam";
-
+    
     @Test
     public void test01_testCryptoNoDeviceId() throws Exception {
         Context context = InstrumentationRegistry.getContext();
@@ -1588,7 +1588,7 @@ public class CryptoTest {
                 lock0.countDown();
             }
         });
-        lock0.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock0.await(2000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("send0") && results.containsKey("alice0") && results.containsKey("sam0"));
 
         roomFromAlicePOV.removeEventListener(aliceEventsListener0);
