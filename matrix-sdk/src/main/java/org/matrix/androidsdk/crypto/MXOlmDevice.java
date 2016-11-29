@@ -454,7 +454,7 @@ public class MXOlmDevice {
      * @return true if the operation succeeds.
      */
     public boolean addInboundGroupSession(String sessionId, String sessionKey, String roomId, String senderKey, Map<String, String> keysClaimed) {
-        if (null != inboundGroupSessionWithId(sessionId, sessionKey, roomId)) {
+        if (null != inboundGroupSessionWithId(sessionId, senderKey, roomId)) {
             // If we already have this session, consider updating it
             Log.e(LOG_TAG, "## addInboundGroupSession() : Update for megolm session " + senderKey + "/" + sessionId);
 

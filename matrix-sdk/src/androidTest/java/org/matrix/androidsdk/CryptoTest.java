@@ -25,6 +25,7 @@ import android.support.test.runner.AndroidJUnit4;
 import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -366,7 +367,7 @@ public class CryptoTest {
         assertTrue (aliceDeviceFromBobPOV.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED);
 
         // the device informations are saved in background thread so give a breath to save everything
-        SystemClock.sleep(500);
+        SystemClock.sleep(1000);
 
         Credentials bobCredentials = mBobSession.getCredentials();
 
@@ -409,7 +410,7 @@ public class CryptoTest {
         bobSession2.getDataHandler().getStore().addMXStoreListener(listener);
         bobSession2.getDataHandler().getStore().open();
 
-        lock4.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock4.await(2000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onStoreReady"));
 
         final CountDownLatch lock4b = new CountDownLatch(1);
@@ -424,7 +425,7 @@ public class CryptoTest {
         bobSession2.getDataHandler().addListener(eventListener);
 
         bobSession2.startEventStream(null);
-        lock4b.await(5000, TimeUnit.DAYS.MILLISECONDS);
+        lock4b.await(2000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onInitialSyncComplete"));
 
         MXDeviceInfo aliceDeviceFromBobPOV2 = bobSession2.getCrypto().deviceWithIdentityKey(mAliceSession.getCrypto().getOlmDevice().getDeviceCurve25519Key(), mAliceSession.getMyUserId(), MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM);
@@ -1784,6 +1785,158 @@ public class CryptoTest {
         mSamSession.clear(context);
     }
 
+    @Test
+    public void test15_testReplayAttack() throws Exception {
+        final HashMap<String, Object> results = new HashMap<>();
+
+        doE2ETestWithAliceAndBobInARoom(true);
+
+        String messageFromAlice = "Hello I'm Alice!";
+
+        final Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
+        final Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
+
+        assertTrue(roomFromBobPOV.isEncrypted());
+        assertTrue(roomFromAlicePOV.isEncrypted());
+
+        final CountDownLatch lock1 = new CountDownLatch(1);
+        MXEventListener bobEventListener = new MXEventListener() {
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), mBobSession.getMyUserId())) {
+                    results.put("bobEcho", event);
+
+                    event.setClearEvent(null);
+
+                    mBobSession.getDataHandler().decryptEvent(event, roomFromBobPOV.getLiveTimeLine().getTimelineId());
+                    results.put("decrypted", event);
+
+                    lock1.countDown();
+                }
+            }
+        };
+
+        roomFromBobPOV.addEventListener(bobEventListener);
+
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+            }
+        });
+
+        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("bobEcho"));
+        assertTrue(results.containsKey("decrypted"));
+
+        Event decryptedEvent = (Event)results.get("decrypted");
+
+        assertTrue(null == decryptedEvent.getClearEvent());
+        assertTrue(TextUtils.equals(decryptedEvent.getCryptoError().errcode, MXCryptoError.DUPLICATED_MESSAGE_INDEX_ERROR_CODE));
+
+        // Decrypting it with no replay attack mitigation must still work
+        mBobSession.getDataHandler().decryptEvent(decryptedEvent, null);
+        assertTrue(checkEncryptedEvent(decryptedEvent, mRoomId, messageFromAlice, mAliceSession));
+    }
+
+    @Test
+    public void test16_testRoomKeyReshare() throws Exception {
+        final HashMap<String, Object> results = new HashMap<>();
+
+        doE2ETestWithAliceAndBobInARoom(true);
+
+        String messageFromAlice = "Hello I'm Alice!";
+
+        final Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
+        final Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
+
+        assertTrue(roomFromBobPOV.isEncrypted());
+        assertTrue(roomFromAlicePOV.isEncrypted());
+
+        final CountDownLatch lock1 = new CountDownLatch(2);
+
+        MXEventListener bobEventListener = new MXEventListener() {
+            @Override
+            public void onToDeviceEvent(Event event) {
+                if (!results.containsKey("onToDeviceEvent")) {
+                    results.put("onToDeviceEvent", event);
+                    lock1.countDown();
+                }
+            }
+        };
+
+        mBobSession.getDataHandler().addListener(bobEventListener);
+
+        final ArrayList<Event> receivedEvents = new ArrayList<>();
+        EventTimeline.EventTimelineListener eventTimelineListener = new EventTimeline.EventTimelineListener() {
+            public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                    receivedEvents.add(event);
+                    lock1.countDown();
+                }
+            }
+        };
+
+        roomFromBobPOV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener);
+
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+            }
+        });
+
+        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("onToDeviceEvent"));
+        assertTrue(1 == receivedEvents.size());
+
+        Event event = receivedEvents.get(0);
+        assertTrue(checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession));
+
+        // Reinject a modified version of the received room_key event from Alice.
+        // From Bob pov, that mimics Alice resharing her keys but with an advanced outbound group session.
+        Event toDeviceEvent = (Event)results.get("onToDeviceEvent");
+        String sessionId = toDeviceEvent.getContentAsJsonObject().get("session_id").getAsString();
+        String newSessionKey = mAliceSession.getCrypto().getOlmDevice().sessionKeyForOutboundGroupSession(sessionId);
+
+        JsonObject content = toDeviceEvent.getClearEvent().getContentAsJsonObject();
+        content.add("session_key", new JsonPrimitive(newSessionKey));
+        mBobSession.getDataHandler().onToDeviceEvent(toDeviceEvent);
+
+
+        // We still must be able to decrypt the event
+        // ie, the implementation must have ignored the new room key with the advanced outbound group
+        // session key
+        event.setClearEvent(null);
+        event.setKeysClaimed(null);
+        event.setKeysProved(null);
+
+        mBobSession.getDataHandler().decryptEvent(event, null);
+        assertTrue(checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession));
+    }
+
     //==============================================================================================================
     // private test routines
     //==============================================================================================================
@@ -2251,66 +2404,5 @@ public class CryptoTest {
         assertTrue(TextUtils.equals(event.sender, senderSession.getMyUserId()));
 
         return true;
-    }
-
-    @Test
-    public void test15_testReplayAttack() throws Exception {
-        final HashMap<String, Object> results = new HashMap<>();
-
-        doE2ETestWithAliceAndBobInARoom(true);
-
-        String messageFromAlice = "Hello I'm Alice!";
-
-        final Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
-        final Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
-
-        assertTrue(roomFromBobPOV.isEncrypted());
-        assertTrue(roomFromAlicePOV.isEncrypted());
-
-        final CountDownLatch lock1 = new CountDownLatch(1);
-        MXEventListener bobEventListener = new MXEventListener() {
-            @Override
-            public void onLiveEvent(Event event, RoomState roomState) {
-                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), mBobSession.getMyUserId())) {
-                    results.put("bobEcho", event);
-
-                    event.setClearEvent(null);
-
-                    mBobSession.getDataHandler().decryptEvent(event, roomFromBobPOV.getLiveTimeLine().getTimelineId());
-                    results.put("decrypted", event);
-
-                    lock1.countDown();
-                }
-            }
-        };
-
-        roomFromBobPOV.addEventListener(bobEventListener);
-
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-            }
-        });
-
-        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
-        assertTrue(results.containsKey("bobEcho"));
-        assertTrue(results.containsKey("decrypted"));
-
-        Event decryptedEvent = (Event)results.get("decrypted");
-
-        assertTrue(null == decryptedEvent.getClearEvent());
-        assertTrue(TextUtils.equals(decryptedEvent.getCryptoError().errcode, MXCryptoError.DUPLICATED_MESSAGE_INDEX_ERROR_CODE));
     }
 }

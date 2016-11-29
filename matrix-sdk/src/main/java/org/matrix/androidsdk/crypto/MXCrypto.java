@@ -1292,9 +1292,6 @@ public class MXCrypto {
                         encrypting.onNewDevice(newDeviceContent.deviceId, userId);
                     }
                 }
-
-                // warn again that ToDeviceEvet has been processed
-                mSession.getDataHandler().dispatchOnToDeviceEvent(event);
             }
 
             @Override

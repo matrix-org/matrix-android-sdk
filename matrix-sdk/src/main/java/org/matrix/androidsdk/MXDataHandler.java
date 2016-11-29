@@ -1645,10 +1645,6 @@ public class MXDataHandler implements IMXEventListener {
             mCryptoEventsListener.onToDeviceEvent(event);
         }
 
-        dispatchOnToDeviceEvent(event);
-    }
-
-    public void dispatchOnToDeviceEvent(final Event event) {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
