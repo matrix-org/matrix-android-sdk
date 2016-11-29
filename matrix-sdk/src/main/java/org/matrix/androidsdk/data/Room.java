@@ -2317,9 +2317,9 @@ public class Room {
             });
         } else if (null != callback) {
             if (null == mDataHandler.getCrypto()) {
-                callback.onMatrixError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLE));
+                callback.onMatrixError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLED_ERROR_CODE, MXCryptoError.ENCRYPTING_NOT_ENABLED_REASON));
             } else {
-                callback.onMatrixError(new MXCryptoError(MXCryptoError.MISSING_FIELDS));
+                callback.onMatrixError(new MXCryptoError(MXCryptoError.MISSING_FIELDS_ERROR_CODE, MXCryptoError.MISSING_FIELDS_REASON));
             }
         }
     }

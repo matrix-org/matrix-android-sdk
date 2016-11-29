@@ -16,9 +16,6 @@
 
 package org.matrix.androidsdk.crypto;
 
-
-import android.text.TextUtils;
-
 import org.matrix.androidsdk.rest.model.MatrixError;
 
 /**
@@ -26,46 +23,52 @@ import org.matrix.androidsdk.rest.model.MatrixError;
  */
 public class MXCryptoError extends MatrixError {
 
-    public static final String ENCRYPTING_NOT_ENABLE = "Encryption not enabled";
-    public static final String UNABLE_TO_ENCRYPT = "Unable to encrypt";
-    public static final String UNABLE_TO_DECRYPT = "Unable to decrypt";
-    public static final String UNKNOWN_INBOUND_SESSION_ID = "Unknown inbound session id";
-    public static final String INBOUND_SESSION_MISMATCHED_ROOM_ID = "Mismatched room_id for inbound group session";
-    public static final String MISSING_FIELDS = "Missing fields in input";
-    public static final String MISSING_CIPHERTEXT = "Missing ciphertext";
-    public static final String NOT_INCLUDED_IN_RECIPIENTS = "Not included in recipients";
-    public static final String BAD_ENCRYPTED_MESSAGE = "Bad Encrypted Message";
-    public static final String MESSAGE_NOT_INTENDED_FOR_THIS_DEVICE = "Message not intended for this device";
-    public static final String MESSAGE_NOT_INTENDED_FOR_THIS_ROOM = "Message not intended for this room";
-    public static final String MISSING_PROPERTY_CODE = "No %s property. Cannot prevent unknown-key attack";
-    public static final String DUPLICATE_MESSAGE_INDEX = "Duplicate message index, possible replay attack";
+    /**
+     * Error codes
+     */
+    public static final String ENCRYPTING_NOT_ENABLED_ERROR_CODE= "ENCRYPTING_NOT_ENABLED";
+    public static final String UNABLE_TO_ENCRYPT_ERROR_CODE = "UNABLE_TO_ENCRYPT";
+    public static final String UNABLE_TO_DECRYPT_ERROR_CODE = "UNABLE_TO_DECRYPT";
+    public static final String UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE = "UNKNOWN_INBOUND_SESSION_ID";
+    public static final String INBOUND_SESSION_MISMATCH_ROOM_ID_ERROR_CODE = "INBOUND_SESSION_MISMATCH_ROOM_ID";
+    public static final String MISSING_FIELDS_ERROR_CODE = "MISSING_FIELDS";
+    public static final String MISSING_CIPHER_TEXT_ERROR_CODE = "MISSING_CIPHER_TEXT";
+    public static final String NOT_INCLUDE_IN_RECIPIENTS_ERROR_CODE = "NOT_INCLUDE_IN_RECIPIENTS";
+    public static final String BAD_RECIPIENT_ERROR_CODE = "BAD_RECIPIENT";
+    public static final String BAD_RECIPIENT_KEY_ERROR_CODE = "BAD_RECIPIENT_KEY";
+    public static final String FORWARDED_MESSAGE_ERROR_CODE = "FORWARDED_MESSAGE";
+    public static final String BAD_ROOM_ERROR_CODE = "BAD_ROOM";
+    public static final String BAD_ENCRYPTED_MESSAGE_ERROR_CODE = "BAD_ENCRYPTED_MESSAGE";
+    public static final String DUPLICATED_MESSAGE_INDEX_ERROR_CODE = "DUPLICATED_MESSAGE_INDEX";
+    public static final String MISSING_PROPERTY_ERROR_CODE = "MISSING_PROPERTY";
 
-    public MXCryptoError(String anErrcode) {
-        errcode = anErrcode;
-    }
+    /**
+     * Error reasons
+     */
+    public static final String ENCRYPTING_NOT_ENABLED_REASON = "Encryption not enabled";
+    public static final String UNABLE_TO_ENCRYPT_REASON =  "Unable to encrypt %s";
+    public static final String UNABLE_TO_DECRYPT_REASON =  "Unable to decrypt %1$s. Olm error: %%2$s";
+    public static final String UNKNOWN_INBOUND_SESSSION_ID_REASON = "Unknown inbound session id";
+    public static final String INBOUND_SESSION_MISMATCH_ROOM_ID_REASON = "Mismatched room_id for inbound group session (expected %1$s, was %2$s)";
+    public static final String MISSING_FIELDS_REASON = "Missing fields in input";
+    public static final String MISSING_CIPHER_TEXT_REASON = "Missing ciphertext";
+    public static final String NOT_INCLUDED_IN_RECIPIENT_REASON = "Not included in recipients";
+    public static final String BAD_RECIPIENT_REASON = "Message was intented for %1$s";
+    public static final String BAD_RECIPIENT_KEY_REASON = "Message not intended for this device";
+    public static final String FORWARDED_MESSAGE_REASON = "Message forwarded from %1$s";
+    public static final String BAD_ROOM_REASON =  "Message intended for room %1$s";
+    public static final String BAD_ENCRYPTED_MESSAGE_REASON = "Bad Encrypted Message";
+    public static final String DUPLICATE_MESSAGE_INDEX_REASON = "Duplicate message index, possible replay attack %1$s";
+    public static final String ERROR_MISSING_PROPERTY_REASON = "No '%1$s' property. Cannot prevent unknown-key attack";
 
-    public MXCryptoError(String anErrcode, String anError) {
-        errcode = anErrcode;
-        error = anError;
-    }
 
-    @Override
-    public String getLocalizedMessage() {
-        if (!TextUtils.isEmpty(errcode) ) {
-            if (!TextUtils.isEmpty(error)) {
-                return errcode + " (" + error + ")";
-            }  else {
-                return errcode;
-            }
-        } else if (!TextUtils.isEmpty(errcode)) {
-            return error;
-        }
-
-        return "";
-    }
-
-    @Override
-    public String getMessage() {
-        return getLocalizedMessage();
+    /**
+     * Create a crypto error
+     * @param code the error code (see XX_ERROR_CODE)
+     * @param errorDescription the error description
+     */
+    public MXCryptoError(String code, String errorDescription) {
+        errcode = code;
+        error = errorDescription;
     }
 }

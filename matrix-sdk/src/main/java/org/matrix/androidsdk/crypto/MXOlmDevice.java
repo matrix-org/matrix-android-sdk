@@ -78,6 +78,12 @@ public class MXOlmDevice {
     // The second level keys are strings of form "<senderKey>|<session_id>|<message_index>"
     // Values are true.
     private HashMap<String, HashMap<String, Boolean>> mInboundGroupSessionMessageIndexes;
+
+    /**
+     * inboundGroupSessionWithId error
+     */
+    private MXCryptoError mInboundGroupSessionWithIdError = null;
+
     /**
      * Constructor
      * @param store the used store
@@ -448,6 +454,14 @@ public class MXOlmDevice {
      * @return true if the operation succeeds.
      */
     public boolean addInboundGroupSession(String sessionId, String sessionKey, String roomId, String senderKey, Map<String, String> keysClaimed) {
+        if (null != inboundGroupSessionWithId(sessionId, senderKey, roomId)) {
+            // If we already have this session, consider updating it
+            Log.e(LOG_TAG, "## addInboundGroupSession() : Update for megolm session " + senderKey + "/" + sessionId);
+
+            // For now we just ignore updates. TODO: implement something here
+            return false;
+        }
+
         MXOlmInboundGroupSession session = new MXOlmInboundGroupSession(sessionKey);
 
         // sanity check
@@ -481,7 +495,7 @@ public class MXOlmDevice {
      */
     public MXDecryptionResult decryptGroupMessage(String body, String roomId, String timeline, String sessionId, String senderKey) {
         MXDecryptionResult result = new MXDecryptionResult();
-        MXOlmInboundGroupSession session = mStore.inboundGroupSessionWithId(sessionId, senderKey);
+        MXOlmInboundGroupSession session = inboundGroupSessionWithId(sessionId, senderKey, roomId);
 
         if (null != session) {
             // Check that the room id matches the original one for the session. This stops
@@ -506,7 +520,11 @@ public class MXOlmDevice {
                         String messageIndexKey = senderKey + "|" + sessionId + "|" +  index.mIndex;
 
                         if (null != mInboundGroupSessionMessageIndexes.get(timeline).get(messageIndexKey)) {
-                            result.mCryptoError = new MXCryptoError(MXCryptoError.DUPLICATE_MESSAGE_INDEX, messageIndexKey);
+
+                            String reason = String.format(MXCryptoError.DUPLICATE_MESSAGE_INDEX_REASON, index.mIndex);
+
+                            Log.e(LOG_TAG,"## decryptGroupMessage() : " + reason);
+                            result.mCryptoError = new MXCryptoError(MXCryptoError.DUPLICATED_MESSAGE_INDEX_ERROR_CODE, reason);
                             return result;
                         }
 
@@ -535,16 +553,17 @@ public class MXOlmDevice {
                     map.put("curve25519", senderKey);
                     result.mKeysProved = map;
                 }  else {
-                    result.mCryptoError = new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT, errorMessage.toString());
+                    result.mCryptoError = new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT_ERROR_CODE, errorMessage.toString());
                     Log.e(LOG_TAG, "## decryptGroupMessage() : failed to decode the message");
                 }
             } else {
-                result.mCryptoError = new MXCryptoError(MXCryptoError.INBOUND_SESSION_MISMATCHED_ROOM_ID, roomId + "<->" + session.mRoomId);
-                Log.e(LOG_TAG, "## decryptGroupMessage() : Mismatched room_id for inbound group session (expected " + roomId + " , was " + session.mRoomId);
+                String reason = String.format(MXCryptoError.INBOUND_SESSION_MISMATCH_ROOM_ID_REASON, roomId, session.mRoomId);
+                Log.e(LOG_TAG, "## decryptGroupMessage() : " + reason);
+                result.mCryptoError = new MXCryptoError(MXCryptoError.INBOUND_SESSION_MISMATCH_ROOM_ID_ERROR_CODE, reason);
             }
         }
         else {
-            result.mCryptoError = new MXCryptoError(MXCryptoError.UNKNOWN_INBOUND_SESSION_ID);
+            result.mCryptoError = mInboundGroupSessionWithIdError;
             Log.e(LOG_TAG, "## decryptGroupMessage() : Cannot retrieve inbound group session " + sessionId);
         }
 
@@ -603,5 +622,33 @@ public class MXOlmDevice {
         }
 
         return null;
+    }
+
+    /**
+     * Extract an InboundGroupSession from the session store and do some check.
+     * mInboundGroupSessionWithIdError describes the failure reason.
+     * @param roomId the room where the sesion is used.
+     * @param sessionId the session identifier.
+     * @param senderKey the base64-encoded curve25519 key of the sender.
+     * @return the inbound group session.
+     */
+    private MXOlmInboundGroupSession inboundGroupSessionWithId(String sessionId, String senderKey, String roomId) {
+        mInboundGroupSessionWithIdError = null;
+
+        MXOlmInboundGroupSession session = mStore.inboundGroupSessionWithId(sessionId, senderKey);
+
+        if (null != session) {
+            // Check that the room id matches the original one for the session. This stops
+            // the HS pretending a message was targeting a different room.
+            if (!TextUtils.equals(roomId, session.mRoomId)) {
+                String errorDescription = String.format(MXCryptoError.INBOUND_SESSION_MISMATCH_ROOM_ID_REASON, roomId, session.mRoomId);
+                Log.e(LOG_TAG, "## inboundGroupSessionWithId() : " + errorDescription);
+                mInboundGroupSessionWithIdError = new MXCryptoError(MXCryptoError.INBOUND_SESSION_MISMATCH_ROOM_ID_ERROR_CODE, errorDescription);
+            }
+        } else {
+            Log.e(LOG_TAG, "## inboundGroupSessionWithId() : Cannot retrieve inbound group session " + sessionId);
+            mInboundGroupSessionWithIdError = new MXCryptoError(MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE, MXCryptoError.UNKNOWN_INBOUND_SESSSION_ID_REASON);
+        }
+        return session;
     }
 }

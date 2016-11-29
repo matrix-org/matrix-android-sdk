@@ -66,7 +66,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
         if (TextUtils.isEmpty(senderKey) || TextUtils.isEmpty(sessionId) || TextUtils.isEmpty(ciphertext)) {
             MXDecryptionResult result = new MXDecryptionResult();
-            result.mCryptoError = new MXCryptoError(MXCryptoError.MISSING_FIELDS);
+            result.mCryptoError = new MXCryptoError(MXCryptoError.MISSING_FIELDS_ERROR_CODE, MXCryptoError.MISSING_FIELDS_REASON);
             return result;
         }
 

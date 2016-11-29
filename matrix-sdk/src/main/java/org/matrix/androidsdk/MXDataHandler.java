@@ -1105,7 +1105,7 @@ public class MXDataHandler implements IMXEventListener {
                 event.setClearEvent(getCrypto().decryptEvent(event, timelineId));
             } else {
                 event.setClearEvent(null);
-                event.setCryptoError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLE));
+                event.setCryptoError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLED_ERROR_CODE, MXCryptoError.ENCRYPTING_NOT_ENABLED_REASON));
             }
         }
     }
@@ -1645,10 +1645,6 @@ public class MXDataHandler implements IMXEventListener {
             mCryptoEventsListener.onToDeviceEvent(event);
         }
 
-        dispatchOnToDeviceEvent(event);
-    }
-
-    public void dispatchOnToDeviceEvent(final Event event) {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {

@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import android.text.TextUtils;
+
 import retrofit.mime.TypedInput;
 
 /**
@@ -73,9 +75,9 @@ public class MatrixError implements java.io.Serializable {
     public String getLocalizedMessage() {
         String localizedMessage = "";
 
-        if (null != error) {
+        if (!TextUtils.isEmpty(error)) {
             localizedMessage = error;
-        } else if (null != errcode) {
+        } else if (!TextUtils.isEmpty(errcode)) {
             localizedMessage = errcode;
         }
 
