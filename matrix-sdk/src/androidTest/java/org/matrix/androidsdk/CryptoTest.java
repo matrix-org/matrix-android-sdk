@@ -926,7 +926,7 @@ public class CryptoTest {
             }
         });
 
-        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock1.await(2000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onLiveEvent"));
 
         mBobSession.clear(context);
