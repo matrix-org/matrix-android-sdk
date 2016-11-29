@@ -424,7 +424,7 @@ public class CryptoTest {
         bobSession2.getDataHandler().addListener(eventListener);
 
         bobSession2.startEventStream(null);
-        lock4b.await(2000, TimeUnit.DAYS.MILLISECONDS);
+        lock4b.await(5000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onInitialSyncComplete"));
 
         MXDeviceInfo aliceDeviceFromBobPOV2 = bobSession2.getCrypto().deviceWithIdentityKey(mAliceSession.getCrypto().getOlmDevice().getDeviceCurve25519Key(), mAliceSession.getMyUserId(), MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM);
@@ -1265,7 +1265,7 @@ public class CryptoTest {
         assertTrue(event.isEncrypted());
         assertTrue(null == event.getClearEvent());
         assertTrue(null != event.getCryptoError());
-        assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID));
+        assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE));
         aliceSession2.clear(context);
     }
 
@@ -1482,7 +1482,7 @@ public class CryptoTest {
         assertTrue(!event.getContentAsJsonObject().has("body"));
 
         assertTrue(null != event.getCryptoError());
-        assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.ENCRYPTING_NOT_ENABLE));
+        assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.ENCRYPTING_NOT_ENABLED_ERROR_CODE));
 
         final CountDownLatch lock2 = new CountDownLatch(1);
         MXEventListener aliceEventListener = new MXEventListener() {
@@ -1588,7 +1588,7 @@ public class CryptoTest {
                 lock0.countDown();
             }
         });
-        lock0.await(2000, TimeUnit.DAYS.MILLISECONDS);
+        lock0.await(5000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("send0") && results.containsKey("alice0") && results.containsKey("sam0"));
 
         roomFromAlicePOV.removeEventListener(aliceEventsListener0);
@@ -2304,13 +2304,13 @@ public class CryptoTest {
             }
         });
 
-        lock1.await(100000, TimeUnit.DAYS.MILLISECONDS);
+        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("bobEcho"));
         assertTrue(results.containsKey("decrypted"));
 
         Event decryptedEvent = (Event)results.get("decrypted");
 
         assertTrue(null == decryptedEvent.getClearEvent());
-        assertTrue(TextUtils.equals(decryptedEvent.getCryptoError().errcode, MXCryptoError.DUPLICATE_MESSAGE_INDEX));
+        assertTrue(TextUtils.equals(decryptedEvent.getCryptoError().errcode, MXCryptoError.DUPLICATED_MESSAGE_INDEX_ERROR_CODE));
     }
 }

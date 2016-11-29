@@ -955,8 +955,12 @@ public class MXCrypto {
                 }
             });
         } else {
+            String reason = String.format(MXCryptoError.UNABLE_TO_ENCRYPT_REASON, room.getLiveState().encryptionAlgorithm());
+
+            Log.e(LOG_TAG, "## encryptEventContent() : " + reason);
+
             if (null != callback) {
-                callback.onMatrixError(new MXCryptoError(MXCryptoError.UNABLE_TO_ENCRYPT));
+                callback.onMatrixError(new MXCryptoError(MXCryptoError.UNABLE_TO_ENCRYPT_ERROR_CODE, reason));
                 callback.onSuccess(new MXEncryptEventContentResult(eventContent, eventType));
             }
         }
@@ -977,12 +981,15 @@ public class MXCrypto {
         }
 
         if (null == decryptingClass) {
+            String reason;
+
             if (null != eventContent) {
-                Log.e(LOG_TAG, "## decryptEvent() : Unable to decrypt " + eventContent.algorithm);
+                reason = String.format(MXCryptoError.UNABLE_TO_DECRYPT_REASON, event.eventId, eventContent.algorithm);
             } else  {
-                Log.e(LOG_TAG, "## decryptEvent() : Unable to decrypt : null event content");
+                reason = String.format(MXCryptoError.UNABLE_TO_DECRYPT_REASON, event.eventId, "[Unknown algorithm]");
             }
-            event.setCryptoError(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT));
+
+            event.setCryptoError(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT_ERROR_CODE, reason));
             return null;
         }
 
@@ -993,7 +1000,7 @@ public class MXCrypto {
             alg = (IMXDecrypting)ctor.newInstance(new Object[]{});
         } catch (Exception e) {
             Log.e(LOG_TAG, "## decryptEvent() : fail to load the class");
-            event.setCryptoError(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT));
+            event.setCryptoError(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT_ERROR_CODE, String.format(MXCryptoError.UNABLE_TO_DECRYPT_REASON, event.eventId, "[Unknown algorithm]")));
             return null;
         }
 
