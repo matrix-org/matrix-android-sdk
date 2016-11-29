@@ -326,6 +326,8 @@ public class MXCallsManager {
      */
     public boolean hasActiveCalls() {
         synchronized (this) {
+            ArrayList<String> callIdsToRemove = new ArrayList<>();
+
             Set<String> callIds = mCallsByCallId.keySet();
 
             for(String callId : callIds) {
@@ -333,11 +335,15 @@ public class MXCallsManager {
 
                 if (TextUtils.equals(call.getCallState(), IMXCall.CALL_STATE_ENDED)) {
                     Log.d(LOG_TAG, "# hasActiveCalls() : the call " + callId + " is not anymore valid");
-                    mCallsByCallId.remove(callId);
+                    callIdsToRemove.add(callId);
                 } else {
                     Log.d(LOG_TAG, "# hasActiveCalls() : the call " + callId + " is active");
                     return true;
                 }
+            }
+
+            for (String callIdToRemove : callIdsToRemove) {
+                mCallsByCallId.remove(callIdToRemove);
             }
         }
 
