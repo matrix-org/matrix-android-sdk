@@ -39,6 +39,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.NewDeviceContent;
+import org.matrix.androidsdk.rest.model.RoomKeyContent;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
@@ -1201,17 +1202,20 @@ public class MXCrypto {
             return;
         }
 
-        EventContent eventContent = event.getEventContent();
+        RoomKeyContent roomKeyContent = JsonUtils.toRoomKeyContent(event.getContentAsJsonObject());
 
-        if (TextUtils.isEmpty(event.roomId) || TextUtils.isEmpty(eventContent.algorithm)) {
+        String roomId = roomKeyContent.room_id;
+        String algorithm = roomKeyContent.algorithm;
+
+        if (TextUtils.isEmpty(roomId) || TextUtils.isEmpty(algorithm)) {
             Log.e(LOG_TAG, "## onRoomKeyEvent() : missing fields");
             return;
         }
 
-        IMXDecrypting alg = getRoomDecryptor(event.roomId, eventContent.algorithm);
+        IMXDecrypting alg = getRoomDecryptor(roomId, algorithm);
 
         if (null == alg) {
-            Log.e(LOG_TAG, "## onRoomKeyEvent() : Unable to handle keys for " + eventContent.algorithm);
+            Log.e(LOG_TAG, "## onRoomKeyEvent() : Unable to handle keys for " + algorithm);
             return;
         }
 

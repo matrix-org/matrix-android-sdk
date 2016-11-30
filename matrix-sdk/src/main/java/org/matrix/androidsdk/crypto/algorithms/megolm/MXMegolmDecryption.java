@@ -26,7 +26,10 @@ import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXOlmDevice;
 import org.matrix.androidsdk.crypto.algorithms.IMXDecrypting;
 import org.matrix.androidsdk.crypto.algorithms.MXDecryptionResult;
+import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.rest.model.EncryptedEventContent;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.RoomKeyContent;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
@@ -70,24 +73,11 @@ public class MXMegolmDecryption implements IMXDecrypting {
             return false;
         }
 
-        JsonObject object = event.content.getAsJsonObject();
+        EncryptedEventContent encryptedEventContent = JsonUtils.toEncryptedEventContent(event.content.getAsJsonObject());
 
-        if (null == object) {
-            Log.e(LOG_TAG, "## decryptEvent() : cannot convert to jsonobject");
-            return false;
-        }
-
-        String senderKey = null;
-        String ciphertext = null;
-        String sessionId = null;
-
-        try {
-            senderKey = object.get("sender_key").getAsString();
-            ciphertext = object.get("ciphertext").getAsString();
-            sessionId = object.get("session_id").getAsString();
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## decryptEvent() : parsing failed " + e.getMessage());
-        }
+        String senderKey = encryptedEventContent.sender_key;
+        String ciphertext = encryptedEventContent.ciphertext;
+        String sessionId = encryptedEventContent.session_id;
 
         if (TextUtils.isEmpty(senderKey) || TextUtils.isEmpty(sessionId) || TextUtils.isEmpty(ciphertext)) {
             event.setCryptoError(new MXCryptoError(MXCryptoError.MISSING_FIELDS_ERROR_CODE, MXCryptoError.MISSING_FIELDS_REASON));
@@ -130,16 +120,10 @@ public class MXMegolmDecryption implements IMXDecrypting {
      * @param timelineId the timeline identifier
      */
     private void addEventToPendingList(Event event, String timelineId) {
-        JsonObject object = event.content.getAsJsonObject();
-        String senderKey = null;
-        String sessionId = null;
+        EncryptedEventContent encryptedEventContent = JsonUtils.toEncryptedEventContent(event.content.getAsJsonObject());
 
-        try {
-            senderKey = object.get("sender_key").getAsString();
-            sessionId = object.get("session_id").getAsString();
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## decryptEvent() : parsing failed " + e.getMessage());
-        }
+        String senderKey = encryptedEventContent.sender_key;
+        String sessionId = encryptedEventContent.session_id;
 
         String k = senderKey + "|" + sessionId;
 
@@ -168,24 +152,11 @@ public class MXMegolmDecryption implements IMXDecrypting {
     public void onRoomKeyEvent(Event roomKeyEvent) {
         Log.d(LOG_TAG, "## onRoomKeyEvent(), Adding key "); // from " + event);
 
-        JsonObject object = roomKeyEvent.getContentAsJsonObject();
+        RoomKeyContent roomKeyContent = JsonUtils.toRoomKeyContent(roomKeyEvent.getContentAsJsonObject());
 
-        if (null == object) {
-            Log.e(LOG_TAG, "## onRoomKeyEvent() : cannot convert to jsonobject");
-            return;
-        }
-
-        String roomId = null;
-        String sessionId = null;
-        String sessionKey = null;
-
-        try {
-            roomId = object.get("room_id").getAsString();
-            sessionId = object.get("session_id").getAsString();
-            sessionKey = object.get("session_key").getAsString();
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## onRoomKeyEvent() : parsing failed " + e.getMessage());
-        }
+        String roomId = roomKeyContent.room_id;
+        String sessionId = roomKeyContent.session_id;
+        String sessionKey = roomKeyContent.session_key;
 
         if (TextUtils.isEmpty(roomId) || TextUtils.isEmpty(sessionId) || TextUtils.isEmpty(sessionKey)) {
             Log.e(LOG_TAG, "## onRoomKeyEvent() :  Key event is missing fields");

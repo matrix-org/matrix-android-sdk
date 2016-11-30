@@ -174,15 +174,17 @@ public class MXOlmDecryption implements IMXDecrypting {
                 }
             }
 
+            Event clearEvent = JsonUtils.toEvent(payload);
+
             HashMap<String, String> keysProved = new HashMap<>();
             keysProved.put("curve25519", deviceKey);
-            event.setKeysProved(keysProved);
+            clearEvent.setKeysProved(keysProved);
 
             Map<String, String> keysClaimed = gson.fromJson(payload.getAsJsonObject().get("keys"), new TypeToken<Map<String, String>>() {
             }.getType());
-            event.setKeysClaimed(keysClaimed);
+            clearEvent.setKeysClaimed(keysClaimed);
 
-            event.setClearEvent(JsonUtils.toEvent(payload));
+            event.setClearEvent(clearEvent);
         } catch (Exception e) {
             Log.e(LOG_TAG, "## decryptEvent failed " + e.getMessage());
         }
