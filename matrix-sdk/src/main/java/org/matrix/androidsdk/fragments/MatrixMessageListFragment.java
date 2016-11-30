@@ -302,6 +302,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
             });
         }
+
+        @Override
+        public void onEventDecrypted(Event event) {
+            getUiHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    mAdapter.notifyDataSetChanged();
+                }
+            });
+        }
+
     };
 
     /**

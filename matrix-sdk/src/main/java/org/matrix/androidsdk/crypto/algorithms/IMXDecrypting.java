@@ -23,7 +23,6 @@ import org.matrix.androidsdk.rest.model.Event;
  * An interface for decrypting data
  */
 public interface IMXDecrypting {
-
     /**
      * Init the object fields
      * @param matrixSession
@@ -34,9 +33,9 @@ public interface IMXDecrypting {
      * Decrypt a message
      * @param event the raw event.
      * @param timeline the id of the timeline where the event is decrypted. It is used to prevent replay attack.
-     * @return the decryption result. Nil if the event referred to an unknown megolm session.
+     * @return true if the operation succceeds.
      */
-    MXDecryptionResult decryptEvent(Event event, String timeline);
+    boolean decryptEvent(Event event, String timeline);
 
     /**
      * Handle a key event.

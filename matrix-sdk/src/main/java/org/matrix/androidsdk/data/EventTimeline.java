@@ -662,7 +662,7 @@ public class EventTimeline {
                             // Decrypt event if necessary
                             if (TextUtils.equals(anEvent.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
                                 if (null != mDataHandler.getCrypto()) {
-                                    anEvent.setClearEvent(mDataHandler.getCrypto().decryptEvent(anEvent, getTimelineId()));
+                                    mDataHandler.getCrypto().decryptEvent(anEvent, getTimelineId());
                                 }
                             }
 

@@ -16,6 +16,8 @@
 
 package org.matrix.androidsdk.crypto;
 
+import android.text.TextUtils;
+
 import org.matrix.androidsdk.rest.model.MatrixError;
 
 /**
@@ -41,6 +43,7 @@ public class MXCryptoError extends MatrixError {
     public static final String BAD_ENCRYPTED_MESSAGE_ERROR_CODE = "BAD_ENCRYPTED_MESSAGE";
     public static final String DUPLICATED_MESSAGE_INDEX_ERROR_CODE = "DUPLICATED_MESSAGE_INDEX";
     public static final String MISSING_PROPERTY_ERROR_CODE = "MISSING_PROPERTY";
+    public static final String OLM_ERROR_CODE = "OLM_ERROR_CODE";
 
     /**
      * Error reasons
@@ -70,5 +73,12 @@ public class MXCryptoError extends MatrixError {
     public MXCryptoError(String code, String errorDescription) {
         errcode = code;
         error = errorDescription;
+    }
+
+    /**
+     * @return true if the current error is an olm one.
+     */
+    public boolean isOlmError() {
+        return TextUtils.equals(OLM_ERROR_CODE, errcode);
     }
 }

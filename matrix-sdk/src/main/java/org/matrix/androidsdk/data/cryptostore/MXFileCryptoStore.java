@@ -570,6 +570,62 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         return null;
     }
 
+    /**
+     * Flush mInboundGroupSessions
+     * @param fOlmInboundGroupSessionToRelease the session to release when the flush is completed.
+     */
+    private void saveInboundGroupSessions(final MXOlmInboundGroupSession fOlmInboundGroupSessionToRelease) {
+        final HashMap<String, HashMap<String, MXOlmInboundGroupSession>> fInboundGroupSessions = cloneInboundGroupSessions(mInboundGroupSessions);
+
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                getThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mInboundGroupSessionsFileTmp.exists()) {
+                            mInboundGroupSessionsFileTmp.delete();
+                        }
+
+                        if (mInboundGroupSessionsFile.exists()) {
+                            mInboundGroupSessionsFile.renameTo(mInboundGroupSessionsFileTmp);
+                        }
+
+                        storeObject(fInboundGroupSessions, mInboundGroupSessionsFile, "storeInboundGroupSession - in background");
+
+                        if (mInboundGroupSessionsFileTmp.exists()) {
+                            mInboundGroupSessionsFileTmp.delete();
+                        }
+
+                        if (null != fOlmInboundGroupSessionToRelease) {
+                            // JNI release
+                            fOlmInboundGroupSessionToRelease.mSession.releaseSession();
+                        }
+                    }
+                });
+            }
+        };
+
+        Thread t = new Thread(r);
+        t.start();
+    }
+
+    @Override
+    public void removeInboundGroupSessionWithId(String sessionId, String senderKey) {
+        if ((null != sessionId) && (null != senderKey)) {
+            if (mInboundGroupSessions.containsKey(senderKey)) {
+                MXOlmInboundGroupSession session = mInboundGroupSessions.get(senderKey).get(sessionId);
+
+                if (null != session) {
+                    session.mSession.releaseSession();
+                    mInboundGroupSessions.get(senderKey).remove(sessionId);
+
+                    saveInboundGroupSessions(null);
+                }
+            }
+        }
+    }
+
     @Override
     public void storeInboundGroupSession(MXOlmInboundGroupSession session) {
         if ((null != session) && (null != session.mSenderKey) && (null != session.mSession) && (null != session.mSession.sessionIdentifier())) {
@@ -588,39 +644,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 fOlmInboundGroupSessionToRelease = null;
             }
 
-            final HashMap<String, HashMap<String, MXOlmInboundGroupSession>> fInboundGroupSessions = cloneInboundGroupSessions(mInboundGroupSessions);
-
-            Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    getThreadHandler().post(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (mInboundGroupSessionsFileTmp.exists()) {
-                                mInboundGroupSessionsFileTmp.delete();
-                            }
-
-                            if (mInboundGroupSessionsFile.exists()) {
-                                mInboundGroupSessionsFile.renameTo(mInboundGroupSessionsFileTmp);
-                            }
-
-                            storeObject(fInboundGroupSessions, mInboundGroupSessionsFile, "storeInboundGroupSession - in background");
-
-                            if (mInboundGroupSessionsFileTmp.exists()) {
-                                mInboundGroupSessionsFileTmp.delete();
-                            }
-
-                            if (null != fOlmInboundGroupSessionToRelease) {
-                                // JNI release
-                                fOlmInboundGroupSessionToRelease.mSession.releaseSession();
-                            }
-                        }
-                    });
-                }
-            };
-
-            Thread t = new Thread(r);
-            t.start();
+            saveInboundGroupSessions(fOlmInboundGroupSessionToRelease);
         }
     }
 

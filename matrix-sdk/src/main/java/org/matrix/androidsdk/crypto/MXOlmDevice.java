@@ -552,8 +552,8 @@ public class MXOlmDevice {
                     HashMap<String, String> map = new HashMap<>();
                     map.put("curve25519", senderKey);
                     result.mKeysProved = map;
-                }  else {
-                    result.mCryptoError = new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT_ERROR_CODE, errorMessage.toString());
+                } else {
+                    result.mCryptoError = new MXCryptoError(MXCryptoError.OLM_ERROR_CODE, errorMessage.toString());
                     Log.e(LOG_TAG, "## decryptGroupMessage() : failed to decode the message");
                 }
             } else {

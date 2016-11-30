@@ -78,8 +78,12 @@ public class MXCrypto {
     // the crypto store
     public IMXCryptoStore mCryptoStore;
 
-    // EncryptionAlgorithm instance for each room.
-    private HashMap<String, IMXEncrypting> mRoomAlgorithms;
+    // MXEncrypting instance for each room.
+    private HashMap<String, IMXEncrypting> mRoomEncryptors;
+
+    // A map from algorithm to MXDecrypting instance, for each room
+    private HashMap<String, /* room id */
+                HashMap<String /* algorithm */, IMXDecrypting>> mRoomDecryptors;
 
     // Our device keys
     private MXDeviceInfo mMyDevice;
@@ -125,7 +129,8 @@ public class MXCrypto {
         mCryptoStore = cryptoStore;
 
         mOlmDevice = new MXOlmDevice(mCryptoStore);
-        mRoomAlgorithms = new HashMap<>();
+        mRoomEncryptors = new HashMap<>();
+        mRoomDecryptors = new HashMap<>();
 
         String deviceId = mSession.getCredentials().deviceId;
 
@@ -343,7 +348,8 @@ public class MXCrypto {
             mOlmDevice = null;
         }
 
-        mRoomAlgorithms = null;
+        mRoomDecryptors = null;
+        mRoomEncryptors = null;
         mMyDevice = null;
 
         stopUploadKeysTimer();
@@ -677,7 +683,7 @@ public class MXCrypto {
             Collection<Room> rooms = mSession.getDataHandler().getStore().getRooms();
 
             for(Room room : rooms) {
-                IMXEncrypting alg = mRoomAlgorithms.get(room.getRoomId());
+                IMXEncrypting alg = mRoomEncryptors.get(room.getRoomId());
 
                 if (null != alg) {
                     alg.onDeviceVerificationStatusUpdate(userId, deviceId);
@@ -722,7 +728,7 @@ public class MXCrypto {
         }
 
         alg.initWithMatrixSession(mSession, roomId);
-        mRoomAlgorithms.put(roomId, alg);
+        mRoomEncryptors.put(roomId, alg);
 
         return true;
     }
@@ -736,7 +742,7 @@ public class MXCrypto {
         boolean res = false;
 
         if (null != roomId) {
-            res = mRoomAlgorithms.containsKey(roomId);
+            res = mRoomEncryptors.containsKey(roomId);
 
             if (!res) {
                 Room room = mSession.getDataHandler().getRoom(roomId);
@@ -912,14 +918,14 @@ public class MXCrypto {
      * @param callback the asynchronous callback
      */
     public void encryptEventContent(JsonElement eventContent, String eventType, Room room, final ApiCallback<MXEncryptEventContentResult> callback) {
-        IMXEncrypting alg = mRoomAlgorithms.get(room.getRoomId());
+        IMXEncrypting alg = mRoomEncryptors.get(room.getRoomId());
 
         if (null == alg) {
             String algorithm = room.getLiveState().encryptionAlgorithm();
 
             if (null != algorithm) {
                 if (setEncryptionInRoom(room.getRoomId(), algorithm)) {
-                    alg = mRoomAlgorithms.get(room.getRoomId());
+                    alg = mRoomEncryptors.get(room.getRoomId());
                 }
             }
         }
@@ -970,86 +976,39 @@ public class MXCrypto {
      * Decrypt a received event
      * @param event the raw event.
      * @param timeline the id of the timeline where the event is decrypted. It is used to prevent replay attack.
-     * @return a cleared event or null.
+     * @return true if the decryption was successful.
      */
-    public Event decryptEvent(Event event, String timeline) {
-        EventContent eventContent = event.getWireEventContent();
-        Class<IMXDecrypting> decryptingClass = null;
-
-        if ((null != eventContent) && (null != eventContent.algorithm)) {
-            decryptingClass = MXCryptoAlgorithms.sharedAlgorithms().decryptorClassForAlgorithm(eventContent.algorithm);
+    public boolean decryptEvent(Event event, String timeline) {
+        if (null == event) {
+            Log.e(LOG_TAG, "## decryptEvent : null event");
+            return false;
         }
 
-        if (null == decryptingClass) {
-            String reason;
+        EventContent eventContent = event.getWireEventContent();
 
-            if (null != eventContent) {
-                reason = String.format(MXCryptoError.UNABLE_TO_DECRYPT_REASON, event.eventId, eventContent.algorithm);
-            } else  {
-                reason = String.format(MXCryptoError.UNABLE_TO_DECRYPT_REASON, event.eventId, "[Unknown algorithm]");
-            }
+        if (null == eventContent) {
+            Log.e(LOG_TAG, "## decryptEvent : empty event content");
+            return false;
+        }
+
+        IMXDecrypting alg = getRoomDecryptor(event.roomId, eventContent.algorithm);
+
+        if (null == alg) {
+            String reason = String.format(MXCryptoError.UNABLE_TO_DECRYPT_REASON, event.eventId, eventContent.algorithm);
+
+            Log.e(LOG_TAG, "## decryptEvent() : " + reason);
 
             event.setCryptoError(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT_ERROR_CODE, reason));
-            return null;
+            return false;
         }
 
-        IMXDecrypting alg;
+        boolean result = alg.decryptEvent(event, timeline);
 
-        try {
-            Constructor<?> ctor = decryptingClass.getConstructors()[0];
-            alg = (IMXDecrypting)ctor.newInstance(new Object[]{});
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## decryptEvent() : fail to load the class");
-            event.setCryptoError(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT_ERROR_CODE, String.format(MXCryptoError.UNABLE_TO_DECRYPT_REASON, event.eventId, "[Unknown algorithm]")));
-            return null;
+        if (!result) {
+            Log.e(LOG_TAG, "## decryptEvent() : failed " + event.getCryptoError().toString());
         }
 
-        alg.initWithMatrixSession(mSession);
-
-        MXDecryptionResult result = alg.decryptEvent(event, timeline);
-        Event clearedEvent = null;
-
-        if ((null != result) && (null != result.mPayload) && (null == result.mCryptoError)) {
-            clearedEvent = JsonUtils.toEvent(result.mPayload);
-            clearedEvent.setKeysProved(result.mKeysProved);
-            clearedEvent.setKeysClaimed(result.mKeysClaimed);
-            event.setCryptoError(null);
-        } else {
-            if ((null != result) && (null != result.mCryptoError)) {
-                Log.e(LOG_TAG, "##decryptEvent() failed " + result.mCryptoError.getMessage());
-            } else {
-                Log.e(LOG_TAG, "##decryptEvent() failed");
-            }
-            // We've got a message for a session we don't have.  Maybe the sender
-            // forgot to tell us about the session.  Remind the sender that we
-            // exist so that they might tell us about the session on their next
-            // send.
-            //
-            // (Alternatively, it might be that we are just looking at
-            // scrollback... at least we rate-limit the m.new_device events :/)
-            //
-            // XXX: this is a band-aid which masks symptoms of other bugs. It would
-            // be nice to get rid of it.
-            if ((null != event.roomId) && (null != event.sender)) {
-                // Note: if the sending device didn't tell us its device_id, fall
-                // back to all devices.
-                String deviceId = null;
-
-                try {
-                    deviceId = event.getContentAsJsonObject().get("device_id").getAsString();
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "##decryptEvent() : cannot retrieve the deviceId");
-                }
-
-                sendPingToDevice(deviceId, event.sender, event.roomId);
-            }
-
-            if (null != result) {
-                event.setCryptoError(result.mCryptoError);
-            }
-        }
-
-        return clearedEvent;
+        return result;
     }
 
     /**
@@ -1236,30 +1195,26 @@ public class MXCrypto {
      * @param event the key event.
      */
     private void onRoomKeyEvent(Event event) {
+        // sanity check
+        if (null == event) {
+            Log.e(LOG_TAG, "## onRoomKeyEvent() : null event");
+            return;
+        }
+
         EventContent eventContent = event.getEventContent();
 
-        Class<IMXDecrypting> algClass = null;
-
-        if (!TextUtils.isEmpty(eventContent.algorithm)) {
-            algClass = MXCryptoAlgorithms.sharedAlgorithms().decryptorClassForAlgorithm(eventContent.algorithm);
-        }
-
-        if (null == algClass) {
-            Log.e(LOG_TAG, "## onRoomKeyEvent() : ERROR: Unable to handle keys for " + eventContent.algorithm);
+        if (TextUtils.isEmpty(event.roomId) || TextUtils.isEmpty(eventContent.algorithm)) {
+            Log.e(LOG_TAG, "## onRoomKeyEvent() : missing fields");
             return;
         }
 
-        IMXDecrypting alg;
+        IMXDecrypting alg = getRoomDecryptor(event.roomId, eventContent.algorithm);
 
-        try {
-            Constructor<?> ctor = algClass.getConstructors()[0];
-            alg = (IMXDecrypting)ctor.newInstance(new Object[]{});
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## decryptEvent() : fail to load the class");
+        if (null == alg) {
+            Log.e(LOG_TAG, "## onRoomKeyEvent() : Unable to handle keys for " + eventContent.algorithm);
             return;
         }
 
-        alg.initWithMatrixSession(mSession);
         alg.onRoomKeyEvent(event);
     }
 
@@ -1285,7 +1240,7 @@ public class MXCrypto {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap) {
                 for(String roomId : newDeviceContent.rooms) {
-                    IMXEncrypting encrypting = mRoomAlgorithms.get(roomId);
+                    IMXEncrypting encrypting = mRoomEncryptors.get(roomId);
 
                     if (null != encrypting) {
                         // The room is encrypted, report the new device to it
@@ -1325,7 +1280,7 @@ public class MXCrypto {
      * @param event the membership event causing the change
      */
     private void onRoomMembership(Event event) {
-        IMXEncrypting alg = mRoomAlgorithms.get(event.roomId);
+        IMXEncrypting alg = mRoomEncryptors.get(event.roomId);
 
         if (null == alg) {
             // No encrypting in this room
@@ -1570,5 +1525,57 @@ public class MXCrypto {
                 Log.e(LOG_TAG, "## sendPingToDevice failed " + e.getMessage());
             }
         });
+    }
+
+    /**
+     * Get a decryptor for a given room and algorithm.
+     * If we already have a decryptor for the given room and algorithm, return
+     * it. Otherwise try to instantiate it.
+     * @param roomId the room id
+     * @param algorithm the crypto algorithm
+     * @return the decryptor
+     */
+    private IMXDecrypting getRoomDecryptor(String roomId, String algorithm) {
+        // sanity check
+        if (TextUtils.isEmpty(algorithm)) {
+            Log.e(LOG_TAG, "## getRoomDecryptor() : null algorithm");
+            return null;
+        }
+
+        IMXDecrypting alg = null;
+
+        if (!TextUtils.isEmpty(roomId)) {
+            if (!mRoomDecryptors.containsKey(roomId)) {
+                mRoomDecryptors.put(roomId, new HashMap<String, IMXDecrypting>());
+            }
+
+            alg = mRoomDecryptors.get(roomId).get(algorithm);
+
+            if (null != alg) {
+                return alg;
+            }
+        }
+
+        Class<IMXDecrypting> decryptingClass = MXCryptoAlgorithms.sharedAlgorithms().decryptorClassForAlgorithm(algorithm);
+
+        if (null != decryptingClass) {
+            try {
+                Constructor<?> ctor = decryptingClass.getConstructors()[0];
+                alg = (IMXDecrypting) ctor.newInstance(new Object[]{});
+
+                if (null != alg) {
+                    alg.initWithMatrixSession(mSession);
+
+                    if (!TextUtils.isEmpty(roomId)) {
+                        mRoomDecryptors.get(roomId).put(algorithm, alg);
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## decryptEvent() : fail to load the class");
+                return null;
+            }
+        }
+
+        return alg;
     }
 }

@@ -1675,6 +1675,18 @@ public class Room {
             }
 
             @Override
+            public void onEventDecrypted(Event event) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), event.roomId)) {
+                    try {
+                        eventListener.onEventDecrypted(event);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onDecryptedEvent exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
             public void onSentEvent(Event event) {
                 // Filter out events for other rooms
                 if (TextUtils.equals(getRoomId(), event.roomId)) {
@@ -1918,7 +1930,7 @@ public class Room {
                     // update the event content with the encrypted data
                     event.type = encryptEventContentResult.mEventType;
                     event.updateContent(encryptEventContentResult.mEventContent.getAsJsonObject());
-                    event.setClearEvent(mDataHandler.getCrypto().decryptEvent(event, null));
+                    mDataHandler.getCrypto().decryptEvent(event, null);
 
                     // warn the upper layer
                     mDataHandler.onEventEncrypted(event);
