@@ -80,7 +80,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
         String sessionId = encryptedEventContent.session_id;
 
         if (TextUtils.isEmpty(senderKey) || TextUtils.isEmpty(sessionId) || TextUtils.isEmpty(ciphertext)) {
-            event.setCryptoError(new MXCryptoError(MXCryptoError.MISSING_FIELDS_ERROR_CODE, MXCryptoError.MISSING_FIELDS_REASON));
+            event.setCryptoError(new MXCryptoError(MXCryptoError.MISSING_FIELDS_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, MXCryptoError.MISSING_FIELDS_REASON));
             return false;
         }
 
@@ -103,7 +103,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
                 // Package olm error into MXDecryptingErrorDomain
                 String reason = String.format(MXCryptoError.UNABLE_TO_DECRYPT_REASON, ciphertext, result.mCryptoError.error);
-                result.mCryptoError = new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT_ERROR_CODE, reason);
+                result.mCryptoError = new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason);
             } else if (TextUtils.equals(result.mCryptoError.errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE)) {
                 addEventToPendingList(event, timeline);
             }
@@ -141,8 +141,10 @@ public class MXMegolmDecryption implements IMXDecrypting {
             mPendingEvents.get(k).put(timelineId, new ArrayList<Event>());
         }
 
-        Log.d(LOG_TAG, "## addEventToPendingList() : add " + event);
-        mPendingEvents.get(k).get(timelineId).add(event);
+        if (mPendingEvents.get(k).get(timelineId).indexOf(event) < 0) {
+            Log.d(LOG_TAG, "## addEventToPendingList() : add " + event);
+            mPendingEvents.get(k).get(timelineId).add(event);
+        }
     }
 
     /**

@@ -1107,7 +1107,7 @@ public class MXDataHandler implements IMXEventListener {
                 return getCrypto().decryptEvent(event, timelineId);
             } else {
                 event.setClearEvent(null);
-                event.setCryptoError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLED_ERROR_CODE, MXCryptoError.ENCRYPTING_NOT_ENABLED_REASON));
+                event.setCryptoError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLED_ERROR_CODE, MXCryptoError.ENCRYPTING_NOT_ENABLED_REASON, null));
             }
         }
 

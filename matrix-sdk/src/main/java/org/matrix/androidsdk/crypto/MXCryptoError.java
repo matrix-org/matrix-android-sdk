@@ -46,11 +46,17 @@ public class MXCryptoError extends MatrixError {
     public static final String OLM_ERROR_CODE = "OLM_ERROR_CODE";
 
     /**
-     * Error reasons
+     * short error reasons
+     */
+    public static final String UNABLE_TO_DECRYPT =  "Unable to decrypt";
+    public static final String UNABLE_TO_ENCRYPT =  "Unable to encrypt";
+
+    /**
+     * Detailed error reasons
      */
     public static final String ENCRYPTING_NOT_ENABLED_REASON = "Encryption not enabled";
     public static final String UNABLE_TO_ENCRYPT_REASON =  "Unable to encrypt %s";
-    public static final String UNABLE_TO_DECRYPT_REASON =  "Unable to decrypt %1$s. Olm error: %%2$s";
+    public static final String UNABLE_TO_DECRYPT_REASON =  "Unable to decrypt %1$s. Olm error: %2$s";
     public static final String UNKNOWN_INBOUND_SESSSION_ID_REASON = "Unknown inbound session id";
     public static final String INBOUND_SESSION_MISMATCH_ROOM_ID_REASON = "Mismatched room_id for inbound group session (expected %1$s, was %2$s)";
     public static final String MISSING_FIELDS_REASON = "Missing fields in input";
@@ -64,15 +70,21 @@ public class MXCryptoError extends MatrixError {
     public static final String DUPLICATE_MESSAGE_INDEX_REASON = "Duplicate message index, possible replay attack %1$s";
     public static final String ERROR_MISSING_PROPERTY_REASON = "No '%1$s' property. Cannot prevent unknown-key attack";
 
+    /**
+     * Describe the error with more details
+     */
+    private String mDetailedErrorDescription = null;
 
     /**
      * Create a crypto error
      * @param code the error code (see XX_ERROR_CODE)
-     * @param errorDescription the error description
+     * @param shortErrorDescription the short error description
+     * @param detailedErrorDescription the detailed error descrription
      */
-    public MXCryptoError(String code, String errorDescription) {
+    public MXCryptoError(String code, String shortErrorDescription, String detailedErrorDescription) {
         errcode = code;
-        error = errorDescription;
+        error = shortErrorDescription;
+        mDetailedErrorDescription = detailedErrorDescription;
     }
 
     /**
@@ -80,5 +92,17 @@ public class MXCryptoError extends MatrixError {
      */
     public boolean isOlmError() {
         return TextUtils.equals(OLM_ERROR_CODE, errcode);
+    }
+
+
+    /**
+     * @return the detailed error description
+     */
+    public String getDetailedErrorDescription() {
+        if (TextUtils.isEmpty(mDetailedErrorDescription)) {
+            return error;
+        }
+
+        return mDetailedErrorDescription;
     }
 }

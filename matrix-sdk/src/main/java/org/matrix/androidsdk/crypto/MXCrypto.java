@@ -967,7 +967,7 @@ public class MXCrypto {
             Log.e(LOG_TAG, "## encryptEventContent() : " + reason);
 
             if (null != callback) {
-                callback.onMatrixError(new MXCryptoError(MXCryptoError.UNABLE_TO_ENCRYPT_ERROR_CODE, reason));
+                callback.onMatrixError(new MXCryptoError(MXCryptoError.UNABLE_TO_ENCRYPT_ERROR_CODE, MXCryptoError.UNABLE_TO_ENCRYPT, reason));
                 callback.onSuccess(new MXEncryptEventContentResult(eventContent, eventType));
             }
         }
@@ -999,7 +999,7 @@ public class MXCrypto {
 
             Log.e(LOG_TAG, "## decryptEvent() : " + reason);
 
-            event.setCryptoError(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT_ERROR_CODE, reason));
+            event.setCryptoError(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason));
             return false;
         }
 

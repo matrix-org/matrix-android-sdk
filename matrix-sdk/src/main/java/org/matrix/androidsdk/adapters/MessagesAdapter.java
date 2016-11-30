@@ -768,7 +768,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      */
     private int getItemViewType(Event event) {
         String eventId = event.eventId;
+        String eventType = event.getType();
 
+        // never cache the view type of the encypted messages
+        if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(eventType)) {
+            return ROW_TYPE_TEXT;
+        }
+
+        // never cache the view type of encrypted events
         if (null != eventId) {
             Integer type = mEventType.get(eventId);
 
@@ -778,7 +785,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         int viewType;
-        String eventType = event.getType();
 
         if (Event.EVENT_TYPE_MESSAGE.equals(eventType)) {
 
@@ -800,10 +806,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 // Default is to display the body as text
                 viewType = ROW_TYPE_TEXT;
             }
-        } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(eventType)) {
-            viewType = ROW_TYPE_TEXT;
-        }
-        else if (
+        } else if (
                 event.isCallEvent() ||
                         Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(eventType) ||
                         Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType) ||

@@ -75,13 +75,13 @@ public class MXOlmDecryption implements IMXDecrypting {
 
             if (null == ciphertext) {
                 Log.e(LOG_TAG, "## decryptEvent() : missing cipher text");
-                event.setCryptoError(new MXCryptoError(MXCryptoError.MISSING_CIPHER_TEXT_ERROR_CODE, MXCryptoError.MISSING_CIPHER_TEXT_REASON));
+                event.setCryptoError(new MXCryptoError(MXCryptoError.MISSING_CIPHER_TEXT_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, MXCryptoError.MISSING_CIPHER_TEXT_REASON));
                 return false;
             }
 
             if (!ciphertext.containsKey(mOlmDevice.getDeviceCurve25519Key())) {
                 Log.e(LOG_TAG, "## decryptEvent() : our device " + mOlmDevice.getDeviceCurve25519Key() + " is not included in recipients. Event " + event.getContentAsJsonObject());
-                event.setCryptoError(new MXCryptoError(MXCryptoError.NOT_INCLUDE_IN_RECIPIENTS_ERROR_CODE, MXCryptoError.NOT_INCLUDED_IN_RECIPIENT_REASON));
+                event.setCryptoError(new MXCryptoError(MXCryptoError.NOT_INCLUDE_IN_RECIPIENTS_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, MXCryptoError.NOT_INCLUDED_IN_RECIPIENT_REASON));
                 return false;
             }
 
@@ -91,7 +91,7 @@ public class MXOlmDecryption implements IMXDecrypting {
 
             if (null == payloadString) {
                 Log.e(LOG_TAG, "## decryptEvent() Failed to decrypt Olm event (id= " + event.eventId + " ) from " + deviceKey);
-                event.setCryptoError(new MXCryptoError(MXCryptoError.BAD_ENCRYPTED_MESSAGE_ERROR_CODE, MXCryptoError.BAD_ENCRYPTED_MESSAGE_REASON));
+                event.setCryptoError(new MXCryptoError(MXCryptoError.BAD_ENCRYPTED_MESSAGE_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, MXCryptoError.BAD_ENCRYPTED_MESSAGE_REASON));
                 return false;
             }
 
@@ -103,7 +103,7 @@ public class MXOlmDecryption implements IMXDecrypting {
                 if (!payloadAsJSon.has("recipient")) {
                     String reason = String.format(MXCryptoError.ERROR_MISSING_PROPERTY_REASON, "recipient");
                     Log.e(LOG_TAG, "## decryptEvent() : " + reason);
-                    event.setCryptoError(new MXCryptoError(MXCryptoError.MISSING_PROPERTY_ERROR_CODE, reason));
+                    event.setCryptoError(new MXCryptoError(MXCryptoError.MISSING_PROPERTY_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason));
                     return false;
                 } else {
                     try {
@@ -111,7 +111,7 @@ public class MXOlmDecryption implements IMXDecrypting {
 
                         if (!TextUtils.equals(recipient, mSession.getMyUserId())) {
                             Log.e(LOG_TAG, "## decryptEvent() : Event " + event.eventId + ": Intended recipient " + recipient + " does not match our id " + mSession.getMyUserId());
-                            event.setCryptoError(new MXCryptoError(MXCryptoError.BAD_RECIPIENT_ERROR_CODE, String.format(MXCryptoError.BAD_RECIPIENT_REASON, recipient)));
+                            event.setCryptoError(new MXCryptoError(MXCryptoError.BAD_RECIPIENT_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, String.format(MXCryptoError.BAD_RECIPIENT_REASON, recipient)));
                             return false;
                         }
                     } catch (Exception e) {
@@ -121,7 +121,7 @@ public class MXOlmDecryption implements IMXDecrypting {
 
                 if (!payloadAsJSon.has("recipient_keys")) {
                     Log.e(LOG_TAG,  "## decryptEvent() : Olm event (id=" + event.eventId + ") contains no " +"'recipient_keys' property; cannot prevent unknown-key attack");
-                    event.setCryptoError(new MXCryptoError(MXCryptoError.MISSING_PROPERTY_ERROR_CODE, String.format(MXCryptoError.ERROR_MISSING_PROPERTY_REASON, "recipient_keys")));
+                    event.setCryptoError(new MXCryptoError(MXCryptoError.MISSING_PROPERTY_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, String.format(MXCryptoError.ERROR_MISSING_PROPERTY_REASON, "recipient_keys")));
                     return false;
                 } else {
                     try {
@@ -129,7 +129,7 @@ public class MXOlmDecryption implements IMXDecrypting {
 
                         if (!TextUtils.equals(ed25519, mOlmDevice.getDeviceEd25519Key())) {
                             Log.e(LOG_TAG, "## decryptEvent() : Event " + event.eventId + ": Intended recipient ed25519 key " + ed25519 + " did not match ours");
-                            event.setCryptoError(new MXCryptoError(MXCryptoError.BAD_RECIPIENT_KEY_ERROR_CODE, MXCryptoError.BAD_RECIPIENT_KEY_REASON));
+                            event.setCryptoError(new MXCryptoError(MXCryptoError.BAD_RECIPIENT_KEY_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, MXCryptoError.BAD_RECIPIENT_KEY_REASON));
                             return false;
                         }
                     } catch (Exception e) {
@@ -139,7 +139,7 @@ public class MXOlmDecryption implements IMXDecrypting {
 
                 if (!payloadAsJSon.has("sender")) {
                     Log.e(LOG_TAG, "## decryptEvent() : Olm event (id=" + event.eventId + ") contains no " + "'sender' property; cannot prevent unknown-key attack");
-                    event.setCryptoError(new MXCryptoError(MXCryptoError.MISSING_PROPERTY_ERROR_CODE, String.format(MXCryptoError.ERROR_MISSING_PROPERTY_REASON, "sender")));
+                    event.setCryptoError(new MXCryptoError(MXCryptoError.MISSING_PROPERTY_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, String.format(MXCryptoError.ERROR_MISSING_PROPERTY_REASON, "sender")));
                     return false;
                 } else {
                     try {
@@ -147,7 +147,7 @@ public class MXOlmDecryption implements IMXDecrypting {
 
                         if (!TextUtils.equals(sender, event.getSender())) {
                             Log.e(LOG_TAG, "Event " + event.eventId + ": original sender " + sender + " does not match reported sender " + event.getSender());
-                            event.setCryptoError(new MXCryptoError(MXCryptoError.FORWARDED_MESSAGE_ERROR_CODE, String.format(MXCryptoError.FORWARDED_MESSAGE_REASON, sender)));
+                            event.setCryptoError(new MXCryptoError(MXCryptoError.FORWARDED_MESSAGE_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, String.format(MXCryptoError.FORWARDED_MESSAGE_REASON, sender)));
                             return false;
                         }
                     }
@@ -169,7 +169,7 @@ public class MXOlmDecryption implements IMXDecrypting {
 
                 if (!TextUtils.equals(event.roomId, expectedRoomId)) {
                     Log.e(LOG_TAG, "## decryptEvent() : Event " + event.eventId + ": original room " + expectedRoomId + " does not match reported room " + event.roomId);
-                    event.setCryptoError(new MXCryptoError(MXCryptoError.BAD_ROOM_ERROR_CODE, String.format(MXCryptoError.BAD_ROOM_REASON, expectedRoomId)));
+                    event.setCryptoError(new MXCryptoError(MXCryptoError.BAD_ROOM_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, String.format(MXCryptoError.BAD_ROOM_REASON, expectedRoomId)));
                     return false;
                 }
             }
