@@ -85,6 +85,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
         }
 
         event.setClearEvent(null);
+        event.setCryptoError(null);
 
         MXDecryptionResult result = mOlmDevice.decryptGroupMessage(ciphertext, event.roomId, timeline, sessionId, senderKey);
 

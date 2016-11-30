@@ -185,6 +185,7 @@ public class MXOlmDecryption implements IMXDecrypting {
             clearEvent.setKeysClaimed(keysClaimed);
 
             event.setClearEvent(clearEvent);
+            event.setCryptoError(null);
         } catch (Exception e) {
             Log.e(LOG_TAG, "## decryptEvent failed " + e.getMessage());
         }

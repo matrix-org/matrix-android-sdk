@@ -485,6 +485,17 @@ public class MXOlmDevice {
     }
 
     /**
+     * Remove an inbound group session
+     * @param sessionId the session identifier.
+     * @param sessionKey base64-encoded secret key.
+     */
+    public void removeInboundGroupSession(String sessionId, String sessionKey) {
+        if ((null != sessionId) && (null != sessionKey)) {
+            mStore.removeInboundGroupSessionWithId(sessionId, sessionKey);
+        }
+    }
+
+    /**
      * Decrypt a received message with an inbound group session.
      * @param body the base64-encoded body of the encrypted message.
      * @param roomId theroom in which the message was received.
