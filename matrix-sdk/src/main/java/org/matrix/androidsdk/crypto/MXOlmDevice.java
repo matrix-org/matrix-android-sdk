@@ -485,6 +485,17 @@ public class MXOlmDevice {
     }
 
     /**
+     * Remove an inbound group session
+     * @param sessionId the session identifier.
+     * @param sessionKey base64-encoded secret key.
+     */
+    public void removeInboundGroupSession(String sessionId, String sessionKey) {
+        if ((null != sessionId) && (null != sessionKey)) {
+            mStore.removeInboundGroupSessionWithId(sessionId, sessionKey);
+        }
+    }
+
+    /**
      * Decrypt a received message with an inbound group session.
      * @param body the base64-encoded body of the encrypted message.
      * @param roomId theroom in which the message was received.
@@ -524,7 +535,7 @@ public class MXOlmDevice {
                             String reason = String.format(MXCryptoError.DUPLICATE_MESSAGE_INDEX_REASON, index.mIndex);
 
                             Log.e(LOG_TAG,"## decryptGroupMessage() : " + reason);
-                            result.mCryptoError = new MXCryptoError(MXCryptoError.DUPLICATED_MESSAGE_INDEX_ERROR_CODE, reason);
+                            result.mCryptoError = new MXCryptoError(MXCryptoError.DUPLICATED_MESSAGE_INDEX_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason);
                             return result;
                         }
 
@@ -552,14 +563,14 @@ public class MXOlmDevice {
                     HashMap<String, String> map = new HashMap<>();
                     map.put("curve25519", senderKey);
                     result.mKeysProved = map;
-                }  else {
-                    result.mCryptoError = new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT_ERROR_CODE, errorMessage.toString());
+                } else {
+                    result.mCryptoError = new MXCryptoError(MXCryptoError.OLM_ERROR_CODE, errorMessage.toString(), null);
                     Log.e(LOG_TAG, "## decryptGroupMessage() : failed to decode the message");
                 }
             } else {
                 String reason = String.format(MXCryptoError.INBOUND_SESSION_MISMATCH_ROOM_ID_REASON, roomId, session.mRoomId);
                 Log.e(LOG_TAG, "## decryptGroupMessage() : " + reason);
-                result.mCryptoError = new MXCryptoError(MXCryptoError.INBOUND_SESSION_MISMATCH_ROOM_ID_ERROR_CODE, reason);
+                result.mCryptoError = new MXCryptoError(MXCryptoError.INBOUND_SESSION_MISMATCH_ROOM_ID_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason);
             }
         }
         else {
@@ -643,11 +654,11 @@ public class MXOlmDevice {
             if (!TextUtils.equals(roomId, session.mRoomId)) {
                 String errorDescription = String.format(MXCryptoError.INBOUND_SESSION_MISMATCH_ROOM_ID_REASON, roomId, session.mRoomId);
                 Log.e(LOG_TAG, "## inboundGroupSessionWithId() : " + errorDescription);
-                mInboundGroupSessionWithIdError = new MXCryptoError(MXCryptoError.INBOUND_SESSION_MISMATCH_ROOM_ID_ERROR_CODE, errorDescription);
+                mInboundGroupSessionWithIdError = new MXCryptoError(MXCryptoError.INBOUND_SESSION_MISMATCH_ROOM_ID_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, errorDescription);
             }
         } else {
             Log.e(LOG_TAG, "## inboundGroupSessionWithId() : Cannot retrieve inbound group session " + sessionId);
-            mInboundGroupSessionWithIdError = new MXCryptoError(MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE, MXCryptoError.UNKNOWN_INBOUND_SESSSION_ID_REASON);
+            mInboundGroupSessionWithIdError = new MXCryptoError(MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE, MXCryptoError.UNKNOWN_INBOUND_SESSSION_ID_REASON, null);
         }
         return session;
     }

@@ -37,6 +37,7 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.NewDeviceContent;
 import org.matrix.androidsdk.rest.model.PowerLevels;
+import org.matrix.androidsdk.rest.model.RoomKeyContent;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomTags;
 import org.matrix.androidsdk.rest.model.RoomThirdPartyInvite;
@@ -216,6 +217,16 @@ public class JsonUtils {
         }
 
         return new EventContent();
+    }
+
+    public static RoomKeyContent toRoomKeyContent(JsonElement jsonObject) {
+        try {
+            return gson.fromJson(jsonObject, RoomKeyContent.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## RoomKeyContent failed " + e.getMessage());
+        }
+
+        return new RoomKeyContent();
     }
 
     public static ImageMessage toImageMessage(JsonElement jsonObject) {

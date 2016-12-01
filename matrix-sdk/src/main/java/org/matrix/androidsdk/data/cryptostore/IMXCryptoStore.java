@@ -173,4 +173,11 @@ public interface IMXCryptoStore {
      * @return an inbound group session.
      */
     MXOlmInboundGroupSession inboundGroupSessionWithId(String sessionId, String senderKey);
+
+    /**
+     * Remove an inbound group session
+     * @param sessionId the session identifier.
+     * @param senderKey the base64-encoded curve25519 key of the sender.
+     */
+    void removeInboundGroupSessionWithId(String sessionId, String senderKey);
 }

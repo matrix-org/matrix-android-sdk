@@ -464,7 +464,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
         submap.put("room_id", mRoomId);
         submap.put("session_id", sessionId);
         submap.put("session_key", mCrypto.getOlmDevice().sessionKeyForOutboundGroupSession(sessionId));
-        submap.put("chain_index", new ArrayList<>(mCrypto.getOlmDevice().messageIndexForOutboundGroupSession(sessionId)));
+        submap.put("chain_index", mCrypto.getOlmDevice().messageIndexForOutboundGroupSession(sessionId));
 
         final HashMap<String, Object> payload = new HashMap<>();
         payload.put("type", Event.EVENT_TYPE_ROOM_KEY);

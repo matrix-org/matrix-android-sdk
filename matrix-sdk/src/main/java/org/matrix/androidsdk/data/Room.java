@@ -1675,6 +1675,18 @@ public class Room {
             }
 
             @Override
+            public void onEventDecrypted(Event event) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), event.roomId)) {
+                    try {
+                        eventListener.onEventDecrypted(event);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onDecryptedEvent exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
             public void onSentEvent(Event event) {
                 // Filter out events for other rooms
                 if (TextUtils.equals(getRoomId(), event.roomId)) {
@@ -1918,7 +1930,7 @@ public class Room {
                     // update the event content with the encrypted data
                     event.type = encryptEventContentResult.mEventType;
                     event.updateContent(encryptEventContentResult.mEventContent.getAsJsonObject());
-                    event.setClearEvent(mDataHandler.getCrypto().decryptEvent(event, null));
+                    mDataHandler.getCrypto().decryptEvent(event, null);
 
                     // warn the upper layer
                     mDataHandler.onEventEncrypted(event);
@@ -2317,9 +2329,9 @@ public class Room {
             });
         } else if (null != callback) {
             if (null == mDataHandler.getCrypto()) {
-                callback.onMatrixError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLED_ERROR_CODE, MXCryptoError.ENCRYPTING_NOT_ENABLED_REASON));
+                callback.onMatrixError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLED_ERROR_CODE, MXCryptoError.ENCRYPTING_NOT_ENABLED_REASON, MXCryptoError.ENCRYPTING_NOT_ENABLED_REASON));
             } else {
-                callback.onMatrixError(new MXCryptoError(MXCryptoError.MISSING_FIELDS_ERROR_CODE, MXCryptoError.MISSING_FIELDS_REASON));
+                callback.onMatrixError(new MXCryptoError(MXCryptoError.MISSING_FIELDS_ERROR_CODE, MXCryptoError.UNABLE_TO_ENCRYPT, MXCryptoError.MISSING_FIELDS_REASON));
             }
         }
     }
