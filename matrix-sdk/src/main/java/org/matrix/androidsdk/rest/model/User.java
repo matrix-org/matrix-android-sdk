@@ -66,6 +66,10 @@ public class User implements java.io.Serializable {
     // hash key to store the user in the file system;
     private Integer mStorageHashKey = null;
 
+    // The user data can have been retrieved by a room member
+    // The data can be partially invalid until a presence is received
+    public boolean mIsRetrievedFromRoomMember = false;
+
     // avatar URLs setter / getter
     public String getAvatarUrl() {
         return avatar_url;

@@ -313,13 +313,6 @@ public class MXFileStore extends MXMemoryStore {
                                 }
 
                                 if (succeed) {
-                                    // load the users
-                                    // don't test if the operation succeeds
-                                    // it is not required
-                                    loadUsers();
-                                }
-
-                                if (succeed) {
                                     succeed &= loadRoomsMessages();
                                     if (!succeed) {
                                         errorDescription = "loadRoomsMessages fails";
@@ -337,23 +330,20 @@ public class MXFileStore extends MXMemoryStore {
                                         Log.e(LOG_TAG, errorDescription);
                                     } else {
                                         Log.e(LOG_TAG, "loadRoomsState succeeds");
+                                        long t0 = System.currentTimeMillis();
+                                        Log.e(LOG_TAG, "Retrieve the users from the roomstate");
 
-                                        // should never be null
-                                        // assume that the users list loading failed
-                                        if (0 == mUsers.size()) {
-                                            Log.e(LOG_TAG, "The known users list was empty so use the room states to retrieve them");
+                                        Collection<Room> rooms = getRooms();
 
-                                            Collection<Room> rooms = getRooms();
-
-                                            for(Room room : rooms) {
-                                                Collection<RoomMember> members = room.getLiveState().getMembers();
-                                                for(RoomMember member : members) {
-                                                    updateUserWithRoomMemberEvent(member);
-                                                }
+                                        for(Room room : rooms) {
+                                            Collection<RoomMember> members = room.getLiveState().getMembers();
+                                            for(RoomMember member : members) {
+                                                updateUserWithRoomMemberEvent(member);
                                             }
-
-                                            Log.e(LOG_TAG, "Retrieve " +  mUsers.size() + " users with the room states");
                                         }
+
+                                        long delta = System.currentTimeMillis() - t0;
+                                        Log.e(LOG_TAG, "Retrieve " +  mUsers.size() + " users with the room states in " + delta + "  ms");
                                     }
                                 }
 
@@ -442,6 +432,9 @@ public class MXFileStore extends MXMemoryStore {
                                 } else {
                                     Log.e(LOG_TAG, "The store is opened.");
                                     dispatchOnStoreReady(mCredentials.userId);
+
+                                    // load the users later
+                                    loadUsers();
                                 }
                             }
                         });
@@ -809,7 +802,11 @@ public class MXFileStore extends MXMemoryStore {
             mUserIdsToCommit = new ArrayList<>();
 
             try {
-                final ArrayList<User> fUsers = new ArrayList<>(mUsers.values());
+                final ArrayList<User> fUsers;
+
+                synchronized (mUsers) {
+                    fUsers = new ArrayList<>(mUsers.values());
+                }
 
                 Runnable r = new Runnable() {
                     @Override
@@ -826,7 +823,12 @@ public class MXFileStore extends MXMemoryStore {
 
                                     // finds the group for each updated user
                                     for (String userId : fUserIds) {
-                                        User user = mUsers.get(userId);
+                                        User user;
+
+                                        synchronized (mUsers) {
+                                            user = mUsers.get(userId);
+                                        }
+
                                         if (null != user) {
                                             int hashCode = user.getStorageHashKey();
 
@@ -882,32 +884,49 @@ public class MXFileStore extends MXMemoryStore {
      * Load the user information from the filesystem..
      */
     private void loadUsers() {
-        try {
-            String[] filenames = mStoreUserFolderFile.list();
-            long start = System.currentTimeMillis();
+        String[] filenames = mStoreUserFolderFile.list();
+        long start = System.currentTimeMillis();
 
-            ArrayList<User> users = new ArrayList<>();
+        ArrayList<User> users = new ArrayList<>();
 
-            // list the files
-            for(int index = 0; index < filenames.length; index++) {
+        // list the files
+        for(int index = 0; index < filenames.length; index++) {
+            ObjectInputStream ois = null;
+
+            try {
                 File messagesListFile = new File(mStoreUserFolderFile, filenames[index]);
                 FileInputStream fis = new FileInputStream(messagesListFile);
                 GZIPInputStream gz = new GZIPInputStream(fis);
-                ObjectInputStream ois = new ObjectInputStream(gz);
+                ois = new ObjectInputStream(gz);
                 users.addAll((List<User>) ois.readObject());
-                ois.close();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "loadUsers failed : " + e.toString());
             }
 
-            // update the hash map
-            for(User user : users) {
-                mUsers.put(user.user_id, user);
+            if (null != ois) {
+                try {
+                    ois.close();
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "loadUsers cannot close the file");
+                }
             }
-
-            Log.e(LOG_TAG, "loadUsers : retrieve " + mUsers.size() + " users in " + (System.currentTimeMillis() - start) + "ms");
-
-        } catch (Exception e){
-            Log.e(LOG_TAG, "loadUsers failed : " + e.toString());
         }
+
+        // update the hash map
+        for(User user : users) {
+            synchronized (mUsers) {
+                User currentUser = mUsers.get(user.user_id);
+
+                if ((null == currentUser) || // not defined
+                        currentUser.mIsRetrievedFromRoomMember || // tmp user until retrieved it
+                        (currentUser.getLatestPresenceTs() < user.getLatestPresenceTs())) // newer presence
+                {
+                    mUsers.put(user.user_id, user);
+                }
+            }
+        }
+
+        Log.e(LOG_TAG, "loadUsers : retrieve " + mUsers.size() + " users in " + (System.currentTimeMillis() - start) + "ms");
     }
 
     //================================================================================

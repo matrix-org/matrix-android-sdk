@@ -341,7 +341,13 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public Collection<User> getUsers() {
-        return new ArrayList<>(mUsers.values());
+        Collection<User> users;
+
+        synchronized (mUsers) {
+            users = new ArrayList<>(mUsers.values());
+        }
+
+        return users;
     }
 
     @Override
@@ -356,7 +362,13 @@ public class MXMemoryStore implements IMXStore {
     @Override
     public User getUser(String userId) {
         if (null != userId) {
-            return mUsers.get(userId);
+            User user;
+
+            synchronized (mUsers) {
+                user =  mUsers.get(userId);
+            }
+
+            return user;
         } else {
             return null;
         }
@@ -366,7 +378,9 @@ public class MXMemoryStore implements IMXStore {
     public void storeUser(User user) {
         if ((null != user) && (null != user.user_id)) {
             try {
-                mUsers.put(user.user_id, user);
+                synchronized (mUsers) {
+                    mUsers.put(user.user_id, user);
+                }
             } catch (OutOfMemoryError e) {
                 dispatchOOM(e);
             }
@@ -387,6 +401,7 @@ public class MXMemoryStore implements IMXStore {
                 if (null == user) {
                     user = new User();
                     user.user_id = roomMember.getUserId();
+                    user.mIsRetrievedFromRoomMember = true;
                     storeUser(user);
                 }
 
@@ -403,6 +418,7 @@ public class MXMemoryStore implements IMXStore {
                             user.displayname = roomMember.displayname;
                             user.setAvatarUrl(roomMember.avatarUrl);
                             user.setLatestPresenceTs(roomMember.getOriginServerTs());
+                            user.mIsRetrievedFromRoomMember = true;
                         }
                     }
                 }
