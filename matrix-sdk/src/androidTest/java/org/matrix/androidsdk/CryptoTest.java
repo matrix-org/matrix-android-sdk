@@ -209,7 +209,7 @@ public class CryptoTest {
         assertTrue (results.containsKey("onStoreReady"));
         assertTrue (bobSession2.isCryptoEnabled());
 
-        final CountDownLatch lock2 = new CountDownLatch(1);
+        final CountDownLatch lock2 = new CountDownLatch(2);
 
         MXEventListener eventsListener = new MXEventListener() {
             @Override
@@ -217,11 +217,18 @@ public class CryptoTest {
                 results.put("onInitialSyncComplete", "onInitialSyncComplete");
                 lock2.countDown();
             }
+
+            @Override
+            public void onCryptoSyncComplete() {
+                results.put("onCryptoSyncComplete", "onCryptoSyncComplete");
+                lock2.countDown();
+            }
         };
         bobSession2.getDataHandler().addListener(eventsListener);
         bobSession2.startEventStream(null);
         lock2.await(1000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue (results.containsKey("onInitialSyncComplete"));
+        assertTrue (results.containsKey("onCryptoSyncComplete"));
 
         MXCrypto crypto = bobSession2.getCrypto();
         assertNotNull(crypto);
@@ -413,11 +420,17 @@ public class CryptoTest {
         lock4.await(2000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onStoreReady"));
 
-        final CountDownLatch lock4b = new CountDownLatch(1);
+        final CountDownLatch lock4b = new CountDownLatch(2);
         MXEventListener eventListener = new MXEventListener() {
             @Override
             public void onInitialSyncComplete() {
                 results.put("onInitialSyncComplete", "onInitialSyncComplete");
+                lock4b.countDown();
+            }
+
+            @Override
+            public void onCryptoSyncComplete() {
+                results.put("onCryptoSyncComplete", "onCryptoSyncComplete");
                 lock4b.countDown();
             }
         };
@@ -427,6 +440,7 @@ public class CryptoTest {
         bobSession2.startEventStream(null);
         lock4b.await(2000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onInitialSyncComplete"));
+        assertTrue(results.containsKey("onCryptoSyncComplete"));
 
         MXDeviceInfo aliceDeviceFromBobPOV2 = bobSession2.getCrypto().deviceWithIdentityKey(mAliceSession.getCrypto().getOlmDevice().getDeviceCurve25519Key(), mAliceSession.getMyUserId(), MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM);
 
@@ -677,11 +691,17 @@ public class CryptoTest {
         lock5.await(1000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onStoreReady"));
 
-        final CountDownLatch lock5b = new CountDownLatch(1);
+        final CountDownLatch lock5b = new CountDownLatch(2);
         MXEventListener eventListener = new MXEventListener() {
             @Override
             public void onInitialSyncComplete() {
                 results.put("onInitialSyncComplete", "onInitialSyncComplete");
+                lock5b.countDown();
+            }
+
+            @Override
+            public void onCryptoSyncComplete() {
+                results.put("onCryptoSyncComplete", "onCryptoSyncComplete");
                 lock5b.countDown();
             }
         };
@@ -691,6 +711,7 @@ public class CryptoTest {
 
         lock5b.await(1000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onInitialSyncComplete"));
+        assertTrue(results.containsKey("onCryptoSyncComplete"));
 
         final CountDownLatch lock6 = new CountDownLatch(1);
         bobSession2.getCrypto().ensureOlmSessionsForUsers(Arrays.asList(bobSession2.getMyUserId(), mAliceSession.getMyUserId()), new ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>>() {
@@ -1080,18 +1101,26 @@ public class CryptoTest {
         lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue (results.containsKey("onStoreReady"));
 
-        final CountDownLatch lock1b = new CountDownLatch(1);
+        final CountDownLatch lock1b = new CountDownLatch(2);
         MXEventListener eventListener = new MXEventListener() {
             @Override
             public void onInitialSyncComplete() {
                 results.put("onInitialSyncComplete", "onInitialSyncComplete");
                 lock1b.countDown();
             }
+
+            @Override
+            public void onCryptoSyncComplete() {
+                results.put("onCryptoSyncComplete", "onCryptoSyncComplete");
+                lock1b.countDown();
+            }
         };
+
         aliceSession2.getDataHandler().addListener(eventListener);
         aliceSession2.startEventStream(null);
         lock1b.await(1000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue (results.containsKey("onInitialSyncComplete"));
+        assertTrue (results.containsKey("onCryptoSyncComplete"));
 
         Room roomFromAlicePOV2 = aliceSession2.getDataHandler().getRoom(mRoomId);
 
@@ -1240,11 +1269,17 @@ public class CryptoTest {
         lock1b.await(1000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onStoreReady"));
 
-        final CountDownLatch lock2 = new CountDownLatch(1);
+        final CountDownLatch lock2 = new CountDownLatch(2);
         MXEventListener eventListener = new MXEventListener() {
             @Override
             public void onInitialSyncComplete() {
                 results.put("onInitialSyncComplete", "onInitialSyncComplete");
+                lock2.countDown();
+            }
+
+            @Override
+            public void onCryptoSyncComplete() {
+                results.put("onCryptoSyncComplete", "onCryptoSyncComplete");
                 lock2.countDown();
             }
         };
@@ -1255,6 +1290,7 @@ public class CryptoTest {
         lock2.await(1000, TimeUnit.DAYS.MILLISECONDS);
 
         assertTrue (results.containsKey("onInitialSyncComplete"));
+        assertTrue (results.containsKey("onCryptoSyncComplete"));
 
         Room roomFromAlicePOV2 = aliceSession2.getDataHandler().getRoom(mRoomId);
 
@@ -1286,7 +1322,7 @@ public class CryptoTest {
 
         IMXStore store =  new MXFileStore(hs, context);
 
-        final CountDownLatch lock1 = new CountDownLatch(1);
+        final CountDownLatch lock1 = new CountDownLatch(2);
 
         MXSession bobSession2 = new MXSession(hs, new MXDataHandler(store, bobCredentials, new MXDataHandler.InvalidTokenListener() {
             @Override
@@ -1300,6 +1336,12 @@ public class CryptoTest {
                 results.put("onInitialSyncComplete", "onInitialSyncComplete");
                 lock1.countDown();
             }
+
+            @Override
+            public void onCryptoSyncComplete() {
+                results.put("onCryptoSyncComplete", "onCryptoSyncComplete");
+                lock1.countDown();
+            }
         };
 
         bobSession2.getDataHandler().addListener(eventListener);
@@ -1309,6 +1351,8 @@ public class CryptoTest {
         lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
 
         assertTrue (results.containsKey("onInitialSyncComplete"));
+        assertTrue (results.containsKey("onCryptoSyncComplete"));
+
         assertTrue (null != bobSession2.getCrypto());
 
         Room roomFromBobPOV = bobSession2.getDataHandler().getRoom(mRoomId);

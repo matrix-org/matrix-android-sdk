@@ -117,6 +117,11 @@ public interface IMXEventListener {
     void onInitialSyncComplete();
 
     /**
+     * The crypto sync is complete
+     */
+    void onCryptoSyncComplete();
+
+    /**
      * A new room has been created.
      *
      * @param roomId the roomID
