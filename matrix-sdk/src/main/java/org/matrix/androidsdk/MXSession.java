@@ -27,7 +27,6 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCrypto;
-import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
@@ -1375,13 +1374,70 @@ public class MXSession {
             }
         } else {
             // background compatibility heuristic (named looksLikeDirectMessageRoom in the JS)
-            ArrayList<Room> rooms = new ArrayList<>(store.getRooms());
+            ArrayList<RoomIdsListRetroCompat> directChatRoomIdsListRetValue = new ArrayList<>();
+            getDirectChatRoomIdsListRetroCompat(store, directChatRoomIdsListRetValue);
+
+            // force direct chat room list to be updated with retro compatibility rooms values
+            if(0 != directChatRoomIdsListRetValue.size()) {
+                forceDirectChatRoomValue(directChatRoomIdsListRetValue, new ApiCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void info) {
+                        Log.d(LOG_TAG, "## getDirectChatRoomIdsList(): background compatibility heuristic => account_data update succeed");
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        if (MatrixError.FORBIDDEN.equals(e.errcode)) {
+                            Log.e(LOG_TAG, "## getDirectChatRoomIdsList(): onMatrixError Msg=" + e.error);
+                        }
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        Log.e(LOG_TAG, "## getDirectChatRoomIdsList(): onNetworkError Msg=" + e.getMessage());
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        Log.e(LOG_TAG, "## getDirectChatRoomIdsList(): onUnexpectedError Msg=" + e.getMessage());
+                    }
+                });
+            }
+        }
+
+        return directChatRoomIdsList;
+    }
+
+    public class RoomIdsListRetroCompat {
+        String mRoomId;
+
+        public RoomIdsListRetroCompat(String aParticipantUserId, String aRoomId) {
+            this.mParticipantUserId = aParticipantUserId;
+            this.mRoomId = aRoomId;
+        }
+
+        String mParticipantUserId;
+    }
+
+    /**
+     * Return the direct chat room list for retro compatibility with 1:1 rooms.
+     * @param aStore strore instance
+     * @param aDirectChatRoomIdsListRetValue the other participants in the 1:1 room
+     */
+    public void getDirectChatRoomIdsListRetroCompat(IMXStore aStore, ArrayList<RoomIdsListRetroCompat> aDirectChatRoomIdsListRetValue) {
+        RoomIdsListRetroCompat item;
+
+        if((null != aStore) && (null != aDirectChatRoomIdsListRetValue)) {
+            ArrayList<Room> rooms = new ArrayList<>(aStore.getRooms());
+            ArrayList<RoomMember> members;
+            int otherParticipantIndex;
 
             for (Room r : rooms) {
                 // Show 1:1 chats in separate "Direct Messages" section as long as they haven't
                 // been moved to a different tag section
                 if ((r.getMembers().size() == 2) && (null != r.getAccountData()) && (!r.getAccountData().hasTags())) {
                     RoomMember roomMember = r.getMember(getMyUserId());
+                    members = new ArrayList<>(r.getActiveMembers());
 
                     if (null != roomMember) {
                         String membership = roomMember.membership;
@@ -1389,14 +1445,20 @@ public class MXSession {
                         if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_JOIN) ||
                                 TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN) ||
                                 TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE)) {
-                            directChatRoomIdsList.add(r.getRoomId());
+
+                            if(TextUtils.equals(members.get(0).getUserId(), getMyUserId())) {
+                                otherParticipantIndex = 1;
+                            } else {
+                                otherParticipantIndex = 0;
+                            }
+
+                            item = new RoomIdsListRetroCompat(members.get(otherParticipantIndex).getUserId(), r.getRoomId());
+                            aDirectChatRoomIdsListRetValue.add(item);
                         }
                     }
                 }
             }
         }
-
-        return directChatRoomIdsList;
     }
 
     /**
@@ -1554,6 +1616,39 @@ public class MXSession {
         }
     }
 
+    /**
+     * For the value account_data with the rooms list passed in aRoomIdsListToAdd for a given user ID (aParticipantUserId)<br>
+     * WARNING: this method must be used with care because it erases the account_data object.
+     * @param aRoomParticipantUserIdList the couple direct chat rooms ID / user IDs
+     * @param callback the asynchronous response callback
+     */
+    public void forceDirectChatRoomValue(ArrayList<RoomIdsListRetroCompat> aRoomParticipantUserIdList, ApiCallback<Void> callback) {
+        HashMap<String, List<String>> params = new HashMap<>();
+        ArrayList<String> roomIdsList;
+
+        if(null != aRoomParticipantUserIdList) {
+
+            for(RoomIdsListRetroCompat item: aRoomParticipantUserIdList) {
+                if(params.containsKey(item.mParticipantUserId)) {
+                    roomIdsList = new ArrayList<>(params.get(item.mParticipantUserId));
+                    roomIdsList.add(item.mRoomId);
+                } else {
+                    roomIdsList = new ArrayList<>();
+                    roomIdsList.add(item.mRoomId);
+                }
+                params.put(item.mParticipantUserId, roomIdsList);
+            }
+
+            HashMap<String, Object> requestParams = new HashMap<>();
+
+            Collection<String> userIds = params.keySet();
+            for(String userId : userIds) {
+                requestParams.put(userId, params.get(userId));
+            }
+
+            mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, requestParams, callback);
+        }
+    }
 
     /**
      * Update the account password
