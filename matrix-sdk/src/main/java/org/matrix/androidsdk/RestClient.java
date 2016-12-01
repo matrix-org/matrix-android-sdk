@@ -20,6 +20,7 @@ import android.util.Log;
 import com.google.gson.Gson;
 import com.squareup.okhttp.OkHttpClient;
 
+import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.rest.client.MXRestExecutor;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.ssl.CertUtil;
@@ -72,6 +73,9 @@ public class RestClient<T> {
     // unitary tests only
     public static boolean mUseMXExececutor = false;
 
+    // http client
+    private OkHttpClient mOkHttpClient = new OkHttpClient();
+
     public RestClient(HomeserverConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization) {
         this(hsConfig, type, uriPrefix, withNullSerialization, false);
     }
@@ -87,15 +91,15 @@ public class RestClient<T> {
         mHsConfig = hsConfig;
         mCredentials = hsConfig.getCredentials();
 
-        OkHttpClient okHttpClient = new OkHttpClient();
+        mOkHttpClient = new OkHttpClient();
 
-        okHttpClient.setConnectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        okHttpClient.setReadTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        okHttpClient.setWriteTimeout(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        mOkHttpClient.setConnectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        mOkHttpClient.setReadTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        mOkHttpClient.setWriteTimeout(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
         try {
-            okHttpClient.setSslSocketFactory(CertUtil.newPinnedSSLSocketFactory(hsConfig));
-            okHttpClient.setHostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
+            mOkHttpClient.setSslSocketFactory(CertUtil.newPinnedSSLSocketFactory(hsConfig));
+            mOkHttpClient.setHostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
         } catch (Exception e) {
             Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage());
         }
@@ -113,7 +117,7 @@ public class RestClient<T> {
         RestAdapter.Builder builder = new RestAdapter.Builder()
                 .setEndpoint(endPoint)
                 .setConverter(new GsonConverter(gson))
-                .setClient(new OkClient(okHttpClient))
+                .setClient(new OkClient(mOkHttpClient))
                 .setRequestInterceptor(new RequestInterceptor() {
                     @Override
                     public void intercept(RequestInterceptor.RequestFacade request) {
@@ -141,6 +145,13 @@ public class RestClient<T> {
      */
     public void setUnsentEventsManager(UnsentEventsManager unsentEventsManager) {
         mUnsentEventsManager = unsentEventsManager;
+
+        mUnsentEventsManager.getNetworkConnectivityReceiver().addEventListener(new IMXNetworkEventListener() {
+            @Override
+            public void onNetworkConnectionUpdate(boolean isConnected) {
+                mOkHttpClient.setConnectTimeout(isConnected ? CONNECTION_TIMEOUT_MS : 1, TimeUnit.MILLISECONDS);
+            }
+        });
     }
 
     /**
