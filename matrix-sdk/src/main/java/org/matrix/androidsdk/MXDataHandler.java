@@ -129,7 +129,7 @@ public class MXDataHandler implements IMXEventListener {
         public void onNetworkConnectionUpdate(boolean isConnected) {
             if (isConnected && (null != getCrypto()) && !getCrypto().isIsStarted()) {
                 Log.d(LOG_TAG, "Start MXCrypto because a network connection has been retrieved ");
-                getCrypto().start(null);
+                startCrypto();
             }
         }
     };
@@ -1403,18 +1403,39 @@ public class MXDataHandler implements IMXEventListener {
         });
     }
 
-    @Override
-    public void onInitialSyncComplete() {
+    /**
+     * Dispatch the OnCryptoSyncComplete event.
+     */
+    private void dispatchOnCryptoSyncComplete() {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onCryptoSyncComplete();
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "OnCryptoSyncComplete " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Start the crypto
+     */
+    private void startCrypto() {
         if ((null != getCrypto()) && !getCrypto().isIsStarted()) {
             getCrypto().start(new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
-                    dispatchOnInitialSyncComplete();
+                    dispatchOnCryptoSyncComplete();
                 }
 
                 private void onError(String errorMessage) {
                     Log.e(LOG_TAG, "## onInitialSyncComplete() : getCrypto().start fails " + errorMessage);
-                    dispatchOnInitialSyncComplete();
                 }
 
                 @Override
@@ -1434,9 +1455,18 @@ public class MXDataHandler implements IMXEventListener {
                     onError(e.getMessage());
                 }
             });
-        } else {
-            dispatchOnInitialSyncComplete();
         }
+    }
+
+
+    @Override
+    public void onInitialSyncComplete() {
+        startCrypto();
+        dispatchOnInitialSyncComplete();
+    }
+
+    @Override
+    public void onCryptoSyncComplete() {
     }
 
     @Override

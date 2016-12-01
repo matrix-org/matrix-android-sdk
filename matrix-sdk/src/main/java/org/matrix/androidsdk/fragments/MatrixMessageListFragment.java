@@ -1099,7 +1099,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         final MessageRow messageRow = addMessageRow(tmpFileMessage);
         messageRow.getEvent().mSentState = Event.SentState.SENDING;
 
-        final String fMimeType = mimeType;
         final MXEncryptedAttachments.EncryptionResult fEncryptionResult = encryptionResult;
 
         getSession().getMediasCache().uploadContent(fileStream, tmpFileMessage.body, mimeType, mediaUrl, new MXMediaUploadListener() {

@@ -79,6 +79,10 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
+    public void onCryptoSyncComplete() {
+    }
+
+    @Override
     public void onNewRoom(String roomId) {
     }
 

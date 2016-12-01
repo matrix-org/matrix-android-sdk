@@ -24,7 +24,6 @@ import com.google.gson.JsonElement;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.crypto.algorithms.IMXDecrypting;
 import org.matrix.androidsdk.crypto.algorithms.IMXEncrypting;
-import org.matrix.androidsdk.crypto.algorithms.MXDecryptionResult;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
 import org.matrix.androidsdk.crypto.data.MXKey;
@@ -94,6 +93,9 @@ public class MXCrypto {
 
     private Map<String, Map<String, String>> mLastPublishedOneTimeKeys;
 
+    // the encryption is starting
+    private boolean mIsStarting;
+
     // tell if the crypto is started
     private boolean mIsStarted;
 
@@ -119,6 +121,9 @@ public class MXCrypto {
             }
         }
     };
+
+    // initialization callbacks
+    private final ArrayList<ApiCallback<Void>> mInitializationCallbacks = new ArrayList();
 
     /**
      * Constructor
@@ -264,78 +269,116 @@ public class MXCrypto {
      * Device keys will be uploaded, then one time keys if there are not enough on the homeserver
      * and, then, if this is the first time, this new device will be announced to all other users
      * devices.
-     * @param callback the asynchrous callback
+     * @param aCallback the asynchrous callback
      */
-    public void start(final ApiCallback<Void> callback) {
-        uploadKeys(5, new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                Log.d(LOG_TAG, "###########################################################");
-                Log.d(LOG_TAG, "uploadKeys done for " + mSession.getMyUserId());
-                Log.d(LOG_TAG, "   - device id  : " +  mSession.getCredentials().deviceId);
-                Log.d(LOG_TAG, "  - ed25519    : " + mOlmDevice.getDeviceEd25519Key());
-                Log.d(LOG_TAG, "   - curve25519 : " + mOlmDevice.getDeviceCurve25519Key());
-                Log.d(LOG_TAG, "  - oneTimeKeys: "  + mLastPublishedOneTimeKeys);     // They are
-                Log.d(LOG_TAG, "");
+    public void start(final ApiCallback<Void> aCallback) {
+        if ((null != aCallback) && (mInitializationCallbacks.indexOf(aCallback) < 0)) {
+            mInitializationCallbacks.add(aCallback);
+        }
 
-                checkDeviceAnnounced(new ApiCallback<Void>() {
+        if (mIsStarting) {
+            return;
+        }
+
+        mIsStarting  = true;
+
+        new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Void doInBackground(Void... voids) {
+                uploadKeys(5, new ApiCallback<Void>() {
                     @Override
                     public void onSuccess(Void info) {
-                        mIsStarted = true;
-                        startUploadKeysTimer(true);
+                        Log.d(LOG_TAG, "###########################################################");
+                        Log.d(LOG_TAG, "uploadKeys done for " + mSession.getMyUserId());
+                        Log.d(LOG_TAG, "   - device id  : " +  mSession.getCredentials().deviceId);
+                        Log.d(LOG_TAG, "  - ed25519    : " + mOlmDevice.getDeviceEd25519Key());
+                        Log.d(LOG_TAG, "   - curve25519 : " + mOlmDevice.getDeviceCurve25519Key());
+                        Log.d(LOG_TAG, "  - oneTimeKeys: "  + mLastPublishedOneTimeKeys);     // They are
+                        Log.d(LOG_TAG, "");
 
-                        if (null != callback) {
-                            callback.onSuccess(null);
-                        }
+                        checkDeviceAnnounced(new ApiCallback<Void>() {
+                            @Override
+                            public void onSuccess(Void info) {
+                                mIsStarting = false;
+                                mIsStarted = true;
+                                startUploadKeysTimer(true);
+
+                                for(ApiCallback<Void> callback : mInitializationCallbacks) {
+                                    callback.onSuccess(null);
+                                }
+                                mInitializationCallbacks.clear();
+                            }
+
+                            @Override
+                            public void onNetworkError(Exception e) {
+                                mIsStarting = false;
+
+                                for(ApiCallback<Void> callback : mInitializationCallbacks) {
+                                    callback.onNetworkError(e);
+                                }
+                                mInitializationCallbacks.clear();
+                            }
+
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                                mIsStarting = false;
+
+                                for(ApiCallback<Void> callback : mInitializationCallbacks) {
+                                    callback.onMatrixError(e);
+                                }
+                                mInitializationCallbacks.clear();
+                            }
+
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+                                mIsStarting = false;
+
+                                for(ApiCallback<Void> callback : mInitializationCallbacks) {
+                                    callback.onUnexpectedError(e);
+                                }
+                                mInitializationCallbacks.clear();
+                            }
+                        });
                     }
 
                     @Override
                     public void onNetworkError(Exception e) {
-                        if (null != callback) {
+                        Log.e(LOG_TAG, "## uploadKeys : failed " + e.getMessage());
+
+                        for(ApiCallback<Void> callback : mInitializationCallbacks) {
                             callback.onNetworkError(e);
                         }
+                        mInitializationCallbacks.clear();
                     }
 
                     @Override
                     public void onMatrixError(MatrixError e) {
-                        if (null != callback) {
+                        Log.e(LOG_TAG, "## uploadKeys : failed " + e.getMessage());
+
+                        for(ApiCallback<Void> callback : mInitializationCallbacks) {
                             callback.onMatrixError(e);
                         }
+                        mInitializationCallbacks.clear();
                     }
 
                     @Override
                     public void onUnexpectedError(Exception e) {
-                        if (null != callback) {
+                        Log.e(LOG_TAG, "## uploadKeys : failed " + e.getMessage());
+
+
+                        for(ApiCallback<Void> callback : mInitializationCallbacks) {
                             callback.onUnexpectedError(e);
                         }
+                        mInitializationCallbacks.clear();
                     }
                 });
+                return null;
             }
 
             @Override
-            public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## uploadKeys : failed " + e.getMessage());
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
+            protected void onPostExecute(Void nothing) {
             }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "## uploadKeys : failed " + e.getMessage());
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## uploadKeys : failed " + e.getMessage());
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
-            }
-        });
+        }.execute();
     }
 
     /**
@@ -918,7 +961,41 @@ public class MXCrypto {
      * @param room the room the event will be sent.
      * @param callback the asynchronous callback
      */
-    public void encryptEventContent(JsonElement eventContent, String eventType, Room room, final ApiCallback<MXEncryptEventContentResult> callback) {
+    public void encryptEventContent(final JsonElement eventContent, final String eventType, final Room room, final ApiCallback<MXEncryptEventContentResult> callback) {
+        // wait that the crypto is really started
+        if (!isIsStarted()) {
+            start(new ApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    encryptEventContent(eventContent, eventType, room, callback);
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    if (null != callback) {
+                        callback.onNetworkError(e);
+                    }
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    if (null != callback) {
+                        callback.onMatrixError(e);
+                    }
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    if (null != callback) {
+                        callback.onUnexpectedError(e);
+                    }
+                }
+            });
+
+            return;
+        }
+
+
         IMXEncrypting alg = mRoomEncryptors.get(room.getRoomId());
 
         if (null == alg) {
