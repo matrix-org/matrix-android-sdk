@@ -18,6 +18,7 @@ package org.matrix.androidsdk.data.store;
 
 import android.content.Context;
 import android.os.HandlerThread;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.Log;
@@ -847,22 +848,8 @@ public class MXFileStore extends MXMemoryStore {
 
                                     // save the groups
                                     for (int hashKey : usersGroups.keySet()) {
-
                                         File presenceFile = new File(mStoreUserFolderFile, hashKey + "");
-
-                                        try {
-                                            FileOutputStream fos = new FileOutputStream(presenceFile);
-                                            GZIPOutputStream gz = new GZIPOutputStream(fos);
-                                            ObjectOutputStream out = new ObjectOutputStream(gz);
-
-                                            out.writeObject(usersGroups.get(hashKey));
-                                            out.close();
-
-                                        } catch (OutOfMemoryError oom) {
-                                            dispatchOOM(oom);
-                                        } catch (Exception e) {
-                                            Log.e(LOG_TAG, "saveUser failed " + e.getMessage());
-                                        }
+                                        writeObject("saveUser " + hashKey, presenceFile, usersGroups.get(hashKey));
                                     }
 
                                     Log.d(LOG_TAG, "saveUsers done in " + (System.currentTimeMillis() - start) + " ms");
@@ -891,23 +878,14 @@ public class MXFileStore extends MXMemoryStore {
 
         // list the files
         for(int index = 0; index < filenames.length; index++) {
-            ObjectInputStream ois = null;
+            File messagesListFile = new File(mStoreUserFolderFile, filenames[index]);
+            Object usersAsVoid = readObject("loadUsers " + filenames[index], messagesListFile);
 
-            try {
-                File messagesListFile = new File(mStoreUserFolderFile, filenames[index]);
-                FileInputStream fis = new FileInputStream(messagesListFile);
-                GZIPInputStream gz = new GZIPInputStream(fis);
-                ois = new ObjectInputStream(gz);
-                users.addAll((List<User>) ois.readObject());
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "loadUsers failed : " + e.toString());
-            }
-
-            if (null != ois) {
+            if (null != usersAsVoid) {
                 try {
-                    ois.close();
+                    users.addAll((List<User>) usersAsVoid);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "loadUsers cannot close the file");
+                    Log.e(LOG_TAG, "loadUsers failed : " + e.toString());
                 }
             }
         }
@@ -934,87 +912,75 @@ public class MXFileStore extends MXMemoryStore {
     //================================================================================
 
     private void saveRoomMessages(String roomId) {
-        createTmpFile(mGzStoreRoomsMessagesFolderFile, roomId);
+        deleteRoomMessagesFiles(roomId);
 
-        try {
-            deleteRoomMessagesFiles(roomId);
+        // messages list
+        File messagesListFile = new File(mGzStoreRoomsMessagesFolderFile, roomId);
+        File tokenFile = new File(mStoreRoomsTokensFolderFile, roomId);
 
-            // messages list
-            File messagesListFile = new File(mGzStoreRoomsMessagesFolderFile, roomId);
+        LinkedHashMap<String, Event> eventsHash = mRoomEvents.get(roomId);
+        String token = mRoomTokens.get(roomId);
 
-            File tokenFile = new File(mStoreRoomsTokensFolderFile, roomId);
+        // the list exists ?
+        if ((null != eventsHash) && (null != token)) {
+            LinkedHashMap<String, Event> hashCopy = new LinkedHashMap<>();
+            ArrayList<Event> eventsList = new ArrayList<>(eventsHash.values());
 
-            LinkedHashMap<String, Event> eventsHash = mRoomEvents.get(roomId);
-            String token = mRoomTokens.get(roomId);
+            int startIndex = 0;
 
-            // the list exists ?
-            if ((null != eventsHash) && (null != token)) {
-                FileOutputStream fos = new FileOutputStream(messagesListFile);
-                GZIPOutputStream gz = new GZIPOutputStream(fos);
-                ObjectOutputStream out = new ObjectOutputStream(gz);
+            // try to reduce the number of stored messages
+            // it does not make sense to keep the full history.
 
-                LinkedHashMap<String, Event> hashCopy = new LinkedHashMap<>();
-                ArrayList<Event> eventsList = new ArrayList<>(eventsHash.values());
+            // the method consists in saving messages until finding the oldest known token.
+            // At initial sync, it is not saved so keep the whole history.
+            // if the user back paginates, the token is stored in the event.
+            // if some messages are received, the token is stored in the event.
+            if (eventsList.size() > MAX_STORED_MESSAGES_COUNT) {
+                startIndex = eventsList.size() - MAX_STORED_MESSAGES_COUNT;
 
-                int startIndex = 0;
+                // search backward the first known token
+                for (; !eventsList.get(startIndex).hasToken() && (startIndex > 0); startIndex--)
+                    ;
 
-                // try to reduce the number of stored messages
-                // it does not make sense to keep the full history.
+                // avoid saving huge messages count
+                // with a very verbosed room, the messages token
+                if ((eventsList.size() - startIndex) > (2 * MAX_STORED_MESSAGES_COUNT)) {
+                    Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") : too many messages, try reducing more");
 
-                // the method consists in saving messages until finding the oldest known token.
-                // At initial sync, it is not saved so keep the whole history.
-                // if the user back paginates, the token is stored in the event.
-                // if some messages are received, the token is stored in the event.
-                if (eventsList.size() > MAX_STORED_MESSAGES_COUNT) {
-                    startIndex = eventsList.size() - MAX_STORED_MESSAGES_COUNT;
+                    // start from 10 messages
+                    startIndex = eventsList.size() - 10;
 
                     // search backward the first known token
                     for (; !eventsList.get(startIndex).hasToken() && (startIndex > 0); startIndex--)
                         ;
-
-                    // avoid saving huge messages count
-                    // with a very verbosed room, the messages token
-                    if ((eventsList.size() - startIndex) > (2 * MAX_STORED_MESSAGES_COUNT)) {
-                        Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") : too many messages, try reducing more");
-
-                        // start from 10 messages
-                        startIndex = eventsList.size() - 10;
-
-                        // search backward the first known token
-                        for (; !eventsList.get(startIndex).hasToken() && (startIndex > 0); startIndex--)
-                            ;
-                    }
-
-                    if (startIndex > 0) {
-                        Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") :  reduce the number of messages " + eventsList.size() + " -> " + (eventsList.size() - startIndex));
-                    }
                 }
 
-                long t0 = System.currentTimeMillis();
-
-                for (int index = startIndex; index < eventsList.size(); index++) {
-                    Event event = eventsList.get(index);
-                    event.prepareSerialization();
-                    hashCopy.put(event.eventId, event);
+                if (startIndex > 0) {
+                    Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") :  reduce the number of messages " + eventsList.size() + " -> " + (eventsList.size() - startIndex));
                 }
+            }
 
-                out.writeObject(hashCopy);
-                out.close();
+            long t0 = System.currentTimeMillis();
 
-                fos = new FileOutputStream(tokenFile);
-                out = new ObjectOutputStream(fos);
-                out.writeObject(token);
-                out.close();
+            for (int index = startIndex; index < eventsList.size(); index++) {
+                Event event = eventsList.get(index);
+                event.prepareSerialization();
+                hashCopy.put(event.eventId, event);
+            }
 
-                Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") : " + eventsList.size() + " messages saved in " +  (System.currentTimeMillis() - t0) + " ms");
+            createTmpFile(mGzStoreRoomsMessagesFolderFile, roomId);
+
+            if (!writeObject("saveRoomsMessage " + roomId, messagesListFile, hashCopy)) {
+                return;
+            }
+
+            if (!writeObject("saveRoomsMessage " + roomId, tokenFile, token)) {
+                return;
             }
 
             deleteTmpFile(mGzStoreRoomsMessagesFolderFile, roomId);
-        } catch (OutOfMemoryError oom) {
-            dispatchOOM(oom);
-        } catch (Exception e) {
-            //Toast.makeText(mContext, "saveRoomsMessage  " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-            Log.e(LOG_TAG, "saveRoomsMessage failed ");
+
+            Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") : " + eventsList.size() + " messages saved in " +  (System.currentTimeMillis() - t0) + " ms");
         }
     }
 
@@ -1062,19 +1028,23 @@ public class MXFileStore extends MXMemoryStore {
         boolean shouldSave = false;
         LinkedHashMap<String, Event> events = null;
 
-        try {
-            if (tmpFileExists(mGzStoreRoomsMessagesFolderFile, roomId)) {
-                Log.e(LOG_TAG, "## loadRoomMessages (): " + roomId + " is corrupted");
-                return false;
-            }
+        if (tmpFileExists(mGzStoreRoomsMessagesFolderFile, roomId)) {
+            Log.e(LOG_TAG, "## loadRoomMessages (): " + roomId + " is corrupted");
+            return false;
+        }
 
-            File messagesListFile = new File(mGzStoreRoomsMessagesFolderFile, roomId);
+        File messagesListFile = new File(mGzStoreRoomsMessagesFolderFile, roomId);
 
-            if (messagesListFile.exists()) {
-                FileInputStream fis = new FileInputStream(messagesListFile);
-                GZIPInputStream gz = new GZIPInputStream(fis);
-                ObjectInputStream ois = new ObjectInputStream(gz);
-                events = (LinkedHashMap<String, Event>) ois.readObject();
+        if (messagesListFile.exists()) {
+            Object eventsAsVoid = readObject("events " + roomId , messagesListFile);
+
+            if (null != eventsAsVoid) {
+                try {
+                    events = (LinkedHashMap<String, Event>) eventsAsVoid;
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "loadRoomMessages " + roomId +  "failed : " + e.getMessage());
+                    return false;
+                }
 
                 ArrayList<String> eventIds = mRoomEventIds.get(roomId);
 
@@ -1102,13 +1072,9 @@ public class MXFileStore extends MXMemoryStore {
 
                     eventIds.add(event.eventId);
                 }
-
-                ois.close();
+            } else {
+                return false;
             }
-        } catch (Exception e){
-            succeeded = false;
-            // the exception got some null message to display at least its class.
-            Log.e(LOG_TAG, "loadRoomMessages failed : " + e.toString());
         }
 
         // succeeds to extract the message list
@@ -1151,24 +1117,25 @@ public class MXFileStore extends MXMemoryStore {
                 }
 
                 File messagesListFile = new File(mStoreRoomsTokensFolderFile, roomId);
+                Object tokenAsVoid = readObject("loadRoomToken " + roomId, messagesListFile);
 
-                FileInputStream fis = new FileInputStream(messagesListFile);
-                ObjectInputStream ois = new ObjectInputStream(fis);
-                token = (String) ois.readObject();
+                if (null == tokenAsVoid) {
+                    succeed = false;
+                } else {
+                    token = (String)tokenAsVoid;
 
-                // check if the oldest event has a token.
-                LinkedHashMap<String, Event> eventsHash = mRoomEvents.get(roomId);
-                if ((null != eventsHash) && (eventsHash.size() > 0)) {
-                    Event event = eventsHash.values().iterator().next();
+                    // check if the oldest event has a token.
+                    LinkedHashMap<String, Event> eventsHash = mRoomEvents.get(roomId);
+                    if ((null != eventsHash) && (eventsHash.size() > 0)) {
+                        Event event = eventsHash.values().iterator().next();
 
-                    // the room history could have been reduced to save memory
-                    // so, if the oldest messages has a token, use it instead of the stored token.
-                    if (null != event.mToken) {
-                        token = event.mToken;
+                        // the room history could have been reduced to save memory
+                        // so, if the oldest messages has a token, use it instead of the stored token.
+                        if (null != event.mToken) {
+                            token = event.mToken;
+                        }
                     }
                 }
-
-                ois.close();
             } catch (Exception e) {
                 succeed = false;
                 Log.e(LOG_TAG, "loadRoomToken failed : " + e.toString());
@@ -1260,33 +1227,21 @@ public class MXFileStore extends MXMemoryStore {
      * @param roomId the room id.
      */
     private void saveRoomState(String roomId) {
-        createTmpFile(mGzStoreRoomsStateFolderFile, roomId);
+        deleteRoomStateFile(roomId);
 
-        try {
-            deleteRoomStateFile(roomId);
+        File roomStateFile = new File(mGzStoreRoomsStateFolderFile, roomId);
+        Room room = mRooms.get(roomId);
 
-            File roomStateFile = new File(mGzStoreRoomsStateFolderFile, roomId);
-            Room room = mRooms.get(roomId);
+        if (null != room) {
+            long start1 = System.currentTimeMillis();
+            createTmpFile(mGzStoreRoomsStateFolderFile, roomId);
 
-            if (null != room) {
-                long start1 = System.currentTimeMillis();
-                FileOutputStream fos = new FileOutputStream(roomStateFile);
-                GZIPOutputStream gz = new GZIPOutputStream(fos);
-                ObjectOutputStream out = new ObjectOutputStream(gz);
-
-                out.writeObject(room.getState());
-                out.close();
-                Log.d(LOG_TAG, "saveRoomsState " + room.getState().getMembers().size() + " : " + (System.currentTimeMillis() - start1) + " ms");
+            if (writeObject("saveRoomsState " + roomId, roomStateFile, room.getState())) {
+                deleteTmpFile(mGzStoreRoomsStateFolderFile, roomId);
             }
 
-            deleteTmpFile(mGzStoreRoomsStateFolderFile, roomId);
-        } catch (OutOfMemoryError oom) {
-            dispatchOOM(oom);
-        } catch (Exception e) {
-            // (mContext, "saveRoomsState failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-            Log.e(LOG_TAG, "saveRoomsState failed : " + e.getLocalizedMessage());
+            Log.d(LOG_TAG, "saveRoomsState " + room.getState().getMembers().size() + " : " + (System.currentTimeMillis() - start1) + " ms");
         }
-
     }
 
     /**
@@ -1343,15 +1298,17 @@ public class MXFileStore extends MXMemoryStore {
                 }
 
                 // the room state is not zipped
-                File messagesListFile = new File(mGzStoreRoomsStateFolderFile, roomId);
+                File roomStateFile = new File(mGzStoreRoomsStateFolderFile, roomId);
 
                 // new format
-                if (messagesListFile.exists()) {
-                    FileInputStream fis = new FileInputStream(messagesListFile);
-                    GZIPInputStream gz = new GZIPInputStream(fis);
-                    ObjectInputStream ois = new ObjectInputStream(gz);
-                    liveState = (RoomState) ois.readObject();
-                    ois.close();
+                if (roomStateFile.exists()) {
+                    Object roomStateAsObject = readObject("loadRoomState " + roomId, roomStateFile);
+
+                    if (null == roomStateAsObject) {
+                        succeed = false;
+                    } else {
+                        liveState = (RoomState) roomStateAsObject;
+                    }
                 }
             } catch (Exception e) {
                 succeed = false;
@@ -1443,27 +1400,17 @@ public class MXFileStore extends MXMemoryStore {
                                 long start = System.currentTimeMillis();
 
                                 for (String roomId : fRoomsToCommitForAccountData) {
-                                    try {
+                                    deleteRoomAccountDataFile(roomId);
+                                    RoomAccountData accountData = mRoomAccountData.get(roomId);
+
+                                    if (null != accountData) {
                                         createTmpFile(mStoreRoomsAccountDataFolderFile, roomId);
 
-                                        deleteRoomAccountDataFile(roomId);
+                                        File accountDataFile = new File(mStoreRoomsAccountDataFolderFile, roomId);
 
-                                        RoomAccountData accountData = mRoomAccountData.get(roomId);
-
-                                        if (null != accountData) {
-                                            File accountDataFile = new File(mStoreRoomsAccountDataFolderFile, roomId);
-                                            FileOutputStream fos = new FileOutputStream(accountDataFile);
-                                            ObjectOutputStream out = new ObjectOutputStream(fos);
-                                            out.writeObject(accountData);
-                                            out.close();
+                                        if (writeObject("saveRoomsAccountData " + roomId, accountDataFile, accountData)) {
+                                            deleteTmpFile(mStoreRoomsAccountDataFolderFile, roomId);
                                         }
-
-                                        deleteTmpFile(mStoreRoomsAccountDataFolderFile, roomId);
-                                    } catch (OutOfMemoryError oom) {
-                                        dispatchOOM(oom);
-                                    } catch (Exception e) {
-                                        //Toast.makeText(mContext, "saveRoomsAccountData failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                                        Log.e(LOG_TAG, "saveRoomsAccountData failed : " + e.getLocalizedMessage());
                                     }
                                 }
 
@@ -1497,11 +1444,14 @@ public class MXFileStore extends MXMemoryStore {
             File accountDataFile = new File(mStoreRoomsAccountDataFolderFile, roomId);
 
             if (accountDataFile.exists()) {
-                FileInputStream fis = new FileInputStream(accountDataFile);
-                ObjectInputStream ois = new ObjectInputStream(fis);
-                roomAccountData = (RoomAccountData) ois.readObject();
+                Object accountAsVoid = readObject("loadRoomAccountData " + roomId, accountDataFile);
 
-                ois.close();
+                if (null == accountAsVoid) {
+                    Log.e(LOG_TAG, "loadRoomAccountData failed");
+                    return false;
+                }
+
+                roomAccountData = (RoomAccountData)accountAsVoid;
             }
         } catch (Exception e){
             succeeded = false;
@@ -1606,8 +1556,6 @@ public class MXFileStore extends MXMemoryStore {
 
                                 for (String roomId : fRoomsToCommitForSummaries) {
                                     try {
-                                        createTmpFile(mStoreRoomsSummaryFolderFile, roomId);
-
                                         deleteRoomSummaryFile(roomId);
 
                                         File roomSummaryFile = new File(mStoreRoomsSummaryFolderFile, roomId);
@@ -1616,15 +1564,12 @@ public class MXFileStore extends MXMemoryStore {
                                         if (null != roomSummary) {
                                             roomSummary.getLatestReceivedEvent().prepareSerialization();
 
-                                            FileOutputStream fos = new FileOutputStream(roomSummaryFile);
-                                            ObjectOutputStream out = new ObjectOutputStream(fos);
+                                            createTmpFile(mStoreRoomsSummaryFolderFile, roomId);
 
-                                            out.writeObject(roomSummary);
-                                            out.close();
+                                            if (writeObject("saveSummaries " + roomId, roomSummaryFile, roomSummary)) {
+                                                deleteTmpFile(mStoreRoomsSummaryFolderFile, roomId);
+                                            }
                                         }
-
-                                        deleteTmpFile(mStoreRoomsSummaryFolderFile, roomId);
-
                                     } catch (OutOfMemoryError oom) {
                                         dispatchOOM(oom);
                                     } catch (Exception e) {
@@ -1664,15 +1609,17 @@ public class MXFileStore extends MXMemoryStore {
             }
 
             File messagesListFile = new File(mStoreRoomsSummaryFolderFile, roomId);
+            Object summaryAsVoid = readObject("loadSummary " + roomId, messagesListFile);
 
-            FileInputStream fis = new FileInputStream(messagesListFile);
-            ObjectInputStream ois = new ObjectInputStream(fis);
+            if (null == summaryAsVoid) {
+                Log.e(LOG_TAG, "loadSummary failed");
+                return false;
+            }
 
-            summary = (RoomSummary) ois.readObject();
-            ois.close();
+            summary = (RoomSummary)summaryAsVoid;
         } catch (Exception e){
             succeed = false;
-            Log.e(LOG_TAG, "loadSummary failed : " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "loadSummary failed : " + e.getMessage());
         }
 
         if (null != summary) {
@@ -1737,28 +1684,27 @@ public class MXFileStore extends MXMemoryStore {
             return;
         }
 
-        try {
-            File metaDataFile = new File(mStoreFolderFile, MXFILE_STORE_METADATA_FILE_NAME);
+        File metaDataFile = new File(mStoreFolderFile, MXFILE_STORE_METADATA_FILE_NAME);
 
-            if (metaDataFile.exists()) {
-                FileInputStream fis = new FileInputStream(metaDataFile);
-                ObjectInputStream out = new ObjectInputStream(fis);
+        if (metaDataFile.exists()) {
+            Object metadataAsVoid = readObject("loadMetaData", metaDataFile);
 
-                mMetadata = (MXFileStoreMetaData)out.readObject();
+            if (null != metadataAsVoid) {
+                try {
+                    mMetadata = (MXFileStoreMetaData)metadataAsVoid;
 
-                // remove pending \n
-                if (null != mMetadata.mUserDisplayName) {
-                    mMetadata.mUserDisplayName.trim();
+                    // remove pending \n
+                    if (null != mMetadata.mUserDisplayName) {
+                        mMetadata.mUserDisplayName.trim();
+                    }
+
+                    // extract the latest event stream token
+                    mEventStreamToken = mMetadata.mEventStreamToken;
+                } catch(Exception e) {
+                    Log.e(LOG_TAG, "## loadMetaData() : is corrupted");
+                    return;
                 }
-
-                // extract the latest event stream token
-                mEventStreamToken = mMetadata.mEventStreamToken;
             }
-
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "loadMetaData failed : " + e.getLocalizedMessage());
-            mMetadata = null;
-            mEventStreamToken = null;
         }
 
         Log.d(LOG_TAG, "loadMetaData : " + (System.currentTimeMillis() - start) + " ms");
@@ -1783,25 +1729,14 @@ public class MXFileStore extends MXMemoryStore {
 
                                 createTmpFile(mStoreFolderFile, MXFILE_STORE_METADATA_FILE_NAME);
 
-                                try {
-                                    File metaDataFile = new File(mStoreFolderFile, MXFILE_STORE_METADATA_FILE_NAME);
+                                File metaDataFile = new File(mStoreFolderFile, MXFILE_STORE_METADATA_FILE_NAME);
 
-                                    if (metaDataFile.exists()) {
-                                        metaDataFile.delete();
-                                    }
+                                if (metaDataFile.exists()) {
+                                    metaDataFile.delete();
+                                }
 
-                                    FileOutputStream fos = new FileOutputStream(metaDataFile);
-                                    ObjectOutputStream out = new ObjectOutputStream(fos);
-
-                                    out.writeObject(fMetadata);
-                                    out.close();
-
+                                if (writeObject("saveMetaData", metaDataFile, fMetadata)) {
                                     deleteTmpFile(mStoreFolderFile, MXFILE_STORE_METADATA_FILE_NAME);
-                                } catch (OutOfMemoryError oom) {
-                                    dispatchOOM(oom);
-                                } catch (Exception e) {
-                                    // Toast.makeText(mContext, "saveMetaData failed  " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                                    Log.e(LOG_TAG, "saveMetaData failed : " + e.getLocalizedMessage());
                                 }
 
                                 Log.d(LOG_TAG, "saveMetaData : " + (System.currentTimeMillis() - start) + " ms");
@@ -1848,26 +1783,27 @@ public class MXFileStore extends MXMemoryStore {
      */
     private boolean loadReceipts(String roomId) {
         Map<String, ReceiptData> receipts = null;
-        try {
-            if (tmpFileExists(mStoreRoomsTokensFolderFile, roomId)) {
-                Log.e(LOG_TAG, "## loadReceipts (): " + roomId + " is corrupted");
+
+        if (tmpFileExists(mStoreRoomsTokensFolderFile, roomId)) {
+            Log.e(LOG_TAG, "## loadReceipts (): " + roomId + " is corrupted");
+            return false;
+        }
+
+        File file = new File(mStoreRoomsMessagesReceiptsFolderFile, roomId);
+
+        if (file.exists()) {
+            Object receiptsAsVoid = readObject("loadReceipts " + roomId, file);
+
+            if (null != receiptsAsVoid) {
+                try {
+                    receipts = (Map<String, ReceiptData>)receiptsAsVoid;
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "loadReceipts failed : " + e.getMessage());
+                    return false;
+                }
+            } else {
                 return false;
             }
-
-            File file = new File(mStoreRoomsMessagesReceiptsFolderFile, roomId);
-
-            FileInputStream fis = new FileInputStream(file);
-            ObjectInputStream ois = new ObjectInputStream(fis);
-
-            receipts = (Map<String, ReceiptData>) ois.readObject();
-            ois.close();
-        } catch (EOFException endOfFile) {
-            // there is no read receipt for this room
-        }
-        catch (Exception e) {
-            // Toast.makeText(mContext, "loadReceipts failed" + e, Toast.LENGTH_LONG).show();
-            Log.e(LOG_TAG, "loadReceipts failed : " + e.getLocalizedMessage());
-            return false;
         }
 
         if (null != receipts) {
@@ -1928,18 +1864,10 @@ public class MXFileStore extends MXMemoryStore {
                             if ((null != receipts) && (receipts.size() > 0)) {
                                 long start = System.currentTimeMillis();
 
-                                try {
-                                    createTmpFile(mStoreRoomsMessagesReceiptsFolderFile, roomId);
-                                    FileOutputStream fos = new FileOutputStream(receiptFile);
-                                    ObjectOutputStream out = new ObjectOutputStream(fos);
-                                    out.writeObject(receipts);
-                                    out.close();
+                                createTmpFile(mStoreRoomsMessagesReceiptsFolderFile, roomId);
+
+                                if (writeObject("saveReceipts " + roomId, receiptFile, receipts)) {
                                     deleteTmpFile(mStoreRoomsMessagesReceiptsFolderFile, roomId);
-                                } catch (OutOfMemoryError oom) {
-                                    dispatchOOM(oom);
-                                } catch (Exception e) {
-                                    //Toast.makeText(mContext, "saveReceipts failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-                                    Log.e(LOG_TAG, "saveReceipts failed : " + e.getLocalizedMessage());
                                 }
 
                                 Log.d(LOG_TAG, "saveReceipts : roomId " + roomId + " eventId : " + (System.currentTimeMillis() - start) + " ms");
@@ -2050,5 +1978,59 @@ public class MXFileStore extends MXMemoryStore {
      */
     private static boolean tmpFileExists(File folder, String fileName) {
         return createTmpFileFile(folder, fileName).exists();
+    }
+
+
+    //================================================================================
+    // read/write methods
+    //================================================================================
+
+    /**
+     * Write an object in a dedicated file.
+     * @param description the operation description
+     * @param file the file
+     * @param object the object to save
+     * @return true if the operation succeeds
+     */
+    private boolean writeObject(String description, File file, Object object) {
+        boolean succeed = false;
+        try {
+            FileOutputStream fos = new FileOutputStream(file);
+            GZIPOutputStream gz = new GZIPOutputStream(fos);
+            ObjectOutputStream out = new ObjectOutputStream(gz);
+
+            out.writeObject(object);
+            out.close();
+
+            succeed = true;
+        } catch (OutOfMemoryError oom) {
+            dispatchOOM(oom);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## writeObject()  " + description + " : failed " + e.getMessage());
+        }
+
+        return succeed;
+    }
+
+    /**
+     * Read an object from a dedicated file
+     * @param description the operation description
+     * @param file the file
+     * @return the read object if it can be retrieved
+     */
+    private Object readObject(String description, File file) {
+        Object object = null;
+        try {
+            FileInputStream fis = new FileInputStream(file);
+            GZIPInputStream gz = new GZIPInputStream(fis);
+            ObjectInputStream ois = new ObjectInputStream(gz);
+            object = ois.readObject();
+            ois.close();
+        } catch (OutOfMemoryError oom) {
+            dispatchOOM(oom);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## readObject()  " + description + " : failed " + e.getMessage());
+        }
+        return object;
     }
 }
