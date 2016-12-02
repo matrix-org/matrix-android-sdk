@@ -1782,7 +1782,7 @@ public class MXFileStore extends MXMemoryStore {
      * @return true if the operation succeeds.
      */
     private boolean loadReceipts(String roomId) {
-        Map<String, ReceiptData> receipts = null;
+        Map<String, ReceiptData> receiptsMap = null;
 
         if (tmpFileExists(mStoreRoomsTokensFolderFile, roomId)) {
             Log.e(LOG_TAG, "## loadReceipts (): " + roomId + " is corrupted");
@@ -1796,7 +1796,13 @@ public class MXFileStore extends MXMemoryStore {
 
             if (null != receiptsAsVoid) {
                 try {
-                    receipts = (Map<String, ReceiptData>)receiptsAsVoid;
+                    List<ReceiptData> receipts = (List<ReceiptData>)receiptsAsVoid;
+
+                    receiptsMap = new HashMap<>();
+
+                    for(ReceiptData r : receipts) {
+                        receiptsMap.put(r.userId, r);
+                    }
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "loadReceipts failed : " + e.getMessage());
                     return false;
@@ -1806,8 +1812,8 @@ public class MXFileStore extends MXMemoryStore {
             }
         }
 
-        if (null != receipts) {
-            mReceiptsByRoomId.put(roomId, receipts);
+        if (null != receiptsMap) {
+            mReceiptsByRoomId.put(roomId, receiptsMap);
         }
 
         return true;
@@ -1845,7 +1851,14 @@ public class MXFileStore extends MXMemoryStore {
      * @param roomId the roomId.
      */
     private void saveReceipts(final String roomId) {
-        final Map<String, ReceiptData> receipts = mReceiptsByRoomId.get(roomId);
+        Map<String, ReceiptData> receiptsMap = mReceiptsByRoomId.get(roomId);
+
+        // sanity check
+        if (null == receiptsMap) {
+            return;
+        }
+
+        final List<ReceiptData> receipts = new ArrayList<>(receiptsMap.values());
 
         Runnable r = new Runnable() {
             @Override
@@ -1860,18 +1873,15 @@ public class MXFileStore extends MXMemoryStore {
                                 receiptFile.delete();
                             }
 
-                            // save only if there is some read receips
-                            if ((null != receipts) && (receipts.size() > 0)) {
-                                long start = System.currentTimeMillis();
+                            long start = System.currentTimeMillis();
 
-                                createTmpFile(mStoreRoomsMessagesReceiptsFolderFile, roomId);
+                            createTmpFile(mStoreRoomsMessagesReceiptsFolderFile, roomId);
 
-                                if (writeObject("saveReceipts " + roomId, receiptFile, receipts)) {
-                                    deleteTmpFile(mStoreRoomsMessagesReceiptsFolderFile, roomId);
-                                }
-
-                                Log.d(LOG_TAG, "saveReceipts : roomId " + roomId + " eventId : " + (System.currentTimeMillis() - start) + " ms");
+                            if (writeObject("saveReceipts " + roomId, receiptFile, receipts)) {
+                                deleteTmpFile(mStoreRoomsMessagesReceiptsFolderFile, roomId);
                             }
+
+                            Log.d(LOG_TAG, "saveReceipts : roomId " + roomId + " eventId : " + (System.currentTimeMillis() - start) + " ms");
                         }
                     }
                 });
