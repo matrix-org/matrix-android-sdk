@@ -2149,7 +2149,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         Message message = JsonUtils.toMessage(event.getContent());
-        String userDisplayName = roomState.getMemberName(event.getSender());
+        String userDisplayName = (null == roomState) ? event.getSender() : roomState.getMemberName(event.getSender());
 
         String body = "* " + userDisplayName +  " " + message.body;
 
