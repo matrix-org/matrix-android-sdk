@@ -1040,7 +1040,18 @@ public class Room {
      * @return true if the read receipt has been sent, false otherwise
      */
     public boolean sendReadReceipt(final ApiCallback<Void> aRespCallback) {
-        return sendReadReceipt(null, aRespCallback);
+        boolean res = sendReadReceipt(null, aRespCallback);
+
+        // if the request is not sent, ensure that the counter is cleared
+        if (!res) {
+            RoomSummary summary = mDataHandler.getStore().getSummary(getRoomId());
+
+            if (null != summary) {
+                summary.setUnreadEventsCount(0);
+            }
+        }
+
+        return res;
     }
 
     /**
