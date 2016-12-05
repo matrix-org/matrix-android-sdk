@@ -137,7 +137,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
     @Override
     public void failure(RetrofitError error) {
         if (null != mEventDescription) {
-            Log.d(LOG_TAG, "## failure(): [" + mEventDescription + "]");
+            Log.d(LOG_TAG, "## failure(): [" + mEventDescription + "]" + " with error " + error.getMessage());
         }
 
         boolean retry = true;
