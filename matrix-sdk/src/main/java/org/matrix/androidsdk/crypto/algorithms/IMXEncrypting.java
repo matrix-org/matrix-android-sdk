@@ -54,13 +54,6 @@ public interface IMXEncrypting {
      void onRoomMembership(Event event, RoomMember member, String oldMembership);
 
     /**
-     * Called when a new device announces itself in the room
-     * @param {string} userId    owner of the device
-     * @param {string} deviceId  deviceId of the device
-     */
-    void onNewDevice(String deviceId, String userId);
-
-    /**
      * Called when the device verification status is updated
      * @param deviceId owner of the device
      * @param userId deviceId of the device

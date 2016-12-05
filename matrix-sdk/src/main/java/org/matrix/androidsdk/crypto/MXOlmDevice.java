@@ -597,12 +597,11 @@ public class MXOlmDevice {
      * @param key the ed25519 key.
      * @param JSONDictinary the JSON object which was signed.
      * @param signature the base64-encoded signature to be checked.
+     * @param error the failure reason
      * @return true if valid.
      */
 
-    public boolean verifySignature(String key, Map<String, Object> JSONDictinary, String signature) {
-        StringBuffer error = new StringBuffer();
-
+    public boolean verifySignature(String key, Map<String, Object> JSONDictinary, String signature, StringBuffer error) {
         // Check signature on the canonical version of the JSON
         return mOlmUtility.verifyEd25519Signature(signature, key, JsonUtils.getCanonicalizedJsonString(JSONDictinary), error);
     }

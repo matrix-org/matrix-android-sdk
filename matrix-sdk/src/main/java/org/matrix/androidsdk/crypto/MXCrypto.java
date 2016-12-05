@@ -807,47 +807,73 @@ public class MXCrypto {
      * @param callback the asynchronous callback
      */
     public void ensureOlmSessionsForUsers(List<String> users, final ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>> callback) {
+        Log.d(LOG_TAG, "## ensureOlmSessionsForUsers() : ensureOlmSessionsForUsers " + users);
+
+        HashMap<String /* userId */,ArrayList<MXDeviceInfo>> devicesByUser = new HashMap<>();
+
+        Set<String> userIds = devicesByUser.keySet();
+
+        for(String userId : userIds) {
+            devicesByUser.put(userId, new ArrayList<MXDeviceInfo>());
+
+            List<MXDeviceInfo> devices = storedDevicesForUser(userId);
+
+            for (MXDeviceInfo device :  devices){
+                String key = device.identityKey();
+
+                if (TextUtils.equals(key, mOlmDevice.getDeviceCurve25519Key())) {
+                    // Don't bother setting up session to ourself
+                    continue;
+                }
+
+                if (device.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED) {
+                    // Don't bother setting up sessions with blocked users
+                    continue;
+                }
+
+                devicesByUser.get(userId).add(device);
+            }
+        }
+
+        ensureOlmSessionsForDevices(devicesByUser, callback);
+    }
+
+    /**
+     * Try to make sure we have established olm sessions for the given devices.
+     * @param devicesByUser a map from userid to list of devices.
+     * @param callback teh asynchronous callback
+     */
+    public void ensureOlmSessionsForDevices(final HashMap<String, ArrayList<MXDeviceInfo>> devicesByUser, final ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>> callback) {
         ArrayList<MXDeviceInfo> devicesWithoutSession = new ArrayList<>();
 
         final MXUsersDevicesMap<MXOlmSessionResult> results = new MXUsersDevicesMap<>();
 
-        if (null != users) {
-            for (String userId : users) {
-                List<MXDeviceInfo> devices = storedDevicesForUser(userId);
+        Set<String> userIds = devicesByUser.keySet();
 
-                if (null != devices) {
-                    for (MXDeviceInfo device : devices) {
-                        String key = device.identityKey();
+        for (String userId : userIds) {
+            ArrayList<MXDeviceInfo> deviceInfos = devicesByUser.get(userId);
 
-                        if (TextUtils.equals(key, mOlmDevice.getDeviceCurve25519Key())) {
-                            // Don't bother setting up session to ourself
-                            continue;
-                        }
+            for (MXDeviceInfo deviceInfo : deviceInfos ){
+                String deviceId = deviceInfo.deviceId;
+                String key = deviceInfo.identityKey();
 
-                        if (device.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED) {
-                            // Don't bother setting up sessions with blocked users
-                            continue;
-                        }
+                String sessionId = mOlmDevice.sessionIdForDevice(key);
 
-                        String sessionId = mOlmDevice.sessionIdForDevice(key);
-
-                        if (null == sessionId) {
-                            devicesWithoutSession.add(device);
-                        }
-
-                        MXOlmSessionResult olmSessionResult = new MXOlmSessionResult(device, sessionId);
-                        results.setObject(olmSessionResult, device.userId, device.deviceId);
-                    }
+                if (TextUtils.isEmpty(sessionId)) {
+                    devicesWithoutSession.add(deviceInfo);
                 }
+
+                MXOlmSessionResult olmSessionResult = new MXOlmSessionResult(deviceInfo, sessionId);
+                results.setObject(olmSessionResult, userId, deviceId);
             }
         }
 
-        if (0 == devicesWithoutSession.size()) {
-            // No need to get session from the homeserver
+        if (devicesWithoutSession.size() == 0) {
+
             if (null != callback) {
                 callback.onSuccess(results);
             }
-            return;
+            return ;
         }
 
         // Prepare the request for claiming one-time keys
@@ -872,52 +898,43 @@ public class MXCrypto {
             public void onSuccess(MXUsersDevicesMap<MXKey> oneTimeKeys) {
                 Log.d(LOG_TAG, "## claimOneTimeKeysForUsersDevices() : keysClaimResponse.oneTimeKeys: " + oneTimeKeys);
 
-                if ((null != oneTimeKeys) && (null != oneTimeKeys.userIds())) {
-                    boolean hasNewOutboundSession = false;
+                Set<String> userIds = devicesByUser.keySet();
 
-                    ArrayList<String> userIds = new ArrayList<>(oneTimeKeys.userIds());
+                for (String userId : userIds) {
+                    ArrayList<MXDeviceInfo> deviceInfos = devicesByUser.get(userId);
 
-                    for (String userId : userIds) {
+                    for (MXDeviceInfo deviceInfo : deviceInfos) {
+
+                        MXKey oneTimeKey = null;
+
                         Set<String> deviceIds = oneTimeKeys.deviceIdsForUser(userId);
 
                         if (null != deviceIds) {
-                            for (String deviceId : deviceIds) {
+                            for (String deviceId :deviceIds ) {
+                                MXOlmSessionResult  olmSessionResult = results.objectForDevice(deviceId, userId);
+
+                                if (null != olmSessionResult.mSessionId) {
+                                    // We already have a result for this device
+                                    continue;
+                                }
+
                                 MXKey key = oneTimeKeys.objectForDevice(deviceId, userId);
 
-                                if ((null != key) &&
-                                        (null != key.signatures) &&
-                                        key.signatures.containsKey(userId) &&
-                                        TextUtils.equals(key.type, oneTimeKeyAlgorithm)) {
-
-                                    String signKeyId = "ed25519:" + deviceId;
-                                    String signature = key.signatureForUserId(userId, signKeyId);
-
-                                    if (TextUtils.isEmpty(signature)) {
-                                        Log.e(LOG_TAG, "## claimOneTimeKeysForUsersDevices() : no signature for userid " + userId + " deviceId " + deviceId);
-                                    } else {
-                                        // Update the result for this device in results
-                                        MXOlmSessionResult olmSessionResult = results.objectForDevice(deviceId, userId);
-                                        MXDeviceInfo device = olmSessionResult.mDevice;
-
-                                        String signKey = device.keys.get(signKeyId);
-
-                                        if (mOlmDevice.verifySignature(signKey, key.signalableJSONDictionary(), signature)) {
-                                            hasNewOutboundSession = true;
-                                            olmSessionResult.mSessionId = mOlmDevice.createOutboundSession(device.identityKey(), key.value);
-                                            Log.d(LOG_TAG, "Started new sessionid " + olmSessionResult.mSessionId + " for device " + device);
-                                        } else {
-                                            Log.e(LOG_TAG, "## claimOneTimeKeysForUsersDevices() : Unable to verify signature on device " + userId + ":" + deviceId);
-                                        }
-                                    }
-                                } else {
-                                    Log.d(LOG_TAG, "No valid one-time keys for device " + userId + " : " + deviceId);
+                                if (TextUtils.equals(key.type, oneTimeKeyAlgorithm)) {
+                                    oneTimeKey = key;
                                 }
+
+                                if (null == oneTimeKey) {
+                                    Log.d(LOG_TAG, "## ensureOlmSessionsForDevices() : No one-time keys " +  oneTimeKeyAlgorithm + " for device " + userId + " : " + deviceId);
+                                    continue;
+                                }
+
+                                String sid = verifyKeyAndStartSession(oneTimeKey, userId, deviceInfo);
+
+                                // Update the result for this device in results
+                                olmSessionResult.mSessionId = sid;
                             }
                         }
-                    }
-
-                    if (hasNewOutboundSession) {
-                        mCryptoStore.flushSessions();
                     }
                 }
 
@@ -954,6 +971,32 @@ public class MXCrypto {
             }
         });
     }
+
+    private String verifyKeyAndStartSession(MXKey oneTimeKey, String userId, MXDeviceInfo deviceInfo) {
+        String sessionId = null;
+
+        String deviceId = deviceInfo.deviceId;
+        String signKeyId = "ed25519:" + deviceId;
+        String signature = oneTimeKey.signatureForUserId(userId, signKeyId);
+        StringBuffer error = new StringBuffer();
+
+        // Check one-time key signature
+        if (mOlmDevice.verifySignature(deviceInfo.fingerprint(), oneTimeKey.signalableJSONDictionary(), signature, error)) {
+            sessionId = getOlmDevice().createOutboundSession(deviceInfo.identityKey(), oneTimeKey.value);
+
+            if (!TextUtils.isEmpty(sessionId)) {
+                Log.d(LOG_TAG, "## verifyKeyAndStartSession() : Started new sessionid " +  sessionId + " for device " + deviceInfo + "(theirOneTimeKey: " + oneTimeKey.value + ")");
+            } else {
+                // Possibly a bad key
+                Log.e(LOG_TAG, "## verifyKeyAndStartSession() : Error starting session with device " + userId + ":" + deviceId);
+            }
+        } else {
+            Log.e(LOG_TAG, "## verifyKeyAndStartSession() : Unable to verify signature on one-time key for device " + userId + ":" + deviceId + " Error " + error.toString());
+        }
+
+        return sessionId;
+    }
+
 
     /**
      * Encrypt an event content according to the configuration of the room.
@@ -1305,7 +1348,7 @@ public class MXCrypto {
      * @param event the announcement event.
      */
     private void onNewDeviceEvent(final Event event) {
-        final String userId = event.sender;
+        /*final String userId = event.sender;
         final NewDeviceContent newDeviceContent = JsonUtils.toNewDeviceContent(event.getContent());
 
         if ((null == newDeviceContent.rooms) || (null == newDeviceContent.deviceId)) {
@@ -1345,7 +1388,7 @@ public class MXCrypto {
             public void onUnexpectedError(Exception e) {
                 Log.e(LOG_TAG, "## onNewDeviceEvent() : onUnexpectedError " + e.getMessage());
             }
-        });
+        });*/
     }
 
     /**
@@ -1514,8 +1557,10 @@ public class MXCrypto {
             return false;
         }
 
-        if (!mOlmDevice.verifySignature(signKey, deviceKeys.signalableJSONDictionary(), signature)) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : Unable to verify signature on device " +  userId + ":" + deviceKeys.deviceId);
+        StringBuffer error = new StringBuffer();
+
+        if (!mOlmDevice.verifySignature(signKey, deviceKeys.signalableJSONDictionary(), signature, error)) {
+            Log.e(LOG_TAG, "## validateDeviceKeys() : Unable to verify signature on device " +  userId + ":" + deviceKeys.deviceId +  " with error " + error.toString());
             return false;
         }
 
@@ -1531,82 +1576,6 @@ public class MXCrypto {
         }
 
         return true;
-    }
-
-    /**
-     * Send a "m.new_device" message to remind it that we exist and are a member
-     * of a room.
-     *  This is rate limited to send a message at most once an hour per destination.
-     * @param deviceId the id of the device to ping. If nil, all devices.
-     * @param userId the id of the user to ping.
-     * @param roomId the room id
-     */
-    private void sendPingToDevice(String deviceId, String userId, String roomId) {
-        // sanity checks
-        if ((null == userId) || (null == roomId)) {
-            return;
-        }
-
-        if (TextUtils.isEmpty(deviceId)) {
-            deviceId = "*";
-        }
-
-        // Check rate limiting
-        HashMap<String, Long> lastTsByRoom = mLastNewDeviceMessageTsByUserDeviceRoom.objectForDevice(deviceId, userId);
-
-        if (null == lastTsByRoom) {
-            lastTsByRoom = new HashMap<>();
-        }
-
-        Long lastTs = lastTsByRoom.get(roomId);
-        if (null == lastTs) {
-            lastTs = 0L;
-        }
-
-        long now = System.currentTimeMillis();
-
-        // 1 hour
-        if ((now - lastTs) < 3600000) {
-            // rate-limiting
-            return;
-        }
-
-        // Update rate limiting data
-        lastTsByRoom.put(roomId, now);
-        mLastNewDeviceMessageTsByUserDeviceRoom.setObject(lastTsByRoom, userId, deviceId);
-
-        // Build a per-device message for each user
-        MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>();
-
-        HashMap<String, Object> submap = new HashMap<>();
-        submap.put("device_id", mSession.getCredentials().deviceId);
-        submap.put("rooms", Arrays.asList(roomId));
-
-        HashMap<String, Map<String,Object>> map = new HashMap<>();
-        map.put(deviceId, submap);
-
-        contentMap.setObjects(map, userId);
-
-        mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_NEW_DEVICE, contentMap, new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## sendPingToDevice failed " + e.getMessage());
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "## sendPingToDevice failed " + e.getLocalizedMessage());
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## sendPingToDevice failed " + e.getMessage());
-            }
-        });
     }
 
     /**
