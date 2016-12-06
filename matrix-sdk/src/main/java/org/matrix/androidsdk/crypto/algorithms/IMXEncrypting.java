@@ -19,6 +19,7 @@ package org.matrix.androidsdk.crypto.algorithms;
 import com.google.gson.JsonElement;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
@@ -54,16 +55,9 @@ public interface IMXEncrypting {
      void onRoomMembership(Event event, RoomMember member, String oldMembership);
 
     /**
-     * Called when a new device announces itself in the room
-     * @param {string} userId    owner of the device
-     * @param {string} deviceId  deviceId of the device
+     * Called when the verification status of a device changes.
+     * @param device the device which the 'verified' property changed.
+     * @param oldVerified the old verification status.
      */
-    void onNewDevice(String deviceId, String userId);
-
-    /**
-     * Called when the device verification status is updated
-     * @param deviceId owner of the device
-     * @param userId deviceId of the device
-     */
-    void onDeviceVerificationStatusUpdate(String userId, String deviceId);
+    void onDeviceVerification(MXDeviceInfo device, int oldVerified);
 }
