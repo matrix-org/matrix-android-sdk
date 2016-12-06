@@ -16,16 +16,13 @@
 
 package org.matrix.androidsdk.crypto.data;
 
-import android.app.Service;
 import android.text.TextUtils;
 
 import java.io.Serializable;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class MXDeviceInfo implements Serializable {
     //
