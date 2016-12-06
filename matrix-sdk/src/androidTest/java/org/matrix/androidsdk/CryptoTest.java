@@ -2614,6 +2614,75 @@ public class CryptoTest {
         assertTrue(null != bobDevices);
     }
 
+    @Test
+    public void test22_testDownloadKeysForUserWithNoDevice() throws Exception {
+        final HashMap<String, Object> results = new HashMap<>();
+        doE2ETestWithAliceAndBobInARoom(false);
+
+        final CountDownLatch lock1 = new CountDownLatch(1);
+        mAliceSession.getCrypto().downloadKeys(Arrays.asList(mBobSession.getMyUserId()), false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+            @Override
+            public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
+                results.put("downloadKeys", info);
+                lock1.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock1.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock1.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock1.countDown();
+            }
+        });
+
+        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("downloadKeys"));
+
+        MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = (MXUsersDevicesMap<MXDeviceInfo>)results.get("downloadKeys");
+
+        // MXCrypto.downloadKeys should return @[] for Bob to distinguish him from an unknown user
+        List<String> bobDevices = usersDevicesInfoMap.deviceIdsForUser(mBobSession.getMyUserId());
+        assertTrue(null != bobDevices);
+        assertTrue(0 == bobDevices.size());
+
+        // try again
+        // it should not failed
+        final CountDownLatch lock2 = new CountDownLatch(1);
+        mAliceSession.getCrypto().downloadKeys(Arrays.asList(mBobSession.getMyUserId()), false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+            @Override
+            public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
+                results.put("downloadKeys2", info);
+                lock2.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock2.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock2.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock2.countDown();
+            }
+        });
+
+        lock2.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("downloadKeys2"));
+    }
+
     //==============================================================================================================
     // private test routines
     //==============================================================================================================

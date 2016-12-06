@@ -566,14 +566,13 @@ public class MXCrypto {
                 for (String userId : userIds) {
 
                     Map<String, MXDeviceInfo> devices = mCryptoStore.devicesForUser(userId);
-                    boolean isEmpty = (null == devices) || (devices.size() == 0);
 
-                    if (!isEmpty) {
-                        stored.setObjects(devices, userId);
+                    if ((null == devices) || forceDownload) {
+                        downloadUsers.add(userId);
                     }
 
-                    if (isEmpty) {
-                        downloadUsers.add(userId);
+                    if (null != devices) {
+                        stored.setObjects(devices, userId);
                     }
                 }
             }
