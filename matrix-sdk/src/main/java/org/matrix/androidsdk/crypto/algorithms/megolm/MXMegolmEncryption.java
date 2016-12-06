@@ -226,10 +226,10 @@ public class MXMegolmEncryption implements IMXEncrypting {
             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> devicesInRoom) {
                 HashMap<String, /* userId */ArrayList<MXDeviceInfo>> shareMap = new HashMap<>();
 
-                Set<String> userIds = devicesInRoom.userIds();
+                List<String> userIds = devicesInRoom.userIds();
 
                 for(String userId : userIds) {
-                    Set<String> deviceIds = devicesInRoom.deviceIdsForUser(userId);
+                    List<String> deviceIds = devicesInRoom.deviceIdsForUser(userId);
 
                     for (String deviceId : deviceIds) {
                         MXDeviceInfo deviceInfo = devicesInRoom.objectForDevice(deviceId, userId);
@@ -333,7 +333,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                 MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>();
 
                 boolean haveTargets = false;
-                Set<String> userIds = results.userIds();
+                List<String> userIds = results.userIds();
 
                 for (String userId : userIds) {
                     ArrayList<MXDeviceInfo> devicesToShareWith = devicesByUser.get(userId);

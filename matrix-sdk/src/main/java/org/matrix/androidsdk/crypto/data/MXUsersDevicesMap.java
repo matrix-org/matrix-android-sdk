@@ -20,7 +20,9 @@ import android.text.TextUtils;
 
 import java.io.Serializable;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -74,8 +76,8 @@ public class MXUsersDevicesMap<E> implements Serializable {
     /**
      * @return the user Ids
      */
-    public Set<String> userIds() {
-        return mMap.keySet();
+    public List<String> userIds() {
+        return new ArrayList<>(mMap.keySet());
     }
 
     /**
@@ -83,9 +85,9 @@ public class MXUsersDevicesMap<E> implements Serializable {
      * @param userId the user id
      * @return the device ids list
      */
-    public Set<String> deviceIdsForUser(String userId) {
+    public List<String> deviceIdsForUser(String userId) {
         if (!TextUtils.isEmpty(userId) && mMap.containsKey(userId)) {
-            return mMap.get(userId).keySet();
+            return new ArrayList<>(mMap.get(userId).keySet());
         }
 
         return null;
@@ -146,6 +148,23 @@ public class MXUsersDevicesMap<E> implements Serializable {
     public void removeObjectsForUser(String userId) {
         if (!TextUtils.isEmpty(userId)) {
             mMap.remove(userId);
+        }
+    }
+
+    /**
+     * Clear the internal dictionary
+     */
+    public void removeAllObjects() {
+        mMap.clear();
+    }
+
+    /**
+     * Add entries from another MXUsersDevicesMap
+     * @param other the other one
+     */
+    public void addEntriesFromMap(MXUsersDevicesMap<E> other) {
+        if (null != other) {
+            mMap.putAll(other.getMap());
         }
     }
 

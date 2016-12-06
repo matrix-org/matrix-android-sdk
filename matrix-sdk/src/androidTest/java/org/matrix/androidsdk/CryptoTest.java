@@ -41,6 +41,8 @@ import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.data.EventTimeline;
+import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
+import org.matrix.androidsdk.data.cryptostore.MXFileCryptoStore;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXFileStore;
 import org.matrix.androidsdk.data.Room;
@@ -374,7 +376,16 @@ public class CryptoTest {
         assertTrue (aliceDeviceFromBobPOV.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED);
 
         // the device informations are saved in background thread so give a breath to save everything
-        SystemClock.sleep(1000);
+        MXFileCryptoStore bobFileStore = (MXFileCryptoStore)mBobSession.getCrypto().getCryptoStore();
+
+        final CountDownLatch lock3b = new CountDownLatch(1);
+        bobFileStore.getThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                lock3b.countDown();
+            }
+        });
+        lock3b.await(1000, TimeUnit.DAYS.MILLISECONDS);
 
         Credentials bobCredentials = mBobSession.getCredentials();
 
@@ -1633,8 +1644,8 @@ public class CryptoTest {
                 lock0.countDown();
             }
         });
-        lock0.await(5000, TimeUnit.DAYS.MILLISECONDS);
-        assertTrue(results.containsKey("send0") && results.containsKey("alice0") && results.containsKey("sam0"));
+        lock0.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results + "", results.containsKey("send0") && results.containsKey("alice0") && results.containsKey("sam0"));
 
         roomFromAlicePOV.removeEventListener(aliceEventsListener0);
         roomFromSamPOV.removeEventListener(samEventsListener0);
@@ -2297,7 +2308,7 @@ public class CryptoTest {
             }
         });
 
-        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock1.await(2000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onToDeviceEvent"));
         assertTrue(1 == receivedEvents.size());
 
@@ -2420,7 +2431,6 @@ public class CryptoTest {
         final Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
         final Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
 
-
         assertTrue(roomFromBobPOV.isEncrypted());
         assertTrue(roomFromAlicePOV.isEncrypted());
 
@@ -2510,8 +2520,6 @@ public class CryptoTest {
         assertTrue(null != event.getCryptoError());
         assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE));
 
-
-        ////
         // unblock the bob's device
         mAliceSession.getCrypto().setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_UNVERIFIED, mBobSession.getCredentials().deviceId, mBobSession.getMyUserId());
 
@@ -2555,6 +2563,55 @@ public class CryptoTest {
 
         event = receivedEvents3.get(0);
         assertTrue(checkEncryptedEvent(event, mRoomId, aliceMessage3, mAliceSession));
+    }
+
+
+    @Test
+    public void test21_testDownloadKeysWithUnreachableHS() throws Exception {
+        final HashMap<String, Object> results = new HashMap<>();
+        doE2ETestWithAliceAndBobInARoom(true);
+
+        final Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
+        final Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
+
+        assertTrue(roomFromBobPOV.isEncrypted());
+        assertTrue(roomFromAlicePOV.isEncrypted());
+
+        final CountDownLatch lock1 = new CountDownLatch(1);
+        mAliceSession.getCrypto().downloadKeys(Arrays.asList(mBobSession.getMyUserId(), "@auser:matrix.org"), false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+            @Override
+            public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
+                results.put("downloadKeys", info);
+                lock1.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock1.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock1.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock1.countDown();
+            }
+        });
+
+        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("downloadKeys"));
+
+        MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = (MXUsersDevicesMap<MXDeviceInfo>)results.get("downloadKeys");
+
+        // We can get info only for Bob
+        assertTrue(usersDevicesInfoMap.getMap().size() == 1);
+
+        List<String> bobDevices = usersDevicesInfoMap.deviceIdsForUser(mBobSession.getMyUserId());
+
+        assertTrue(null != bobDevices);
     }
 
     //==============================================================================================================
@@ -2788,6 +2845,31 @@ public class CryptoTest {
         assertTrue(statuses.containsKey("joinRoom"));
 
         mBobSession.getDataHandler().removeListener(bobEventListener);
+
+        if (cryptedBob) {
+            // the crypto store data is saved in background thread
+            // so add a delay to let save the data
+            MXFileCryptoStore bobFileCryptoStore = (MXFileCryptoStore) mBobSession.getCrypto().getCryptoStore();
+            MXFileCryptoStore aliceFileCryptoStore = (MXFileCryptoStore) mAliceSession.getCrypto().getCryptoStore();
+
+            final CountDownLatch lock3 = new CountDownLatch(2);
+
+            bobFileCryptoStore.getThreadHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    lock3.countDown();
+                }
+            });
+
+            aliceFileCryptoStore.getThreadHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    lock3.countDown();
+                }
+            });
+
+            lock3.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        }
     }
 
     private void doE2ETestWithAliceAndBobAndSamInARoom() throws Exception {
@@ -2995,7 +3077,27 @@ public class CryptoTest {
 
         // the crypto store data is saved in background thread
         // so add a delay to let save the data
-        SystemClock.sleep(500);
+
+        MXFileCryptoStore bobFileCryptoStore = (MXFileCryptoStore)mBobSession.getCrypto().getCryptoStore();
+        MXFileCryptoStore aliceFileCryptoStore = (MXFileCryptoStore)mAliceSession.getCrypto().getCryptoStore();
+
+        final CountDownLatch lock3 = new CountDownLatch(2);
+
+        bobFileCryptoStore.getThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                lock3.countDown();
+            }
+        });
+
+        aliceFileCryptoStore.getThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                lock3.countDown();
+            }
+        });
+
+        lock3.await(1000, TimeUnit.DAYS.MILLISECONDS);
     }
 
     private boolean checkEncryptedEvent(Event event, String roomId, String clearMessage, MXSession senderSession) throws Exception {
