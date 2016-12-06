@@ -2467,7 +2467,6 @@ public class CryptoTest {
         // block the bob's device
         mAliceSession.getCrypto().setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED, mBobSession.getCredentials().deviceId, mBobSession.getMyUserId());
 
-
         ///
         final CountDownLatch lock2 = new CountDownLatch(1);
 
@@ -2510,6 +2509,52 @@ public class CryptoTest {
         assertTrue(null == event.getClearEvent());
         assertTrue(null != event.getCryptoError());
         assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE));
+
+
+        ////
+        // unblock the bob's device
+        mAliceSession.getCrypto().setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_UNVERIFIED, mBobSession.getCredentials().deviceId, mBobSession.getMyUserId());
+
+        ///
+        final CountDownLatch lock3 = new CountDownLatch(1);
+
+        final ArrayList<Event> receivedEvents3 = new ArrayList<>();
+        EventTimeline.EventTimelineListener eventTimelineListener3 = new EventTimeline.EventTimelineListener() {
+            public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                    receivedEvents3.add(event);
+                    lock3.countDown();
+                }
+            }
+        };
+
+        roomFromBobPOV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener3);
+
+        String aliceMessage3 = "Hello I'm still Alice and you can read this!";
+
+        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage3, mAliceSession), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+            }
+        });
+
+        lock3.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(1 == receivedEvents3.size());
+
+        event = receivedEvents3.get(0);
+        assertTrue(checkEncryptedEvent(event, mRoomId, aliceMessage3, mAliceSession));
     }
 
     //==============================================================================================================
