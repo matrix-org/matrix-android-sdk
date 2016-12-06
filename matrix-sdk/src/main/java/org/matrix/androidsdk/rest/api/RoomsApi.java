@@ -56,9 +56,8 @@ public interface RoomsApi {
      * @param content the event content
      * @param callback the asynchronous callback called with the response
      */
-    @POST("/rooms/{roomId}/send/{eventType}")
-    void send(@Path("roomId") String roomId, @Path("eventType") String eventType, @Body JsonObject content,
-              Callback<Event> callback);
+    @PUT("/rooms/{roomId}/send/{eventType}/{txId}")
+    void send(@Path("txId") String txId, @Path("roomId") String roomId, @Path("eventType") String eventType, @Body JsonObject content, Callback<Event> callback);
 
     /**
      * Send a message to the specified room.

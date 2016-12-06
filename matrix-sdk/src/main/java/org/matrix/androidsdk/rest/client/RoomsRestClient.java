@@ -88,21 +88,22 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
     /**
      * Send an event to a room.
+     * @param transactionId the unique transaction id (it should avoid duplicated messages)
      * @param roomId the room id
      * @param eventType the type of event
      * @param content the event content
      * @param callback the callback containing the created event if successful
      */
-    public void sendEventToRoom(final String roomId, final String eventType, final JsonObject content, final ApiCallback<Event> callback) {
+    public void sendEventToRoom(final String transactionId, final String roomId, final String eventType, final JsonObject content, final ApiCallback<Event> callback) {
         // privacy
         //final String description = "sendEvent : roomId " + roomId + " - eventType " + eventType + " content " + content;
         final String description = "sendEvent : roomId " + roomId + " - eventType " + eventType;
 
-        mApi.send(roomId, eventType, content, new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.send(transactionId, roomId, eventType, content, new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
-                    sendEventToRoom(roomId, eventType, content, callback);
+                    sendEventToRoom(transactionId, roomId, eventType, content, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend sendEvent : failed " + e.getLocalizedMessage());
                 }

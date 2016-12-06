@@ -1948,7 +1948,7 @@ public class Room {
 
                     // sending in progress
                     event.mSentState = Event.SentState.SENDING;
-                    mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(getRoomId(), encryptEventContentResult.mEventType, encryptEventContentResult.mEventContent.getAsJsonObject(), localCB);
+                    mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(event.originServerTs + "", getRoomId(), encryptEventContentResult.mEventType, encryptEventContentResult.mEventContent.getAsJsonObject(), localCB);
                 }
 
                 @Override
@@ -1987,7 +1987,7 @@ public class Room {
             if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
                 mDataHandler.getDataRetriever().getRoomsRestClient().sendMessage(event.originServerTs + "", getRoomId(), JsonUtils.toMessage(event.getContent()), localCB);
             } else {
-                mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(getRoomId(), event.getType(), event.getContent().getAsJsonObject(), localCB);
+                mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(event.originServerTs + "", getRoomId(), event.getType(), event.getContent().getAsJsonObject(), localCB);
             }
         }
     }
