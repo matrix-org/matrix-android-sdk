@@ -174,17 +174,14 @@ public class MXMegolmEncryption implements IMXEncrypting {
     }
 
     @Override
-    public void onDeviceVerificationStatusUpdate(String userId, String deviceId) {
-        Room room = mSession.getDataHandler().getRoom(mRoomId);
-
-        if (null != room) {
-            RoomMember roomMember = room.getMember(userId);
-
-            // test if the user joins the room
-            if ((null != roomMember) && TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_JOIN)) {
-                mOutboundSession = null;
-            }
+    public void onDeviceVerification(MXDeviceInfo device, int oldVerified) {
+        if (device.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED) {
+            Log.d(LOG_TAG, "## onDeviceVerification() : Discarding outbound megolm session in " + mRoomId + "due to the blacklisting of " + device);
+            mOutboundSession = null;
         }
+
+        // In other cases, the key will be shared to this device on the next
+        // message thanks to [self ensureOutboundSessionInRoom]
     }
 
     /**
@@ -234,10 +231,10 @@ public class MXMegolmEncryption implements IMXEncrypting {
                 for(String userId : userIds) {
                     Set<String> deviceIds = devicesInRoom.deviceIdsForUser(userId);
 
-                    for(String deviceId : deviceIds) {
+                    for (String deviceId : deviceIds) {
                         MXDeviceInfo deviceInfo = devicesInRoom.objectForDevice(deviceId, userId);
 
-                        if (deviceInfo.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED) {
+                        if (deviceInfo.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED) {
                             continue;
                         }
 
@@ -254,40 +251,39 @@ public class MXMegolmEncryption implements IMXEncrypting {
                             shareMap.get(userId).add(deviceInfo);
                         }
                     }
-
-                    shareKey(fSession, shareMap, new ApiCallback<Void>() {
-                        @Override
-                        public void onSuccess(Void anything) {
-                            mShareOperationIsProgress = false;
-                            callback.onSuccess(fSession);
-                        }
-
-                        @Override
-                        public void onNetworkError(Exception e) {
-                            if (null != callback) {
-                                callback.onNetworkError(e);
-                            }
-                            mShareOperationIsProgress = false;
-                        }
-
-
-                        @Override
-                        public void onMatrixError(MatrixError e) {
-                            if (null != callback) {
-                                callback.onMatrixError(e);
-                            }
-                            mShareOperationIsProgress = false;
-                        }
-
-                        @Override
-                        public void onUnexpectedError(Exception e) {
-                            if (null != callback) {
-                                callback.onUnexpectedError(e);
-                            }
-                            mShareOperationIsProgress = false;
-                        }
-                    });
                 }
+
+                shareKey(fSession, shareMap, new ApiCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void anything) {
+                        mShareOperationIsProgress = false;
+                        callback.onSuccess(fSession);
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        if (null != callback) {
+                            callback.onNetworkError(e);
+                        }
+                        mShareOperationIsProgress = false;
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        if (null != callback) {
+                            callback.onMatrixError(e);
+                        }
+                        mShareOperationIsProgress = false;
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        if (null != callback) {
+                            callback.onUnexpectedError(e);
+                        }
+                        mShareOperationIsProgress = false;
+                    }
+                });
             }
 
             @Override

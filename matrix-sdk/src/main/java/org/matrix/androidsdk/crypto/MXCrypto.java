@@ -722,17 +722,27 @@ public class MXCrypto {
         }
 
         if (device.mVerified != verificationStatus) {
+            int oldVerified = device.mVerified;
             device.mVerified = verificationStatus;
             mCryptoStore.storeDeviceForUser(userId, device);
 
             Collection<Room> rooms = mSession.getDataHandler().getStore().getRooms();
 
             for(Room room : rooms) {
-                IMXEncrypting alg = mRoomEncryptors.get(room.getRoomId());
+                if (room.isEncrypted()) {
+                    RoomMember roomMember = room.getMember(userId);
 
-                if (null != alg) {
-                    alg.onDeviceVerificationStatusUpdate(userId, deviceId);
+                    // test if the user joins the room
+                    if ((null != roomMember) && TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_JOIN)) {
+
+                        IMXEncrypting alg = mRoomEncryptors.get(room.getRoomId());
+
+                        if (null != alg) {
+                            alg.onDeviceVerification(device, oldVerified);
+                        }
+                    }
                 }
+
             }
         }
     }
@@ -811,9 +821,7 @@ public class MXCrypto {
 
         HashMap<String /* userId */,ArrayList<MXDeviceInfo>> devicesByUser = new HashMap<>();
 
-        Set<String> userIds = devicesByUser.keySet();
-
-        for(String userId : userIds) {
+        for(String userId : users) {
             devicesByUser.put(userId, new ArrayList<MXDeviceInfo>());
 
             List<MXDeviceInfo> devices = storedDevicesForUser(userId);

@@ -128,7 +128,7 @@ public class MXOlmEncryption implements IMXEncrypting {
     }
 
     @Override
-    public void onDeviceVerificationStatusUpdate(String userId, String deviceId) {
+    public void onDeviceVerification(MXDeviceInfo device, int oldVerified) {
     }
 
     /**
