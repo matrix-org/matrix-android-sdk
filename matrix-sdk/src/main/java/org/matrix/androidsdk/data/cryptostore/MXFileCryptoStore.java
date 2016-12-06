@@ -277,8 +277,10 @@ public class MXFileCryptoStore implements IMXCryptoStore {
      */
     public MXOsHandler getThreadHandler() {
         if (null == mFileStoreHandler) {
-            mHandlerThread = new HandlerThread("MXFileCryptoStoreBackgroundThread_" + mCredentials.userId + System.currentTimeMillis(), Thread.MIN_PRIORITY);
-            mHandlerThread.start();
+            if (null == mHandlerThread) {
+                mHandlerThread = new HandlerThread("MXFileCryptoStoreBackgroundThread_" + mCredentials.userId + System.currentTimeMillis(), Thread.MIN_PRIORITY);
+                mHandlerThread.start();
+            }
 
             // GA issue
             if (null != mHandlerThread.getLooper()) {
