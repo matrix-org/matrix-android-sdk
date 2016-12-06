@@ -230,6 +230,13 @@ public class MXCrypto {
     }
 
     /**
+     * @return the crypto store
+     */
+    public IMXCryptoStore getCryptoStore() {
+        return mCryptoStore;
+    }
+
+    /**
      * Start the timer to periodically upload the keys
      * @param delayed true when the keys upload must be delayed
      */
