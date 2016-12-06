@@ -975,7 +975,7 @@ public class MXCrypto {
 
                         MXKey oneTimeKey = null;
 
-                        Set<String> deviceIds = oneTimeKeys.deviceIdsForUser(userId);
+                        List<String> deviceIds = oneTimeKeys.deviceIdsForUser(userId);
 
                         if (null != deviceIds) {
                             for (String deviceId :deviceIds ) {

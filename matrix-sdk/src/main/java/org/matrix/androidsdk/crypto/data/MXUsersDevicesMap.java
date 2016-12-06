@@ -85,9 +85,9 @@ public class MXUsersDevicesMap<E> implements Serializable {
      * @param userId the user id
      * @return the device ids list
      */
-    public Set<String> deviceIdsForUser(String userId) {
+    public List<String> deviceIdsForUser(String userId) {
         if (!TextUtils.isEmpty(userId) && mMap.containsKey(userId)) {
-            return mMap.get(userId).keySet();
+            return new ArrayList<>(mMap.get(userId).keySet());
         }
 
         return null;

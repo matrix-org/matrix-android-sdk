@@ -229,7 +229,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                 List<String> userIds = devicesInRoom.userIds();
 
                 for(String userId : userIds) {
-                    Set<String> deviceIds = devicesInRoom.deviceIdsForUser(userId);
+                    List<String> deviceIds = devicesInRoom.deviceIdsForUser(userId);
 
                     for (String deviceId : deviceIds) {
                         MXDeviceInfo deviceInfo = devicesInRoom.objectForDevice(deviceId, userId);

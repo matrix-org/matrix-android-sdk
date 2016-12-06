@@ -37,6 +37,7 @@ import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -155,7 +156,7 @@ public class CryptoRestTest {
         assertTrue (null != deviceInfos.userIds());
         assertTrue (1 == deviceInfos.userIds().size());
 
-        Set<String> deviceIds = deviceInfos.deviceIdsForUser(mBobSession.getMyUserId());
+        List<String> deviceIds = deviceInfos.deviceIdsForUser(mBobSession.getMyUserId());
         assertTrue (null != deviceIds);
         assertTrue (1 == deviceIds.size());
 

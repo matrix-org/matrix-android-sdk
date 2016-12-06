@@ -2297,7 +2297,7 @@ public class CryptoTest {
             }
         });
 
-        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock1.await(2000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onToDeviceEvent"));
         assertTrue(1 == receivedEvents.size());
 
@@ -2420,7 +2420,6 @@ public class CryptoTest {
         final Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
         final Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
 
-
         assertTrue(roomFromBobPOV.isEncrypted());
         assertTrue(roomFromAlicePOV.isEncrypted());
 
@@ -2510,8 +2509,6 @@ public class CryptoTest {
         assertTrue(null != event.getCryptoError());
         assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE));
 
-
-        ////
         // unblock the bob's device
         mAliceSession.getCrypto().setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_UNVERIFIED, mBobSession.getCredentials().deviceId, mBobSession.getMyUserId());
 
@@ -2555,6 +2552,55 @@ public class CryptoTest {
 
         event = receivedEvents3.get(0);
         assertTrue(checkEncryptedEvent(event, mRoomId, aliceMessage3, mAliceSession));
+    }
+
+
+    @Test
+    public void test21_testDownloadKeysWithUnreachableHS() throws Exception {
+        final HashMap<String, Object> results = new HashMap<>();
+        doE2ETestWithAliceAndBobInARoom(true);
+
+        final Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
+        final Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
+
+        assertTrue(roomFromBobPOV.isEncrypted());
+        assertTrue(roomFromAlicePOV.isEncrypted());
+
+        final CountDownLatch lock1 = new CountDownLatch(1);
+        mAliceSession.getCrypto().downloadKeys(Arrays.asList(mBobSession.getMyUserId(), "@auser:matrix.org"), false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+            @Override
+            public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
+                results.put("downloadKeys", info);
+                lock1.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock1.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock1.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock1.countDown();
+            }
+        });
+
+        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("downloadKeys"));
+
+        MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = (MXUsersDevicesMap<MXDeviceInfo>)results.get("downloadKeys");
+
+        // We can get info only for Bob
+        assertTrue(usersDevicesInfoMap.getMap().size() == 1);
+
+        List<String> bobDevices = usersDevicesInfoMap.deviceIdsForUser(mBobSession.getMyUserId());
+
+        assertTrue(null != bobDevices);
     }
 
     //==============================================================================================================
