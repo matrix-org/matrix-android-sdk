@@ -113,8 +113,8 @@ public class MXCrypto {
     // Timer to periodically upload keys
     private Timer mUploadKeysTimer;
 
-    // New devices
-    private MXUsersDevicesMap<Boolean> mPendingNewDevices;
+    // Users with new devices
+    private ArrayList<String> mPendingUsersWithNewDevices;
 
     private final MXEventListener mEventListener = new MXEventListener() {
         @Override
@@ -147,7 +147,7 @@ public class MXCrypto {
         mOlmDevice = new MXOlmDevice(mCryptoStore);
         mRoomEncryptors = new HashMap<>();
         mRoomDecryptors = new HashMap<>();
-        mPendingNewDevices = new MXUsersDevicesMap<>();
+        mPendingUsersWithNewDevices = new ArrayList<>();
 
         String deviceId = mSession.getCredentials().deviceId;
 
@@ -550,6 +550,7 @@ public class MXCrypto {
      * @param callback the asynchronous callback
      */
     public void downloadKeys(List<String> userIds, boolean forceDownload, final ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> callback) {
+        Log.d(LOG_TAG, "## downloadKeys() : forceDownload " + forceDownload + " : " + userIds);
 
         // Map from userid -> deviceid -> DeviceInfo
         final MXUsersDevicesMap<MXDeviceInfo> stored = new MXUsersDevicesMap<>();
@@ -570,7 +571,14 @@ public class MXCrypto {
                     if (null == devices) {
                         downloadUsers.add(userId);
                     } else {
-                        stored.setObjects(devices, userId);
+                        // If we have some pending new devices for this user, force download their devices keys.
+                        // The keys will be downloaded twice (in flushNewDeviceRequests and here)
+                        // but this is better than no keys.
+                        if (mPendingUsersWithNewDevices.indexOf(userId) >= 0) {
+                            downloadUsers.add(userId);
+                        } else {
+                            stored.setObjects(devices, userId);
+                        }
                     }
                 }
             }
@@ -1272,15 +1280,20 @@ public class MXCrypto {
      * @param callback the asynchronous callback.
      */
     private void checkDeviceAnnounced(final ApiCallback<Void> callback) {
-        // Catch up on any m.new_device events which arrived during the initial sync.
-        flushNewDeviceRequests();
-
         if (mCryptoStore.deviceAnnounced()) {
+            // Catch up on any m.new_device events which arrived during the initial sync.
+            flushNewDeviceRequests();
+
             if (null != callback) {
                 callback.onSuccess(null);
             }
             return;
         }
+
+        // Catch up on any m.new_device events which arrived during the initial sync.
+        // And force download all devices keys  the user already has.
+        mPendingUsersWithNewDevices.add(mMyDevice.userId);
+        flushNewDeviceRequests();
 
         // We need to tell all the devices in all the rooms we are members of that
         // we have arrived.
@@ -1441,7 +1454,7 @@ public class MXCrypto {
             return;
         }
 
-        mPendingNewDevices.setObject(true, userId, deviceId);
+        mPendingUsersWithNewDevices.add(userId);
 
         // We delay handling these until the intialsync has completed, so that we
         // can do all of them together.
@@ -1454,42 +1467,42 @@ public class MXCrypto {
      *     Start device queries for any users who sent us an m.new_device recently
      */
     private void flushNewDeviceRequests() {
-        final List<String> users = mPendingNewDevices.userIds();
 
-        if (users.size() == 0) {
+        if (mPendingUsersWithNewDevices.size() == 0) {
             return;
         }
 
-        // We've kicked off requests to these users: remove their
-        // pending flag for now.
-        mPendingNewDevices.removeAllObjects();
-
-        doKeyDownloadForUsers(users, new ApiCallback<DoKeyDownloadForUsersResponse>() {
-            private void logFailedUsers(List<String> userIds) {
-                for(String userId : userIds) {
-                    Log.e(LOG_TAG, "## flushNewDeviceRequests() : Error updating device keys for user " + userId);
-                    mPendingNewDevices.setObjects(new HashMap<String, Boolean>(), userId);
-                }
-            }
+        doKeyDownloadForUsers(mPendingUsersWithNewDevices, new ApiCallback<DoKeyDownloadForUsersResponse>() {
 
             @Override
             public void onSuccess(DoKeyDownloadForUsersResponse response) {
-                logFailedUsers(response.mFailedUserIds);
+
+                if (0 != response.mFailedUserIds.size()) {
+                    Log.e(LOG_TAG, "## flushNewDeviceRequests() : Error updating device keys for user " + response.mFailedUserIds) ;
+                } else {
+                    Log.d(LOG_TAG, "## flushNewDeviceRequests() : succeeded");
+                }
+
+                // Remove users we got the keys from the pending queue
+                // but keep the pending flags on any users which failed; this will
+                // mean that we will do another download in the future, but won't
+                // tight-loop.
+                mPendingUsersWithNewDevices.removeAll(response.mUsersDevicesInfoMap.userIds());
             }
 
             @Override
             public void onNetworkError(Exception e) {
-                logFailedUsers(users);
+                Log.e(LOG_TAG, "## flushNewDeviceRequests() : ERROR updating device keys for users " + mPendingUsersWithNewDevices + " : " + e.getMessage());
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                logFailedUsers(users);
+                Log.e(LOG_TAG, "## flushNewDeviceRequests() : ERROR updating device keys for users " + mPendingUsersWithNewDevices + " : " + e.getMessage());
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                logFailedUsers(users);
+                Log.e(LOG_TAG, "## flushNewDeviceRequests() : ERROR updating device keys for users " + mPendingUsersWithNewDevices + " : " + e.getMessage());
             }
         });
     }

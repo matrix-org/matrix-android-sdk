@@ -1002,8 +1002,9 @@ public class CryptoTest {
                     try {
                         if (checkEncryptedEvent(event, mRoomId, messagesFromBob.get(mReceivedMessagesFromBob), mBobSession)) {
                             mReceivedMessagesFromBob++;
-                            list.get(list.size()-1).countDown();
                         }
+
+                        list.get(list.size()-1).countDown();
                     } catch (Exception e) {
 
                     }
@@ -2196,56 +2197,74 @@ public class CryptoTest {
         lock2.await(1000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("logout"));
 
+        final CountDownLatch lock3 = new CountDownLatch(1);
+        MXEventListener aliceEventListener = new MXEventListener() {
+            @Override
+            public void onToDeviceEvent(Event event) {
+                if (!results.containsKey("onToDeviceEvent2")) {
+                    results.put("onToDeviceEvent2", event);
+                    lock3.countDown();
+                }
+            }
+        };
+
+        mAliceSession.getDataHandler().addListener(aliceEventListener);
+
         // login with a new device id
         // does not work by now
-        if (false) {
-            MXSession bobSession2 = CryptoTestHelper.logAccountAndSync(context, bobId, MXTESTS_BOB_PWD);
+        MXSession bobSession2 = CryptoTestHelper.logAccountAndSync(context, bobId, MXTESTS_BOB_PWD);
 
-            String bobDeviceId2 = bobSession2.getCredentials().deviceId;
-            assertTrue(!TextUtils.equals(bobDeviceId2, bobDeviceId1));
+        String bobDeviceId2 = bobSession2.getCredentials().deviceId;
+        assertTrue(!TextUtils.equals(bobDeviceId2, bobDeviceId1));
 
-            final Room roomFromBobPOV2 = bobSession2.getDataHandler().getRoom(mRoomId);
-            assertTrue(null != roomFromBobPOV2);
+        // before sending a message, wait that the device event is received.
+        lock3.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("onToDeviceEvent2"));
 
-            final ArrayList<Event> receivedEvents2 = new ArrayList<>();
-            final CountDownLatch lock3 = new CountDownLatch(1);
+        final Room roomFromBobPOV2 = bobSession2.getDataHandler().getRoom(mRoomId);
+        assertTrue(null != roomFromBobPOV2);
 
-            EventTimeline.EventTimelineListener eventTimelineListener2 = new EventTimeline.EventTimelineListener() {
-                public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
-                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                        receivedEvents2.add(event);
-                        lock3.countDown();
-                    }
+        final ArrayList<Event> receivedEvents4 = new ArrayList<>();
+        final CountDownLatch lock4 = new CountDownLatch(1);
+
+        EventTimeline.EventTimelineListener eventTimelineListener4 = new EventTimeline.EventTimelineListener() {
+            public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                    receivedEvents4.add(event);
+                    lock4.countDown();
+                } else {
+                    results.put("event4", event.getType() + "");
+                    lock4.countDown();
                 }
-            };
+            }
+        };
 
-            roomFromBobPOV2.getLiveTimeLine().addEventTimelineListener(eventTimelineListener2);
+        roomFromBobPOV2.getLiveTimeLine().addEventTimelineListener(eventTimelineListener4);
 
-            String aliceMessage2 = "Hello I'm still Alice!";
-            roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage2, mAliceSession), new ApiCallback<Void>() {
-                @Override
-                public void onSuccess(Void info) {
-                }
+        String aliceMessage2 = "Hello I'm still Alice!";
+        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage2, mAliceSession), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+            }
 
-                @Override
-                public void onNetworkError(Exception e) {
-                }
+            @Override
+            public void onNetworkError(Exception e) {
+            }
 
-                @Override
-                public void onMatrixError(MatrixError e) {
-                }
+            @Override
+            public void onMatrixError(MatrixError e) {
+            }
 
-                @Override
-                public void onUnexpectedError(Exception e) {
-                }
-            });
+            @Override
+            public void onUnexpectedError(Exception e) {
+            }
+        });
 
-            lock3.await(1000, TimeUnit.DAYS.MILLISECONDS);
-            assertTrue(1 == receivedEvents2.size());
+        lock4.await(5000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue("received event of type " + results.get("event4"), 1 == receivedEvents4.size());
 
-            event = receivedEvents2.get(0);
-            assertTrue(checkEncryptedEvent(event, mRoomId, aliceMessage2, mAliceSession));
-        }
+        event = receivedEvents4.get(0);
+        assertTrue(checkEncryptedEvent(event, mRoomId, aliceMessage2, mAliceSession));
     }
 
     @Test
@@ -2587,22 +2606,25 @@ public class CryptoTest {
 
             @Override
             public void onNetworkError(Exception e) {
+                results.put("downloadKeysError", e);
                 lock1.countDown();
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
+                results.put("downloadKeysError", e);
                 lock1.countDown();
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
+                results.put("downloadKeysError", e);
                 lock1.countDown();
             }
         });
 
-        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
-        assertTrue(results.containsKey("downloadKeys"));
+        lock1.await(2000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results + "", results.containsKey("downloadKeys"));
 
         MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = (MXUsersDevicesMap<MXDeviceInfo>)results.get("downloadKeys");
 
@@ -3047,6 +3069,9 @@ public class CryptoTest {
 
         lock2.await(1000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(statuses.containsKey("joinRoom"));
+
+        // wait the initial sync
+        SystemClock.sleep(1000);
 
         mSamSession.getDataHandler().removeListener(samEventListener);
     }
