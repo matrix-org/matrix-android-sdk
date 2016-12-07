@@ -567,11 +567,9 @@ public class MXCrypto {
 
                     Map<String, MXDeviceInfo> devices = mCryptoStore.devicesForUser(userId);
 
-                    if ((null == devices) || forceDownload) {
+                    if (null == devices) {
                         downloadUsers.add(userId);
-                    }
-
-                    if (null != devices) {
+                    } else {
                         stored.setObjects(devices, userId);
                     }
                 }
