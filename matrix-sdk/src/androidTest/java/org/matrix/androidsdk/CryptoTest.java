@@ -2162,7 +2162,7 @@ public class CryptoTest {
             }
         });
 
-        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock1.await(2000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onToDeviceEvent"));
         assertTrue(1 == receivedEvents.size());
 
@@ -2443,8 +2443,7 @@ public class CryptoTest {
     }
 
     @Test
-    public void test20_testAliceWithNewDeviceAndBobWithNewDevice() throws Exception {
-        final HashMap<String, Object> results = new HashMap<>();
+    public void test20_testAliceAndBlockedBob() throws Exception {
         doE2ETestWithAliceAndBobInARoom(true);
 
         final Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);

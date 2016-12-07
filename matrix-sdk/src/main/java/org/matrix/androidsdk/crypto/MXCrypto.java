@@ -50,6 +50,7 @@ import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -114,7 +115,8 @@ public class MXCrypto {
     private Timer mUploadKeysTimer;
 
     // Users with new devices
-    private ArrayList<String> mPendingUsersWithNewDevices;
+    private HashSet<String> mPendingUsersWithNewDevices;
+    private HashSet<String> mInProgressUsersWithNewDevices;
 
     private final MXEventListener mEventListener = new MXEventListener() {
         @Override
@@ -147,7 +149,8 @@ public class MXCrypto {
         mOlmDevice = new MXOlmDevice(mCryptoStore);
         mRoomEncryptors = new HashMap<>();
         mRoomDecryptors = new HashMap<>();
-        mPendingUsersWithNewDevices = new ArrayList<>();
+        mPendingUsersWithNewDevices = new HashSet<>();
+        mInProgressUsersWithNewDevices = new HashSet<>();
 
         String deviceId = mSession.getCredentials().deviceId;
 
@@ -574,7 +577,8 @@ public class MXCrypto {
                         // If we have some pending new devices for this user, force download their devices keys.
                         // The keys will be downloaded twice (in flushNewDeviceRequests and here)
                         // but this is better than no keys.
-                        if (mPendingUsersWithNewDevices.indexOf(userId) >= 0) {
+                        if (mPendingUsersWithNewDevices.contains(userId) ||
+                                mInProgressUsersWithNewDevices.contains(userId)) {
                             downloadUsers.add(userId);
                         } else {
                             stored.setObjects(devices, userId);
@@ -1467,41 +1471,55 @@ public class MXCrypto {
      *     Start device queries for any users who sent us an m.new_device recently
      */
     private void flushNewDeviceRequests() {
+        final List<String> users = new ArrayList<>(mPendingUsersWithNewDevices);
 
-        if (mPendingUsersWithNewDevices.size() == 0) {
+        if (users.size() == 0) {
             return;
         }
 
-        doKeyDownloadForUsers(mPendingUsersWithNewDevices, new ApiCallback<DoKeyDownloadForUsersResponse>() {
+        // We've kicked off requests to these users: remove their
+        // pending flag for now.
+        mPendingUsersWithNewDevices.clear();
+
+        // Keep track of requests in progress
+        mInProgressUsersWithNewDevices.addAll(users);
+
+        doKeyDownloadForUsers(users, new ApiCallback<DoKeyDownloadForUsersResponse>() {
 
             @Override
             public void onSuccess(DoKeyDownloadForUsersResponse response) {
-
                 if (0 != response.mFailedUserIds.size()) {
                     Log.e(LOG_TAG, "## flushNewDeviceRequests() : Error updating device keys for user " + response.mFailedUserIds) ;
                 } else {
                     Log.d(LOG_TAG, "## flushNewDeviceRequests() : succeeded");
                 }
 
-                // Remove users we got the keys from the pending queue
-                // but keep the pending flags on any users which failed; this will
-                // mean that we will do another download in the future, but won't
-                // tight-loop.
-                mPendingUsersWithNewDevices.removeAll(response.mUsersDevicesInfoMap.userIds());
+                // Consider the request for these users as done
+                mInProgressUsersWithNewDevices.removeAll(response.mUsersDevicesInfoMap.userIds());
+
+                if (response.mFailedUserIds.size() > 0) {
+                    // Reinstate the pending flags on any users which failed; this will
+                    // mean that we will do another download in the future, but won't
+                    // tight-loop.
+                    mPendingUsersWithNewDevices.addAll(response.mFailedUserIds);
+                }
             }
 
             @Override
             public void onNetworkError(Exception e) {
+                mPendingUsersWithNewDevices.addAll(users);
                 Log.e(LOG_TAG, "## flushNewDeviceRequests() : ERROR updating device keys for users " + mPendingUsersWithNewDevices + " : " + e.getMessage());
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
+                mPendingUsersWithNewDevices.addAll(users);
                 Log.e(LOG_TAG, "## flushNewDeviceRequests() : ERROR updating device keys for users " + mPendingUsersWithNewDevices + " : " + e.getMessage());
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
+                mPendingUsersWithNewDevices.addAll(users);
                 Log.e(LOG_TAG, "## flushNewDeviceRequests() : ERROR updating device keys for users " + mPendingUsersWithNewDevices + " : " + e.getMessage());
             }
         });
