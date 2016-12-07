@@ -2217,7 +2217,7 @@ public class CryptoTest {
         String bobDeviceId2 = bobSession2.getCredentials().deviceId;
         assertTrue(!TextUtils.equals(bobDeviceId2, bobDeviceId1));
 
-        // before sending a
+        // before sending a message, wait that the device event is received.
         lock3.await(10000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onToDeviceEvent2"));
 
