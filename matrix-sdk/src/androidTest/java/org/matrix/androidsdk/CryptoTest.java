@@ -1002,8 +1002,9 @@ public class CryptoTest {
                     try {
                         if (checkEncryptedEvent(event, mRoomId, messagesFromBob.get(mReceivedMessagesFromBob), mBobSession)) {
                             mReceivedMessagesFromBob++;
-                            list.get(list.size()-1).countDown();
                         }
+
+                        list.get(list.size()-1).countDown();
                     } catch (Exception e) {
 
                     }
@@ -2605,22 +2606,25 @@ public class CryptoTest {
 
             @Override
             public void onNetworkError(Exception e) {
+                results.put("downloadKeysError", e);
                 lock1.countDown();
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
+                results.put("downloadKeysError", e);
                 lock1.countDown();
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
+                results.put("downloadKeysError", e);
                 lock1.countDown();
             }
         });
 
-        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
-        assertTrue(results.containsKey("downloadKeys"));
+        lock1.await(2000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results + "", results.containsKey("downloadKeys"));
 
         MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = (MXUsersDevicesMap<MXDeviceInfo>)results.get("downloadKeys");
 
@@ -3065,6 +3069,9 @@ public class CryptoTest {
 
         lock2.await(1000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(statuses.containsKey("joinRoom"));
+
+        // wait the initial sync
+        SystemClock.sleep(1000);
 
         mSamSession.getDataHandler().removeListener(samEventListener);
     }
