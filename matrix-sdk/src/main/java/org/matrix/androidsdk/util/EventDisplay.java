@@ -31,6 +31,7 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.call.MXCallsManager;
+import org.matrix.androidsdk.crypto.MXCrypto;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
@@ -203,15 +204,24 @@ public class EventDisplay {
                 } else {
                     String message = null;
 
+
                     if (null != mEvent.getCryptoError()) {
-                        message = mEvent.getCryptoError().getLocalizedMessage();
+                        String errorDescription;
+
+                        MXCryptoError error = mEvent.getCryptoError();
+
+                        if (TextUtils.equals(error.errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE)) {
+                            errorDescription = mContext.getResources().getString(R.string.notice_crypto_error_unkwown_inbound_session_id);
+                        } else {
+                            errorDescription = error.getLocalizedMessage();
+                        }
+
+                        message = mContext.getString(R.string.notice_crypto_unable_to_decrypt, errorDescription);
                     }
 
                     if (TextUtils.isEmpty(message)) {
                         message = mContext.getString(R.string.encrypted_message);
                     }
-
-                    message = "**" + message + "**";
 
                     SpannableString spannableStr = new SpannableString(message);
                     spannableStr.setSpan(new android.text.style.StyleSpan(Typeface.ITALIC), 0, message.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);

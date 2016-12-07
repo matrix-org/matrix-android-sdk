@@ -70,7 +70,10 @@
     <string name="notice_error_unknown_event_type">Unknown event type</string>
     <string name="notice_room_third_party_invite">%1$s sent an invitation to %2$s to join the room</string>
     <string name="notice_room_third_party_registered_invite">%1$s accepted the invitation for %2$s</string>
-    
+
+    <string name="notice_crypto_unable_to_decrypt">** Unable to decrypt: %s **</string>
+    <string name="notice_crypto_error_unkwown_inbound_session_id">The sender\'s device has not sent us the keys for this message.</string>
+
     <!-- Room Screen -->
     <string name="could_not_redact">Could not redact</string>
     <string name="unable_to_send_message">Unable to send message</string>
