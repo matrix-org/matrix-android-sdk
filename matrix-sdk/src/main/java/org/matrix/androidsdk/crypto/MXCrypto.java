@@ -574,7 +574,7 @@ public class MXCrypto {
                         // If we have some pending new devices for this user, force download their devices keys.
                         // The keys will be downloaded twice (in flushNewDeviceRequests and here)
                         // but this is better than no keys.
-                        if (mPendingUsersWithNewDevices.indexOf(userId) > 0) {
+                        if (mPendingUsersWithNewDevices.indexOf(userId) >= 0) {
                             downloadUsers.add(userId);
                         } else {
                             stored.setObjects(devices, userId);

@@ -224,7 +224,9 @@ public class MXMemoryStore implements IMXStore {
      */
     @Override
     public void setEventStreamToken(String token) {
-        mMetadata.mEventStreamToken = token;
+        if (null != mMetadata) {
+            mMetadata.mEventStreamToken = token;
+        }
         mEventStreamToken = token;
     }
 
