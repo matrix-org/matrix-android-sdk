@@ -361,10 +361,10 @@ public class CryptoTest {
         assertTrue(results.containsKey("downloadKeys"));
         MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = (MXUsersDevicesMap<MXDeviceInfo> )results.get("downloadKeys");
 
-        assertTrue (2 == usersDevicesInfoMap.userIds().size());
-        assertTrue (1 == usersDevicesInfoMap.deviceIdsForUser(mAliceSession.getMyUserId()).size());
+        assertTrue (2 == usersDevicesInfoMap.getUserIds().size());
+        assertTrue (1 == usersDevicesInfoMap.getUserDeviceIds(mAliceSession.getMyUserId()).size());
 
-        MXDeviceInfo aliceDeviceFromBobPOV = usersDevicesInfoMap.objectForDevice("AliceDevice", mAliceSession.getMyUserId());
+        MXDeviceInfo aliceDeviceFromBobPOV = usersDevicesInfoMap.getObject("AliceDevice", mAliceSession.getMyUserId());
         assertTrue (null != aliceDeviceFromBobPOV);
         assertTrue (TextUtils.equals(aliceDeviceFromBobPOV.fingerprint(), mAliceSession.getCrypto().getOlmDevice().getDeviceEd25519Key()));
 
@@ -645,9 +645,9 @@ public class CryptoTest {
 
         MXUsersDevicesMap<MXOlmSessionResult> result = (MXUsersDevicesMap<MXOlmSessionResult>)results.get("ensureOlmSessionsForUsers");
 
-        assertTrue (result.userIds().size() == 1);
+        assertTrue (result.getUserIds().size() == 1);
 
-        MXOlmSessionResult sessionWithAliceDevice = result.objectForDevice("AliceDevice", mAliceSession.getMyUserId());
+        MXOlmSessionResult sessionWithAliceDevice = result.getObject("AliceDevice", mAliceSession.getMyUserId());
 
         assertTrue (null != sessionWithAliceDevice);
         assertTrue (null != sessionWithAliceDevice.mSessionId);
@@ -752,7 +752,7 @@ public class CryptoTest {
 
         MXUsersDevicesMap<MXOlmSessionResult> result2 = (MXUsersDevicesMap<MXOlmSessionResult>)results.get("ensureOlmSessionsForUsers2");
 
-        MXOlmSessionResult sessionWithAliceDevice2 = result2.objectForDevice("AliceDevice", mAliceSession.getMyUserId());
+        MXOlmSessionResult sessionWithAliceDevice2 = result2.getObject("AliceDevice", mAliceSession.getMyUserId());
         assertTrue (null != sessionWithAliceDevice2);
         assertTrue (null != sessionWithAliceDevice2.mSessionId);
         assertTrue (TextUtils.equals(sessionWithAliceDevice2.mDevice.deviceId, "AliceDevice"));
@@ -1975,7 +1975,7 @@ public class CryptoTest {
         // From Bob pov, that mimics Alice resharing her keys but with an advanced outbound group session.
         Event toDeviceEvent = (Event)results.get("onToDeviceEvent");
         String sessionId = toDeviceEvent.getContentAsJsonObject().get("session_id").getAsString();
-        String newSessionKey = mAliceSession.getCrypto().getOlmDevice().sessionKeyForOutboundGroupSession(sessionId);
+        String newSessionKey = mAliceSession.getCrypto().getOlmDevice().getSessionKey(sessionId);
 
         JsonObject content = toDeviceEvent.getClearEvent().getContentAsJsonObject();
         content.add("session_key", new JsonPrimitive(newSessionKey));
@@ -2630,7 +2630,7 @@ public class CryptoTest {
         // We can get info only for Bob
         assertTrue(usersDevicesInfoMap.getMap().size() == 1);
 
-        List<String> bobDevices = usersDevicesInfoMap.deviceIdsForUser(mBobSession.getMyUserId());
+        List<String> bobDevices = usersDevicesInfoMap.getUserDeviceIds(mBobSession.getMyUserId());
 
         assertTrue(null != bobDevices);
     }
@@ -2670,7 +2670,7 @@ public class CryptoTest {
         MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = (MXUsersDevicesMap<MXDeviceInfo>)results.get("downloadKeys");
 
         // MXCrypto.downloadKeys should return @[] for Bob to distinguish him from an unknown user
-        List<String> bobDevices = usersDevicesInfoMap.deviceIdsForUser(mBobSession.getMyUserId());
+        List<String> bobDevices = usersDevicesInfoMap.getUserDeviceIds(mBobSession.getMyUserId());
         assertTrue(null != bobDevices);
         assertTrue(0 == bobDevices.size());
 

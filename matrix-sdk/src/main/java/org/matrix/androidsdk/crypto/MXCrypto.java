@@ -19,7 +19,6 @@ package org.matrix.androidsdk.crypto;
 import android.os.AsyncTask;
 import android.text.TextUtils;
 import android.util.Log;
-import android.util.Pair;
 
 import com.google.gson.JsonElement;
 
@@ -75,8 +74,8 @@ public class MXCrypto {
     private static final int ONE_TIME_KEY_GENERATION_MAX_NUMBER = 5;
 
     private class DoKeyDownloadForUsersResponse {
-        public MXUsersDevicesMap<MXDeviceInfo> mUsersDevicesInfoMap;
-        public ArrayList<String> mFailedUserIds;
+        public final MXUsersDevicesMap<MXDeviceInfo> mUsersDevicesInfoMap;
+        public final ArrayList<String> mFailedUserIds;
 
         public DoKeyDownloadForUsersResponse(MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap, ArrayList<String> failedUserIds) {
             mUsersDevicesInfoMap = usersDevicesInfoMap;
@@ -115,8 +114,8 @@ public class MXCrypto {
     private Timer mUploadKeysTimer;
 
     // Users with new devices
-    private HashSet<String> mPendingUsersWithNewDevices;
-    private HashSet<String> mInProgressUsersWithNewDevices;
+    private final HashSet<String> mPendingUsersWithNewDevices;
+    private final HashSet<String> mInProgressUsersWithNewDevices;
 
     private final MXEventListener mEventListener = new MXEventListener() {
         @Override
@@ -183,7 +182,7 @@ public class MXCrypto {
         mMyDevice.mVerified = MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED;
 
         // Add our own deviceinfo to the store
-        Map<String, MXDeviceInfo> endToEndDevicesForUser = mCryptoStore.devicesForUser(mSession.getMyUserId());
+        Map<String, MXDeviceInfo> endToEndDevicesForUser = mCryptoStore.getUserDevices(mSession.getMyUserId());
 
         HashMap<String, MXDeviceInfo> myDevices;
 
@@ -195,7 +194,7 @@ public class MXCrypto {
 
         myDevices.put(mMyDevice.deviceId, mMyDevice);
 
-        mCryptoStore.storeDevicesForUser(mSession.getMyUserId(), myDevices);
+        mCryptoStore.storeUserDevices(mSession.getMyUserId(), myDevices);
         mSession.getDataHandler().setCryptoEventsListener(mEventListener);
     }
 
@@ -456,7 +455,7 @@ public class MXCrypto {
                 int keyCount  = keysUploadResponse.oneTimeKeyCountsForAlgorithm("signed_curve25519");
 
                 // We then check how many keys we can store in the Account object.
-                float maxOneTimeKeys = mOlmDevice.maxNumberOfOneTimeKeys();
+                float maxOneTimeKeys = mOlmDevice.getMaxNumberOfOneTimeKeys();
 
                 // Try to keep at most half that number on the server. This leaves the
                 // rest of the slots free to hold keys that have been claimed from the
@@ -569,7 +568,7 @@ public class MXCrypto {
             if (null != userIds) {
                 for (String userId : userIds) {
 
-                    Map<String, MXDeviceInfo> devices = mCryptoStore.devicesForUser(userId);
+                    Map<String, MXDeviceInfo> devices = mCryptoStore.getUserDevices(userId);
 
                     if (null == devices) {
                         downloadUsers.add(userId);
@@ -660,7 +659,7 @@ public class MXCrypto {
 
                         for (String deviceId : deviceIds) {
                             // Get the potential previously store device keys for this device
-                            MXDeviceInfo previouslyStoredDeviceKeys = mCryptoStore.deviceWithDeviceId(deviceId, userId);
+                            MXDeviceInfo previouslyStoredDeviceKeys = mCryptoStore.getUserDevice(deviceId, userId);
 
                             // Validate received keys
                             if (!validateDeviceKeys(mutabledevices.get(deviceId), userId, deviceId, previouslyStoredDeviceKeys)) {
@@ -681,7 +680,7 @@ public class MXCrypto {
 
                         // Update the store
                         // Note that devices which aren't in the response will be removed from the stores
-                        mCryptoStore.storeDevicesForUser(userId, mutabledevices);
+                        mCryptoStore.storeUserDevices(userId, mutabledevices);
 
                         // And the response result
                         usersDevicesInfoMap.setObjects(mutabledevices, userId);
@@ -722,7 +721,7 @@ public class MXCrypto {
      * @return the list of devices.
      */
     public List<MXDeviceInfo> storedDevicesForUser(String userId) {
-        Map<String, MXDeviceInfo> map = mCryptoStore.devicesForUser(userId);
+        Map<String, MXDeviceInfo> map = mCryptoStore.getUserDevices(userId);
 
         if (null == map) {
             return null;
@@ -776,7 +775,7 @@ public class MXCrypto {
         MXDeviceInfo di = null;
 
         if (!TextUtils.isEmpty(userId) &&  !TextUtils.isEmpty(deviceId)) {
-            di = mCryptoStore.deviceWithDeviceId(deviceId, userId);
+            di = mCryptoStore.getUserDevice(deviceId, userId);
         }
 
         return di;
@@ -789,7 +788,7 @@ public class MXCrypto {
      * @param userId the owner of the device.
      */
     public void setDeviceVerification(int verificationStatus, String deviceId, String userId) {
-        MXDeviceInfo device = mCryptoStore.deviceWithDeviceId(deviceId, userId);
+        MXDeviceInfo device = mCryptoStore.getUserDevice(deviceId, userId);
 
         // Sanity check
         if (null == device) {
@@ -800,7 +799,7 @@ public class MXCrypto {
         if (device.mVerified != verificationStatus) {
             int oldVerified = device.mVerified;
             device.mVerified = verificationStatus;
-            mCryptoStore.storeDeviceForUser(userId, device);
+            mCryptoStore.storeUserDevice(userId, device);
 
             Collection<Room> rooms = mSession.getDataHandler().getStore().getRooms();
 
@@ -832,7 +831,7 @@ public class MXCrypto {
     private boolean setEncryptionInRoom(String roomId, String algorithm) {
         // If we already have encryption in this room, we should ignore this event
         // (for now at least. Maybe we should alert the user somehow?)
-        String existingAlgorithm = mCryptoStore.algorithmForRoom(roomId);
+        String existingAlgorithm = mCryptoStore.getRoomAlgorithm(roomId);
 
         if (!TextUtils.isEmpty(existingAlgorithm) && !TextUtils.equals(existingAlgorithm, algorithm)) {
             Log.e(LOG_TAG, "## setEncryptionInRoom() : Ignoring m.room.encryption event which requests a change of config in " + roomId);
@@ -846,7 +845,7 @@ public class MXCrypto {
             return false;
         }
 
-        mCryptoStore.storeAlgorithmForRoom(roomId, algorithm);
+        mCryptoStore.storeRoomAlgorithm(roomId, algorithm);
 
         IMXEncrypting alg;
 
@@ -941,7 +940,7 @@ public class MXCrypto {
                 String deviceId = deviceInfo.deviceId;
                 String key = deviceInfo.identityKey();
 
-                String sessionId = mOlmDevice.sessionIdForDevice(key);
+                String sessionId = mOlmDevice.getSessionId(key);
 
                 if (TextUtils.isEmpty(sessionId)) {
                     devicesWithoutSession.add(deviceInfo);
@@ -991,18 +990,18 @@ public class MXCrypto {
 
                         MXKey oneTimeKey = null;
 
-                        List<String> deviceIds = oneTimeKeys.deviceIdsForUser(userId);
+                        List<String> deviceIds = oneTimeKeys.getUserDeviceIds(userId);
 
                         if (null != deviceIds) {
                             for (String deviceId :deviceIds ) {
-                                MXOlmSessionResult  olmSessionResult = results.objectForDevice(deviceId, userId);
+                                MXOlmSessionResult  olmSessionResult = results.getObject(deviceId, userId);
 
                                 if (null != olmSessionResult.mSessionId) {
                                     // We already have a result for this device
                                     continue;
                                 }
 
-                                MXKey key = oneTimeKeys.objectForDevice(deviceId, userId);
+                                MXKey key = oneTimeKeys.getObject(deviceId, userId);
 
                                 if (TextUtils.equals(key.type, oneTimeKeyAlgorithm)) {
                                     oneTimeKey = key;
@@ -1013,10 +1012,8 @@ public class MXCrypto {
                                     continue;
                                 }
 
-                                String sid = verifyKeyAndStartSession(oneTimeKey, userId, deviceInfo);
-
                                 // Update the result for this device in results
-                                olmSessionResult.mSessionId = sid;
+                                olmSessionResult.mSessionId = verifyKeyAndStartSession(oneTimeKey, userId, deviceInfo);
                             }
                         }
                     }
@@ -1252,7 +1249,7 @@ public class MXCrypto {
         HashMap<String, Object> ciphertext = new HashMap<>();
 
         for (String deviceKey : participantKeys) {
-            String sessionId = mOlmDevice.sessionIdForDevice(deviceKey);
+            String sessionId = mOlmDevice.getSessionId(deviceKey);
 
             if (!TextUtils.isEmpty(sessionId)) {
                 Log.d(LOG_TAG, "Using sessionid " + sessionId + " for device " + deviceKey);
@@ -1348,7 +1345,7 @@ public class MXCrypto {
             contentMap.setObjects(map, userId);
         }
 
-        if (contentMap.userIds().size() > 0) {
+        if (contentMap.getUserIds().size() > 0) {
             mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_NEW_DEVICE, contentMap, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
@@ -1453,7 +1450,7 @@ public class MXCrypto {
 
         Log.d(LOG_TAG, "## onNewDeviceEvent() m.new_device event from " + userId + ":" + deviceId + " for rooms " +rooms);
 
-        if (null != mCryptoStore.deviceWithDeviceId(deviceId, userId)){
+        if (null != mCryptoStore.getUserDevice(deviceId, userId)){
             Log.e(LOG_TAG, "## onNewDeviceEvent() : known device; ignoring");
             return;
         }
@@ -1495,7 +1492,7 @@ public class MXCrypto {
                 }
 
                 // Consider the request for these users as done
-                mInProgressUsersWithNewDevices.removeAll(response.mUsersDevicesInfoMap.userIds());
+                mInProgressUsersWithNewDevices.removeAll(response.mUsersDevicesInfoMap.getUserIds());
 
                 if (response.mFailedUserIds.size() > 0) {
                     // Reinstate the pending flags on any users which failed; this will
@@ -1586,7 +1583,7 @@ public class MXCrypto {
      * @param callback the asynchronous callback
      */
     private void uploadOneTimeKeys(final ApiCallback<KeysUploadResponse> callback) {
-        final Map<String, Map<String, String>>  oneTimeKeys = mOlmDevice.oneTimeKeys();
+        final Map<String, Map<String, String>>  oneTimeKeys = mOlmDevice.getOneTimeKeys();
         HashMap<String, Object> oneTimeJson = new HashMap<>();
 
         Map<String, String> curve25519Map = oneTimeKeys.get("curve25519");

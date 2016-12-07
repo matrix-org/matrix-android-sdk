@@ -43,7 +43,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class MXMegolmEncryption implements IMXEncrypting {
     private static final String LOG_TAG = "MXMegolmEncryption";
@@ -195,7 +194,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
         HashMap<String, String> keysClaimedMap = new HashMap<>();
         keysClaimedMap.put("ed25519", olmDevice.getDeviceEd25519Key());
 
-        olmDevice.addInboundGroupSession(sessionId, olmDevice.sessionKeyForOutboundGroupSession(sessionId), mRoomId, olmDevice.getDeviceCurve25519Key(), keysClaimedMap);
+        olmDevice.addInboundGroupSession(sessionId, olmDevice.getSessionKey(sessionId), mRoomId, olmDevice.getDeviceCurve25519Key(), keysClaimedMap);
 
        return new MXOutboundSessionInfo(sessionId);
     }
@@ -221,18 +220,18 @@ public class MXMegolmEncryption implements IMXEncrypting {
         final MXOutboundSessionInfo fSession = session;
 
         // No share in progress: check if we need to share with any devices
-        devicesInRoom(room, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+        getDevicesInRoom(room, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> devicesInRoom) {
                 HashMap<String, /* userId */ArrayList<MXDeviceInfo>> shareMap = new HashMap<>();
 
-                List<String> userIds = devicesInRoom.userIds();
+                List<String> userIds = devicesInRoom.getUserIds();
 
                 for(String userId : userIds) {
-                    List<String> deviceIds = devicesInRoom.deviceIdsForUser(userId);
+                    List<String> deviceIds = devicesInRoom.getUserDeviceIds(userId);
 
                     for (String deviceId : deviceIds) {
-                        MXDeviceInfo deviceInfo = devicesInRoom.objectForDevice(deviceId, userId);
+                        MXDeviceInfo deviceInfo = devicesInRoom.getObject(deviceId, userId);
 
                         if (deviceInfo.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED) {
                             continue;
@@ -243,7 +242,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                             continue;
                         }
 
-                        if (null == fSession.mSharedWithDevices.objectForDevice(deviceId, userId)) {
+                        if (null == fSession.mSharedWithDevices.getObject(deviceId, userId)) {
                             if (!shareMap.containsKey(userId)) {
                                 shareMap.put(userId, new ArrayList<MXDeviceInfo>());
                             }
@@ -312,9 +311,15 @@ public class MXMegolmEncryption implements IMXEncrypting {
         });
     }
 
+    /**
+     * Share the device key to a list of users
+     * @param session the session info
+     * @param devicesByUser the devices map
+     * @param callback the asynchronous callback
+     */
     private void shareKey(final MXOutboundSessionInfo session, final HashMap<String, ArrayList<MXDeviceInfo>> devicesByUser, final ApiCallback<Void> callback) {
-        final String sessionKey = mCrypto.getOlmDevice().sessionKeyForOutboundGroupSession(session.mSessionId);
-        final int chainIndex = mCrypto.getOlmDevice().messageIndexForOutboundGroupSession(session.mSessionId);
+        final String sessionKey = mCrypto.getOlmDevice().getSessionKey(session.mSessionId);
+        final int chainIndex = mCrypto.getOlmDevice().getMessageIndex(session.mSessionId);
 
         HashMap<String, Object> submap = new HashMap<>();
         submap.put("algorithm", MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM);
@@ -333,7 +338,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                 MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>();
 
                 boolean haveTargets = false;
-                List<String> userIds = results.userIds();
+                List<String> userIds = results.getUserIds();
 
                 for (String userId : userIds) {
                     ArrayList<MXDeviceInfo> devicesToShareWith = devicesByUser.get(userId);
@@ -341,7 +346,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                     for (MXDeviceInfo deviceInfo : devicesToShareWith) {
                         String deviceID = deviceInfo.deviceId;
 
-                        MXOlmSessionResult sessionResult = results.objectForDevice(deviceID, userId);
+                        MXOlmSessionResult sessionResult = results.getObject(deviceID, userId);
 
                         if ((null == sessionResult) || (null == sessionResult.mSessionId)) {
                             // no session with this device, probably because there
@@ -359,6 +364,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                         }
 
                         Log.e(LOG_TAG, "## shareKey() : Sharing keys with device " + userId + ":" + deviceID);
+                        //noinspection ArraysAsListWithZeroOrOneArgument,ArraysAsListWithZeroOrOneArgument
                         contentMap.setObject(mCrypto.encryptMessage(payload, Arrays.asList(sessionResult.mDevice)), userId, deviceID);
                         haveTargets = true;
                     }
@@ -484,8 +490,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
      * @param room the room
      * @param callback the callback
      */
-    private void devicesInRoom(Room room, ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> callback) {
-
+    private void getDevicesInRoom(Room room, ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> callback) {
         // XXX what about rooms where invitees can see the content?
         ArrayList<String> joinedMemberIds = new ArrayList<>();
         Collection<RoomMember> joinedMembers = room.getJoinedMembers();

@@ -34,7 +34,6 @@ public interface IMXCryptoStore {
      * Init a crypto store for the passed credentials.
      * @param context the application context
      * @param credentials the credentials of the account.
-     * @return the store. Call the open method before using it.
      */
     void initWithCredentials(Context context, Credentials credentials);
 
@@ -77,7 +76,7 @@ public interface IMXCryptoStore {
 
     /**
      * Store the end to end account for the logged-in user.
-     * @param account
+     * @param account the account to save
      */
     void storeAccount(OlmAccount account);
 
@@ -101,7 +100,7 @@ public interface IMXCryptoStore {
      * @param userId The user's id.
      * @param device the device to store.
      */
-    void storeDeviceForUser(String userId, MXDeviceInfo device);
+    void storeUserDevice(String userId, MXDeviceInfo device);
 
     /**
      * Retrieve a device for a user.
@@ -109,35 +108,35 @@ public interface IMXCryptoStore {
      * @param userId The user's id.
      * @return A map from device id to 'MXDevice' object for the device.
      */
-    MXDeviceInfo deviceWithDeviceId(String deviceId, String userId);
+    MXDeviceInfo getUserDevice(String deviceId, String userId);
 
     /**
      * Store the known devices for a user.
      * @param userId  The user's id.
      * @param devices A map from device id to 'MXDevice' object for the device.
      */
-    void storeDevicesForUser(String userId, Map<String, MXDeviceInfo> devices);
+    void storeUserDevices(String userId, Map<String, MXDeviceInfo> devices);
 
     /**
      * Retrieve the known devices for a user.
      * @param userId The user's id.
      * @return The devices map if some devices are known, else null
      */
-    Map<String, MXDeviceInfo> devicesForUser(String userId);
+    Map<String, MXDeviceInfo> getUserDevices(String userId);
 
     /**
      *  Store the crypto algorithm for a room.
      * @param roomId the id of the room.
      * @param algorithm the algorithm.
      */
-    void storeAlgorithmForRoom(String roomId, String algorithm);
+    void storeRoomAlgorithm(String roomId, String algorithm);
 
     /**
      * Provides the algorithm used in a dedicated room.
      * @param roomId the room id
      * @return the algorithm, null is the room is not encrypted
      */
-    String algorithmForRoom(String roomId);
+    String getRoomAlgorithm(String roomId);
 
     /**
      * Store a session between the logged-in user and another device.
@@ -158,7 +157,7 @@ public interface IMXCryptoStore {
      * @param deviceKey the public key of the other device.
      * @return  A map from sessionId to Base64 end-to-end session.
      */
-    Map<String, OlmSession> sessionsWithDevice(String deviceKey);
+    Map<String, OlmSession> getDeviceSessions(String deviceKey);
 
     /**
      * Store an inbound group session.
@@ -172,12 +171,12 @@ public interface IMXCryptoStore {
      * @param senderKey the base64-encoded curve25519 key of the sender.
      * @return an inbound group session.
      */
-    MXOlmInboundGroupSession inboundGroupSessionWithId(String sessionId, String senderKey);
+    MXOlmInboundGroupSession getInboundGroupSession(String sessionId, String senderKey);
 
     /**
      * Remove an inbound group session
      * @param sessionId the session identifier.
      * @param senderKey the base64-encoded curve25519 key of the sender.
      */
-    void removeInboundGroupSessionWithId(String sessionId, String senderKey);
+    void removeInboundGroupSession(String sessionId, String senderKey);
 }

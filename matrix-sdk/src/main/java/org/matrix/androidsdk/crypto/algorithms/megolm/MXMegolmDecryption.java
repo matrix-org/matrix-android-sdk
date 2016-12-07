@@ -19,14 +19,11 @@ package org.matrix.androidsdk.crypto.algorithms.megolm;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.google.gson.JsonObject;
-
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXOlmDevice;
 import org.matrix.androidsdk.crypto.algorithms.IMXDecrypting;
 import org.matrix.androidsdk.crypto.algorithms.MXDecryptionResult;
-import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.model.EncryptedEventContent;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomKeyContent;
@@ -95,7 +92,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
             clearedEvent.setKeysProved(result.mKeysProved);
             clearedEvent.setKeysClaimed(result.mKeysClaimed);
             event.setClearEvent(clearedEvent);
-        } else if (null != result.mCryptoError) {
+        } else if ((null != result) && (null != result.mCryptoError)) {
             if (result.mCryptoError.isOlmError()) {
                 if (TextUtils.equals("UNKNOWN_MESSAGE_INDEX", result.mCryptoError.error)) {
                     addEventToPendingList(event, timeline);

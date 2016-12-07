@@ -29,7 +29,6 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXOlmDevice;
 import org.matrix.androidsdk.crypto.algorithms.IMXDecrypting;
-import org.matrix.androidsdk.crypto.algorithms.MXDecryptionResult;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.util.JsonUtils;
 
@@ -207,7 +206,7 @@ public class MXOlmDecryption implements IMXDecrypting {
      @return payload, if decrypted successfully.
      */
     private String decryptMessage(Map<String, Object>message, String theirDeviceIdentityKey) {
-        Set<String> sessionIdsSet =  mOlmDevice.sessionIdsForDevice(theirDeviceIdentityKey);
+        Set<String> sessionIdsSet =  mOlmDevice.getSessionIds(theirDeviceIdentityKey);
 
         ArrayList<String> sessionIds;
 

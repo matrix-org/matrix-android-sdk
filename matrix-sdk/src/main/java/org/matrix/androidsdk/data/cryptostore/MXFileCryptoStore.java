@@ -99,9 +99,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
 
     // OlmSessions to release after the next flush
-    private ArrayList<OlmSession> mOlmSessionsToRelease = new ArrayList<>();
-
-    private Context mContext;
+    private final ArrayList<OlmSession> mOlmSessionsToRelease = new ArrayList<>();
 
     // The path of the MXFileCryptoStore folder
     private File mStoreFile;
@@ -137,10 +135,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public void initWithCredentials(Context context, Credentials credentials) {
-        mContext = context;
         mCredentials = credentials;
 
-        mStoreFile = new File(new File(mContext.getApplicationContext().getFilesDir(), MXFILE_CRYPTO_STORE_FOLDER), mCredentials.userId);
+        mStoreFile = new File(new File(context.getApplicationContext().getFilesDir(), MXFILE_CRYPTO_STORE_FOLDER), mCredentials.userId);
 
         mMetaDataFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_METADATA_FILE);
         mMetaDataFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_METADATA_FILE_TMP);
@@ -379,18 +376,18 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public void storeDeviceForUser(String userId, MXDeviceInfo device) {
+    public void storeUserDevice(String userId, MXDeviceInfo device) {
         mUsersDevicesInfoMap.setObject(device, userId, device.deviceId);
         flushDevicesForUser(userId);
     }
 
     @Override
-    public MXDeviceInfo deviceWithDeviceId(String deviceId, String userId) {
-        return mUsersDevicesInfoMap.objectForDevice(deviceId, userId);
+    public MXDeviceInfo getUserDevice(String deviceId, String userId) {
+        return mUsersDevicesInfoMap.getObject(deviceId, userId);
     }
 
     @Override
-    public void storeDevicesForUser(String userId, Map<String, MXDeviceInfo> devices) {
+    public void storeUserDevices(String userId, Map<String, MXDeviceInfo> devices) {
         mUsersDevicesInfoMap.setObjects(devices, userId);
         flushDevicesForUser(userId);
     }
@@ -411,7 +408,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public Map<String, MXDeviceInfo> devicesForUser(String userId) {
+    public Map<String, MXDeviceInfo> getUserDevices(String userId) {
         if (null != userId) {
             return mUsersDevicesInfoMap.getMap().get(userId);
         } else {
@@ -420,7 +417,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public void storeAlgorithmForRoom(String roomId, String algorithm) {
+    public void storeRoomAlgorithm(String roomId, String algorithm) {
         if ((null != roomId) && (null != algorithm)) {
             mRoomsAlgorithms.put(roomId, algorithm);
 
@@ -457,7 +454,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public String algorithmForRoom(String roomId) {
+    public String getRoomAlgorithm(String roomId) {
         if (null != roomId) {
             return mRoomsAlgorithms.get(roomId);
         }
@@ -540,7 +537,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public Map<String, OlmSession> sessionsWithDevice(String deviceKey) {
+    public Map<String, OlmSession> getDeviceSessions(String deviceKey) {
         if (null != deviceKey) {
             return mOlmSessions.get(deviceKey);
         }
@@ -581,7 +578,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public void removeInboundGroupSessionWithId(String sessionId, String senderKey) {
+    public void removeInboundGroupSession(String sessionId, String senderKey) {
         if ((null != sessionId) && (null != senderKey)) {
             if (mInboundGroupSessions.containsKey(senderKey)) {
                 MXOlmInboundGroupSession session = mInboundGroupSessions.get(senderKey).get(sessionId);
@@ -620,7 +617,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
 
     @Override
-    public  MXOlmInboundGroupSession inboundGroupSessionWithId(String sessionId, String senderKey) {
+    public  MXOlmInboundGroupSession getInboundGroupSession(String sessionId, String senderKey) {
         if ((null != sessionId) && (null != senderKey) && mInboundGroupSessions.containsKey(senderKey)) {
 
             return mInboundGroupSessions.get(senderKey).get(sessionId);

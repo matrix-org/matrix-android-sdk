@@ -153,14 +153,14 @@ public class CryptoRestTest {
 
         MXUsersDevicesMap<MXDeviceInfo> deviceInfos = new MXUsersDevicesMap<>(keysQueryResponse.deviceKeys);
 
-        assertTrue (null != deviceInfos.userIds());
-        assertTrue (1 == deviceInfos.userIds().size());
+        assertTrue (null != deviceInfos.getUserIds());
+        assertTrue (1 == deviceInfos.getUserIds().size());
 
-        List<String> deviceIds = deviceInfos.deviceIdsForUser(mBobSession.getMyUserId());
+        List<String> deviceIds = deviceInfos.getUserDeviceIds(mBobSession.getMyUserId());
         assertTrue (null != deviceIds);
         assertTrue (1 == deviceIds.size());
 
-        MXDeviceInfo bobDevice2 = deviceInfos.objectForDevice("dev1", mBobSession.getMyUserId());
+        MXDeviceInfo bobDevice2 = deviceInfos.getObject("dev1", mBobSession.getMyUserId());
         assertTrue (null != bobDevice2);
         assertTrue(TextUtils.equals(bobDevice2.deviceId, "dev1"));
         assertTrue(TextUtils.equals(bobDevice2.userId, mBobSession.getMyUserId()));
@@ -315,7 +315,7 @@ public class CryptoRestTest {
         assertTrue (null !=  oneTimeKeys.getMap());
         assertTrue (1 ==  oneTimeKeys.getMap().size());
 
-        MXKey bobOtk = oneTimeKeys.objectForDevice("dev1", mBobSession.getMyUserId());
+        MXKey bobOtk = oneTimeKeys.getObject("dev1", mBobSession.getMyUserId());
         assertTrue (null != bobOtk);
 
         assertTrue(TextUtils.equals(bobOtk.type, MXKey.KEY_CURVE_25519_TYPE));

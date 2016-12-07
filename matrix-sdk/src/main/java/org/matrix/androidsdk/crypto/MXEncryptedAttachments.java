@@ -126,18 +126,16 @@ public class MXEncryptedAttachments implements Serializable {
 
             Log.d(LOG_TAG, "Encrypt in " + (System.currentTimeMillis() - t0) + " ms");
             return result;
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## encryptAttachment failed " + e.getMessage());
         } catch (OutOfMemoryError oom) {
             Log.e(LOG_TAG, "## encryptAttachment failed " + oom.getMessage());
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## encryptAttachment failed " + e.getMessage());
         }
 
-        if (null != outStream) {
-            try {
-                outStream.close();
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## encryptAttachment() : fail to close outStream");
-            }
+        try {
+            outStream.close();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## encryptAttachment() : fail to close outStream");
         }
 
         return null;
@@ -225,16 +223,14 @@ public class MXEncryptedAttachments implements Serializable {
             Log.d(LOG_TAG, "Decrypt in " + (System.currentTimeMillis() - t0) + " ms");
 
             return decryptedStream;
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## decryptAttachment() :  failed " + e.getMessage());
         } catch (OutOfMemoryError oom) {
             Log.e(LOG_TAG, "## decryptAttachment() :  failed " + oom.getMessage());
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## decryptAttachment() :  failed " + e.getMessage());
         }
 
         try {
-            if (null != outStream) {
-                outStream.close();
-            }
+            outStream.close();
         } catch (Exception closeException) {
             Log.e(LOG_TAG, "## decryptAttachment() :  fail to close the file");
         }

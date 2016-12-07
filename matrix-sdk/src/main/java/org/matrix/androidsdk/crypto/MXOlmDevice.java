@@ -77,7 +77,7 @@ public class MXOlmDevice {
     // The first level keys are timeline ids.
     // The second level keys are strings of form "<senderKey>|<session_id>|<message_index>"
     // Values are true.
-    private HashMap<String, HashMap<String, Boolean>> mInboundGroupSessionMessageIndexes;
+    private final HashMap<String, HashMap<String, Boolean>> mInboundGroupSessionMessageIndexes;
 
     /**
      * inboundGroupSessionWithId error
@@ -167,7 +167,7 @@ public class MXOlmDevice {
     /**
      * @return The current (unused, unpublished) one-time keys for this account.
      */
-    public Map<String, Map<String, String>> oneTimeKeys() {
+    public Map<String, Map<String, String>> getOneTimeKeys() {
         Map<String, Map<String, String>> res = new HashMap<>();
 
         JSONObject object = mOlmAccount.oneTimeKeys();
@@ -182,7 +182,7 @@ public class MXOlmDevice {
     /**
      * @return The maximum number of one-time keys the olm account can store.
      */
-    public long maxNumberOfOneTimeKeys() {
+    public long getMaxNumberOfOneTimeKeys() {
         return mOlmAccount.maxOneTimeKeys();
     }
 
@@ -291,8 +291,8 @@ public class MXOlmDevice {
      * @param theirDeviceIdentityKey the Curve25519 identity key for the remote device.
      * @return a list of known session ids for the device.
      */
-    public Set<String> sessionIdsForDevice(String theirDeviceIdentityKey) {
-        Map<String, OlmSession> map =  mStore.sessionsWithDevice(theirDeviceIdentityKey);
+    public Set<String> getSessionIds(String theirDeviceIdentityKey) {
+        Map<String, OlmSession> map =  mStore.getDeviceSessions(theirDeviceIdentityKey);
 
         if (null != map) {
             return map.keySet();
@@ -306,9 +306,9 @@ public class MXOlmDevice {
      * @param theirDeviceIdentityKey the Curve25519 identity key for the remote device.
      * @return the session id, or nil if no established session.
      */
-    public String sessionIdForDevice(String theirDeviceIdentityKey) {
+    public String getSessionId(String theirDeviceIdentityKey) {
         String sessionId = null;
-        Set<String> sessionIds = sessionIdsForDevice(theirDeviceIdentityKey);
+        Set<String> sessionIds = getSessionIds(theirDeviceIdentityKey);
 
         if ((null != sessionIds) && (0 != sessionIds.size())) {
             ArrayList<String> sessionIdsList = new ArrayList<>(sessionIds);
@@ -329,7 +329,7 @@ public class MXOlmDevice {
     public Map<String, Object> encryptMessage(String theirDeviceIdentityKey, String sessionId, String payloadString) {
         HashMap<String, Object> res = null;
         OlmMessage olmMessage;
-        OlmSession olmSession = sessionForDevice(theirDeviceIdentityKey, sessionId);
+        OlmSession olmSession = getSessionForDevice(theirDeviceIdentityKey, sessionId);
 
         if (null != olmSession) {
             Log.d(LOG_TAG, "## encryptMessage() : olmSession.sessionIdentifier: " + olmSession.sessionIdentifier());
@@ -355,10 +355,10 @@ public class MXOlmDevice {
      * @param sessionId the id of the active session.
      * @return the decrypted payload.
      */
-    public String decryptMessage(String  ciphertext, int messageType, String sessionId, String theirDeviceIdentityKey) {
+    public String decryptMessage(String ciphertext, int messageType, String sessionId, String theirDeviceIdentityKey) {
         String payloadString = null;
 
-        OlmSession olmSession = sessionForDevice(theirDeviceIdentityKey, sessionId);
+        OlmSession olmSession = getSessionForDevice(theirDeviceIdentityKey, sessionId);
 
         if (null != olmSession) {
             OlmMessage olmMessage = new OlmMessage();
@@ -385,7 +385,7 @@ public class MXOlmDevice {
             return false;
         }
 
-        OlmSession olmSession = sessionForDevice(theirDeviceIdentityKey, sessionId);
+        OlmSession olmSession = getSessionForDevice(theirDeviceIdentityKey, sessionId);
         return (null != olmSession) && olmSession.matchesInboundSession(ciphertext);
     }
 
@@ -411,7 +411,7 @@ public class MXOlmDevice {
      * @param sessionId the id of the outbound group session.
      * @return the base64-encoded secret key.
      */
-    public String sessionKeyForOutboundGroupSession(String sessionId) {
+    public String getSessionKey(String sessionId) {
         if (!TextUtils.isEmpty(sessionId)) {
             return mOutboundGroupSessionStore.get(sessionId).sessionKey();
         }
@@ -423,7 +423,7 @@ public class MXOlmDevice {
      * @param sessionId the id of the outbound group session.
      * @return the current chain index.
      */
-    public int messageIndexForOutboundGroupSession(String sessionId) {
+    public int getMessageIndex(String sessionId) {
         if (!TextUtils.isEmpty(sessionId)) {
             return mOutboundGroupSessionStore.get(sessionId).messageIndex();
         }
@@ -454,7 +454,7 @@ public class MXOlmDevice {
      * @return true if the operation succeeds.
      */
     public boolean addInboundGroupSession(String sessionId, String sessionKey, String roomId, String senderKey, Map<String, String> keysClaimed) {
-        if (null != inboundGroupSessionWithId(sessionId, senderKey, roomId)) {
+        if (null != getInboundGroupSession(sessionId, senderKey, roomId)) {
             // If we already have this session, consider updating it
             Log.e(LOG_TAG, "## addInboundGroupSession() : Update for megolm session " + senderKey + "/" + sessionId);
 
@@ -465,7 +465,7 @@ public class MXOlmDevice {
         MXOlmInboundGroupSession session = new MXOlmInboundGroupSession(sessionKey);
 
         // sanity check
-        if ((null == session) || (null == session.mSession)) {
+        if (null == session.mSession) {
             Log.e(LOG_TAG, "## addInboundGroupSession : invalid session");
             return false;
         }
@@ -491,7 +491,7 @@ public class MXOlmDevice {
      */
     public void removeInboundGroupSession(String sessionId, String sessionKey) {
         if ((null != sessionId) && (null != sessionKey)) {
-            mStore.removeInboundGroupSessionWithId(sessionId, sessionKey);
+            mStore.removeInboundGroupSession(sessionId, sessionKey);
         }
     }
 
@@ -506,7 +506,7 @@ public class MXOlmDevice {
      */
     public MXDecryptionResult decryptGroupMessage(String body, String roomId, String timeline, String sessionId, String senderKey) {
         MXDecryptionResult result = new MXDecryptionResult();
-        MXOlmInboundGroupSession session = inboundGroupSessionWithId(sessionId, senderKey, roomId);
+        MXOlmInboundGroupSession session = getInboundGroupSession(sessionId, senderKey, roomId);
 
         if (null != session) {
             // Check that the room id matches the original one for the session. This stops
@@ -619,12 +619,12 @@ public class MXOlmDevice {
      * Search an OlmSession
      * @param theirDeviceIdentityKey the device key
      * @param sessionId the session Id
-     * @return
+     * @return the olm session
      */
-    private OlmSession sessionForDevice(String theirDeviceIdentityKey, String sessionId) {
+    private OlmSession getSessionForDevice(String theirDeviceIdentityKey, String sessionId) {
         // sanity check
         if (!TextUtils.isEmpty(theirDeviceIdentityKey) && !TextUtils.isEmpty(sessionId)) {
-            Map<String, OlmSession> map = mStore.sessionsWithDevice(theirDeviceIdentityKey);
+            Map<String, OlmSession> map = mStore.getDeviceSessions(theirDeviceIdentityKey);
 
             if (null != map) {
                 return map.get(sessionId);
@@ -642,21 +642,21 @@ public class MXOlmDevice {
      * @param senderKey the base64-encoded curve25519 key of the sender.
      * @return the inbound group session.
      */
-    private MXOlmInboundGroupSession inboundGroupSessionWithId(String sessionId, String senderKey, String roomId) {
+    private MXOlmInboundGroupSession getInboundGroupSession(String sessionId, String senderKey, String roomId) {
         mInboundGroupSessionWithIdError = null;
 
-        MXOlmInboundGroupSession session = mStore.inboundGroupSessionWithId(sessionId, senderKey);
+        MXOlmInboundGroupSession session = mStore.getInboundGroupSession(sessionId, senderKey);
 
         if (null != session) {
             // Check that the room id matches the original one for the session. This stops
             // the HS pretending a message was targeting a different room.
             if (!TextUtils.equals(roomId, session.mRoomId)) {
                 String errorDescription = String.format(MXCryptoError.INBOUND_SESSION_MISMATCH_ROOM_ID_REASON, roomId, session.mRoomId);
-                Log.e(LOG_TAG, "## inboundGroupSessionWithId() : " + errorDescription);
+                Log.e(LOG_TAG, "## getInboundGroupSession() : " + errorDescription);
                 mInboundGroupSessionWithIdError = new MXCryptoError(MXCryptoError.INBOUND_SESSION_MISMATCH_ROOM_ID_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, errorDescription);
             }
         } else {
-            Log.e(LOG_TAG, "## inboundGroupSessionWithId() : Cannot retrieve inbound group session " + sessionId);
+            Log.e(LOG_TAG, "## getInboundGroupSession() : Cannot retrieve inbound group session " + sessionId);
             mInboundGroupSessionWithIdError = new MXCryptoError(MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE, MXCryptoError.UNKNOWN_INBOUND_SESSSION_ID_REASON, null);
         }
         return session;
