@@ -121,7 +121,7 @@ public interface IMXCryptoStore {
     /**
      * Retrieve the known devices for a user.
      * @param userId The user's id.
-     * @return A map from device id to 'MXDevice' object for the device.
+     * @return The devices map if some devices are known, else null
      */
     Map<String, MXDeviceInfo> devicesForUser(String userId);
 
