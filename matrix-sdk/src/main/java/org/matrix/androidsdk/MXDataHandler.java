@@ -124,16 +124,6 @@ public class MXDataHandler implements IMXEventListener {
     // e2e decoder
     private MXCrypto mCrypto;
 
-    private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
-        @Override
-        public void onNetworkConnectionUpdate(boolean isConnected) {
-            if (isConnected && (null != getCrypto()) && !getCrypto().isIsStarted()) {
-                Log.d(LOG_TAG, "Start MXCrypto because a network connection has been retrieved ");
-                startCrypto();
-            }
-        }
-    };
-
     /**
      * Default constructor.
      * @param store the data storage implementation.
@@ -1428,6 +1418,7 @@ public class MXDataHandler implements IMXEventListener {
      */
     private void startCrypto() {
         if ((null != getCrypto()) && !getCrypto().isIsStarted()) {
+            getCrypto().setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
             getCrypto().start(new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
@@ -1440,8 +1431,6 @@ public class MXDataHandler implements IMXEventListener {
 
                 @Override
                 public void onNetworkError(Exception e) {
-                    // wait that a valid network connection is retrieved
-                    mNetworkConnectivityReceiver.addEventListener(mNetworkListener);
                     onError(e.getMessage());
                 }
 

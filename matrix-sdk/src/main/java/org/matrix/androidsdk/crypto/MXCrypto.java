@@ -17,6 +17,8 @@
 package org.matrix.androidsdk.crypto;
 
 import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -33,7 +35,9 @@ import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
@@ -117,6 +121,18 @@ public class MXCrypto {
     private final HashSet<String> mPendingUsersWithNewDevices;
     private final HashSet<String> mInProgressUsersWithNewDevices;
 
+    private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
+
+    private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
+        @Override
+        public void onNetworkConnectionUpdate(boolean isConnected) {
+            if (isConnected && !isIsStarted()) {
+                Log.d(LOG_TAG, "Start MXCrypto because a network connection has been retrieved ");
+                start(null);
+            }
+        }
+    };
+
     private final MXEventListener mEventListener = new MXEventListener() {
         @Override
         public void onToDeviceEvent(Event event) {
@@ -196,6 +212,10 @@ public class MXCrypto {
 
         mCryptoStore.storeUserDevices(mSession.getMyUserId(), myDevices);
         mSession.getDataHandler().setCryptoEventsListener(mEventListener);
+    }
+
+    public void setNetworkConnectivityReceiver(NetworkConnectivityReceiver networkConnectivityReceiver) {
+        mNetworkConnectivityReceiver = networkConnectivityReceiver;
     }
 
     /**
@@ -299,12 +319,31 @@ public class MXCrypto {
             return;
         }
 
+        // do not start if there is not network connection
+        if (!mNetworkConnectivityReceiver.isConnected()) {
+            // wait that a valid network connection is retrieved
+            mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
+            mNetworkConnectivityReceiver.addEventListener(mNetworkListener);
+            return;
+        }
+
         mIsStarting  = true;
 
         new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... voids) {
                 uploadKeys(5, new ApiCallback<Void>() {
+
+                    private void onError() {
+                        // wait 5s before restarting
+                        (new Handler(Looper.getMainLooper())).postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                start(null);
+                            }
+                        }, 5);
+                    }
+
                     @Override
                     public void onSuccess(Void info) {
                         Log.d(LOG_TAG, "###########################################################");
@@ -318,6 +357,8 @@ public class MXCrypto {
                         checkDeviceAnnounced(new ApiCallback<Void>() {
                             @Override
                             public void onSuccess(Void info) {
+                                mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
+
                                 mIsStarting = false;
                                 mIsStarted = true;
                                 startUploadKeysTimer(true);
@@ -330,65 +371,40 @@ public class MXCrypto {
 
                             @Override
                             public void onNetworkError(Exception e) {
-                                mIsStarting = false;
-
-                                for(ApiCallback<Void> callback : mInitializationCallbacks) {
-                                    callback.onNetworkError(e);
-                                }
-                                mInitializationCallbacks.clear();
+                                Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                onError();
                             }
 
                             @Override
                             public void onMatrixError(MatrixError e) {
-                                mIsStarting = false;
-
-                                for(ApiCallback<Void> callback : mInitializationCallbacks) {
-                                    callback.onMatrixError(e);
-                                }
-                                mInitializationCallbacks.clear();
+                                Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                onError();
                             }
 
                             @Override
                             public void onUnexpectedError(Exception e) {
-                                mIsStarting = false;
-
-                                for(ApiCallback<Void> callback : mInitializationCallbacks) {
-                                    callback.onUnexpectedError(e);
-                                }
-                                mInitializationCallbacks.clear();
+                                Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                onError();
                             }
                         });
                     }
 
                     @Override
                     public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "## uploadKeys : failed " + e.getMessage());
-
-                        for(ApiCallback<Void> callback : mInitializationCallbacks) {
-                            callback.onNetworkError(e);
-                        }
-                        mInitializationCallbacks.clear();
+                        Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                        onError();
                     }
 
                     @Override
                     public void onMatrixError(MatrixError e) {
-                        Log.e(LOG_TAG, "## uploadKeys : failed " + e.getMessage());
-
-                        for(ApiCallback<Void> callback : mInitializationCallbacks) {
-                            callback.onMatrixError(e);
-                        }
-                        mInitializationCallbacks.clear();
+                        Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                        onError();
                     }
 
                     @Override
                     public void onUnexpectedError(Exception e) {
-                        Log.e(LOG_TAG, "## uploadKeys : failed " + e.getMessage());
-
-
-                        for(ApiCallback<Void> callback : mInitializationCallbacks) {
-                            callback.onUnexpectedError(e);
-                        }
-                        mInitializationCallbacks.clear();
+                        Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                        onError();
                     }
                 });
                 return null;

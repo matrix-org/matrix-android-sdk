@@ -76,7 +76,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
         }
 
         if (!TextUtils.isEmpty(encodedDeviceId)) {
-            mApi.uploadKeys(encodedDeviceId, params, new RestAdapterCallback<KeysUploadResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            mApi.uploadKeys(encodedDeviceId, params, new RestAdapterCallback<KeysUploadResponse>(description, null, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
                     try {
@@ -87,7 +87,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
                 }
             }));
         } else {
-            mApi.uploadKeys(params, new RestAdapterCallback<KeysUploadResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            mApi.uploadKeys(params, new RestAdapterCallback<KeysUploadResponse>(description, null, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
                     try {
@@ -197,7 +197,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
 
         Random rand = new Random();
 
-        mApi.sendToDevice(eventType, rand.nextInt(Integer.MAX_VALUE), content, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.sendToDevice(eventType, rand.nextInt(Integer.MAX_VALUE), content, new RestAdapterCallback<Void>(description, null, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 sendToDevice(eventType, contentMap, callback);
