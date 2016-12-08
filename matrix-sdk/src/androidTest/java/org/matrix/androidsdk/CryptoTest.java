@@ -23,6 +23,7 @@ import android.os.SystemClock;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
@@ -52,7 +53,9 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -65,6 +68,8 @@ import java.util.concurrent.TimeUnit;
 @RunWith(AndroidJUnit4.class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class CryptoTest {
+
+    private static final String LOG_TAG = "CryptoTest";
 
     private static final List<String> messagesFromAlice = Arrays.asList("0 - Hello I'm Alice!", "4 - Go!");
     private static final List<String> messagesFromBob = Arrays.asList("1 - Hello I'm Bob!", "2 - Isn't life grand?", "3 - Let's go to the opera.");
@@ -80,6 +85,8 @@ public class CryptoTest {
     
     @Test
     public void test01_testCryptoNoDeviceId() throws Exception {
+        Log.e(LOG_TAG, "test01_testCryptoNoDeviceId");
+
         Context context = InstrumentationRegistry.getContext();
         final HashMap<String, Object> results = new HashMap<>();
         createBobAccount();
@@ -121,6 +128,7 @@ public class CryptoTest {
 
     @Test
     public void test02_testCryptoPersistenceInStore() throws Exception {
+        Log.e(LOG_TAG, "test02_testCryptoPersistenceInStore");
         Context context = InstrumentationRegistry.getContext();
         final HashMap<String, Object> results = new HashMap<>();
 
@@ -248,6 +256,8 @@ public class CryptoTest {
 
     @Test
     public void test03_testKeysUploadAndDownload() throws Exception {
+        Log.e(LOG_TAG, "test03_testKeysUploadAndDownload");
+
         Context context = InstrumentationRegistry.getContext();
         final HashMap<String, Object> results = new HashMap<>();
 
@@ -499,6 +509,8 @@ public class CryptoTest {
 
     @Test
     public void test04_testEnsureOlmSessionsForUsers() throws Exception {
+        Log.e(LOG_TAG, "test04_testEnsureOlmSessionsForUsers");
+
         Context context = InstrumentationRegistry.getContext();
 
         createAliceAccount();
@@ -764,6 +776,8 @@ public class CryptoTest {
 
     @Test
     public void test05_testRoomIsEncrypted() throws Exception {
+        Log.e(LOG_TAG, "test05_testRoomIsEncrypted");
+
         Context context = InstrumentationRegistry.getContext();
         final HashMap<String, Object> results = new HashMap<>();
 
@@ -860,6 +874,8 @@ public class CryptoTest {
 
     @Test
     public void test06_testAliceInACryptedRoom() throws Exception {
+        Log.e(LOG_TAG, "test06_testAliceInACryptedRoom");
+
         Context context = InstrumentationRegistry.getContext();
 
         doE2ETestWithAliceInARoom();
@@ -904,6 +920,8 @@ public class CryptoTest {
 
     @Test
     public void test07_testAliceAndBobInACryptedRoom() throws Exception {
+        Log.e(LOG_TAG, "test07_testAliceAndBobInACryptedRoom");
+
         Context context = InstrumentationRegistry.getContext();
         final HashMap<String, Object> results = new HashMap<>();
 
@@ -917,7 +935,7 @@ public class CryptoTest {
         assertTrue(roomFromBobPOV.isEncrypted());
         assertTrue(roomFromAlicePOV.isEncrypted());
 
-        final CountDownLatch lock1 = new CountDownLatch(2);
+        final CountDownLatch lock1 = new CountDownLatch(3);
 
         MXEventListener eventListener = new MXEventListener() {
             @Override
@@ -935,6 +953,15 @@ public class CryptoTest {
         };
 
         roomFromBobPOV.addEventListener(eventListener);
+
+        mBobSession.getDataHandler().addListener(new MXEventListener() {
+            @Override
+            public void onToDeviceEvent(Event event) {
+                results.put("onToDeviceEvent", event);
+                lock1.countDown();
+            }
+        });
+
 
         roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new ApiCallback<Void>() {
             @Override
@@ -959,6 +986,7 @@ public class CryptoTest {
         });
 
         lock1.await(2000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("onToDeviceEvent"));
         assertTrue(results.containsKey("onLiveEvent"));
 
         mBobSession.clear(context);
@@ -966,6 +994,8 @@ public class CryptoTest {
 
     @Test
     public void test08_testAliceAndBobInACryptedRoom2() throws Exception {
+        Log.e(LOG_TAG, "test08_testAliceAndBobInACryptedRoom2");
+
         doE2ETestWithAliceAndBobInARoom(true);
 
         final Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
@@ -1033,9 +1063,20 @@ public class CryptoTest {
         roomFromBobPOV.addEventListener(bobEventListener);
         roomFromAlicePOV.addEventListener(aliceEventListener);
 
-        list.add(new CountDownLatch(1));
+        list.add(new CountDownLatch(2));
+        final HashMap<String, Object> results = new HashMap<>();
+
+        mBobSession.getDataHandler().addListener(new MXEventListener() {
+            @Override
+            public void onToDeviceEvent(Event event) {
+                results.put("onToDeviceEvent", event);
+                list.get(0).countDown();
+            }
+        });
+
         roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(mReceivedMessagesFromAlice), mAliceSession), callback);
         list.get(list.size()-1).await(1000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("onToDeviceEvent"));
         assertTrue(1 == mReceivedMessagesFromAlice);
 
         list.add(new CountDownLatch(1));
@@ -1061,6 +1102,8 @@ public class CryptoTest {
 
     @Test
     public void test09_testAliceInACryptedRoomAfterInitialSync() throws Exception {
+        Log.e(LOG_TAG, "test09_testAliceInACryptedRoomAfterInitialSync");
+
         Context context = InstrumentationRegistry.getContext();
         final HashMap<String, Object> results = new HashMap<>();
 
@@ -1192,6 +1235,8 @@ public class CryptoTest {
 
     @Test
     public void test10_testAliceDecryptOldMessageWithANewDeviceInACryptedRoom() throws Exception {
+        Log.e(LOG_TAG, "test10_testAliceDecryptOldMessageWithANewDeviceInACryptedRoom");
+
         Context context = InstrumentationRegistry.getContext();
         final HashMap<String, Object> results = new HashMap<>();
 
@@ -1320,6 +1365,8 @@ public class CryptoTest {
 
     @Test
     public void test11_testAliceAndBobInACryptedRoomBackPaginationFromMemoryStore() throws Exception {
+        Log.e(LOG_TAG, "test11_testAliceAndBobInACryptedRoomBackPaginationFromMemoryStore");
+
         Context context = InstrumentationRegistry.getContext();
         final HashMap<String, Object> results = new HashMap();
 
@@ -1423,6 +1470,8 @@ public class CryptoTest {
 
     @Test
     public void test12_testAliceAndBobInACryptedRoomBackPaginationFromHomeServer() throws Exception {
+        Log.e(LOG_TAG, "test12_testAliceAndBobInACryptedRoomBackPaginationFromHomeServer");
+
         Context context = InstrumentationRegistry.getContext();
         final HashMap<String, Object> results = new HashMap();
 
@@ -1485,6 +1534,8 @@ public class CryptoTest {
 
     @Test
     public void test13_testAliceAndNotCryptedBobInACryptedRoom() throws Exception {
+        Log.e(LOG_TAG, "test13_testAliceAndNotCryptedBobInACryptedRoom");
+
         final HashMap<String, Object> results = new HashMap();
 
         doE2ETestWithAliceAndBobInARoom(false);
@@ -1586,6 +1637,8 @@ public class CryptoTest {
 
     @Test
     public void test14_testCryptoDeviceBlockAndLeave() throws Exception {
+        Log.e(LOG_TAG, "test14_testCryptoDeviceBlockAndLeave");
+
         Context context = InstrumentationRegistry.getContext();
         final HashMap<String, Object> results = new HashMap<>();
 
@@ -1843,6 +1896,7 @@ public class CryptoTest {
 
     @Test
     public void test15_testReplayAttack() throws Exception {
+        Log.e(LOG_TAG, "test15_testReplayAttack");
         final HashMap<String, Object> results = new HashMap<>();
 
         doE2ETestWithAliceAndBobInARoom(true);
@@ -1855,7 +1909,7 @@ public class CryptoTest {
         assertTrue(roomFromBobPOV.isEncrypted());
         assertTrue(roomFromAlicePOV.isEncrypted());
 
-        final CountDownLatch lock1 = new CountDownLatch(1);
+        final CountDownLatch lock1 = new CountDownLatch(2);
         MXEventListener bobEventListener = new MXEventListener() {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
@@ -1873,6 +1927,14 @@ public class CryptoTest {
         };
 
         roomFromBobPOV.addEventListener(bobEventListener);
+
+        mBobSession.getDataHandler().addListener(new MXEventListener() {
+            @Override
+            public void onToDeviceEvent(Event event) {
+                results.put("onToDeviceEvent", event);
+                lock1.countDown();
+            }
+        });
 
         roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new ApiCallback<Void>() {
             @Override
@@ -1893,6 +1955,7 @@ public class CryptoTest {
         });
 
         lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("onToDeviceEvent"));
         assertTrue(results.containsKey("bobEcho"));
         assertTrue(results.containsKey("decrypted"));
 
@@ -1908,6 +1971,8 @@ public class CryptoTest {
 
     @Test
     public void test16_testRoomKeyReshare() throws Exception {
+        Log.e(LOG_TAG, "test16_testRoomKeyReshare");
+
         final HashMap<String, Object> results = new HashMap<>();
 
         doE2ETestWithAliceAndBobInARoom(true);
@@ -1964,7 +2029,7 @@ public class CryptoTest {
             }
         });
 
-        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock1.await(2000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onToDeviceEvent"));
         assertTrue(1 == receivedEvents.size());
 
@@ -1995,6 +2060,8 @@ public class CryptoTest {
 
     @Test
     public void test17_testLateRoomKey() throws Exception {
+        Log.e(LOG_TAG, "test17_testLateRoomKey");
+
         final HashMap<String, Object> results = new HashMap<>();
 
         doE2ETestWithAliceAndBobInARoom(true);
@@ -2050,7 +2117,7 @@ public class CryptoTest {
             }
         });
 
-        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock1.await(2000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onToDeviceEvent"));
         assertTrue(1 == receivedEvents.size());
 
@@ -2105,6 +2172,8 @@ public class CryptoTest {
 
     @Test
     public void test18_testAliceAndBobWithNewDevice() throws Exception {
+        Log.e(LOG_TAG, "test18_testAliceAndBobWithNewDevice");
+
         Context context = InstrumentationRegistry.getContext();
         final HashMap<String, Object> results = new HashMap<>();
         doE2ETestWithAliceAndBobInARoom(true);
@@ -2269,6 +2338,8 @@ public class CryptoTest {
 
     @Test
     public void test19_testAliceWithNewDeviceAndBobWithNewDevice() throws Exception {
+        Log.e(LOG_TAG, "test19_testAliceWithNewDeviceAndBobWithNewDevice");
+
         Context context = InstrumentationRegistry.getContext();
         final HashMap<String, Object> results = new HashMap<>();
         doE2ETestWithAliceAndBobInARoom(true);
@@ -2444,6 +2515,8 @@ public class CryptoTest {
 
     @Test
     public void test20_testAliceAndBlockedBob() throws Exception {
+        Log.e(LOG_TAG, "test20_testAliceAndBlockedBob");
+
         doE2ETestWithAliceAndBobInARoom(true);
 
         final Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
@@ -2586,6 +2659,8 @@ public class CryptoTest {
 
     @Test
     public void test21_testDownloadKeysWithUnreachableHS() throws Exception {
+        Log.e(LOG_TAG, "test21_testDownloadKeysWithUnreachableHS");
+
         final HashMap<String, Object> results = new HashMap<>();
         doE2ETestWithAliceAndBobInARoom(true);
 
@@ -2637,6 +2712,8 @@ public class CryptoTest {
 
     @Test
     public void test22_testDownloadKeysForUserWithNoDevice() throws Exception {
+        Log.e(LOG_TAG, "test22_testDownloadKeysForUserWithNoDevice");
+
         final HashMap<String, Object> results = new HashMap<>();
         doE2ETestWithAliceAndBobInARoom(false);
 
@@ -2906,7 +2983,7 @@ public class CryptoTest {
 
         mBobSession.getDataHandler().removeListener(bobEventListener);
 
-        final CountDownLatch lock2 = new CountDownLatch(1);
+        final CountDownLatch lock2 = new CountDownLatch(2);
 
         mBobSession.joinRoom(mRoomId, new ApiCallback<String>() {
             @Override
@@ -2917,22 +2994,41 @@ public class CryptoTest {
 
             @Override
             public void onNetworkError(Exception e) {
+                statuses.put("onNetworkError", e.getMessage());
                 lock2.countDown();
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
+                statuses.put("onMatrixError", e.getMessage());
                 lock2.countDown();
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
+                statuses.put("onUnexpectedError", e.getMessage());
                 lock2.countDown();
             }
         });
 
-        lock2.await(1000, TimeUnit.DAYS.MILLISECONDS);
-        assertTrue(statuses.containsKey("joinRoom"));
+        room.addEventListener(new MXEventListener() {
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
+                    JsonObject contentToConsider = event.getContentAsJsonObject();
+                    RoomMember member = JsonUtils.toRoomMember(contentToConsider);
+
+                    if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN)) {
+                        statuses.put("AliceJoin", "AliceJoin");
+                        lock2.countDown();
+                    }
+                }
+            }
+        });
+
+        lock2.await(2000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(statuses + "", statuses.containsKey("joinRoom"));
+        assertTrue(statuses + "", statuses.containsKey("AliceJoin"));
 
         mBobSession.getDataHandler().removeListener(bobEventListener);
 
@@ -3127,11 +3223,23 @@ public class CryptoTest {
             }
         };
 
-        CountDownLatch lock = new CountDownLatch(2);
+        final HashMap<String, Object> results = new HashMap<>();
+
+        CountDownLatch lock = new CountDownLatch(3);
         list.clear();
         list.add(lock);
+
+        mBobSession.getDataHandler().addListener(new MXEventListener() {
+            @Override
+            public void onToDeviceEvent(Event event) {
+                results.put("onToDeviceEvent", event);
+                list.get(0).countDown();
+            }
+        });
+
         roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(0), mAliceSession), callback);
         lock.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("onToDeviceEvent"));
         assertTrue(mMessagesCount == 1);
 
         lock = new CountDownLatch(1);
