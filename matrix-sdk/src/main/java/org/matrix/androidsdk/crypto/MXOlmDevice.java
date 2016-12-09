@@ -292,7 +292,7 @@ public class MXOlmDevice {
      * @return a list of known session ids for the device.
      */
     public Set<String> getSessionIds(String theirDeviceIdentityKey) {
-        Map<String, OlmSession> map =  mStore.getDeviceSessions(theirDeviceIdentityKey);
+        Map<String, OlmSession> map = mStore.getDeviceSessions(theirDeviceIdentityKey);
 
         if (null != map) {
             return map.keySet();

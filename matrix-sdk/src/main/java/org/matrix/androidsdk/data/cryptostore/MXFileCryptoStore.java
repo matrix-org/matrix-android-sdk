@@ -92,6 +92,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     // The olm sessions (<device identity key> -> (<olm session id> -> <olm session>)
     private HashMap<String /*deviceKey*/,
             HashMap<String /*olmSessionId*/, OlmSession>> mOlmSessions;
+    private static final Object mOlmSessionsLock = new Object();
 
     // The inbound group megolm sessions (<senderKey> -> (<inbound group session id> -> <inbound group megolm session>)
     private HashMap<String /*senderKey*/,
@@ -466,26 +467,29 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     public void storeSession(OlmSession session, String deviceKey, boolean flush) {
         if ((null != session) && (null != deviceKey) && (null != session.sessionIdentifier())) {
 
-            if (!mOlmSessions.containsKey(deviceKey)) {
-                mOlmSessions.put(deviceKey, new HashMap<String, OlmSession>());
-            }
+            synchronized (mOlmSessionsLock) {
+                if (!mOlmSessions.containsKey(deviceKey)) {
+                    mOlmSessions.put(deviceKey, new HashMap<String, OlmSession>());
+                }
 
-            OlmSession prevSession = mOlmSessions.get(deviceKey).get(session.sessionIdentifier());
+                OlmSession prevSession = mOlmSessions.get(deviceKey).get(session.sessionIdentifier());
 
-            // test if the session is a new one
-            if (session != prevSession) {
-                if (null != prevSession) {
-                    synchronized (mOlmSessionsToRelease) {
-                        if (mOlmSessionsToRelease.indexOf(prevSession) < 0) {
-                            mOlmSessionsToRelease.add(prevSession);
+                // test if the session is a new one
+                if (session != prevSession) {
+                    if (null != prevSession) {
+                        synchronized (mOlmSessionsToRelease) {
+                            if (mOlmSessionsToRelease.indexOf(prevSession) < 0) {
+                                mOlmSessionsToRelease.add(prevSession);
+                            }
                         }
                     }
+                    mOlmSessions.get(deviceKey).put(session.sessionIdentifier(), session);
                 }
-                mOlmSessions.get(deviceKey).put(session.sessionIdentifier(), session);
-            }
 
-            if (flush) {
-                flushSessions();
+
+                if (flush) {
+                    flushSessions();
+                }
             }
         }
     }
@@ -493,8 +497,12 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     @Override
     public void flushSessions() {
         try {
-            final HashMap<String, HashMap<String, OlmSession>> olmSessions = cloneOlmSessions(mOlmSessions);
+            final HashMap<String, HashMap<String, OlmSession>> olmSessions;
             final ArrayList<OlmSession> fSessionsToRelease;
+
+            synchronized (mOlmSessionsLock) {
+                olmSessions = cloneOlmSessions(mOlmSessions);
+            }
 
             synchronized (mOlmSessionsToRelease) {
                 fSessionsToRelease = new ArrayList<>(mOlmSessionsToRelease);
@@ -539,7 +547,13 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     @Override
     public Map<String, OlmSession> getDeviceSessions(String deviceKey) {
         if (null != deviceKey) {
-            return mOlmSessions.get(deviceKey);
+            Map<String, OlmSession> map;
+
+            synchronized (mOlmSessionsLock) {
+                map = mOlmSessions.get(deviceKey);
+            }
+
+            return map;
         }
 
         return null;

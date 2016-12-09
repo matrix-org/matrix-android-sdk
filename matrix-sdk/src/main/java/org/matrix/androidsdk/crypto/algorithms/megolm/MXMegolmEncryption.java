@@ -16,6 +16,7 @@
 
 package org.matrix.androidsdk.crypto.algorithms.megolm;
 
+import android.os.AsyncTask;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -334,45 +335,58 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
         mCrypto.ensureOlmSessionsForDevices(devicesByUser, new ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>>() {
             @Override
-            public void onSuccess(MXUsersDevicesMap<MXOlmSessionResult> results) {
-                MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>();
+            public void onSuccess(final MXUsersDevicesMap<MXOlmSessionResult> results) {
+                new AsyncTask<Void, Void, Boolean>() {
+                    MXUsersDevicesMap<Map<String, Object>> mContentMap;
 
-                boolean haveTargets = false;
-                List<String> userIds = results.getUserIds();
+                    @Override
+                    protected Boolean doInBackground(Void... voids) {
+                        mContentMap = new MXUsersDevicesMap<>();
 
-                for (String userId : userIds) {
-                    ArrayList<MXDeviceInfo> devicesToShareWith = devicesByUser.get(userId);
+                        boolean haveTargets = false;
+                        List<String> userIds = results.getUserIds();
 
-                    for (MXDeviceInfo deviceInfo : devicesToShareWith) {
-                        String deviceID = deviceInfo.deviceId;
+                        for (String userId : userIds) {
+                            ArrayList<MXDeviceInfo> devicesToShareWith = devicesByUser.get(userId);
 
-                        MXOlmSessionResult sessionResult = results.getObject(deviceID, userId);
+                            for (MXDeviceInfo deviceInfo : devicesToShareWith) {
+                                String deviceID = deviceInfo.deviceId;
 
-                        if ((null == sessionResult) || (null == sessionResult.mSessionId)) {
-                            // no session with this device, probably because there
-                            // were no one-time keys.
-                            //
-                            // we could send them a to_device message anyway, as a
-                            // signal that they have missed out on the key sharing
-                            // message because of the lack of keys, but there's not
-                            // much point in that really; it will mostly serve to clog
-                            // up to_device inboxes.
-                            //
-                            // ensureOlmSessionsForUsers has already done the logging,
-                            // so just skip it.
-                            continue;
+                                MXOlmSessionResult sessionResult = results.getObject(deviceID, userId);
+
+                                if ((null == sessionResult) || (null == sessionResult.mSessionId)) {
+                                    // no session with this device, probably because there
+                                    // were no one-time keys.
+                                    //
+                                    // we could send them a to_device message anyway, as a
+                                    // signal that they have missed out on the key sharing
+                                    // message because of the lack of keys, but there's not
+                                    // much point in that really; it will mostly serve to clog
+                                    // up to_device inboxes.
+                                    //
+                                    // ensureOlmSessionsForUsers has already done the logging,
+                                    // so just skip it.
+                                    continue;
+                                }
+
+                                Log.d(LOG_TAG, "## shareKey() : Sharing keys with device " + userId + ":" + deviceID);
+                                //noinspection ArraysAsListWithZeroOrOneArgument,ArraysAsListWithZeroOrOneArgument
+                                mContentMap.setObject(mCrypto.encryptMessage(payload, Arrays.asList(sessionResult.mDevice)), userId, deviceID);
+                                haveTargets = true;
+                            }
                         }
 
-                        Log.e(LOG_TAG, "## shareKey() : Sharing keys with device " + userId + ":" + deviceID);
-                        //noinspection ArraysAsListWithZeroOrOneArgument,ArraysAsListWithZeroOrOneArgument
-                        contentMap.setObject(mCrypto.encryptMessage(payload, Arrays.asList(sessionResult.mDevice)), userId, deviceID);
-                        haveTargets = true;
-                    }
-                }
+                        if (haveTargets) {
+                            mCrypto.mCryptoStore.flushSessions();
+                        }
 
-                if (haveTargets) {
-                    mCrypto.mCryptoStore.flushSessions();
-                    mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, contentMap, new ApiCallback<Void>() {
+                        return haveTargets;
+                    }
+
+                    @Override
+                    protected void onPostExecute(Boolean haveTargets) {
+                        if (haveTargets) {
+                            mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, mContentMap, new ApiCallback<Void>() {
                                 @Override
                                 public void onSuccess(Void info) {
 
@@ -415,11 +429,13 @@ public class MXMegolmEncryption implements IMXEncrypting {
                                     }
                                 }
                             });
-                } else {
-                    if (null != callback) {
-                        callback.onSuccess(null);
+                        } else {
+                            if (null != callback) {
+                                callback.onSuccess(null);
+                            }
+                        }
                     }
-                }
+                }.execute();
             }
 
             @Override

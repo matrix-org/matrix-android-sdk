@@ -411,10 +411,6 @@ public class MXCrypto {
                 });
                 return null;
             }
-
-            @Override
-            protected void onPostExecute(Void nothing) {
-            }
         }.execute();
     }
 
