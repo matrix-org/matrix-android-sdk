@@ -253,12 +253,16 @@ public class MXMemoryStore implements IMXStore {
      */
     @Override
     public String displayName() {
-        return mMetadata.mUserDisplayName;
+        if (null != mMetadata) {
+            return mMetadata.mUserDisplayName;
+        } else {
+            return null;
+        }
     }
 
     @Override
     public void setDisplayName(String displayName) {
-        if (!TextUtils.equals(mMetadata.mUserDisplayName, displayName)) {
+        if ((null != mMetadata) && !TextUtils.equals(mMetadata.mUserDisplayName, displayName)) {
             mMetadata.mUserDisplayName = displayName;
 
             if (null != displayName) {
@@ -279,12 +283,16 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public String avatarURL() {
-        return mMetadata.mUserAvatarUrl;
+        if (null != mMetadata) {
+            return mMetadata.mUserAvatarUrl;
+        } else {
+            return null;
+        }
     }
 
     @Override
     public void setAvatarURL(String avatarURL) {
-        if (!TextUtils.equals(mMetadata.mUserAvatarUrl, avatarURL)) {
+        if ((null != mMetadata) && !TextUtils.equals(mMetadata.mUserAvatarUrl, avatarURL)) {
             mMetadata.mUserAvatarUrl = avatarURL;
 
             // update the cached oneself User
@@ -301,27 +309,39 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public List<ThirdPartyIdentifier> thirdPartyIdentifiers() {
-        return mMetadata.mThirdPartyIdentifiers;
+        if (null != mMetadata) {
+            return mMetadata.mThirdPartyIdentifiers;
+        } else {
+            return new ArrayList<>();
+        }
     }
 
     @Override
     public void setThirdPartyIdentifiers(List<ThirdPartyIdentifier> identifiers) {
-        mMetadata.mThirdPartyIdentifiers = identifiers;
+        if (null != mMetadata) {
+            mMetadata.mThirdPartyIdentifiers = identifiers;
 
-        Log.d(LOG_TAG, "setThirdPartyIdentifiers : commit");
-        commit();
+            Log.d(LOG_TAG, "setThirdPartyIdentifiers : commit");
+            commit();
+        }
     }
 
     @Override
     public List<String> getIgnoredUserIdsList() {
-        return mMetadata.mIgnoredUsers;
+        if (null != mMetadata) {
+            return mMetadata.mIgnoredUsers;
+        } else {
+            return new ArrayList<>();
+        }
     }
 
     @Override
     public void setIgnoredUserIdsList(List<String> users) {
-        mMetadata.mIgnoredUsers = users;
-        Log.d(LOG_TAG, "setIgnoredUserIdsList : commit");
-        commit();
+        if (null != mMetadata) {
+            mMetadata.mIgnoredUsers = users;
+            Log.d(LOG_TAG, "setIgnoredUserIdsList : commit");
+            commit();
+        }
     }
 
     @Override
@@ -331,9 +351,11 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public void setDirectChatRoomsDict(Map<String, List<String>> directChatRoomsDict) {
-        mMetadata.mDirectChatRoomsMap = directChatRoomsDict;
-        Log.d(LOG_TAG, "setDirectChatRoomsDict : commit");
-        commit();
+        if (null != mMetadata) {
+            mMetadata.mDirectChatRoomsMap = directChatRoomsDict;
+            Log.d(LOG_TAG, "setDirectChatRoomsDict : commit");
+            commit();
+        }
     }
 
     @Override
