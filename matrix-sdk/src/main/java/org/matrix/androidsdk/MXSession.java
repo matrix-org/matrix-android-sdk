@@ -596,7 +596,13 @@ public class MXSession {
         }
 
         if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
-            mEventsThread.start();
+
+            // GA issue
+            try {
+                mEventsThread.start();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## startEventStream() :  mEventsThread.start failed " + e.getMessage());
+            }
 
             if (mIsCatchupPending) {
                 Log.d(LOG_TAG, "startEventStream : there was a pending catchup : the catchup will be triggered in 5 seconds");
