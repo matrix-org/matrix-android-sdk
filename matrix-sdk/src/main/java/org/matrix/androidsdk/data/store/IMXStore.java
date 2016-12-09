@@ -38,32 +38,6 @@ import java.util.Map;
  * An interface for storing and retrieving Matrix objects.
  */
 public interface IMXStore {
-
-    interface MXStoreListener {
-        /**
-         * The store has loaded its internal data.
-         * Let any post processing data management.
-         * It is called in the store thread before calling onStoreReady.
-         * @param accountId the account id
-         */
-        void postProcess(String accountId);
-
-        /**
-         * Called when the store is initialized
-         */
-        void onStoreReady(String accountId);
-
-        /**
-         * Called when the store initialization fails.
-         */
-        void onStoreCorrupted(String accountId, String description);
-
-        /**
-         * Called when the store has no more memory
-         */
-        void onStoreOOM(String accountId, String description);
-    }
-
     /**
      * Save changes in the store.
      * If the store uses permanent storage like database or file, it is the optimised time

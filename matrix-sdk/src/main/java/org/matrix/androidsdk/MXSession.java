@@ -36,6 +36,7 @@ import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomTag;
+import org.matrix.androidsdk.data.store.MXStoreListener;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
@@ -196,7 +197,7 @@ public class MXSession {
         this(hsConfig);
         mDataHandler = dataHandler;
 
-        mDataHandler.getStore().addMXStoreListener(new IMXStore.MXStoreListener() {
+        mDataHandler.getStore().addMXStoreListener(new MXStoreListener() {
             @Override
             public void postProcess(String accountId) {
                 MXFileCryptoStore store = new MXFileCryptoStore();
@@ -213,20 +214,6 @@ public class MXSession {
                     // the room summaries are not stored with decrypted content
                     decryptRoomSummaries();
                 }
-            }
-
-            @Override
-            public void onStoreReady(String accountId) {
-            }
-
-            @Override
-            public void onStoreCorrupted(String accountId, String description) {
-
-            }
-
-            @Override
-            public void onStoreOOM(String accountId, String description) {
-
             }
         });
 

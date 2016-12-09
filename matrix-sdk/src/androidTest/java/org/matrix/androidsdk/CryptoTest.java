@@ -42,12 +42,12 @@ import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.data.EventTimeline;
-import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.data.cryptostore.MXFileCryptoStore;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXFileStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.store.MXStoreListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
@@ -189,7 +189,7 @@ public class CryptoTest {
 
 
         final CountDownLatch lock1 = new CountDownLatch(1);
-        IMXStore.MXStoreListener listener = new  IMXStore.MXStoreListener() {
+        MXStoreListener listener = new  MXStoreListener() {
             @Override
             public void postProcess(String accountId) {
             }
@@ -413,7 +413,7 @@ public class CryptoTest {
 
         final CountDownLatch lock4 = new CountDownLatch(1);
 
-        IMXStore.MXStoreListener listener = new  IMXStore.MXStoreListener() {
+        MXStoreListener listener = new MXStoreListener() {
             @Override
             public void postProcess(String accountId) {
             }
@@ -681,7 +681,7 @@ public class CryptoTest {
 
         final CountDownLatch lock5 = new CountDownLatch(1);
 
-        IMXStore.MXStoreListener listener = new  IMXStore.MXStoreListener() {
+        MXStoreListener listener = new MXStoreListener() {
             @Override
             public void postProcess(String accountId) {
             }
@@ -1129,7 +1129,7 @@ public class CryptoTest {
             }
         }), context);
 
-        IMXStore.MXStoreListener listener = new  IMXStore.MXStoreListener() {
+        MXStoreListener listener = new MXStoreListener() {
             @Override
             public void postProcess(String accountId) {
             }
@@ -1299,7 +1299,7 @@ public class CryptoTest {
         aliceSession2.enableCryptoWhenStarting();
 
         final CountDownLatch lock1b = new CountDownLatch(1);
-        IMXStore.MXStoreListener listener = new  IMXStore.MXStoreListener() {
+        MXStoreListener listener = new MXStoreListener() {
             @Override
             public void postProcess(String accountId) {
             }
