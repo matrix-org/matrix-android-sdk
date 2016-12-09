@@ -114,6 +114,10 @@ public class MXFileStore extends MXMemoryStore {
 
     private boolean mAreUsersLoaded = false;
 
+    // the read receipts are asynchronously loaded
+    // keep a list of the remaining receipts to load
+    private final ArrayList<String> mRoomReceiptsToLoad = new ArrayList<>();
+
     /**
      * Create the file store dirtrees
      */
@@ -362,17 +366,6 @@ public class MXFileStore extends MXMemoryStore {
                                 }
 
                                 if (succeed) {
-                                    succeed &= loadReceipts();
-
-                                    if (!succeed) {
-                                        errorDescription = "loadEventsReceipts fails";
-                                        Log.e(LOG_TAG, errorDescription);
-                                    } else {
-                                        Log.e(LOG_TAG, "loadEventsReceipts succeeds");
-                                    }
-                                }
-
-                                if (succeed) {
                                     succeed &= loadRoomsAccountData();
 
                                     if (!succeed) {
@@ -427,16 +420,25 @@ public class MXFileStore extends MXMemoryStore {
 
                                 // post processing
                                 Log.e(LOG_TAG, "Management post processing.");
-                                dispatchpostProcess(mCredentials.userId);
+                                dispatchPostProcess(mCredentials.userId);
 
                                 if (!succeed && !mIsNewStorage) {
                                     Log.e(LOG_TAG, "The store is corrupted.");
                                     dispatchOnStoreCorrupted(mCredentials.userId, errorDescription);
                                 } else {
+                                    // extract the room states
+                                    mRoomReceiptsToLoad.addAll(removeTmpFiles(mStoreRoomsMessagesReceiptsFolderFile.list()));
+
                                     Log.e(LOG_TAG, "The store is opened.");
                                     dispatchOnStoreReady(mCredentials.userId);
 
-                                    // load the users later
+                                    // load the following items with delay
+                                    // theses items are not required to be ready
+                                    
+                                    // load the receipts
+                                    loadReceipts();
+
+                                    // load the users
                                     loadUsers();
                                 }
                             }
@@ -451,7 +453,7 @@ public class MXFileStore extends MXMemoryStore {
                     @Override
                     public void run() {
                         Log.e(LOG_TAG, "Management post processing.");
-                        dispatchpostProcess(mCredentials.userId);
+                        dispatchPostProcess(mCredentials.userId);
                         Log.e(LOG_TAG, "The store is opened.");
                         dispatchOnStoreReady(mCredentials.userId);
                     }
@@ -910,7 +912,7 @@ public class MXFileStore extends MXMemoryStore {
             }
         }
 
-        Log.e(LOG_TAG, "loadUsers : retrieve " + mUsers.size() + " users in " + (System.currentTimeMillis() - start) + "ms");
+        Log.e(LOG_TAG, "loadUsers (" + filenames.size() + " files) : retrieve " + mUsers.size() + " users in " + (System.currentTimeMillis() - start) + "ms");
 
         mAreUsersLoaded = true;
 
@@ -1704,6 +1706,22 @@ public class MXFileStore extends MXMemoryStore {
     // Event receipts management
     //================================================================================
 
+    @Override
+    public List<ReceiptData> getEventReceipts(String roomId, String eventId, boolean excludeSelf, boolean sort) {
+        synchronized (mRoomReceiptsToLoad) {
+            int pos = mRoomReceiptsToLoad.indexOf(roomId);
+
+            // the user requires the receipts asap
+            if (pos >= 2) {
+                mRoomReceiptsToLoad.remove(roomId);
+                // index 0 is the current managed one
+                mRoomReceiptsToLoad.add(1, roomId);
+            }
+        }
+
+        return super.getEventReceipts(roomId, eventId, excludeSelf, sort);
+    }
+
     /**
      * Store the receipt for an user in a room
      * @param receipt The event
@@ -1756,7 +1774,23 @@ public class MXFileStore extends MXMemoryStore {
         }
 
         if (null != receiptsMap) {
-            mReceiptsByRoomId.put(roomId, receiptsMap);
+            Map<String, ReceiptData> currentReceiptMap;
+
+            synchronized (mReceiptsByRoomIdLock) {
+                currentReceiptMap = mReceiptsByRoomId.get(roomId);
+                mReceiptsByRoomId.put(roomId, receiptsMap);
+            }
+
+            // merge the current read receipts
+            if (null != currentReceiptMap) {
+                Collection<ReceiptData> receipts = currentReceiptMap.values();
+
+                for(ReceiptData receipt : receipts) {
+                    storeReceipt(receipt, roomId);
+                }
+            }
+
+            dispatchOnReadReceiptsLoaded(roomId);
         }
 
         return true;
@@ -1769,16 +1803,24 @@ public class MXFileStore extends MXMemoryStore {
     private boolean loadReceipts() {
         boolean succeed = true;
         try {
-            // extract the room states
-            List<String> filenames = removeTmpFiles(mStoreRoomsMessagesReceiptsFolderFile.list());
-
+            int count = mRoomReceiptsToLoad.size();
             long start = System.currentTimeMillis();
 
-            for(String filename : filenames) {
-                succeed &= loadReceipts(filename);
+            while(mRoomReceiptsToLoad.size() > 0) {
+                String roomId;
+                synchronized (mRoomReceiptsToLoad) {
+                    roomId = mRoomReceiptsToLoad.get(0);
+                }
+
+                loadReceipts(roomId);
+
+                synchronized (mRoomReceiptsToLoad) {
+                    mRoomReceiptsToLoad.remove(0);
+                }
             }
 
-            Log.d(LOG_TAG, "loadReceipts " + filenames.size() + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+            saveReceipts();
+            Log.d(LOG_TAG, "loadReceipts " + count + " rooms in " + (System.currentTimeMillis() - start) + " ms");
         }
         catch (Exception e) {
             succeed = false;
@@ -1794,6 +1836,13 @@ public class MXFileStore extends MXMemoryStore {
      * @param roomId the roomId.
      */
     private void saveReceipts(final String roomId) {
+        synchronized (mRoomReceiptsToLoad) {
+            // please wait
+            if (mRoomReceiptsToLoad.contains(roomId)) {
+                return;
+            }
+        }
+
         Map<String, ReceiptData> receiptsMap = mReceiptsByRoomId.get(roomId);
 
         // sanity check

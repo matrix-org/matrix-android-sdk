@@ -60,6 +60,7 @@ import org.matrix.androidsdk.rest.model.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.DevicesListResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
@@ -84,6 +85,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.RunnableFuture;
 import java.util.regex.Pattern;
 
 /**
@@ -214,6 +216,18 @@ public class MXSession {
                     // the room summaries are not stored with decrypted content
                     decryptRoomSummaries();
                 }
+            }
+
+            @Override
+            public void onReadReceiptsLoaded(final String roomId) {
+                final List<ReceiptData> receipts = mDataHandler.getStore().getEventReceipts(roomId, null, false, false);
+                final ArrayList<String> senders = new ArrayList<>();
+
+                for(ReceiptData receipt : receipts) {
+                    senders.add(receipt.userId);
+                }
+
+                mDataHandler.onReceiptEvent(roomId, senders);
             }
         });
 

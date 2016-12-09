@@ -107,13 +107,13 @@ public interface IMXStore {
      * Add a MXStore listener.
      * @param listener the listener
      */
-    void addMXStoreListener(MXStoreListener listener);
+    void addMXStoreListener(IMXStoreListener listener);
 
     /**
      * remive a MXStore listener.
      * @param listener the listener
      */
-    void removeMXStoreListener(MXStoreListener listener);
+    void removeMXStoreListener(IMXStoreListener listener);
 
     /**
      * profile information
@@ -309,7 +309,7 @@ public interface IMXStore {
      * Returns the receipts list for an event in a dedicated room.
      * if sort is set to YES, they are sorted from the latest to the oldest ones.
      * @param roomId The room Id.
-     * @param eventId The event Id.
+     * @param eventId The event Id. (null to retrieve all existing receipts)
      * @param excludeSelf exclude the oneself read receipts.
      * @param sort to sort them from the latest to the oldest
      * @return the receipts for an event in a dedicated room.

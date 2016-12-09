@@ -35,4 +35,8 @@ public class MXStoreListener implements IMXStoreListener {
     @Override
     public void onStoreOOM(String accountId, String description) {
     }
+
+    @Override
+    public void onReadReceiptsLoaded(String roomId) {
+    }
 }

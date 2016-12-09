@@ -66,7 +66,7 @@ public class MXMemoryStore implements IMXStore {
     protected Map<String, RoomAccountData> mRoomAccountData;
 
     // dict of dict of MXReceiptData indexed by userId
-    private final Object mReceiptsByRoomIdLock = new Object();
+    protected final Object mReceiptsByRoomIdLock = new Object();
     protected Map<String, Map<String, ReceiptData>> mReceiptsByRoomId;
 
     // common context
@@ -82,7 +82,7 @@ public class MXMemoryStore implements IMXStore {
 
     protected String mEventStreamToken = null;
 
-    protected ArrayList<MXStoreListener> mListeners = new ArrayList<>();
+    protected ArrayList<IMXStoreListener> mListeners = new ArrayList<>();
 
     // Meta data about the store. It is defined only if the passed MXCredentials contains all information.
     // When nil, nothing is stored on the file system.
@@ -231,7 +231,7 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public void addMXStoreListener(MXStoreListener listener) {
+    public void addMXStoreListener(IMXStoreListener listener) {
         synchronized (this) {
             if ((null != listener) && (mListeners.indexOf(listener) < 0)) {
                 mListeners.add(listener);
@@ -240,7 +240,7 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public void removeMXStoreListener(MXStoreListener listener) {
+    public void removeMXStoreListener(IMXStoreListener listener) {
         synchronized (this) {
             if (null != listener) {
                 mListeners.remove(listener);
@@ -1012,7 +1012,7 @@ public class MXMemoryStore implements IMXStore {
      * Returns the receipts list for an event in a dedicated room.
      * if sort is set to YES, they are sorted from the latest to the oldest ones.
      * @param roomId The room Id.
-     * @param eventId The event Id.
+     * @param eventId The event Id. (null to retrieve all existing receipts)
      * @param excludeSelf exclude the oneself read receipts.
      * @param sort to sort them from the latest to the oldest
      * @return the receipts for an event in a dedicated room.
@@ -1026,17 +1026,19 @@ public class MXMemoryStore implements IMXStore {
                 String myUserID = mCredentials.userId;
 
                 Map<String, ReceiptData> receiptsByUserId = mReceiptsByRoomId.get(roomId);
-
                 // copy the user id list to avoid having update while looping
                 ArrayList<String> userIds = new ArrayList<>(receiptsByUserId.keySet());
 
-                for (String userId : userIds) {
+                if (null == eventId) {
+                    receipts.addAll(receiptsByUserId.values());
+                } else {
+                    for (String userId : userIds) {
+                        if (receiptsByUserId.containsKey(userId) && (!excludeSelf || !TextUtils.equals(myUserID, userId))) {
+                            ReceiptData receipt = receiptsByUserId.get(userId);
 
-                    if (receiptsByUserId.containsKey(userId) && (!excludeSelf || !TextUtils.equals(myUserID, userId))) {
-                        ReceiptData receipt = receiptsByUserId.get(userId);
-
-                        if (TextUtils.equals(receipt.eventId, eventId)) {
-                            receipts.add(receipt);
+                            if (TextUtils.equals(receipt.eventId, eventId)) {
+                                receipts.add(receipt);
+                            }
                         }
                     }
                 }
@@ -1292,8 +1294,8 @@ public class MXMemoryStore implements IMXStore {
     /**
      * @return the current listeners
      */
-    private List<MXStoreListener> getListeners() {
-        ArrayList<MXStoreListener> listeners;
+    private List<IMXStoreListener> getListeners() {
+        ArrayList<IMXStoreListener> listeners;
 
         synchronized (this) {
             listeners = new ArrayList<>(mListeners);
@@ -1306,10 +1308,10 @@ public class MXMemoryStore implements IMXStore {
      * Dispatch postProcess
      * @param accountId the account id
      */
-    protected void dispatchpostProcess(String accountId) {
-        List<MXStoreListener> listeners = getListeners();
+    protected void dispatchPostProcess(String accountId) {
+        List<IMXStoreListener> listeners = getListeners();
 
-        for(MXStoreListener listener : listeners) {
+        for(IMXStoreListener listener : listeners) {
             listener.postProcess(accountId);
         }
     }
@@ -1319,9 +1321,9 @@ public class MXMemoryStore implements IMXStore {
      * @param accountId the account id
      */
     protected void dispatchOnStoreReady(String accountId) {
-        List<MXStoreListener> listeners = getListeners();
+        List<IMXStoreListener> listeners = getListeners();
 
-        for(MXStoreListener listener : listeners) {
+        for(IMXStoreListener listener : listeners) {
             listener.onStoreReady(accountId);
         }
     }
@@ -1331,9 +1333,9 @@ public class MXMemoryStore implements IMXStore {
      * @param accountId the account id
      */
     protected  void dispatchOnStoreCorrupted(String accountId, String description) {
-        List<MXStoreListener> listeners = getListeners();
+        List<IMXStoreListener> listeners = getListeners();
 
-        for(MXStoreListener listener : listeners) {
+        for(IMXStoreListener listener : listeners) {
             listener.onStoreCorrupted(accountId, description);
         }
     }
@@ -1342,10 +1344,21 @@ public class MXMemoryStore implements IMXStore {
      * Called when the store fails to save some data
      */
     protected void dispatchOOM(OutOfMemoryError e) {
-        List<MXStoreListener> listeners = getListeners();
+        List<IMXStoreListener> listeners = getListeners();
 
-        for(MXStoreListener listener : listeners) {
+        for(IMXStoreListener listener : listeners) {
             listener.onStoreOOM(mCredentials.userId, e.getMessage());
+        }
+    }
+
+    /**
+     * Dispatch the read receipts loading.
+     */
+    protected void dispatchOnReadReceiptsLoaded(String roomId) {
+        List<IMXStoreListener> listeners = getListeners();
+
+        for(IMXStoreListener listener : listeners) {
+            listener.onReadReceiptsLoaded(roomId);
         }
     }
 }
