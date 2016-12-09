@@ -320,7 +320,7 @@ public class MXCrypto {
         }
 
         // do not start if there is not network connection
-        if (!mNetworkConnectivityReceiver.isConnected()) {
+        if ((null != mNetworkConnectivityReceiver) && !mNetworkConnectivityReceiver.isConnected()) {
             // wait that a valid network connection is retrieved
             mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
             mNetworkConnectivityReceiver.addEventListener(mNetworkListener);
@@ -357,7 +357,9 @@ public class MXCrypto {
                         checkDeviceAnnounced(new ApiCallback<Void>() {
                             @Override
                             public void onSuccess(Void info) {
-                                mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
+                                if (null != mNetworkConnectivityReceiver) {
+                                    mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
+                                }
 
                                 mIsStarting = false;
                                 mIsStarted = true;

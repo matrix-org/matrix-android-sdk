@@ -176,6 +176,10 @@ public class MXDataHandler implements IMXEventListener {
 
     public void setNetworkConnectivityReceiver(NetworkConnectivityReceiver networkConnectivityReceiver) {
         mNetworkConnectivityReceiver = networkConnectivityReceiver;
+
+        if (null != getCrypto()) {
+            getCrypto().setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
+        }
     }
 
     public MXCrypto getCrypto() {
