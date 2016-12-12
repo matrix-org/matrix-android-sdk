@@ -139,7 +139,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
         }
 
         if (mPendingEvents.get(k).get(timelineId).indexOf(event) < 0) {
-            Log.d(LOG_TAG, "## addEventToPendingList() : add " + event);
+            Log.d(LOG_TAG, "## addEventToPendingList() : add Event " + event.eventId + " in room id " + event.roomId);
             mPendingEvents.get(k).get(timelineId).add(event);
         }
     }

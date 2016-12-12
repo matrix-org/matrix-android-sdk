@@ -1250,7 +1250,7 @@ public class MXCrypto {
         boolean result = alg.decryptEvent(event, timeline);
 
         if (!result) {
-            Log.e(LOG_TAG, "## decryptEvent() : failed " + event.getCryptoError().toString());
+            Log.e(LOG_TAG, "## decryptEvent() : failed " + event.getCryptoError().getDetailedErrorDescription());
         }
 
         return result;
