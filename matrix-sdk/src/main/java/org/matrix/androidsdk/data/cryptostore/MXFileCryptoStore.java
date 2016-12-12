@@ -85,6 +85,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     // All users devices keys
     private MXUsersDevicesMap<MXDeviceInfo> mUsersDevicesInfoMap;
+    private final Object mUsersDevicesInfoMapLock = new Object();
 
     // The algorithms used in rooms
     private HashMap<String, String> mRoomsAlgorithms;
@@ -378,18 +379,30 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public void storeUserDevice(String userId, MXDeviceInfo device) {
-        mUsersDevicesInfoMap.setObject(device, userId, device.deviceId);
+        synchronized (mUsersDevicesInfoMapLock) {
+            mUsersDevicesInfoMap.setObject(device, userId, device.deviceId);
+        }
+
         flushDevicesForUser(userId);
     }
 
     @Override
     public MXDeviceInfo getUserDevice(String deviceId, String userId) {
-        return mUsersDevicesInfoMap.getObject(deviceId, userId);
+        MXDeviceInfo deviceInfo;
+
+        synchronized (mUsersDevicesInfoMapLock) {
+            deviceInfo = mUsersDevicesInfoMap.getObject(deviceId, userId);
+        }
+
+        return deviceInfo;
     }
 
     @Override
     public void storeUserDevices(String userId, Map<String, MXDeviceInfo> devices) {
-        mUsersDevicesInfoMap.setObjects(devices, userId);
+        synchronized (mUsersDevicesInfoMapLock) {
+            mUsersDevicesInfoMap.setObjects(devices, userId);
+        }
+
         flushDevicesForUser(userId);
     }
 
@@ -411,7 +424,13 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     @Override
     public Map<String, MXDeviceInfo> getUserDevices(String userId) {
         if (null != userId) {
-            return mUsersDevicesInfoMap.getMap().get(userId);
+            Map<String, MXDeviceInfo> devicesMap;
+
+            synchronized (mUsersDevicesInfoMapLock) {
+                devicesMap = mUsersDevicesInfoMap.getMap().get(userId);
+            }
+
+            return devicesMap;
         } else {
             return null;
         }
@@ -904,12 +923,15 @@ public class MXFileCryptoStore implements IMXCryptoStore {
      */
     private HashMap<String, MXDeviceInfo> cloneUserDevicesInfoMap(String user) {
         HashMap<String, MXDeviceInfo> clone = new HashMap<>();
-        HashMap<String, MXDeviceInfo> source = mUsersDevicesInfoMap.getMap().get(user);
 
-        if (null != source) {
-            Set<String> deviceIds = source.keySet();
-            for (String deviceId : deviceIds) {
-                clone.put(deviceId, cloneDeviceInfo(source.get(deviceId)));
+        synchronized (mUsersDevicesInfoMapLock) {
+            HashMap<String, MXDeviceInfo> source = mUsersDevicesInfoMap.getMap().get(user);
+
+            if (null != source) {
+                Set<String> deviceIds = source.keySet();
+                for (String deviceId : deviceIds) {
+                    clone.put(deviceId, cloneDeviceInfo(source.get(deviceId)));
+                }
             }
         }
 

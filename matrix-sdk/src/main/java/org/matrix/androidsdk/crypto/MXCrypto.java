@@ -654,56 +654,73 @@ public class MXCrypto {
 
         mSession.getCryptoRestClient().downloadKeysForUsers(downloadUsers, new ApiCallback<KeysQueryResponse>() {
             @Override
-            public void onSuccess(KeysQueryResponse keysQueryResponse) {
-                MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = new MXUsersDevicesMap<>();
-                ArrayList<String> failedUserIds = new ArrayList<>();
+            public void onSuccess(final KeysQueryResponse keysQueryResponse) {
+                new AsyncTask<Void, Void, Void>() {
 
-                for (String userId : downloadUsers) {
-                    Map<String, MXDeviceInfo> devices = keysQueryResponse.deviceKeys.get(userId);
+                    // private members
+                    MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = new MXUsersDevicesMap<>();
+                    ArrayList<String> failedUserIds = new ArrayList<>();
 
-                    Log.d(LOG_TAG, "## doKeyDownloadForUsers() : Got keys for " + userId + " : " + devices);
+                    @Override
+                    protected Void doInBackground(Void... voids) {
+                        for (String userId : downloadUsers) {
+                            Map<String, MXDeviceInfo> devices = keysQueryResponse.deviceKeys.get(userId);
 
-                    if (null == devices) {
-                        // This can happen when the user hs can not reach the other users hses
-                        // TODO: do something with keysQueryResponse.failures
-                        failedUserIds.add(userId);
-                    } else {
-                        HashMap<String, MXDeviceInfo> mutabledevices = new HashMap<>(devices);
-                        ArrayList<String> deviceIds =  new ArrayList<>(mutabledevices.keySet());
+                            Log.d(LOG_TAG, "## doKeyDownloadForUsers() : Got keys for " + userId + " : " + devices);
 
-                        for (String deviceId : deviceIds) {
-                            // Get the potential previously store device keys for this device
-                            MXDeviceInfo previouslyStoredDeviceKeys = mCryptoStore.getUserDevice(deviceId, userId);
+                            if (null == devices) {
+                                // This can happen when the user hs can not reach the other users hses
+                                // TODO: do something with keysQueryResponse.failures
+                                failedUserIds.add(userId);
+                            } else {
+                                HashMap<String, MXDeviceInfo> mutabledevices = new HashMap<>(devices);
+                                ArrayList<String> deviceIds =  new ArrayList<>(mutabledevices.keySet());
 
-                            // Validate received keys
-                            if (!validateDeviceKeys(mutabledevices.get(deviceId), userId, deviceId, previouslyStoredDeviceKeys)) {
-                                // New device keys are not valid. Do not store them
-                                mutabledevices.remove(deviceId);
+                                for (String deviceId : deviceIds) {
+                                    // the user has been logged out
+                                    if (null == mCryptoStore) {
+                                        return null;
+                                    }
 
-                                if (null != previouslyStoredDeviceKeys) {
-                                    // But keep old validated ones if any
-                                    mutabledevices.put(deviceId, previouslyStoredDeviceKeys);
+                                    // Get the potential previously store device keys for this device
+                                    MXDeviceInfo previouslyStoredDeviceKeys = mCryptoStore.getUserDevice(deviceId, userId);
+
+                                    // Validate received keys
+                                    if (!validateDeviceKeys(mutabledevices.get(deviceId), userId, deviceId, previouslyStoredDeviceKeys)) {
+                                        // New device keys are not valid. Do not store them
+                                        mutabledevices.remove(deviceId);
+
+                                        if (null != previouslyStoredDeviceKeys) {
+                                            // But keep old validated ones if any
+                                            mutabledevices.put(deviceId, previouslyStoredDeviceKeys);
+                                        }
+                                    } else if (null != previouslyStoredDeviceKeys) {
+                                        // The verified status is not sync'ed with hs.
+                                        // This is a client side information, valid only for this client.
+                                        // So, transfer its previous value
+                                        mutabledevices.get(deviceId).mVerified = previouslyStoredDeviceKeys.mVerified;
+                                    }
                                 }
-                            } else if (null != previouslyStoredDeviceKeys) {
-                                // The verified status is not sync'ed with hs.
-                                // This is a client side information, valid only for this client.
-                                // So, transfer its previous value
-                                mutabledevices.get(deviceId).mVerified = previouslyStoredDeviceKeys.mVerified;
+
+                                // Update the store
+                                // Note that devices which aren't in the response will be removed from the stores
+                                mCryptoStore.storeUserDevices(userId, mutabledevices);
+
+                                // And the response result
+                                usersDevicesInfoMap.setObjects(mutabledevices, userId);
                             }
                         }
 
-                        // Update the store
-                        // Note that devices which aren't in the response will be removed from the stores
-                        mCryptoStore.storeUserDevices(userId, mutabledevices);
-
-                        // And the response result
-                        usersDevicesInfoMap.setObjects(mutabledevices, userId);
+                        return null;
                     }
-                }
 
-                if (null != callback) {
-                    callback.onSuccess(new DoKeyDownloadForUsersResponse(usersDevicesInfoMap, failedUserIds));
-                }
+                    @Override
+                    protected void onPostExecute(Void anything) {
+                        if (null != callback) {
+                            callback.onSuccess(new DoKeyDownloadForUsersResponse(usersDevicesInfoMap, failedUserIds));
+                        }
+                    }
+                }.execute();
             }
 
             @Override
