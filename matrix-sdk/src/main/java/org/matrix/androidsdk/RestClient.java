@@ -57,8 +57,8 @@ public class RestClient<T> {
     private static final String PARAM_ACCESS_TOKEN = "access_token";
 
     private static final int CONNECTION_TIMEOUT_MS = 30000;
-    private static final int READ_TIMEOUT_MS = 60000;
-    private static final int WRITE_TIMEOUT_MS = 60000;
+    private static final int READ_TIMEOUT_MS = 90000;
+    private static final int WRITE_TIMEOUT_MS = 90000;
 
     protected Credentials mCredentials;
 
@@ -149,6 +149,7 @@ public class RestClient<T> {
         mUnsentEventsManager.getNetworkConnectivityReceiver().addEventListener(new IMXNetworkEventListener() {
             @Override
             public void onNetworkConnectionUpdate(boolean isConnected) {
+                Log.e(LOG_TAG, "## setUnsentEventsManager()  : update the requests timeout to " + (isConnected ? CONNECTION_TIMEOUT_MS : 1) + " ms");
                 mOkHttpClient.setConnectTimeout(isConnected ? CONNECTION_TIMEOUT_MS : 1, TimeUnit.MILLISECONDS);
             }
         });
