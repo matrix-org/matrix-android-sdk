@@ -602,12 +602,19 @@ public class MXCrypto {
         }
 
         if (0 == downloadUsers.size()) {
+            Log.d(LOG_TAG, "## doKeyDownloadForUsers() : new user device");
+
             if (null != callback) {
                 callback.onSuccess(stored);
             }
         } else {
+            Log.d(LOG_TAG, "## doKeyDownloadForUsers() : starts");
+            final long t0 = System.currentTimeMillis();
+
             doKeyDownloadForUsers(downloadUsers, new ApiCallback<DoKeyDownloadForUsersResponse>() {
                 public void onSuccess(DoKeyDownloadForUsersResponse response) {
+                    Log.d(LOG_TAG, "## downloadKeys() : doKeyDownloadForUsers succeeds after " + (System.currentTimeMillis() - t0) + " ms");
+
                     MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = response.mUsersDevicesInfoMap;
                     ArrayList<String> failedUserIds = response.mFailedUserIds;
 
@@ -624,7 +631,7 @@ public class MXCrypto {
 
                 @Override
                 public void onNetworkError(Exception e) {
-                    Log.e(LOG_TAG, "## downloadKeys() : onNetworkError " + e.getMessage());
+                    Log.e(LOG_TAG, "## downloadKeys() : doKeyDownloadForUsers onNetworkError " + e.getMessage());
                     if (null != callback) {
                         callback.onNetworkError(e);
                     }
@@ -632,7 +639,7 @@ public class MXCrypto {
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    Log.e(LOG_TAG, "## downloadKeys() : onMatrixError " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "## downloadKeys() : doKeyDownloadForUsers onMatrixError " + e.getLocalizedMessage());
                     if (null != callback) {
                         callback.onMatrixError(e);
                     }
@@ -640,7 +647,7 @@ public class MXCrypto {
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    Log.e(LOG_TAG, "## downloadKeys() : onUnexpectedError " + e.getMessage());
+                    Log.e(LOG_TAG, "## downloadKeys() : doKeyDownloadForUsers onUnexpectedError " + e.getMessage());
                     if (null != callback) {
                         callback.onUnexpectedError(e);
                     }
@@ -725,6 +732,7 @@ public class MXCrypto {
 
             @Override
             public void onNetworkError(Exception e) {
+                Log.e(LOG_TAG, "##doKeyDownloadForUsers() : onNetworkError " + e.getMessage());
                 if (null != callback) {
                     callback.onNetworkError(e);
                 }
@@ -732,6 +740,8 @@ public class MXCrypto {
 
             @Override
             public void onMatrixError(MatrixError e) {
+                Log.e(LOG_TAG, "##doKeyDownloadForUsers() : onMatrixError " + e.getMessage());
+
                 if (null != callback) {
                     callback.onMatrixError(e);
                 }
@@ -739,6 +749,8 @@ public class MXCrypto {
 
             @Override
             public void onUnexpectedError(Exception e) {
+                Log.e(LOG_TAG, "##doKeyDownloadForUsers() : onUnexpectedError " + e.getMessage());
+
                 if (null != callback) {
                     callback.onUnexpectedError(e);
                 }
@@ -1131,6 +1143,8 @@ public class MXCrypto {
     public void encryptEventContent(final JsonElement eventContent, final String eventType, final Room room, final ApiCallback<MXEncryptEventContentResult> callback) {
         // wait that the crypto is really started
         if (!isIsStarted()) {
+            Log.d(LOG_TAG, "## encryptEventContent() : wait after e2e init");
+
             start(new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
@@ -1139,6 +1153,8 @@ public class MXCrypto {
 
                 @Override
                 public void onNetworkError(Exception e) {
+                    Log.e(LOG_TAG, "## encryptEventContent() : onNetworkError while waiting to start e2e : " + e.getMessage());
+
                     if (null != callback) {
                         callback.onNetworkError(e);
                     }
@@ -1146,6 +1162,8 @@ public class MXCrypto {
 
                 @Override
                 public void onMatrixError(MatrixError e) {
+                    Log.e(LOG_TAG, "## encryptEventContent() : onMatrixError while waiting to start e2e : " + e.getMessage());
+
                     if (null != callback) {
                         callback.onMatrixError(e);
                     }
@@ -1153,6 +1171,8 @@ public class MXCrypto {
 
                 @Override
                 public void onUnexpectedError(Exception e) {
+                    Log.e(LOG_TAG, "## encryptEventContent() : onUnexpectedError while waiting to start e2e : " + e.getMessage());
+
                     if (null != callback) {
                         callback.onUnexpectedError(e);
                     }
@@ -1176,9 +1196,14 @@ public class MXCrypto {
         }
 
         if (null != alg) {
+            final long t0 = System.currentTimeMillis();
+            Log.d(LOG_TAG, "## encryptEventContent() starts");
+
             alg.encryptEventContent(eventContent, eventType, room, new ApiCallback<JsonElement>() {
                 @Override
                 public void onSuccess(JsonElement encryptedContent) {
+                    Log.d(LOG_TAG, "## encryptEventContent() : succeeds after " + (System.currentTimeMillis() - t0) + " ms");
+
                     if (null != callback) {
                         callback.onSuccess(new MXEncryptEventContentResult(encryptedContent, Event.EVENT_TYPE_MESSAGE_ENCRYPTED));
                     }
@@ -1186,6 +1211,8 @@ public class MXCrypto {
 
                 @Override
                 public void onNetworkError(Exception e) {
+                    Log.e(LOG_TAG, "## encryptEventContent() : onNetworkError " + e.getMessage());
+
                     if (null != callback) {
                         callback.onNetworkError(e);
                     }
@@ -1193,6 +1220,8 @@ public class MXCrypto {
 
                 @Override
                 public void onMatrixError(MatrixError e) {
+                    Log.e(LOG_TAG, "## encryptEventContent() : onMatrixError " + e.getMessage());
+
                     if (null != callback) {
                         callback.onMatrixError(e);
                     }
@@ -1200,6 +1229,8 @@ public class MXCrypto {
 
                 @Override
                 public void onUnexpectedError(Exception e) {
+                    Log.e(LOG_TAG, "## encryptEventContent() : onUnexpectedError " + e.getMessage());
+
                     if (null != callback) {
                         callback.onUnexpectedError(e);
                     }
