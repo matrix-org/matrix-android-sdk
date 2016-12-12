@@ -231,8 +231,15 @@ public class BingRulesManager {
         }
 
         if (mRules != null) {
+            // GA issue
+            final ArrayList<BingRule> rules;
+
+            synchronized (this) {
+                rules = new ArrayList<>(mRules);
+            }
+
             // Go down the rule list until we find a match
-            for (BingRule bingRule : mRules) {
+            for (BingRule bingRule : rules) {
                 if (bingRule.isEnabled) {
                     boolean isFullfilled = false;
 
