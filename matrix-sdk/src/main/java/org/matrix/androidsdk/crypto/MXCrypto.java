@@ -1009,50 +1009,61 @@ public class MXCrypto {
 
         mSession.getCryptoRestClient().claimOneTimeKeysForUsersDevices(usersDevicesToClaim, new ApiCallback<MXUsersDevicesMap<MXKey>>() {
             @Override
-            public void onSuccess(MXUsersDevicesMap<MXKey> oneTimeKeys) {
-                Log.d(LOG_TAG, "## claimOneTimeKeysForUsersDevices() : keysClaimResponse.oneTimeKeys: " + oneTimeKeys);
+            public void onSuccess(final MXUsersDevicesMap<MXKey> oneTimeKeys) {
 
-                Set<String> userIds = devicesByUser.keySet();
+                new AsyncTask<Void, Void, Void>() {
+                    @Override
+                    protected Void doInBackground(Void... voids) {
+                        Log.d(LOG_TAG, "## claimOneTimeKeysForUsersDevices() : keysClaimResponse.oneTimeKeys: " + oneTimeKeys);
 
-                for (String userId : userIds) {
-                    ArrayList<MXDeviceInfo> deviceInfos = devicesByUser.get(userId);
+                        Set<String> userIds = devicesByUser.keySet();
 
-                    for (MXDeviceInfo deviceInfo : deviceInfos) {
+                        for (String userId : userIds) {
+                            ArrayList<MXDeviceInfo> deviceInfos = devicesByUser.get(userId);
 
-                        MXKey oneTimeKey = null;
+                            for (MXDeviceInfo deviceInfo : deviceInfos) {
 
-                        List<String> deviceIds = oneTimeKeys.getUserDeviceIds(userId);
+                                MXKey oneTimeKey = null;
 
-                        if (null != deviceIds) {
-                            for (String deviceId :deviceIds ) {
-                                MXOlmSessionResult  olmSessionResult = results.getObject(deviceId, userId);
+                                List<String> deviceIds = oneTimeKeys.getUserDeviceIds(userId);
 
-                                if (null != olmSessionResult.mSessionId) {
-                                    // We already have a result for this device
-                                    continue;
+                                if (null != deviceIds) {
+                                    for (String deviceId : deviceIds) {
+                                        MXOlmSessionResult  olmSessionResult = results.getObject(deviceId, userId);
+
+                                        if (null != olmSessionResult.mSessionId) {
+                                            // We already have a result for this device
+                                            continue;
+                                        }
+
+                                        MXKey key = oneTimeKeys.getObject(deviceId, userId);
+
+                                        if (TextUtils.equals(key.type, oneTimeKeyAlgorithm)) {
+                                            oneTimeKey = key;
+                                        }
+
+                                        if (null == oneTimeKey) {
+                                            Log.d(LOG_TAG, "## ensureOlmSessionsForDevices() : No one-time keys " +  oneTimeKeyAlgorithm + " for device " + userId + " : " + deviceId);
+                                            continue;
+                                        }
+
+                                        // Update the result for this device in results
+                                        olmSessionResult.mSessionId = verifyKeyAndStartSession(oneTimeKey, userId, deviceInfo);
+                                    }
                                 }
-
-                                MXKey key = oneTimeKeys.getObject(deviceId, userId);
-
-                                if (TextUtils.equals(key.type, oneTimeKeyAlgorithm)) {
-                                    oneTimeKey = key;
-                                }
-
-                                if (null == oneTimeKey) {
-                                    Log.d(LOG_TAG, "## ensureOlmSessionsForDevices() : No one-time keys " +  oneTimeKeyAlgorithm + " for device " + userId + " : " + deviceId);
-                                    continue;
-                                }
-
-                                // Update the result for this device in results
-                                olmSessionResult.mSessionId = verifyKeyAndStartSession(oneTimeKey, userId, deviceInfo);
                             }
                         }
-                    }
-                }
 
-                if (null != callback) {
-                    callback.onSuccess(results);
-                }
+                        return null;
+                    }
+
+                    @Override
+                    protected void onPostExecute(Void anything) {
+                        if (null != callback) {
+                            callback.onSuccess(results);
+                        }
+                    }
+                }.execute();
             }
 
             @Override
