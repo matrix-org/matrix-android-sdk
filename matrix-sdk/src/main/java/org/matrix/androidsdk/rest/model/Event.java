@@ -592,11 +592,11 @@ public class Event implements java.io.Serializable {
     public List<String> getMediaUrls() {
         ArrayList<String> urls = new ArrayList<>();
 
-        if (Event.EVENT_TYPE_MESSAGE.equals(type)) {
-            String msgType = JsonUtils.getMessageMsgType(content);
+        if (Event.EVENT_TYPE_MESSAGE.equals(getType())) {
+            String msgType = JsonUtils.getMessageMsgType(getContent());
 
             if (Message.MSGTYPE_IMAGE.equals(msgType)) {
-                ImageMessage imageMessage = JsonUtils.toImageMessage(content);
+                ImageMessage imageMessage = JsonUtils.toImageMessage(getContent());
 
                 if (null != imageMessage.getUrl()) {
                     urls.add(imageMessage.getUrl());
@@ -606,13 +606,13 @@ public class Event implements java.io.Serializable {
                     urls.add(imageMessage.getThumbnailUrl());
                 }
             } else if (Message.MSGTYPE_FILE.equals(msgType)) {
-                FileMessage fileMessage = JsonUtils.toFileMessage(content);
+                FileMessage fileMessage = JsonUtils.toFileMessage(getContent());
 
                 if (null != fileMessage.getUrl()) {
                     urls.add(fileMessage.getUrl());
                 }
             } else if (Message.MSGTYPE_VIDEO.equals(msgType)) {
-                VideoMessage videoMessage = JsonUtils.toVideoMessage(content);
+                VideoMessage videoMessage = JsonUtils.toVideoMessage(getContent());
 
                 if (null != videoMessage.getUrl()) {
                     urls.add(videoMessage.getUrl());
