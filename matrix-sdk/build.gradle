@@ -17,9 +17,9 @@ android {
         minSdkVersion 11
         targetSdkVersion 23
         // use version to define a version code.
-        versionCode 704
-        version "0.7.4-dev"
-        versionName "0.7.4-dev"
+        versionCode 705
+        version "0.7.5-dev"
+        versionName "0.7.5-dev"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
      }
 
@@ -116,7 +116,7 @@ dependencies {
 
     testCompile 'junit:junit:4.12'
     androidTestCompile 'junit:junit:4.12'
-    androidTestCompile 'com.android.support:support-annotations:21.0.0'
+    androidTestCompile 'com.android.support:support-annotations:23.3.0'
     androidTestCompile 'com.android.support.test:runner:0.5'
     androidTestCompile 'com.android.support.test:rules:0.5'
 }
