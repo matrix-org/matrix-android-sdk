@@ -34,6 +34,8 @@ import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.assertTrue;
+
 public class CryptoTestHelper {
     public static final String TESTS_HOME_SERVER_URL = "http://10.0.2.2:8080";
 
@@ -99,7 +101,7 @@ public class CryptoTestHelper {
 
         String session = (String)params.get("session");
 
-        assert(null != session);
+        assertTrue(null != session);
 
         registrationParams.username = userName;
         registrationParams.password = password;
@@ -137,7 +139,7 @@ public class CryptoTestHelper {
 
         Credentials credentials = (Credentials)params.get("credentials");
 
-        assert (null != credentials);
+        assertTrue (null != credentials);
 
         hs.setCredentials(credentials);
 
@@ -168,7 +170,7 @@ public class CryptoTestHelper {
 
         mLock.await(100000, TimeUnit.DAYS.MILLISECONDS);
 
-        assert(params.containsKey("isInit"));
+        assertTrue(params.containsKey("isInit"));
 
         return mxSession;
     }
@@ -217,7 +219,7 @@ public class CryptoTestHelper {
 
         Credentials credentials = (Credentials)params.get("credentials");
 
-        assert (null != credentials);
+        assertTrue (null != credentials);
 
         hs.setCredentials(credentials);
 
@@ -251,8 +253,8 @@ public class CryptoTestHelper {
 
         mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
 
-        assert(params.containsKey("isInit"));
-        assert(params.containsKey("onCryptoSyncComplete"));
+        assertTrue(params.containsKey("isInit"));
+        assertTrue(params.containsKey("onCryptoSyncComplete"));
 
         return mxSession;
     }
