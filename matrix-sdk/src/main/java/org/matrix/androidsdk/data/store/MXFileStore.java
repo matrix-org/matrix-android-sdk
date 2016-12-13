@@ -427,7 +427,7 @@ public class MXFileStore extends MXMemoryStore {
                                     dispatchOnStoreCorrupted(mCredentials.userId, errorDescription);
                                 } else {
                                     // extract the room states
-                                    mRoomReceiptsToLoad.addAll(removeTmpFiles(mStoreRoomsMessagesReceiptsFolderFile.list()));
+                                    mRoomReceiptsToLoad.addAll(listFiles(mStoreRoomsMessagesReceiptsFolderFile.list()));
 
                                     Log.e(LOG_TAG, "The store is opened.");
                                     dispatchOnStoreReady(mCredentials.userId);
@@ -879,7 +879,7 @@ public class MXFileStore extends MXMemoryStore {
      * Load the user information from the filesystem..
      */
     private void loadUsers() {
-        List<String> filenames = removeTmpFiles(mStoreUserFolderFile.list());
+        List<String> filenames = listFiles(mStoreUserFolderFile.list());
         long start = System.currentTimeMillis();
 
         ArrayList<User> users = new ArrayList<>();
@@ -1162,7 +1162,7 @@ public class MXFileStore extends MXMemoryStore {
 
         try {
             // extract the messages list
-            List<String> filenames = removeTmpFiles(mGzStoreRoomsMessagesFolderFile.list());
+            List<String> filenames = listFiles(mGzStoreRoomsMessagesFolderFile.list());
 
             long start = System.currentTimeMillis();
 
@@ -1177,7 +1177,7 @@ public class MXFileStore extends MXMemoryStore {
             }
 
             // extract the tokens list
-            filenames = removeTmpFiles(mStoreRoomsTokensFolderFile.list());
+            filenames = listFiles(mStoreRoomsTokensFolderFile.list());
 
             start = System.currentTimeMillis();
 
@@ -1332,7 +1332,7 @@ public class MXFileStore extends MXMemoryStore {
         try {
             long start = System.currentTimeMillis();
 
-            List<String> filenames = removeTmpFiles(mGzStoreRoomsStateFolderFile.list());
+            List<String> filenames = listFiles(mGzStoreRoomsStateFolderFile.list());
 
             for(String filename : filenames) {
                 if (succeed) {
@@ -1458,7 +1458,7 @@ public class MXFileStore extends MXMemoryStore {
 
         try {
             // extract the messages list
-            List<String> filenames = removeTmpFiles(mStoreRoomsAccountDataFolderFile.list());
+            List<String> filenames = listFiles(mStoreRoomsAccountDataFolderFile.list());
 
             long start = System.currentTimeMillis();
 
@@ -1615,7 +1615,7 @@ public class MXFileStore extends MXMemoryStore {
         boolean succeed = true;
         try {
             // extract the room states
-            List<String> filenames = removeTmpFiles(mStoreRoomsSummaryFolderFile.list());
+            List<String> filenames = listFiles(mStoreRoomsSummaryFolderFile.list());
 
             long start = System.currentTimeMillis();
 
@@ -1991,16 +1991,27 @@ public class MXFileStore extends MXMemoryStore {
      * @param names the names list
      * @return the filtered list
      */
-    private static final List<String> removeTmpFiles(String[] names) {
+    private static final List<String> listFiles(String[] names) {
         ArrayList<String> filteredFilenames = new ArrayList<>();
+        ArrayList<String> tmpFilenames = new ArrayList<>();
 
         for(int i = 0; i < names.length; i++) {
             String name = names[i];
 
             if (!name.endsWith(".tmp")) {
                 filteredFilenames.add(name);
+            } else {
+                tmpFilenames.add(name.substring(0, name.length() - ".tmp".length()));
             }
         }
+
+        // check if the tmp file is not alone i.e the matched file was not saved (app crash...)
+        for(String tmpFileName : tmpFilenames) {
+            if (!filteredFilenames.contains(tmpFileName)) {
+                Log.e(LOG_TAG, "## listFiles() : " + tmpFileName + " does not exist but a tmp file has been retrieved");
+                filteredFilenames.add(tmpFileName);
+            }
+         }
 
         return filteredFilenames;
     }
