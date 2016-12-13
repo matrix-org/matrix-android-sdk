@@ -57,8 +57,8 @@ public class RestClient<T> {
     private static final String PARAM_ACCESS_TOKEN = "access_token";
 
     private static final int CONNECTION_TIMEOUT_MS = 30000;
-    private static final int READ_TIMEOUT_MS = 90000;
-    private static final int WRITE_TIMEOUT_MS = 90000;
+    private static final int READ_TIMEOUT_MS = 60000;
+    private static final int WRITE_TIMEOUT_MS = 60000;
 
     protected Credentials mCredentials;
 
