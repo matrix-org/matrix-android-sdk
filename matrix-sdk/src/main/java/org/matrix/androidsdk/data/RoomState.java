@@ -747,21 +747,25 @@ public class RoomState implements java.io.Serializable {
                         return false;
                     }
 
-                    // when a member leaves a room, his avatar is not anymore provided
-                    if ((direction == EventTimeline.Direction.FORWARDS) ) {
-                        if (null != currentMember) {
-                            if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN)) {
-                                if (null == member.avatarUrl) {
-                                    member.avatarUrl = currentMember.avatarUrl;
-                                }
+                    // when a member leaves a room, his avatar / display name is not anymore provided
+                    if (null != currentMember) {
+                        if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN)) {
+                            if (null == member.avatarUrl) {
+                                member.avatarUrl = currentMember.avatarUrl;
+                            }
 
-                                // remove the cached display name
-                                if (null != mMemberDisplayNameByUserId) {
-                                    mMemberDisplayNameByUserId.remove(userId);
-                                }
+                            if (null == member.displayname) {
+                                member.displayname = currentMember.displayname;
+                            }
+
+                            // remove the cached display name
+                            if (null != mMemberDisplayNameByUserId) {
+                                mMemberDisplayNameByUserId.remove(userId);
                             }
                         }
+                    }
 
+                    if ((direction == EventTimeline.Direction.FORWARDS) ) {
                         if (null != mDataHandler) {
                             ((MXDataHandler)mDataHandler).getStore().updateUserWithRoomMemberEvent(member);
                         }
