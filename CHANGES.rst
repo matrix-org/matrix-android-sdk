@@ -1,3 +1,16 @@
+Changes to Matrix Android SDK in 0.7.4 (2016-12-13)
+=======================================================
+
+Improvements: 
+* Many e2e improvements
+* Reduce the stores launching times.
+
+Bugfixes:
+* Several issues reported by GA.
+* #374 : Check if Event.unsigned.age can be used to detect if the event is still valid. 
+* #687 : User adress instead of display name in call event
+* #723 : Cancelling download of encrypted image does not work
+
 Changes to Matrix Android SDK in 0.7.3 (2016-11-24)
 =======================================================
 
