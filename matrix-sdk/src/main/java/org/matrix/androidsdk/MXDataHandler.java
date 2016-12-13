@@ -1062,16 +1062,20 @@ public class MXDataHandler implements IMXEventListener {
      * Refresh the unread summary counters of the updated rooms.
      */
     private void refreshUnreadCounters() {
+        ArrayList<String> roomIdsList;
+
+        synchronized (mUpdatedRoomIdList) {
+            roomIdsList = new ArrayList<>(mUpdatedRoomIdList);
+            mUpdatedRoomIdList.clear();
+        }
         // refresh the unread counter
-        for(String roomId : mUpdatedRoomIdList) {
+        for (String roomId : roomIdsList) {
             Room room = mStore.getRoom(roomId);
 
             if (null != room) {
                 room.refreshUnreadCounter();
             }
         }
-
-        mUpdatedRoomIdList.clear();
     }
 
     /**
@@ -1214,8 +1218,10 @@ public class MXDataHandler implements IMXEventListener {
         String type = event.getType();
 
         if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type) && !TextUtils.equals(Event.EVENT_TYPE_RECEIPT, type) && !TextUtils.equals(Event.EVENT_TYPE_TYPING, type)) {
-            if (mUpdatedRoomIdList.indexOf(roomState.roomId) < 0) {
-                mUpdatedRoomIdList.add(roomState.roomId);
+            synchronized (mUpdatedRoomIdList) {
+                if (mUpdatedRoomIdList.indexOf(roomState.roomId) < 0) {
+                    mUpdatedRoomIdList.add(roomState.roomId);
+                }
             }
         }
 
@@ -1575,9 +1581,11 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onReceiptEvent(final String roomId, final List<String> senderIds) {
-        // refresh the unread countries at the end of the process chunk
-        if (mUpdatedRoomIdList.indexOf(roomId) < 0) {
-            mUpdatedRoomIdList.add(roomId);
+        synchronized (mUpdatedRoomIdList) {
+            // refresh the unread countries at the end of the process chunk
+            if (mUpdatedRoomIdList.indexOf(roomId) < 0) {
+                mUpdatedRoomIdList.add(roomId);
+            }
         }
 
         if (null != mCryptoEventsListener) {
