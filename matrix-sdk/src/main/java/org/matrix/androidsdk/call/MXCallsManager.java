@@ -380,7 +380,11 @@ public class MXCallsManager {
                     if ((null != callId) && (null != room)) {
                         // receive an invitation
                         if (Event.EVENT_TYPE_CALL_INVITE.equals(event.getType())) {
-                            long lifeTime = System.currentTimeMillis() - event.getOriginServerTs();
+                            long lifeTime = event.getAge();
+
+                            if (Long.MAX_VALUE == lifeTime) {
+                                lifeTime = System.currentTimeMillis() - event.getOriginServerTs();
+                            }
 
                             // ignore older call messages
                             if (lifeTime < 30000) {
@@ -402,8 +406,9 @@ public class MXCallsManager {
                                         call.handleCallEvent(event);
                                     }
                                 }
+                            } else {
+                                Log.d(LOG_TAG, "## handleCallEvent() : " + Event.EVENT_TYPE_CALL_INVITE + " is ignored because it is too old");
                             }
-
                         } else if (Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.getType())) {
                             if (!isMyEvent) {
                                 IMXCall call = getCallWithCallId(callId);

@@ -397,7 +397,6 @@ public class Event implements java.io.Serializable {
             return age;
         } else if ((null != unsigned) && (null != unsigned.age)) {
             age = unsigned.age;
-
             return age;
         }
 
