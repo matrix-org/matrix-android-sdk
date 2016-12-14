@@ -602,7 +602,7 @@ public class MXCrypto {
         }
 
         if (0 == downloadUsers.size()) {
-            Log.d(LOG_TAG, "## doKeyDownloadForUsers() : new user device");
+            Log.d(LOG_TAG, "## doKeyDownloadForUsers() : no new user device");
 
             if (null != callback) {
                 callback.onSuccess(stored);
