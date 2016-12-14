@@ -945,7 +945,11 @@ public class MXDataHandler implements IMXEventListener {
 
             // Handle the to device events before the room ones
             // to ensure to decrypt them properly
-            if ((null != syncResponse.toDevice) && (null != syncResponse.toDevice.events)) {
+            if ((null != syncResponse.toDevice) &&
+                    (null != syncResponse.toDevice.events) &&
+                    (syncResponse.toDevice.events.size() > 0)) {
+                Log.d(LOG_TAG, "manageResponse : receives " + syncResponse.toDevice.events.size() + " events");
+
                 for (Event toDeviceEvent : syncResponse.toDevice.events) {
                     handleToDeviceEvent(toDeviceEvent);
                 }
