@@ -69,11 +69,11 @@ public class MXOutboundSessionInfo {
         mUseCount = 0;
     }
 
-    public boolean needsRotation(int rotationPeriodMsgs, int otationPeriodMs) {
+    public boolean needsRotation(int rotationPeriodMsgs, int rotationPeriodMs) {
         boolean needsRotation = false;
         long sessionLifetime = System.currentTimeMillis() - mCreationTime;
 
-        if ((mUseCount >= rotationPeriodMsgs) || (sessionLifetime >= otationPeriodMs)) {
+        if ((mUseCount >= rotationPeriodMsgs) || (sessionLifetime >= rotationPeriodMs)) {
             Log.d(LOG_TAG, "## needsRotation() : Rotating megolm session after " + mUseCount + ", " + sessionLifetime + "ms");
             needsRotation = true;
         }
