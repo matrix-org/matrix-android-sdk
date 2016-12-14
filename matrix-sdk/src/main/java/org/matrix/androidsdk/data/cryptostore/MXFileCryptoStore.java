@@ -602,7 +602,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     mInboundGroupSessionsFileTmp.delete();
                 }
 
-                if (null != fOlmInboundGroupSessionToRelease) {
+                if ((null != fOlmInboundGroupSessionToRelease) && (null != fOlmInboundGroupSessionToRelease.mSession)) {
                     // JNI release
                     fOlmInboundGroupSessionToRelease.mSession.releaseSession();
                 }
@@ -639,7 +639,10 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 fOlmInboundGroupSessionToRelease = mInboundGroupSessions.get(session.mSenderKey).get(session.mSession.sessionIdentifier());
                 mInboundGroupSessions.get(session.mSenderKey).put(session.mSession.sessionIdentifier(), session);
 
-                Log.d(LOG_TAG, "## storeInboundGroupSession() : release session " +  fOlmInboundGroupSessionToRelease.mSession.sessionIdentifier());
+                if (null != fOlmInboundGroupSessionToRelease) {
+                    Log.d(LOG_TAG, "## storeInboundGroupSession() : release session " + fOlmInboundGroupSessionToRelease.mSession.sessionIdentifier());
+                }
+
             } else {
                 fOlmInboundGroupSessionToRelease = null;
             }
