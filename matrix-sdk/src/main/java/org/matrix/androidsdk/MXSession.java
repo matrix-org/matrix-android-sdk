@@ -1415,15 +1415,17 @@ public class MXSession {
         return directChatRoomIdsList;
     }
 
-    public class RoomIdsListRetroCompat {
+    /**
+     * This class defines a direct chat backward compliancyc structure
+     */
+    private class RoomIdsListRetroCompat {
         String mRoomId;
+        String mParticipantUserId;
 
         public RoomIdsListRetroCompat(String aParticipantUserId, String aRoomId) {
             this.mParticipantUserId = aParticipantUserId;
             this.mRoomId = aRoomId;
         }
-
-        String mParticipantUserId;
     }
 
     /**
@@ -1431,7 +1433,7 @@ public class MXSession {
      * @param aStore strore instance
      * @param aDirectChatRoomIdsListRetValue the other participants in the 1:1 room
      */
-    public void getDirectChatRoomIdsListRetroCompat(IMXStore aStore, ArrayList<RoomIdsListRetroCompat> aDirectChatRoomIdsListRetValue) {
+    private void getDirectChatRoomIdsListRetroCompat(IMXStore aStore, ArrayList<RoomIdsListRetroCompat> aDirectChatRoomIdsListRetValue) {
         RoomIdsListRetroCompat item;
 
         if((null != aStore) && (null != aDirectChatRoomIdsListRetValue)) {
@@ -1442,7 +1444,7 @@ public class MXSession {
             for (Room r : rooms) {
                 // Show 1:1 chats in separate "Direct Messages" section as long as they haven't
                 // been moved to a different tag section
-                if ((r.getMembers().size() == 2) && (null != r.getAccountData()) && (!r.getAccountData().hasTags())) {
+                if ((r.getActiveMembers().size() == 2) && (null != r.getAccountData()) && (!r.getAccountData().hasTags())) {
                     RoomMember roomMember = r.getMember(getMyUserId());
                     members = new ArrayList<>(r.getActiveMembers());
 
