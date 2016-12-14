@@ -639,10 +639,12 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 fOlmInboundGroupSessionToRelease = mInboundGroupSessions.get(session.mSenderKey).get(session.mSession.sessionIdentifier());
                 mInboundGroupSessions.get(session.mSenderKey).put(session.mSession.sessionIdentifier(), session);
 
-                Log.d(LOG_TAG, "storeInboundGroupSession : release session" +  session.mSession.sessionIdentifier());
+                Log.d(LOG_TAG, "## storeInboundGroupSession() : release session " +  fOlmInboundGroupSessionToRelease.mSession.sessionIdentifier());
             } else {
                 fOlmInboundGroupSessionToRelease = null;
             }
+
+            Log.d(LOG_TAG, "## storeInboundGroupSession() : store session " + session.mSession.sessionIdentifier());
 
             saveInboundGroupSessions(fOlmInboundGroupSessionToRelease);
         }

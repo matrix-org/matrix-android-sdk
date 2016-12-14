@@ -150,8 +150,6 @@ public class MXMegolmDecryption implements IMXDecrypting {
      */
     @Override
     public void onRoomKeyEvent(Event roomKeyEvent) {
-        Log.d(LOG_TAG, "## onRoomKeyEvent(), Adding key "); // from " + event);
-
         RoomKeyContent roomKeyContent = JsonUtils.toRoomKeyContent(roomKeyEvent.getContentAsJsonObject());
 
         String roomId = roomKeyContent.room_id;
@@ -162,6 +160,8 @@ public class MXMegolmDecryption implements IMXDecrypting {
             Log.e(LOG_TAG, "## onRoomKeyEvent() :  Key event is missing fields");
             return;
         }
+
+        Log.d(LOG_TAG, "## onRoomKeyEvent(), Adding key : roomId " + roomId + " sessionId " + sessionId + " sessionKey " + sessionKey); // from " + event);
 
         mOlmDevice.addInboundGroupSession(sessionId, sessionKey, roomId, roomKeyEvent.senderKey(), roomKeyEvent.getKeysClaimed());
 
