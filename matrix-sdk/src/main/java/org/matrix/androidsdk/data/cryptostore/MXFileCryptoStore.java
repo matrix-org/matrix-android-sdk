@@ -98,7 +98,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     // The inbound group megolm sessions (<senderKey> -> (<inbound group session id> -> <inbound group megolm session>)
     private HashMap<String /*senderKey*/,
             HashMap<String /*inboundGroupSessionId*/,MXOlmInboundGroupSession>> mInboundGroupSessions;
-
+    private final Object mInboundGroupSessionsLock = new Object();
 
     // OlmSessions to release after the next flush
     private final ArrayList<OlmSession> mOlmSessionsToRelease = new ArrayList<>();
@@ -613,14 +613,16 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     @Override
     public void removeInboundGroupSession(String sessionId, String senderKey) {
         if ((null != sessionId) && (null != senderKey)) {
-            if (mInboundGroupSessions.containsKey(senderKey)) {
-                MXOlmInboundGroupSession session = mInboundGroupSessions.get(senderKey).get(sessionId);
+            synchronized (mInboundGroupSessionsLock) {
+                if (mInboundGroupSessions.containsKey(senderKey)) {
+                    MXOlmInboundGroupSession session = mInboundGroupSessions.get(senderKey).get(sessionId);
 
-                if (null != session) {
-                    session.mSession.releaseSession();
-                    mInboundGroupSessions.get(senderKey).remove(sessionId);
+                    if (null != session) {
+                        session.mSession.releaseSession();
+                        mInboundGroupSessions.get(senderKey).remove(sessionId);
 
-                    saveInboundGroupSessions(null);
+                        saveInboundGroupSessions(null);
+                    }
                 }
             }
         }
@@ -629,27 +631,29 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     @Override
     public void storeInboundGroupSession(MXOlmInboundGroupSession session) {
         if ((null != session) && (null != session.mSenderKey) && (null != session.mSession) && (null != session.mSession.sessionIdentifier())) {
-            if (!mInboundGroupSessions.containsKey(session.mSenderKey)) {
-                mInboundGroupSessions.put(session.mSenderKey, new HashMap<String, MXOlmInboundGroupSession>());
-            }
-
-            final MXOlmInboundGroupSession fOlmInboundGroupSessionToRelease;
-
-            if (session != mInboundGroupSessions.get(session.mSenderKey).get(session.mSession.sessionIdentifier())) {
-                fOlmInboundGroupSessionToRelease = mInboundGroupSessions.get(session.mSenderKey).get(session.mSession.sessionIdentifier());
-                mInboundGroupSessions.get(session.mSenderKey).put(session.mSession.sessionIdentifier(), session);
-
-                if (null != fOlmInboundGroupSessionToRelease) {
-                    Log.d(LOG_TAG, "## storeInboundGroupSession() : release session " + fOlmInboundGroupSessionToRelease.mSession.sessionIdentifier());
+            synchronized (mInboundGroupSessionsLock) {
+                if (!mInboundGroupSessions.containsKey(session.mSenderKey)) {
+                    mInboundGroupSessions.put(session.mSenderKey, new HashMap<String, MXOlmInboundGroupSession>());
                 }
 
-            } else {
-                fOlmInboundGroupSessionToRelease = null;
+                final MXOlmInboundGroupSession fOlmInboundGroupSessionToRelease;
+
+                if (session != mInboundGroupSessions.get(session.mSenderKey).get(session.mSession.sessionIdentifier())) {
+                    fOlmInboundGroupSessionToRelease = mInboundGroupSessions.get(session.mSenderKey).get(session.mSession.sessionIdentifier());
+                    mInboundGroupSessions.get(session.mSenderKey).put(session.mSession.sessionIdentifier(), session);
+
+                    if (null != fOlmInboundGroupSessionToRelease) {
+                        Log.d(LOG_TAG, "## storeInboundGroupSession() : release session " + fOlmInboundGroupSessionToRelease.mSession.sessionIdentifier());
+                    }
+
+                } else {
+                    fOlmInboundGroupSessionToRelease = null;
+                }
+
+                Log.d(LOG_TAG, "## storeInboundGroupSession() : store session " + session.mSession.sessionIdentifier());
+
+                saveInboundGroupSessions(fOlmInboundGroupSessionToRelease);
             }
-
-            Log.d(LOG_TAG, "## storeInboundGroupSession() : store session " + session.mSession.sessionIdentifier());
-
-            saveInboundGroupSessions(fOlmInboundGroupSessionToRelease);
         }
     }
 
@@ -657,8 +661,13 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     @Override
     public  MXOlmInboundGroupSession getInboundGroupSession(String sessionId, String senderKey) {
         if ((null != sessionId) && (null != senderKey) && mInboundGroupSessions.containsKey(senderKey)) {
+            MXOlmInboundGroupSession session;
 
-            return mInboundGroupSessions.get(senderKey).get(sessionId);
+            synchronized (mInboundGroupSessionsLock) {
+                session = mInboundGroupSessions.get(senderKey).get(sessionId);
+            }
+
+            return session;
         }
         return null;
     }
