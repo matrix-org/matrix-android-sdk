@@ -948,7 +948,7 @@ public class MXDataHandler implements IMXEventListener {
             if ((null != syncResponse.toDevice) &&
                     (null != syncResponse.toDevice.events) &&
                     (syncResponse.toDevice.events.size() > 0)) {
-                Log.d(LOG_TAG, "manageResponse : receives " + syncResponse.toDevice.events.size() + " events");
+                Log.d(LOG_TAG, "manageResponse : receives " + syncResponse.toDevice.events.size() + " toDevice events");
 
                 for (Event toDeviceEvent : syncResponse.toDevice.events) {
                     handleToDeviceEvent(toDeviceEvent);
