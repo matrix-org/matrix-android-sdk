@@ -259,6 +259,13 @@ public class MXCrypto {
     }
 
     /**
+     * @return my device info
+     */
+    public MXDeviceInfo getMyDevice() {
+        return mMyDevice;
+    }
+
+    /**
      * @return the crypto store
      */
     public IMXCryptoStore getCryptoStore() {
