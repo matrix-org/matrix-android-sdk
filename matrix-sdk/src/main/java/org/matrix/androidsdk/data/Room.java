@@ -1049,6 +1049,11 @@ public class Room {
             if (null != summary) {
                 summary.setUnreadEventsCount(0);
             }
+
+            getLiveState().setNotificationCount(0);
+            getLiveState().setHighlightCount(0);
+            
+            mDataHandler.getStore().storeRoom(this);
         }
 
         return res;
