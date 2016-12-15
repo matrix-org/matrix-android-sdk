@@ -252,6 +252,13 @@ public class MXCrypto {
     }
 
     /**
+     * @return true if this instance has been released
+     */
+    public boolean hasBeenReleased() {
+        return (null == mOlmDevice);
+    }
+
+    /**
      * @return the crypto store
      */
     public IMXCryptoStore getCryptoStore() {
@@ -346,49 +353,51 @@ public class MXCrypto {
 
                     @Override
                     public void onSuccess(Void info) {
-                        Log.d(LOG_TAG, "###########################################################");
-                        Log.d(LOG_TAG, "uploadKeys done for " + mSession.getMyUserId());
-                        Log.d(LOG_TAG, "   - device id  : " +  mSession.getCredentials().deviceId);
-                        Log.d(LOG_TAG, "  - ed25519    : " + mOlmDevice.getDeviceEd25519Key());
-                        Log.d(LOG_TAG, "   - curve25519 : " + mOlmDevice.getDeviceCurve25519Key());
-                        Log.d(LOG_TAG, "  - oneTimeKeys: "  + mLastPublishedOneTimeKeys);     // They are
-                        Log.d(LOG_TAG, "");
+                        if (!hasBeenReleased()) {
+                            Log.d(LOG_TAG, "###########################################################");
+                            Log.d(LOG_TAG, "uploadKeys done for " + mSession.getMyUserId());
+                            Log.d(LOG_TAG, "   - device id  : " + mSession.getCredentials().deviceId);
+                            Log.d(LOG_TAG, "  - ed25519    : " + mOlmDevice.getDeviceEd25519Key());
+                            Log.d(LOG_TAG, "   - curve25519 : " + mOlmDevice.getDeviceCurve25519Key());
+                            Log.d(LOG_TAG, "  - oneTimeKeys: " + mLastPublishedOneTimeKeys);     // They are
+                            Log.d(LOG_TAG, "");
 
-                        checkDeviceAnnounced(new ApiCallback<Void>() {
-                            @Override
-                            public void onSuccess(Void info) {
-                                if (null != mNetworkConnectivityReceiver) {
-                                    mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
+                            checkDeviceAnnounced(new ApiCallback<Void>() {
+                                @Override
+                                public void onSuccess(Void info) {
+                                    if (null != mNetworkConnectivityReceiver) {
+                                        mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
+                                    }
+
+                                    mIsStarting = false;
+                                    mIsStarted = true;
+                                    startUploadKeysTimer(true);
+
+                                    for (ApiCallback<Void> callback : mInitializationCallbacks) {
+                                        callback.onSuccess(null);
+                                    }
+                                    mInitializationCallbacks.clear();
                                 }
 
-                                mIsStarting = false;
-                                mIsStarted = true;
-                                startUploadKeysTimer(true);
-
-                                for(ApiCallback<Void> callback : mInitializationCallbacks) {
-                                    callback.onSuccess(null);
+                                @Override
+                                public void onNetworkError(Exception e) {
+                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                    onError();
                                 }
-                                mInitializationCallbacks.clear();
-                            }
 
-                            @Override
-                            public void onNetworkError(Exception e) {
-                                Log.e(LOG_TAG, "## start failed : " + e.getMessage());
-                                onError();
-                            }
+                                @Override
+                                public void onMatrixError(MatrixError e) {
+                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                    onError();
+                                }
 
-                            @Override
-                            public void onMatrixError(MatrixError e) {
-                                Log.e(LOG_TAG, "## start failed : " + e.getMessage());
-                                onError();
-                            }
-
-                            @Override
-                            public void onUnexpectedError(Exception e) {
-                                Log.e(LOG_TAG, "## start failed : " + e.getMessage());
-                                onError();
-                            }
-                        });
+                                @Override
+                                public void onUnexpectedError(Exception e) {
+                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                    onError();
+                                }
+                            });
+                        }
                     }
 
                     @Override
@@ -453,79 +462,81 @@ public class MXCrypto {
 
             @Override
             public void onSuccess(KeysUploadResponse keysUploadResponse) {
-                // We need to keep a pool of one time public keys on the server so that
-                // other devices can start conversations with us. But we can only store
-                // a finite number of private keys in the olm Account object.
-                // To complicate things further then can be a delay between a device
-                // claiming a public one time key from the server and it sending us a
-                // message. We need to keep the corresponding private key locally until
-                // we receive the message.
-                // But that message might never arrive leaving us stuck with duff
-                // private keys clogging up our local storage.
-                // So we need some kind of enginering compromise to balance all of
-                // these factors.
+                if (!hasBeenReleased()) {
+                    // We need to keep a pool of one time public keys on the server so that
+                    // other devices can start conversations with us. But we can only store
+                    // a finite number of private keys in the olm Account object.
+                    // To complicate things further then can be a delay between a device
+                    // claiming a public one time key from the server and it sending us a
+                    // message. We need to keep the corresponding private key locally until
+                    // we receive the message.
+                    // But that message might never arrive leaving us stuck with duff
+                    // private keys clogging up our local storage.
+                    // So we need some kind of enginering compromise to balance all of
+                    // these factors.
 
-                // We first find how many keys the server has for us.
-                int keyCount  = keysUploadResponse.oneTimeKeyCountsForAlgorithm("signed_curve25519");
+                    // We first find how many keys the server has for us.
+                    int keyCount = keysUploadResponse.oneTimeKeyCountsForAlgorithm("signed_curve25519");
 
-                // We then check how many keys we can store in the Account object.
-                float maxOneTimeKeys = mOlmDevice.getMaxNumberOfOneTimeKeys();
+                    // We then check how many keys we can store in the Account object.
+                    float maxOneTimeKeys = mOlmDevice.getMaxNumberOfOneTimeKeys();
 
-                // Try to keep at most half that number on the server. This leaves the
-                // rest of the slots free to hold keys that have been claimed from the
-                // server but we haven't recevied a message for.
-                // If we run out of slots when generating new keys then olm will
-                // discard the oldest private keys first. This will eventually clean
-                // out stale private keys that won't receive a message.
-                int keyLimit = (int)Math.floor(maxOneTimeKeys / 2.0);
+                    // Try to keep at most half that number on the server. This leaves the
+                    // rest of the slots free to hold keys that have been claimed from the
+                    // server but we haven't recevied a message for.
+                    // If we run out of slots when generating new keys then olm will
+                    // discard the oldest private keys first. This will eventually clean
+                    // out stale private keys that won't receive a message.
+                    int keyLimit = (int) Math.floor(maxOneTimeKeys / 2.0);
 
-                // We work out how many new keys we need to create to top up the server
-                // If there are too many keys on the server then we don't need to
-                // create any more keys.
-                int numberToGenerate = Math.max(keyLimit - keyCount, 0);
+                    // We work out how many new keys we need to create to top up the server
+                    // If there are too many keys on the server then we don't need to
+                    // create any more keys.
+                    int numberToGenerate = Math.max(keyLimit - keyCount, 0);
 
-                if (maxKeys > 0) {
-                    // Creating keys can be an expensive operation so we limit the
-                    // number we generate in one go to avoid blocking the application
-                    // for too long.
-                    numberToGenerate = Math.min(numberToGenerate, maxKeys);
+                    if (maxKeys > 0) {
+                        // Creating keys can be an expensive operation so we limit the
+                        // number we generate in one go to avoid blocking the application
+                        // for too long.
+                        numberToGenerate = Math.min(numberToGenerate, maxKeys);
 
-                    // Ask olm to generate new one time keys, then upload them to synapse.
-                    mOlmDevice.generateOneTimeKeys(numberToGenerate);
+                        // Ask olm to generate new one time keys, then upload them to synapse.
+                        mOlmDevice.generateOneTimeKeys(numberToGenerate);
 
-                    uploadOneTimeKeys(new ApiCallback<KeysUploadResponse>() {
-                        @Override
-                        public void onSuccess(KeysUploadResponse info) {
-                            if (null != callback) {
-                                callback.onSuccess(null);
+                        uploadOneTimeKeys(new ApiCallback<KeysUploadResponse>() {
+                            @Override
+                            public void onSuccess(KeysUploadResponse info) {
+                                if (null != callback) {
+                                    callback.onSuccess(null);
+                                }
                             }
-                        }
 
-                        @Override
-                        public void onNetworkError(Exception e) {
-                            if (null != callback) {
-                                callback.onNetworkError(e);
+                            @Override
+                            public void onNetworkError(Exception e) {
+                                if (null != callback) {
+                                    callback.onNetworkError(e);
+                                }
                             }
-                        }
 
-                        @Override
-                        public void onMatrixError(MatrixError e) {
-                            if (null != callback) {
-                                callback.onMatrixError(e);
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                                if (null != callback) {
+                                    callback.onMatrixError(e);
+                                }
                             }
-                        }
 
-                        @Override
-                        public void onUnexpectedError(Exception e) {
-                            if (null != callback) {
-                                callback.onUnexpectedError(e);
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+                                if (null != callback) {
+                                    callback.onUnexpectedError(e);
+                                }
                             }
+                        });
+                    } else {
+                        // If we don't need to generate any keys then we are done.
+                        if (null != callback) {
+                            callback.onSuccess(null);
                         }
-                    });
-                } else {
-                    // If we don't need to generate any keys then we are done.
-                    if (null != callback) {
-                        callback.onSuccess(null);
                     }
                 }
             }
@@ -670,52 +681,56 @@ public class MXCrypto {
 
                     @Override
                     protected Void doInBackground(Void... voids) {
-                        for (String userId : downloadUsers) {
-                            Map<String, MXDeviceInfo> devices = keysQueryResponse.deviceKeys.get(userId);
+                        try {
+                            for (String userId : downloadUsers) {
+                                Map<String, MXDeviceInfo> devices = keysQueryResponse.deviceKeys.get(userId);
 
-                            Log.d(LOG_TAG, "## doKeyDownloadForUsers() : Got keys for " + userId + " : " + devices);
+                                Log.d(LOG_TAG, "## doKeyDownloadForUsers() : Got keys for " + userId + " : " + devices);
 
-                            if (null == devices) {
-                                // This can happen when the user hs can not reach the other users hses
-                                // TODO: do something with keysQueryResponse.failures
-                                failedUserIds.add(userId);
-                            } else {
-                                HashMap<String, MXDeviceInfo> mutabledevices = new HashMap<>(devices);
-                                ArrayList<String> deviceIds =  new ArrayList<>(mutabledevices.keySet());
+                                if (null == devices) {
+                                    // This can happen when the user hs can not reach the other users hses
+                                    // TODO: do something with keysQueryResponse.failures
+                                    failedUserIds.add(userId);
+                                } else {
+                                    HashMap<String, MXDeviceInfo> mutabledevices = new HashMap<>(devices);
+                                    ArrayList<String> deviceIds = new ArrayList<>(mutabledevices.keySet());
 
-                                for (String deviceId : deviceIds) {
-                                    // the user has been logged out
-                                    if (null == mCryptoStore) {
-                                        return null;
-                                    }
-
-                                    // Get the potential previously store device keys for this device
-                                    MXDeviceInfo previouslyStoredDeviceKeys = mCryptoStore.getUserDevice(deviceId, userId);
-
-                                    // Validate received keys
-                                    if (!validateDeviceKeys(mutabledevices.get(deviceId), userId, deviceId, previouslyStoredDeviceKeys)) {
-                                        // New device keys are not valid. Do not store them
-                                        mutabledevices.remove(deviceId);
-
-                                        if (null != previouslyStoredDeviceKeys) {
-                                            // But keep old validated ones if any
-                                            mutabledevices.put(deviceId, previouslyStoredDeviceKeys);
+                                    for (String deviceId : deviceIds) {
+                                        // the user has been logged out
+                                        if (null == mCryptoStore) {
+                                            return null;
                                         }
-                                    } else if (null != previouslyStoredDeviceKeys) {
-                                        // The verified status is not sync'ed with hs.
-                                        // This is a client side information, valid only for this client.
-                                        // So, transfer its previous value
-                                        mutabledevices.get(deviceId).mVerified = previouslyStoredDeviceKeys.mVerified;
+
+                                        // Get the potential previously store device keys for this device
+                                        MXDeviceInfo previouslyStoredDeviceKeys = mCryptoStore.getUserDevice(deviceId, userId);
+
+                                        // Validate received keys
+                                        if (!validateDeviceKeys(mutabledevices.get(deviceId), userId, deviceId, previouslyStoredDeviceKeys)) {
+                                            // New device keys are not valid. Do not store them
+                                            mutabledevices.remove(deviceId);
+
+                                            if (null != previouslyStoredDeviceKeys) {
+                                                // But keep old validated ones if any
+                                                mutabledevices.put(deviceId, previouslyStoredDeviceKeys);
+                                            }
+                                        } else if (null != previouslyStoredDeviceKeys) {
+                                            // The verified status is not sync'ed with hs.
+                                            // This is a client side information, valid only for this client.
+                                            // So, transfer its previous value
+                                            mutabledevices.get(deviceId).mVerified = previouslyStoredDeviceKeys.mVerified;
+                                        }
                                     }
+
+                                    // Update the store
+                                    // Note that devices which aren't in the response will be removed from the stores
+                                    mCryptoStore.storeUserDevices(userId, mutabledevices);
+
+                                    // And the response result
+                                    usersDevicesInfoMap.setObjects(mutabledevices, userId);
                                 }
-
-                                // Update the store
-                                // Note that devices which aren't in the response will be removed from the stores
-                                mCryptoStore.storeUserDevices(userId, mutabledevices);
-
-                                // And the response result
-                                usersDevicesInfoMap.setObjects(mutabledevices, userId);
                             }
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "## doKeyDownloadForUsers() :  failed " + e.getMessage());
                         }
 
                         return null;
@@ -723,8 +738,10 @@ public class MXCrypto {
 
                     @Override
                     protected void onPostExecute(Void anything) {
-                        if (null != callback) {
-                            callback.onSuccess(new DoKeyDownloadForUsersResponse(usersDevicesInfoMap, failedUserIds));
+                        if (!hasBeenReleased()) {
+                            if (null != callback) {
+                                callback.onSuccess(new DoKeyDownloadForUsersResponse(usersDevicesInfoMap, failedUserIds));
+                            }
                         }
                     }
                 }.execute();
@@ -781,22 +798,24 @@ public class MXCrypto {
      * @return the device info.
      */
     public MXDeviceInfo deviceWithIdentityKey(String senderKey, String userId, String algorithm) {
-        if (!TextUtils.equals(algorithm, MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM) && !TextUtils.equals(algorithm, MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM)) {
-            // We only deal in olm keys
-            return null;
-        }
+        if (!hasBeenReleased()) {
+            if (!TextUtils.equals(algorithm, MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM) && !TextUtils.equals(algorithm, MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM)) {
+                // We only deal in olm keys
+                return null;
+            }
 
-        if (!TextUtils.isEmpty(userId)) {
-            List<MXDeviceInfo> devices = storedDevicesForUser(userId);
+            if (!TextUtils.isEmpty(userId)) {
+                List<MXDeviceInfo> devices = storedDevicesForUser(userId);
 
-            if (null != devices) {
-                for (MXDeviceInfo device : devices) {
-                    Set<String> keys = device.keys.keySet();
+                if (null != devices) {
+                    for (MXDeviceInfo device : devices) {
+                        Set<String> keys = device.keys.keySet();
 
-                    for (String keyId : keys) {
-                        if (keyId.startsWith("curve25519:")) {
-                            if (TextUtils.equals(senderKey, device.keys.get(keyId))) {
-                                return device;
+                        for (String keyId : keys) {
+                            if (keyId.startsWith("curve25519:")) {
+                                if (TextUtils.equals(senderKey, device.keys.get(keyId))) {
+                                    return device;
+                                }
                             }
                         }
                     }
@@ -831,6 +850,10 @@ public class MXCrypto {
      * @param userId the owner of the device.
      */
     public void setDeviceVerification(int verificationStatus, String deviceId, String userId) {
+        if (hasBeenReleased()) {
+            return;
+        }
+
         MXDeviceInfo device = mCryptoStore.getUserDevice(deviceId, userId);
 
         // Sanity check
@@ -872,6 +895,10 @@ public class MXCrypto {
      * @return true if the operation succeeds.
      */
     private boolean setEncryptionInRoom(String roomId, String algorithm) {
+        if (hasBeenReleased()) {
+            return false;
+        }
+
         // If we already have encryption in this room, we should ignore this event
         // (for now at least. Maybe we should alert the user somehow?)
         String existingAlgorithm = mCryptoStore.getRoomAlgorithm(roomId);
@@ -1026,44 +1053,48 @@ public class MXCrypto {
                 new AsyncTask<Void, Void, Void>() {
                     @Override
                     protected Void doInBackground(Void... voids) {
-                        Log.d(LOG_TAG, "## claimOneTimeKeysForUsersDevices() : keysClaimResponse.oneTimeKeys: " + oneTimeKeys);
+                        try {
+                            Log.d(LOG_TAG, "## claimOneTimeKeysForUsersDevices() : keysClaimResponse.oneTimeKeys: " + oneTimeKeys);
 
-                        Set<String> userIds = devicesByUser.keySet();
+                            Set<String> userIds = devicesByUser.keySet();
 
-                        for (String userId : userIds) {
-                            ArrayList<MXDeviceInfo> deviceInfos = devicesByUser.get(userId);
+                            for (String userId : userIds) {
+                                ArrayList<MXDeviceInfo> deviceInfos = devicesByUser.get(userId);
 
-                            for (MXDeviceInfo deviceInfo : deviceInfos) {
+                                for (MXDeviceInfo deviceInfo : deviceInfos) {
 
-                                MXKey oneTimeKey = null;
+                                    MXKey oneTimeKey = null;
 
-                                List<String> deviceIds = oneTimeKeys.getUserDeviceIds(userId);
+                                    List<String> deviceIds = oneTimeKeys.getUserDeviceIds(userId);
 
-                                if (null != deviceIds) {
-                                    for (String deviceId : deviceIds) {
-                                        MXOlmSessionResult  olmSessionResult = results.getObject(deviceId, userId);
+                                    if (null != deviceIds) {
+                                        for (String deviceId : deviceIds) {
+                                            MXOlmSessionResult olmSessionResult = results.getObject(deviceId, userId);
 
-                                        if (null != olmSessionResult.mSessionId) {
-                                            // We already have a result for this device
-                                            continue;
+                                            if (null != olmSessionResult.mSessionId) {
+                                                // We already have a result for this device
+                                                continue;
+                                            }
+
+                                            MXKey key = oneTimeKeys.getObject(deviceId, userId);
+
+                                            if (TextUtils.equals(key.type, oneTimeKeyAlgorithm)) {
+                                                oneTimeKey = key;
+                                            }
+
+                                            if (null == oneTimeKey) {
+                                                Log.d(LOG_TAG, "## ensureOlmSessionsForDevices() : No one-time keys " + oneTimeKeyAlgorithm + " for device " + userId + " : " + deviceId);
+                                                continue;
+                                            }
+
+                                            // Update the result for this device in results
+                                            olmSessionResult.mSessionId = verifyKeyAndStartSession(oneTimeKey, userId, deviceInfo);
                                         }
-
-                                        MXKey key = oneTimeKeys.getObject(deviceId, userId);
-
-                                        if (TextUtils.equals(key.type, oneTimeKeyAlgorithm)) {
-                                            oneTimeKey = key;
-                                        }
-
-                                        if (null == oneTimeKey) {
-                                            Log.d(LOG_TAG, "## ensureOlmSessionsForDevices() : No one-time keys " +  oneTimeKeyAlgorithm + " for device " + userId + " : " + deviceId);
-                                            continue;
-                                        }
-
-                                        // Update the result for this device in results
-                                        olmSessionResult.mSessionId = verifyKeyAndStartSession(oneTimeKey, userId, deviceInfo);
                                     }
                                 }
                             }
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "## ensureOlmSessionsForDevices() " + e.getMessage());
                         }
 
                         return null;
@@ -1071,8 +1102,10 @@ public class MXCrypto {
 
                     @Override
                     protected void onPostExecute(Void anything) {
-                        if (null != callback) {
-                            callback.onSuccess(results);
+                        if (!hasBeenReleased()) {
+                            if (null != callback) {
+                                callback.onSuccess(results);
+                            }
                         }
                     }
                 }.execute();
@@ -1294,8 +1327,12 @@ public class MXCrypto {
      * @return the content for an m.room.encrypted event.
      */
     public Map<String, Object> encryptMessage(Map<String, Object> payloadFields, List<MXDeviceInfo> deviceInfos) {
-        ArrayList<String> participantKeys = new ArrayList<>();
+        if (hasBeenReleased()) {
+            return new HashMap<>();
+        }
+
         HashMap<String, MXDeviceInfo> deviceInfoParticipantKey = new HashMap<>();
+        ArrayList<String> participantKeys = new ArrayList<>();
 
         for(MXDeviceInfo di : deviceInfos) {
             participantKeys.add(di.identityKey());
@@ -1684,11 +1721,13 @@ public class MXCrypto {
         mSession.getCryptoRestClient().uploadKeys(null, oneTimeJson, mMyDevice.deviceId, new ApiCallback<KeysUploadResponse>() {
             @Override
             public void onSuccess(KeysUploadResponse info) {
-                mLastPublishedOneTimeKeys = oneTimeKeys;
-                mOlmDevice.markKeysAsPublished();
+                if (!hasBeenReleased()) {
+                    mLastPublishedOneTimeKeys = oneTimeKeys;
+                    mOlmDevice.markKeysAsPublished();
 
-                if (null != callback) {
-                    callback.onSuccess(info);
+                    if (null != callback) {
+                        callback.onSuccess(info);
+                    }
                 }
             }
 

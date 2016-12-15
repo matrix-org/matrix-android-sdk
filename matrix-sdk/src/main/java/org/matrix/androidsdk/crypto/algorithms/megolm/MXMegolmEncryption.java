@@ -475,7 +475,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                             }
                         }
 
-                        if (haveTargets) {
+                        if (haveTargets && !mCrypto.hasBeenReleased()) {
                             mCrypto.mCryptoStore.flushSessions();
                         }
 
@@ -484,7 +484,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
                     @Override
                     protected void onPostExecute(Boolean haveTargets) {
-                        if (haveTargets) {
+                        if (haveTargets && !mCrypto.hasBeenReleased()) {
                             final long t0 = System.currentTimeMillis();
                             Log.d(LOG_TAG, "## shareUserDevicesKey() : has target");
 
