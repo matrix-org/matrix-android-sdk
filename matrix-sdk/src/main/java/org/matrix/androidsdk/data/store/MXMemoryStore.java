@@ -53,7 +53,7 @@ public class MXMemoryStore implements IMXStore {
     protected Map<String, Room> mRooms;
     protected Map<String, User> mUsers;
 
-    private static final Object mRoomEventsLock = new Object();
+    protected static final Object mRoomEventsLock = new Object();
 
     // room id -> map of (event_id -> event) events for this room (linked so insertion order is preserved)
     protected Map<String, LinkedHashMap<String, Event>> mRoomEvents;

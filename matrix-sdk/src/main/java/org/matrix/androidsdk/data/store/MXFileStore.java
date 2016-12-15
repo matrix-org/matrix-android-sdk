@@ -925,13 +925,21 @@ public class MXFileStore extends MXMemoryStore {
     //================================================================================
 
     private void saveRoomMessages(String roomId) {
-        LinkedHashMap<String, Event> eventsHash = mRoomEvents.get(roomId);
+        LinkedHashMap<String, Event> eventsHash;
+        synchronized (mRoomEventsLock) {
+            eventsHash = mRoomEvents.get(roomId);
+        }
+
         String token = mRoomTokens.get(roomId);
 
         // the list exists ?
         if ((null != eventsHash) && (null != token)) {
             LinkedHashMap<String, Event> hashCopy = new LinkedHashMap<>();
-            ArrayList<Event> eventsList = new ArrayList<>(eventsHash.values());
+            ArrayList<Event> eventsList;
+
+            synchronized (mRoomEventsLock) {
+                eventsList = new ArrayList<>(eventsHash.values());
+            }
 
             int startIndex = 0;
 
