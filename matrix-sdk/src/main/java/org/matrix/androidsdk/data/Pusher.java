@@ -28,4 +28,10 @@ public class Pusher {
     public String lang;
     public Map<String, String> data;
     public Boolean append;
+
+
+    @Override
+    public java.lang.String toString() {
+        return "Pusher : \n\tappDisplayName " + appDisplayName + "\n\tdeviceDisplayName " + deviceDisplayName + "\n\tpushkey " + pushkey;
+    }
 }
