@@ -1042,7 +1042,7 @@ public class Room {
     public boolean sendReadReceipt(final ApiCallback<Void> aRespCallback) {
         boolean res = sendReadReceipt(null, aRespCallback);
 
-        // if the request is not sent, ensure that the counter is cleared
+        // if the request is not sent, ensure that the counters are cleared
         if (!res) {
             RoomSummary summary = mDataHandler.getStore().getSummary(getRoomId());
 
@@ -1052,7 +1052,7 @@ public class Room {
 
             getLiveState().setNotificationCount(0);
             getLiveState().setHighlightCount(0);
-            
+
             mDataHandler.getStore().storeRoom(this);
         }
 
