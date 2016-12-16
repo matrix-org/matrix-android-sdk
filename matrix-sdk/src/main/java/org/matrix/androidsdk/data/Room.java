@@ -1046,14 +1046,19 @@ public class Room {
         if (!res) {
             RoomSummary summary = mDataHandler.getStore().getSummary(getRoomId());
 
-            if (null != summary) {
+            if ((null != summary) && (0 != summary.getUnreadEventsCount())) {
+                Log.e(LOG_TAG, "## sendReadReceipt() : the unread message count for " + getRoomId() + " should have been cleared");
                 summary.setUnreadEventsCount(0);
             }
 
-            getLiveState().setNotificationCount(0);
-            getLiveState().setHighlightCount(0);
+            if ((0 != getLiveState().getNotificationCount()) || (0 != getLiveState().getHighlightCount())) {
+                Log.e(LOG_TAG, "## sendReadReceipt() : the notification messages count for " + getRoomId() + " should have been cleared");
 
-            mDataHandler.getStore().storeLiveStateForRoom(getRoomId());
+                getLiveState().setNotificationCount(0);
+                getLiveState().setHighlightCount(0);
+
+                mDataHandler.getStore().storeLiveStateForRoom(getRoomId());
+            }
         }
 
         return res;
