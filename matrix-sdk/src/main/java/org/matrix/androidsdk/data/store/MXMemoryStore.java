@@ -456,7 +456,11 @@ public class MXMemoryStore implements IMXStore {
     public void storeRoom(Room room) {
         if ((null != room) && (null != room.getRoomId())) {
             mRooms.put(room.getRoomId(), room);
-            storeBackToken(room.getRoomId(), "");
+
+            // defines a default back token
+            if (!mRoomTokens.containsKey(room.getRoomId())) {
+                storeBackToken(room.getRoomId(), "");
+            }
         }
     }
 

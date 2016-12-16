@@ -1053,7 +1053,7 @@ public class Room {
             getLiveState().setNotificationCount(0);
             getLiveState().setHighlightCount(0);
 
-            mDataHandler.getStore().storeRoom(this);
+            mDataHandler.getStore().storeLiveStateForRoom(getRoomId());
         }
 
         return res;
