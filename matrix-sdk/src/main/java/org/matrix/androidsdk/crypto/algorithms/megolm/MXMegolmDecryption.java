@@ -98,9 +98,13 @@ public class MXMegolmDecryption implements IMXDecrypting {
                     addEventToPendingList(event, timeline);
                 }
 
-                // Package olm error into MXDecryptingErrorDomain
-                String reason = String.format(MXCryptoError.UNABLE_TO_DECRYPT_REASON, ciphertext, result.mCryptoError.error);
-                result.mCryptoError = new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason);
+                String reason = String.format(MXCryptoError.OLM_REASON, result.mCryptoError.error);
+                String detailedReason = String.format(MXCryptoError.DETAILLED_OLM_REASON, ciphertext, result.mCryptoError.error);
+
+                result.mCryptoError = new MXCryptoError(
+                        MXCryptoError.OLM_ERROR_CODE,
+                        reason,
+                        detailedReason);
             } else if (TextUtils.equals(result.mCryptoError.errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE)) {
                 addEventToPendingList(event, timeline);
             }

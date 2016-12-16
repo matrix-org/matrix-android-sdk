@@ -56,7 +56,9 @@ public class MXCryptoError extends MatrixError {
      */
     public static final String ENCRYPTING_NOT_ENABLED_REASON = "Encryption not enabled";
     public static final String UNABLE_TO_ENCRYPT_REASON =  "Unable to encrypt %s";
-    public static final String UNABLE_TO_DECRYPT_REASON =  "Unable to decrypt %1$s. Olm error: %2$s";
+    public static final String UNABLE_TO_DECRYPT_REASON =  "Unable to decrypt %1$s. Algorithm: %2$s";
+    public static final String OLM_REASON =  "OLM error: %1$s";
+    public static final String DETAILLED_OLM_REASON =  "Unable to decrypt %1$s. OLM error: %2$s";
     public static final String UNKNOWN_INBOUND_SESSSION_ID_REASON = "Unknown inbound session id";
     public static final String INBOUND_SESSION_MISMATCH_ROOM_ID_REASON = "Mismatched room_id for inbound group session (expected %1$s, was %2$s)";
     public static final String MISSING_FIELDS_REASON = "Missing fields in input";
