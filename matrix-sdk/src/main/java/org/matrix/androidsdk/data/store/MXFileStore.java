@@ -1851,14 +1851,20 @@ public class MXFileStore extends MXMemoryStore {
             }
         }
 
-        Map<String, ReceiptData> receiptsMap = mReceiptsByRoomId.get(roomId);
+        final List<ReceiptData> receipts;
 
-        // sanity check
-        if (null == receiptsMap) {
-            return;
+        synchronized (mReceiptsByRoomIdLock) {
+            if (mReceiptsByRoomId.containsKey(roomId)) {
+                receipts = new ArrayList<>(mReceiptsByRoomId.get(roomId).values());
+            } else {
+                receipts = null;
+            }
         }
 
-        final List<ReceiptData> receipts = new ArrayList<>(receiptsMap.values());
+        // sanity check
+        if (null == receipts) {
+            return;
+        }
 
         Runnable r = new Runnable() {
             @Override
