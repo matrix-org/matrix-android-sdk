@@ -1,3 +1,13 @@
+Changes to Matrix Android SDK in 0.7.5 (2016-12-19)
+=======================================================
+
+Improvements: 
+* The e2e keys are sent by 100 devices chunk
+
+Bugfixes:
+* Several issues reported by GA.
+* In some edge cases, the read all function does not clear the unread messages counters.
+
 Changes to Matrix Android SDK in 0.7.4 (2016-12-13)
 =======================================================
 
