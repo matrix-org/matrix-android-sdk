@@ -17,11 +17,13 @@
 package org.matrix.androidsdk.call;
 
 import android.content.Context;
+import android.hardware.Camera;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -46,6 +48,7 @@ import org.webrtc.VideoRendererGui;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -88,6 +91,8 @@ public class MXJingleCall extends MXCall {
     private boolean mUsingLargeLocalRenderer = true;
     private VideoRenderer mLargeRemoteRenderer = null;
     private VideoRenderer mSmallLocalRenderer = null;
+    private int mLocalRenderWidth = -1;
+    private int mLocalRenderHeight = -1;
 
     private VideoRenderer.Callbacks mLargeLocalRendererCallbacks = null;
     private VideoRenderer.Callbacks mSmallLocalRendererCallbacks;
@@ -391,6 +396,14 @@ public class MXJingleCall extends MXCall {
 
                 // compute camera switch new status
                 mIsCameraSwitched = !mIsCameraSwitched;
+
+                mUIThreadHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        listenPreviewUpdate();
+                    }
+                }, 100);
+
             } else {
                 Log.w(LOG_TAG,"## switchRearFrontCamera(): failed");
             }
@@ -536,6 +549,9 @@ public class MXJingleCall extends MXCall {
                                             // add local preview, only for 1:1 call
                                             mLocalVideoTrack.addRenderer(mSmallLocalRenderer);
                                         }
+
+                                        listenPreviewUpdate();
+
                                         mLocalVideoTrack.setEnabled(true);
                                         mUsingLargeLocalRenderer = false;
 
@@ -1536,4 +1552,90 @@ public class MXJingleCall extends MXCall {
 
         super.dispatchOnStateDidChange(newState);
     }
+
+    //==============================================================================================================
+    // Preview size management
+    //==============================================================================================================
+
+    /**
+     * @return the device rotation angle
+     */
+    private int getDeviceOrientation() {
+        try {
+            WindowManager wm = (WindowManager) this.mContext.getApplicationContext().getSystemService("window");
+            short orientation1;
+            switch (wm.getDefaultDisplay().getRotation()) {
+                case 0:
+                default:
+                    orientation1 = 0;
+                    break;
+                case 1:
+                    orientation1 = 90;
+                    break;
+                case 2:
+                    orientation1 = 180;
+                    break;
+                case 3:
+                    orientation1 = 270;
+            }
+
+            return orientation1;
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## getDeviceOrientation() failed " + e.getMessage());
+        }
+
+        return 0;
+    }
+
+    /**
+     * The camera preview frame has been updated
+     * @param camera the camera
+     * @param cameraOrientation the camera orientation
+     */
+    private void onPreviewFrameUpdate(Camera camera, int cameraOrientation) {
+        Camera.Size s = camera.getParameters().getPreviewSize();
+        int width = s.width;
+        int height = s.height;
+        int rotation = (360 + cameraOrientation + getDeviceOrientation()) % 360;
+
+        if ((rotation == 90) || (rotation == 270)) {
+            width = s.height;
+            height = s.height;
+        }
+
+        if ((width != mLocalRenderWidth) || (height != mLocalRenderHeight)) {
+            mLocalRenderWidth = width;
+            mLocalRenderHeight = height;
+            dispatchOnPreviewSizeChanged(mLocalRenderWidth, mLocalRenderHeight);
+        }
+
+    }
+
+    /**
+     * Define a listener to track the local frame update.
+     */
+    private void listenPreviewUpdate() {
+        try {
+            Field field = mVideoCapturer.getClass().getDeclaredField("camera");
+            field.setAccessible(true);
+            Camera camera = (Camera)field.get(mVideoCapturer);
+            Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
+            Camera.getCameraInfo(mCameraInUse == CAMERA_TYPE_FRONT ? android.hardware.Camera.CameraInfo.CAMERA_FACING_FRONT : android.hardware.Camera.CameraInfo.CAMERA_FACING_BACK, info);
+
+            final int cameraOrientation  = info.orientation;
+
+            camera.setPreviewCallbackWithBuffer(new Camera.PreviewCallback() {
+                @Override
+                public void onPreviewFrame(byte[] data, Camera camera) {
+                    onPreviewFrameUpdate(camera, cameraOrientation);
+                    ((VideoCapturerAndroid)mVideoCapturer).onPreviewFrame(data, camera);
+                }
+            });
+
+            onPreviewFrameUpdate(camera, cameraOrientation);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## listenPreviewUpdate() failed " + e.getMessage());
+        }
+    }
+
 }

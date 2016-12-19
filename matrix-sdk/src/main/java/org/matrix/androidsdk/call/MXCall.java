@@ -603,6 +603,25 @@ public class MXCall implements IMXCall {
     }
 
     /**
+     * Dispatch the onPreviewSizeChanged event to the listeners.
+     * @param width the preview width
+     * @param height the preview height
+     */
+    protected void dispatchOnPreviewSizeChanged(int width, int height) {
+        Log.d(LOG_TAG, "## dispatchOnPreviewSizeChanged(): width =" + width + " - height =" + height);
+
+        List<MXCallListener> listeners = getCallListeners();
+
+        for (MXCallListener listener : listeners) {
+            try {
+                listener.onPreviewSizeChanged(width, height);
+            } catch (Exception e) {
+                Log.e(LOG_TAG,"## dispatchOnPreviewSizeChanged(): Exception Msg="+e.getMessage());
+            }
+        }
+    }
+
+    /**
      * send an hang up event
      * @param reason the reason
      */

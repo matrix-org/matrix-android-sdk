@@ -164,6 +164,13 @@ public interface IMXCall {
          * @param aReasonId the reason of the call ending
          */
         void onCallEnd(final int aReasonId);
+
+        /**
+         * The video preview size has been updated.
+         * @param width the new width (non scaled size)
+         * @param height the new height (non scaled size)
+         */
+        void onPreviewSizeChanged(int width, int height);
     }
 
     // creator
