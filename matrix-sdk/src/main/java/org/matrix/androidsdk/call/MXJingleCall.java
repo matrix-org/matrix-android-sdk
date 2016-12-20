@@ -1045,6 +1045,14 @@ public class MXJingleCall extends MXCall {
                     mVideoSource.restart();
                     mIsVideoSourceStopped = false;
                 }
+
+                mUIThreadHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        listenPreviewUpdate();
+                    }
+                }, 100);
+
             }
         } catch (Exception e) {
             Log.e(LOG_TAG, "onResume failed " + e.getLocalizedMessage());
@@ -1594,21 +1602,29 @@ public class MXJingleCall extends MXCall {
      */
     private void onPreviewFrameUpdate(Camera camera, int cameraOrientation) {
         Camera.Size s = camera.getParameters().getPreviewSize();
-        int width = s.width;
-        int height = s.height;
+        final int width;
+        final int height;
         int rotation = (360 + cameraOrientation + getDeviceOrientation()) % 360;
 
         if ((rotation == 90) || (rotation == 270)) {
             width = s.height;
+            height = s.width;
+        } else {
+            width = s.width;
             height = s.height;
         }
 
         if ((width != mLocalRenderWidth) || (height != mLocalRenderHeight)) {
             mLocalRenderWidth = width;
             mLocalRenderHeight = height;
-            dispatchOnPreviewSizeChanged(mLocalRenderWidth, mLocalRenderHeight);
-        }
 
+            mUIThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    dispatchOnPreviewSizeChanged(width, height);
+                }
+            });
+        }
     }
 
     /**
@@ -1616,23 +1632,30 @@ public class MXJingleCall extends MXCall {
      */
     private void listenPreviewUpdate() {
         try {
-            Field field = mVideoCapturer.getClass().getDeclaredField("camera");
-            field.setAccessible(true);
-            Camera camera = (Camera)field.get(mVideoCapturer);
-            Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
-            Camera.getCameraInfo(mCameraInUse == CAMERA_TYPE_FRONT ? android.hardware.Camera.CameraInfo.CAMERA_FACING_FRONT : android.hardware.Camera.CameraInfo.CAMERA_FACING_BACK, info);
+            if (null != mVideoCapturer) {
+                Field field = mVideoCapturer.getClass().getDeclaredField("camera");
+                field.setAccessible(true);
+                Camera camera = (Camera) field.get(mVideoCapturer);
 
-            final int cameraOrientation  = info.orientation;
+                if (null != camera) {
+                    Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
+                    Camera.getCameraInfo(mCameraInUse == CAMERA_TYPE_FRONT ? android.hardware.Camera.CameraInfo.CAMERA_FACING_FRONT : android.hardware.Camera.CameraInfo.CAMERA_FACING_BACK, info);
 
-            camera.setPreviewCallbackWithBuffer(new Camera.PreviewCallback() {
-                @Override
-                public void onPreviewFrame(byte[] data, Camera camera) {
+                    final int cameraOrientation = info.orientation;
+
+                    camera.setPreviewCallbackWithBuffer(new Camera.PreviewCallback() {
+                        @Override
+                        public void onPreviewFrame(byte[] data, Camera camera) {
+                            onPreviewFrameUpdate(camera, cameraOrientation);
+                            ((VideoCapturerAndroid) mVideoCapturer).onPreviewFrame(data, camera);
+                        }
+                    });
+
                     onPreviewFrameUpdate(camera, cameraOrientation);
-                    ((VideoCapturerAndroid)mVideoCapturer).onPreviewFrame(data, camera);
+                } else {
+                    Log.e(LOG_TAG, "## listenPreviewUpdate() : did not find the camera");
                 }
-            });
-
-            onPreviewFrameUpdate(camera, cameraOrientation);
+            }
         } catch (Exception e) {
             Log.e(LOG_TAG, "## listenPreviewUpdate() failed " + e.getMessage());
         }
