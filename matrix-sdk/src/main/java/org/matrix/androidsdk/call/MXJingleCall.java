@@ -91,8 +91,8 @@ public class MXJingleCall extends MXCall {
     private boolean mUsingLargeLocalRenderer = true;
     private VideoRenderer mLargeRemoteRenderer = null;
     private VideoRenderer mSmallLocalRenderer = null;
-    private int mLocalRenderWidth = -1;
-    private int mLocalRenderHeight = -1;
+    private static int mLocalRenderWidth = -1;
+    private static int mLocalRenderHeight = -1;
 
     private VideoRenderer.Callbacks mLargeLocalRendererCallbacks = null;
     private VideoRenderer.Callbacks mSmallLocalRendererCallbacks;
@@ -402,7 +402,7 @@ public class MXJingleCall extends MXCall {
                     public void run() {
                         listenPreviewUpdate();
                     }
-                }, 100);
+                }, 500);
 
             } else {
                 Log.w(LOG_TAG,"## switchRearFrontCamera(): failed");
@@ -450,6 +450,20 @@ public class MXJingleCall extends MXCall {
     @Override
     public boolean isCameraSwitched(){
         return mIsCameraSwitched;
+    }
+
+    @Override public void addListener(MXCallListener callListener) {
+        super.addListener(callListener);
+
+        // warn about the preview update
+        if ((-1 != mLocalRenderWidth) && (1 != mLocalRenderHeight)) {
+            mUIThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    dispatchOnPreviewSizeChanged(mLocalRenderWidth, mLocalRenderHeight);
+                }
+            });
+        }
     }
 
     /**
@@ -956,11 +970,11 @@ public class MXJingleCall extends MXCall {
 
                 // create the video displaying the local user: horizontal center, just above the video buttons menu
                 if(null != aLocalVideoPosition) {
-                    mSmallLocalRendererCallbacks = VideoRendererGui.create(aLocalVideoPosition.mX, aLocalVideoPosition.mY, aLocalVideoPosition.mWidth, aLocalVideoPosition.mHeight, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
-                    Log.d(LOG_TAG, "## initCallUI(): "+aLocalVideoPosition);
+                    mSmallLocalRendererCallbacks = VideoRendererGui.create(aLocalVideoPosition.mX, aLocalVideoPosition.mY, aLocalVideoPosition.mWidth, aLocalVideoPosition.mHeight, VideoRendererGui.ScalingType.SCALE_ASPECT_BALANCED, true);
+                    Log.d(LOG_TAG, "## initCallUI(): " + aLocalVideoPosition);
                 } else {
                     // default layout
-                    mSmallLocalRendererCallbacks = VideoRendererGui.create(5, 5, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
+                    mSmallLocalRendererCallbacks = VideoRendererGui.create(5, 5, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_BALANCED, true);
                 }
                 mSmallLocalRenderer = new VideoRenderer(mSmallLocalRendererCallbacks);
 
@@ -1051,7 +1065,7 @@ public class MXJingleCall extends MXCall {
                     public void run() {
                         listenPreviewUpdate();
                     }
-                }, 100);
+                }, 500);
 
             }
         } catch (Exception e) {
