@@ -17,11 +17,14 @@
 package org.matrix.androidsdk.call;
 
 import android.content.Context;
+import android.hardware.Camera;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Surface;
 import android.view.View;
+import android.view.WindowManager;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -46,6 +49,7 @@ import org.webrtc.VideoRendererGui;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -88,6 +92,8 @@ public class MXJingleCall extends MXCall {
     private boolean mUsingLargeLocalRenderer = true;
     private VideoRenderer mLargeRemoteRenderer = null;
     private VideoRenderer mSmallLocalRenderer = null;
+    private static int mLocalRenderWidth = -1;
+    private static int mLocalRenderHeight = -1;
 
     private VideoRenderer.Callbacks mLargeLocalRendererCallbacks = null;
     private VideoRenderer.Callbacks mSmallLocalRendererCallbacks;
@@ -391,6 +397,14 @@ public class MXJingleCall extends MXCall {
 
                 // compute camera switch new status
                 mIsCameraSwitched = !mIsCameraSwitched;
+
+                mUIThreadHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        listenPreviewUpdate();
+                    }
+                }, 500);
+
             } else {
                 Log.w(LOG_TAG,"## switchRearFrontCamera(): failed");
             }
@@ -437,6 +451,20 @@ public class MXJingleCall extends MXCall {
     @Override
     public boolean isCameraSwitched(){
         return mIsCameraSwitched;
+    }
+
+    @Override public void addListener(MXCallListener callListener) {
+        super.addListener(callListener);
+
+        // warn about the preview update
+        if ((-1 != mLocalRenderWidth) && (1 != mLocalRenderHeight)) {
+            mUIThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    dispatchOnPreviewSizeChanged(mLocalRenderWidth, mLocalRenderHeight);
+                }
+            });
+        }
     }
 
     /**
@@ -536,6 +564,9 @@ public class MXJingleCall extends MXCall {
                                             // add local preview, only for 1:1 call
                                             mLocalVideoTrack.addRenderer(mSmallLocalRenderer);
                                         }
+
+                                        listenPreviewUpdate();
+
                                         mLocalVideoTrack.setEnabled(true);
                                         mUsingLargeLocalRenderer = false;
 
@@ -940,11 +971,11 @@ public class MXJingleCall extends MXCall {
 
                 // create the video displaying the local user: horizontal center, just above the video buttons menu
                 if(null != aLocalVideoPosition) {
-                    mSmallLocalRendererCallbacks = VideoRendererGui.create(aLocalVideoPosition.mX, aLocalVideoPosition.mY, aLocalVideoPosition.mWidth, aLocalVideoPosition.mHeight, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
-                    Log.d(LOG_TAG, "## initCallUI(): "+aLocalVideoPosition);
+                    mSmallLocalRendererCallbacks = VideoRendererGui.create(aLocalVideoPosition.mX, aLocalVideoPosition.mY, aLocalVideoPosition.mWidth, aLocalVideoPosition.mHeight, VideoRendererGui.ScalingType.SCALE_ASPECT_BALANCED, true);
+                    Log.d(LOG_TAG, "## initCallUI(): " + aLocalVideoPosition);
                 } else {
                     // default layout
-                    mSmallLocalRendererCallbacks = VideoRendererGui.create(5, 5, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
+                    mSmallLocalRendererCallbacks = VideoRendererGui.create(5, 5, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_BALANCED, true);
                 }
                 mSmallLocalRenderer = new VideoRenderer(mSmallLocalRendererCallbacks);
 
@@ -1029,6 +1060,14 @@ public class MXJingleCall extends MXCall {
                     mVideoSource.restart();
                     mIsVideoSourceStopped = false;
                 }
+
+                mUIThreadHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        listenPreviewUpdate();
+                    }
+                }, 500);
+
             }
         } catch (Exception e) {
             Log.e(LOG_TAG, "onResume failed " + e.getLocalizedMessage());
@@ -1536,4 +1575,105 @@ public class MXJingleCall extends MXCall {
 
         super.dispatchOnStateDidChange(newState);
     }
+
+    //==============================================================================================================
+    // Preview size management
+    //==============================================================================================================
+
+    /**
+     * @return the device rotation angle
+     */
+    private int getDeviceOrientation() {
+        try {
+            WindowManager wm = (WindowManager) this.mContext.getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
+            short orientation1;
+            switch (wm.getDefaultDisplay().getRotation()) {
+                case Surface.ROTATION_0:
+                default:
+                    orientation1 = 0;
+                    break;
+                case Surface.ROTATION_90:
+                    orientation1 = 90;
+                    break;
+                case Surface.ROTATION_180:
+                    orientation1 = 180;
+                    break;
+                case Surface.ROTATION_270:
+                    orientation1 = 270;
+            }
+
+            return orientation1;
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## getDeviceOrientation() failed " + e.getMessage());
+        }
+
+        return 0;
+    }
+
+    /**
+     * The camera preview frame has been updated
+     * @param camera the camera
+     * @param cameraOrientation the camera orientation
+     */
+    private void onPreviewFrameUpdate(Camera camera, int cameraOrientation) {
+        Camera.Size s = camera.getParameters().getPreviewSize();
+        final int width;
+        final int height;
+        int rotation = (360 + cameraOrientation + getDeviceOrientation()) % 360;
+
+        if ((rotation == 90) || (rotation == 270)) {
+            width = s.height;
+            height = s.width;
+        } else {
+            width = s.width;
+            height = s.height;
+        }
+
+        if ((width != mLocalRenderWidth) || (height != mLocalRenderHeight)) {
+            mLocalRenderWidth = width;
+            mLocalRenderHeight = height;
+
+            mUIThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    dispatchOnPreviewSizeChanged(width, height);
+                }
+            });
+        }
+    }
+
+    /**
+     * Define a listener to track the local frame update.
+     */
+    private void listenPreviewUpdate() {
+        try {
+            if (null != mVideoCapturer) {
+                Field field = mVideoCapturer.getClass().getDeclaredField("camera");
+                field.setAccessible(true);
+                Camera camera = (Camera) field.get(mVideoCapturer);
+
+                if (null != camera) {
+                    Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
+                    Camera.getCameraInfo(mCameraInUse == CAMERA_TYPE_FRONT ? android.hardware.Camera.CameraInfo.CAMERA_FACING_FRONT : android.hardware.Camera.CameraInfo.CAMERA_FACING_BACK, info);
+
+                    final int cameraOrientation = info.orientation;
+
+                    camera.setPreviewCallbackWithBuffer(new Camera.PreviewCallback() {
+                        @Override
+                        public void onPreviewFrame(byte[] data, Camera camera) {
+                            onPreviewFrameUpdate(camera, cameraOrientation);
+                            ((VideoCapturerAndroid) mVideoCapturer).onPreviewFrame(data, camera);
+                        }
+                    });
+
+                    onPreviewFrameUpdate(camera, cameraOrientation);
+                } else {
+                    Log.e(LOG_TAG, "## listenPreviewUpdate() : did not find the camera");
+                }
+            }
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## listenPreviewUpdate() failed " + e.getMessage());
+        }
+    }
+
 }
