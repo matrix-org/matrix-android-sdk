@@ -134,7 +134,8 @@ public class RestClient<T> {
 
         RestAdapter restAdapter = builder.build();
 
-        restAdapter.setLogLevel(RestAdapter.LogLevel.FULL);
+        // debug only
+        //restAdapter.setLogLevel(RestAdapter.LogLevel.FULL);
 
         mApi = restAdapter.create(type);
     }
