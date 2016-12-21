@@ -22,6 +22,7 @@ import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
 
@@ -1584,20 +1585,20 @@ public class MXJingleCall extends MXCall {
      */
     private int getDeviceOrientation() {
         try {
-            WindowManager wm = (WindowManager) this.mContext.getApplicationContext().getSystemService("window");
+            WindowManager wm = (WindowManager) this.mContext.getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
             short orientation1;
             switch (wm.getDefaultDisplay().getRotation()) {
-                case 0:
+                case Surface.ROTATION_0:
                 default:
                     orientation1 = 0;
                     break;
-                case 1:
+                case Surface.ROTATION_90:
                     orientation1 = 90;
                     break;
-                case 2:
+                case Surface.ROTATION_180:
                     orientation1 = 180;
                     break;
-                case 3:
+                case Surface.ROTATION_270:
                     orientation1 = 270;
             }
 
