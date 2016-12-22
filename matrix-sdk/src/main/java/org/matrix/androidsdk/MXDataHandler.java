@@ -1122,7 +1122,7 @@ public class MXDataHandler implements IMXEventListener {
      */
     public void resetReplayAttackCheckInTimeline(String timelineId) {
         if ((null != timelineId) && (null != mCrypto) && (null != mCrypto.getOlmDevice())) {
-            mCrypto.getOlmDevice().resetReplayAttackCheckInTimeline(timelineId);
+            mCrypto.resetReplayAttackCheckInTimeline(timelineId);
         }
     }
 
