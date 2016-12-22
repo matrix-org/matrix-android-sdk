@@ -110,13 +110,13 @@ public class MXOlmDevice {
         mOutboundGroupSessionStore = new HashMap<>();
 
         try {
-            mDeviceCurve25519Key = mOlmAccount.identityKeys().getString(OlmAccount.JSON_KEY_IDENTITY_KEY);
+            mDeviceCurve25519Key = mOlmAccount.identityKeys().get(OlmAccount.JSON_KEY_IDENTITY_KEY);
         } catch (Exception e) {
             Log.e(LOG_TAG, "## MXOlmDevice : cannot find " + OlmAccount.JSON_KEY_IDENTITY_KEY);
         }
 
         try {
-            mDeviceEd25519Key = mOlmAccount.identityKeys().getString(OlmAccount.JSON_KEY_FINGER_PRINT_KEY);
+            mDeviceEd25519Key = mOlmAccount.identityKeys().get(OlmAccount.JSON_KEY_FINGER_PRINT_KEY);
         } catch (Exception e) {
             Log.e(LOG_TAG, "## MXOlmDevice : cannot find " + OlmAccount.JSON_KEY_FINGER_PRINT_KEY);
         }
@@ -168,15 +168,7 @@ public class MXOlmDevice {
      * @return The current (unused, unpublished) one-time keys for this account.
      */
     public Map<String, Map<String, String>> getOneTimeKeys() {
-        Map<String, Map<String, String>> res = new HashMap<>();
-
-        JSONObject object = mOlmAccount.oneTimeKeys();
-
-        if (null != object) {
-            res = JsonUtils.getGson(false).fromJson(object.toString(), new TypeToken<Map<String, Map<String, String>>>() {}.getType());
-        }
-
-        return res;
+        return mOlmAccount.oneTimeKeys();
     }
 
     /**
