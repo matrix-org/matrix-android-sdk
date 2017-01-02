@@ -1844,6 +1844,11 @@ public class MXCrypto {
             return null;
         }
 
+        if (null == mRoomDecryptors) {
+            Log.e(LOG_TAG, "## getRoomDecryptor() : null mRoomDecryptors");
+            return null;
+        }
+
         IMXDecrypting alg = null;
 
         if (!TextUtils.isEmpty(roomId)) {
