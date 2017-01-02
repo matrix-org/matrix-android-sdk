@@ -143,7 +143,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
         boolean retry = true;
 
         if (null != error.getResponse()) {
-            retry = (error.getResponse().getStatus() < 400) || (error.getResponse().getStatus() >= 500);
+            retry = (error.getResponse().getStatus() < 400) || (error.getResponse().getStatus() > 500);
         }
 
         if (retry && (null != mUnsentEventsManager)) {

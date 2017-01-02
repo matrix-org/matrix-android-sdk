@@ -839,12 +839,9 @@ public class MXSession {
             params.put("is_direct", true);
 
             if (android.util.Patterns.EMAIL_ADDRESS.matcher(aParticipantUserId).matches()) {
-                // retrieve the identity server
-                String identityServer = mHsConfig.getIdentityServerUri().toString();
-
                 // build the invite third party object
                 HashMap<String, String> parameters = new HashMap<>();
-                parameters.put("id_server", identityServer);
+                parameters.put("id_server", mHsConfig.getIdentityServerUri().getHost());
                 parameters.put("medium", "email");
                 parameters.put("address", aParticipantUserId);
 
@@ -859,7 +856,6 @@ public class MXSession {
             createRoom(params, new ApiCallback<String>() {
                 @Override
                 public void onSuccess(String roomId) {
-                    final Room room = getDataHandler().getRoom(roomId);
                     final String fRoomId = roomId;
 
                     toggleDirectChatRoom(roomId, aParticipantUserId, new ApiCallback<Void>() {
