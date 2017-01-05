@@ -18,7 +18,7 @@ package org.matrix.androidsdk.crypto;
 
 import android.text.TextUtils;
 import android.util.Base64;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.rest.model.EncryptedFileInfo;
 import org.matrix.androidsdk.rest.model.EncryptedFileKey;

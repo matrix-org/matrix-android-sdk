@@ -16,34 +16,8 @@
 
 package org.matrix.androidsdk.crypto.algorithms.megolm;
 
-import android.text.TextUtils;
-import android.util.Log;
-
-import com.google.gson.JsonElement;
-
-import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.crypto.MXCrypto;
-import org.matrix.androidsdk.crypto.MXCryptoAlgorithms;
-import org.matrix.androidsdk.crypto.MXOlmDevice;
-import org.matrix.androidsdk.crypto.algorithms.IMXEncrypting;
-import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
-import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
-import org.matrix.androidsdk.crypto.data.MXQueuedEncryption;
+import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
-import org.matrix.androidsdk.data.Room;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.util.JsonUtils;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class MXOutboundSessionInfo {
     private static final String LOG_TAG = "MXOutboundSessionInfo";

@@ -16,7 +16,7 @@
 
 package org.matrix.androidsdk.data;
 
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomTags;
 import org.matrix.androidsdk.util.JsonUtils;

@@ -18,7 +18,7 @@ package org.matrix.androidsdk.db;
 
 import android.os.AsyncTask;
 import android.os.Looper;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import org.json.JSONException;
 import org.json.JSONObject;

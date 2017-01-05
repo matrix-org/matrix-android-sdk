@@ -23,7 +23,7 @@ import android.os.SystemClock;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;

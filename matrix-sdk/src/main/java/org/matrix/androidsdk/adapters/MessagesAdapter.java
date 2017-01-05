@@ -45,7 +45,7 @@ import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.text.style.URLSpan;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;

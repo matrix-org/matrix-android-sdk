@@ -15,7 +15,7 @@
  */
 package org.matrix.androidsdk;
 
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.Gson;
 import com.squareup.okhttp.OkHttpClient;

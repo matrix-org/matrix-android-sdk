@@ -21,7 +21,7 @@ import android.hardware.Camera;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;

@@ -17,7 +17,7 @@
 package org.matrix.androidsdk.crypto;
 
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonParser;
 

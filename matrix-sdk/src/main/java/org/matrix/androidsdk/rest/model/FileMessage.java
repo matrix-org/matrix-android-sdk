@@ -18,7 +18,7 @@ package org.matrix.androidsdk.rest.model;
 import android.content.ClipDescription;
 import android.net.Uri;
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 import android.webkit.MimeTypeMap;
 
 import java.io.File;

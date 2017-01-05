@@ -19,7 +19,7 @@ package org.matrix.androidsdk.call;
 import android.content.Context;
 import android.os.Handler;
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 import android.view.View;
 
 import com.google.gson.JsonElement;
