@@ -20,9 +20,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.JsonParser;
-import com.google.gson.reflect.TypeToken;
 
-import org.json.JSONObject;
 import org.matrix.androidsdk.crypto.algorithms.MXDecryptionResult;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
@@ -98,11 +96,10 @@ public class MXOlmDevice {
             // Else, create it
             try {
                 mOlmAccount = new OlmAccount();
+                mStore.storeAccount(mOlmAccount);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "MXOlmDevice : cannot initialize mOlmAccount " + e.getMessage());
             }
-
-            mStore.storeAccount(mOlmAccount);
         }
 
         mOlmUtility = new OlmUtility();
@@ -112,13 +109,13 @@ public class MXOlmDevice {
         try {
             mDeviceCurve25519Key = mOlmAccount.identityKeys().get(OlmAccount.JSON_KEY_IDENTITY_KEY);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## MXOlmDevice : cannot find " + OlmAccount.JSON_KEY_IDENTITY_KEY);
+            Log.e(LOG_TAG, "## MXOlmDevice : cannot find " + OlmAccount.JSON_KEY_IDENTITY_KEY + " with error " + e.getMessage());
         }
 
         try {
             mDeviceEd25519Key = mOlmAccount.identityKeys().get(OlmAccount.JSON_KEY_FINGER_PRINT_KEY);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## MXOlmDevice : cannot find " + OlmAccount.JSON_KEY_FINGER_PRINT_KEY);
+            Log.e(LOG_TAG, "## MXOlmDevice : cannot find " + OlmAccount.JSON_KEY_FINGER_PRINT_KEY + " with error " + e.getMessage());
         }
 
         mInboundGroupSessionMessageIndexes = new HashMap();
@@ -128,7 +125,9 @@ public class MXOlmDevice {
      * Release the instance
      */
     public void release() {
-        mOlmAccount.releaseAccount();
+        if (null != mOlmAccount) {
+            mOlmAccount.releaseAccount();
+        }
     }
 
     /**
@@ -151,7 +150,13 @@ public class MXOlmDevice {
      * @return the base64-encoded signature.
      */
     private String signMessage(String message) {
-        return mOlmAccount.signMessage(message);
+        try {
+            return mOlmAccount.signMessage(message);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## signMessage() : failed " + e.getMessage());
+        }
+
+        return null;
     }
 
     /**
@@ -168,23 +173,36 @@ public class MXOlmDevice {
      * @return The current (unused, unpublished) one-time keys for this account.
      */
     public Map<String, Map<String, String>> getOneTimeKeys() {
-        return mOlmAccount.oneTimeKeys();
+        try {
+            return mOlmAccount.oneTimeKeys();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## getOneTimeKeys() : failed " + e.getMessage());
+        }
+
+        return null;
     }
 
     /**
      * @return The maximum number of one-time keys the olm account can store.
      */
     public long getMaxNumberOfOneTimeKeys() {
-        return mOlmAccount.maxOneTimeKeys();
+        if (null != mOlmAccount) {
+            return mOlmAccount.maxOneTimeKeys();
+        } else {
+            return -1;
+        }
     }
 
     /**
      * Marks all of the one-time keys as published.
      */
     public void markKeysAsPublished() {
-        mOlmAccount.markOneTimeKeysAsPublished();
-
-        mStore.storeAccount(mOlmAccount);
+        try {
+            mOlmAccount.markOneTimeKeysAsPublished();
+            mStore.storeAccount(mOlmAccount);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## markKeysAsPublished() : failed " + e.getMessage());
+        }
     }
 
     /**
@@ -192,9 +210,12 @@ public class MXOlmDevice {
      * @param numKeys number of keys to generate
      */
     public void generateOneTimeKeys(int numKeys) {
-        mOlmAccount.generateOneTimeKeys(numKeys);
-
-        mStore.storeAccount(mOlmAccount);
+        try {
+            mOlmAccount.generateOneTimeKeys(numKeys);
+            mStore.storeAccount(mOlmAccount);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## generateOneTimeKeys() : failed " + e.getMessage());
+        }
     }
 
     /**
@@ -206,17 +227,24 @@ public class MXOlmDevice {
      */
     public String createOutboundSession(String theirIdentityKey, String theirOneTimeKey) {
         Log.d(LOG_TAG, "## createOutboundSession() ; theirIdentityKey " + theirIdentityKey + " theirOneTimeKey " + theirOneTimeKey);
+        OlmSession olmSession = null;
 
         try {
-            OlmSession olmSession = new OlmSession();
-            olmSession.initOutboundSessionWithAccount(mOlmAccount, theirIdentityKey, theirOneTimeKey);
+            olmSession = new OlmSession();
+            olmSession.initOutboundSession(mOlmAccount, theirIdentityKey, theirOneTimeKey);
             mStore.storeSession(olmSession, theirIdentityKey, false);
 
-            Log.d(LOG_TAG, "## createOutboundSession() ;  olmSession.sessionIdentifier: " + olmSession.sessionIdentifier());
+            String sessionIdentifier = olmSession.sessionIdentifier();
 
-            return olmSession.sessionIdentifier();
+            Log.d(LOG_TAG, "## createOutboundSession() ;  olmSession.sessionIdentifier: " + sessionIdentifier);
+            return sessionIdentifier;
+
         } catch (Exception e) {
             Log.e(LOG_TAG, "## createOutboundSession() failed ; " + e.getMessage());
+
+            if (null != olmSession) {
+                olmSession.releaseSession();
+            }
         }
 
         return null;
@@ -237,16 +265,22 @@ public class MXOlmDevice {
         OlmSession olmSession = null;
 
         try {
-            olmSession = new OlmSession();
-        } catch (Exception e) {
-            Log.d(LOG_TAG, "## createInboundSession() : OlmSession creation failed " + e.getMessage());
-        }
+            try {
+                olmSession = new OlmSession();
+                olmSession.initInboundSessionFrom(mOlmAccount, theirDeviceIdentityKey, ciphertext);
+            } catch (Exception e) {
+                Log.d(LOG_TAG, "## createInboundSession() : the session creation failed " + e.getMessage());
+                return null;
+            }
 
-        if (olmSession.initInboundSessionWithAccountFrom(mOlmAccount, theirDeviceIdentityKey, ciphertext) >= 0) {
             Log.d(LOG_TAG, "## createInboundSession() : " + olmSession.sessionIdentifier());
 
-            mOlmAccount.removeOneTimeKeysForSession(olmSession);
-            mStore.storeAccount(mOlmAccount);
+            try {
+                mOlmAccount.removeOneTimeKeys(olmSession);
+                mStore.storeAccount(mOlmAccount);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## createInboundSession() : removeOneTimeKeys failed " + e.getMessage());
+            }
 
             Log.d(LOG_TAG, "## createInboundSession() : ciphertext: " +  ciphertext);
             try {
@@ -259,8 +293,14 @@ public class MXOlmDevice {
             olmMessage.mCipherText = ciphertext;
             olmMessage.mType = messageType;
 
-            String payloadString = olmSession.decryptMessage(olmMessage);
-            mStore.storeSession(olmSession, theirDeviceIdentityKey, true);
+            String payloadString = null;
+
+            try {
+                payloadString = olmSession.decryptMessage(olmMessage);
+                mStore.storeSession(olmSession, theirDeviceIdentityKey, true);
+            } catch (Exception e) {
+                Log.d(LOG_TAG, "## createInboundSession() : decryptMessage failed " + e.getMessage());
+            }
 
             HashMap<String, String> res = new HashMap<>();
 
@@ -268,11 +308,19 @@ public class MXOlmDevice {
                 res.put("payload", payloadString);
             }
 
-            if (!TextUtils.isEmpty(olmSession.sessionIdentifier())) {
-                res.put("session_id", olmSession.sessionIdentifier());
+            String sessionIdentifier = olmSession.sessionIdentifier();
+
+            if (!TextUtils.isEmpty(sessionIdentifier)) {
+                res.put("session_id", sessionIdentifier);
             }
 
             return res;
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## createInboundSession() : OlmSession creation failed " + e.getMessage());
+
+            if (null != olmSession) {
+                olmSession.releaseSession();
+            }
         }
 
         return null;
@@ -324,16 +372,19 @@ public class MXOlmDevice {
         OlmSession olmSession = getSessionForDevice(theirDeviceIdentityKey, sessionId);
 
         if (null != olmSession) {
-            Log.d(LOG_TAG, "## encryptMessage() : olmSession.sessionIdentifier: " + olmSession.sessionIdentifier());
-            Log.d(LOG_TAG, "## encryptMessage() : payloadString: " + payloadString);
+            try {
+                Log.d(LOG_TAG, "## encryptMessage() : olmSession.sessionIdentifier: " + olmSession.sessionIdentifier());
+                Log.d(LOG_TAG, "## encryptMessage() : payloadString: " + payloadString);
 
-            olmMessage = olmSession.encryptMessage(payloadString);
+                olmMessage = olmSession.encryptMessage(payloadString);
+                mStore.storeSession(olmSession, theirDeviceIdentityKey, false);
+                res = new HashMap<>();
 
-            mStore.storeSession(olmSession, theirDeviceIdentityKey, false);
-            res = new HashMap<>();
-
-            res.put("body", olmMessage.mCipherText);
-            res.put("type", olmMessage.mType);
+                res.put("body", olmMessage.mCipherText);
+                res.put("type", olmMessage.mType);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## encryptMessage() : failed " + e.getMessage());
+            }
         }
 
         return res;
@@ -356,9 +407,13 @@ public class MXOlmDevice {
             OlmMessage olmMessage = new OlmMessage();
             olmMessage.mCipherText = ciphertext;
             olmMessage.mType = messageType;
-            payloadString = olmSession.decryptMessage(olmMessage);
 
-            mStore.storeSession(olmSession, theirDeviceIdentityKey, true);
+            try {
+                payloadString = olmSession.decryptMessage(olmMessage);
+                mStore.storeSession(olmSession, theirDeviceIdentityKey, true);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## decryptMessage() : decryptMessage failed " + e.getMessage());
+            }
         }
 
         return payloadString;
@@ -388,12 +443,17 @@ public class MXOlmDevice {
      * @return the session id for the outbound session.
      */
     public String createOutboundGroupSession() {
+        OlmOutboundGroupSession session = null;
         try {
-            OlmOutboundGroupSession session = new OlmOutboundGroupSession();
+            session = new OlmOutboundGroupSession();
             mOutboundGroupSessionStore.put(session.sessionIdentifier(), session);
             return session.sessionIdentifier();
         } catch (Exception e) {
             Log.e(LOG_TAG, "createOutboundGroupSession " + e.getMessage());
+
+            if (null != session) {
+                session.releaseSession();
+            }
         }
         return null;
     }
@@ -405,7 +465,11 @@ public class MXOlmDevice {
      */
     public String getSessionKey(String sessionId) {
         if (!TextUtils.isEmpty(sessionId)) {
-            return mOutboundGroupSessionStore.get(sessionId).sessionKey();
+            try {
+                return mOutboundGroupSessionStore.get(sessionId).sessionKey();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## getSessionKey() : failed " + e.getMessage());
+            }
         }
         return null;
     }
@@ -430,7 +494,11 @@ public class MXOlmDevice {
      */
     public String encryptGroupMessage(String sessionId, String payloadString) {
         if (!TextUtils.isEmpty(sessionId) && !TextUtils.isEmpty(payloadString)) {
-            return mOutboundGroupSessionStore.get(sessionId).encryptMessage(payloadString);
+            try {
+                return mOutboundGroupSessionStore.get(sessionId).encryptMessage(payloadString);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## encryptGroupMessage() : failed " + e.getMessage());
+            }
         }
         return null;
     }
@@ -462,8 +530,13 @@ public class MXOlmDevice {
             return false;
         }
 
-        if (!TextUtils.equals(session.mSession.sessionIdentifier(), sessionId)) {
-            Log.e(LOG_TAG, "## addInboundGroupSession : ERROR: Mismatched group session ID from senderKey: " + senderKey);
+        try {
+            if (!TextUtils.equals(session.mSession.sessionIdentifier(), sessionId)) {
+                Log.e(LOG_TAG, "## addInboundGroupSession : ERROR: Mismatched group session ID from senderKey: " + senderKey);
+                return false;
+            }
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## addInboundGroupSession : sessionIdentifier') failed " + e.getMessage());
             return false;
         }
 
@@ -504,27 +577,26 @@ public class MXOlmDevice {
             // Check that the room id matches the original one for the session. This stops
             // the HS pretending a message was targeting a different room.
             if (TextUtils.equals(roomId, session.mRoomId)) {
-                String payloadString = null;
-				StringBuffer errorMessage = new StringBuffer();
-                OlmInboundGroupSession.DecryptIndex index = new OlmInboundGroupSession.DecryptIndex();
-
+				String errorMessage = "";
+                OlmInboundGroupSession.DecryptMessageResult decryptResult = null;
                 try {
-                    payloadString = session.mSession.decryptMessage(body, index, errorMessage);
+                    decryptResult = session.mSession.decryptMessage(body);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "## decryptGroupMessage () : decryptMessage failed " + e.getMessage());
+                    errorMessage = e.getMessage();
                 }
 
-                if (null != payloadString) {
+                if (null != decryptResult) {
                     if (null != timeline) {
                         if (!mInboundGroupSessionMessageIndexes.containsKey(timeline)) {
                             mInboundGroupSessionMessageIndexes.put(timeline, new HashMap<String, Boolean>());
                         }
 
-                        String messageIndexKey = senderKey + "|" + sessionId + "|" +  index.mIndex;
+                        String messageIndexKey = senderKey + "|" + sessionId + "|" +  decryptResult.mIndex;
 
                         if (null != mInboundGroupSessionMessageIndexes.get(timeline).get(messageIndexKey)) {
 
-                            String reason = String.format(MXCryptoError.DUPLICATE_MESSAGE_INDEX_REASON, index.mIndex);
+                            String reason = String.format(MXCryptoError.DUPLICATE_MESSAGE_INDEX_REASON, decryptResult.mIndex);
 
                             Log.e(LOG_TAG,"## decryptGroupMessage() : " + reason);
                             result.mCryptoError = new MXCryptoError(MXCryptoError.DUPLICATED_MESSAGE_INDEX_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason);
@@ -537,7 +609,7 @@ public class MXOlmDevice {
                     mStore.storeInboundGroupSession(session);
                     try {
                         JsonParser parser = new JsonParser();
-                        result.mPayload = parser.parse(JsonUtils.convertFromUTF8(payloadString));
+                        result.mPayload = parser.parse(JsonUtils.convertFromUTF8(decryptResult.mDecryptedMessage));
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "## decryptGroupMessage() : RLEncoder.encode failed " + e.getMessage());
                         return null;
@@ -556,7 +628,7 @@ public class MXOlmDevice {
                     map.put("curve25519", senderKey);
                     result.mKeysProved = map;
                 } else {
-                    result.mCryptoError = new MXCryptoError(MXCryptoError.OLM_ERROR_CODE, errorMessage.toString(), null);
+                    result.mCryptoError = new MXCryptoError(MXCryptoError.OLM_ERROR_CODE, errorMessage, null);
                     Log.e(LOG_TAG, "## decryptGroupMessage() : failed to decode the message");
                 }
             } else {

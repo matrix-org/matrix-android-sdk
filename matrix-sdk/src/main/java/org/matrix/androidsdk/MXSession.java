@@ -140,7 +140,7 @@ public class MXSession {
     private boolean mIsCatchupPending = false;
 
     // load the crypto libs.
-    public static OlmManager mOlmManager = new OlmManager(android.os.Build.VERSION.SDK_INT < 23);
+    public static OlmManager mOlmManager = new OlmManager();
 
     // regex pattern to find matrix user ids in a string.
     public static final String MATRIX_USER_IDENTIFIER_REGEX = "@[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}";
