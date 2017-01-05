@@ -15,7 +15,7 @@
  */
 package org.matrix.androidsdk.util;
 
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;

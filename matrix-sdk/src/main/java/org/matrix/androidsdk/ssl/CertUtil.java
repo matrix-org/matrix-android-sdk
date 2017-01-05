@@ -16,8 +16,7 @@
 
 package org.matrix.androidsdk.ssl;
 
-import android.util.Log;
-
+import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 
 import java.security.KeyStore;

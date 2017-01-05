@@ -18,7 +18,7 @@ package org.matrix.androidsdk.data;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
