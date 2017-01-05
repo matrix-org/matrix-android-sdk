@@ -1153,20 +1153,23 @@ public class MXCrypto {
         String deviceId = deviceInfo.deviceId;
         String signKeyId = "ed25519:" + deviceId;
         String signature = oneTimeKey.signatureForUserId(userId, signKeyId);
-        StringBuffer error = new StringBuffer();
 
-        // Check one-time key signature
-        if (mOlmDevice.verifySignature(deviceInfo.fingerprint(), oneTimeKey.signalableJSONDictionary(), signature, error)) {
-            sessionId = getOlmDevice().createOutboundSession(deviceInfo.identityKey(), oneTimeKey.value);
+        if (!TextUtils.isEmpty(signature) && !TextUtils.isEmpty(deviceInfo.fingerprint())) {
+            StringBuffer error = new StringBuffer();
 
-            if (!TextUtils.isEmpty(sessionId)) {
-                Log.d(LOG_TAG, "## verifyKeyAndStartSession() : Started new sessionid " +  sessionId + " for device " + deviceInfo + "(theirOneTimeKey: " + oneTimeKey.value + ")");
+            // Check one-time key signature
+            if (mOlmDevice.verifySignature(deviceInfo.fingerprint(), oneTimeKey.signalableJSONDictionary(), signature, error)) {
+                sessionId = getOlmDevice().createOutboundSession(deviceInfo.identityKey(), oneTimeKey.value);
+
+                if (!TextUtils.isEmpty(sessionId)) {
+                    Log.d(LOG_TAG, "## verifyKeyAndStartSession() : Started new sessionid " + sessionId + " for device " + deviceInfo + "(theirOneTimeKey: " + oneTimeKey.value + ")");
+                } else {
+                    // Possibly a bad key
+                    Log.e(LOG_TAG, "## verifyKeyAndStartSession() : Error starting session with device " + userId + ":" + deviceId);
+                }
             } else {
-                // Possibly a bad key
-                Log.e(LOG_TAG, "## verifyKeyAndStartSession() : Error starting session with device " + userId + ":" + deviceId);
+                Log.e(LOG_TAG, "## verifyKeyAndStartSession() : Unable to verify signature on one-time key for device " + userId + ":" + deviceId + " Error " + error.toString());
             }
-        } else {
-            Log.e(LOG_TAG, "## verifyKeyAndStartSession() : Unable to verify signature on one-time key for device " + userId + ":" + deviceId + " Error " + error.toString());
         }
 
         return sessionId;
