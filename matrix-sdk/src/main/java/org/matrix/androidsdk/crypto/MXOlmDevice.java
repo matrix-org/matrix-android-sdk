@@ -26,6 +26,7 @@ import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.olm.OlmAccount;
+import org.matrix.olm.OlmException;
 import org.matrix.olm.OlmInboundGroupSession;
 import org.matrix.olm.OlmMessage;
 import org.matrix.olm.OlmOutboundGroupSession;
@@ -55,7 +56,7 @@ public class MXOlmDevice {
     private OlmAccount mOlmAccount;
 
     // The OLMKit utility instance.
-    private final OlmUtility mOlmUtility;
+    private OlmUtility mOlmUtility;
 
     // The outbound group session.
     // They are not stored in 'store' to avoid to remember to which devices we sent the session key.
@@ -102,7 +103,12 @@ public class MXOlmDevice {
             }
         }
 
-        mOlmUtility = new OlmUtility();
+        try {
+            mOlmUtility = new OlmUtility();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## MXOlmDevice : OlmUtility failed with error " + e.getMessage());
+            mOlmUtility = null;
+        }
 
         mOutboundGroupSessionStore = new HashMap<>();
 
@@ -661,13 +667,12 @@ public class MXOlmDevice {
      * @param key the ed25519 key.
      * @param JSONDictinary the JSON object which was signed.
      * @param signature the base64-encoded signature to be checked.
-     * @param error the failure reason
      * @return true if valid.
+     * @exception OlmException the exception
      */
-
-    public boolean verifySignature(String key, Map<String, Object> JSONDictinary, String signature, StringBuffer error) {
+    public boolean verifySignature(String key, Map<String, Object> JSONDictinary, String signature) throws OlmException {
         // Check signature on the canonical version of the JSON
-        return mOlmUtility.verifyEd25519Signature(signature, key, JsonUtils.getCanonicalizedJsonString(JSONDictinary), error);
+        return mOlmUtility.verifyEd25519Signature(signature, key, JsonUtils.getCanonicalizedJsonString(JSONDictinary));
     }
 
     /**

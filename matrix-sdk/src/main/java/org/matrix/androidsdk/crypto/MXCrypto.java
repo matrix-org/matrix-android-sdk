@@ -1155,10 +1155,17 @@ public class MXCrypto {
         String signature = oneTimeKey.signatureForUserId(userId, signKeyId);
 
         if (!TextUtils.isEmpty(signature) && !TextUtils.isEmpty(deviceInfo.fingerprint())) {
-            StringBuffer error = new StringBuffer();
+            boolean isVerified = false;
+            String errorMessage = null;
+
+            try {
+                isVerified = mOlmDevice.verifySignature(deviceInfo.fingerprint(), oneTimeKey.signalableJSONDictionary(), signature);
+            } catch (Exception e) {
+                errorMessage = e.getMessage();
+            }
 
             // Check one-time key signature
-            if (mOlmDevice.verifySignature(deviceInfo.fingerprint(), oneTimeKey.signalableJSONDictionary(), signature, error)) {
+            if (isVerified) {
                 sessionId = getOlmDevice().createOutboundSession(deviceInfo.identityKey(), oneTimeKey.value);
 
                 if (!TextUtils.isEmpty(sessionId)) {
@@ -1168,7 +1175,7 @@ public class MXCrypto {
                     Log.e(LOG_TAG, "## verifyKeyAndStartSession() : Error starting session with device " + userId + ":" + deviceId);
                 }
             } else {
-                Log.e(LOG_TAG, "## verifyKeyAndStartSession() : Unable to verify signature on one-time key for device " + userId + ":" + deviceId + " Error " + error.toString());
+                Log.e(LOG_TAG, "## verifyKeyAndStartSession() : Unable to verify signature on one-time key for device " + userId + ":" + deviceId + " Error " + errorMessage);
             }
         }
 
@@ -1811,10 +1818,19 @@ public class MXCrypto {
             return false;
         }
 
-        StringBuffer error = new StringBuffer();
+        boolean isVerified = false;
+        String errorMessage = null;
 
-        if (!mOlmDevice.verifySignature(signKey, deviceKeys.signalableJSONDictionary(), signature, error)) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : Unable to verify signature on device " +  userId + ":" + deviceKeys.deviceId +  " with error " + error.toString());
+        try {
+            isVerified = mOlmDevice.verifySignature(signKey, deviceKeys.signalableJSONDictionary(), signature);
+        } catch (Exception e) {
+            errorMessage = e.getMessage();
+        }
+
+
+
+        if (!isVerified) {
+            Log.e(LOG_TAG, "## validateDeviceKeys() : Unable to verify signature on device " +  userId + ":" + deviceKeys.deviceId +  " with error " + errorMessage);
             return false;
         }
 

@@ -311,12 +311,18 @@ public class MXSession {
     /**
      * @return the crypto lib version
      */
-    public String getCryptoVersion() {
+    public String getCryptoVersion(Context context, boolean longFormat) {
+        String version = "";
+
         if (null != mOlmManager) {
-            return mOlmManager.getOlmLibVersion();
+            version = mOlmManager.getOlmLibVersion();
+
+            if (longFormat) {
+                version += " (" + mOlmManager.getSdkOlmVersion(context) + ")";
+            }
         }
 
-        return "";
+        return version;
     }
 
     /**
