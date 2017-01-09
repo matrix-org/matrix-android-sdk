@@ -36,7 +36,7 @@ import java.util.logging.Logger;
  */
 public class Log {
     private static final String LINE_SEPARATOR = System.getProperty("line.separator");
-    private static final int LOG_SIZE_BYTES = 1024 * 500; // 500kb
+    private static final int LOG_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
     
     // relatively large rotation count because closing > opening the app rotates the log (!)
     private static final int LOG_ROTATION_COUNT = 5;
