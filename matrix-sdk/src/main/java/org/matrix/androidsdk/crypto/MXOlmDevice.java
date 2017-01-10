@@ -671,8 +671,17 @@ public class MXOlmDevice {
      * @exception OlmException the exception
      */
     public boolean verifySignature(String key, Map<String, Object> JSONDictinary, String signature) throws OlmException {
-        // Check signature on the canonical version of the JSON
-        return mOlmUtility.verifyEd25519Signature(signature, key, JsonUtils.getCanonicalizedJsonString(JSONDictinary));
+        boolean succeed = false;
+
+        try {
+            // Check signature on the canonical version of the JSON
+            mOlmUtility.verifyEd25519Signature(signature, key, JsonUtils.getCanonicalizedJsonString(JSONDictinary));
+            succeed = true;
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## verifySignature() : failed " + e.getMessage());
+        }
+
+        return succeed;
     }
 
     /**
