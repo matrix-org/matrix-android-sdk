@@ -238,7 +238,7 @@ public class MXOlmDevice {
         try {
             olmSession = new OlmSession();
             olmSession.initOutboundSession(mOlmAccount, theirIdentityKey, theirOneTimeKey);
-            mStore.storeSession(olmSession, theirIdentityKey, false);
+            mStore.storeSession(olmSession, theirIdentityKey);
 
             String sessionIdentifier = olmSession.sessionIdentifier();
 
@@ -303,7 +303,7 @@ public class MXOlmDevice {
 
             try {
                 payloadString = olmSession.decryptMessage(olmMessage);
-                mStore.storeSession(olmSession, theirDeviceIdentityKey, true);
+                mStore.storeSession(olmSession, theirDeviceIdentityKey);
             } catch (Exception e) {
                 Log.d(LOG_TAG, "## createInboundSession() : decryptMessage failed " + e.getMessage());
             }
@@ -383,7 +383,7 @@ public class MXOlmDevice {
                 Log.d(LOG_TAG, "## encryptMessage() : payloadString: " + payloadString);
 
                 olmMessage = olmSession.encryptMessage(payloadString);
-                mStore.storeSession(olmSession, theirDeviceIdentityKey, false);
+                mStore.storeSession(olmSession, theirDeviceIdentityKey);
                 res = new HashMap<>();
 
                 res.put("body", olmMessage.mCipherText);
@@ -416,7 +416,7 @@ public class MXOlmDevice {
 
             try {
                 payloadString = olmSession.decryptMessage(olmMessage);
-                mStore.storeSession(olmSession, theirDeviceIdentityKey, true);
+                mStore.storeSession(olmSession, theirDeviceIdentityKey);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## decryptMessage() : decryptMessage failed " + e.getMessage());
             }

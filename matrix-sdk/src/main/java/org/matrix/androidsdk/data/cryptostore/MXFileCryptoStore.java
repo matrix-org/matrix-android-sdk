@@ -67,8 +67,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private static final String MXFILE_CRYPTO_STORE_ALGORITHMS_FILE = "roomsAlgorithms";
     private static final String MXFILE_CRYPTO_STORE_ALGORITHMS_FILE_TMP = "roomsAlgorithms";
 
-    private static final String MXFILE_CRYPTO_STORE_SESSIONS_FILE = "sessions";
-    private static final String MXFILE_CRYPTO_STORE_SESSIONS_FILE_TMP = "sessions.tmp";
+    private static final String MXFILE_CRYPTO_STORE_OLM_SESSIONS_FILE = "sessions";
+    private static final String MXFILE_CRYPTO_STORE_OLM_SESSIONS_FILE_TMP = "sessions.tmp";
+    private static final String MXFILE_CRYPTO_STORE_OLM_SESSIONS_FOLDER = "olmSessionsFolder";
 
     private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE = "inboundGroupSessions";
     private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE_TMP = "inboundGroupSessions.tmp";
@@ -100,8 +101,6 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             HashMap<String /*inboundGroupSessionId*/,MXOlmInboundGroupSession>> mInboundGroupSessions;
     private final Object mInboundGroupSessionsLock = new Object();
 
-    // OlmSessions to release after the next flush
-    private final ArrayList<OlmSession> mOlmSessionsToRelease = new ArrayList<>();
 
     // The path of the MXFileCryptoStore folder
     private File mStoreFile;
@@ -119,8 +118,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private File mAlgorithmsFile;
     private File mAlgorithmsFileTmp;
 
-    private File mSessionsFile;
-    private File mSessionsFileTmp;
+    private File mOlmSessionsFile;
+    private File mOlmSessionsFileTmp;
+    private File mOlmSessionsFolder;
 
     private File mInboundGroupSessionsFile;
     private File mInboundGroupSessionsFileTmp;
@@ -154,8 +154,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         mAlgorithmsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_ALGORITHMS_FILE);
         mAlgorithmsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_ALGORITHMS_FILE_TMP);
 
-        mSessionsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_SESSIONS_FILE);
-        mSessionsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_SESSIONS_FILE_TMP);
+        // backward compatibility : the sessions used to be stored in an unique file
+        mOlmSessionsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_OLM_SESSIONS_FILE);
+        mOlmSessionsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_OLM_SESSIONS_FILE_TMP);
+        // each session is now stored in a dedicated file
+        mOlmSessionsFolder = new File(mStoreFile, MXFILE_CRYPTO_STORE_OLM_SESSIONS_FOLDER);
 
         mInboundGroupSessionsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE);
         mInboundGroupSessionsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE_TMP);
@@ -483,92 +486,57 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public void storeSession(OlmSession session, String deviceKey, boolean flush) {
+    public void storeSession(final OlmSession olmSession, final String deviceKey) {
         String sessionIdentifier = null;
 
-        if (null != session) {
+        if (null != olmSession) {
             try {
-                sessionIdentifier = session.sessionIdentifier();
+                sessionIdentifier = olmSession.sessionIdentifier();
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## storeSession : session.sessionIdentifier() failed " + e.getMessage());
             }
         }
 
         if ((null != deviceKey) && (null != sessionIdentifier)) {
-
             synchronized (mOlmSessionsLock) {
                 if (!mOlmSessions.containsKey(deviceKey)) {
                     mOlmSessions.put(deviceKey, new HashMap<String, OlmSession>());
                 }
 
-                OlmSession prevSession = mOlmSessions.get(deviceKey).get(sessionIdentifier);
+                final File keyFolder = new File(mOlmSessionsFolder, deviceKey);
+
+                if (!keyFolder.exists()) {
+                    keyFolder.mkdir();
+                }
+
+                OlmSession prevOlmSession = mOlmSessions.get(deviceKey).get(sessionIdentifier);
 
                 // test if the session is a new one
-                if (session != prevSession) {
-                    if (null != prevSession) {
-                        synchronized (mOlmSessionsToRelease) {
-                            if (mOlmSessionsToRelease.indexOf(prevSession) < 0) {
-                                mOlmSessionsToRelease.add(prevSession);
+                if (olmSession != prevOlmSession) {
+                    if (null != prevOlmSession) {
+                        prevOlmSession.releaseSession();
+                    }
+                    mOlmSessions.get(deviceKey).put(sessionIdentifier, olmSession);
+                }
+
+                try {
+                    final File fOlmFile = new File(keyFolder, sessionIdentifier);
+                    final String fSessionIdentifier = sessionIdentifier;
+
+                    getThreadHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (fOlmFile.exists()) {
+                                fOlmFile.delete();
                             }
+
+                            storeObject(olmSession, fOlmFile, "Store olm session " + deviceKey + " " + fSessionIdentifier);
                         }
-                    }
-                    mOlmSessions.get(deviceKey).put(sessionIdentifier, session);
-                }
-
-                if (flush) {
-                    flushSessions();
+                    });
+                } catch (OutOfMemoryError oom) {
+                    Log.e(LOG_TAG, "## flushSessions() : oom");
                 }
             }
-        }
-    }
-
-    @Override
-    public void flushSessions() {
-        try {
-            final HashMap<String, HashMap<String, OlmSession>> olmSessions;
-            final ArrayList<OlmSession> fSessionsToRelease;
-
-            synchronized (mOlmSessionsLock) {
-                olmSessions = cloneOlmSessions(mOlmSessions);
-            }
-
-            synchronized (mOlmSessionsToRelease) {
-                fSessionsToRelease = new ArrayList<>(mOlmSessionsToRelease);
-                mOlmSessionsToRelease.clear();
-
-                Log.d(LOG_TAG, "flushSessions " + mOlmSessionsToRelease.size() + " sessions to release");
-            }
-
-            getThreadHandler().post(new Runnable() {
-                @Override
-                public void run() {
-                    // the file is temporary copied to avoid loosing data if the application crashes.
-
-                    // delete the previous tmp
-                    if (mSessionsFileTmp.exists()) {
-                        mSessionsFileTmp.delete();
-                    }
-
-                    // copy the existing file
-                    if (mSessionsFile.exists()) {
-                        mSessionsFile.renameTo(mSessionsFileTmp);
-                    }
-
-                    storeObject(olmSessions, mSessionsFile, "storeSession - in background");
-
-                    // remove the tmp file
-                    if (mSessionsFileTmp.exists()) {
-                        mSessionsFileTmp.delete();
-                    }
-
-                    for (OlmSession session : fSessionsToRelease) {
-                        session.releaseSession();
-                    }
-
-                }
-            });
-        } catch (OutOfMemoryError oom) {
-            Log.e(LOG_TAG, "## flushSessions() : oom");
         }
     }
 
@@ -748,6 +716,10 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             mDevicesFolder.mkdirs();
         }
 
+        if (!mOlmSessionsFolder.exists()) {
+            mOlmSessionsFolder.mkdir();
+        }
+
         mMetaData = null;
     }
 
@@ -902,26 +874,74 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             }
         }
 
-        Object olmSessionsAsVoid;
 
-        if (mSessionsFileTmp.exists()) {
-            olmSessionsAsVoid = loadObject(mSessionsFileTmp, "preloadCryptoData - mOlmSessions - tmp");
-        } else {
-            olmSessionsAsVoid = loadObject(mSessionsFile, "preloadCryptoData - mOlmSessions");
-        }
+        if (mOlmSessionsFolder.exists()) {
+            String[] olmSessionFiles = mOlmSessionsFolder.list();
 
-        if (null != olmSessionsAsVoid) {
-            try {
-                Map<String, Map<String, OlmSession>> olmSessionMap = (Map<String, Map<String, OlmSession>>)olmSessionsAsVoid;
+            mOlmSessions = new HashMap<>();
 
-                mOlmSessions = new HashMap<>();
+            // build mOlmSessions for the file system
+            for(int i = 0; i < olmSessionFiles.length; i++) {
+                try {
+                    String deviceKey = olmSessionFiles[i];
 
-                for(String key : olmSessionMap.keySet()) {
-                    mOlmSessions.put(key, new HashMap<>(olmSessionMap.get(key)));
+                    HashMap<String, OlmSession> olmSessionSubMap = new HashMap<>();
+
+                    File sessionsDeviceFolder = new File(mOlmSessionsFolder, deviceKey);
+                    String[] sessionIds = sessionsDeviceFolder.list();
+
+                    for(int j = 0; j < sessionIds.length; j++) {
+                        String sessionId = sessionIds[j];
+                        OlmSession olmSession = (OlmSession)loadObject(new File(sessionsDeviceFolder, sessionId), "load the olmSession " + deviceKey + " " + sessionId);
+
+                        if (null != olmSession) {
+                            olmSessionSubMap.put(sessionId, olmSession);
+                        }
+                    }
+
+                    mOlmSessions.put(deviceKey, olmSessionSubMap);
+                } catch (Exception e) {
+                    mIsCorrupted = true;
+                    Log.e(LOG_TAG, "## preloadCryptoData() - invalid mSessionsFile " + e.getMessage());
                 }
-            } catch (Exception e) {
-                mIsCorrupted = true;
-                Log.e(LOG_TAG, "## preloadCryptoData() - invalid mSessionsFile " + e.getMessage());
+            }
+        } else {
+            Object olmSessionsAsVoid;
+
+            if (mOlmSessionsFileTmp.exists()) {
+                olmSessionsAsVoid = loadObject(mOlmSessionsFileTmp, "preloadCryptoData - mOlmSessions - tmp");
+            } else {
+                olmSessionsAsVoid = loadObject(mOlmSessionsFile, "preloadCryptoData - mOlmSessions");
+            }
+
+            if (null != olmSessionsAsVoid) {
+                try {
+                    Map<String, Map<String, OlmSession>> olmSessionMap = (Map<String, Map<String, OlmSession>>) olmSessionsAsVoid;
+
+                    mOlmSessions = new HashMap<>();
+
+                    for (String key : olmSessionMap.keySet()) {
+                        mOlmSessions.put(key, new HashMap<>(olmSessionMap.get(key)));
+                    }
+
+                    // convert to the new format
+                    mOlmSessionsFolder.mkdir();
+
+                    for (String key : olmSessionMap.keySet()) {
+                        Map<String, OlmSession> submap = olmSessionMap.get(key);
+                        File submapFile = new File(mOlmSessionsFolder, key);
+
+                        submapFile.mkdir();
+
+                        for(String sessionId : submap.keySet()) {
+                            File olmFile = new File(submapFile, sessionId);
+                            storeObject(submap.get(sessionId), olmFile, "Convert olmSession " + key + " " + sessionId);
+                        }
+                    }
+                } catch (Exception e) {
+                    mIsCorrupted = true;
+                    Log.e(LOG_TAG, "## preloadCryptoData() - invalid mSessionsFile " + e.getMessage());
+                }
             }
         }
 
