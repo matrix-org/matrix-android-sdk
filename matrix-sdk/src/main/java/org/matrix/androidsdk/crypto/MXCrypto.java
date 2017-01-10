@@ -1190,7 +1190,7 @@ public class MXCrypto {
     /**
      * @return the stored device keys for a user.
      */
-    private List<MXDeviceInfo> getUserDevices(final String userId) {
+    public List<MXDeviceInfo> getUserDevices(final String userId) {
         Map<String, MXDeviceInfo> map = getCryptoStore().getUserDevices(userId);
         return (null != map) ? new ArrayList<>(map.values()) : new ArrayList<MXDeviceInfo>();
     }
