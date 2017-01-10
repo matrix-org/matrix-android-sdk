@@ -18,7 +18,7 @@ package org.matrix.androidsdk.util;
 
 import android.content.Context;
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;

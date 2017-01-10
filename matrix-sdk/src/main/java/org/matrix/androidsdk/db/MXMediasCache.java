@@ -26,7 +26,7 @@ import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 

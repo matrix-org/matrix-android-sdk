@@ -17,7 +17,7 @@ package org.matrix.androidsdk.rest.model;
 
 import android.media.ExifInterface;
 import android.net.Uri;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import java.io.File;
 

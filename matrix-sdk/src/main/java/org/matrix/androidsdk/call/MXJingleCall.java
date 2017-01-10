@@ -21,7 +21,7 @@ import android.hardware.Camera;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
@@ -1543,14 +1543,19 @@ public class MXJingleCall extends MXCall {
      * the callee who did not answer must display a "answered elsewhere" message.
      */
     @Override
-    public void onAnsweredElsewhere() {
-        Log.d(LOG_TAG, "onAnsweredElsewhere");
+    public void onAnsweredElsewhere() {;
         String state = getCallState();
+
+        Log.d(LOG_TAG, "onAnsweredElsewhere in state " + state);
 
         if (TextUtils.equals(state,IMXCall.CALL_STATE_RINGING /*if in ringing state on this side*/) ||
                 /* the UI is not ready but the call has been stopped
                    because the screen is locked for example */
                 TextUtils.equals(state,IMXCall.CALL_STATE_FLEDGLING) ||
+
+                // the call was terminated before really starting
+                TextUtils.equals(state,IMXCall.CALL_STATE_CREATED) ||
+
            /* specific case to fix: a video call answered elsewhere by another callee side
            when this local callee is still displaying the InComingCallActivity dialog.*/
                 (TextUtils.equals(state,CALL_STATE_WAIT_LOCAL_MEDIA) && isVideo())) {

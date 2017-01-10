@@ -15,8 +15,7 @@
  */
 package org.matrix.androidsdk.rest.model.bingrules;
 
-import android.util.Log;
-
+import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.model.RoomMember;
 

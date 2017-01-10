@@ -20,7 +20,7 @@ import android.content.Context;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
@@ -484,14 +484,24 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public void storeSession(OlmSession session, String deviceKey, boolean flush) {
-        if ((null != session) && (null != deviceKey) && (null != session.sessionIdentifier())) {
+        String sessionIdentifier = null;
+
+        if (null != session) {
+            try {
+                sessionIdentifier = session.sessionIdentifier();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## storeSession : session.sessionIdentifier() failed " + e.getMessage());
+            }
+        }
+
+        if ((null != deviceKey) && (null != sessionIdentifier)) {
 
             synchronized (mOlmSessionsLock) {
                 if (!mOlmSessions.containsKey(deviceKey)) {
                     mOlmSessions.put(deviceKey, new HashMap<String, OlmSession>());
                 }
 
-                OlmSession prevSession = mOlmSessions.get(deviceKey).get(session.sessionIdentifier());
+                OlmSession prevSession = mOlmSessions.get(deviceKey).get(sessionIdentifier);
 
                 // test if the session is a new one
                 if (session != prevSession) {
@@ -502,9 +512,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                             }
                         }
                     }
-                    mOlmSessions.get(deviceKey).put(session.sessionIdentifier(), session);
+                    mOlmSessions.get(deviceKey).put(sessionIdentifier, session);
                 }
-
 
                 if (flush) {
                     flushSessions();
@@ -630,7 +639,17 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public void storeInboundGroupSession(MXOlmInboundGroupSession session) {
-        if ((null != session) && (null != session.mSenderKey) && (null != session.mSession) && (null != session.mSession.sessionIdentifier())) {
+        String sessionIdentifier = null;
+
+        if ((null != session) && (null != session.mSenderKey) && (null != session.mSession)) {
+            try {
+                sessionIdentifier = session.mSession.sessionIdentifier();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## storeInboundGroupSession() : sessionIdentifier failed " + e.getMessage());
+            }
+        }
+
+        if (null != sessionIdentifier) {
             synchronized (mInboundGroupSessionsLock) {
                 if (!mInboundGroupSessions.containsKey(session.mSenderKey)) {
                     mInboundGroupSessions.put(session.mSenderKey, new HashMap<String, MXOlmInboundGroupSession>());
@@ -638,19 +657,22 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
                 final MXOlmInboundGroupSession fOlmInboundGroupSessionToRelease;
 
-                if (session != mInboundGroupSessions.get(session.mSenderKey).get(session.mSession.sessionIdentifier())) {
-                    fOlmInboundGroupSessionToRelease = mInboundGroupSessions.get(session.mSenderKey).get(session.mSession.sessionIdentifier());
-                    mInboundGroupSessions.get(session.mSenderKey).put(session.mSession.sessionIdentifier(), session);
+                if (session != mInboundGroupSessions.get(session.mSenderKey).get(sessionIdentifier)) {
+                    fOlmInboundGroupSessionToRelease = mInboundGroupSessions.get(session.mSenderKey).get(sessionIdentifier);
+                    mInboundGroupSessions.get(session.mSenderKey).put(sessionIdentifier, session);
 
                     if (null != fOlmInboundGroupSessionToRelease) {
-                        Log.d(LOG_TAG, "## storeInboundGroupSession() : release session " + fOlmInboundGroupSessionToRelease.mSession.sessionIdentifier());
+                        try {
+                            Log.d(LOG_TAG, "## storeInboundGroupSession() : release session " + fOlmInboundGroupSessionToRelease.mSession.sessionIdentifier());
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "## storeInboundGroupSession() : fOlmInboundGroupSessionToRelease.sessionIdentifier() failed " + e.getMessage());
+                        }
                     }
-
                 } else {
                     fOlmInboundGroupSessionToRelease = null;
                 }
 
-                Log.d(LOG_TAG, "## storeInboundGroupSession() : store session " + session.mSession.sessionIdentifier());
+                Log.d(LOG_TAG, "## storeInboundGroupSession() : store session " + sessionIdentifier);
 
                 saveInboundGroupSessions(fOlmInboundGroupSessionToRelease);
             }

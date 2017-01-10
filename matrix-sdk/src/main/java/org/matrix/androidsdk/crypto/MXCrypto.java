@@ -20,7 +20,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
 
@@ -1392,20 +1392,30 @@ public class MXCrypto {
         String deviceId = deviceInfo.deviceId;
         String signKeyId = "ed25519:" + deviceId;
         String signature = oneTimeKey.signatureForUserId(userId, signKeyId);
-        StringBuffer error = new StringBuffer();
 
-        // Check one-time key signature
-        if (mOlmDevice.verifySignature(deviceInfo.fingerprint(), oneTimeKey.signalableJSONDictionary(), signature, error)) {
-            sessionId = getOlmDevice().createOutboundSession(deviceInfo.identityKey(), oneTimeKey.value);
+        if (!TextUtils.isEmpty(signature) && !TextUtils.isEmpty(deviceInfo.fingerprint())) {
+            boolean isVerified = false;
+            String errorMessage = null;
 
-            if (!TextUtils.isEmpty(sessionId)) {
-                Log.d(LOG_TAG, "## verifyKeyAndStartSession() : Started new sessionid " +  sessionId + " for device " + deviceInfo + "(theirOneTimeKey: " + oneTimeKey.value + ")");
-            } else {
-                // Possibly a bad key
-                Log.e(LOG_TAG, "## verifyKeyAndStartSession() : Error starting session with device " + userId + ":" + deviceId);
+            try {
+                isVerified = mOlmDevice.verifySignature(deviceInfo.fingerprint(), oneTimeKey.signalableJSONDictionary(), signature);
+            } catch (Exception e) {
+                errorMessage = e.getMessage();
             }
-        } else {
-            Log.e(LOG_TAG, "## verifyKeyAndStartSession() : Unable to verify signature on one-time key for device " + userId + ":" + deviceId + " Error " + error.toString());
+
+            // Check one-time key signature
+            if (isVerified) {
+                sessionId = getOlmDevice().createOutboundSession(deviceInfo.identityKey(), oneTimeKey.value);
+
+                if (!TextUtils.isEmpty(sessionId)) {
+                    Log.d(LOG_TAG, "## verifyKeyAndStartSession() : Started new sessionid " + sessionId + " for device " + deviceInfo + "(theirOneTimeKey: " + oneTimeKey.value + ")");
+                } else {
+                    // Possibly a bad key
+                    Log.e(LOG_TAG, "## verifyKeyAndStartSession() : Error starting session with device " + userId + ":" + deviceId);
+                }
+            } else {
+                Log.e(LOG_TAG, "## verifyKeyAndStartSession() : Unable to verify signature on one-time key for device " + userId + ":" + deviceId + " Error " + errorMessage);
+            }
         }
 
         return sessionId;
@@ -2191,10 +2201,19 @@ public class MXCrypto {
             return false;
         }
 
-        StringBuffer error = new StringBuffer();
+        boolean isVerified = false;
+        String errorMessage = null;
 
-        if (!mOlmDevice.verifySignature(signKey, deviceKeys.signalableJSONDictionary(), signature, error)) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : Unable to verify signature on device " +  userId + ":" + deviceKeys.deviceId +  " with error " + error.toString());
+        try {
+            isVerified = mOlmDevice.verifySignature(signKey, deviceKeys.signalableJSONDictionary(), signature);
+        } catch (Exception e) {
+            errorMessage = e.getMessage();
+        }
+
+
+
+        if (!isVerified) {
+            Log.e(LOG_TAG, "## validateDeviceKeys() : Unable to verify signature on device " +  userId + ":" + deviceKeys.deviceId +  " with error " + errorMessage);
             return false;
         }
 
@@ -2224,6 +2243,11 @@ public class MXCrypto {
         // sanity check
         if (TextUtils.isEmpty(algorithm)) {
             Log.e(LOG_TAG, "## getRoomDecryptor() : null algorithm");
+            return null;
+        }
+
+        if (null == mRoomDecryptors) {
+            Log.e(LOG_TAG, "## getRoomDecryptor() : null mRoomDecryptors");
             return null;
         }
 

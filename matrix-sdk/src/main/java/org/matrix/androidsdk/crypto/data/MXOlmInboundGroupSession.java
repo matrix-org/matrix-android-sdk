@@ -16,7 +16,7 @@
 
 package org.matrix.androidsdk.crypto.data;
 
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import org.matrix.olm.OlmInboundGroupSession;
 

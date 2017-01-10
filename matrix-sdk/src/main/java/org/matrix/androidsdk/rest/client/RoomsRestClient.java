@@ -17,7 +17,7 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonObject;
 
