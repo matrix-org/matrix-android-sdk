@@ -37,37 +37,41 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MXOlmEncryption implements IMXEncrypting {
 
+    private MXSession mSession;
     private MXCrypto mCrypto;
+    private String mRoomId;
 
     @Override
     public void initWithMatrixSession(MXSession matrixSession, String roomId) {
+        mSession = matrixSession;
         mCrypto = matrixSession.getCrypto();
+        mRoomId = roomId;
+    }
+
+    /**
+     * @return the stored device keys for a user.
+     */
+    private List<MXDeviceInfo> getUserDevices(final String userId) {
+        Map<String, MXDeviceInfo> map = mCrypto.getCryptoStore().getUserDevices(userId);
+        return (null != map) ? new ArrayList<>(map.values()) : new ArrayList<MXDeviceInfo>();
     }
 
     @Override
-    public void encryptEventContent(final JsonElement eventContent, final String eventType, final Room room, final ApiCallback<JsonElement> callback) {
+    public void encryptEventContent(final JsonElement eventContent, final String eventType, final List<String> userIds, final ApiCallback<JsonElement> callback) {
         // pick the list of recipients based on the membership list.
         //
         // TODO: there is a race condition here! What if a new user turns up
-        // just as you are sending a secret message?
-        final ArrayList<String> users = new ArrayList<>();
-
-        Collection<RoomMember> joinedMembers = room.getJoinedMembers();
-
-        for(RoomMember m : joinedMembers) {
-            users.add(m.getUserId());
-        }
-
-        ensureSession(users, new ApiCallback<Void>() {
+        ensureSession(userIds, new ApiCallback<Void>() {
                     @Override
                     public void onSuccess(Void info) {
                         ArrayList<MXDeviceInfo> deviceInfos = new ArrayList<>();
 
-                        for(String userId : users) {
-                            List<MXDeviceInfo> devices = mCrypto.storedDevicesForUser(userId);
+                        for(String userId : userIds) {
+                            List<MXDeviceInfo> devices = getUserDevices(userId);
 
                             if (null != devices) {
                                 for (MXDeviceInfo device : devices) {
@@ -89,12 +93,11 @@ public class MXOlmEncryption implements IMXEncrypting {
                         }
 
                         HashMap<String, Object> messageMap = new HashMap<>();
-                        messageMap.put("room_id", room.getRoomId());
+                        messageMap.put("room_id", mRoomId);
                         messageMap.put("type", eventType);
                         messageMap.put("content", eventContent);
 
                         mCrypto.encryptMessage(messageMap, deviceInfos);
-                        mCrypto.mCryptoStore.flushSessions();
                         callback.onSuccess(JsonUtils.getGson(false).toJsonTree(messageMap));
                     }
 

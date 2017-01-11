@@ -57,7 +57,6 @@ public class MXOlmDecryption implements IMXDecrypting {
 
     @Override
     public boolean decryptEvent(Event event, String timeline) {
-
         // sanity check
         if (null == event) {
             Log.e(LOG_TAG, "## decryptEvent() : null event");
@@ -198,12 +197,10 @@ public class MXOlmDecryption implements IMXDecrypting {
     }
 
     /**
-     Attempt to decrypt an Olm message.
-
-     @param theirDeviceIdentityKey the Curve25519 identity key of the sender.
-     @param message message object, with 'type' and 'body' fields.
-
-     @return payload, if decrypted successfully.
+     * Attempt to decrypt an Olm message.
+     * @param theirDeviceIdentityKey the Curve25519 identity key of the sender.
+     * @param message message object, with 'type' and 'body' fields.
+     * @return payload, if decrypted successfully.
      */
     private String decryptMessage(Map<String, Object>message, String theirDeviceIdentityKey) {
         Set<String> sessionIdsSet =  mOlmDevice.getSessionIds(theirDeviceIdentityKey);

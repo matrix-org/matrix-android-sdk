@@ -142,14 +142,8 @@ public interface IMXCryptoStore {
      * Store a session between the logged-in user and another device.
      * @param session the end-to-end session.
      * @param deviceKey the public key of the other device.
-     * @param flush set to true to flush the session
      */
-    void storeSession(OlmSession session, String deviceKey, boolean flush);
-
-    /**
-     * Flush the sessions data
-     */
-    void flushSessions();
+    void storeSession(OlmSession session, String deviceKey);
 
     /**
      * Retrieve the end-to-end sessions between the logged-in user and another
