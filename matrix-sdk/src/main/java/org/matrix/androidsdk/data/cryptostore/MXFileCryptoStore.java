@@ -73,6 +73,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE = "inboundGroupSessions";
     private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE_TMP = "inboundGroupSessions.tmp";
+    private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FOLDER = "inboundGroupSessionsFolder";
 
 
     // The credentials used for this store
@@ -124,6 +125,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     private File mInboundGroupSessionsFile;
     private File mInboundGroupSessionsFileTmp;
+    private File mInboundGroupSessionsFolder;
+
 
     // tell if the store is corrupted
     private boolean mIsCorrupted = false;
@@ -162,6 +165,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
         mInboundGroupSessionsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE);
         mInboundGroupSessionsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE_TMP);
+        mInboundGroupSessionsFolder = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FOLDER);
 
         // Build default metadata
         if ((null == mMetaData)
@@ -551,38 +555,6 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         return null;
     }
 
-    /**
-     * Flush mInboundGroupSessions
-     * @param fOlmInboundGroupSessionToRelease the session to release when the flush is completed.
-     */
-    private void saveInboundGroupSessions(final MXOlmInboundGroupSession fOlmInboundGroupSessionToRelease) {
-        final HashMap<String, HashMap<String, MXOlmInboundGroupSession>> fInboundGroupSessions = cloneInboundGroupSessions(mInboundGroupSessions);
-
-        getThreadHandler().post(new Runnable() {
-            @Override
-            public void run() {
-                if (mInboundGroupSessionsFileTmp.exists()) {
-                    mInboundGroupSessionsFileTmp.delete();
-                }
-
-                if (mInboundGroupSessionsFile.exists()) {
-                    mInboundGroupSessionsFile.renameTo(mInboundGroupSessionsFileTmp);
-                }
-
-                storeObject(fInboundGroupSessions, mInboundGroupSessionsFile, "storeInboundGroupSession - in background");
-
-                if (mInboundGroupSessionsFileTmp.exists()) {
-                    mInboundGroupSessionsFileTmp.delete();
-                }
-
-                if ((null != fOlmInboundGroupSessionToRelease) && (null != fOlmInboundGroupSessionToRelease.mSession)) {
-                    // JNI release
-                    fOlmInboundGroupSessionToRelease.mSession.releaseSession();
-                }
-            }
-        });
-    }
-
     @Override
     public void removeInboundGroupSession(String sessionId, String senderKey) {
         if ((null != sessionId) && (null != senderKey)) {
@@ -591,10 +563,20 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     MXOlmInboundGroupSession session = mInboundGroupSessions.get(senderKey).get(sessionId);
 
                     if (null != session) {
-                        session.mSession.releaseSession();
                         mInboundGroupSessions.get(senderKey).remove(sessionId);
 
-                        saveInboundGroupSessions(null);
+                        File senderKeyFolder = new File(mInboundGroupSessionsFolder, encodeFilename(session.mSenderKey));
+
+                        if (senderKeyFolder.exists()) {
+                            File inboundSessionFile = new File(senderKeyFolder, encodeFilename(sessionId));
+
+                            if (!inboundSessionFile.delete()) {
+                                Log.e(LOG_TAG, "## removeInboundGroupSession() : fail to remove the sessionid " + sessionId);
+                            }
+                        }
+
+                        // release the memory
+                        session.mSession.releaseSession();
                     }
                 }
             }
@@ -602,7 +584,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public void storeInboundGroupSession(MXOlmInboundGroupSession session) {
+    public void storeInboundGroupSession(final MXOlmInboundGroupSession session) {
         String sessionIdentifier = null;
 
         if ((null != session) && (null != session.mSenderKey) && (null != session.mSession)) {
@@ -619,30 +601,36 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     mInboundGroupSessions.put(session.mSenderKey, new HashMap<String, MXOlmInboundGroupSession>());
                 }
 
-                final MXOlmInboundGroupSession fOlmInboundGroupSessionToRelease;
+                MXOlmInboundGroupSession curSession = mInboundGroupSessions.get(session.mSenderKey).get(sessionIdentifier);
 
-                if (session != mInboundGroupSessions.get(session.mSenderKey).get(sessionIdentifier)) {
-                    fOlmInboundGroupSessionToRelease = mInboundGroupSessions.get(session.mSenderKey).get(sessionIdentifier);
-                    mInboundGroupSessions.get(session.mSenderKey).put(sessionIdentifier, session);
-
-                    if (null != fOlmInboundGroupSessionToRelease) {
-                        try {
-                            Log.d(LOG_TAG, "## storeInboundGroupSession() : release session " + fOlmInboundGroupSessionToRelease.mSession.sessionIdentifier());
-                        } catch (Exception e) {
-                            Log.e(LOG_TAG, "## storeInboundGroupSession() : fOlmInboundGroupSessionToRelease.sessionIdentifier() failed " + e.getMessage());
-                        }
+                if (curSession != session) {
+                    // release memory
+                    if (null != curSession) {
+                        curSession.mSession.releaseSession();
                     }
-                } else {
-                    fOlmInboundGroupSessionToRelease = null;
+                    // update the map
+                    mInboundGroupSessions.get(session.mSenderKey).put(sessionIdentifier, session);
                 }
 
                 Log.d(LOG_TAG, "## storeInboundGroupSession() : store session " + sessionIdentifier);
 
-                saveInboundGroupSessions(fOlmInboundGroupSessionToRelease);
+                File senderKeyFolder = new File(mInboundGroupSessionsFolder, encodeFilename(session.mSenderKey));
+
+                if (!senderKeyFolder.exists()) {
+                    senderKeyFolder.mkdir();
+                }
+
+                final File inboundSessionFile = new File(senderKeyFolder, encodeFilename(sessionIdentifier));
+
+                getThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        storeObject(session, inboundSessionFile, "storeInboundGroupSession - in background");
+                    }
+                });
             }
         }
     }
-
 
     @Override
     public  MXOlmInboundGroupSession getInboundGroupSession(String sessionId, String senderKey) {
@@ -714,6 +702,10 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
         if (!mOlmSessionsFolder.exists()) {
             mOlmSessionsFolder.mkdir();
+        }
+
+        if (!mInboundGroupSessionsFolder.exists()) {
+            mInboundGroupSessionsFolder.mkdir();
         }
 
         mMetaData = null;
@@ -870,15 +862,14 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             }
         }
 
-
         if (mOlmSessionsFolder.exists()) {
-            String[] olmSessionFiles = mOlmSessionsFolder.list();
-
             mOlmSessions = new HashMap<>();
 
-            // build mOlmSessions for the file system
-            for(int i = 0; i < olmSessionFiles.length; i++) {
-                try {
+            String[] olmSessionFiles = mOlmSessionsFolder.list();
+
+            if (null != olmSessionFiles) {
+                // build mOlmSessions for the file system
+                for (int i = 0; i < olmSessionFiles.length; i++) {
                     String deviceKey = olmSessionFiles[i];
 
                     HashMap<String, OlmSession> olmSessionSubMap = new HashMap<>();
@@ -886,19 +877,18 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     File sessionsDeviceFolder = new File(mOlmSessionsFolder, deviceKey);
                     String[] sessionIds = sessionsDeviceFolder.list();
 
-                    for(int j = 0; j < sessionIds.length; j++) {
-                        String sessionId = sessionIds[j];
-                        OlmSession olmSession = (OlmSession)loadObject(new File(sessionsDeviceFolder, sessionId), "load the olmSession " + deviceKey + " " + sessionId);
+                    if (null != sessionIds) {
+                        for (int j = 0; j < sessionIds.length; j++) {
+                            String sessionId = sessionIds[j];
+                            OlmSession olmSession = (OlmSession)loadObject(new File(sessionsDeviceFolder, sessionId), "load the olmSession " + deviceKey + " " + sessionId);
 
-                        if (null != olmSession) {
-                            olmSessionSubMap.put(decodeFilename(sessionId), olmSession);
+                            if (null != olmSession) {
+                                olmSessionSubMap.put(decodeFilename(sessionId), olmSession);
+                            }
                         }
                     }
 
                     mOlmSessions.put(decodeFilename(deviceKey), olmSessionSubMap);
-                } catch (Exception e) {
-                    mIsCorrupted = true;
-                    Log.e(LOG_TAG, "## preloadCryptoData() - invalid mSessionsFile " + e.getMessage());
                 }
             }
         } else {
@@ -940,26 +930,75 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             }
         }
 
-        Object inboundGroupSessionsAsVoid;
 
-        if (mInboundGroupSessionsFileTmp.exists()) {
-            inboundGroupSessionsAsVoid = loadObject(mInboundGroupSessionsFileTmp, "preloadCryptoData - mInboundGroupSessions - tmp");
-        } else {
-            inboundGroupSessionsAsVoid = loadObject(mInboundGroupSessionsFile, "preloadCryptoData - mInboundGroupSessions");
-        }
+        if (mInboundGroupSessionsFolder.exists()) {
+            mInboundGroupSessions = new HashMap<>();
 
-        if (null != inboundGroupSessionsAsVoid) {
-            try {
-                Map<String, Map<String, MXOlmInboundGroupSession>> inboundGroupSessionsMap = (Map<String, Map<String, MXOlmInboundGroupSession>>)inboundGroupSessionsAsVoid;
+            String[] keysFolder = mInboundGroupSessionsFolder.list();
 
-                mInboundGroupSessions = new HashMap<>();
+            if (null != keysFolder) {
+                for (int i = 0; i < keysFolder.length; i++) {
+                    File keyFolder = new File(mInboundGroupSessionsFolder, keysFolder[i]);
 
-                for (String key : inboundGroupSessionsMap.keySet()) {
-                    mInboundGroupSessions.put(key, new HashMap<>(inboundGroupSessionsMap.get(key)));
+                    HashMap<String, MXOlmInboundGroupSession> submap = new HashMap<>();
+
+                    String[] sessionIds = keyFolder.list();
+
+                    if (null != sessionIds) {
+                        for (int j = 0; j < sessionIds.length; j++) {
+                            File inboundSessionFile = new File(keyFolder, sessionIds[j]);
+                            try {
+                                MXOlmInboundGroupSession inboundSession = (MXOlmInboundGroupSession) loadObject(inboundSessionFile, "load inboundsession");
+
+                                if (null != inboundSession) {
+                                    submap.put(decodeFilename(sessionIds[j]), inboundSession);
+                                }
+                            } catch (Exception e) {
+                                Log.e(LOG_TAG, "## preloadCryptoData() - invalid mInboundGroupSessions " + e.getMessage());
+                            }
+                        }
+                    }
+
+                    mInboundGroupSessions.put(decodeFilename(keysFolder[i]), submap);
                 }
-            } catch (Exception e) {
-                mIsCorrupted = true;
-                Log.e(LOG_TAG, "## preloadCryptoData() - invalid mInboundGroupSessions " + e.getMessage());
+            }
+        } else {
+            Object inboundGroupSessionsAsVoid;
+
+            if (mInboundGroupSessionsFileTmp.exists()) {
+                inboundGroupSessionsAsVoid = loadObject(mInboundGroupSessionsFileTmp, "preloadCryptoData - mInboundGroupSessions - tmp");
+            } else {
+                inboundGroupSessionsAsVoid = loadObject(mInboundGroupSessionsFile, "preloadCryptoData - mInboundGroupSessions");
+            }
+
+            if (null != inboundGroupSessionsAsVoid) {
+                try {
+                    Map<String, Map<String, MXOlmInboundGroupSession>> inboundGroupSessionsMap = (Map<String, Map<String, MXOlmInboundGroupSession>>) inboundGroupSessionsAsVoid;
+
+                    mInboundGroupSessions = new HashMap<>();
+
+                    for (String key : inboundGroupSessionsMap.keySet()) {
+                        mInboundGroupSessions.put(key, new HashMap<>(inboundGroupSessionsMap.get(key)));
+                    }
+                } catch (Exception e) {
+                    mIsCorrupted = true;
+                    Log.e(LOG_TAG, "## preloadCryptoData() - invalid mInboundGroupSessions " + e.getMessage());
+                }
+
+                mInboundGroupSessionsFolder.mkdir();
+
+                // convert to the new format
+                for(String key : mInboundGroupSessions.keySet()) {
+                    File keyFolder = new File(mInboundGroupSessionsFolder, encodeFilename(key));
+                    keyFolder.mkdir();
+
+                    Map<String, MXOlmInboundGroupSession> inboundMaps = mInboundGroupSessions.get(key);
+
+                    for(String sessionId : inboundMaps.keySet()) {
+                        File inboundSessionFile = new File(keyFolder, encodeFilename(sessionId));
+                        storeObject(inboundMaps.get(sessionId), inboundSessionFile, "Convert inboundsession");
+                    }
+                }
             }
         }
 
@@ -1020,23 +1059,6 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         }
 
         copy.mVerified = di.mVerified;
-
-        return copy;
-    }
-
-    /**
-     * Clone an inbound group sessions map
-     * @param inboundSession the inbound group sessions map to clone
-     * @return the clone
-     */
-    private static HashMap<String, HashMap<String ,MXOlmInboundGroupSession>> cloneInboundGroupSessions(HashMap<String, HashMap<String ,MXOlmInboundGroupSession>> inboundSession) {
-        HashMap<String, HashMap<String ,MXOlmInboundGroupSession>> copy = new HashMap<>();
-
-        Set<String> keys = inboundSession.keySet();
-
-        for(String k : keys) {
-            copy.put(k, new HashMap<>(inboundSession.get(k)));
-        }
 
         return copy;
     }
