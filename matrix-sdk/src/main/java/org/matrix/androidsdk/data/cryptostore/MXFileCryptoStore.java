@@ -17,7 +17,6 @@
 package org.matrix.androidsdk.data.cryptostore;
 
 import android.content.Context;
-import android.os.HandlerThread;
 import android.os.Looper;
 import android.text.TextUtils;
 import org.matrix.androidsdk.util.Log;
@@ -27,7 +26,6 @@ import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.ContentUtils;
-import org.matrix.androidsdk.util.MXOsHandler;
 import org.matrix.olm.OlmAccount;
 import org.matrix.olm.OlmSession;
 
@@ -40,7 +38,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -61,8 +58,6 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private static final String MXFILE_CRYPTO_STORE_ACCOUNT_FILE_TMP = "account.tmp";
 
     private static final String MXFILE_CRYPTO_STORE_DEVICES_FOLDER = "devicesFolder";
-    private static final String MXFILE_CRYPTO_STORE_DEVICES_FILE = "devices";
-    private static final String MXFILE_CRYPTO_STORE_DEVICES_FILE_TMP = "devices.tmp";
 
     private static final String MXFILE_CRYPTO_STORE_ALGORITHMS_FILE = "roomsAlgorithms";
     private static final String MXFILE_CRYPTO_STORE_ALGORITHMS_FILE_TMP = "roomsAlgorithms";
@@ -74,7 +69,6 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE = "inboundGroupSessions";
     private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE_TMP = "inboundGroupSessions.tmp";
     private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FOLDER = "inboundGroupSessionsFolder";
-
 
     // The credentials used for this store
     private Credentials mCredentials;
@@ -113,8 +107,6 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private File mAccountFileTmp;
 
     private File mDevicesFolder;
-    private File mDevicesFile;
-    private File mDevicesFileTmp;
 
     private File mAlgorithmsFile;
     private File mAlgorithmsFileTmp;
@@ -145,8 +137,6 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         mAccountFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_ACCOUNT_FILE);
         mAccountFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_ACCOUNT_FILE_TMP);
 
-        mDevicesFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_DEVICES_FILE);
-        mDevicesFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_DEVICES_FILE_TMP);
         mDevicesFolder = new File(mStoreFile, MXFILE_CRYPTO_STORE_DEVICES_FOLDER);
 
         mAlgorithmsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_ALGORITHMS_FILE);
@@ -204,7 +194,6 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     public boolean isCorrupted() {
         return  mIsCorrupted;
     }
-
 
     @Override
     public void deleteStore() {
@@ -659,18 +648,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 object = ois.readObject();
                 ois.close();
             } catch (Exception e) {
-                // if the zip unflating fails, try to use the former file saving method
-                try {
-                    FileInputStream fis2 = new FileInputStream(file);
-                    ObjectInputStream out = new ObjectInputStream(fis2);
-
-                    object = out.readObject();
-                    fis2.close();
-                } catch (Exception subEx) {
-                    // warn that some file loading fails
-                    mIsCorrupted = true;
-                    Log.e(LOG_TAG, description  + "failed : " + subEx.getMessage());
-                }
+                // warn that some file loading fails
+                mIsCorrupted = true;
+                Log.e(LOG_TAG, description  + "failed : " + e.getMessage());
             }
         }
         return object;
@@ -721,39 +701,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
         // previous store
         if (!mDevicesFolder.exists()) {
-            Object usersDevicesInfoMapAsVoid;
-
-            // if the tmp exists, it means that the latest file backup has been killed / stopped
-            if (mDevicesFileTmp.exists()) {
-                usersDevicesInfoMapAsVoid = loadObject(mDevicesFileTmp, "preloadCryptoData - mUsersDevicesInfoMap - tmp");
-            } else {
-                usersDevicesInfoMapAsVoid = loadObject(mDevicesFile, "preloadCryptoData - mUsersDevicesInfoMap");
-            }
-
-            if (null != usersDevicesInfoMapAsVoid) {
-                try {
-                    MXUsersDevicesMap objectAsMap = (MXUsersDevicesMap) usersDevicesInfoMapAsVoid;
-                    mUsersDevicesInfoMap = new MXUsersDevicesMap<>(objectAsMap.getMap());
-                } catch (Exception e) {
-                    mIsCorrupted = true;
-                    Log.e(LOG_TAG, "## preloadCryptoData() - invalid mUsersDevicesInfoMap " + e.getMessage());
-                }
-            }
-
-            mDevicesFolder.mkdirs();
-
-            if (null != mUsersDevicesInfoMap) {
-                HashMap<String, HashMap<String, MXDeviceInfo>> map = mUsersDevicesInfoMap.getMap();
-
-                Set<String> userIds = map.keySet();
-
-                for(String userId : userIds) {
-                    storeObject(map.get(userId), new File(mDevicesFolder, userId), "convert devices map of " + userId);
-                }
-
-                mDevicesFileTmp.delete();
-                mDevicesFile.delete();
-            }
+            mIsCorrupted = true;
         } else {
             String[] files = mDevicesFolder.list();
             HashMap<String, Map<String, MXDeviceInfo>> map = new HashMap<>();
@@ -857,9 +805,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     mIsCorrupted = true;
                     Log.e(LOG_TAG, "## preloadCryptoData() - invalid mSessionsFile " + e.getMessage());
                 }
+
+                mOlmSessionsFileTmp.delete();
+                mOlmSessionsFile.delete();
             }
         }
-
 
         if (mInboundGroupSessionsFolder.exists()) {
             mInboundGroupSessions = new HashMap<>();
@@ -930,6 +880,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     }
                 }
             }
+
+            mInboundGroupSessionsFileTmp.delete();
+            mInboundGroupSessionsFile.delete();
         }
 
         if ((null == mOlmAccount) && (mUsersDevicesInfoMap.getMap().size() > 0)) {
@@ -942,7 +895,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     /**
      * Encode the provided filename
-     * @param filename teh filename to encode
+     * @param filename the filename to encode
      * @return the encoded filename
      */
     public static String encodeFilename(String filename) {
@@ -969,7 +922,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     /**
      * Decode an encoded filename.
-     * @param encodedFilename
+     * @param encodedFilename the encoded filename
      * @return the decodec filename
      */
     public static String decodeFilename(String encodedFilename) {
