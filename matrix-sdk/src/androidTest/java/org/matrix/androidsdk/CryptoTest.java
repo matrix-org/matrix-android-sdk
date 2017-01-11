@@ -414,18 +414,6 @@ public class CryptoTest {
         assertTrue(results.containsKey("setDeviceVerification1"));
         assertTrue (aliceDeviceFromBobPOV.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED);
 
-        // the device informations are saved in background thread so give a breath to save everything
-        MXFileCryptoStore bobFileStore = (MXFileCryptoStore)mBobSession.getCrypto().getCryptoStore();
-
-        final CountDownLatch lock3b = new CountDownLatch(1);
-        bobFileStore.getThreadHandler().post(new Runnable() {
-            @Override
-            public void run() {
-                lock3b.countDown();
-            }
-        });
-        lock3b.await(1000, TimeUnit.DAYS.MILLISECONDS);
-
         Credentials bobCredentials = mBobSession.getCredentials();
 
         Uri uri = Uri.parse(CryptoTestHelper.TESTS_HOME_SERVER_URL);
@@ -3133,31 +3121,6 @@ public class CryptoTest {
         assertTrue(statuses + "", statuses.containsKey("AliceJoin"));
 
         mBobSession.getDataHandler().removeListener(bobEventListener);
-
-        if (cryptedBob) {
-            // the crypto store data is saved in background thread
-            // so add a delay to let save the data
-            MXFileCryptoStore bobFileCryptoStore = (MXFileCryptoStore) mBobSession.getCrypto().getCryptoStore();
-            MXFileCryptoStore aliceFileCryptoStore = (MXFileCryptoStore) mAliceSession.getCrypto().getCryptoStore();
-
-            final CountDownLatch lock3 = new CountDownLatch(2);
-
-            bobFileCryptoStore.getThreadHandler().post(new Runnable() {
-                @Override
-                public void run() {
-                    lock3.countDown();
-                }
-            });
-
-            aliceFileCryptoStore.getThreadHandler().post(new Runnable() {
-                @Override
-                public void run() {
-                    lock3.countDown();
-                }
-            });
-
-            lock3.await(1000, TimeUnit.DAYS.MILLISECONDS);
-        }
     }
 
     private void doE2ETestWithAliceAndBobAndSamInARoom() throws Exception {
@@ -3377,30 +3340,6 @@ public class CryptoTest {
         roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(1), mAliceSession), callback);
         lock.await(1000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(mMessagesCount == 5);
-
-        // the crypto store data is saved in background thread
-        // so add a delay to let save the data
-
-        MXFileCryptoStore bobFileCryptoStore = (MXFileCryptoStore)mBobSession.getCrypto().getCryptoStore();
-        MXFileCryptoStore aliceFileCryptoStore = (MXFileCryptoStore)mAliceSession.getCrypto().getCryptoStore();
-
-        final CountDownLatch lock3 = new CountDownLatch(2);
-
-        bobFileCryptoStore.getThreadHandler().post(new Runnable() {
-            @Override
-            public void run() {
-                lock3.countDown();
-            }
-        });
-
-        aliceFileCryptoStore.getThreadHandler().post(new Runnable() {
-            @Override
-            public void run() {
-                lock3.countDown();
-            }
-        });
-
-        lock3.await(1000, TimeUnit.DAYS.MILLISECONDS);
     }
 
     private boolean checkEncryptedEvent(Event event, String roomId, String clearMessage, MXSession senderSession) throws Exception {

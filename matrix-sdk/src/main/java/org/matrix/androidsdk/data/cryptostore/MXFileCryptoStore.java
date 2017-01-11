@@ -127,13 +127,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private File mInboundGroupSessionsFileTmp;
     private File mInboundGroupSessionsFolder;
 
-
     // tell if the store is corrupted
     private boolean mIsCorrupted = false;
-
-    // the background thread
-    private HandlerThread mHandlerThread = null;
-    private MXOsHandler mFileStoreHandler = null;
 
     public MXFileCryptoStore() {
     }
@@ -279,33 +274,17 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     /**
-     * @return the thread handler
-     */
-    public MXOsHandler getThreadHandler() {
-        if (null == mFileStoreHandler) {
-            if (null == mHandlerThread) {
-                mHandlerThread = new HandlerThread("MXFileCryptoStoreBackgroundThread_" + mCredentials.userId + System.currentTimeMillis(), Thread.MIN_PRIORITY);
-                mHandlerThread.start();
-            }
-
-            // GA issue
-            if (null != mHandlerThread.getLooper()) {
-                mFileStoreHandler = new MXOsHandler(mHandlerThread.getLooper());
-            } else {
-                return new MXOsHandler(Looper.getMainLooper());
-            }
-        }
-
-        return mFileStoreHandler;
-    }
-
-    /**
      * Store a serializable object into a dedicated file.
      * @param object the object to write.
      * @param file the file
      * @param description the object description
      */
     private void storeObject(Object object, File file, String description) {
+
+        if (Thread.currentThread() == Looper.getMainLooper().getThread()) {
+            Log.e(LOG_TAG, "## storeObject() : should not be called in the UI thread " + description);
+        }
+
         synchronized (LOG_TAG) {
             try {
                 long t0 = System.currentTimeMillis();
@@ -386,11 +365,14 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public void storeUserDevice(String userId, MXDeviceInfo device) {
+        final HashMap<String, MXDeviceInfo> devicesMap;
+
         synchronized (mUsersDevicesInfoMapLock) {
             mUsersDevicesInfoMap.setObject(device, userId, device.deviceId);
+            devicesMap = new HashMap<>(mUsersDevicesInfoMap.getMap().get(userId));
         }
 
-        flushDevicesForUser(userId);
+        storeObject(devicesMap, new File(mDevicesFolder, userId), "storeUserDevice " + userId);
     }
 
     @Override
@@ -410,22 +392,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             mUsersDevicesInfoMap.setObjects(devices, userId);
         }
 
-        flushDevicesForUser(userId);
-    }
-
-    /**
-     * Flush the devices list for an userId
-     * @param userId the userId
-     */
-    private void flushDevicesForUser(final String userId) {
-        final HashMap<String, MXDeviceInfo> devicesMap = cloneUserDevicesInfoMap(userId);
-
-        getThreadHandler().post(new Runnable() {
-            @Override
-            public void run() {
-                storeObject(devicesMap, new File(mDevicesFolder, userId), "flushDevicesForUser " + userId);
-            }
-        });
+        storeObject(devices, new File(mDevicesFolder, userId), "storeUserDevice " + userId);
     }
 
     @Override
@@ -448,34 +415,21 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         if ((null != roomId) && (null != algorithm)) {
             mRoomsAlgorithms.put(roomId, algorithm);
 
-            try {
-                final HashMap<String, String> roomsAlgorithms = new HashMap<>(mRoomsAlgorithms);
+            // delete the previous tmp
+            if (mAlgorithmsFileTmp.exists()) {
+                mAlgorithmsFileTmp.delete();
+            }
 
-                getThreadHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        // the file is temporary copied to avoid loosing data if the application crashes.
+            // copy the existing file
+            if (mAlgorithmsFile.exists()) {
+                mAlgorithmsFile.renameTo(mAlgorithmsFileTmp);
+            }
 
-                        // delete the previous tmp
-                        if (mAlgorithmsFileTmp.exists()) {
-                            mAlgorithmsFileTmp.delete();
-                        }
+            storeObject(mRoomsAlgorithms, mAlgorithmsFile, "storeAlgorithmForRoom - in background");
 
-                        // copy the existing file
-                        if (mAlgorithmsFile.exists()) {
-                            mAlgorithmsFile.renameTo(mAlgorithmsFileTmp);
-                        }
-
-                        storeObject(roomsAlgorithms, mAlgorithmsFile, "storeAlgorithmForRoom - in background");
-
-                        // remove the tmp file
-                        if (mAlgorithmsFileTmp.exists()) {
-                            mAlgorithmsFileTmp.delete();
-                        }
-                    }
-                });
-            } catch (OutOfMemoryError oom) {
-                Log.e(LOG_TAG, "## storeAlgorithmForRoom() : oom");
+            // remove the tmp file
+            if (mAlgorithmsFileTmp.exists()) {
+                mAlgorithmsFileTmp.delete();
             }
         }
     }
@@ -507,12 +461,6 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     mOlmSessions.put(deviceKey, new HashMap<String, OlmSession>());
                 }
 
-                final File keyFolder = new File(mOlmSessionsFolder, encodeFilename(deviceKey));
-
-                if (!keyFolder.exists()) {
-                    keyFolder.mkdir();
-                }
-
                 OlmSession prevOlmSession = mOlmSessions.get(deviceKey).get(sessionIdentifier);
 
                 // test if the session is a new one
@@ -522,21 +470,15 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     }
                     mOlmSessions.get(deviceKey).put(sessionIdentifier, olmSession);
                 }
-
-                try {
-                    final File fOlmFile = new File(keyFolder, encodeFilename(sessionIdentifier));
-                    final String fSessionIdentifier = sessionIdentifier;
-
-                    getThreadHandler().post(new Runnable() {
-                        @Override
-                        public void run() {
-                            storeObject(olmSession, fOlmFile, "Store olm session " + deviceKey + " " + fSessionIdentifier);
-                        }
-                    });
-                } catch (OutOfMemoryError oom) {
-                    Log.e(LOG_TAG, "## flushSessions() : oom");
-                }
             }
+
+            final File keyFolder = new File(mOlmSessionsFolder, encodeFilename(deviceKey));
+
+            if (!keyFolder.exists()) {
+                keyFolder.mkdir();
+            }
+
+            storeObject(olmSession, new File(keyFolder, encodeFilename(sessionIdentifier)), "Store olm session " + deviceKey + " " + sessionIdentifier);
         }
     }
 
@@ -611,24 +553,17 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     // update the map
                     mInboundGroupSessions.get(session.mSenderKey).put(sessionIdentifier, session);
                 }
-
-                Log.d(LOG_TAG, "## storeInboundGroupSession() : store session " + sessionIdentifier);
-
-                File senderKeyFolder = new File(mInboundGroupSessionsFolder, encodeFilename(session.mSenderKey));
-
-                if (!senderKeyFolder.exists()) {
-                    senderKeyFolder.mkdir();
-                }
-
-                final File inboundSessionFile = new File(senderKeyFolder, encodeFilename(sessionIdentifier));
-
-                getThreadHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        storeObject(session, inboundSessionFile, "storeInboundGroupSession - in background");
-                    }
-                });
             }
+
+            Log.d(LOG_TAG, "## storeInboundGroupSession() : store session " + sessionIdentifier);
+
+            File senderKeyFolder = new File(mInboundGroupSessionsFolder, encodeFilename(session.mSenderKey));
+
+            if (!senderKeyFolder.exists()) {
+                senderKeyFolder.mkdir();
+            }
+
+            storeObject(session,  new File(senderKeyFolder, encodeFilename(sessionIdentifier)), "storeInboundGroupSession - in background");
         }
     }
 
@@ -685,11 +620,6 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         // ensure there is background writings while deleting the store
         synchronized (LOG_TAG) {
             deleteStore();
-        }
-
-        if (null != mHandlerThread) {
-            mHandlerThread.quit();
-            mHandlerThread = null;
         }
 
         if (!mStoreFile.exists()) {
@@ -1006,61 +936,6 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             mIsCorrupted = true;
             Log.e(LOG_TAG, "## preloadCryptoData() - there is no account but some devices are defined");
         }
-    }
-
-    /**
-     * @return clone the device infos map
-     */
-    private HashMap<String, MXDeviceInfo> cloneUserDevicesInfoMap(String user) {
-        HashMap<String, MXDeviceInfo> clone = new HashMap<>();
-
-        synchronized (mUsersDevicesInfoMapLock) {
-            HashMap<String, MXDeviceInfo> source = mUsersDevicesInfoMap.getMap().get(user);
-
-            if (null != source) {
-                Set<String> deviceIds = source.keySet();
-                for (String deviceId : deviceIds) {
-                    clone.put(deviceId, cloneDeviceInfo(source.get(deviceId)));
-                }
-            }
-        }
-
-        return clone;
-    }
-
-    /**
-     * @return a deep copy
-     */
-    public static MXDeviceInfo cloneDeviceInfo(MXDeviceInfo di) {
-        MXDeviceInfo copy = new MXDeviceInfo(di.deviceId);
-
-        copy.userId = di.userId;
-
-        if (null != di.algorithms) {
-            copy.algorithms = new ArrayList<>(di.algorithms);
-        }
-
-        if (null != di.keys) {
-            copy.keys = new HashMap<>(di.keys);
-        }
-
-        if (null != di.signatures) {
-            copy.signatures = new HashMap<>();
-
-            Set<String> keySet = di.signatures.keySet();
-
-            for(String k : keySet) {
-                copy.signatures.put(k, new HashMap<>(di.signatures.get(k)));
-            }
-        }
-
-        if (null != di.unsigned) {
-            copy.unsigned = new HashMap<>(di.unsigned);
-        }
-
-        copy.mVerified = di.mVerified;
-
-        return copy;
     }
 
     final private static char[] hexArray = "0123456789ABCDEF".toCharArray();

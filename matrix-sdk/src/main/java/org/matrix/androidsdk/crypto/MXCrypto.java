@@ -421,57 +421,62 @@ public class MXCrypto {
 
                    @Override
                    public void onSuccess(Void info) {
-                       if (!hasBeenReleased()) {
-                           Log.d(LOG_TAG, "###########################################################");
-                           Log.d(LOG_TAG, "uploadKeys done for " + mSession.getMyUserId());
-                           Log.d(LOG_TAG, "   - device id  : " + mSession.getCredentials().deviceId);
-                           Log.d(LOG_TAG, "  - ed25519    : " + mOlmDevice.getDeviceEd25519Key());
-                           Log.d(LOG_TAG, "   - curve25519 : " + mOlmDevice.getDeviceCurve25519Key());
-                           Log.d(LOG_TAG, "  - oneTimeKeys: " + mLastPublishedOneTimeKeys);     // They are
-                           Log.d(LOG_TAG, "");
+                       getEncryptingThreadHandler().post(new Runnable() {
+                           @Override
+                           public void run() {
+                               if (!hasBeenReleased()) {
+                                   Log.d(LOG_TAG, "###########################################################");
+                                   Log.d(LOG_TAG, "uploadKeys done for " + mSession.getMyUserId());
+                                   Log.d(LOG_TAG, "   - device id  : " + mSession.getCredentials().deviceId);
+                                   Log.d(LOG_TAG, "  - ed25519    : " + mOlmDevice.getDeviceEd25519Key());
+                                   Log.d(LOG_TAG, "   - curve25519 : " + mOlmDevice.getDeviceCurve25519Key());
+                                   Log.d(LOG_TAG, "  - oneTimeKeys: " + mLastPublishedOneTimeKeys);     // They are
+                                   Log.d(LOG_TAG, "");
 
-                           checkDeviceAnnounced(new ApiCallback<Void>() {
-                               @Override
-                               public void onSuccess(Void info) {
-                                   if (null != mNetworkConnectivityReceiver) {
-                                       mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
-                                   }
-
-                                   mIsStarting = false;
-                                   mIsStarted = true;
-                                   startUploadKeysTimer(true);
-
-                                   for (ApiCallback<Void> callback : mInitializationCallbacks) {
-                                       final ApiCallback<Void> fCallback = callback;
-                                       getUIHandler().post(new Runnable() {
-                                           @Override
-                                           public void run() {
-                                               fCallback.onSuccess(null);
+                                   checkDeviceAnnounced(new ApiCallback<Void>() {
+                                       @Override
+                                       public void onSuccess(Void info) {
+                                           if (null != mNetworkConnectivityReceiver) {
+                                               mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
                                            }
-                                       });
-                                   }
-                                   mInitializationCallbacks.clear();
-                               }
 
-                               @Override
-                               public void onNetworkError(Exception e) {
-                                   Log.e(LOG_TAG, "## start failed : " + e.getMessage());
-                                   onError();
-                               }
+                                           mIsStarting = false;
+                                           mIsStarted = true;
+                                           startUploadKeysTimer(true);
 
-                               @Override
-                               public void onMatrixError(MatrixError e) {
-                                   Log.e(LOG_TAG, "## start failed : " + e.getMessage());
-                                   onError();
-                               }
+                                           for (ApiCallback<Void> callback : mInitializationCallbacks) {
+                                               final ApiCallback<Void> fCallback = callback;
+                                               getUIHandler().post(new Runnable() {
+                                                   @Override
+                                                   public void run() {
+                                                       fCallback.onSuccess(null);
+                                                   }
+                                               });
+                                           }
+                                           mInitializationCallbacks.clear();
+                                       }
 
-                               @Override
-                               public void onUnexpectedError(Exception e) {
-                                   Log.e(LOG_TAG, "## start failed : " + e.getMessage());
-                                   onError();
+                                       @Override
+                                       public void onNetworkError(Exception e) {
+                                           Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                           onError();
+                                       }
+
+                                       @Override
+                                       public void onMatrixError(MatrixError e) {
+                                           Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                           onError();
+                                       }
+
+                                       @Override
+                                       public void onUnexpectedError(Exception e) {
+                                           Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                           onError();
+                                       }
+                                   });
                                }
-                           });
-                       }
+                           }
+                       });
                    }
 
                    @Override
