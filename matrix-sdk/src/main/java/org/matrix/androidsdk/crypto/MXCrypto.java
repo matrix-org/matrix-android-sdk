@@ -1088,7 +1088,7 @@ public class MXCrypto {
                     return;
                 }
 
-                if (MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED != verificationStatus) {
+                if (device.mVerified != verificationStatus) {
                     int oldVerified = device.mVerified;
                     device.mVerified = verificationStatus;
                     mCryptoStore.storeUserDevice(userId, device);
