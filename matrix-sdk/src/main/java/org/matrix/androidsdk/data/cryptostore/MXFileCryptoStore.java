@@ -503,7 +503,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     mOlmSessions.put(deviceKey, new HashMap<String, OlmSession>());
                 }
 
-                final File keyFolder = new File(mOlmSessionsFolder, deviceKey);
+                final File keyFolder = new File(mOlmSessionsFolder, encodeFilename(deviceKey));
 
                 if (!keyFolder.exists()) {
                     keyFolder.mkdir();
@@ -520,16 +520,12 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 }
 
                 try {
-                    final File fOlmFile = new File(keyFolder, sessionIdentifier);
+                    final File fOlmFile = new File(keyFolder, encodeFilename(sessionIdentifier));
                     final String fSessionIdentifier = sessionIdentifier;
 
                     getThreadHandler().post(new Runnable() {
                         @Override
                         public void run() {
-                            if (fOlmFile.exists()) {
-                                fOlmFile.delete();
-                            }
-
                             storeObject(olmSession, fOlmFile, "Store olm session " + deviceKey + " " + fSessionIdentifier);
                         }
                     });
@@ -895,11 +891,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                         OlmSession olmSession = (OlmSession)loadObject(new File(sessionsDeviceFolder, sessionId), "load the olmSession " + deviceKey + " " + sessionId);
 
                         if (null != olmSession) {
-                            olmSessionSubMap.put(sessionId, olmSession);
+                            olmSessionSubMap.put(decodeFilename(sessionId), olmSession);
                         }
                     }
 
-                    mOlmSessions.put(deviceKey, olmSessionSubMap);
+                    mOlmSessions.put(decodeFilename(deviceKey), olmSessionSubMap);
                 } catch (Exception e) {
                     mIsCorrupted = true;
                     Log.e(LOG_TAG, "## preloadCryptoData() - invalid mSessionsFile " + e.getMessage());
@@ -929,12 +925,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
                     for (String key : olmSessionMap.keySet()) {
                         Map<String, OlmSession> submap = olmSessionMap.get(key);
-                        File submapFile = new File(mOlmSessionsFolder, key);
 
-                        submapFile.mkdir();
-
+                        File submapFolder = new File(mOlmSessionsFolder, encodeFilename(key));
+                        submapFolder.mkdir();
                         for(String sessionId : submap.keySet()) {
-                            File olmFile = new File(submapFile, sessionId);
+                            File olmFile = new File(submapFolder, encodeFilename(sessionId));
                             storeObject(submap.get(sessionId), olmFile, "Convert olmSession " + key + " " + sessionId);
                         }
                     }
@@ -994,22 +989,6 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         return clone;
     }
 
-
-    /**
-     * @return an olm sessions map deep copy
-     */
-    private static HashMap<String, HashMap<String,  OlmSession>> cloneOlmSessions(HashMap<String, HashMap<String,  OlmSession>> olmSession) {
-        HashMap<String, HashMap<String,  OlmSession>> clone = new HashMap<>();
-
-        Set<String> keys = olmSession.keySet();
-
-        for(String key : keys) {
-            clone.put(key, new HashMap<>(olmSession.get(key)));
-        }
-
-        return clone;
-    }
-
     /**
      * @return a deep copy
      */
@@ -1060,5 +1039,62 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         }
 
         return copy;
+    }
+
+    final private static char[] hexArray = "0123456789ABCDEF".toCharArray();
+
+    /**
+     * Encode the provided filename
+     * @param filename teh filename to encode
+     * @return the encoded filename
+     */
+    public static String encodeFilename(String filename) {
+        if (null == filename) {
+            return null;
+        }
+
+        try {
+            byte[] bytes = filename.getBytes("UTF-8");
+            char[] hexChars = new char[bytes.length * 2];
+
+            for (int j = 0; j < bytes.length; j++) {
+                int v = bytes[j] & 0xFF;
+                hexChars[j * 2] = hexArray[v >>> 4];
+                hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+            }
+            return new String(hexChars);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## encodeFilename() - failed " + e.getMessage());
+        }
+
+        return filename;
+    }
+
+    /**
+     * Decode an encoded filename.
+     * @param encodedFilename
+     * @return the decodec filename
+     */
+    public static String decodeFilename(String encodedFilename) {
+        if (null == encodedFilename) {
+            return null;
+        }
+
+        int length = encodedFilename.length();
+
+        byte[] bytes = new byte[length/2];
+
+        for (int i = 0; i < length; i += 2) {
+            bytes[i/2] = (byte) ((Character.digit(encodedFilename.charAt(i), 16) << 4)
+                    + Character.digit(encodedFilename.charAt(i+1), 16));
+        }
+
+        try {
+            return new String(bytes, "UTF-8");
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## decodeFilename() - failed " + e.getMessage());
+        }
+
+        return encodedFilename;
     }
 }
