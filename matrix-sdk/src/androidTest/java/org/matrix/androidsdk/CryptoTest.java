@@ -2761,7 +2761,7 @@ public class CryptoTest {
         assertTrue(roomFromAlicePOV.isEncrypted());
 
         final CountDownLatch lock1 = new CountDownLatch(1);
-        mAliceSession.getCrypto().downloadKeys(Arrays.asList(mBobSession.getMyUserId(), "@auser:matrix.org"), false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+        mAliceSession.getCrypto().downloadKeys(Arrays.asList(mBobSession.getMyUserId(), "@pppppppppppp:matrix.org"), false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
                 results.put("downloadKeys", info);
@@ -2787,12 +2787,12 @@ public class CryptoTest {
             }
         });
 
-        lock1.await(2000, TimeUnit.DAYS.MILLISECONDS);
+        lock1.await(5000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results + "", results.containsKey("downloadKeys"));
 
         MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = (MXUsersDevicesMap<MXDeviceInfo>)results.get("downloadKeys");
 
-        // We can get info only for Bob
+        // We can get info only get for Bob
         assertTrue(usersDevicesInfoMap.getMap().size() == 1);
 
         List<String> bobDevices = usersDevicesInfoMap.getUserDeviceIds(mBobSession.getMyUserId());
@@ -2869,6 +2869,90 @@ public class CryptoTest {
 
         lock2.await(1000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("downloadKeys2"));
+    }
+
+    @Test
+    public void test23_testFirstMessageSentWhileSessionWasPaused() throws Exception {
+        Log.e(LOG_TAG, "test23_testFirstMessageSentWhileSessionWasPaused");
+        Context context = InstrumentationRegistry.getContext();
+        final String messageFromAlice = "Hello I'm Alice!";
+
+        final HashMap<String, Object> results = new HashMap<>();
+        doE2ETestWithAliceAndBobInARoom(true);
+
+        final Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
+        final Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
+
+        assertTrue(roomFromBobPOV.isEncrypted());
+        assertTrue(roomFromAlicePOV.isEncrypted());
+
+        mBobSession.pauseEventStream();
+
+        // wait that the bob session is really suspended
+        SystemClock.sleep(30000);
+
+        final CountDownLatch lock0 = new CountDownLatch(1);
+
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                results.put("sendEvent", "sendEvent");
+                lock0.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock0.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock0.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock0.countDown();
+            }
+        });
+
+        lock0.await(2000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("sendEvent"));
+
+        final CountDownLatch lock2 = new CountDownLatch(2);
+        MXEventListener eventListener = new MXEventListener() {
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                try {
+                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                        if (checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession)) {
+                            results.put("onLiveEvent", "onLiveEvent");
+                            lock2.countDown();
+                        }
+                    }
+                } catch (Exception e) {
+                }
+            }
+        };
+
+        roomFromBobPOV.addEventListener(eventListener);
+
+        mBobSession.getDataHandler().addListener(new MXEventListener() {
+            @Override
+            public void onToDeviceEvent(Event event) {
+                results.put("onToDeviceEvent", event);
+                lock2.countDown();
+            }
+        });
+
+        mBobSession.resumeEventStream();
+
+        lock2.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("onToDeviceEvent"));
+        assertTrue(results.containsKey("onLiveEvent"));
+
+        mBobSession.clear(context);
+        mAliceSession.clear(context);
     }
 
     //==============================================================================================================
