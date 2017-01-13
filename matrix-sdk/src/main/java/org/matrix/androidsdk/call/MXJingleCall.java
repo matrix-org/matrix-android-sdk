@@ -111,6 +111,8 @@ public class MXJingleCall extends MXCall {
     private JsonObject mCallInviteParams = null;
     private int mCameraInUse = CAMERA_TYPE_UNDEFINED;
 
+    private boolean mIsAnswered = false;
+
     /**
      * @return true if this stack can perform calls.
      */
@@ -348,9 +350,10 @@ public class MXJingleCall extends MXCall {
         answerContent.add("answer", offerContent);
 
         Event event = new Event(Event.EVENT_TYPE_CALL_ANSWER, answerContent, mSession.getCredentials().userId, mCallSignalingRoom.getRoomId());
-
         mPendingEvents.add(event);
         sendNextEvent();
+
+        mIsAnswered = true;
     }
 
     @Override
@@ -1548,7 +1551,7 @@ public class MXJingleCall extends MXCall {
 
         Log.d(LOG_TAG, "onAnsweredElsewhere in state " + state);
 
-        if (!isCallEnded()) {
+        if (!isCallEnded() && !mIsAnswered) {
             dispatchAnsweredElsewhere();
             terminate(IMXCall.END_CALL_REASON_UNDEFINED);
 
