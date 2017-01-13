@@ -636,6 +636,8 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                 filelen = connection.getContentLength();
                 stream = connection.getInputStream();
             } catch (Exception e) {
+                Log.e(LOG_TAG, "bitmapForURL : fail to open the connection " + e.getMessage());
+
                 InputStream errorStream = ((HttpsURLConnection) connection).getErrorStream();
 
                 if (null != errorStream) {
@@ -780,9 +782,13 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             }
 
             if (mDownloadStats.mProgress == 100) {
-                Log.d(LOG_TAG, "The download " + this + "is done.");
+                Log.d(LOG_TAG, "The download " + this + " is done.");
             } else {
-                Log.d(LOG_TAG, "The download " + this + "failed.");
+                if (null != mErrorAsJsonElement) {
+                    Log.d(LOG_TAG, "The download " + this + " failed : mErrorAsJsonElement " + mErrorAsJsonElement.toString());
+                } else {
+                    Log.d(LOG_TAG, "The download " + this + " failed.");
+                }
             }
         }
         catch (Exception e) {
