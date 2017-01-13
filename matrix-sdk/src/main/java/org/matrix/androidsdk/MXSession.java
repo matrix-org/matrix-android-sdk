@@ -1539,7 +1539,12 @@ public class MXSession {
                 if(null == aParticipantUserId) {
                     ArrayList<RoomMember> members = new ArrayList<>(room.getActiveMembers());
 
-                    if(members.size()>1) {
+                    // should never happen but it was reported by a GA issue
+                    if (0 == members.size()) {
+                        return;
+                    }
+
+                    if (members.size() > 1) {
                         // sort algo: oldest join first, then oldest invited
                         Collections.sort(members, new Comparator<RoomMember>() {
                             @Override
