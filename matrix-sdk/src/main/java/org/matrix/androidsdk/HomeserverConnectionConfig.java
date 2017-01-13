@@ -69,6 +69,26 @@ public class HomeserverConnectionConfig {
             throw new RuntimeException("Invalid identity server URI: " + identityServerUri);
         }
 
+        // remove trailing /
+        if (hsUri.toString().endsWith("/")) {
+            try {
+                String url = hsUri.toString();
+                hsUri = Uri.parse(url.substring(0, url.length()-1));
+            } catch (Exception e) {
+                throw new RuntimeException("Invalid home server URI: "+hsUri);
+            }
+        }
+
+        // remove trailing /
+        if (identityServerUri.toString().endsWith("/")) {
+            try {
+                String url = identityServerUri.toString();
+                identityServerUri = Uri.parse(url.substring(0, url.length()-1));
+            } catch (Exception e) {
+                throw new RuntimeException("Invalid identity server URI: " + identityServerUri);
+            }
+        }
+
         this.mHsUri = hsUri;
         this.mIdentityServerUri = identityServerUri;
 
