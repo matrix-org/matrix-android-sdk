@@ -2007,4 +2007,40 @@ public class MXSession {
             }
         });
     }
+
+    /**
+     * Tells if a string is a valid user Id.
+     * @param anUserId the string to test
+     * @return true if the string is a valid user id
+     */
+    public static boolean isUserId(String anUserId) {
+        return (null != anUserId) && PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER.matcher(anUserId).matches();
+    }
+
+    /**
+     * Tells if a string is a valid room id.
+     * @param aRoomId the string to test
+     * @return true if the string is a valid room Id
+     */
+    public static boolean isRoomId(String aRoomId) {
+        return (null != aRoomId) && PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER.matcher(aRoomId).matches();
+    }
+
+    /**
+     * Tells if a string is a valid room alias.
+     * @param aRoomAlias the string to test
+     * @return true if the string is a valid room alias.
+     */
+    public static boolean isRoomAlias(String aRoomAlias) {
+        return (null != aRoomAlias) && PATTERN_CONTAIN_MATRIX_ALIAS.matcher(aRoomAlias).matches();
+    }
+
+    /**
+     * Tells if a string is a valid message id.
+     * @param aMessageId the string to test
+     * @return true if the string is a valid message id.
+     */
+    public static boolean isMessageId(String aMessageId) {
+        return (null != aMessageId) && PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER.matcher(aMessageId).matches();
+    }
 }
