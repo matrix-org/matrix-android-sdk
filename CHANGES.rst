@@ -1,3 +1,18 @@
+Changes to Matrix Android SDK in 0.7.6 (2017-01-17)
+=======================================================
+
+Improvements: 
+* Video call : The local preview is moveable.
+* e2e : The e2e data is now saved synchronously to avoid not being able to read our own messages if the application crashes.
+* Use a dedicated logger to avoid having truncated logs.
+
+Bugfixes:
+* Fix many crashes reported by Google Analytics.
+* Update the olm library (fix the random string generation issue, invalid emoji support...).
+* #816 : Custom server URL bug.
+* #821 : Room creation with a matrix user from the contacts list creates several empty rooms.
+* #841 : Infinite call ringing.
+
 Changes to Matrix Android SDK in 0.7.5 (2016-12-19)
 =======================================================
 
