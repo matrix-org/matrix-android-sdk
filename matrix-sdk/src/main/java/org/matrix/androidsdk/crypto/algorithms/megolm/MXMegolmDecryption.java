@@ -17,7 +17,7 @@
 package org.matrix.androidsdk.crypto.algorithms.megolm;
 
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.crypto.MXCryptoError;
@@ -184,7 +184,13 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
                 for(Event event : events) {
                     if (decryptEvent(event, TextUtils.isEmpty(timelineId) ? null : timelineId)) {
-                        mSession.getDataHandler().onEventDecrypted(event);
+                        final Event fEvent = event;
+                        mSession.getCrypto().getUIHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mSession.getDataHandler().onEventDecrypted(fEvent);
+                            }
+                        });
                         Log.d(LOG_TAG, "## onRoomKeyEvent() : successful re-decryption of " + event.eventId);
                     } else {
                         Log.e(LOG_TAG, "## onRoomKeyEvent() : Still can't decrypt " + event.eventId + ". Error " + event.getCryptoError().getMessage());

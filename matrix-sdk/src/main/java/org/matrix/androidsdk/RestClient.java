@@ -15,7 +15,7 @@
  */
 package org.matrix.androidsdk;
 
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.Gson;
 import com.squareup.okhttp.OkHttpClient;
@@ -134,7 +134,8 @@ public class RestClient<T> {
 
         RestAdapter restAdapter = builder.build();
 
-        restAdapter.setLogLevel(RestAdapter.LogLevel.FULL);
+        // debug only
+        //restAdapter.setLogLevel(RestAdapter.LogLevel.FULL);
 
         mApi = restAdapter.create(type);
     }

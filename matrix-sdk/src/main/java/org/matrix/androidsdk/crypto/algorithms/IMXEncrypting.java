@@ -25,6 +25,8 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
 
+import java.util.List;
+
 /**
  * An interface for encrypting data
  */
@@ -41,10 +43,10 @@ public interface IMXEncrypting {
      * Encrypt an event content according to the configuration of the room.
      * @param eventContent the content of the event.
      * @param eventType the type of the event.
-     * @param room the room the event will be sent. //@TODO 'room' duplicates roomId in initWithMatrixSession, no?
+     * @param userIds the room members the event will be sent to.
      * @param callback the asynchronous callback
      */
-    void encryptEventContent(JsonElement eventContent, String eventType, Room room, ApiCallback<JsonElement> callback);
+    void encryptEventContent(JsonElement eventContent, String eventType, List<String> userIds, ApiCallback<JsonElement> callback);
 
     /**
      * Called when the membership of a member of the room changes.

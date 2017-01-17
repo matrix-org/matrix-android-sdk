@@ -19,7 +19,7 @@ package org.matrix.androidsdk.call;
 import android.content.Context;
 import android.os.Handler;
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 import android.view.View;
 
 import com.google.gson.JsonElement;
@@ -600,6 +600,25 @@ public class MXCall implements IMXCall {
                 }
             }
         });
+    }
+
+    /**
+     * Dispatch the onPreviewSizeChanged event to the listeners.
+     * @param width the preview width
+     * @param height the preview height
+     */
+    protected void dispatchOnPreviewSizeChanged(int width, int height) {
+        Log.d(LOG_TAG, "## dispatchOnPreviewSizeChanged(): width =" + width + " - height =" + height);
+
+        List<MXCallListener> listeners = getCallListeners();
+
+        for (MXCallListener listener : listeners) {
+            try {
+                listener.onPreviewSizeChanged(width, height);
+            } catch (Exception e) {
+                Log.e(LOG_TAG,"## dispatchOnPreviewSizeChanged(): Exception Msg="+e.getMessage());
+            }
+        }
     }
 
     /**

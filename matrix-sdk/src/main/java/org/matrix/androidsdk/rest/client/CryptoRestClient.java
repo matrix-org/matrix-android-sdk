@@ -16,7 +16,7 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
@@ -38,10 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import retrofit.Callback;
 import retrofit.client.Response;
-import retrofit.http.Body;
-import retrofit.http.Path;
 
 public class CryptoRestClient extends RestClient<CryptoApi> {
 

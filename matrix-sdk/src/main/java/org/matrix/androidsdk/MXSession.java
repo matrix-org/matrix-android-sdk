@@ -21,7 +21,7 @@ import android.net.ConnectivityManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonObject;
 
@@ -140,7 +140,7 @@ public class MXSession {
     private boolean mIsCatchupPending = false;
 
     // load the crypto libs.
-    public static OlmManager mOlmManager = new OlmManager(android.os.Build.VERSION.SDK_INT < 23);
+    public static OlmManager mOlmManager = new OlmManager();
 
     // regex pattern to find matrix user ids in a string.
     public static final String MATRIX_USER_IDENTIFIER_REGEX = "@[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}";
@@ -311,12 +311,18 @@ public class MXSession {
     /**
      * @return the crypto lib version
      */
-    public String getCryptoVersion() {
+    public String getCryptoVersion(Context context, boolean longFormat) {
+        String version = "";
+
         if (null != mOlmManager) {
-            return mOlmManager.getOlmLibVersion();
+            version = mOlmManager.getOlmLibVersion();
+
+            if (longFormat) {
+                version += " (" + mOlmManager.getSdkOlmVersion(context) + ")";
+            }
         }
 
-        return "";
+        return version;
     }
 
     /**
@@ -839,12 +845,9 @@ public class MXSession {
             params.put("is_direct", true);
 
             if (android.util.Patterns.EMAIL_ADDRESS.matcher(aParticipantUserId).matches()) {
-                // retrieve the identity server
-                String identityServer = mHsConfig.getIdentityServerUri().toString();
-
                 // build the invite third party object
                 HashMap<String, String> parameters = new HashMap<>();
-                parameters.put("id_server", identityServer);
+                parameters.put("id_server", mHsConfig.getIdentityServerUri().getHost());
                 parameters.put("medium", "email");
                 parameters.put("address", aParticipantUserId);
 
@@ -859,7 +862,6 @@ public class MXSession {
             createRoom(params, new ApiCallback<String>() {
                 @Override
                 public void onSuccess(String roomId) {
-                    final Room room = getDataHandler().getRoom(roomId);
                     final String fRoomId = roomId;
 
                     toggleDirectChatRoom(roomId, aParticipantUserId, new ApiCallback<Void>() {
@@ -1537,7 +1539,12 @@ public class MXSession {
                 if(null == aParticipantUserId) {
                     ArrayList<RoomMember> members = new ArrayList<>(room.getActiveMembers());
 
-                    if(members.size()>1) {
+                    // should never happen but it was reported by a GA issue
+                    if (0 == members.size()) {
+                        return;
+                    }
+
+                    if (members.size() > 1) {
                         // sort algo: oldest join first, then oldest invited
                         Collections.sort(members, new Comparator<RoomMember>() {
                             @Override
@@ -1999,5 +2006,41 @@ public class MXSession {
                 }
             }
         });
+    }
+
+    /**
+     * Tells if a string is a valid user Id.
+     * @param anUserId the string to test
+     * @return true if the string is a valid user id
+     */
+    public static boolean isUserId(String anUserId) {
+        return (null != anUserId) && PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER.matcher(anUserId).matches();
+    }
+
+    /**
+     * Tells if a string is a valid room id.
+     * @param aRoomId the string to test
+     * @return true if the string is a valid room Id
+     */
+    public static boolean isRoomId(String aRoomId) {
+        return (null != aRoomId) && PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER.matcher(aRoomId).matches();
+    }
+
+    /**
+     * Tells if a string is a valid room alias.
+     * @param aRoomAlias the string to test
+     * @return true if the string is a valid room alias.
+     */
+    public static boolean isRoomAlias(String aRoomAlias) {
+        return (null != aRoomAlias) && PATTERN_CONTAIN_MATRIX_ALIAS.matcher(aRoomAlias).matches();
+    }
+
+    /**
+     * Tells if a string is a valid message id.
+     * @param aMessageId the string to test
+     * @return true if the string is a valid message id.
+     */
+    public static boolean isMessageId(String aMessageId) {
+        return (null != aMessageId) && PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER.matcher(aMessageId).matches();
     }
 }

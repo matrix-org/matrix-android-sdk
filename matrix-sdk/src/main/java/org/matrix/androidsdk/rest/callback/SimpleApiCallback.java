@@ -17,7 +17,7 @@ package org.matrix.androidsdk.rest.callback;
 
 import android.app.Activity;
 import android.content.Context;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 import android.view.View;
 import android.widget.Toast;
 

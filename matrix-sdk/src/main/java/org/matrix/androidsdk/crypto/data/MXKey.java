@@ -17,7 +17,7 @@
 package org.matrix.androidsdk.crypto.data;
 
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import java.io.Serializable;
 import java.util.ArrayList;

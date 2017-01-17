@@ -23,7 +23,9 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,6 +34,8 @@ import java.util.HashMap;
  * Layer for retrieving data either from the storage implementation, or from the server if the information is not available.
  */
 public class DataRetriever {
+    private static final String LOG_TAG = "DataRetriever";
+
     private RoomsRestClient mRestClient;
 
     private HashMap<String, String> mPendingFordwardRequestTokenByRoomId = new HashMap<>();
@@ -61,6 +65,8 @@ public class DataRetriever {
      * @param roomId the room id.
      */
     public void cancelHistoryRequest(String roomId) {
+        Log.d(LOG_TAG, "## cancelHistoryRequest() : roomId " + roomId);
+
         clearPendingToken(mPendingFordwardRequestTokenByRoomId, roomId);
         clearPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
     }
@@ -70,6 +76,8 @@ public class DataRetriever {
      * @param roomId the room id.
      */
     public void cancelRemoteHistoryRequest(String roomId) {
+        Log.d(LOG_TAG, "## cancelRemoteHistoryRequest() : roomId " + roomId);
+
         clearPendingToken(mPendingRemoteRequestTokenByRoomId, roomId);
     }
 
@@ -104,6 +112,8 @@ public class DataRetriever {
             return;
         }
 
+        Log.d(LOG_TAG, "## backPaginate() : starts for roomId " + roomId);
+
         TokensChunkResponse<Event> storageResponse = store.getEarlierMessages(roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT);
 
         putPendingToken(mPendingBackwardRequestTokenByRoomId, roomId, token);
@@ -111,6 +121,8 @@ public class DataRetriever {
         if (storageResponse != null) {
             final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
             final TokensChunkResponse<Event> fStorageResponse = storageResponse;
+
+            Log.d(LOG_TAG, "## backPaginate() : some data has been retrieved into the local storage (" + fStorageResponse.chunk.size() + " events)");
 
             // call the callback with a delay
             // to reproduce the same behaviour as a network request.
@@ -120,7 +132,11 @@ public class DataRetriever {
                 public void run() {
                     handler.postDelayed(new Runnable() {
                         public void run() {
-                            if (TextUtils.equals(getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId), token)) {
+                            String expectedToken = getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
+                            Log.d(LOG_TAG, "## backPaginate() : local store roomId " + roomId + " token " + token + " vs " + expectedToken);
+
+                            if (TextUtils.equals(expectedToken, token)) {
+                                clearPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
                                 callback.onSuccess(fStorageResponse);
                             }
                         }
@@ -132,10 +148,17 @@ public class DataRetriever {
             t.start();
         }
         else {
+            Log.d(LOG_TAG, "## backPaginate() : trigger a remote request");
             mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.BACKWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
                 @Override
                 public void onSuccess(TokensChunkResponse<Event> events) {
-                    if (TextUtils.equals(getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId), token)) {
+                    String expectedToken = getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
+
+                    Log.d(LOG_TAG, "## backPaginate() succeeds : roomId " + roomId + " token " + token + " vs " + expectedToken);
+
+                    if (TextUtils.equals(expectedToken, token)) {
+                        clearPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
+
                         // Watch for the one event overlap
                         Event oldestEvent = store.getOldestEvent(roomId);
 
@@ -158,7 +181,48 @@ public class DataRetriever {
                             store.storeRoomEvents(roomId, events, EventTimeline.Direction.BACKWARDS);
                         }
 
+                        Log.d(LOG_TAG, "## backPaginate() succeed : roomId " + roomId + " token " + token + " got " + events.chunk.size());
                         callback.onSuccess(events);
+                    }
+                }
+
+                private void logErrorMessage(String expectedToken , String errorMessage) {
+                    Log.e(LOG_TAG, "## backPaginate() failed : roomId " + roomId + " token " + token + " expected " +  expectedToken + " with " + errorMessage);
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    String expectedToken = getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
+                    logErrorMessage(expectedToken, e.getMessage());
+
+                    // dispatch only if it is expected
+                    if (TextUtils.equals(token, expectedToken)) {
+                        clearPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
+                        callback.onNetworkError(e);
+                    }
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    String expectedToken = getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
+                    logErrorMessage(expectedToken, e.getMessage());
+
+                    // dispatch only if it is expected
+                    if (TextUtils.equals(token, expectedToken)) {
+                        clearPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
+                        callback.onMatrixError(e);
+                    }
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    String expectedToken = getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
+                    logErrorMessage(expectedToken, e.getMessage());
+
+                    // dispatch only if it is expected
+                    if (TextUtils.equals(token, expectedToken)) {
+                        clearPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
+                        callback.onUnexpectedError(e);
                     }
                 }
             });
@@ -178,6 +242,7 @@ public class DataRetriever {
             @Override
             public void onSuccess(TokensChunkResponse<Event> events) {
                 if (TextUtils.equals(getPendingToken(mPendingFordwardRequestTokenByRoomId, roomId), token)) {
+                    clearPendingToken(mPendingFordwardRequestTokenByRoomId, roomId);
                     store.storeRoomEvents(roomId, events, EventTimeline.Direction.FORWARDS);
                     callback.onSuccess(events);
                 }
@@ -220,6 +285,8 @@ public class DataRetriever {
                         info.chunk.get(0).mToken = info.start;
                         info.chunk.get(info.chunk.size() - 1).mToken = info.end;
                     }
+
+                    clearPendingToken(mPendingRemoteRequestTokenByRoomId, roomId);
                     callback.onSuccess(info);
                 }
             }
@@ -236,6 +303,8 @@ public class DataRetriever {
      * @param roomId the room id
      */
     private void clearPendingToken(HashMap<String, String> dict, String roomId) {
+        Log.d(LOG_TAG, "## clearPendingToken() : roomId " + roomId);
+
         if (null != roomId) {
             synchronized (dict) {
                 dict.remove(roomId);
@@ -261,8 +330,8 @@ public class DataRetriever {
                     expectedToken = null;
                 }
             }
-            dict.remove(roomId);
         }
+        Log.d(LOG_TAG, "## getPendingToken() : roomId " + roomId + " token " + expectedToken);
 
         return expectedToken;
     }
@@ -274,6 +343,8 @@ public class DataRetriever {
      * @param token the token
      */
     private void putPendingToken(HashMap<String, String> dict, String roomId, String token) {
+        Log.d(LOG_TAG, "## putPendingToken() : roomId " + roomId + " token " + token);
+
         synchronized (dict) {
             // null is allowed for a request
             if (null == token) {

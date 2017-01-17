@@ -18,12 +18,11 @@ package org.matrix.androidsdk.data;
 
 import android.os.Looper;
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXDataHandler;
-import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXMemoryStore;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -1098,9 +1097,13 @@ public class EventTimeline {
             public void onSuccess(TokensChunkResponse<Event> response) {
                 if (mDataHandler.isAlive()) {
 
-                    Log.d(LOG_TAG, "backPaginate : " + response.chunk.size() + " events are retrieved.");
+                    if (null != response.chunk) {
+                        Log.d(LOG_TAG, "backPaginate : " + response.chunk.size() + " events are retrieved.");
+                    } else {
+                        Log.d(LOG_TAG, "backPaginate : there is no event");
+                    }
 
-                    mIsLastBackChunk = ((0 == response.chunk.size()) && TextUtils.equals(response.end, response.start)) || (null == response.end);
+                    mIsLastBackChunk = ((null != response.chunk) && (0 == response.chunk.size()) && TextUtils.equals(response.end, response.start)) || (null == response.end);
 
                     if (mIsLastBackChunk && (null != response.end)) {
                         // save its token to avoid useless request
@@ -1114,7 +1117,7 @@ public class EventTimeline {
                         }
                     }
 
-                    addPaginationEvents(response.chunk, Direction.BACKWARDS, callback);
+                    addPaginationEvents((null == response.chunk) ? new ArrayList<Event>() : response.chunk, Direction.BACKWARDS, callback);
 
                 } else {
                     Log.d(LOG_TAG, "mDataHandler is not active.");

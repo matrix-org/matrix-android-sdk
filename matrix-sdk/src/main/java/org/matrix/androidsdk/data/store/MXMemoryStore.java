@@ -1112,7 +1112,7 @@ public class MXMemoryStore implements IMXStore {
                     LinkedHashMap<String, Event> eventsMap = mRoomEvents.get(roomId);
 
                     // test if the event is know
-                    if (eventsMap.containsKey(receipt.eventId)) {
+                    if ((null != eventsMap) && eventsMap.containsKey(receipt.eventId)) {
                         ArrayList<String> eventIds = new ArrayList<>(eventsMap.keySet());
 
                         int curEventPos = eventIds.indexOf(curReceipt.eventId);

@@ -21,7 +21,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Base64;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -844,11 +844,8 @@ public class MXCallsManager {
 
         if (!TextUtils.isEmpty(userId) && userId.startsWith(prefix) && userId.endsWith(suffix)) {
             String roomIdBase64 = userId.substring(prefix.length(), userId.length() - suffix.length());
-
             try {
-                byte[] data = Base64.decode(roomIdBase64, Base64.NO_WRAP | Base64.URL_SAFE);
-                String roomId = new String(data, "UTF-8");
-                res = MXSession.PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER.matcher(roomId).matches();
+                res = MXSession.isRoomId((new String(Base64.decode(roomIdBase64, Base64.NO_WRAP | Base64.URL_SAFE), "UTF-8")));
             } catch (Exception e) {
                 Log.e(LOG_TAG, "isConferenceUserId : failed " + e.getMessage());
             }

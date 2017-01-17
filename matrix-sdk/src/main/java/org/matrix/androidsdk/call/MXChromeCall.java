@@ -21,7 +21,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.os.Build;
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
