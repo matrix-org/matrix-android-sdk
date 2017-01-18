@@ -16,25 +16,36 @@
 package org.matrix.androidsdk.rest.api;
 
 import retrofit.Callback;
+import retrofit.http.Body;
 import retrofit.http.GET;
 import retrofit.http.POST;
 import retrofit.http.Query;
 
 import org.matrix.androidsdk.rest.model.PidResponse;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
+import org.matrix.androidsdk.rest.model.ThreePidsParams;
 
+import java.util.List;
 import java.util.Map;
 
 public interface ThirdPidApi {
 
     /**
-     * Get the 3rd party id from the
+     * Get the 3rd party id from a medium
      * @param address the address.
      * @param medium the medium.
      * @param callback the asynchronous callback called with the response
      */
     @GET("/lookup")
     void lookup3Pid(@Query("address") String address, @Query("medium") String medium, Callback<PidResponse> callback);
+
+    /**
+     * Request a bunch of 3PIDs
+     * @param body teh body request
+     * @param callback the asynchronous callback.
+     */
+    @POST("/lookup")
+    void lookup3Pids(@Body ThreePidsParams body, Callback<List<List<String>>> callback);
 
     /**
      * Request an email validation

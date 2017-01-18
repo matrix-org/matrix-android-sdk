@@ -20,6 +20,6 @@ import java.util.List;
 /**
  * Class representing the ThreePids response
  */
-public class ThreePidsResponse {
+public class AccountThreePidsResponse {
     public List<ThirdPartyIdentifier> threepids;
 }

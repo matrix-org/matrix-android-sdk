@@ -1107,7 +1107,7 @@ public class MXSession {
      * @param mediums   the medias.
      * @param callback  the 3rd parties callback
      */
-    public void lookup3Pids(ArrayList<String> addresses, ArrayList<String> mediums, ApiCallback<ArrayList<String>> callback) {
+    public void lookup3Pids(List<String> addresses, List<String> mediums, ApiCallback<List<String>> callback) {
         checkIfAlive();
 
         mThirdPidRestClient.lookup3Pids(addresses, mediums, callback);
