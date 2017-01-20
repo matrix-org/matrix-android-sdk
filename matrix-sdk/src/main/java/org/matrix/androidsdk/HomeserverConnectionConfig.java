@@ -80,7 +80,7 @@ public class HomeserverConnectionConfig {
         }
 
         // remove trailing /
-        if (identityServerUri.toString().endsWith("/")) {
+        if ((null != identityServerUri) && identityServerUri.toString().endsWith("/")) {
             try {
                 String url = identityServerUri.toString();
                 identityServerUri = Uri.parse(url.substring(0, url.length()-1));
