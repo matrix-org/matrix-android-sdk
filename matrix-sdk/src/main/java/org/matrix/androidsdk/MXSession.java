@@ -315,11 +315,7 @@ public class MXSession {
         String version = "";
 
         if (null != mOlmManager) {
-            version = mOlmManager.getOlmLibVersion();
-
-            if (longFormat) {
-                version += " (" + mOlmManager.getSdkOlmVersion(context) + ")";
-            }
+            version = longFormat ? mOlmManager.getDetailedVersion(context) : mOlmManager.getVersion();
         }
 
         return version;
