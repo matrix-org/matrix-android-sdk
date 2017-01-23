@@ -111,6 +111,8 @@ public class MXFileStore extends MXMemoryStore {
 
     private boolean mAreUsersLoaded = false;
 
+    private long mPreloadTime = 0;
+
     // the read receipts are asynchronously loaded
     // keep a list of the remaining receipts to load
     private final ArrayList<String> mRoomReceiptsToLoad = new ArrayList<>();
@@ -279,6 +281,7 @@ public class MXFileStore extends MXMemoryStore {
     @Override
     public void open() {
         super.open();
+        final long fLoadTimeT0 = System.currentTimeMillis();
 
         // avoid concurrency call.
         synchronized (this) {
@@ -425,9 +428,11 @@ public class MXFileStore extends MXMemoryStore {
                                 } else {
                                     // extract the room states
                                     mRoomReceiptsToLoad.addAll(listFiles(mStoreRoomsMessagesReceiptsFolderFile.list()));
+                                    mPreloadTime = System.currentTimeMillis() - fLoadTimeT0;
 
                                     Log.e(LOG_TAG, "The store is opened.");
                                     dispatchOnStoreReady(mCredentials.userId);
+
 
                                     // load the following items with delay
                                     // theses items are not required to be ready
@@ -453,6 +458,8 @@ public class MXFileStore extends MXMemoryStore {
                         dispatchPostProcess(mCredentials.userId);
                         Log.e(LOG_TAG, "The store is opened.");
                         dispatchOnStoreReady(mCredentials.userId);
+
+                        mPreloadTime = System.currentTimeMillis() - fLoadTimeT0;
                     }
                 };
 
@@ -460,6 +467,15 @@ public class MXFileStore extends MXMemoryStore {
                 t.start();
             }
         }
+    }
+
+    /**
+     * Provides the store preload time in milliseconds.
+     * @return the store preload time in milliseconds.
+     */
+    @Override
+    public long getPreloadTime() {
+        return mPreloadTime;
     }
 
     /**

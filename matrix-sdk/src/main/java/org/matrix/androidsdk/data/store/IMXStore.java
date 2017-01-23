@@ -357,4 +357,10 @@ public interface IMXStore {
      * @param accountData the account data.
      */
     void storeAccountData(String roomId, RoomAccountData accountData);
+
+    /**
+     * Provides the store preload time in milliseconds.
+     * @return the store preload time in milliseconds.
+     */
+    long getPreloadTime();
 }
