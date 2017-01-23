@@ -31,7 +31,7 @@ import org.matrix.androidsdk.rest.model.ForgetPasswordResponse;
 import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.ThreePid;
 import org.matrix.androidsdk.rest.model.ThreePidCreds;
-import org.matrix.androidsdk.rest.model.ThreePidsResponse;
+import org.matrix.androidsdk.rest.model.AccountThreePidsResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
@@ -273,9 +273,9 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     public void threePIDs(final ApiCallback<List<ThirdPartyIdentifier>> callback) {
         final String description = "threePIDs";
 
-        mApi.threePIDs(new RestAdapterCallback<ThreePidsResponse>(description, mUnsentEventsManager, callback, null) {
+        mApi.threePIDs(new RestAdapterCallback<AccountThreePidsResponse>(description, mUnsentEventsManager, callback, null) {
             @Override
-            public void success(ThreePidsResponse threePidsResponse, Response response) {
+            public void success(AccountThreePidsResponse threePidsResponse, Response response) {
                 onEventSent();
                 if (null != callback) {
                     callback.onSuccess(threePidsResponse.threepids);

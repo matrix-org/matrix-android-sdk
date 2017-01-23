@@ -1,4 +1,14 @@
-Changes to Matrix Android SDK in 0.7.6 (2017-01-17)
+Changes to Matrix Android SDK in 0.7.8 (2017-01-23)
+=======================================================
+
+Improvements: 
+* Update the olm library.
+* Improve the email bunch lookup method
+
+Bugfixes:
+* The users were not saved after the login. They were only saved after restarting the application.
+
+Changes to Matrix Android SDK in 0.7.7 (2017-01-17)
 =======================================================
 
 Improvements: 

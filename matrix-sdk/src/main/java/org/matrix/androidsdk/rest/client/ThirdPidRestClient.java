@@ -22,7 +22,12 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.PidResponse;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
+import org.matrix.androidsdk.rest.model.ThreePidsParams;
+
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import retrofit.Callback;
@@ -118,30 +123,53 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
      * @param mediums the medias.
      * @param callback the 3rd parties callback
      */
-    public void lookup3Pids(ArrayList<String> addresses, ArrayList<String> mediums, ApiCallback<ArrayList<String>> callback) {
-        // check if the sizes match
-        if ((addresses.size() == mediums.size()) && (addresses.size() != 0)) {
-            lookup3Pids(addresses, mediums, 0, new ArrayList<String>(), callback);
-        }
-    }
-
-    // recursive method to get the mids
-    private void lookup3Pids(final ArrayList<String> addresses, final ArrayList<String> mediums, final int index, final ArrayList<String> mids,  final ApiCallback<ArrayList<String>> callback) {
-        if (index >= addresses.size()) {
-            callback.onSuccess(mids);
+    public void lookup3Pids(final List<String> addresses, final List<String> mediums, final ApiCallback<List<String>> callback) {
+        // sanity checks
+        if ((null == addresses) || (null == mediums) || (addresses.size() != mediums.size())) {
+            callback.onUnexpectedError(new Exception("invalid params"));
+            return;
         }
 
-        mApi.lookup3Pid(addresses.get(index), mediums.get(index), new Callback<PidResponse>() {
+        // nothing to check
+        if (0 == mediums.size()) {
+            callback.onSuccess(new ArrayList<String>());
+            return;
+        }
+
+        ThreePidsParams threePidsParams = new ThreePidsParams();
+
+        ArrayList<List<String>> list = new ArrayList<>();
+
+        for(int i = 0; i < addresses.size(); i++) {
+            list.add(Arrays.asList(mediums.get(i), addresses.get(i)));
+        }
+
+        threePidsParams.threepids = list;
+
+        mApi.lookup3Pids(threePidsParams, new Callback<List<List<String>>>() {
             @Override
-            public void success(PidResponse pidResponse, Response response) {
+            public void success(List<List<String>> list, Response response) {
+                HashMap<String, String> mxidByAddress = new HashMap<>();
 
-                mids.add((null == pidResponse.mxid) ? "" : pidResponse.mxid);
-
-                if ((index+1) == addresses.size()) {
-                    callback.onSuccess(mids);
-                } else {
-                    lookup3Pids(addresses, mediums, index + 1, mids, callback);
+                for(int i = 0; i < list.size(); i++) {
+                    List<String> items = list.get(i);
+                    // [0] : medium
+                    // [1] : address
+                    // [2] : matrix id
+                    mxidByAddress.put(items.get(1), items.get(2));
                 }
+
+                ArrayList<String> matrixIds = new ArrayList<>();
+
+                for(String address : addresses) {
+                    if (mxidByAddress.containsKey(address)) {
+                        matrixIds.add(mxidByAddress.get(address));
+                    } else {
+                        matrixIds.add("");
+                    }
+                }
+
+                callback.onSuccess(matrixIds);
             }
 
             @Override

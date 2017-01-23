@@ -19,7 +19,7 @@ import org.matrix.androidsdk.rest.model.AddThreePidsParams;
 import org.matrix.androidsdk.rest.model.ChangePasswordParams;
 import org.matrix.androidsdk.rest.model.ForgetPasswordParams;
 import org.matrix.androidsdk.rest.model.ForgetPasswordResponse;
-import org.matrix.androidsdk.rest.model.ThreePidsResponse;
+import org.matrix.androidsdk.rest.model.AccountThreePidsResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
@@ -99,7 +99,7 @@ public interface ProfileApi {
      * @param callback the asynchronous callback called with the response
      */
     @GET("/account/3pid")
-    void threePIDs(Callback<ThreePidsResponse> callback);
+    void threePIDs(Callback<AccountThreePidsResponse> callback);
 
     /**
      * Add an 3Pids to an user

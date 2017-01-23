@@ -507,6 +507,7 @@ public class MXFileStore extends MXMemoryStore {
         }
         mMetadata = null;
         mEventStreamToken = null;
+        mAreUsersLoaded = true;
     }
 
     /**
