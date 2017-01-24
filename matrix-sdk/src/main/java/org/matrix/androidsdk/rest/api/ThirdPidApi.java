@@ -21,11 +21,11 @@ import retrofit.http.GET;
 import retrofit.http.POST;
 import retrofit.http.Query;
 
+import org.matrix.androidsdk.rest.model.BulkLookupParams;
+import org.matrix.androidsdk.rest.model.BulkLookupResponse;
 import org.matrix.androidsdk.rest.model.PidResponse;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
-import org.matrix.androidsdk.rest.model.ThreePidsParams;
 
-import java.util.List;
 import java.util.Map;
 
 public interface ThirdPidApi {
@@ -44,8 +44,8 @@ public interface ThirdPidApi {
      * @param body teh body request
      * @param callback the asynchronous callback.
      */
-    @POST("/lookup")
-    void lookup3Pids(@Body ThreePidsParams body, Callback<List<List<String>>> callback);
+    @POST("/bulk_lookup")
+    void bulkLookup(@Body BulkLookupParams body, Callback<BulkLookupResponse> callback);
 
     /**
      * Request an email validation
