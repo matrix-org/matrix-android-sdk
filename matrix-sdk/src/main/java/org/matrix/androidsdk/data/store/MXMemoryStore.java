@@ -1374,4 +1374,12 @@ public class MXMemoryStore implements IMXStore {
     public long getPreloadTime() {
         return 0;
     }
+
+    /**
+     * Provides some store stats
+     * @return the store stats
+     */
+    public Map<String, Long> getStats() {
+        return new HashMap<>();
+    }
 }

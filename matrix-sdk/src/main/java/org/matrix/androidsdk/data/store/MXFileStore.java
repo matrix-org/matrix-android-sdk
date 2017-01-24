@@ -117,6 +117,9 @@ public class MXFileStore extends MXMemoryStore {
     // keep a list of the remaining receipts to load
     private final ArrayList<String> mRoomReceiptsToLoad = new ArrayList<>();
 
+    // store some stats
+    private HashMap<String, Long> mStoreStats = new HashMap<>();
+
     /**
      * Create the file store dirtrees
      */
@@ -351,6 +354,7 @@ public class MXFileStore extends MXMemoryStore {
 
                                         long delta = System.currentTimeMillis() - t0;
                                         Log.e(LOG_TAG, "Retrieve " +  mUsers.size() + " users with the room states in " + delta + "  ms");
+                                        mStoreStats.put("Retrieve users", delta);
                                     }
                                 }
 
@@ -476,6 +480,14 @@ public class MXFileStore extends MXMemoryStore {
     @Override
     public long getPreloadTime() {
         return mPreloadTime;
+    }
+
+    /**
+     * Provides some store stats
+     * @return the store stats
+     */
+    public Map<String, Long> getStats() {
+        return mStoreStats;
     }
 
     /**
@@ -926,7 +938,9 @@ public class MXFileStore extends MXMemoryStore {
             }
         }
 
-        Log.e(LOG_TAG, "loadUsers (" + filenames.size() + " files) : retrieve " + mUsers.size() + " users in " + (System.currentTimeMillis() - start) + "ms");
+        long delta = (System.currentTimeMillis() - start);
+        Log.e(LOG_TAG, "loadUsers (" + filenames.size() + " files) : retrieve " + mUsers.size() + " users in " + delta + "ms");
+        mStoreStats.put("loadUsers", delta);
 
         mAreUsersLoaded = true;
 
@@ -1195,7 +1209,9 @@ public class MXFileStore extends MXMemoryStore {
             }
 
             if (succeed) {
-                Log.d(LOG_TAG, "loadRoomMessages : " + filenames.size() + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+                long delta = (System.currentTimeMillis() - start);
+                Log.d(LOG_TAG, "loadRoomMessages : " + filenames.size() + " rooms in " + delta + " ms");
+                mStoreStats.put("loadRoomMessages", delta);
             }
 
             // extract the tokens list
@@ -1362,7 +1378,9 @@ public class MXFileStore extends MXMemoryStore {
                 }
             }
 
-            Log.d(LOG_TAG, "loadRoomsState " + filenames.size() + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+            long delta = (System.currentTimeMillis() - start);
+            Log.d(LOG_TAG, "loadRoomsState " + filenames.size() + " rooms in " + delta + " ms");
+            mStoreStats.put("loadRoomsState", delta);
 
         } catch (Exception e) {
             succeed = false;
@@ -1645,7 +1663,9 @@ public class MXFileStore extends MXMemoryStore {
                 succeed &= loadSummary(filename);
             }
 
-            Log.d(LOG_TAG, "loadSummaries " + filenames.size() + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+            long delta = (System.currentTimeMillis() - start);
+            Log.d(LOG_TAG, "loadSummaries " + filenames.size() + " rooms in " + delta + " ms");
+            mStoreStats.put("loadSummaries", delta);
         }
         catch (Exception e) {
             succeed = false;
@@ -1842,7 +1862,10 @@ public class MXFileStore extends MXMemoryStore {
             }
 
             saveReceipts();
-            Log.d(LOG_TAG, "loadReceipts " + count + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+
+            long delta = (System.currentTimeMillis() - start);
+            Log.d(LOG_TAG, "loadReceipts " + count + " rooms in " + delta + " ms");
+            mStoreStats.put("loadReceipts", delta);
         }
         catch (Exception e) {
             succeed = false;

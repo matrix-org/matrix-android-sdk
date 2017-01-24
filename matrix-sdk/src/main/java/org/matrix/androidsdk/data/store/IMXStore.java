@@ -363,4 +363,10 @@ public interface IMXStore {
      * @return the store preload time in milliseconds.
      */
     long getPreloadTime();
+
+    /**
+     * Provides some store stats
+     * @return the store stats
+     */
+    Map<String, Long> getStats();
 }
