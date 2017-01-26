@@ -639,6 +639,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private Object loadObject(File file, String description) {
         Object object = null;
 
+
         if (file.exists()) {
             try {
                 // the files are now zipped to reduce saving time
@@ -648,9 +649,18 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 object = ois.readObject();
                 ois.close();
             } catch (Exception e) {
-                // warn that some file loading fails
-                mIsCorrupted = true;
-                Log.e(LOG_TAG, description  + "failed : " + e.getMessage());
+                // if the zip deflating fails, try to use the former file saving method
+                try {
+                    FileInputStream fis2 = new FileInputStream(file);
+                    ObjectInputStream out = new ObjectInputStream(fis2);
+
+                    object = out.readObject();
+                    fis2.close();
+                } catch (Exception subEx) {
+                    // warn that some file loading fails
+                    mIsCorrupted = true;
+                    Log.e(LOG_TAG, description  + "failed : " + subEx.getMessage());
+                }
             }
         }
         return object;
