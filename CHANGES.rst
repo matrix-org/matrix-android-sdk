@@ -1,3 +1,13 @@
+Changes to Matrix Android SDK in 0.7.9 (2017-01-27)
+=======================================================
+
+Improvements: 
+* Use the new contacts lookup request.
+
+Bugfixes:
+* #894 : matrix user id regex does not allow underscore in the name
+* Fix backward compatibility issue.
+
 Changes to Matrix Android SDK in 0.7.8 (2017-01-23)
 =======================================================
 
