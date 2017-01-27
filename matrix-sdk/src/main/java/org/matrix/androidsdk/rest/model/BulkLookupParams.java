@@ -20,7 +20,7 @@ import java.util.List;
 /**
  * 3 pids request param
  */
-public class ThreePidsParams {
+public class BulkLookupParams {
     //  List of [medium, value]
     public List<List<String>> threepids;
 }

@@ -1365,4 +1365,21 @@ public class MXMemoryStore implements IMXStore {
             listener.onReadReceiptsLoaded(roomId);
         }
     }
+
+
+    /**
+     * Provides the store preload time in milliseconds.
+     * @return the store preload time in milliseconds.
+     */
+    public long getPreloadTime() {
+        return 0;
+    }
+
+    /**
+     * Provides some store stats
+     * @return the store stats
+     */
+    public Map<String, Long> getStats() {
+        return new HashMap<>();
+    }
 }
