@@ -280,7 +280,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         // ensure that the folder exists
         // it should always exist but it happened
         if (!folder.exists()) {
-            folder.mkdirs();
+            if (!folder.mkdirs()) {
+                Log.e(LOG_TAG, "Cannot create the folder " + folder);
+            }
         }
 
         storeObject(object, new File(folder, filename), description);
@@ -647,7 +649,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         }
 
         if (!mInboundGroupSessionsFolder.exists()) {
-            mInboundGroupSessionsFolder.mkdir();
+            mInboundGroupSessionsFolder.mkdirs();
         }
 
         mMetaData = null;
@@ -857,13 +859,19 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     }
 
                     // convert to the new format
-                    mOlmSessionsFolder.mkdir();
+                    if (!mOlmSessionsFolder.mkdir()) {
+                        Log.e(LOG_TAG, "Cannot create the folder " + mOlmSessionsFolder);
+                    }
 
                     for (String key : olmSessionMap.keySet()) {
                         Map<String, OlmSession> submap = olmSessionMap.get(key);
 
                         File submapFolder = new File(mOlmSessionsFolder, encodeFilename(key));
-                        submapFolder.mkdir();
+
+                        if (!submapFolder.mkdir()) {
+                            Log.e(LOG_TAG, "Cannot create the folder " + submapFolder);
+                        }
+
                         for(String sessionId : submap.keySet()) {
                             storeObject(submap.get(sessionId), submapFolder, encodeFilename(sessionId), "Convert olmSession " + key + " " + sessionId);
                         }
@@ -932,12 +940,17 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     Log.e(LOG_TAG, "## preloadCryptoData() - invalid mInboundGroupSessions " + e.getMessage());
                 }
 
-                mInboundGroupSessionsFolder.mkdir();
+                if (!mInboundGroupSessionsFolder.mkdirs()) {
+                    Log.e(LOG_TAG, "Cannot create the folder " + mInboundGroupSessionsFolder);
+                }
 
                 // convert to the new format
                 for(String key : mInboundGroupSessions.keySet()) {
                     File keyFolder = new File(mInboundGroupSessionsFolder, encodeFilename(key));
-                    keyFolder.mkdir();
+
+                    if (!keyFolder.mkdirs()) {
+                        Log.e(LOG_TAG, "Cannot create the folder " + keyFolder);
+                    }
 
                     Map<String, MXOlmInboundGroupSession> inboundMaps = mInboundGroupSessions.get(key);
 
