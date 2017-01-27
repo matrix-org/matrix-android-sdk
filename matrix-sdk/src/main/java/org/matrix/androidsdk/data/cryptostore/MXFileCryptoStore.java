@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -58,6 +59,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private static final String MXFILE_CRYPTO_STORE_ACCOUNT_FILE_TMP = "account.tmp";
 
     private static final String MXFILE_CRYPTO_STORE_DEVICES_FOLDER = "devicesFolder";
+    private static final String MXFILE_CRYPTO_STORE_DEVICES_FILE = "devices";
+    private static final String MXFILE_CRYPTO_STORE_DEVICES_FILE_TMP = "devices.tmp";
 
     private static final String MXFILE_CRYPTO_STORE_ALGORITHMS_FILE = "roomsAlgorithms";
     private static final String MXFILE_CRYPTO_STORE_ALGORITHMS_FILE_TMP = "roomsAlgorithms";
@@ -107,6 +110,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private File mAccountFileTmp;
 
     private File mDevicesFolder;
+    private File mDevicesFile;
+    private File mDevicesFileTmp;
 
     private File mAlgorithmsFile;
     private File mAlgorithmsFileTmp;
@@ -138,6 +143,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         mAccountFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_ACCOUNT_FILE_TMP);
 
         mDevicesFolder = new File(mStoreFile, MXFILE_CRYPTO_STORE_DEVICES_FOLDER);
+        mDevicesFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_DEVICES_FILE);
+        mDevicesFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_DEVICES_FILE_TMP);
 
         mAlgorithmsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_ALGORITHMS_FILE);
         mAlgorithmsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_ALGORITHMS_FILE_TMP);
@@ -265,11 +272,27 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     /**
      * Store a serializable object into a dedicated file.
      * @param object the object to write.
+     * @param folder the folder
+     * @param filename the filename
+     * @param description the object description
+     */
+    private void storeObject(Object object, File folder, String filename, String description) {
+        // ensure that the folder exists
+        // it should always exist but it happened
+        if (!folder.exists()) {
+            folder.mkdirs();
+        }
+
+        storeObject(object, new File(folder, filename), description);
+    }
+
+    /**
+     * Store a serializable object into a dedicated file.
+     * @param object the object to write.
      * @param file the file
      * @param description the object description
      */
     private void storeObject(Object object, File file, String description) {
-
         if (Thread.currentThread() == Looper.getMainLooper().getThread()) {
             Log.e(LOG_TAG, "## storeObject() : should not be called in the UI thread " + description);
         }
@@ -361,7 +384,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             devicesMap = new HashMap<>(mUsersDevicesInfoMap.getMap().get(userId));
         }
 
-        storeObject(devicesMap, new File(mDevicesFolder, userId), "storeUserDevice " + userId);
+        storeObject(devicesMap, mDevicesFolder, userId, "storeUserDevice " + userId);
     }
 
     @Override
@@ -381,7 +404,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             mUsersDevicesInfoMap.setObjects(devices, userId);
         }
 
-        storeObject(devices, new File(mDevicesFolder, userId), "storeUserDevice " + userId);
+        storeObject(devices, mDevicesFolder, userId, "storeUserDevice " + userId);
     }
 
     @Override
@@ -467,7 +490,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 keyFolder.mkdir();
             }
 
-            storeObject(olmSession, new File(keyFolder, encodeFilename(sessionIdentifier)), "Store olm session " + deviceKey + " " + sessionIdentifier);
+            storeObject(olmSession, keyFolder, encodeFilename(sessionIdentifier), "Store olm session " + deviceKey + " " + sessionIdentifier);
         }
     }
 
@@ -552,7 +575,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 senderKeyFolder.mkdir();
             }
 
-            storeObject(session,  new File(senderKeyFolder, encodeFilename(sessionIdentifier)), "storeInboundGroupSession - in background");
+            storeObject(session, senderKeyFolder, encodeFilename(sessionIdentifier), "storeInboundGroupSession - in background");
         }
     }
 
@@ -666,6 +689,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         return object;
     }
 
+
     /**
      * Load the metadata from the store
      */
@@ -709,9 +733,43 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             }
         }
 
-        // previous store
+        // previous store format
         if (!mDevicesFolder.exists()) {
-            mIsCorrupted = true;
+            Object usersDevicesInfoMapAsVoid;
+
+            // if the tmp exists, it means that the latest file backup has been killed / stopped
+            if (mDevicesFileTmp.exists()) {
+                usersDevicesInfoMapAsVoid = loadObject(mDevicesFileTmp, "preloadCryptoData - mUsersDevicesInfoMap - tmp");
+            } else {
+                usersDevicesInfoMapAsVoid = loadObject(mDevicesFile, "preloadCryptoData - mUsersDevicesInfoMap");
+            }
+
+            if (null != usersDevicesInfoMapAsVoid) {
+                try {
+                    MXUsersDevicesMap objectAsMap = (MXUsersDevicesMap) usersDevicesInfoMapAsVoid;
+                    mUsersDevicesInfoMap = new MXUsersDevicesMap<>(objectAsMap.getMap());
+                } catch (Exception e) {
+                    mIsCorrupted = true;
+                    Log.e(LOG_TAG, "## preloadCryptoData() - invalid mUsersDevicesInfoMap " + e.getMessage());
+                }
+            } else {
+                mIsCorrupted = false;
+            }
+
+            mDevicesFolder.mkdirs();
+
+            if (null != mUsersDevicesInfoMap) {
+                HashMap<String, HashMap<String, MXDeviceInfo>> map = mUsersDevicesInfoMap.getMap();
+
+                Set<String> userIds = map.keySet();
+
+                for(String userId : userIds) {
+                    storeObject(map.get(userId), mDevicesFolder, userId, "convert devices map of " + userId);
+                }
+
+                mDevicesFileTmp.delete();
+                mDevicesFile.delete();
+            }
         } else {
             String[] files = mDevicesFolder.list();
             HashMap<String, Map<String, MXDeviceInfo>> map = new HashMap<>();
@@ -807,8 +865,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                         File submapFolder = new File(mOlmSessionsFolder, encodeFilename(key));
                         submapFolder.mkdir();
                         for(String sessionId : submap.keySet()) {
-                            File olmFile = new File(submapFolder, encodeFilename(sessionId));
-                            storeObject(submap.get(sessionId), olmFile, "Convert olmSession " + key + " " + sessionId);
+                            storeObject(submap.get(sessionId), submapFolder, encodeFilename(sessionId), "Convert olmSession " + key + " " + sessionId);
                         }
                     }
                 } catch (Exception e) {
@@ -885,8 +942,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     Map<String, MXOlmInboundGroupSession> inboundMaps = mInboundGroupSessions.get(key);
 
                     for(String sessionId : inboundMaps.keySet()) {
-                        File inboundSessionFile = new File(keyFolder, encodeFilename(sessionId));
-                        storeObject(inboundMaps.get(sessionId), inboundSessionFile, "Convert inboundsession");
+                        storeObject(inboundMaps.get(sessionId), keyFolder, encodeFilename(sessionId), "Convert inboundsession");
                     }
                 }
             }

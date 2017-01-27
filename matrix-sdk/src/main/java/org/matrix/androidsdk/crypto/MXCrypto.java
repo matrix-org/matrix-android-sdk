@@ -51,6 +51,7 @@ import org.matrix.androidsdk.util.JsonUtils;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -231,6 +232,10 @@ public class MXCrypto {
         mDecryptingHandlerThread.start();
 
         mUIHandler = new Handler(Looper.getMainLooper());
+
+        // ensure to have the up-to-date devices list
+        // got some issues when upgrading from Riot < 0.6.4
+        doKeyDownloadForUsers(Arrays.asList(mSession.getMyUserId()), null);
     }
 
     /**
