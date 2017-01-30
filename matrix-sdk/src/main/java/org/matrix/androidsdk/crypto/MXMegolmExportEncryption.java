@@ -21,6 +21,8 @@ import android.util.Base64;
 
 import org.matrix.androidsdk.util.Log;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.util.Arrays;
 
@@ -73,22 +75,7 @@ public class MXMegolmExportEncryption {
 
         byte[] toVerify = Arrays.copyOfRange(body, 0, body.length - 32);
 
-
-        /*
-
-                const hmac_prom = subtleCrypto.importKey(
-            'raw',
-            hmac_key,
-            {
-                name: 'HMAC',
-                hash: {name: 'SHA-256'},
-            },
-            false,
-            ['sign', 'verify']
-        );
-         */
-
-        SecretKey macKey = new SecretKeySpec(deriveKeysRes.hmac_prom, "HmacSHA256");
+        SecretKey macKey = new SecretKeySpec(deriveKeysRes.hmac_key, "HmacSHA256");
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(macKey);
         byte[] digest = mac.doFinal(toVerify);
@@ -99,28 +86,20 @@ public class MXMegolmExportEncryption {
         }
 
         Cipher decryptCipher = Cipher.getInstance("AES/CTR/NoPadding");
-        SecretKeySpec secretKeySpec = new SecretKeySpec(deriveKeysRes.aes_prom, "AES");
+
+        SecretKeySpec secretKeySpec = new SecretKeySpec(deriveKeysRes.aes_key, "AES");
         IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
         decryptCipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec);
 
-        MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+        outStream.write(decryptCipher.update(ciphertext));
+        outStream.write(decryptCipher.doFinal());
 
-        byte[] decodedBytes2 = decryptCipher.update(ciphertext, 0, ciphertextLength);
-        messageDigest.update(ciphertext);
+        String decodedString = new String(outStream.toByteArray(), "UTF-8");
 
-        byte[] decodedBytes = decryptCipher.doFinal();
+        outStream.close();
 
-        byte[] digestif = messageDigest.digest();
-        byte[] pp = deriveKeysRes.aes_prom;
-
-
-
-        if (!Arrays.equals(messageDigest.digest(), deriveKeysRes.aes_prom)) {
-            Log.e(LOG_TAG, "## decryptMegolmKeyFile() : AES fails");
-            throw new Exception("AES fails");
-        }
-
-        return new String(decodedBytes, "UTF-8");
+        return decodedString;
     }
 
     static final String HEADER_LINE = "-----BEGIN MEGOLM SESSION DATA-----";
@@ -193,8 +172,8 @@ public class MXMegolmExportEncryption {
 
         }
 
-        public byte[] aes_prom;
-        public byte[] hmac_prom;
+        public byte[] aes_key;
+        public byte[] hmac_key;
     }
 
     /**
@@ -216,20 +195,18 @@ public class MXMegolmExportEncryption {
         byte[] aes_key = Arrays.copyOfRange(keybits, 0, 32);
         byte[] hmac_key = Arrays.copyOfRange(keybits, 32, keybits.length);
 
-
         SecretKeySpec key = new SecretKeySpec(Arrays.copyOfRange(aes_key, 0, 16), "AES");
         IvParameterSpec iv = new IvParameterSpec(Arrays.copyOfRange(aes_key, 16, 32));
 
         Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding");
         cipher.init(Cipher.ENCRYPT_MODE, key, iv);
-        res.aes_prom = aes_key;
-
+        res.aes_key = aes_key;
 
         Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
         SecretKeySpec secret_key = new SecretKeySpec(hmac_key, "HmacSHA256");
         sha256_HMAC.init(secret_key);
 
-        res.hmac_prom = hmac_key;
+        res.hmac_key = hmac_key;
 
         return res;
     }
