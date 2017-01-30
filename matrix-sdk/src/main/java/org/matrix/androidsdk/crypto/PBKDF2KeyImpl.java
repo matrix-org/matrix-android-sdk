@@ -97,20 +97,21 @@ final class PBKDF2KeyImpl implements javax.crypto.interfaces.PBEKey {
             throw new InvalidKeySpecException("Key length is negative");
         }
         try {
-            this.prf = Mac.getInstance(prfAlgo, "SunJCE");
+            this.prf = Mac.getInstance(prfAlgo);
         } catch (NoSuchAlgorithmException nsae) {
             // not gonna happen; re-throw just in case
             InvalidKeySpecException ike = new InvalidKeySpecException();
             ike.initCause(nsae);
             throw ike;
-        } catch (NoSuchProviderException nspe) {
+        } catch (Exception e) {
             // Again, not gonna happen; re-throw just in case
             InvalidKeySpecException ike = new InvalidKeySpecException();
-            ike.initCause(nspe);
+            ike.initCause(e);
             throw ike;
         }
         this.key = deriveKey(prf, passwdBytes, salt, iterCount, keyLength);
     }
+
     private static byte[] deriveKey(final Mac prf, final byte[] password,
                                     byte[] salt, int iterCount, int keyLengthInBit) {
         int keyLength = keyLengthInBit/8;

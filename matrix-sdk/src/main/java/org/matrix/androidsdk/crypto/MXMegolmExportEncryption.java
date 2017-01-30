@@ -73,6 +73,21 @@ public class MXMegolmExportEncryption {
 
         byte[] toVerify = Arrays.copyOfRange(body, 0, body.length - 32);
 
+
+        /*
+
+                const hmac_prom = subtleCrypto.importKey(
+            'raw',
+            hmac_key,
+            {
+                name: 'HMAC',
+                hash: {name: 'SHA-256'},
+            },
+            false,
+            ['sign', 'verify']
+        );
+         */
+
         SecretKey macKey = new SecretKeySpec(deriveKeysRes.hmac_prom, "HmacSHA256");
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(macKey);
@@ -89,9 +104,16 @@ public class MXMegolmExportEncryption {
         decryptCipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec);
 
         MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-        messageDigest.update(ciphertext, 0, ciphertextLength);
+
+        byte[] decodedBytes2 = decryptCipher.update(ciphertext, 0, ciphertextLength);
+        messageDigest.update(ciphertext);
 
         byte[] decodedBytes = decryptCipher.doFinal();
+
+        byte[] digestif = messageDigest.digest();
+        byte[] pp = deriveKeysRes.aes_prom;
+
+
 
         if (!Arrays.equals(messageDigest.digest(), deriveKeysRes.aes_prom)) {
             Log.e(LOG_TAG, "## decryptMegolmKeyFile() : AES fails");
@@ -186,7 +208,7 @@ public class MXMegolmExportEncryption {
     private static DeriveKeysRes deriveKeys(byte[] salt, int iterations, String password) throws Exception {
         DeriveKeysRes res = new DeriveKeysRes();
 
-        PBEKeySpec keySpec = new PBEKeySpec(password.toCharArray(), salt, iterations);
+        PBEKeySpec keySpec = new PBEKeySpec(password.toCharArray(), salt, iterations, 512);
         SecretKey derivedKey = new PBKDF2KeyImpl(keySpec, "HmacSHA512");
 
         byte[] keybits = derivedKey.getEncoded();
@@ -200,14 +222,14 @@ public class MXMegolmExportEncryption {
 
         Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding");
         cipher.init(Cipher.ENCRYPT_MODE, key, iv);
-        res.aes_prom = cipher.doFinal();
+        res.aes_prom = aes_key;
 
 
         Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
         SecretKeySpec secret_key = new SecretKeySpec(hmac_key, "HmacSHA256");
         sha256_HMAC.init(secret_key);
 
-        res.hmac_prom = sha256_HMAC.doFinal();
+        res.hmac_prom = hmac_key;
 
         return res;
     }
