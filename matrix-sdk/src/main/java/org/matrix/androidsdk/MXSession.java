@@ -21,6 +21,8 @@ import android.net.ConnectivityManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonObject;
@@ -1935,6 +1937,16 @@ public class MXSession {
      */
     public void getDevicesList(ApiCallback<DevicesListResponse> callback) {
         mCryptoRestClient.getDevices(callback);
+    }
+
+    /**
+     * Set a device name.
+     * @param deviceId the device id
+     * @param deviceName the device name
+     * @param callback the asynchronous callback
+     */
+    public void setDeviceName(final String deviceId, final String deviceName, final ApiCallback<Void> callback) {
+        mCryptoRestClient.setDeviceName(deviceId, deviceName, callback);
     }
 
     /**

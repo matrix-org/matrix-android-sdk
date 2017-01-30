@@ -86,10 +86,19 @@ public interface CryptoApi {
 
     /**
      * Delete a device.
-     * @param deviceId the device id;
+     * @param deviceId the device id
      * @param params the deletion parameters
      * @param callback the callback
      */
     @RetrofitDeleteWithBody("/devices/{device_id}")
     void deleteDevice(@Path("device_id")String deviceId, @Body DeleteDeviceParams params, Callback<Void> callback);
+
+    /**
+     * Update the device information.
+     * @param deviceId the device id
+     * @param params the params
+     * @param callback the asynchronous callback
+     */
+    @PUT("/devices/{device_id}")
+    void updateDeviceInfo(@Path("device_id")String deviceId, @Body Map<String, String> params, Callback<Void> callback);
 }
