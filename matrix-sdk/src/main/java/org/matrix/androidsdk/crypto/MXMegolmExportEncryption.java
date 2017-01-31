@@ -22,8 +22,7 @@ import android.util.Base64;
 import org.matrix.androidsdk.util.Log;
 
 import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
-import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.util.Arrays;
 
 import javax.crypto.Cipher;
@@ -39,6 +38,9 @@ import javax.crypto.spec.SecretKeySpec;
 public class MXMegolmExportEncryption {
     private static final String LOG_TAG = "MXCryptoExport";
 
+    static final String HEADER_LINE = "-----BEGIN MEGOLM SESSION DATA-----";
+    static final String TRAILER_LINE = "-----END MEGOLM SESSION DATA-----";
+
     /**
      * Convert a signed byte to a int value
      * @param bVal teh byte value to convert
@@ -46,6 +48,24 @@ public class MXMegolmExportEncryption {
      */
     private static final int byteToInt(byte bVal) {
         return bVal & 0xFF;
+    }
+
+    /**
+     * Extract the AES key from the deriveKeys result.
+     * @param keyBits the deriveKeys result.
+     * @return the AES key
+     */
+    private static byte[] getAesKey(byte[] keyBits) {
+        return Arrays.copyOfRange(keyBits, 0, 32);
+    }
+
+    /**
+     * Extract the Hmac key from the deriveKeys result.
+     * @param keyBits the deriveKeys result.
+     * @return the Hmac key.
+     */
+    private static byte[] getHmacKey(byte[] keyBits) {
+        return Arrays.copyOfRange(keyBits, 32, keyBits.length);
     }
 
     /**
@@ -80,11 +100,11 @@ public class MXMegolmExportEncryption {
         byte[] ciphertext = Arrays.copyOfRange(body, 37, 37+ciphertextLength);
         byte[] hmac = Arrays.copyOfRange(body, body.length - 32, body.length);
 
-        DeriveKeysRes deriveKeysRes = deriveKeys(salt, iterations, password);
+        byte[] deriveKey = deriveKeys(salt, iterations, password);
 
         byte[] toVerify = Arrays.copyOfRange(body, 0, body.length - 32);
 
-        SecretKey macKey = new SecretKeySpec(deriveKeysRes.hmac_key, "HmacSHA256");
+        SecretKey macKey = new SecretKeySpec(getHmacKey(deriveKey), "HmacSHA256");
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(macKey);
         byte[] digest = mac.doFinal(toVerify);
@@ -96,7 +116,7 @@ public class MXMegolmExportEncryption {
 
         Cipher decryptCipher = Cipher.getInstance("AES/CTR/NoPadding");
 
-        SecretKeySpec secretKeySpec = new SecretKeySpec(deriveKeysRes.aes_key, "AES");
+        SecretKeySpec secretKeySpec = new SecretKeySpec(getAesKey(deriveKey), "AES");
         IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
         decryptCipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec);
 
@@ -105,14 +125,124 @@ public class MXMegolmExportEncryption {
         outStream.write(decryptCipher.doFinal());
 
         String decodedString = new String(outStream.toByteArray(), "UTF-8");
-
         outStream.close();
 
         return decodedString;
     }
 
-    static final String HEADER_LINE = "-----BEGIN MEGOLM SESSION DATA-----";
-    static final String TRAILER_LINE = "-----END MEGOLM SESSION DATA-----";
+    /**
+     * ascii-armour a  megolm key file
+     *
+     * base64s the content, and adds header and trailer lines
+     *
+     * @param {Uint8Array} data  raw data
+     * @return {ArrayBuffer} formatted file
+     */
+    private static byte[] packMegolmKeyFile(byte[] data) throws Exception {
+        // we split into lines before base64ing, because encodeBase64 doesn't deal
+        // terribly well with large arrays.
+        int LINE_LENGTH = (72 * 4 / 3);
+        int nLines = (int)(Math.ceil(data.length / LINE_LENGTH));
+
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+        outStream.write(HEADER_LINE.getBytes());
+
+        int o = 0;
+        int i;
+        for (i = 1; i <= nLines; i++) {
+            outStream.write("\n".getBytes());
+            outStream.write(Base64.encode(data, o, o+LINE_LENGTH, Base64.DEFAULT));
+            o += LINE_LENGTH;
+        }
+
+        outStream.write("\n".getBytes());
+        outStream.write(TRAILER_LINE.getBytes());
+        outStream.write("\n".getBytes());
+
+        return outStream.toByteArray();
+    }
+
+    /**
+     * Encrypt a string into the megolm export format.
+     * @param data the data to encrypt.
+     * @param password the password
+     * @return the encrypted data
+     * @throws Exception the failure reason
+     */
+    public static byte[] encryptMegolmKeyFile(String data, String password) throws Exception {
+        return encryptMegolmKeyFile(data, password, 100000);
+    }
+
+    /**
+     * Encrypt a string into the megolm export format.
+     * @param data the data to encrypt.
+     * @param password the password
+     * @param kdf_rounds the iteration count
+     * @return the encrypted data
+     * @throws Exception the failure reason
+     */
+    public static byte[] encryptMegolmKeyFile(String data, String password, int kdf_rounds) throws Exception {
+        SecureRandom secureRandom = new SecureRandom();
+
+        byte[] salt = new byte[16];
+        secureRandom.nextBytes(salt);
+
+        // clear bit 63 of the salt to stop us hitting the 64-bit counter boundary
+        // (which would mean we wouldn't be able to decrypt on Android). The loss
+        // of a single bit of salt is a price we have to pay.
+        salt[9] &= 0x7f;
+
+        byte[] iv = new byte[16];
+        Arrays.fill(iv, (byte)0);
+
+        byte[] ivRandomPart = new byte[8];
+        secureRandom.nextBytes(ivRandomPart);
+
+        System.arraycopy(ivRandomPart, 0, iv, 0, ivRandomPart.length);
+
+        byte[] deriveKey = deriveKeys(salt, kdf_rounds, password);
+
+        Cipher decryptCipher = Cipher.getInstance("AES/CTR/NoPadding");
+
+        SecretKeySpec secretKeySpec = new SecretKeySpec(getAesKey(deriveKey), "AES");
+        IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
+        decryptCipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec);
+
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+        outStream.write(decryptCipher.update(data.getBytes("UTF-8")));
+        outStream.write(decryptCipher.doFinal());
+
+        byte[] cipherArray = outStream.toByteArray();
+        int bodyLength = (1+salt.length+iv.length+4+cipherArray.length+32);
+
+        byte[] resultBuffer = new byte[bodyLength];
+        int idx = 0;
+        resultBuffer[idx++] = 1; // version
+
+        System.arraycopy(salt, 0, resultBuffer, idx, salt.length);
+        idx += salt.length;
+
+        System.arraycopy(iv, 0, resultBuffer, idx, iv.length);
+        idx += iv.length;
+
+        resultBuffer[idx++] = (byte)((kdf_rounds >> 24) & 0xff);
+        resultBuffer[idx++] = (byte)((kdf_rounds >> 16) & 0xff);
+        resultBuffer[idx++] = (byte)((kdf_rounds >> 8) & 0xff);
+        resultBuffer[idx++] = (byte)((kdf_rounds) & 0xff);
+
+        System.arraycopy(cipherArray, 0, resultBuffer, idx, cipherArray.length);
+        idx += cipherArray.length;
+
+        byte[] toSign = Arrays.copyOfRange(resultBuffer, 0, idx);
+
+        SecretKey macKey = new SecretKeySpec(getHmacKey(deriveKey), "HmacSHA256");
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(macKey);
+        byte[] digest = mac.doFinal(toSign);
+        System.arraycopy(digest, 0, resultBuffer, idx, digest.length);
+
+        return packMegolmKeyFile(resultBuffer);
+    }
 
     /**
      * Unbase64 an ascii-armoured megolm key file
@@ -176,34 +306,18 @@ public class MXMegolmExportEncryption {
         return Base64.decode(fileStr.substring(dataStart, dataEnd), Base64.DEFAULT);
     }
 
-    private static class DeriveKeysRes {
-        public DeriveKeysRes() {
-
-        }
-
-        public byte[] aes_key;
-        public byte[] hmac_key;
-    }
-
     /**
      * Derive the AES and HMAC-SHA-256 keys for the file
      *
      * @param salt  salt for pbkdf
      * @param iterations number of pbkdf iterations
      * @param password  password
-     * @return {Promise<[CryptoKey, CryptoKey]>} promise for [aes key, hmac key]
+     * @return the derived keys
      */
-    private static DeriveKeysRes deriveKeys(byte[] salt, int iterations, String password) throws Exception {
-        DeriveKeysRes res = new DeriveKeysRes();
-
+    private static byte[] deriveKeys(byte[] salt, int iterations, String password) throws Exception {
         PBEKeySpec keySpec = new PBEKeySpec(password.toCharArray(), salt, iterations, 512);
         SecretKey derivedKey = new PBKDF2KeyImpl(keySpec, "HmacSHA512");
 
-        byte[] keybits = derivedKey.getEncoded();
-
-        res.aes_key = Arrays.copyOfRange(keybits, 0, 32);
-        res.hmac_key = Arrays.copyOfRange(keybits, 32, keybits.length);
-
-        return res;
+        return derivedKey.getEncoded();
     }
 }
