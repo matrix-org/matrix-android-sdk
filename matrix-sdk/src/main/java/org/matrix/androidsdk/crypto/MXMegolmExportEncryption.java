@@ -40,6 +40,15 @@ public class MXMegolmExportEncryption {
     private static final String LOG_TAG = "MXCryptoExport";
 
     /**
+     * Convert a signed byte to a int value
+     * @param bVal teh byte value to convert
+     * @return the matched int value
+     */
+    private static final int byteToInt(byte bVal) {
+        return bVal & 0xFF;
+    }
+
+    /**
      * Decrypt a megolm key file
      * @param data the data to decrypt
      * @param password the password.
@@ -67,7 +76,7 @@ public class MXMegolmExportEncryption {
 
         byte[] salt = Arrays.copyOfRange(body, 1, 1+16);
         byte[] iv = Arrays.copyOfRange(body, 17, 17+16);
-        int iterations = body[33] << 24 | body[34] << 16 | body[35] << 8 | body[36];
+        int iterations = byteToInt(body[33]) << 24 | byteToInt(body[34])<< 16 | byteToInt(body[35]) << 8 | byteToInt(body[36]);
         byte[] ciphertext = Arrays.copyOfRange(body, 37, 37+ciphertextLength);
         byte[] hmac = Arrays.copyOfRange(body, body.length - 32, body.length);
 
@@ -205,7 +214,6 @@ public class MXMegolmExportEncryption {
         Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
         SecretKeySpec secret_key = new SecretKeySpec(hmac_key, "HmacSHA256");
         sha256_HMAC.init(secret_key);
-
         res.hmac_key = hmac_key;
 
         return res;
