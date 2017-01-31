@@ -556,6 +556,53 @@ public class MXOlmDevice {
     }
 
     /**
+     * Import an inbound group session to the session store.
+     * @param exportedSessionMap the exported session map
+     * @return the imported session if the operation succeeds.
+     */
+    public MXOlmInboundGroupSession importInboundGroupSession(Map<String, Object> exportedSessionMap) {
+        String sessionId = (String)exportedSessionMap.get("session_id");
+        String senderKey = (String)exportedSessionMap.get("sender_key");
+        String roomId = (String)exportedSessionMap.get("room_id");
+
+        if (null != getInboundGroupSession(sessionId, senderKey, roomId)) {
+            // If we already have this session, consider updating it
+            Log.e(LOG_TAG, "## importInboundGroupSession() : Update for megolm session " + senderKey + "/" + sessionId);
+
+            // For now we just ignore updates. TODO: implement something here
+            return null;
+        }
+
+        MXOlmInboundGroupSession session = null;
+
+        try {
+            session = new MXOlmInboundGroupSession(exportedSessionMap);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## importInboundGroupSession() : Update for megolm session " + senderKey + "/" + sessionId);
+        }
+
+        // sanity check
+        if ((null == session) || (null == session.mSession)) {
+            Log.e(LOG_TAG, "## importInboundGroupSession : invalid session");
+            return null;
+        }
+
+        try {
+            if (!TextUtils.equals(session.mSession.sessionIdentifier(), sessionId)) {
+                Log.e(LOG_TAG, "## importInboundGroupSession : ERROR: Mismatched group session ID from senderKey: " + senderKey);
+                return null;
+            }
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## importInboundGroupSession : sessionIdentifier') failed " + e.getMessage());
+            return null;
+        }
+
+        mStore.storeInboundGroupSession(session);
+
+        return session;
+    }
+
+    /**
      * Remove an inbound group session
      * @param sessionId the session identifier.
      * @param sessionKey base64-encoded secret key.

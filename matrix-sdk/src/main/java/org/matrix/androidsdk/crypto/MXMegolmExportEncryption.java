@@ -292,7 +292,7 @@ public class MXMegolmExportEncryption {
      * @throws Exception the failure reason.
      */
     private static byte[] packMegolmKeyFile(byte[] data) throws Exception {
-        int nLines = (data.length + data.length - 1) / LINE_LENGTH;
+        int nLines = (data.length + LINE_LENGTH - 1) / LINE_LENGTH;
 
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
         outStream.write(HEADER_LINE.getBytes());

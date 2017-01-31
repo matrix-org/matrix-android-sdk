@@ -24,6 +24,7 @@ import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.olm.OlmAccount;
 import org.matrix.olm.OlmSession;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -166,6 +167,12 @@ public interface IMXCryptoStore {
      * @return an inbound group session.
      */
     MXOlmInboundGroupSession getInboundGroupSession(String sessionId, String senderKey);
+
+    /**
+     * Retrieve the known inbound group sessions.
+     * @return an inbound group session.
+     */
+    List<MXOlmInboundGroupSession> getInboundGroupSessions();
 
     /**
      * Remove an inbound group session

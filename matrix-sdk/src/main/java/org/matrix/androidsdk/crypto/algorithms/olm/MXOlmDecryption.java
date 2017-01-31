@@ -196,6 +196,11 @@ public class MXOlmDecryption implements IMXDecrypting {
         // No impact for olm
     }
 
+    @Override
+    public void onNewSession(String senderKey, String sessionId) {
+        // No impact for olm
+    }
+
     /**
      * Attempt to decrypt an Olm message.
      * @param theirDeviceIdentityKey the Curve25519 identity key of the sender.

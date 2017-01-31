@@ -37,6 +37,7 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
@@ -593,6 +594,19 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             return session;
         }
         return null;
+    }
+
+    @Override
+    public  List<MXOlmInboundGroupSession> getInboundGroupSessions() {
+        ArrayList<MXOlmInboundGroupSession> inboundGroupSessions = new ArrayList<>();
+
+        synchronized (mInboundGroupSessionsLock) {
+            for(String senderKey : mInboundGroupSessions.keySet()) {
+                inboundGroupSessions.addAll(mInboundGroupSessions.get(senderKey).values());
+            }
+        }
+
+        return inboundGroupSessions;
     }
 
     @Override

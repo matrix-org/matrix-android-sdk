@@ -42,4 +42,11 @@ public interface IMXDecrypting {
      * @param event the key event.
      */
     void onRoomKeyEvent(Event event);
+
+    /**
+     * Check if the some messages can be decrypted with a new session
+     * @param senderKey the session sender key
+     * @param sessionId the session id
+     */
+    void onNewSession(String senderKey, String sessionId);
 }
