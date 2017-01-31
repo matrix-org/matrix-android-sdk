@@ -201,20 +201,8 @@ public class MXMegolmExportEncryption {
 
         byte[] keybits = derivedKey.getEncoded();
 
-        byte[] aes_key = Arrays.copyOfRange(keybits, 0, 32);
-        byte[] hmac_key = Arrays.copyOfRange(keybits, 32, keybits.length);
-
-        SecretKeySpec key = new SecretKeySpec(Arrays.copyOfRange(aes_key, 0, 16), "AES");
-        IvParameterSpec iv = new IvParameterSpec(Arrays.copyOfRange(aes_key, 16, 32));
-
-        Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding");
-        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
-        res.aes_key = aes_key;
-
-        Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
-        SecretKeySpec secret_key = new SecretKeySpec(hmac_key, "HmacSHA256");
-        sha256_HMAC.init(secret_key);
-        res.hmac_key = hmac_key;
+        res.aes_key = Arrays.copyOfRange(keybits, 0, 32);
+        res.hmac_key = Arrays.copyOfRange(keybits, 32, keybits.length);
 
         return res;
     }
