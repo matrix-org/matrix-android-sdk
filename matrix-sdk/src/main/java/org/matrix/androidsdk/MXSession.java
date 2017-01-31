@@ -21,6 +21,8 @@ import android.net.ConnectivityManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonObject;
@@ -143,11 +145,11 @@ public class MXSession {
     public static OlmManager mOlmManager = new OlmManager();
 
     // regex pattern to find matrix user ids in a string.
-    public static final String MATRIX_USER_IDENTIFIER_REGEX = "@[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}";
+    public static final String MATRIX_USER_IDENTIFIER_REGEX = "@[A-Z0-9._=-]+:[A-Z0-9.-]+\\.[A-Z]{2,}";
     public static final Pattern PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER =  Pattern.compile(MATRIX_USER_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
 
     // regex pattern to find room aliases in a string.
-    public static final String MATRIX_ROOM_ALIAS_REGEX = "#[A-Z0-9._%+-\\\\#]+:[A-Z0-9.-]+\\.[A-Z]{2,}";
+    public static final String MATRIX_ROOM_ALIAS_REGEX = "#[A-Z0-9._%#+-]+:[A-Z0-9.-]+\\.[A-Z]{2,}";
     public static final Pattern PATTERN_CONTAIN_MATRIX_ALIAS =  Pattern.compile(MATRIX_ROOM_ALIAS_REGEX, Pattern.CASE_INSENSITIVE);
 
     // regex pattern to find room ids in a string.
@@ -315,11 +317,7 @@ public class MXSession {
         String version = "";
 
         if (null != mOlmManager) {
-            version = mOlmManager.getOlmLibVersion();
-
-            if (longFormat) {
-                version += " (" + mOlmManager.getSdkOlmVersion(context) + ")";
-            }
+            version = longFormat ? mOlmManager.getDetailedVersion(context) : mOlmManager.getVersion();
         }
 
         return version;
@@ -1939,6 +1937,16 @@ public class MXSession {
      */
     public void getDevicesList(ApiCallback<DevicesListResponse> callback) {
         mCryptoRestClient.getDevices(callback);
+    }
+
+    /**
+     * Set a device name.
+     * @param deviceId the device id
+     * @param deviceName the device name
+     * @param callback the asynchronous callback
+     */
+    public void setDeviceName(final String deviceId, final String deviceName, final ApiCallback<Void> callback) {
+        mCryptoRestClient.setDeviceName(deviceId, deviceName, callback);
     }
 
     /**

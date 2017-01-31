@@ -38,7 +38,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import retrofit.Callback;
 import retrofit.client.Response;
+import retrofit.http.Body;
+import retrofit.http.PUT;
+import retrofit.http.Path;
 
 public class CryptoRestClient extends RestClient<CryptoApi> {
 
@@ -225,7 +229,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
      * Delete a device.
      * @param deviceId the device id
      * @param params the deletion parameters
-     * @param callback the asynchronous callacbk
+     * @param callback the asynchronous callback
      */
     public void deleteDevice(final String deviceId, final DeleteDeviceParams params, final ApiCallback<Void> callback) {
         final String description = "deleteDevice";
@@ -237,6 +241,30 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
                     deleteDevice(deviceId, params, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend deleteDevice : failed " + e.getMessage());
+                }
+            }
+        }));
+    }
+
+    /**
+     * Set a device name.
+     * @param deviceId the device id
+     * @param deviceName the device name
+     * @param callback the asynchronous callback
+     */
+    public void setDeviceName(final String deviceId, final String deviceName, final ApiCallback<Void> callback) {
+        final String description = "setDeviceName";
+
+        HashMap<String, String> params = new HashMap<>();
+        params.put("display_name", TextUtils.isEmpty(deviceName) ? "" : deviceName);
+
+        mApi.updateDeviceInfo(deviceId, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    setDeviceName(deviceId, deviceName, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend setDeviceName : failed " + e.getMessage());
                 }
             }
         }));

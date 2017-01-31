@@ -45,8 +45,8 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
     private static final int EVENT_STREAM_TIMEOUT_MS = 30000;
 
-    private String mSearchPattern = null;
-    private String mSearchMediaName = null;
+    private String mSearchPatternIdentifier = null;
+    private String mSearchMediaNameIdentifier = null;
 
     /**
      * {@inheritDoc}
@@ -204,52 +204,61 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
         final String description = "searchMessageText";
 
-        mSearchPattern = text;
+        final String uid = System.currentTimeMillis() + "";
+        mSearchPatternIdentifier = uid + text;
 
         // don't retry to send the request
         // if the search fails, stop it
         mApi.search(searchParams, nextBatch, new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
+            /**
+             * Tells if the current response for the latest request.
+             * @return true if it is the response of the latest request.
+             */
+            private boolean isActiveRequest() {
+                return TextUtils.equals(mSearchPatternIdentifier, uid + text);
+            }
+
             @Override
             public void onSuccess(SearchResponse response) {
-                if (TextUtils.equals(mSearchPattern, text)) {
+                if (isActiveRequest()) {
                     if (null != callback) {
                         callback.onSuccess(response);
                     }
 
-                    mSearchPattern = null;
+                    mSearchPatternIdentifier = null;
                 }
             }
 
             @Override
             public void onNetworkError(Exception e) {
-                if (TextUtils.equals(mSearchPattern, text)) {
+                if (isActiveRequest()) {
                     if (null != callback) {
                         callback.onNetworkError(e);
                     }
 
-                    mSearchPattern = null;
+                    mSearchPatternIdentifier = null;
                 }
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                if (TextUtils.equals(mSearchPattern, text)) {
+                if (isActiveRequest()) {
                     if (null != callback) {
                         callback.onMatrixError(e);
                     }
 
-                    mSearchPattern = null;
+                    mSearchPatternIdentifier = null;
                 }
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                if (TextUtils.equals(mSearchPattern, text)) {
+                if (isActiveRequest()) {
                     if (null != callback) {
                         callback.onUnexpectedError(e);
                     }
 
-                    mSearchPattern = null;
+                    mSearchPatternIdentifier = null;
                 }
             }
 
@@ -303,43 +312,53 @@ public class EventsRestClient extends RestClient<EventsApi> {
         // not_rooms
         // senders
         // not_senders
-        
-        mSearchMediaName = name;
+
+        final String uid = System.currentTimeMillis() + "";
+        mSearchMediaNameIdentifier = uid + name;
 
         final String description = "searchMediasByText";
 
         // don't retry to send the request
         // if the search fails, stop it
         mApi.search(searchParams, nextBatch, new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
+
+            /**
+             * Tells if the current response for the latest request.
+             * @return true if it is the response of the latest request.
+             */
+            private boolean isActiveRequest() {
+                return TextUtils.equals(mSearchMediaNameIdentifier, uid + name);
+            }
+
             @Override
             public void onSuccess(SearchResponse newSearchResponse) {
-                if (TextUtils.equals(mSearchMediaName, name)) {
+                if (isActiveRequest()) {
                     callback.onSuccess(newSearchResponse);
-                    mSearchMediaName = null;
+                    mSearchMediaNameIdentifier = null;
                 }
             }
 
             @Override
             public void onNetworkError(Exception e) {
-                if (TextUtils.equals(mSearchMediaName, name)) {
+                if (isActiveRequest()) {
                     callback.onNetworkError(e);
-                    mSearchMediaName = null;
+                    mSearchMediaNameIdentifier = null;
                 }
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                if (TextUtils.equals(mSearchMediaName, name)) {
+                if (isActiveRequest()) {
                     callback.onMatrixError(e);
-                    mSearchMediaName = null;
+                    mSearchMediaNameIdentifier = null;
                 }
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                if (TextUtils.equals(mSearchMediaName, name)) {
+                if (isActiveRequest()) {
                     callback.onUnexpectedError(e);
-                    mSearchMediaName = null;
+                    mSearchMediaNameIdentifier = null;
                 }
             }
 
@@ -355,13 +374,13 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * Cancel any pending file search request
      */
     public void cancelSearchMediasByText() {
-        mSearchMediaName = null;
+        mSearchMediaNameIdentifier = null;
     }
 
     /**
      * Cancel any pending search request
      */
     public void cancelSearchMessagesByText() {
-        mSearchPattern = null;
+        mSearchPatternIdentifier = null;
     }
 }

@@ -20,9 +20,10 @@ import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.ThirdPidApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.model.BulkLookupParams;
+import org.matrix.androidsdk.rest.model.BulkLookupResponse;
 import org.matrix.androidsdk.rest.model.PidResponse;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
-import org.matrix.androidsdk.rest.model.ThreePidsParams;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -136,7 +137,7 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
             return;
         }
 
-        ThreePidsParams threePidsParams = new ThreePidsParams();
+        BulkLookupParams threePidsParams = new BulkLookupParams();
 
         ArrayList<List<String>> list = new ArrayList<>();
 
@@ -146,17 +147,19 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
 
         threePidsParams.threepids = list;
 
-        mApi.lookup3Pids(threePidsParams, new Callback<List<List<String>>>() {
+        mApi.bulkLookup(threePidsParams, new Callback<BulkLookupResponse>() {
             @Override
-            public void success(List<List<String>> list, Response response) {
+            public void success(BulkLookupResponse bulkLookupResponse, Response response) {
                 HashMap<String, String> mxidByAddress = new HashMap<>();
 
-                for(int i = 0; i < list.size(); i++) {
-                    List<String> items = list.get(i);
-                    // [0] : medium
-                    // [1] : address
-                    // [2] : matrix id
-                    mxidByAddress.put(items.get(1), items.get(2));
+                if (null != bulkLookupResponse.threepids) {
+                    for (int i = 0; i < bulkLookupResponse.threepids.size(); i++) {
+                        List<String> items = bulkLookupResponse.threepids.get(i);
+                        // [0] : medium
+                        // [1] : address
+                        // [2] : matrix id
+                        mxidByAddress.put(items.get(1), items.get(2));
+                    }
                 }
 
                 ArrayList<String> matrixIds = new ArrayList<>();

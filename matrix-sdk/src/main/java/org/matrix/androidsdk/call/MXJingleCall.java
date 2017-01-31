@@ -1540,6 +1540,21 @@ public class MXJingleCall extends MXCall {
     }
 
     /**
+     * Set the callview visibility
+     * @return true if the operation succeeds
+     */
+    @Override
+    public boolean setVisibility(int visibility) {
+        if (null != mCallView) {
+            mCallView.setVisibility(visibility);
+            return true;
+        }
+
+        return false;
+    }
+
+
+    /**
      * The call has been answered on another device.
      * We distinguish the case where an account is active on
      * multiple devices and a video call is launched on the account. In this case
