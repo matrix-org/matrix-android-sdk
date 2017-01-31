@@ -38,20 +38,25 @@ import javax.crypto.spec.SecretKeySpec;
 public class MXMegolmExportEncryption {
     private static final String LOG_TAG = "MXCryptoExport";
 
-    static final String HEADER_LINE = "-----BEGIN MEGOLM SESSION DATA-----";
-    static final String TRAILER_LINE = "-----END MEGOLM SESSION DATA-----";
+    private static final String HEADER_LINE = "-----BEGIN MEGOLM SESSION DATA-----";
+    private static final String TRAILER_LINE = "-----END MEGOLM SESSION DATA-----";
+    // we split into lines before base64ing, because encodeBase64 doesn't deal
+    // terribly well with large arrays.
+    private static final int LINE_LENGTH = (72 * 4 / 3);
 
     /**
      * Convert a signed byte to a int value
+     *
      * @param bVal teh byte value to convert
      * @return the matched int value
      */
-    private static final int byteToInt(byte bVal) {
+    private static int byteToInt(byte bVal) {
         return bVal & 0xFF;
     }
 
     /**
      * Extract the AES key from the deriveKeys result.
+     *
      * @param keyBits the deriveKeys result.
      * @return the AES key
      */
@@ -61,6 +66,7 @@ public class MXMegolmExportEncryption {
 
     /**
      * Extract the Hmac key from the deriveKeys result.
+     *
      * @param keyBits the deriveKeys result.
      * @return the Hmac key.
      */
@@ -70,7 +76,8 @@ public class MXMegolmExportEncryption {
 
     /**
      * Decrypt a megolm key file
-     * @param data the data to decrypt
+     *
+     * @param data     the data to decrypt
      * @param password the password.
      * @return the decrypted output.
      */
@@ -89,15 +96,15 @@ public class MXMegolmExportEncryption {
             throw new Exception("Unsupported version");
         }
 
-        int ciphertextLength = body.length-(1+16+16+4+32);
+        int ciphertextLength = body.length - (1 + 16 + 16 + 4 + 32);
         if (body.length < 0) {
             throw new Error("Invalid file: too short");
         }
 
-        byte[] salt = Arrays.copyOfRange(body, 1, 1+16);
-        byte[] iv = Arrays.copyOfRange(body, 17, 17+16);
-        int iterations = byteToInt(body[33]) << 24 | byteToInt(body[34])<< 16 | byteToInt(body[35]) << 8 | byteToInt(body[36]);
-        byte[] ciphertext = Arrays.copyOfRange(body, 37, 37+ciphertextLength);
+        byte[] salt = Arrays.copyOfRange(body, 1, 1 + 16);
+        byte[] iv = Arrays.copyOfRange(body, 17, 17 + 16);
+        int iterations = byteToInt(body[33]) << 24 | byteToInt(body[34]) << 16 | byteToInt(body[35]) << 8 | byteToInt(body[36]);
+        byte[] ciphertext = Arrays.copyOfRange(body, 37, 37 + ciphertextLength);
         byte[] hmac = Arrays.copyOfRange(body, body.length - 32, body.length);
 
         byte[] deriveKey = deriveKeys(salt, iterations, password);
@@ -131,40 +138,9 @@ public class MXMegolmExportEncryption {
     }
 
     /**
-     * ascii-armour a  megolm key file
-     *
-     * base64s the content, and adds header and trailer lines
-     *
-     * @param {Uint8Array} data  raw data
-     * @return {ArrayBuffer} formatted file
-     */
-    private static byte[] packMegolmKeyFile(byte[] data) throws Exception {
-        // we split into lines before base64ing, because encodeBase64 doesn't deal
-        // terribly well with large arrays.
-        int LINE_LENGTH = (72 * 4 / 3);
-        int nLines = (int)(Math.ceil(data.length / LINE_LENGTH));
-
-        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-        outStream.write(HEADER_LINE.getBytes());
-
-        int o = 0;
-        int i;
-        for (i = 1; i <= nLines; i++) {
-            outStream.write("\n".getBytes());
-            outStream.write(Base64.encode(data, o, o+LINE_LENGTH, Base64.DEFAULT));
-            o += LINE_LENGTH;
-        }
-
-        outStream.write("\n".getBytes());
-        outStream.write(TRAILER_LINE.getBytes());
-        outStream.write("\n".getBytes());
-
-        return outStream.toByteArray();
-    }
-
-    /**
      * Encrypt a string into the megolm export format.
-     * @param data the data to encrypt.
+     *
+     * @param data     the data to encrypt.
      * @param password the password
      * @return the encrypted data
      * @throws Exception the failure reason
@@ -175,8 +151,9 @@ public class MXMegolmExportEncryption {
 
     /**
      * Encrypt a string into the megolm export format.
-     * @param data the data to encrypt.
-     * @param password the password
+     *
+     * @param data       the data to encrypt.
+     * @param password   the password
      * @param kdf_rounds the iteration count
      * @return the encrypted data
      * @throws Exception the failure reason
@@ -193,7 +170,7 @@ public class MXMegolmExportEncryption {
         salt[9] &= 0x7f;
 
         byte[] iv = new byte[16];
-        Arrays.fill(iv, (byte)0);
+        Arrays.fill(iv, (byte) 0);
 
         byte[] ivRandomPart = new byte[8];
         secureRandom.nextBytes(ivRandomPart);
@@ -213,7 +190,7 @@ public class MXMegolmExportEncryption {
         outStream.write(decryptCipher.doFinal());
 
         byte[] cipherArray = outStream.toByteArray();
-        int bodyLength = (1+salt.length+iv.length+4+cipherArray.length+32);
+        int bodyLength = (1 + salt.length + iv.length + 4 + cipherArray.length + 32);
 
         byte[] resultBuffer = new byte[bodyLength];
         int idx = 0;
@@ -225,10 +202,10 @@ public class MXMegolmExportEncryption {
         System.arraycopy(iv, 0, resultBuffer, idx, iv.length);
         idx += iv.length;
 
-        resultBuffer[idx++] = (byte)((kdf_rounds >> 24) & 0xff);
-        resultBuffer[idx++] = (byte)((kdf_rounds >> 16) & 0xff);
-        resultBuffer[idx++] = (byte)((kdf_rounds >> 8) & 0xff);
-        resultBuffer[idx++] = (byte)((kdf_rounds) & 0xff);
+        resultBuffer[idx++] = (byte) ((kdf_rounds >> 24) & 0xff);
+        resultBuffer[idx++] = (byte) ((kdf_rounds >> 16) & 0xff);
+        resultBuffer[idx++] = (byte) ((kdf_rounds >> 8) & 0xff);
+        resultBuffer[idx++] = (byte) ((kdf_rounds) & 0xff);
 
         System.arraycopy(cipherArray, 0, resultBuffer, idx, cipherArray.length);
         idx += cipherArray.length;
@@ -247,6 +224,7 @@ public class MXMegolmExportEncryption {
     /**
      * Unbase64 an ascii-armoured megolm key file
      * Strips the header and trailer lines, and unbase64s the content
+     *
      * @param data the input data
      * @return unbase64ed content
      */
@@ -267,7 +245,7 @@ public class MXMegolmExportEncryption {
             String line = fileStr.substring(lineStart, lineEnd).trim();
 
             // start the next line after the newline
-            lineStart = lineEnd+1;
+            lineStart = lineEnd + 1;
 
             if (TextUtils.equals(line, HEADER_LINE)) {
                 break;
@@ -297,7 +275,7 @@ public class MXMegolmExportEncryption {
             }
 
             // start the next line after the newline
-            lineStart = lineEnd+1;
+            lineStart = lineEnd + 1;
         }
 
         int dataEnd = lineStart;
@@ -307,11 +285,41 @@ public class MXMegolmExportEncryption {
     }
 
     /**
+     * Pack the megolm data.
+     *
+     * @param data the data to pack.
+     * @return the packed data
+     * @throws Exception the failure reason.
+     */
+    private static byte[] packMegolmKeyFile(byte[] data) throws Exception {
+        int nLines = (data.length + data.length - 1) / LINE_LENGTH;
+
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+        outStream.write(HEADER_LINE.getBytes());
+
+        int o = 0;
+
+        for (int i = 1; i <= nLines; i++) {
+            outStream.write("\n".getBytes());
+
+            int len = Math.min(LINE_LENGTH, data.length - o);
+            outStream.write(Base64.encode(data, o, len, Base64.DEFAULT));
+            o += LINE_LENGTH;
+        }
+
+        outStream.write("\n".getBytes());
+        outStream.write(TRAILER_LINE.getBytes());
+        outStream.write("\n".getBytes());
+
+        return outStream.toByteArray();
+    }
+
+    /**
      * Derive the AES and HMAC-SHA-256 keys for the file
      *
-     * @param salt  salt for pbkdf
+     * @param salt       salt for pbkdf
      * @param iterations number of pbkdf iterations
-     * @param password  password
+     * @param password   password
      * @return the derived keys
      */
     private static byte[] deriveKeys(byte[] salt, int iterations, String password) throws Exception {
