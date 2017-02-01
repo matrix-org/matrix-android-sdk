@@ -37,7 +37,8 @@ public class MXOlmInboundGroupSession2 implements Serializable {
     //
     private static final String LOG_TAG = "OlmInboundGroupSession";
 
-    private static final long serialVersionUID = "MXOlmInboundGroupSession2".hashCode();
+    // define a serialVersionUID to avoid having to redefine the class after updates
+    private static final long serialVersionUID = 201702011617L;
 
     // The associated olm inbound group session.
     public OlmInboundGroupSession mSession;
