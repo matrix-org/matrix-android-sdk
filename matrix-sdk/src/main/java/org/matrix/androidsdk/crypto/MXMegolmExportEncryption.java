@@ -98,7 +98,7 @@ public class MXMegolmExportEncryption {
 
         int ciphertextLength = body.length - (1 + 16 + 16 + 4 + 32);
         if (ciphertextLength < 0) {
-            throw new Error("Invalid file: too short");
+            throw new Exception("Invalid file: too short");
         }
 
         byte[] salt = Arrays.copyOfRange(body, 1, 1 + 16);

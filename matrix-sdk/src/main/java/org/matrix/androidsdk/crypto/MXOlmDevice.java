@@ -22,7 +22,7 @@ import org.matrix.androidsdk.util.Log;
 import com.google.gson.JsonParser;
 
 import org.matrix.androidsdk.crypto.algorithms.MXDecryptionResult;
-import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
+import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.olm.OlmAccount;
@@ -528,7 +528,7 @@ public class MXOlmDevice {
             return false;
         }
 
-        MXOlmInboundGroupSession session = new MXOlmInboundGroupSession(sessionKey);
+        MXOlmInboundGroupSession2 session = new MXOlmInboundGroupSession2(sessionKey);
 
         // sanity check
         if (null == session.mSession) {
@@ -560,7 +560,7 @@ public class MXOlmDevice {
      * @param exportedSessionMap the exported session map
      * @return the imported session if the operation succeeds.
      */
-    public MXOlmInboundGroupSession importInboundGroupSession(Map<String, Object> exportedSessionMap) {
+    public MXOlmInboundGroupSession2 importInboundGroupSession(Map<String, Object> exportedSessionMap) {
         String sessionId = (String)exportedSessionMap.get("session_id");
         String senderKey = (String)exportedSessionMap.get("sender_key");
         String roomId = (String)exportedSessionMap.get("room_id");
@@ -573,10 +573,10 @@ public class MXOlmDevice {
             return null;
         }
 
-        MXOlmInboundGroupSession session = null;
+        MXOlmInboundGroupSession2 session = null;
 
         try {
-            session = new MXOlmInboundGroupSession(exportedSessionMap);
+            session = new MXOlmInboundGroupSession2(exportedSessionMap);
         } catch (Exception e) {
             Log.e(LOG_TAG, "## importInboundGroupSession() : Update for megolm session " + senderKey + "/" + sessionId);
         }
@@ -624,7 +624,7 @@ public class MXOlmDevice {
      */
     public MXDecryptionResult decryptGroupMessage(String body, String roomId, String timeline, String sessionId, String senderKey) {
         MXDecryptionResult result = new MXDecryptionResult();
-        MXOlmInboundGroupSession session = getInboundGroupSession(sessionId, senderKey, roomId);
+        MXOlmInboundGroupSession2 session = getInboundGroupSession(sessionId, senderKey, roomId);
 
         if (null != session) {
             // Check that the room id matches the original one for the session. This stops
@@ -767,10 +767,10 @@ public class MXOlmDevice {
      * @param senderKey the base64-encoded curve25519 key of the sender.
      * @return the inbound group session.
      */
-    private MXOlmInboundGroupSession getInboundGroupSession(String sessionId, String senderKey, String roomId) {
+    private MXOlmInboundGroupSession2 getInboundGroupSession(String sessionId, String senderKey, String roomId) {
         mInboundGroupSessionWithIdError = null;
 
-        MXOlmInboundGroupSession session = mStore.getInboundGroupSession(sessionId, senderKey);
+        MXOlmInboundGroupSession2 session = mStore.getInboundGroupSession(sessionId, senderKey);
 
         if (null != session) {
             // Check that the room id matches the original one for the session. This stops

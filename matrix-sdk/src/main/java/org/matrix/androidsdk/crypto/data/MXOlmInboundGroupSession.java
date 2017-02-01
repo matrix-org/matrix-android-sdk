@@ -16,16 +16,12 @@
 
 package org.matrix.androidsdk.crypto.data;
 
-import android.text.TextUtils;
-
-import org.matrix.androidsdk.crypto.MXCryptoAlgorithms;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.olm.OlmInboundGroupSession;
 
 import java.io.Serializable;
 
-import java.util.HashMap;
 import java.util.Map;
 
 
@@ -49,7 +45,6 @@ public class MXOlmInboundGroupSession implements Serializable {
     // Other keys the sender claims.
     public Map<String, String> mKeysClaimed;
 
-
     /**
      * Constructor
      * @param sessionKey the session key
@@ -60,47 +55,5 @@ public class MXOlmInboundGroupSession implements Serializable {
         } catch (Exception e) {
             Log.e(LOG_TAG, "Cannot create : " + e.getMessage());
         }
-    }
-
-    /**
-     * Create a new instance from the provided keys map.
-     * @return the inbound group session if the operation succeeds.
-     */
-    public MXOlmInboundGroupSession(Map<String, Object> map) throws Exception {
-        try {
-            mSession = OlmInboundGroupSession.importSession((String)map.get("session_key"));
-
-            if (!TextUtils.equals(mSession.sessionIdentifier(), (String)map.get("session_id"))) {
-                throw new Exception("Mismatched group session Id");
-            }
-
-            mSenderKey = (String)map.get("sender_key");
-            mKeysClaimed = (Map<String, String>)map.get("sender_claimed_keys");
-            mRoomId = (String)map.get("room_id");
-        } catch (Exception e) {
-            throw new Exception(e.getMessage());
-        }
-    }
-
-    /**
-     * Export the inbound group session keys
-     * @return the inbound group session as map if the operation succeeds
-     */
-    public Map<String, Object> exportKeys() {
-        HashMap<String, Object> map = new HashMap<>();
-
-        try {
-            map.put("sender_key", mSenderKey);
-            map.put("sender_claimed_keys", mKeysClaimed);
-            map.put("room_id", mRoomId);
-            map.put("session_id", mSession.sessionIdentifier());
-            map.put("session_key", mSession.export(mSession.getFirstKnownIndex()));
-            map.put("algorithm", MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM);
-        } catch (Exception e) {
-            map = null;
-            Log.e(LOG_TAG, "## export() : senderKey " + mSenderKey + " failed " + e.getMessage());
-        }
-
-        return map;
     }
 }

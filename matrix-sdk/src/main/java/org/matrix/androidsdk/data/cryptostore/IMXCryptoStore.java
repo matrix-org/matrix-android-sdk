@@ -19,7 +19,7 @@ package org.matrix.androidsdk.data.cryptostore;
 import android.content.Context;
 
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
-import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
+import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.olm.OlmAccount;
 import org.matrix.olm.OlmSession;
@@ -158,7 +158,7 @@ public interface IMXCryptoStore {
      * Store an inbound group session.
      * @param session the inbound group session and its context.
      */
-    void storeInboundGroupSession(MXOlmInboundGroupSession session);
+    void storeInboundGroupSession(MXOlmInboundGroupSession2 session);
 
     /**
      * Retrieve an inbound group session.
@@ -166,13 +166,13 @@ public interface IMXCryptoStore {
      * @param senderKey the base64-encoded curve25519 key of the sender.
      * @return an inbound group session.
      */
-    MXOlmInboundGroupSession getInboundGroupSession(String sessionId, String senderKey);
+    MXOlmInboundGroupSession2 getInboundGroupSession(String sessionId, String senderKey);
 
     /**
      * Retrieve the known inbound group sessions.
      * @return an inbound group session.
      */
-    List<MXOlmInboundGroupSession> getInboundGroupSessions();
+    List<MXOlmInboundGroupSession2> getInboundGroupSessions();
 
     /**
      * Remove an inbound group session

@@ -21,7 +21,7 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
+import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
@@ -2317,9 +2317,9 @@ public class MXCrypto {
             public void run() {
                 ArrayList<Map<String, Object>> exportedSessions = new ArrayList<>();
 
-                List<MXOlmInboundGroupSession> inboundGroupSessions = mCryptoStore.getInboundGroupSessions();
+                List<MXOlmInboundGroupSession2> inboundGroupSessions = mCryptoStore.getInboundGroupSessions();
 
-                for(MXOlmInboundGroupSession session : inboundGroupSessions) {
+                for(MXOlmInboundGroupSession2 session : inboundGroupSessions) {
                     Map<String, Object> map = session.exportKeys();
 
                     if (null != map) {
@@ -2396,7 +2396,7 @@ public class MXCrypto {
                 for(int index = 0; index < importedSessions.size(); index++) {
                     Map<String, Object> map = importedSessions.get(index);
 
-                    MXOlmInboundGroupSession session = mOlmDevice.importInboundGroupSession(map);
+                    MXOlmInboundGroupSession2 session = mOlmDevice.importInboundGroupSession(map);
 
                     if ((null != session) && mRoomDecryptors.containsKey(session.mRoomId)) {
                         IMXDecrypting decrypting = mRoomDecryptors.get(session.mRoomId).get(map.get("algorithm"));
