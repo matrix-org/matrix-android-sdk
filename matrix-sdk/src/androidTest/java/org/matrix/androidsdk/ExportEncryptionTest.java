@@ -51,6 +51,24 @@ public class ExportEncryptionTest {
     }
 
     @Test
+    public void checkExportError3() throws Exception {
+        String password = "password";
+        String input =  "-----BEGIN MEGOLM SESSION DATA-----\n" +
+                " AXNhbHRzYWx0c2FsdHNhbHSIiIiIiIiIiIiIiIiIiIiIAAAACmIRUW2OjZ3L2l6j9h0lHlV3M2dx\n" +
+                " cissyYBxjsfsAn\n" +
+                " -----END MEGOLM SESSION DATA-----";
+        boolean failed = false;
+
+        try {
+            MXMegolmExportEncryption.decryptMegolmKeyFile(input.getBytes("UTF-8"), password);
+        } catch (Exception e) {
+            failed = true;
+        }
+
+        assertTrue(failed);
+    }
+
+    @Test
     public void checkExportDecrypt1() throws Exception {
         String password = "password";
         String input =  "-----BEGIN MEGOLM SESSION DATA-----\nAXNhbHRzYWx0c2FsdHNhbHSIiIiIiIiIiIiIiIiIiIiIAAAACmIRUW2OjZ3L2l6j9h0lHlV3M2dx\ncissyYBxjsfsAndErh065A8=\n-----END MEGOLM SESSION DATA-----";

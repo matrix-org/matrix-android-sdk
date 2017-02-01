@@ -97,7 +97,7 @@ public class MXMegolmExportEncryption {
         }
 
         int ciphertextLength = body.length - (1 + 16 + 16 + 4 + 32);
-        if (body.length < 0) {
+        if (ciphertextLength < 0) {
             throw new Error("Invalid file: too short");
         }
 
@@ -164,18 +164,13 @@ public class MXMegolmExportEncryption {
         byte[] salt = new byte[16];
         secureRandom.nextBytes(salt);
 
+        byte[] iv = new byte[16];
+        secureRandom.nextBytes(iv);
+
         // clear bit 63 of the salt to stop us hitting the 64-bit counter boundary
         // (which would mean we wouldn't be able to decrypt on Android). The loss
         // of a single bit of salt is a price we have to pay.
-        salt[9] &= 0x7f;
-
-        byte[] iv = new byte[16];
-        Arrays.fill(iv, (byte) 0);
-
-        byte[] ivRandomPart = new byte[8];
-        secureRandom.nextBytes(ivRandomPart);
-
-        System.arraycopy(ivRandomPart, 0, iv, 0, ivRandomPart.length);
+        iv[9] &= 0x7f;
 
         byte[] deriveKey = deriveKeys(salt, kdf_rounds, password);
 
