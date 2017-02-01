@@ -68,7 +68,7 @@ public class MXOlmInboundGroupSession implements Serializable {
      */
     public MXOlmInboundGroupSession(Map<String, Object> map) throws Exception {
         try {
-            mSession =   OlmInboundGroupSession.importSession((String)map.get("session_key"));
+            mSession = OlmInboundGroupSession.importSession((String)map.get("session_key"));
 
             if (!TextUtils.equals(mSession.sessionIdentifier(), (String)map.get("session_id"))) {
                 throw new Exception("Mismatched group session Id");

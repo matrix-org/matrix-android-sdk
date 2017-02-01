@@ -2361,20 +2361,32 @@ public class MXCrypto {
 
                 try {
                     roomKeys = MXMegolmExportEncryption.decryptMegolmKeyFile(roomKeysAsArray, password);
-                } catch (Exception e) {
-                    callback.onUnexpectedError(e);
+                } catch (final Exception e) {
+                    getUIHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onUnexpectedError(e);
+                        }
+                    });
                     return;
                 }
 
-                List<Map<String, Object>> importedSessions = new ArrayList<>();
+                List<Map<String, Object>> importedSessions;
 
                 long t0 = System.currentTimeMillis();
                 Log.d(LOG_TAG, "## importRoomKeys starts");
 
                 try {
                     importedSessions = JsonUtils.getGson(false).fromJson(roomKeys,  new TypeToken<List<Map<String, Object>>>() {}.getType());
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     Log.e(LOG_TAG, "## importRoomKeys failed " + e.getMessage());
+                    getUIHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onUnexpectedError(e);
+                        }
+                    });
+                    return;
                 }
 
                 long t1 = System.currentTimeMillis();
@@ -2406,7 +2418,12 @@ public class MXCrypto {
 
                 Log.d(LOG_TAG, "## importRoomKeys done in " + (t2 - t1) + " ms");
 
-                callback.onSuccess(null);
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onSuccess(null);
+                    }
+                });
             }
         });
     }
