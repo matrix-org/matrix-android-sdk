@@ -185,6 +185,8 @@ public class MXCrypto {
         mInProgressUsersWithNewDevices = new HashSet<>();
 
         String deviceId = mSession.getCredentials().deviceId;
+        // deviceId should always be defined
+        boolean refreshDevicesList = !TextUtils.isEmpty(deviceId);
 
         if (TextUtils.isEmpty(deviceId)) {
             // use the stored one
@@ -238,9 +240,11 @@ public class MXCrypto {
 
         mUIHandler = new Handler(Looper.getMainLooper());
 
-        // ensure to have the up-to-date devices list
-        // got some issues when upgrading from Riot < 0.6.4
-        doKeyDownloadForUsers(Arrays.asList(mSession.getMyUserId()), null);
+        if (refreshDevicesList) {
+            // ensure to have the up-to-date devices list
+            // got some issues when upgrading from Riot < 0.6.4
+            doKeyDownloadForUsers(Arrays.asList(mSession.getMyUserId()), null);
+        }
     }
 
     /**

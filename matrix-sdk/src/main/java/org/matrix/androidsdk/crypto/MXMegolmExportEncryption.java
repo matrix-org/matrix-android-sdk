@@ -29,7 +29,6 @@ import javax.crypto.Cipher;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
@@ -101,6 +100,10 @@ public class MXMegolmExportEncryption {
             throw new Exception("Invalid file: too short");
         }
 
+        if (TextUtils.isEmpty(password)) {
+            throw new Exception("Empty password is not supported");
+        }
+
         byte[] salt = Arrays.copyOfRange(body, 1, 1 + 16);
         byte[] iv = Arrays.copyOfRange(body, 17, 17 + 16);
         int iterations = byteToInt(body[33]) << 24 | byteToInt(body[34]) << 16 | byteToInt(body[35]) << 8 | byteToInt(body[36]);
@@ -159,6 +162,10 @@ public class MXMegolmExportEncryption {
      * @throws Exception the failure reason
      */
     public static byte[] encryptMegolmKeyFile(String data, String password, int kdf_rounds) throws Exception {
+        if (TextUtils.isEmpty(password)) {
+            throw new Exception("Empty password is not supported");
+        }
+
         SecureRandom secureRandom = new SecureRandom();
 
         byte[] salt = new byte[16];
@@ -318,9 +325,38 @@ public class MXMegolmExportEncryption {
      * @return the derived keys
      */
     private static byte[] deriveKeys(byte[] salt, int iterations, String password) throws Exception {
-        PBEKeySpec keySpec = new PBEKeySpec(password.toCharArray(), salt, iterations, 512);
-        SecretKey derivedKey = new PBKDF2KeyImpl(keySpec, "HmacSHA512");
+        // based on https://en.wikipedia.org/wiki/PBKDF2 algorithm
+        // it is simpler than the generic algorithm because the expected key length is equal to the mac key length.
+        // noticed as dklen/hlen
+        Mac prf = Mac.getInstance("HmacSHA512");
+        prf.init(new SecretKeySpec(password.getBytes("UTF-8"), "HmacSHA512"));
 
-        return derivedKey.getEncoded();
+        // 512 bits key length
+        byte[] key = new byte[64];
+        byte[] Uc = new byte[64];
+
+        // U1 = PRF(Password, Salt || INT_32_BE(i))
+        prf.update(salt);
+        byte[] int32BE = new byte[4];
+        Arrays.fill(int32BE, (byte)0);
+        int32BE[3] = (byte) 1;
+        prf.update(int32BE);
+        prf.doFinal(Uc, 0);
+
+        // copy to the key
+        System.arraycopy(Uc, 0, key, 0, Uc.length);
+
+        for (int index = 2; index <= iterations; index++) {
+            // Uc = PRF(Password, Uc-1)
+            prf.update(Uc);
+            prf.doFinal(Uc, 0);
+
+            // F(Password, Salt, c, i) = U1 ^ U2 ^ ... ^ Uc
+            for (int byteIndex = 0; byteIndex < Uc.length; byteIndex++) {
+                key[byteIndex] ^= Uc[byteIndex];
+            }
+        }
+
+        return key;
     }
 }
