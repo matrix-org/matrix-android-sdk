@@ -1990,7 +1990,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     /**
      * Set the scroll listener to mMessageListView
      */
-    private void setMessageListViewScrollListener() {
+    protected void setMessageListViewScrollListener() {
         // ensure that the listener is set only once
         // else it triggers an inifinite loop with backPaginate.
         if (!mIsScrollListenerSet) {
