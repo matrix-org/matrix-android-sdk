@@ -2590,51 +2590,55 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         ApiCallback<SearchResponse> callback = new ApiCallback<SearchResponse>() {
             @Override
             public void onSuccess(final SearchResponse searchResponse) {
+                // check that the pattern was not modified before the end of the search
                 if (TextUtils.equals(mPattern, fPattern)) {
-                    // check that the pattern was not modified before the end of the search
-                    if (TextUtils.equals(mPattern, fPattern)) {
-                        List<SearchResult> searchResults = searchResponse.searchCategories.roomEvents.results;
+                    List<SearchResult> searchResults = searchResponse.searchCategories.roomEvents.results;
 
-                        // is there any result to display
-                        if (0 != searchResults.size()) {
-                            mAdapter.setNotifyOnChange(false);
+                    // is there any result to display
+                    if (0 != searchResults.size()) {
+                        mAdapter.setNotifyOnChange(false);
 
-                            for (SearchResult searchResult : searchResults) {
-                                MessageRow row = new MessageRow(searchResult.result, (null == mRoom) ? null : mRoom.getState());
-                                mAdapter.insert(row, 0);
-                            }
-
-                            mNextBatch = searchResponse.searchCategories.roomEvents.nextBatch;
-
-                            // Scroll the list down to where it was before adding rows to the top
-                            getUiHandler().post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    final int expectedFirstPos = firstPos + (mAdapter.getCount() - countBeforeUpdate);
-
-                                    mAdapter.notifyDataSetChanged();
-                                    // trick to avoid that the list jump to the latest item.
-                                    mMessageListView.setAdapter(mMessageListView.getAdapter());
-
-                                    // do not use count because some messages are not displayed
-                                    // so we compute the new pos
-                                    mMessageListView.setSelection(expectedFirstPos);
-
-                                    mMessageListView.post(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            mIsBackPaginating = false;
-                                        }
-                                    });
-                                }
-                            });
-                        } else {
-                            mIsBackPaginating = false;
+                        for (SearchResult searchResult : searchResults) {
+                            MessageRow row = new MessageRow(searchResult.result, (null == mRoom) ? null : mRoom.getState());
+                            mAdapter.insert(row, 0);
                         }
 
-                        hideLoadingBackProgress();
+                        mNextBatch = searchResponse.searchCategories.roomEvents.nextBatch;
+
+                        // Scroll the list down to where it was before adding rows to the top
+                        getUiHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                final int expectedFirstPos = firstPos + (mAdapter.getCount() - countBeforeUpdate);
+
+                                mAdapter.notifyDataSetChanged();
+                                // trick to avoid that the list jump to the latest item.
+                                mMessageListView.setAdapter(mMessageListView.getAdapter());
+
+                                // do not use count because some messages are not displayed
+                                // so we compute the new pos
+                                mMessageListView.setSelection(expectedFirstPos);
+
+                                mMessageListView.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        mIsBackPaginating = false;
+
+                                        // fill the history
+                                        if (mMessageListView.getFirstVisiblePosition() <= 2) {
+                                           requestSearchHistory();
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    } else {
+                        mIsBackPaginating = false;
                     }
+
+                    hideLoadingBackProgress();
                 }
+
             }
 
             private void onError() {
