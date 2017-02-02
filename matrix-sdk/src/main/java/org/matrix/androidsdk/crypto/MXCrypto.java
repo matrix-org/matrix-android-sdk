@@ -20,9 +20,12 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
+import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.crypto.algorithms.IMXDecrypting;
@@ -49,6 +52,8 @@ import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
 import org.matrix.androidsdk.util.JsonUtils;
 
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -180,6 +185,8 @@ public class MXCrypto {
         mInProgressUsersWithNewDevices = new HashSet<>();
 
         String deviceId = mSession.getCredentials().deviceId;
+        // deviceId should always be defined
+        boolean refreshDevicesList = !TextUtils.isEmpty(deviceId);
 
         if (TextUtils.isEmpty(deviceId)) {
             // use the stored one
@@ -233,9 +240,11 @@ public class MXCrypto {
 
         mUIHandler = new Handler(Looper.getMainLooper());
 
-        // ensure to have the up-to-date devices list
-        // got some issues when upgrading from Riot < 0.6.4
-        doKeyDownloadForUsers(Arrays.asList(mSession.getMyUserId()), null);
+        if (refreshDevicesList) {
+            // ensure to have the up-to-date devices list
+            // got some issues when upgrading from Riot < 0.6.4
+            doKeyDownloadForUsers(Arrays.asList(mSession.getMyUserId()), null);
+        }
     }
 
     /**
@@ -2300,5 +2309,126 @@ public class MXCrypto {
         }
 
         return alg;
+    }
+
+    /**
+     * Export the crypto keys
+     * @return exported crypto data.
+     */
+    public void exportRoomKeys(final String password, final ApiCallback<byte[]> callback) {
+        getDecryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                ArrayList<Map<String, Object>> exportedSessions = new ArrayList<>();
+
+                List<MXOlmInboundGroupSession2> inboundGroupSessions = mCryptoStore.getInboundGroupSessions();
+
+                for(MXOlmInboundGroupSession2 session : inboundGroupSessions) {
+                    Map<String, Object> map = session.exportKeys();
+
+                    if (null != map) {
+                        exportedSessions.add(map);
+                    }
+                }
+
+                final byte[] encryptedRoomKeys;
+
+                try {
+                    String allo = JsonUtils.getGson(false).toJsonTree(exportedSessions).toString();
+                    encryptedRoomKeys = MXMegolmExportEncryption.encryptMegolmKeyFile(allo , password);
+                } catch (Exception e) {
+                    callback.onUnexpectedError(e);
+                    return;
+                }
+
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onSuccess(encryptedRoomKeys);
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Import the room keys
+     * @param roomKeysAsArray the room keys as array.
+     * @param password the password
+     * @param callback the asynchronous callback.
+     */
+    public void importRoomKeys(final byte[] roomKeysAsArray, final String password, final ApiCallback<Void> callback) {
+        getDecryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                String roomKeys;
+
+                try {
+                    roomKeys = MXMegolmExportEncryption.decryptMegolmKeyFile(roomKeysAsArray, password);
+                } catch (final Exception e) {
+                    getUIHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onUnexpectedError(e);
+                        }
+                    });
+                    return;
+                }
+
+                List<Map<String, Object>> importedSessions;
+
+                long t0 = System.currentTimeMillis();
+                Log.d(LOG_TAG, "## importRoomKeys starts");
+
+                try {
+                    importedSessions = JsonUtils.getGson(false).fromJson(roomKeys,  new TypeToken<List<Map<String, Object>>>() {}.getType());
+                } catch (final Exception e) {
+                    Log.e(LOG_TAG, "## importRoomKeys failed " + e.getMessage());
+                    getUIHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onUnexpectedError(e);
+                        }
+                    });
+                    return;
+                }
+
+                long t1 = System.currentTimeMillis();
+
+                Log.d(LOG_TAG, "## importRoomKeys retrieve " + importedSessions.size() + "sessions in " + (t1 - t0) + " ms");
+
+                for(int index = 0; index < importedSessions.size(); index++) {
+                    Map<String, Object> map = importedSessions.get(index);
+
+                    MXOlmInboundGroupSession2 session = mOlmDevice.importInboundGroupSession(map);
+
+                    if ((null != session) && mRoomDecryptors.containsKey(session.mRoomId)) {
+                        IMXDecrypting decrypting = mRoomDecryptors.get(session.mRoomId).get(map.get("algorithm"));
+
+                        if (null != decrypting) {
+                            try {
+                                String sessionId = session.mSession.sessionIdentifier();
+                                Log.d(LOG_TAG, "## importRoomKeys retrieve mSenderKey " + session.mSenderKey + " sessionId " + sessionId);
+
+                                decrypting.onNewSession(session.mSenderKey, sessionId);
+                            } catch (Exception e) {
+                                Log.e(LOG_TAG, "## importRoomKeys() : onNewSession failed " + e.getMessage());
+                            }
+                        }
+                    }
+                }
+
+                long t2 = System.currentTimeMillis();
+
+                Log.d(LOG_TAG, "## importRoomKeys done in " + (t2 - t1) + " ms");
+
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onSuccess(null);
+                    }
+                });
+            }
+        });
     }
 }

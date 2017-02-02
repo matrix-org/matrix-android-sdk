@@ -2955,6 +2955,238 @@ public class CryptoTest {
         mAliceSession.clear(context);
     }
 
+    @Test
+    public void test24_testExportImport() throws Exception {
+        Log.e(LOG_TAG, "test24_testExportImport");
+        Context context = InstrumentationRegistry.getContext();
+        final HashMap<String, Object> results = new HashMap<>();
+
+        doE2ETestWithAliceInARoom();
+
+        String message = "Hello myself!";
+        String password = "hello";
+
+        Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
+
+        final CountDownLatch lock1 = new CountDownLatch(1);
+        roomFromAlicePOV.sendEvent(buildTextEvent(message, mAliceSession), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                results.put("sendEvent", "sendEvent");
+                lock1.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock1.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock1.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock1.countDown();
+            }
+        });
+        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("sendEvent"));
+
+        Credentials aliceCredentials = mAliceSession.getCredentials();
+        Credentials aliceCredentials2 = new Credentials();
+
+        final CountDownLatch lock1a = new CountDownLatch(1);
+        mAliceSession.getCrypto().exportRoomKeys(password, new ApiCallback<byte[]>() {
+            @Override
+            public void onSuccess(byte[] info) {
+                results.put("exportRoomKeys", info);
+                lock1a.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock1a.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock1a.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock1a.countDown();
+            }
+        });
+
+        lock1a.await(5000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("exportRoomKeys"));
+
+        // close the session and clear the data
+        mAliceSession.clear(context);
+
+        aliceCredentials2.userId = aliceCredentials.userId;
+        aliceCredentials2.homeServer = aliceCredentials.homeServer;
+        aliceCredentials2.accessToken = aliceCredentials.accessToken;
+        aliceCredentials2.refreshToken = aliceCredentials.refreshToken;
+        aliceCredentials2.deviceId = "AliceNewDevice";
+
+        Uri uri = Uri.parse(CryptoTestHelper.TESTS_HOME_SERVER_URL);
+        HomeserverConnectionConfig hs = new HomeserverConnectionConfig(uri);
+        hs.setCredentials(aliceCredentials2);
+
+        IMXStore store =  new MXFileStore(hs, context);
+
+        MXSession aliceSession2 = new MXSession(hs, new MXDataHandler(store, aliceCredentials2, new MXDataHandler.InvalidTokenListener() {
+            @Override
+            public void onTokenCorrupted() {
+            }
+        }), context);
+
+        aliceSession2.enableCryptoWhenStarting();
+
+        final CountDownLatch lock1b = new CountDownLatch(1);
+        MXStoreListener listener = new MXStoreListener() {
+            @Override
+            public void postProcess(String accountId) {
+            }
+
+            @Override
+            public void onStoreReady(String accountId) {
+                results.put("onStoreReady", "onStoreReady");
+                lock1b.countDown();
+            }
+
+            @Override
+            public void onStoreCorrupted(String accountId, String description) {
+                lock1b.countDown();
+            }
+
+            @Override
+            public void  onStoreOOM(String accountId, String description) {
+                lock1b.countDown();
+            }
+        };
+
+        aliceSession2.getDataHandler().getStore().addMXStoreListener(listener);
+        aliceSession2.getDataHandler().getStore().open();
+        lock1b.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("onStoreReady"));
+
+        final CountDownLatch lock2 = new CountDownLatch(2);
+        MXEventListener eventListener = new MXEventListener() {
+            @Override
+            public void onInitialSyncComplete() {
+                results.put("onInitialSyncComplete", "onInitialSyncComplete");
+                lock2.countDown();
+            }
+
+            @Override
+            public void onCryptoSyncComplete() {
+                results.put("onCryptoSyncComplete", "onCryptoSyncComplete");
+                lock2.countDown();
+            }
+        };
+
+        aliceSession2.getDataHandler().addListener(eventListener);
+        aliceSession2.startEventStream(null);
+
+        lock2.await(1000, TimeUnit.DAYS.MILLISECONDS);
+
+        assertTrue (results.containsKey("onInitialSyncComplete"));
+        assertTrue (results.containsKey("onCryptoSyncComplete"));
+
+        Room roomFromAlicePOV2 = aliceSession2.getDataHandler().getRoom(mRoomId);
+
+        assertTrue (null != roomFromAlicePOV2);
+        assertTrue(roomFromAlicePOV2.getLiveState().isEncrypted());
+
+        Event event = roomFromAlicePOV2.getDataHandler().getStore().getLatestEvent(mRoomId);
+        assertTrue(null != event);
+        assertTrue(event.isEncrypted());
+        assertTrue(null == event.getClearEvent());
+        assertTrue(null != event.getCryptoError());
+        assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE));
+
+        // import the e2e keys
+        // test with a wrong password
+        final CountDownLatch lock3 = new CountDownLatch(1);
+        aliceSession2.getCrypto().importRoomKeys((byte[]) results.get("exportRoomKeys"), "wrong password", new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                results.put("importRoomKeys", "importRoomKeys");
+                lock3.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                results.put("importRoomKeys_failed", "importRoomKeys_failed");
+                lock3.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                results.put("importRoomKeys_failed", "importRoomKeys_failed");
+                lock3.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                results.put("importRoomKeys_failed", "importRoomKeys_failed");
+                lock3.countDown();
+            }
+        });
+        lock3.await(5000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(!results.containsKey("importRoomKeys"));
+        assertTrue(results.containsKey("importRoomKeys_failed"));
+
+        // check that the message cannot be decrypted
+        event = roomFromAlicePOV2.getDataHandler().getStore().getLatestEvent(mRoomId);
+        assertTrue(null != event);
+        assertTrue(event.isEncrypted());
+        assertTrue(null == event.getClearEvent());
+        assertTrue(null != event.getCryptoError());
+        assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE));
+
+        final CountDownLatch lock4 = new CountDownLatch(1);
+        aliceSession2.getCrypto().importRoomKeys((byte[]) results.get("exportRoomKeys"), password, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                results.put("importRoomKeys", "importRoomKeys");
+                lock4.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock4.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock4.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock4.countDown();
+            }
+        });
+        lock4.await(5000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("importRoomKeys"));
+
+        // check that the message CAN be decrypted
+        event = roomFromAlicePOV2.getDataHandler().getStore().getLatestEvent(mRoomId);
+        assertTrue(null != event);
+        assertTrue(event.isEncrypted());
+        assertTrue(null != event.getClearEvent());
+        assertTrue(null == event.getCryptoError());
+        assertTrue(checkEncryptedEvent(event, mRoomId, message, mAliceSession));
+
+        aliceSession2.clear(context);
+    }
+
     //==============================================================================================================
     // private test routines
     //==============================================================================================================

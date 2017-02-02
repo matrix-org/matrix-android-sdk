@@ -169,7 +169,16 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
         mOlmDevice.addInboundGroupSession(sessionId, sessionKey, roomId, roomKeyEvent.senderKey(), roomKeyEvent.getKeysClaimed());
 
-        String k = roomKeyEvent.senderKey() + "|" + sessionId;
+        onNewSession(roomKeyEvent.senderKey(), sessionId);
+    }
+
+    /**
+     * Check if the some messages can be decrypted with a new session
+     * @param senderKey the session sender key
+     * @param sessionId the session id
+     */
+    public void onNewSession(String senderKey, String sessionId) {
+        String k = senderKey + "|" + sessionId;
 
         HashMap<String, ArrayList<Event>> pending = mPendingEvents.get(k);
 
@@ -182,7 +191,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
             for (String timelineId : timelineIds) {
                 ArrayList<Event> events = pending.get(timelineId);
 
-                for(Event event : events) {
+                for (Event event : events) {
                     if (decryptEvent(event, TextUtils.isEmpty(timelineId) ? null : timelineId)) {
                         final Event fEvent = event;
                         mSession.getCrypto().getUIHandler().post(new Runnable() {
@@ -198,6 +207,6 @@ public class MXMegolmDecryption implements IMXDecrypting {
                 }
             }
         }
-
     }
+
 }
