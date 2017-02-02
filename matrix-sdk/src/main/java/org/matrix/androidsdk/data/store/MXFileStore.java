@@ -2046,23 +2046,27 @@ public class MXFileStore extends MXMemoryStore {
         ArrayList<String> filteredFilenames = new ArrayList<>();
         ArrayList<String> tmpFilenames = new ArrayList<>();
 
-        for(int i = 0; i < names.length; i++) {
-            String name = names[i];
+        // sanity checks
+        // it has been reported by GA
+        if (null != names) {
+            for (int i = 0; i < names.length; i++) {
+                String name = names[i];
 
-            if (!name.endsWith(".tmp")) {
-                filteredFilenames.add(name);
-            } else {
-                tmpFilenames.add(name.substring(0, name.length() - ".tmp".length()));
+                if (!name.endsWith(".tmp")) {
+                    filteredFilenames.add(name);
+                } else {
+                    tmpFilenames.add(name.substring(0, name.length() - ".tmp".length()));
+                }
+            }
+
+            // check if the tmp file is not alone i.e the matched file was not saved (app crash...)
+            for (String tmpFileName : tmpFilenames) {
+                if (!filteredFilenames.contains(tmpFileName)) {
+                    Log.e(LOG_TAG, "## listFiles() : " + tmpFileName + " does not exist but a tmp file has been retrieved");
+                    filteredFilenames.add(tmpFileName);
+                }
             }
         }
-
-        // check if the tmp file is not alone i.e the matched file was not saved (app crash...)
-        for(String tmpFileName : tmpFilenames) {
-            if (!filteredFilenames.contains(tmpFileName)) {
-                Log.e(LOG_TAG, "## listFiles() : " + tmpFileName + " does not exist but a tmp file has been retrieved");
-                filteredFilenames.add(tmpFileName);
-            }
-         }
 
         return filteredFilenames;
     }
