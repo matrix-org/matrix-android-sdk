@@ -2361,6 +2361,7 @@ public class MXCrypto {
         getDecryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
+                long t0 = System.currentTimeMillis();
                 String roomKeys;
 
                 try {
@@ -2377,7 +2378,8 @@ public class MXCrypto {
 
                 List<Map<String, Object>> importedSessions;
 
-                long t0 = System.currentTimeMillis();
+                long t1 = System.currentTimeMillis();
+
                 Log.d(LOG_TAG, "## importRoomKeys starts");
 
                 try {
@@ -2393,7 +2395,7 @@ public class MXCrypto {
                     return;
                 }
 
-                long t1 = System.currentTimeMillis();
+                long t2 = System.currentTimeMillis();
 
                 Log.d(LOG_TAG, "## importRoomKeys retrieve " + importedSessions.size() + "sessions in " + (t1 - t0) + " ms");
 
@@ -2418,9 +2420,12 @@ public class MXCrypto {
                     }
                 }
 
-                long t2 = System.currentTimeMillis();
+                long t3 = System.currentTimeMillis();
 
-                Log.d(LOG_TAG, "## importRoomKeys done in " + (t2 - t1) + " ms");
+                Log.d(LOG_TAG, "## importRoomKeys : done in " + (t3 - t0) + " ms (" + importedSessions.size() + " sessions)");
+                Log.d(LOG_TAG, "## importRoomKeys : decryptMegolmKeyFile done in " + (t1 - t0) + " ms");
+                Log.d(LOG_TAG, "## importRoomKeys : JSON parsing " + (t2 - t1) + " ms");
+                Log.d(LOG_TAG, "## importRoomKeys : sessions import " + (t3 - t2) + " ms");
 
                 getUIHandler().post(new Runnable() {
                     @Override
