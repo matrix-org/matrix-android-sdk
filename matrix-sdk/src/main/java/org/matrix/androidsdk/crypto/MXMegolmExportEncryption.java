@@ -149,7 +149,7 @@ public class MXMegolmExportEncryption {
      * @throws Exception the failure reason
      */
     public static byte[] encryptMegolmKeyFile(String data, String password) throws Exception {
-        return encryptMegolmKeyFile(data, password, 100000);
+        return encryptMegolmKeyFile(data, password, 500000);
     }
 
     /**
@@ -325,6 +325,8 @@ public class MXMegolmExportEncryption {
      * @return the derived keys
      */
     private static byte[] deriveKeys(byte[] salt, int iterations, String password) throws Exception {
+        Long t0 = System.currentTimeMillis();
+
         // based on https://en.wikipedia.org/wiki/PBKDF2 algorithm
         // it is simpler than the generic algorithm because the expected key length is equal to the mac key length.
         // noticed as dklen/hlen
@@ -356,6 +358,8 @@ public class MXMegolmExportEncryption {
                 key[byteIndex] ^= Uc[byteIndex];
             }
         }
+
+        Log.d(LOG_TAG, "## deriveKeys() : " + iterations + " in "+ (System.currentTimeMillis() - t0)+ " ms");
 
         return key;
     }
