@@ -1667,20 +1667,24 @@ public class MXJingleCall extends MXCall {
                 Camera camera = (Camera) field.get(mVideoCapturer);
 
                 if (null != camera) {
-                    Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
-                    Camera.getCameraInfo(mCameraInUse == CAMERA_TYPE_FRONT ? android.hardware.Camera.CameraInfo.CAMERA_FACING_FRONT : android.hardware.Camera.CameraInfo.CAMERA_FACING_BACK, info);
+                    try {
+                        Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
+                        Camera.getCameraInfo(mCameraInUse == CAMERA_TYPE_FRONT ? android.hardware.Camera.CameraInfo.CAMERA_FACING_FRONT : android.hardware.Camera.CameraInfo.CAMERA_FACING_BACK, info);
 
-                    final int cameraOrientation = info.orientation;
+                        final int cameraOrientation = info.orientation;
 
-                    camera.setPreviewCallbackWithBuffer(new Camera.PreviewCallback() {
-                        @Override
-                        public void onPreviewFrame(byte[] data, Camera camera) {
-                            onPreviewFrameUpdate(camera, cameraOrientation);
-                            ((VideoCapturerAndroid) mVideoCapturer).onPreviewFrame(data, camera);
-                        }
-                    });
+                        camera.setPreviewCallbackWithBuffer(new Camera.PreviewCallback() {
+                            @Override
+                            public void onPreviewFrame(byte[] data, Camera camera) {
+                                onPreviewFrameUpdate(camera, cameraOrientation);
+                                ((VideoCapturerAndroid) mVideoCapturer).onPreviewFrame(data, camera);
+                            }
+                        });
 
-                    onPreviewFrameUpdate(camera, cameraOrientation);
+                        onPreviewFrameUpdate(camera, cameraOrientation);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## listenPreviewUpdate() : fail to update the camera preview " + e.getMessage());
+                    }
                 } else {
                     Log.e(LOG_TAG, "## listenPreviewUpdate() : did not find the camera");
                 }
