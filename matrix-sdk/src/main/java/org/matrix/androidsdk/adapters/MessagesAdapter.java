@@ -247,7 +247,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     private static final String LOG_TAG = "MessagesAdapter";
 
-    private ArrayList<String> mTypingUsers = new ArrayList<>();
+    private List<String> mTypingUsers = new ArrayList<>();
 
     protected final Context mContext;
     private final HashMap<Integer, Integer> mRowTypeToLayoutId = new HashMap<>();
@@ -2475,7 +2475,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * Update the typing users list
      * @param typingUsers the typing user ids.
      */
-    public void setTypingUsers(ArrayList<String> typingUsers) {
+    public void setTypingUsers(List<String> typingUsers) {
         // sanity checks
         if (null != mTypingUsers) {
             // avoid null case.

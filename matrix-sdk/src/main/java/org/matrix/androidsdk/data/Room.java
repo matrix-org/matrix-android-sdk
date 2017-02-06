@@ -352,7 +352,7 @@ public class Room {
      */
     public Collection<RoomMember> getActiveMembers() {
         Collection<RoomMember> members = getState().getMembers();
-        ArrayList<RoomMember> activeMembers = new ArrayList<>();
+        List<RoomMember> activeMembers = new ArrayList<>();
         String conferenceUserId = MXCallsManager.getConferenceUserId(getRoomId());
 
         for(RoomMember member : members) {
@@ -373,7 +373,7 @@ public class Room {
      */
     public Collection<RoomMember> getJoinedMembers() {
         Collection<RoomMember> membersList = getState().getMembers();
-        ArrayList<RoomMember> joinedMembersList = new ArrayList<>();
+        List<RoomMember> joinedMembersList = new ArrayList<>();
 
         for(RoomMember member : membersList) {
             if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN)) {
@@ -711,7 +711,7 @@ public class Room {
      * @param callback the async callback
      */
     public void removeAlias(final String alias, final ApiCallback<Void> callback) {
-        final ArrayList<String> updatedAliasesList = new ArrayList<>(getAliases());
+        final List<String> updatedAliasesList = new ArrayList<>(getAliases());
 
         // nothing to do
         if (TextUtils.isEmpty(alias) || (updatedAliasesList.indexOf(alias) < 0)) {
@@ -736,7 +736,7 @@ public class Room {
      * @param callback the the async callback
      */
     public void addAlias(final String alias, final ApiCallback<Void> callback) {
-        final ArrayList<String> updatedAliasesList = new ArrayList<>(getAliases());
+        final List<String> updatedAliasesList = new ArrayList<>(getAliases());
 
         // nothing to do
         if (TextUtils.isEmpty(alias) || (updatedAliasesList.indexOf(alias) >= 0)) {
@@ -763,7 +763,7 @@ public class Room {
 
         // detect if it is a room with no more than 2 members (i.e. an alone or a 1:1 chat)
         if (null == res) {
-            ArrayList<RoomMember> members = new ArrayList<>(getState().getMembers());
+            List<RoomMember> members = new ArrayList<>(getState().getMembers());
 
             if (members.size() == 1) {
                 res = members.get(0).avatarUrl;
@@ -786,7 +786,7 @@ public class Room {
     public String getCallAvatarUrl() {
         String avatarURL;
 
-        ArrayList<RoomMember> joinedMembers = new ArrayList<>(getJoinedMembers());
+        List<RoomMember> joinedMembers = new ArrayList<>(getJoinedMembers());
 
         // 2 joined members case
         if (2 == joinedMembers.size()) {
@@ -974,7 +974,7 @@ public class Room {
      * @return the sender user IDs list.
      */
     private List<String> handleReceiptEvent(Event event) {
-        ArrayList<String> senderIDs = new ArrayList<>();
+        List<String> senderIDs = new ArrayList<>();
 
         try {
             // the receipts dictionnaries
@@ -1216,15 +1216,14 @@ public class Room {
     //================================================================================
 
     // userIds list
-    private ArrayList<String>mTypingUsers = new ArrayList<>();
+    private List<String>mTypingUsers = new ArrayList<>();
 
     /**
      * Get typing users
      * @return the userIds list
      */
-    public ArrayList<String> getTypingUsers() {
-
-        ArrayList<String> typingUsers;
+    public List<String> getTypingUsers() {
+        List<String> typingUsers;
 
         synchronized (Room.this) {
             typingUsers = (null == mTypingUsers) ? new ArrayList<String>() : new ArrayList<>(mTypingUsers);
@@ -1485,8 +1484,8 @@ public class Room {
     /**
      * @return a list of callable members.
      */
-    public ArrayList<RoomMember> callees() {
-        ArrayList<RoomMember> res = new ArrayList<>();
+    public List<RoomMember> callees() {
+        List<RoomMember> res = new ArrayList<>();
 
         Collection<RoomMember> members = getMembers();
 
@@ -2114,7 +2113,7 @@ public class Room {
      * @param userIds the user ids
      * @param callback the callback for when done
      */
-    public void invite(ArrayList<String> userIds, ApiCallback<Void> callback) {
+    public void invite(List<String> userIds, ApiCallback<Void> callback) {
         invite(userIds, 0, callback);
     }
 
@@ -2124,7 +2123,7 @@ public class Room {
      * @param index the user id index
      * @param callback the callback for when done
      */
-    private void invite(final ArrayList<String> userIds, final int index, final ApiCallback<Void> callback) {
+    private void invite(final List<String> userIds, final int index, final ApiCallback<Void> callback) {
         // add sanity checks
         if ((null == userIds) || (index >= userIds.size())) {
             return;
