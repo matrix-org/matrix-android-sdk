@@ -1057,12 +1057,11 @@ public class MXCrypto {
     }
 
     /**
-     * Update the known state of the given device
-     * @param isKnown the new known status
-     * @param deviceId the unique identifier for the device.
-     * @param userId the owner of the device.
+     * Set the devices as known
+     * @param devices the devices
+     * @param callback the as
      */
-    public void setDeviceKnown(final boolean isKnown, final String deviceId, final String userId, final ApiCallback<Void> callback) {
+    public void setDevicesKnown(final List<MXDeviceInfo> devices, final ApiCallback<Void> callback) {
         if (hasBeenReleased()) {
             return;
         }
@@ -1070,25 +1069,13 @@ public class MXCrypto {
         getEncryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
-                MXDeviceInfo device = mCryptoStore.getUserDevice(deviceId, userId);
+                for(MXDeviceInfo di : devices) {
+                    MXDeviceInfo device = mCryptoStore.getUserDevice(di.deviceId, di.userId);
 
-                // Sanity check
-                if (null == device) {
-                    Log.e(LOG_TAG, "## setDeviceVerification() : Unknown device " +  userId + ":" + deviceId);
-                    if (null != callback) {
-                        getUIHandler().post(new Runnable() {
-                            @Override
-                            public void run() {
-                                callback.onSuccess(null);
-                            }
-                        });
+                    if (null != device) {
+                        device.setKnown(true);
+                        mCryptoStore.storeUserDevice(di.userId, device);
                     }
-                    return;
-                }
-
-                if (device.isKnown() != isKnown) {
-                    device.setKnown(isKnown);
-                    mCryptoStore.storeUserDevice(userId, device);
                 }
 
                 if (null != callback) {
@@ -1151,6 +1138,7 @@ public class MXCrypto {
                 if (device.mVerified != verificationStatus) {
                     int oldVerified = device.mVerified;
                     device.mVerified = verificationStatus;
+                    device.setKnown(true);
                     mCryptoStore.storeUserDevice(userId, device);
 
                     for(String roomId : userRoomIds) {
