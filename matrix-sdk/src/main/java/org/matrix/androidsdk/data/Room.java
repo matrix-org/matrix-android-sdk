@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1972,7 +1973,13 @@ public class Room {
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    event.mSentState = Event.SentState.UNDELIVERABLE;
+                    // update the sent state if the message encryption failed because there are unknown devices.
+                    if ((e instanceof MXCryptoError) && TextUtils.equals(((MXCryptoError)e).errcode, MXCryptoError.UNKNOWN_DEVICES_CODE)) {
+                        event.mSentState = Event.SentState.FAILED_UNKNOWN_DEVICES;
+                    } else {
+                        event.mSentState = Event.SentState.UNDELIVERABLE;
+                    }
+
                     event.unsentMatrixError = e;
 
                     if (null != callback) {

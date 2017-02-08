@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1237,7 +1238,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 tsTextView.setGravity(isAvatarOnRightSide ? Gravity.LEFT : Gravity.RIGHT);
             }
 
-            if (row.getEvent().isUndeliverable()) {
+            if (row.getEvent().isUndeliverable() || row.getEvent().isUnkownDevice()) {
                 tsTextView.setTextColor(mNotSentMessageTextColor);
             } else {
                 tsTextView.setTextColor(mContext.getResources().getColor(R.color.chat_gray_text));
@@ -1652,7 +1653,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             textColor = mEncryptingMessageTextColor;
         } else if (row.getEvent().isSending()) {
             textColor = mSendingMessageTextColor;
-        } else if (row.getEvent().isUndeliverable()) {
+        } else if (row.getEvent().isUndeliverable() || row.getEvent().isUnkownDevice()) {
             textColor = mNotSentMessageTextColor;
         } else {
             textColor = mDefaultMessageTextColor;
@@ -2171,7 +2172,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             textColor = mEncryptingMessageTextColor;
         } else if (row.getEvent().isSending()) {
             textColor = mSendingMessageTextColor;
-        } else if (row.getEvent().isUndeliverable()) {
+        } else if (row.getEvent().isUndeliverable() || row.getEvent().isUnkownDevice()) {
             textColor = mNotSentMessageTextColor;
         } else {
             textColor = mDefaultMessageTextColor;

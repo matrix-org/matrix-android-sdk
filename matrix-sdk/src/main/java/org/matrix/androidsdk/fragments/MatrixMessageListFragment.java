@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,6 +32,8 @@ import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -127,6 +130,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
          * @param event the event
          */
         void onMessageRedacted(Event event);
+
+        /**
+         * An event sending failed because some unknown devices have been detected
+         * @param event the event
+         * @param error the crypto error
+         */
+        void onUnknownDevices(Event event, MXCryptoError error);
     }
 
     // scroll listener
@@ -869,7 +879,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Warns that a message sending succeeds.
-     * @param event the events
+     * @param event the event
      */
     private void onMessageSendingSucceeded(Event event) {
         if (null != mEventSendingListener) {
@@ -882,7 +892,22 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
-     * Send a messsage in the room.
+     * Warns that a message sending failed because some unknown devices have been detected.
+     * @param event the event
+     * @param cryptoError the crypto error
+     */
+    private void onUnknownDevices(Event event, MXCryptoError cryptoError) {
+        if (null != mEventSendingListener) {
+            try {
+                mEventSendingListener.onUnknownDevices(event, cryptoError);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "onUnknownDevices failed " + e.getLocalizedMessage());
+            }
+        }
+    }
+
+    /**
+     * Send a message in the room.
      * @param message the message to send.
      */
     private void send(final Message message) {
@@ -946,17 +971,28 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
 
                 @Override
-                public void onNetworkError(Exception e) {
+                public void onNetworkError(final Exception e) {
                     commonFailure(event);
                 }
 
                 @Override
-                public void onMatrixError(MatrixError e) {
-                    commonFailure(event);
+                public void onMatrixError(final MatrixError e) {
+                    // do not display toast if the sending failed because of unknown deviced (e2e issue)
+                    if (event.mSentState == Event.SentState.FAILED_UNKNOWN_DEVICES) {
+                        getUiHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mAdapter.notifyDataSetChanged();
+                                onUnknownDevices(event, (MXCryptoError)e);
+                            }
+                        });
+                    } else {
+                        commonFailure(event);
+                    }
                 }
 
                 @Override
-                public void onUnexpectedError(Exception e) {
+                public void onUnexpectedError(final Exception e) {
                     commonFailure(event);
                 }
             });
@@ -1663,14 +1699,34 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     //==============================================================================================================
 
     /**
+     * Provides the unsent messages list.
+     * @return the unsent messages list
+     */
+    private List<Event> getUnsentMessages() {
+        List<Event> unsent = new ArrayList<>();
+
+        List<Event> undeliverableEvents = mSession.getDataHandler().getStore().getUndeliverableEvents(mRoom.getRoomId());
+        List<Event> unknownDeviceEvents = mSession.getDataHandler().getStore().getUnknownDeviceEvents(mRoom.getRoomId());
+
+        if (null != undeliverableEvents) {
+            unsent.addAll(undeliverableEvents);
+        }
+
+        if (null != unknownDeviceEvents) {
+            unsent.addAll(unknownDeviceEvents);
+        }
+
+        return unsent;
+    }
+
+    /**
      * Delete the unsent (undeliverable messages).
      */
     public void deleteUnsentMessages() {
-        Collection<Event> unsent = mSession.getDataHandler().getStore().getUndeliverableEvents(mRoom.getRoomId());
+        List<Event> unsent = getUnsentMessages();
 
-        if ((null != unsent) && (unsent.size() > 0)) {
+        if (unsent.size() > 0) {
             IMXStore store = mSession.getDataHandler().getStore();
-
 
             // reset the timestamp
             for (Event event : unsent) {
@@ -1711,9 +1767,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             return;
         }
 
-        Collection<Event> unsent = mSession.getDataHandler().getStore().getUndeliverableEvents(mRoom.getRoomId());
+        List<Event> unsent = getUnsentMessages();
 
-        if ((null != unsent) && (unsent.size() > 0)) {
+        if (unsent.size() > 0) {
             mResendingEventsList =  new ArrayList<>(unsent);
 
             // reset the timestamp

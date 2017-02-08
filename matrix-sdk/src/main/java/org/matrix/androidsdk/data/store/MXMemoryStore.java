@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -938,20 +939,13 @@ public class MXMemoryStore implements IMXStore {
         return mRoomSummaries.get(roomId);
     }
 
-    /**
-     * Return the list of latest unsent events.
-     * The provided events are the unsent ones since the last sent one.
-     * They are ordered.
-     * @param roomId the room id
-     * @return list of unsent events
-     */
     @Override
-    public Collection<Event> getLatestUnsentEvents(String roomId) {
+    public List<Event> getLatestUnsentEvents(String roomId) {
         if (null == roomId) {
             return null;
         }
 
-        ArrayList<Event> unsentRoomEvents = new ArrayList<>();
+        List<Event> unsentRoomEvents = new ArrayList<>();
 
         synchronized (mRoomEventsLock) {
             LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
@@ -977,18 +971,13 @@ public class MXMemoryStore implements IMXStore {
         return unsentRoomEvents;
     }
 
-    /**
-     * Return the list of undeliverable events
-     * @param roomId the room id
-     * @return  list of undeliverable events
-     */
     @Override
-    public Collection<Event> getUndeliverableEvents(String roomId) {
+    public List<Event> getUndeliverableEvents(String roomId) {
         if (null == roomId) {
             return null;
         }
 
-        ArrayList<Event> undeliverableRoomEvents = new ArrayList<>();
+        List<Event> undeliverableRoomEvents = new ArrayList<>();
 
         synchronized (mRoomEventsLock) {
             LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
@@ -1010,6 +999,36 @@ public class MXMemoryStore implements IMXStore {
         }
 
         return undeliverableRoomEvents;
+    }
+
+    @Override
+    public List<Event> getUnknownDeviceEvents(String roomId) {
+        if (null == roomId) {
+            return null;
+        }
+
+        List<Event> unknownDeviceEvents = new ArrayList<>();
+
+        synchronized (mRoomEventsLock) {
+            LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
+
+            // contain some events
+            if ((null != events) && (events.size() > 0)) {
+                ArrayList<Event> eventsList = new ArrayList<>(events.values());
+
+                for (int index = events.size() - 1; index >= 0; index--) {
+                    Event event = eventsList.get(index);
+
+                    if (event.isUnkownDevice()) {
+                        unknownDeviceEvents.add(event);
+                    }
+                }
+
+                Collections.reverse(unknownDeviceEvents);
+            }
+        }
+
+        return unknownDeviceEvents;
     }
 
     /**

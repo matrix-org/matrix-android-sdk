@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,7 +51,8 @@ public class Event implements java.io.Serializable {
         SENDING, // the event is currently sending
         WAITING_RETRY, // the event is going to be resent asap
         SENT,    // the event has been sent
-        UNDELIVERABLE   // The event failed to be sent
+        UNDELIVERABLE,   // The event failed to be sent
+        FAILED_UNKNOWN_DEVICES // the event failed to be sent because some unknown devices have been found while encrypting it
     }
 
     // when there is no more message to be paginated in a room
@@ -546,7 +548,7 @@ public class Event implements java.io.Serializable {
      * @return true if it can be resent.
      */
     public boolean canBeResent() {
-        return (mSentState == SentState.WAITING_RETRY) || (mSentState == SentState.UNDELIVERABLE);
+        return (mSentState == SentState.WAITING_RETRY) || (mSentState == SentState.UNDELIVERABLE) || (mSentState == SentState.FAILED_UNKNOWN_DEVICES) ;
     }
 
     /**
@@ -568,12 +570,19 @@ public class Event implements java.io.Serializable {
     }
 
     /**
-     * Check if the current event failed to be sent
-     *
-     * @return true if the event failed to be sent.
+     * Tell if the message is undeliverable
+     * @return true if the event is undeliverable
      */
     public boolean isUndeliverable() {
         return (mSentState == SentState.UNDELIVERABLE);
+    }
+
+    /**
+     * Tells if the message sending failed because some unknown devices have benn detected.
+     * @return true if some unknown devices have benn detected.
+     */
+    public boolean isUnkownDevice() {
+        return (mSentState == SentState.FAILED_UNKNOWN_DEVICES);
     }
 
     /**
@@ -702,6 +711,8 @@ public class Event implements java.io.Serializable {
             text += "SENT";
         } else if (mSentState == SentState.UNDELIVERABLE) {
             text += "UNDELIVERABLE";
+        } else if (mSentState == SentState.FAILED_UNKNOWN_DEVICES) {
+            text += "FAILED UNKNOWN DEVICES";
         }
 
         text += "\n\n";

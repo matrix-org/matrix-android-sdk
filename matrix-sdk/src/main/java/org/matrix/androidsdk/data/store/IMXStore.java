@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -296,14 +297,21 @@ public interface IMXStore {
      * @param roomId the room id
      * @return list of unsent events
      */
-    Collection<Event> getLatestUnsentEvents(String roomId);
+    List<Event> getLatestUnsentEvents(String roomId);
 
     /**
      * Return the list of undeliverable events
      * @param roomId the room id
      * @return  list of undeliverable events
      */
-    Collection<Event> getUndeliverableEvents(String roomId);
+    List<Event> getUndeliverableEvents(String roomId);
+
+    /**
+     * Return the list of unknown device events.
+     * @param roomId the room id
+     * @return  list of unknown device events
+     */
+    List<Event> getUnknownDeviceEvents(String roomId);
 
     /**
      * Returns the receipts list for an event in a dedicated room.
