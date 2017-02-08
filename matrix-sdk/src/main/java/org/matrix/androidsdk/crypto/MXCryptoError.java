@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,6 +45,7 @@ public class MXCryptoError extends MatrixError {
     public static final String DUPLICATED_MESSAGE_INDEX_ERROR_CODE = "DUPLICATED_MESSAGE_INDEX";
     public static final String MISSING_PROPERTY_ERROR_CODE = "MISSING_PROPERTY";
     public static final String OLM_ERROR_CODE = "OLM_ERROR_CODE";
+    public static final String UNKNOWN_DEVICES_CODE = "UNKNOWN_DEVICES_CODE";
 
     /**
      * short error reasons
@@ -71,6 +73,7 @@ public class MXCryptoError extends MatrixError {
     public static final String BAD_ENCRYPTED_MESSAGE_REASON = "Bad Encrypted Message";
     public static final String DUPLICATE_MESSAGE_INDEX_REASON = "Duplicate message index, possible replay attack %1$s";
     public static final String ERROR_MISSING_PROPERTY_REASON = "No '%1$s' property. Cannot prevent unknown-key attack";
+    public static final String UNKNOWN_DEVICES_REASON = "his room contains unknown devices which have not been verified. \nWe strongly recommend you verify them before continuing.";
 
     /**
      * Describe the error with more details
@@ -78,15 +81,35 @@ public class MXCryptoError extends MatrixError {
     private String mDetailedErrorDescription = null;
 
     /**
+     * Data exception.
+     * Some exceptions provide some data to describe the exception
+     */
+    public Object mExceptionData = null;
+
+    /**
      * Create a crypto error
      * @param code the error code (see XX_ERROR_CODE)
      * @param shortErrorDescription the short error description
-     * @param detailedErrorDescription the detailed error descrription
+     * @param detailedErrorDescription the detailed error description
      */
     public MXCryptoError(String code, String shortErrorDescription, String detailedErrorDescription) {
         errcode = code;
         error = shortErrorDescription;
         mDetailedErrorDescription = detailedErrorDescription;
+    }
+
+    /**
+     * Create a crypto error
+     * @param code the error code (see XX_ERROR_CODE)
+     * @param shortErrorDescription the short error description
+     * @param detailedErrorDescription the detailed error description
+     * @param exceptionData the exception data
+     */
+    public MXCryptoError(String code, String shortErrorDescription, String detailedErrorDescription, Object exceptionData) {
+        errcode = code;
+        error = shortErrorDescription;
+        mDetailedErrorDescription = detailedErrorDescription;
+        mExceptionData = exceptionData;
     }
 
     /**

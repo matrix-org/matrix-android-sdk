@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +18,8 @@
 package org.matrix.androidsdk.crypto.algorithms.megolm;
 
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
@@ -212,6 +215,29 @@ public class MXMegolmEncryption implements IMXEncrypting {
     }
 
     /**
+     * Provides the list of unknown devices
+     * @param devicesInRoom the devices map
+     * @return the unknown devices map
+     */
+    private static MXUsersDevicesMap<MXDeviceInfo> getUnknownDevices(MXUsersDevicesMap<MXDeviceInfo> devicesInRoom) {
+        MXUsersDevicesMap<MXDeviceInfo> unknownDevices = new MXUsersDevicesMap<>();
+
+        List<String> userIds = devicesInRoom.getUserIds();
+        for (String userId : userIds) {
+            List<String> deviceIds = devicesInRoom.getUserDeviceIds(userId);
+            for (String deviceId : deviceIds) {
+                MXDeviceInfo deviceInfo = devicesInRoom.getObject(deviceId, userId);
+
+                if (deviceInfo.isUnverified() && !deviceInfo.isKnown()) {
+                    unknownDevices.setObject(deviceInfo, userId, deviceId);
+                }
+            }
+        }
+
+        return unknownDevices;
+    }
+
+    /**
      * Ensure the outbound session
      * @param userIds the users Ids list
      * @param callback the asynchronous callback.
@@ -238,21 +264,36 @@ public class MXMegolmEncryption implements IMXEncrypting {
         // No share in progress: check if we need to share with any devices
         mCrypto.downloadKeys(userIds, false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
             @Override
-            public void onSuccess(final MXUsersDevicesMap<MXDeviceInfo> usersdevices) {
+            public void onSuccess(final MXUsersDevicesMap<MXDeviceInfo> usersDevices) {
                 mCrypto.getEncryptingThreadHandler().post(new Runnable() {
                     @Override
                     public void run() {
                         Log.d(LOG_TAG, "## ensureOutboundSessionInRoom() : getDevicesInRoom() succeeds after " + (System.currentTimeMillis() - t0) + " ms");
 
+                        final MXUsersDevicesMap<MXDeviceInfo> unknownDevices = getUnknownDevices(usersDevices);
+
+                        if (unknownDevices.getUserIds().size() > 0) {
+                            mCrypto.getUIHandler().post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (null != callback) {
+                                        callback.onMatrixError(new MXCryptoError(MXCryptoError.UNKNOWN_DEVICES_CODE, MXCryptoError.UNABLE_TO_ENCRYPT, MXCryptoError.UNKNOWN_DEVICES_REASON, unknownDevices));
+                                    }
+                                }
+                            });
+
+                            return;
+                        }
+
                         HashMap<String, /* userId */ArrayList<MXDeviceInfo>> shareMap = new HashMap<>();
 
-                        List<String> userIds = usersdevices.getUserIds();
+                        List<String> userIds = usersDevices.getUserIds();
 
                         for(String userId : userIds) {
-                            List<String> deviceIds = usersdevices.getUserDeviceIds(userId);
+                            List<String> deviceIds = usersDevices.getUserDeviceIds(userId);
 
                             for (String deviceId : deviceIds) {
-                                MXDeviceInfo deviceInfo = usersdevices.getObject(deviceId, userId);
+                                MXDeviceInfo deviceInfo = usersDevices.getObject(deviceId, userId);
 
                                 if (deviceInfo.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED) {
                                     continue;

@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -804,7 +805,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     }
                 }
             }
-
+            // ignore any file corruption, it will be automatically fixed.
+            mIsCorrupted = false;
             mUsersDevicesInfoMap = new MXUsersDevicesMap<>(map);
         }
 

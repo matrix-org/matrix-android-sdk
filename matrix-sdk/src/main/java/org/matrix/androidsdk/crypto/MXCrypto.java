@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,8 +53,6 @@ import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
 import org.matrix.androidsdk.util.JsonUtils;
 
-import java.io.FileInputStream;
-import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1050,6 +1049,53 @@ public class MXCrypto {
                         @Override
                         public void run() {
                             callback.onSuccess(di);
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    /**
+     * Update the known state of the given device
+     * @param isKnown the new known status
+     * @param deviceId the unique identifier for the device.
+     * @param userId the owner of the device.
+     */
+    public void setDeviceKnown(final boolean isKnown, final String deviceId, final String userId, final ApiCallback<Void> callback) {
+        if (hasBeenReleased()) {
+            return;
+        }
+
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                MXDeviceInfo device = mCryptoStore.getUserDevice(deviceId, userId);
+
+                // Sanity check
+                if (null == device) {
+                    Log.e(LOG_TAG, "## setDeviceVerification() : Unknown device " +  userId + ":" + deviceId);
+                    if (null != callback) {
+                        getUIHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                callback.onSuccess(null);
+                            }
+                        });
+                    }
+                    return;
+                }
+
+                if (device.isKnown() != isKnown) {
+                    device.setKnown(isKnown);
+                    mCryptoStore.storeUserDevice(userId, device);
+                }
+
+                if (null != callback) {
+                    getUIHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onSuccess(null);
                         }
                     });
                 }
