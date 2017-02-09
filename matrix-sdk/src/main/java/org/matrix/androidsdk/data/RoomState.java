@@ -42,6 +42,7 @@ import java.util.Map;
  */
 public class RoomState implements java.io.Serializable {
     private static final String LOG_TAG = "RoomState";
+    private static final long serialVersionUID = -6019932024524988201L;
 
     public static final String DIRECTORY_VISIBILITY_PRIVATE = "private";
     public static final String DIRECTORY_VISIBILITY_PUBLIC = "public";
@@ -58,6 +59,7 @@ public class RoomState implements java.io.Serializable {
     public static final String HISTORY_VISIBILITY_INVITED = "invited";
     public static final String HISTORY_VISIBILITY_JOINED = "joined";
     public static final String HISTORY_VISIBILITY_WORLD_READABLE = "world_readable";
+
 
     // Public members used for JSON mapping
 

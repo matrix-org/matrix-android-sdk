@@ -30,6 +30,8 @@ import java.util.Map;
  * Class representing a user.
  */
 public class User implements java.io.Serializable {
+    private static final long serialVersionUID = 5234056937639712713L;
+
     // the user presence values
     public static final String PRESENCE_ONLINE = "online";
     public static final String PRESENCE_UNAVAILABLE = "unavailable";

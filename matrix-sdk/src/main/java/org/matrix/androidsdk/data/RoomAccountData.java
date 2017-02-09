@@ -23,7 +23,9 @@ import java.util.Set;
 /**
  * Class representing private data that the user has defined for a room.
  */
-public class RoomAccountData implements java.io.Serializable{
+public class RoomAccountData implements java.io.Serializable {
+
+    private static final long serialVersionUID = -8406116277864521120L;
 
     // The tags the user defined for this room.
     // The key is the tag name. The value, the associated MXRoomTag object.

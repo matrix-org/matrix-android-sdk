@@ -31,8 +31,9 @@ import org.matrix.androidsdk.rest.model.RoomMember;
  * Stores summarised information about the room.
  */
 public class RoomSummary implements java.io.Serializable {
-
     private static final String LOG_TAG = "RoomSummary";
+
+    private static final long serialVersionUID = -3683013938626566489L;
 
     private String mRoomId = null;
     private String mName = null;

@@ -44,6 +44,7 @@ import java.util.TimeZone;
 public class Event implements java.io.Serializable {
 
     private static final String LOG_TAG = "Event";
+    private static final long serialVersionUID = -1431845331022808337L;
 
     public enum SentState {
         UNSENT,  // the event has not been sent

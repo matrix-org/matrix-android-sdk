@@ -26,8 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 public class MXDeviceInfo implements Serializable {
-    // define a serialVersionUID to avoid having to redefine the class after updates
-    private static final long serialVersionUID = 201702071720L;
+    private static final long serialVersionUID = 20129670646382964L;
     //
     //private static final String LOG_TAG = "MXDeviceInfo";
 
