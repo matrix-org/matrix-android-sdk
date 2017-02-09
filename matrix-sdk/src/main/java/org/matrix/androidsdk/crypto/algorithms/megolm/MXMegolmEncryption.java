@@ -270,19 +270,21 @@ public class MXMegolmEncryption implements IMXEncrypting {
                     public void run() {
                         Log.d(LOG_TAG, "## ensureOutboundSessionInRoom() : getDevicesInRoom() succeeds after " + (System.currentTimeMillis() - t0) + " ms");
 
-                        final MXUsersDevicesMap<MXDeviceInfo> unknownDevices = getUnknownDevices(usersDevices);
+                        if (mCrypto.warnOnUnknownDevices()) {
+                            final MXUsersDevicesMap<MXDeviceInfo> unknownDevices = getUnknownDevices(usersDevices);
 
-                        if (unknownDevices.getUserIds().size() > 0) {
-                            mCrypto.getUIHandler().post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    if (null != callback) {
-                                        callback.onMatrixError(new MXCryptoError(MXCryptoError.UNKNOWN_DEVICES_CODE, MXCryptoError.UNABLE_TO_ENCRYPT, MXCryptoError.UNKNOWN_DEVICES_REASON, unknownDevices));
+                            if (unknownDevices.getUserIds().size() > 0) {
+                                mCrypto.getUIHandler().post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        if (null != callback) {
+                                            callback.onMatrixError(new MXCryptoError(MXCryptoError.UNKNOWN_DEVICES_CODE, MXCryptoError.UNABLE_TO_ENCRYPT, MXCryptoError.UNKNOWN_DEVICES_REASON, unknownDevices));
+                                        }
                                     }
-                                }
-                            });
+                                });
 
-                            return;
+                                return;
+                            }
                         }
 
                         HashMap<String, /* userId */ArrayList<MXDeviceInfo>> shareMap = new HashMap<>();

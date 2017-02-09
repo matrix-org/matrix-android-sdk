@@ -168,6 +168,9 @@ public class MXCrypto {
     // initialization callbacks
     private final ArrayList<ApiCallback<Void>> mInitializationCallbacks = new ArrayList();
 
+    // Warn the user if some new devices are detected while encrypting a message.
+    private boolean mWarnOnUnknownDevices = true;
+
     /**
      * Constructor
      * @param matrixSession the session
@@ -880,9 +883,17 @@ public class MXCrypto {
 
                                     // Get the potential previously store device keys for this device
                                     MXDeviceInfo previouslyStoredDeviceKeys = mCryptoStore.getUserDevice(deviceId, userId);
+                                    MXDeviceInfo deviceInfo = mutabledevices.get(deviceId);
+
+                                    // in some race conditions (like unit tests)
+                                    // the self device must be seen as verified
+                                    if (TextUtils.equals(deviceInfo.deviceId, mMyDevice.deviceId) &&
+                                            TextUtils.equals(userId, mMyDevice.userId)) {
+                                        deviceInfo.mVerified = MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED;
+                                    }
 
                                     // Validate received keys
-                                    if (!validateDeviceKeys(mutabledevices.get(deviceId), userId, deviceId, previouslyStoredDeviceKeys)) {
+                                    if (!validateDeviceKeys(deviceInfo, userId, deviceId, previouslyStoredDeviceKeys)) {
                                         // New device keys are not valid. Do not store them
                                         mutabledevices.remove(deviceId);
 
@@ -1066,7 +1077,6 @@ public class MXCrypto {
         if (hasBeenReleased()) {
             return;
         }
-
         getEncryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
@@ -2473,5 +2483,21 @@ public class MXCrypto {
                 });
             }
         });
+    }
+
+    /**
+     * Tells if the encryption must fail if some unknown devices are detected.
+     * @return true to warn when some unknown devices are detected.
+     */
+    public boolean warnOnUnknownDevices() {
+        return mWarnOnUnknownDevices;
+    }
+
+    /**
+     * Update the warn status when some unknown devices are detected.
+     * @param warn true to warn when some unknown devices are detected.
+     */
+    public void setWarnOnUnknownDevices(boolean warn) {
+        mWarnOnUnknownDevices = warn;
     }
 }
