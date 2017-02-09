@@ -1,6 +1,5 @@
 /*
  * Copyright 2016 OpenMarket Ltd
- * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,11 +25,11 @@ import java.util.List;
 import java.util.Map;
 
 public class MXDeviceInfo implements Serializable {
-
-    // define a serialVersionUID to avoid having to redefine the class after updates
-    private static final long serialVersionUID = 201702071720L;
     //
     //private static final String LOG_TAG = "MXDeviceInfo";
+
+    // The user has not yet verified this device.
+    public static final int DEVICE_VERIFICATION_UNKNOWN = -1;
 
     // The user has not yet verified this device.
     public static final int DEVICE_VERIFICATION_UNVERIFIED = 0;
@@ -73,14 +72,16 @@ public class MXDeviceInfo implements Serializable {
     public Map<String, Object> unsigned;
 
     /**
-     * Verification state of this device.
+     Verification state of this device.
      */
-    public int mVerified = DEVICE_VERIFICATION_UNVERIFIED;
+    public int mVerified;
 
     /**
-     * backward compliancy
+     * Constructor
      */
-    private boolean mIsKnown = true;
+    public MXDeviceInfo() {
+        mVerified = DEVICE_VERIFICATION_UNKNOWN;
+    }
 
     /**
      * Constructor
@@ -88,47 +89,7 @@ public class MXDeviceInfo implements Serializable {
      */
     public MXDeviceInfo(String aDeviceId) {
         deviceId = aDeviceId;
-        mIsKnown = false;
-    }
-
-    /**
-     * Tells if the device is known
-     * @return true if the device is known
-     */
-    public boolean isKnown() {
-        return mIsKnown;
-    }
-
-    /**
-     * Tells if the device is verified.
-     * @return true if the device is verified
-     */
-    public boolean isVerified() {
-        return mVerified ==  DEVICE_VERIFICATION_VERIFIED;
-    }
-
-    /**
-     * Tells if the device is unverified.
-     * @return true if the device is unverified
-     */
-    public boolean isUnverified() {
-        return mVerified ==  DEVICE_VERIFICATION_UNVERIFIED;
-    }
-
-    /**
-     * Tells if the device is blocked.
-     * @return true if the device is blocked
-     */
-    public boolean isBlocked() {
-        return mVerified ==  DEVICE_VERIFICATION_BLOCKED;
-    }
-
-    /**
-     * Update the known status
-     * @param isKnown the known status
-     */
-    public void setKnown(boolean isKnown) {
-        mIsKnown = isKnown;
+        mVerified = DEVICE_VERIFICATION_UNKNOWN;
     }
 
     /**

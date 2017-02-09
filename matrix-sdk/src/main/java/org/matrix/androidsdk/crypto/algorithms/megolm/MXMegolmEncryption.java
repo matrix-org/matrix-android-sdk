@@ -228,7 +228,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
             for (String deviceId : deviceIds) {
                 MXDeviceInfo deviceInfo = devicesInRoom.getObject(deviceId, userId);
 
-                if (deviceInfo.isUnverified() && !deviceInfo.isKnown()) {
+                if (deviceInfo.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_UNKNOWN) {
                     unknownDevices.setObject(deviceInfo, userId, deviceId);
                 }
             }

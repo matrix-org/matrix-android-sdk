@@ -200,6 +200,7 @@ public class MXCrypto {
 
         mMyDevice = new MXDeviceInfo(deviceId);
         mMyDevice.userId = mSession.getMyUserId();
+
         HashMap<String, String> keys = new HashMap<>();
 
         if (!TextUtils.isEmpty(mOlmDevice.getDeviceEd25519Key())) {
@@ -1073,8 +1074,12 @@ public class MXCrypto {
                     MXDeviceInfo device = mCryptoStore.getUserDevice(di.deviceId, di.userId);
 
                     if (null != device) {
-                        device.setKnown(true);
-                        mCryptoStore.storeUserDevice(di.userId, device);
+                        // assume if the device is either verified or blocked
+                        // it means that the device is known
+                        if (device.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_UNKNOWN) {
+                            device.mVerified = MXDeviceInfo.DEVICE_VERIFICATION_UNVERIFIED;
+                            mCryptoStore.storeUserDevice(di.userId, device);
+                        }
                     }
                 }
 
@@ -1138,7 +1143,6 @@ public class MXCrypto {
                 if (device.mVerified != verificationStatus) {
                     int oldVerified = device.mVerified;
                     device.mVerified = verificationStatus;
-                    device.setKnown(true);
                     mCryptoStore.storeUserDevice(userId, device);
 
                     for(String roomId : userRoomIds) {
