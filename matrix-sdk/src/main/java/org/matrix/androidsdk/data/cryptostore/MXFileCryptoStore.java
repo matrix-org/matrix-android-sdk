@@ -100,7 +100,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     // The inbound group megolm sessions (<senderKey> -> (<inbound group session id> -> <inbound group megolm session>)
     private HashMap<String /*senderKey*/,
-            HashMap<String /*inboundGroupSessionId*/,MXOlmInboundGroupSession2>> mInboundGroupSessions;
+            HashMap<String /*inboundGroupSessionId*/, MXOlmInboundGroupSession2>> mInboundGroupSessions;
     private final Object mInboundGroupSessionsLock = new Object();
 
 
@@ -203,7 +203,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public boolean isCorrupted() {
-        return  mIsCorrupted;
+        return mIsCorrupted;
     }
 
     @Override
@@ -211,7 +211,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         // delete the dedicated directories
         try {
             ContentUtils.deleteDirectory(mStoreFile);
-        } catch(Exception e) {
+        } catch (Exception e) {
             Log.e(LOG_TAG, "deleteStore failed " + e.getMessage());
         }
     }
@@ -234,7 +234,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         // Check credentials
         // The device id may not have been provided in credentials.
         // Check it only if provided, else trust the stored one.
-        else if  (!TextUtils.equals(mMetaData.mUserId, mCredentials.userId) ||
+        else if (!TextUtils.equals(mMetaData.mUserId, mCredentials.userId) ||
                 ((null != mCredentials.deviceId) && !TextUtils.equals(mCredentials.deviceId, mMetaData.mDeviceId))
                 ) {
             Log.e(LOG_TAG, "## open() : Credentials do not match");
@@ -275,9 +275,10 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     /**
      * Store a serializable object into a dedicated file.
-     * @param object the object to write.
-     * @param folder the folder
-     * @param filename the filename
+     *
+     * @param object      the object to write.
+     * @param folder      the folder
+     * @param filename    the filename
      * @param description the object description
      */
     private void storeObject(Object object, File folder, String filename, String description) {
@@ -294,8 +295,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     /**
      * Store a serializable object into a dedicated file.
-     * @param object the object to write.
-     * @param file the file
+     *
+     * @param object      the object to write.
+     * @param file        the file
      * @param description the object description
      */
     private void storeObject(Object object, File file, String description) {
@@ -371,7 +373,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public  void storeDeviceAnnounced() {
+    public void storeDeviceAnnounced() {
         mMetaData.mDeviceAnnounced = true;
         saveMetaData();
     }
@@ -586,7 +588,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public  MXOlmInboundGroupSession2 getInboundGroupSession(String sessionId, String senderKey) {
+    public MXOlmInboundGroupSession2 getInboundGroupSession(String sessionId, String senderKey) {
         if ((null != sessionId) && (null != senderKey) && mInboundGroupSessions.containsKey(senderKey)) {
             MXOlmInboundGroupSession2 session;
 
@@ -600,11 +602,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public  List<MXOlmInboundGroupSession2> getInboundGroupSessions() {
+    public List<MXOlmInboundGroupSession2> getInboundGroupSessions() {
         ArrayList<MXOlmInboundGroupSession2> inboundGroupSessions = new ArrayList<>();
 
         synchronized (mInboundGroupSessionsLock) {
-            for(String senderKey : mInboundGroupSessions.keySet()) {
+            for (String senderKey : mInboundGroupSessions.keySet()) {
                 inboundGroupSessions.addAll(mInboundGroupSessions.get(senderKey).values());
             }
         }
@@ -616,25 +618,25 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     public void close() {
         // release JNI objects
         ArrayList<OlmSession> olmSessions = new ArrayList<>();
-        Collection<HashMap<String , OlmSession>> sessionValues = mOlmSessions.values();
+        Collection<HashMap<String, OlmSession>> sessionValues = mOlmSessions.values();
 
-        for(HashMap<String , OlmSession> value : sessionValues) {
+        for (HashMap<String, OlmSession> value : sessionValues) {
             olmSessions.addAll(value.values());
         }
 
-        for(OlmSession olmSession : olmSessions) {
+        for (OlmSession olmSession : olmSessions) {
             olmSession.releaseSession();
         }
         mOlmSessions.clear();
 
         ArrayList<MXOlmInboundGroupSession2> groupSessions = new ArrayList<>();
-        Collection<HashMap<String ,MXOlmInboundGroupSession2>> groupSessionsValues = mInboundGroupSessions.values();
+        Collection<HashMap<String, MXOlmInboundGroupSession2>> groupSessionsValues = mInboundGroupSessions.values();
 
-        for(HashMap<String ,MXOlmInboundGroupSession2> map : groupSessionsValues) {
+        for (HashMap<String, MXOlmInboundGroupSession2> map : groupSessionsValues) {
             groupSessions.addAll(map.values());
         }
 
-        for(MXOlmInboundGroupSession2 groupSession : groupSessions) {
+        for (MXOlmInboundGroupSession2 groupSession : groupSessions) {
             if (null != groupSession.mSession) {
                 groupSession.mSession.releaseSession();
             }
@@ -674,7 +676,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     /**
      * Load a file from the crypto store
-     * @param file the file to read
+     *
+     * @param file        the file to read
      * @param description the operation description
      * @return the read object, null if it fails
      */
@@ -701,7 +704,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 } catch (Exception subEx) {
                     // warn that some file loading fails
                     mIsCorrupted = true;
-                    Log.e(LOG_TAG, description  + "failed : " + subEx.getMessage());
+                    Log.e(LOG_TAG, description + "failed : " + subEx.getMessage());
                 }
             }
         }
@@ -745,7 +748,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
         if (null != olmAccountAsVoid) {
             try {
-                mOlmAccount = (OlmAccount)olmAccountAsVoid;
+                mOlmAccount = (OlmAccount) olmAccountAsVoid;
             } catch (Exception e) {
                 mIsCorrupted = true;
                 Log.e(LOG_TAG, "## preloadCryptoData() - invalid mAccountFile " + e.getMessage());
@@ -782,7 +785,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
                 Set<String> userIds = map.keySet();
 
-                for(String userId : userIds) {
+                for (String userId : userIds) {
                     storeObject(map.get(userId), mDevicesFolder, userId, "convert devices map of " + userId);
                 }
 
@@ -793,13 +796,13 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             String[] files = mDevicesFolder.list();
             HashMap<String, Map<String, MXDeviceInfo>> map = new HashMap<>();
 
-            for(int i = 0; i < files.length; i++) {
+            for (int i = 0; i < files.length; i++) {
                 String userId = files[i];
                 Object devicesMapAsVoid = loadObject(new File(mDevicesFolder, userId), "load devices of " + userId);
 
                 if (null != devicesMapAsVoid) {
                     try {
-                        map.put(userId, (Map<String, MXDeviceInfo>)devicesMapAsVoid);
+                        map.put(userId, (Map<String, MXDeviceInfo>) devicesMapAsVoid);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "## preloadCryptoData() - cannot cast to map");
                     }
@@ -820,7 +823,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
         if (null != algorithmsAsVoid) {
             try {
-                Map<String, String> algorithmsMap = (Map<String, String>)algorithmsAsVoid;
+                Map<String, String> algorithmsMap = (Map<String, String>) algorithmsAsVoid;
                 mRoomsAlgorithms = new HashMap<>(algorithmsMap);
             } catch (Exception e) {
                 mIsCorrupted = true;
@@ -846,7 +849,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     if (null != sessionIds) {
                         for (int j = 0; j < sessionIds.length; j++) {
                             String sessionId = sessionIds[j];
-                            OlmSession olmSession = (OlmSession)loadObject(new File(sessionsDeviceFolder, sessionId), "load the olmSession " + deviceKey + " " + sessionId);
+                            OlmSession olmSession = (OlmSession) loadObject(new File(sessionsDeviceFolder, sessionId), "load the olmSession " + deviceKey + " " + sessionId);
 
                             if (null != olmSession) {
                                 olmSessionSubMap.put(decodeFilename(sessionId), olmSession);
@@ -890,7 +893,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                             Log.e(LOG_TAG, "Cannot create the folder " + submapFolder);
                         }
 
-                        for(String sessionId : submap.keySet()) {
+                        for (String sessionId : submap.keySet()) {
                             storeObject(submap.get(sessionId), submapFolder, encodeFilename(sessionId), "Convert olmSession " + key + " " + sessionId);
                         }
                     }
@@ -925,9 +928,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                                 MXOlmInboundGroupSession2 inboundSession;
 
                                 if ((null != inboundSessionAsVoid) && (inboundSessionAsVoid instanceof MXOlmInboundGroupSession)) {
-                                    inboundSession = new MXOlmInboundGroupSession2((MXOlmInboundGroupSession)inboundSessionAsVoid);
+                                    inboundSession = new MXOlmInboundGroupSession2((MXOlmInboundGroupSession) inboundSessionAsVoid);
                                 } else {
-                                    inboundSession = (MXOlmInboundGroupSession2)inboundSessionAsVoid;
+                                    inboundSession = (MXOlmInboundGroupSession2) inboundSessionAsVoid;
                                 }
 
                                 if (null != inboundSession) {
@@ -970,7 +973,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 }
 
                 // convert to the new format
-                for(String key : mInboundGroupSessions.keySet()) {
+                for (String key : mInboundGroupSessions.keySet()) {
                     File keyFolder = new File(mInboundGroupSessionsFolder, encodeFilename(key));
 
                     if (!keyFolder.mkdirs()) {
@@ -979,7 +982,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
                     Map<String, MXOlmInboundGroupSession2> inboundMaps = mInboundGroupSessions.get(key);
 
-                    for(String sessionId : inboundMaps.keySet()) {
+                    for (String sessionId : inboundMaps.keySet()) {
                         storeObject(inboundMaps.get(sessionId), keyFolder, encodeFilename(sessionId), "Convert inboundsession");
                     }
                 }
@@ -999,6 +1002,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     /**
      * Encode the provided filename
+     *
      * @param filename the filename to encode
      * @return the encoded filename
      */
@@ -1026,6 +1030,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     /**
      * Decode an encoded filename.
+     *
      * @param encodedFilename the encoded filename
      * @return the decodec filename
      */
@@ -1036,11 +1041,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
         int length = encodedFilename.length();
 
-        byte[] bytes = new byte[length/2];
+        byte[] bytes = new byte[length / 2];
 
         for (int i = 0; i < length; i += 2) {
-            bytes[i/2] = (byte) ((Character.digit(encodedFilename.charAt(i), 16) << 4)
-                    + Character.digit(encodedFilename.charAt(i+1), 16));
+            bytes[i / 2] = (byte) ((Character.digit(encodedFilename.charAt(i), 16) << 4)
+                    + Character.digit(encodedFilename.charAt(i + 1), 16));
         }
 
         try {

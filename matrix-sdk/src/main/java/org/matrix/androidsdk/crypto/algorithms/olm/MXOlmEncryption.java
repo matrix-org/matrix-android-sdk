@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,7 +71,7 @@ public class MXOlmEncryption implements IMXEncrypting {
                     public void onSuccess(Void info) {
                         ArrayList<MXDeviceInfo> deviceInfos = new ArrayList<>();
 
-                        for(String userId : userIds) {
+                        for (String userId : userIds) {
                             List<MXDeviceInfo> devices = getUserDevices(userId);
 
                             if (null != devices) {
@@ -127,7 +128,7 @@ public class MXOlmEncryption implements IMXEncrypting {
 
     @Override
     public void onRoomMembership(Event event, RoomMember member, String oldMembership) {
-            // No impact for olm
+        // No impact for olm
     }
 
     @Override
@@ -136,7 +137,8 @@ public class MXOlmEncryption implements IMXEncrypting {
 
     /**
      * Ensure that the session
-     * @param users the user ids list
+     *
+     * @param users    the user ids list
      * @param callback the asynchronous callback
      */
     private void ensureSession(final List<String> users, final ApiCallback<Void> callback) {

@@ -87,6 +87,7 @@ public class MXDeviceInfo implements Serializable {
 
     /**
      * Constructor
+     *
      * @param aDeviceId the device id
      */
     public MXDeviceInfo(String aDeviceId) {
@@ -96,6 +97,7 @@ public class MXDeviceInfo implements Serializable {
 
     /**
      * Tells if the device is unknown
+     *
      * @return true if the device is unknown
      */
     public boolean isUnknown() {
@@ -104,26 +106,29 @@ public class MXDeviceInfo implements Serializable {
 
     /**
      * Tells if the device is verified.
+     *
      * @return true if the device is verified
      */
     public boolean isVerified() {
-        return mVerified ==  DEVICE_VERIFICATION_VERIFIED;
+        return mVerified == DEVICE_VERIFICATION_VERIFIED;
     }
 
     /**
      * Tells if the device is unverified.
+     *
      * @return true if the device is unverified
      */
     public boolean isUnverified() {
-        return mVerified ==  DEVICE_VERIFICATION_UNVERIFIED;
+        return mVerified == DEVICE_VERIFICATION_UNVERIFIED;
     }
 
     /**
      * Tells if the device is blocked.
+     *
      * @return true if the device is blocked
      */
     public boolean isBlocked() {
-        return mVerified ==  DEVICE_VERIFICATION_BLOCKED;
+        return mVerified == DEVICE_VERIFICATION_BLOCKED;
     }
 
     /**
@@ -153,7 +158,7 @@ public class MXDeviceInfo implements Serializable {
      */
     public String displayName() {
         if (null != unsigned) {
-            return (String)unsigned.get("device_display_name");
+            return (String) unsigned.get("device_display_name");
         }
 
         return null;
@@ -185,7 +190,7 @@ public class MXDeviceInfo implements Serializable {
     /**
      * @return a dictionary of the parameters
      */
-    public Map<String, Object>JSONDictionary() {
+    public Map<String, Object> JSONDictionary() {
         HashMap<String, Object> JSONDictionary = new HashMap<>();
 
         JSONDictionary.put("device_id", deviceId);
@@ -207,7 +212,7 @@ public class MXDeviceInfo implements Serializable {
         }
 
         if (null != unsigned) {
-            JSONDictionary.put("unsigned",  unsigned);
+            JSONDictionary.put("unsigned", unsigned);
         }
 
         return JSONDictionary;

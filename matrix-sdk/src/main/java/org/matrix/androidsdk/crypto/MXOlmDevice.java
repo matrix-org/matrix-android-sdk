@@ -782,7 +782,7 @@ public class MXOlmDevice {
             }
         } else {
             Log.e(LOG_TAG, "## getInboundGroupSession() : Cannot retrieve inbound group session " + sessionId);
-            mInboundGroupSessionWithIdError = new MXCryptoError(MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE, MXCryptoError.UNKNOWN_INBOUND_SESSSION_ID_REASON, null);
+            mInboundGroupSessionWithIdError = new MXCryptoError(MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_REASON, null);
         }
         return session;
     }

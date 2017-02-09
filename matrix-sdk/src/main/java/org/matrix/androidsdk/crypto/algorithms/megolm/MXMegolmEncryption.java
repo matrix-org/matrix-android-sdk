@@ -181,7 +181,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
         }
 
         // Otherwise we assume the user is leaving, and start a new outbound session.
-        Log.d(LOG_TAG, "## onRoomMembership() :  Discarding outbound megolm session due to change in membership of " + member.getUserId () +  " "  + oldMembership + " -> " + newMembership);
+        Log.d(LOG_TAG, "## onRoomMembership() :  Discarding outbound megolm session due to change in membership of " + member.getUserId() + " " + oldMembership + " -> " + newMembership);
 
         // This ensures that we will start a new session on the next message.
         mOutboundSession = null;
@@ -200,6 +200,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
     /**
      * Prepare a new session.
+     *
      * @return the session description
      */
     private MXOutboundSessionInfo prepareNewSessionInRoom() {
@@ -211,11 +212,12 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
         olmDevice.addInboundGroupSession(sessionId, olmDevice.getSessionKey(sessionId), mRoomId, olmDevice.getDeviceCurve25519Key(), keysClaimedMap);
 
-       return new MXOutboundSessionInfo(sessionId);
+        return new MXOutboundSessionInfo(sessionId);
     }
 
     /**
      * Provides the list of unknown devices
+     *
      * @param devicesInRoom the devices map
      * @return the unknown devices map
      */
@@ -239,7 +241,8 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
     /**
      * Ensure the outbound session
-     * @param userIds the users Ids list
+     *
+     * @param userIds  the users Ids list
      * @param callback the asynchronous callback.
      */
     private void ensureOutboundSession(List<String> userIds, final ApiCallback<MXOutboundSessionInfo> callback) {
@@ -291,7 +294,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
                         List<String> userIds = usersDevices.getUserIds();
 
-                        for(String userId : userIds) {
+                        for (String userId : userIds) {
                             List<String> deviceIds = usersDevices.getUserDeviceIds(userId);
 
                             for (String deviceId : deviceIds) {
@@ -387,9 +390,10 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
     /**
      * Share the device key to a list of users
-     * @param session the session info
+     *
+     * @param session        the session info
      * @param devicesByUsers the devices map
-     * @param callback the asynchronous callback
+     * @param callback       the asynchronous callback
      */
     private void shareKey(final MXOutboundSessionInfo session, final HashMap<String, ArrayList<MXDeviceInfo>> devicesByUsers, final ApiCallback<Void> callback) {
         // nothing to send, the task is done
@@ -414,7 +418,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
         final ArrayList<String> userIds = new ArrayList<>();
         int devicesCount = 0;
 
-        for(String userId : devicesByUsers.keySet()) {
+        for (String userId : devicesByUsers.keySet()) {
             ArrayList<MXDeviceInfo> devicesList = devicesByUsers.get(userId);
 
             userIds.add(userId);
@@ -434,7 +438,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                 mCrypto.getEncryptingThreadHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        for(String userId : userIds) {
+                        for (String userId : userIds) {
                             devicesByUsers.remove(userId);
                         }
                         shareKey(session, devicesByUsers, callback);
@@ -444,7 +448,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.d(LOG_TAG, "## shareKey() ; userIds " + userIds +  " failed " + e.getMessage());
+                Log.d(LOG_TAG, "## shareKey() ; userIds " + userIds + " failed " + e.getMessage());
                 if (null != callback) {
                     callback.onNetworkError(e);
                 }
@@ -452,7 +456,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.d(LOG_TAG, "## shareKey() ; userIds " + userIds +  " failed " + e.getMessage());
+                Log.d(LOG_TAG, "## shareKey() ; userIds " + userIds + " failed " + e.getMessage());
                 if (null != callback) {
                     callback.onMatrixError(e);
                 }
@@ -460,7 +464,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.d(LOG_TAG, "## shareKey() ; userIds " + userIds +  " failed " + e.getMessage());
+                Log.d(LOG_TAG, "## shareKey() ; userIds " + userIds + " failed " + e.getMessage());
                 if (null != callback) {
                     callback.onUnexpectedError(e);
                 }
@@ -470,9 +474,10 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
     /**
      * Share the device keys of a an user
-     * @param session the session info
+     *
+     * @param session       the session info
      * @param devicesByUser the devices map
-     * @param callback the asynchronous callback
+     * @param callback      the asynchronous callback
      */
     private void shareUserDevicesKey(final MXOutboundSessionInfo session, final HashMap<String, ArrayList<MXDeviceInfo>> devicesByUser, final ApiCallback<Void> callback) {
         final String sessionKey = mCrypto.getOlmDevice().getSessionKey(session.mSessionId);
@@ -554,7 +559,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                                             for (String userId : devicesByUser.keySet()) {
                                                 List<MXDeviceInfo> devicesToShareWith = devicesByUser.get(userId);
 
-                                                for(MXDeviceInfo deviceInfo : devicesToShareWith) {
+                                                for (MXDeviceInfo deviceInfo : devicesToShareWith) {
                                                     session.mSharedWithDevices.setObject(chainIndex, userId, deviceInfo.deviceId);
                                                 }
                                             }

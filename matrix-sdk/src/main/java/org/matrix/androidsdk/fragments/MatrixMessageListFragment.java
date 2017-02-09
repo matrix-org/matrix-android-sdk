@@ -35,6 +35,7 @@ import android.text.TextUtils;
 
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.util.Log;
+
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -73,7 +74,6 @@ import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResult;
 import org.matrix.androidsdk.rest.model.User;
-import org.matrix.androidsdk.rest.model.VideoInfo;
 import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.util.EventDisplay;
@@ -85,7 +85,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -103,6 +102,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     // search interface
     public interface OnSearchResultListener {
         void onSearchSucceed(int nbrMessages);
+
         void onSearchFailed();
     }
 
@@ -115,24 +115,28 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public interface IEventSendingListener {
         /**
          * A message has been successfully sent.
+         *
          * @param event the event
          */
         void onMessageSendingSucceeded(Event event);
 
         /**
          * A message sending has failed.
+         *
          * @param event the event
          */
         void onMessageSendingFailed(Event event);
 
         /**
          * An event has been successfully redacted by the user.
+         *
          * @param event the event
          */
         void onMessageRedacted(Event event);
 
         /**
          * An event sending failed because some unknown devices have been detected
+         *
          * @param event the event
          * @param error the crypto error
          */
@@ -143,14 +147,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public interface IOnScrollListener {
         /**
          * The events list has been scrolled.
+         *
          * @param firstVisibleItem the index of the first visible cell
          * @param visibleItemCount the number of visible cells
-         * @param totalItemCount the number of items in the list adaptor
+         * @param totalItemCount   the number of items in the list adaptor
          */
         void onScroll(int firstVisibleItem, int visibleItemCount, int totalItemCount);
 
         /**
          * Tell if the latest event is fully displayed
+         *
          * @param isDisplayed true if the latest event is fully displayed
          */
         void onLatestEventDisplay(boolean isDisplayed);
@@ -181,7 +187,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         args.putString(ARG_MATRIX_ID, matrixId);
         return f;
     }
-    
+
     private MatrixMessagesFragment mMatrixMessagesFragment;
     protected MessagesAdapter mAdapter;
     public ListView mMessageListView;
@@ -225,7 +231,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private int mScrollToIndex = -1;
 
     // y pos of the first visible row
-    private int mFirstVisibleRowY  = UNDEFINED_VIEW_Y_POS;
+    private int mFirstVisibleRowY = UNDEFINED_VIEW_Y_POS;
 
     // used to retrieve the preview data
     protected IRoomPreviewDataListener mRoomPreviewDataListener;
@@ -374,7 +380,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     // the latest event is not displayed
                     isLatestEventDisplayed = false;
                 } else {
-                    View childView = view.getChildAt(visibleItemCount-1);
+                    View childView = view.getChildAt(visibleItemCount - 1);
 
                     // test if the bottom of the latest item is equals to the list height
                     isLatestEventDisplayed = (null != childView) && ((childView.getTop() + childView.getHeight()) <= view.getHeight());
@@ -453,7 +459,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         String roomId = args.getString(ARG_ROOM_ID);
 
         View v = inflater.inflate(args.getInt(ARG_LAYOUT_ID), container, false);
-        mMessageListView = ((ListView)v.findViewById(R.id.listView_messages));
+        mMessageListView = ((ListView) v.findViewById(R.id.listView_messages));
         mIsScrollListenerSet = false;
 
         if (mAdapter == null) {
@@ -463,14 +469,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             if (null == getMXMediasCache()) {
                 throw new RuntimeException("Must have valid default MessagesAdapter.");
             }
-        } else if(null != savedInstanceState) {
+        } else if (null != savedInstanceState) {
             mFirstVisibleRow = savedInstanceState.getInt("FIRST_VISIBLE_ROW", -1);
         }
 
         mAdapter.setIsPreviewMode(false);
 
         if (null == mEventTimeLine) {
-            mEventId =  args.getString(ARG_EVENT_ID);
+            mEventId = args.getString(ARG_EVENT_ID);
 
             // the fragment displays the history around a message
             if (!TextUtils.isEmpty(mEventId)) {
@@ -535,16 +541,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         try {
             mEventSendingListener = (IEventSendingListener) aHostActivity;
-        } catch(ClassCastException e) {
+        } catch (ClassCastException e) {
             // if host activity does not provide the implementation, just ignore it
-            Log.w(LOG_TAG,"## onAttach(): host activity does not implement IEventSendingListener " + aHostActivity);
+            Log.w(LOG_TAG, "## onAttach(): host activity does not implement IEventSendingListener " + aHostActivity);
         }
 
         try {
             mActivityOnScrollListener = (IOnScrollListener) aHostActivity;
-        } catch(ClassCastException e) {
+        } catch (ClassCastException e) {
             // if host activity does not provide the implementation, just ignore it
-            Log.w(LOG_TAG,"## onAttach(): host activity does not implement IOnScrollListener " + aHostActivity);
+            Log.w(LOG_TAG, "## onAttach(): host activity does not implement IOnScrollListener " + aHostActivity);
         }
     }
 
@@ -584,10 +590,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         super.onDestroy();
 
         // remove listeners to prevent memory leak
-        if(null != mMatrixMessagesFragment) {
+        if (null != mMatrixMessagesFragment) {
             mMatrixMessagesFragment.setMatrixMessagesListener(null);
         }
-        if(null != mAdapter) {
+        if (null != mAdapter) {
             mAdapter.setMessagesAdapterEventsListener(null);
         }
     }
@@ -606,8 +612,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             // this fragment controls all the logic for handling messages / API calls
             mMatrixMessagesFragment = createMessagesFragmentInstance(args.getString(ARG_ROOM_ID));
             fm.beginTransaction().add(mMatrixMessagesFragment, getMatrixMessagesFragmentTag()).commit();
-        }
-        else {
+        } else {
             Log.d(LOG_TAG, "onActivityCreated - reuse");
 
             // Reset the listener because this is not done when the system restores the fragment (newInstance is not called)
@@ -655,6 +660,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     /**
      * Create the messageFragment.
      * Should be inherited.
+     *
      * @param roomId the roomID
      * @return the MatrixMessagesFragment
      */
@@ -672,6 +678,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     /**
      * Create the messages adapter.
      * This method must be overriden to provide a valid creation
+     *
      * @return the messages adapter.
      */
     public MessagesAdapter createMessagesAdapter() {
@@ -681,6 +688,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     /**
      * The user scrolls the list.
      * Apply an expected behaviour
+     *
      * @param event the scroll event
      */
     public void onListTouch(MotionEvent event) {
@@ -688,6 +696,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Scroll the listview to a dedicated index when the list is loaded.
+     *
      * @param index the index
      */
     public void scrollToIndexWhenLoaded(int index) {
@@ -725,6 +734,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Scroll the listView to the last item.
+     *
      * @param delayMs the delay before jumping to the latest event.
      */
     public void scrollToBottom(int delayMs) {
@@ -745,6 +755,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Provides the event for a dedicated row.
+     *
      * @param row the row
      * @return the event
      */
@@ -782,6 +793,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Redact an event from its event id.
+     *
      * @param eventId the event id.
      */
     protected void redactEvent(final String eventId) {
@@ -840,6 +852,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Tells if an event is supported by the fragment.
+     *
      * @param event the event to test
      * @return true it is supported.
      */
@@ -847,15 +860,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         String type = event.getType();
 
         return mDisplayAllEvents ||
-                Event.EVENT_TYPE_MESSAGE.equals(type)          ||
-                Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(type)||
+                Event.EVENT_TYPE_MESSAGE.equals(type) ||
+                Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(type) ||
                 Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(type) ||
-                Event.EVENT_TYPE_STATE_ROOM_NAME.equals(type)  ||
+                Event.EVENT_TYPE_STATE_ROOM_NAME.equals(type) ||
                 Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(type) ||
                 Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(type) ||
                 Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(type) ||
                 Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(type) ||
-                (event.isCallEvent() &&  (!Event.EVENT_TYPE_CALL_CANDIDATES.equals(type)))
+                (event.isCallEvent() && (!Event.EVENT_TYPE_CALL_CANDIDATES.equals(type)))
                 ;
     }
 
@@ -865,6 +878,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Warns that a message sending has failed.
+     *
      * @param event the event
      */
     private void onMessageSendingFailed(Event event) {
@@ -879,6 +893,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Warns that a message sending succeeds.
+     *
      * @param event the event
      */
     private void onMessageSendingSucceeded(Event event) {
@@ -893,7 +908,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Warns that a message sending failed because some unknown devices have been detected.
-     * @param event the event
+     *
+     * @param event       the event
      * @param cryptoError the crypto error
      */
     private void onUnknownDevices(Event event, MXCryptoError cryptoError) {
@@ -908,6 +924,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Send a message in the room.
+     *
      * @param message the message to send.
      */
     private void send(final Message message) {
@@ -916,9 +933,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Send a message row in the dedicated room.
+     *
      * @param messageRow the message row to send.
      */
-    private void send(final MessageRow messageRow)  {
+    private void send(final MessageRow messageRow) {
         // add sanity check
         if (null == messageRow) {
             return;
@@ -983,7 +1001,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             @Override
                             public void run() {
                                 mAdapter.notifyDataSetChanged();
-                                onUnknownDevices(event, (MXCryptoError)e);
+                                onUnknownDevices(event, (MXCryptoError) e);
                             }
                         });
                     } else {
@@ -1001,6 +1019,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Send a text message.
+     *
      * @param body the text message to send.
      */
     public void sendTextMessage(String body) {
@@ -1009,9 +1028,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Send a formatted text message.
-     * @param body the unformatted text message
+     *
+     * @param body          the unformatted text message
      * @param formattedBody the formatted text message (optional)
-     * @param format the format
+     * @param format        the format
      */
     public void sendTextMessage(String body, String formattedBody, String format) {
         sendMessage(Message.MSGTYPE_TEXT, body, formattedBody, format);
@@ -1019,10 +1039,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Send a message of type msgType with a formatted body
-     * @param msgType the message type
-     * @param body the unformatted text message
+     *
+     * @param msgType       the message type
+     * @param body          the unformatted text message
      * @param formattedBody the formatted text message (optional)
-     * @param format the format
+     * @param format        the format
      */
     private void sendMessage(String msgType, String body, String formattedBody, String format) {
         Message message = new Message();
@@ -1040,9 +1061,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Send an emote
-     * @param emote the emote
+     *
+     * @param emote          the emote
      * @param formattedEmote the formatted text message (optional)
-     * @param format the format
+     * @param format         the format
      */
     public void sendEmote(String emote, String formattedEmote, String format) {
         sendMessage(Message.MSGTYPE_EMOTE, emote, formattedEmote, format);
@@ -1050,9 +1072,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * The media upload fails.
+     *
      * @param serverResponseCode the response code.
      * @param serverErrorMessage the error message.
-     * @param messageRow the messageRow
+     * @param messageRow         the messageRow
      */
     private void commonMediaUploadError(int serverResponseCode, final String serverErrorMessage, final MessageRow messageRow) {
         // warn the user that the media upload fails
@@ -1089,8 +1112,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Upload a file content
-     * @param mediaUrl the media URL
-     * @param mimeType the media mime type
+     *
+     * @param mediaUrl      the media URL
+     * @param mimeType      the media mime type
      * @param mediaFilename the media filename
      */
     public void uploadFileContent(final String mediaUrl, String mimeType, final String mediaFilename) {
@@ -1108,7 +1132,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             Room.fillFileInfo(getActivity(), tmpFileMessage, uri, mimeType);
 
             String filename = uri.getPath();
-            fileStream = new FileInputStream (new File(filename));
+            fileStream = new FileInputStream(new File(filename));
 
             if (mRoom.isEncrypted() && mSession.isCryptoEnabled() && (null != fileStream)) {
                 encryptionResult = MXEncryptedAttachments.encryptAttachment(fileStream, mimeType);
@@ -1165,7 +1189,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 getUiHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        commonMediaUploadError(serverResponseCode,serverErrorMessage, messageRow);
+                        commonMediaUploadError(serverResponseCode, serverErrorMessage, messageRow);
                     }
                 });
             }
@@ -1203,6 +1227,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Compute the video thumbnail
+     *
      * @param videoUrl the video url
      * @return the video thumbnail
      */
@@ -1222,8 +1247,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     /**
      * Upload a video message
      * The video thumbnail will be computed
-     * @param videoUrl the video url
-     * @param body the message body
+     *
+     * @param videoUrl      the video url
+     * @param body          the message body
      * @param videoMimeType the video mime type
      */
     public void uploadVideoContent(final String videoUrl, final String body, final String videoMimeType) {
@@ -1233,9 +1259,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     /**
      * Upload a video message
      * The video thumbnail will be computed
-     * @param videoUrl the video url
-     * @param thumbUrl the thumbnail Url
-     * @param body the message body
+     *
+     * @param videoUrl      the video url
+     * @param thumbUrl      the thumbnail Url
+     * @param body          the message body
      * @param videoMimeType the video mime type
      */
     public void uploadVideoContent(final String videoUrl, final String thumbUrl, final String body, final String videoMimeType) {
@@ -1250,11 +1277,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Upload a video message
-     * @param thumbnailUrl the thumbnail Url
+     *
+     * @param thumbnailUrl      the thumbnail Url
      * @param thumbnailMimeType the thumbnail mime type
-     * @param videoUrl the video url
-     * @param body the message body
-     * @param videoMimeType the video mime type
+     * @param videoUrl          the video url
+     * @param body              the message body
+     * @param videoMimeType     the video mime type
      */
     public void uploadVideoContent(final VideoMessage sourceVideoMessage, final MessageRow aVideoRow, final String thumbnailUrl, final String thumbnailMimeType, final String videoUrl, final String body, final String videoMimeType) {
         // create a tmp row
@@ -1370,7 +1398,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 getUiHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        commonMediaUploadError(serverResponseCode,serverErrorMessage, videoRow);
+                        commonMediaUploadError(serverResponseCode, serverErrorMessage, videoRow);
                     }
                 });
             }
@@ -1443,12 +1471,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * upload an image content.
      * It might be triggered from a media selection : imageUri is used to compute thumbnails.
      * Or, it could have been called to resend an image.
-     * @param thumbnailUrl the thumbnail Url
-     * @param imageUrl the image Uri
+     *
+     * @param thumbnailUrl  the thumbnail Url
+     * @param imageUrl      the image Uri
      * @param mediaFilename the mediaFilename
      * @param imageMimeType the image mine type
      */
-    public void uploadImageContent(ImageMessage imageMessage, final MessageRow aImageRow,  final String thumbnailUrl, final String anImageUrl, final String mediaFilename, final String imageMimeType) {
+    public void uploadImageContent(ImageMessage imageMessage, final MessageRow aImageRow, final String thumbnailUrl, final String anImageUrl, final String mediaFilename, final String imageMimeType) {
         if (null == imageMessage) {
             imageMessage = new ImageMessage();
             imageMessage.url = anImageUrl;
@@ -1572,7 +1601,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             imageRow.getEvent().updateContent(JsonUtils.toJson(fImageMessage));
 
                             // upload the high res picture
-                            uploadImageContent(fImageMessage, imageRow,  contentUri, anImageUrl, mediaFilename,  fMimeType);
+                            uploadImageContent(fImageMessage, imageRow, contentUri, anImageUrl, mediaFilename, fMimeType);
                         } else {
                             // replace the thumbnail and the media contents by the computed one
                             getMXMediasCache().saveFileMediaForUrl(contentUri, anImageUrl, fImageMessage.getMimeType());
@@ -1602,10 +1631,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * upload an image content.
      * It might be triggered from a media selection : imageUri is used to compute thumbnails.
      * Or, it could have been called to resend an image.
-     * @param thumbnailUrl the thumbnail Url
+     *
+     * @param thumbnailUrl      the thumbnail Url
      * @param thumbnailMimeType the thumbnail mimetype
-     * @param geo_uri the geo_uri
-     * @param body the message body
+     * @param geo_uri           the geo_uri
+     * @param body              the message body
      */
     public void uploadLocationContent(final String thumbnailUrl, final String thumbnailMimeType, final String geo_uri, final String body) {
         // create a tmp row
@@ -1622,7 +1652,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             Room.fillLocationInfo(getActivity(), tmpLocationMessage, uri, thumbnailMimeType);
 
             String filename = uri.getPath();
-            imageStream = new FileInputStream (new File(filename));
+            imageStream = new FileInputStream(new File(filename));
 
             if (TextUtils.isEmpty(tmpLocationMessage.body)) {
                 tmpLocationMessage.body = "Location";
@@ -1664,7 +1694,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 getUiHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        commonMediaUploadError(serverResponseCode,serverErrorMessage, locationRow);
+                        commonMediaUploadError(serverResponseCode, serverErrorMessage, locationRow);
                     }
                 });
             }
@@ -1700,6 +1730,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Provides the unsent messages list.
+     *
      * @return the unsent messages list
      */
     private List<Event> getUnsentMessages() {
@@ -1770,7 +1801,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         List<Event> unsent = getUnsentMessages();
 
         if (unsent.size() > 0) {
-            mResendingEventsList =  new ArrayList<>(unsent);
+            mResendingEventsList = new ArrayList<>(unsent);
 
             // reset the timestamp
             for (Event event : mResendingEventsList) {
@@ -1784,6 +1815,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Resend an event.
+     *
      * @param event the event to resend.
      */
     protected void resend(final Event event) {
@@ -1821,7 +1853,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         // resend an image ?
         if (message instanceof ImageMessage) {
-            ImageMessage imageMessage = (ImageMessage)message;
+            ImageMessage imageMessage = (ImageMessage) message;
 
             // media has not been uploaded
             if (imageMessage.isLocalContent() || imageMessage.isThumbnailLocalContent()) {
@@ -1829,7 +1861,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 return;
             }
         } else if (message instanceof FileMessage) {
-            FileMessage fileMessage = (FileMessage)message;
+            FileMessage fileMessage = (FileMessage) message;
 
             // media has not been uploaded
             if (fileMessage.isLocalContent()) {
@@ -1837,7 +1869,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 return;
             }
         } else if (message instanceof VideoMessage) {
-            VideoMessage videoMessage = (VideoMessage)message;
+            VideoMessage videoMessage = (VideoMessage) message;
 
             // media has not been uploaded
             if (videoMessage.isLocalContent() || videoMessage.isThumbnailLocalContent()) {
@@ -1855,7 +1887,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 uploadVideoContent(videoMessage, null, thumbnailUrl, thumbnailMimeType, videoMessage.url, videoMessage.body, videoMessage.getVideoMimeType());
                 return;
             } else if (message instanceof LocationMessage) {
-                LocationMessage locationMessage = (LocationMessage)message;
+                LocationMessage locationMessage = (LocationMessage) message;
 
                 // media has not been uploaded
                 if (locationMessage.isLocalThumbnailContent()) {
@@ -1927,6 +1959,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Manage the request history error cases.
+     *
      * @param error the error object.
      */
     private void onPaginateRequestError(final Object error) {
@@ -2057,6 +2090,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Trigger a back pagination.
+     *
      * @param fillHistory true to try to fill the listview height.
      */
     public void backPaginate(final boolean fillHistory) {
@@ -2285,7 +2319,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     @Override
     public void onLiveEventsChunkProcessed() {
-       // NOP
+        // NOP
     }
 
     @Override
@@ -2450,7 +2484,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
-    public  RoomPreviewData getRoomPreviewData() {
+    public RoomPreviewData getRoomPreviewData() {
         if (null != getActivity()) {
             // test if the listener has bee retrieved
             if (null == mRoomPreviewDataListener) {
@@ -2474,10 +2508,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mAdapter.clear();
     }
 
-    /***  MessageAdapter listener  ***/
+    /***
+     * MessageAdapter listener
+     ***/
     @Override
     public void onRowClick(int position) {
     }
+
     @Override
     public boolean onRowLongClick(int position) {
         return false;
@@ -2545,7 +2582,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         if (null != ruleAsVoid) {
             if (ruleAsVoid instanceof BingRule) {
-                return ((BingRule)ruleAsVoid).shouldHighlight();
+                return ((BingRule) ruleAsVoid).shouldHighlight();
             }
             return false;
         }
@@ -2682,7 +2719,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                                         // fill the history
                                         if (mMessageListView.getFirstVisiblePosition() <= 2) {
-                                           requestSearchHistory();
+                                            requestSearchHistory();
                                         }
                                     }
                                 });
@@ -2733,14 +2770,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Manage the search response.
-     * @param searchResponse the search response
+     *
+     * @param searchResponse         the search response
      * @param onSearchResultListener the search result listener
      */
     protected void onSearchResponse(final SearchResponse searchResponse, final OnSearchResultListener onSearchResultListener) {
-        List<SearchResult> searchResults =  searchResponse.searchCategories.roomEvents.results;
+        List<SearchResult> searchResults = searchResponse.searchCategories.roomEvents.results;
         ArrayList<MessageRow> messageRows = new ArrayList<>(searchResults.size());
 
-        for(SearchResult searchResult : searchResults) {
+        for (SearchResult searchResult : searchResults) {
             RoomState roomState = null;
 
             if (null != mRoom) {
@@ -2788,7 +2826,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Search a pattern in the messages.
-     * @param pattern the pattern to search
+     *
+     * @param pattern                the pattern to search
      * @param onSearchResultListener the search callback
      */
     public void searchPattern(final String pattern, final OnSearchResultListener onSearchResultListener) {
@@ -2797,8 +2836,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Search a pattern in the messages.
-     * @param pattern the pattern to search (filename for a media message)
-     * @param isMediaSearch true if is it is a media search.
+     *
+     * @param pattern                the pattern to search (filename for a media message)
+     * @param isMediaSearch          true if is it is a media search.
      * @param onSearchResultListener the search callback
      */
     public void searchPattern(final String pattern, boolean isMediaSearch, final OnSearchResultListener onSearchResultListener) {

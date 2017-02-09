@@ -92,7 +92,7 @@ public class MXMemoryStore implements IMXStore {
     /**
      * Initialization method.
      */
-    protected void initCommon(){
+    protected void initCommon() {
         mRooms = new ConcurrentHashMap<>();
         mUsers = new ConcurrentHashMap<>();
         mRoomEvents = new ConcurrentHashMap<>();
@@ -110,6 +110,7 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Set the application context
+     *
      * @param context the context
      */
     protected void setContext(Context context) {
@@ -126,6 +127,7 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Default constructor
+     *
      * @param credentials the expected credentials
      */
     public MXMemoryStore(Credentials credentials, Context context) {
@@ -177,6 +179,7 @@ public class MXMemoryStore implements IMXStore {
     /**
      * Indicate if the MXStore implementation stores data permanently.
      * Permanent storage allows the SDK to make less requests at the startup.
+     *
      * @return true if permanent.
      */
     @Override
@@ -186,6 +189,7 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Check if the initial load is performed.
+     *
      * @return true if it is ready.
      */
     @Override
@@ -203,6 +207,7 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Returns to disk usage size in bytes.
+     *
      * @return disk usage size
      */
     @Override
@@ -212,6 +217,7 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Returns the latest known event stream token
+     *
      * @return the event stream token
      */
     @Override
@@ -221,6 +227,7 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Set the event stream token.
+     *
      * @param token the event stream token
      */
     @Override
@@ -390,7 +397,7 @@ public class MXMemoryStore implements IMXStore {
             User user;
 
             synchronized (mUsers) {
-                user =  mUsers.get(userId);
+                user = mUsers.get(userId);
             }
 
             return user;
@@ -414,6 +421,7 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Update the user information from a room member.
+     *
      * @param roomMember the room member.
      */
     @Override
@@ -487,6 +495,7 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Get the latest event from the given room (to update summary for example)
+     *
      * @param roomId the room id
      * @return the event
      */
@@ -517,13 +526,14 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Count the number of events after the provided events id
-     * @param roomId the room id.
+     *
+     * @param roomId  the room id.
      * @param eventId the event id to find.
      * @return the events count after this event if
      */
     @Override
     public int eventsCountAfter(String roomId, String eventId) {
-        return eventsAfter(roomId, eventId,  mCredentials.userId, null).size();
+        return eventsAfter(roomId, eventId, mCredentials.userId, null).size();
     }
 
     @Override
@@ -598,7 +608,7 @@ public class MXMemoryStore implements IMXStore {
     public Event getEvent(String eventId, String roomId) {
         Event event = null;
 
-        if (doesEventExist(eventId,roomId)) {
+        if (doesEventExist(eventId, roomId)) {
             synchronized (mRoomEventsLock) {
                 LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
 
@@ -631,7 +641,7 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public void deleteRoom(String roomId) {
-    	// sanity check
+        // sanity check
         if (null != roomId) {
             deleteRoomData(roomId);
             synchronized (mRoomEventsLock) {
@@ -657,7 +667,8 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Remove all sent messages in a room.
-     * @param roomId the id of the room.
+     *
+     * @param roomId     the id of the room.
      * @param keepUnsent set to true to do not delete the unsent message
      */
     @Override
@@ -755,7 +766,8 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Store the back token of a room.
-     * @param roomId the room id.
+     *
+     * @param roomId    the room id.
      * @param backToken the back token
      */
     @Override
@@ -824,6 +836,7 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Retrieve all non-state room events for this room.
+     *
      * @param roomId The room ID
      * @return A collection of events. null if there is no cached event.
      */
@@ -848,14 +861,14 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public TokensChunkResponse<Event> getEarlierMessages(final String roomId, final String fromToken, final int limit)  {
+    public TokensChunkResponse<Event> getEarlierMessages(final String roomId, final String fromToken, final int limit) {
         // For now, we return everything we have for the original null token request
         // For older requests (providing a token), returning null for now
         if (null != roomId) {
             ArrayList<Event> eventsList;
 
             synchronized (mRoomEventsLock) {
-                LinkedHashMap<String, Event> events =mRoomEvents.get(roomId);
+                LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
                 if ((events == null) || (events.size() == 0)) {
                     return null;
                 }
@@ -885,7 +898,7 @@ public class MXMemoryStore implements IMXStore {
 
                 if (null != fromToken) {
                     // search if token is one of the stored events
-                    for (; (index < eventsList.size()) && (!TextUtils.equals(fromToken,eventsList.get(index).mToken)); index++)
+                    for (; (index < eventsList.size()) && (!TextUtils.equals(fromToken, eventsList.get(index).mToken)); index++)
                         ;
 
                     index++;
@@ -893,12 +906,12 @@ public class MXMemoryStore implements IMXStore {
 
                 // found it ?
                 if (index < eventsList.size()) {
-                    for(;index < eventsList.size(); index++) {
+                    for (; index < eventsList.size(); index++) {
                         Event event = eventsList.get(index);
                         subEventsList.add(event);
 
                         // loop until to find an event with a token
-                        if ((subEventsList.size() >= limit) &&  (event.mToken != null)) {
+                        if ((subEventsList.size() >= limit) && (event.mToken != null)) {
                             break;
                         }
                     }
@@ -913,7 +926,7 @@ public class MXMemoryStore implements IMXStore {
             response.chunk = subEventsList;
 
             Event firstEvent = subEventsList.get(0);
-            Event lastEvent = subEventsList.get(subEventsList.size()-1);
+            Event lastEvent = subEventsList.get(subEventsList.size() - 1);
 
             response.start = firstEvent.mToken;
 
@@ -1034,10 +1047,11 @@ public class MXMemoryStore implements IMXStore {
     /**
      * Returns the receipts list for an event in a dedicated room.
      * if sort is set to YES, they are sorted from the latest to the oldest ones.
-     * @param roomId The room Id.
-     * @param eventId The event Id. (null to retrieve all existing receipts)
+     *
+     * @param roomId      The room Id.
+     * @param eventId     The event Id. (null to retrieve all existing receipts)
      * @param excludeSelf exclude the oneself read receipts.
-     * @param sort to sort them from the latest to the oldest
+     * @param sort        to sort them from the latest to the oldest
      * @return the receipts for an event in a dedicated room.
      */
     @Override
@@ -1078,8 +1092,9 @@ public class MXMemoryStore implements IMXStore {
     /**
      * Store the receipt for an user in a room.
      * The receipt validity is checked i.e the receipt is not for an already read message.
+     *
      * @param receipt The event
-     * @param roomId The roomId
+     * @param roomId  The roomId
      * @return true if the receipt has been stored
      */
     @Override
@@ -1156,6 +1171,7 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Get the receipt for an user in a dedicated room.
+     *
      * @param roomId the room id.
      * @param userId the user id.
      * @return the dedicated receipt
@@ -1182,10 +1198,10 @@ public class MXMemoryStore implements IMXStore {
      * It could the ones sent by the user excludedUserId.
      * A filter can be applied to ignore some event (Event.EVENT_TYPE_...).
      *
-     * @param roomId the roomId
-     * @param eventId the start event Id.
+     * @param roomId         the roomId
+     * @param eventId        the start event Id.
      * @param excludedUserId the excluded user id
-     * @param allowedTypes the filtered event type (null to allow anyone)
+     * @param allowedTypes   the filtered event type (null to allow anyone)
      * @return the evnts list
      */
     private List<Event> eventsAfter(String roomId, String eventId, String excludedUserId, List<String> allowedTypes) {
@@ -1201,7 +1217,7 @@ public class MXMemoryStore implements IMXStore {
                     List<Event> linkedEvents = new ArrayList<>(roomEvents.values());
 
                     // Check messages from the most recent
-                    for (int i = linkedEvents.size() - 1; i >= 0 ; i--) {
+                    for (int i = linkedEvents.size() - 1; i >= 0; i--) {
                         Event event = linkedEvents.get(i);
 
                         if ((null == eventId) || !TextUtils.equals(event.eventId, eventId)) {
@@ -1217,7 +1233,7 @@ public class MXMemoryStore implements IMXStore {
 
                     // filter the unread messages
                     // some messages are not defined as unreadable
-                    for(int index = 0; index < events.size(); index++) {
+                    for (int index = 0; index < events.size(); index++) {
                         Event event = events.get(index);
 
                         if (TextUtils.equals(event.getSender(), mCredentials.userId) || TextUtils.equals(event.getType(), Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
@@ -1251,8 +1267,9 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Check if an event has been read by an user.
-     * @param roomId the room Id
-     * @param userId the user id
+     *
+     * @param roomId        the room Id
+     * @param userId        the user id
      * @param eventIdTotest the event id
      * @return true if the user has read the message.
      */
@@ -1273,7 +1290,7 @@ public class MXMemoryStore implements IMXStore {
                         ArrayList<String> eventIds = new ArrayList<>(eventsMap.keySet());
 
                         // the message has been read if it was sent before the latest read one
-                        res = eventIds.indexOf(eventIdTotest) <=  eventIds.indexOf(data.eventId);
+                        res = eventIds.indexOf(eventIdTotest) <= eventIds.indexOf(data.eventId);
                     } else if (receiptsByUserId.containsKey(userId)) {
                         // the event is not known so assume it is has been flushed
                         res = true;
@@ -1287,8 +1304,9 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Provides the unread events list.
+     *
      * @param roomId the room id.
-     * @param types an array of event types strings (Event.EVENT_TYPE_XXX).
+     * @param types  an array of event types strings (Event.EVENT_TYPE_XXX).
      * @return the unread events list.
      */
     @Override
@@ -1329,36 +1347,39 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Dispatch postProcess
+     *
      * @param accountId the account id
      */
     protected void dispatchPostProcess(String accountId) {
         List<IMXStoreListener> listeners = getListeners();
 
-        for(IMXStoreListener listener : listeners) {
+        for (IMXStoreListener listener : listeners) {
             listener.postProcess(accountId);
         }
     }
 
     /**
      * Dispatch store ready
+     *
      * @param accountId the account id
      */
     protected void dispatchOnStoreReady(String accountId) {
         List<IMXStoreListener> listeners = getListeners();
 
-        for(IMXStoreListener listener : listeners) {
+        for (IMXStoreListener listener : listeners) {
             listener.onStoreReady(accountId);
         }
     }
 
     /**
      * Dispatch that the store is corrupted
+     *
      * @param accountId the account id
      */
-    protected  void dispatchOnStoreCorrupted(String accountId, String description) {
+    protected void dispatchOnStoreCorrupted(String accountId, String description) {
         List<IMXStoreListener> listeners = getListeners();
 
-        for(IMXStoreListener listener : listeners) {
+        for (IMXStoreListener listener : listeners) {
             listener.onStoreCorrupted(accountId, description);
         }
     }
@@ -1369,7 +1390,7 @@ public class MXMemoryStore implements IMXStore {
     protected void dispatchOOM(OutOfMemoryError e) {
         List<IMXStoreListener> listeners = getListeners();
 
-        for(IMXStoreListener listener : listeners) {
+        for (IMXStoreListener listener : listeners) {
             listener.onStoreOOM(mCredentials.userId, e.getMessage());
         }
     }
@@ -1380,7 +1401,7 @@ public class MXMemoryStore implements IMXStore {
     protected void dispatchOnReadReceiptsLoaded(String roomId) {
         List<IMXStoreListener> listeners = getListeners();
 
-        for(IMXStoreListener listener : listeners) {
+        for (IMXStoreListener listener : listeners) {
             listener.onReadReceiptsLoaded(roomId);
         }
     }
@@ -1388,6 +1409,7 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Provides the store preload time in milliseconds.
+     *
      * @return the store preload time in milliseconds.
      */
     public long getPreloadTime() {
@@ -1396,6 +1418,7 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Provides some store stats
+     *
      * @return the store stats
      */
     public Map<String, Long> getStats() {

@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +18,7 @@
 package org.matrix.androidsdk.data;
 
 import android.text.TextUtils;
+
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonObject;
@@ -50,9 +52,13 @@ public class RoomState implements java.io.Serializable {
     public static final String JOIN_RULE_PUBLIC = "public";
     public static final String JOIN_RULE_INVITE = "invite";
 
-    /** room access is granted to guests **/
+    /**
+     * room access is granted to guests
+     **/
     public static final String GUEST_ACCESS_CAN_JOIN = "can_join";
-    /** room access is denied to guests **/
+    /**
+     * room access is denied to guests
+     **/
     public static final String GUEST_ACCESS_FORBIDDEN = "forbidden";
 
     public static final String HISTORY_VISIBILITY_SHARED = "shared";
@@ -97,7 +103,9 @@ public class RoomState implements java.io.Serializable {
     // the join rule
     public String join_rule;
 
-    /** the guest access policy of the room **/
+    /**
+     * the guest access policy of the room
+     **/
     public String guest_access;
 
     // SPEC-134
@@ -106,7 +114,9 @@ public class RoomState implements java.io.Serializable {
     // the public room alias / name
     public String roomAliasName;
 
-    /**  the room visibility in the directory list (i.e. public, private...) **/
+    /**
+     * the room visibility in the directory list (i.e. public, private...)
+     **/
     public String visibility;
 
     // the encryption algorithm
@@ -191,6 +201,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Update the token.
+     *
      * @param token the new token
      */
     public void setToken(String token) {
@@ -223,6 +234,7 @@ public class RoomState implements java.io.Serializable {
     /**
      * Provides a list of displayable members.
      * Some dummy members are created to internal stuff.
+     *
      * @return a copy of the displayable room members list.
      */
     public Collection<RoomMember> getDisplayableMembers() {
@@ -242,6 +254,7 @@ public class RoomState implements java.io.Serializable {
     /**
      * Tells if the room is a call conference one
      * i.e. this room has been created to manage the call conference
+     *
      * @return true if it is a call conference room.
      */
     public boolean isConferenceUserRoom() {
@@ -254,7 +267,7 @@ public class RoomState implements java.io.Serializable {
 
             // works only with 1:1 room
             if (2 == members.size()) {
-                for(RoomMember member : members) {
+                for (RoomMember member : members) {
                     if (MXCallsManager.isConferenceUserId(member.getUserId())) {
                         mIsConferenceUserRoom = true;
                         break;
@@ -268,6 +281,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Set this room as a conference user room
+     *
      * @param isConferenceUserRoom true when it is an user conference room.
      */
     public void setIsConferenceUserRoom(boolean isConferenceUserRoom) {
@@ -276,6 +290,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Update the room member from its user id.
+     *
      * @param userId the user id.
      * @param member the new member value.
      */
@@ -294,6 +309,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Retrieve a room member from its user id.
+     *
      * @param userId the user id.
      * @return the linked member it exists.
      */
@@ -309,6 +325,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Remove a member defines by its user id.
+     *
      * @param userId the user id.
      */
     public void removeMember(String userId) {
@@ -323,6 +340,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Retrieve a member from an invitation token.
+     *
      * @param thirdPartyInviteToken the third party invitation token.
      * @return the member it exists.
      */
@@ -332,6 +350,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Retrieve a RoomThirdPartyInvite from its token.
+     *
      * @param thirdPartyInviteToken the third party invitation token.
      * @return the linked RoomThirdPartyInvite if it exists
      */
@@ -359,6 +378,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Update the power levels.
+     *
      * @param powerLevels the new power levels
      */
     public void setPowerLevels(PowerLevels powerLevels) {
@@ -367,6 +387,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Update the linked dataHandler.
+     *
      * @param dataHandler the new dataHandler
      */
     public void setDataHandler(MXDataHandler dataHandler) {
@@ -377,11 +398,12 @@ public class RoomState implements java.io.Serializable {
      * @return the user dataHandler
      */
     public MXDataHandler getDataHandler() {
-        return (MXDataHandler)mDataHandler;
+        return (MXDataHandler) mDataHandler;
     }
 
     /**
      * Update the notified messages count.
+     *
      * @param notificationCount the new notified messages count.
      */
     public void setNotificationCount(int notificationCount) {
@@ -397,6 +419,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Update the highlighted messages count.
+     *
      * @param highlightCount the new highlighted messages count.
      */
     public void setHighlightCount(int highlightCount) {
@@ -412,6 +435,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Check if the user userId can back paginate.
+     *
      * @param userId the user Id.
      * @return true if the user can backpaginate.
      */
@@ -420,15 +444,16 @@ public class RoomState implements java.io.Serializable {
         String membership = (null != member) ? member.membership : "";
         String visibility = TextUtils.isEmpty(history_visibility) ? HISTORY_VISIBILITY_SHARED : history_visibility;
 
-        return  visibility.equals(HISTORY_VISIBILITY_WORLD_READABLE) ||
+        return visibility.equals(HISTORY_VISIBILITY_WORLD_READABLE) ||
                 visibility.equals(HISTORY_VISIBILITY_SHARED) ||
-                (RoomMember.MEMBERSHIP_JOIN.equals(membership)) /*&&visibility == invited or joined */  ||
+                (RoomMember.MEMBERSHIP_JOIN.equals(membership)) /*&&visibility == invited or joined */ ||
                 (RoomMember.MEMBERSHIP_INVITE.equals(membership) && visibility.equals(HISTORY_VISIBILITY_INVITED))
                 ;
     }
 
     /**
      * Make a deep copy of this room state object.
+     *
      * @return the copy
      */
     public RoomState deepCopy() {
@@ -463,12 +488,12 @@ public class RoomState implements java.io.Serializable {
             }
 
             Collection<String> keys = mThirdPartyInvites.keySet();
-            for(String key : keys) {
+            for (String key : keys) {
                 copy.mThirdPartyInvites.put(key, mThirdPartyInvites.get(key).deepCopy());
             }
 
             keys = mMembersWithThirdPartyInviteTokenCache.keySet();
-            for(String key : keys) {
+            for (String key : keys) {
                 copy.mMembersWithThirdPartyInviteTokenCache.put(key, mMembersWithThirdPartyInviteTokenCache.get(key).deepCopy());
             }
         }
@@ -484,7 +509,7 @@ public class RoomState implements java.io.Serializable {
         // SPEC-125
         if (!TextUtils.isEmpty(alias)) {
             return alias;
-        } else if(!TextUtils.isEmpty(getFirstAlias())) {
+        } else if (!TextUtils.isEmpty(getFirstAlias())) {
             return getFirstAlias();
         }
 
@@ -493,6 +518,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Returns the first room alias.
+     *
      * @return the first room alias
      */
     private String getFirstAlias() {
@@ -507,6 +533,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Provides the aliases for any known domains
+     *
      * @return the aliases list
      */
     public List<String> getAliases() {
@@ -520,7 +547,7 @@ public class RoomState implements java.io.Serializable {
             // ensure that the current aliases have been added.
             // for example for the public rooms because there is no applystate call.
             if (null != aliases) {
-                for(String anAlias : aliases) {
+                for (String anAlias : aliases) {
                     if (mMergedAliasesList.indexOf(anAlias) < 0) {
                         mMergedAliasesList.add(anAlias);
                     }
@@ -533,6 +560,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Provides the aliases by domain
+     *
      * @return the aliases list map
      */
     public Map<String, List<String>> getAliasesByDomain() {
@@ -541,6 +569,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Remove an alias.
+     *
      * @param alias the alias to remove
      */
     public void removeAlias(String alias) {
@@ -549,7 +578,7 @@ public class RoomState implements java.io.Serializable {
                 aliases.remove(alias);
             }
 
-            for(String host : mAliasesByDomain.keySet()) {
+            for (String host : mAliasesByDomain.keySet()) {
                 mAliasesByDomain.get(host).remove(alias);
             }
 
@@ -559,6 +588,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Add an alias.
+     *
      * @param alias the alias to add
      */
     public void addAlias(String alias) {
@@ -570,6 +600,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Build and return the room's display name.
+     *
      * @param selfUserId this user's user id (to exclude from members)
      * @return the display name
      */
@@ -671,7 +702,8 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Apply the given event (relevant for state changes) to our state.
-     * @param event the event
+     *
+     * @param event     the event
      * @param direction how the event should affect the state: Forwards for applying, backwards for un-applying (applying the previous state)
      * @return true if the event is managed
      */
@@ -767,9 +799,9 @@ public class RoomState implements java.io.Serializable {
                         }
                     }
 
-                    if ((direction == EventTimeline.Direction.FORWARDS) ) {
+                    if ((direction == EventTimeline.Direction.FORWARDS)) {
                         if (null != mDataHandler) {
-                            ((MXDataHandler)mDataHandler).getStore().updateUserWithRoomMemberEvent(member);
+                            ((MXDataHandler) mDataHandler).getStore().updateUserWithRoomMemberEvent(member);
                         }
                     }
 
@@ -783,7 +815,7 @@ public class RoomState implements java.io.Serializable {
             } else if (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(eventType)) {
                 powerLevels = JsonUtils.toPowerLevels(contentToConsider);
             } else if (Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.getType())) {
-                RoomThirdPartyInvite thirdPartyInvite  = JsonUtils.toRoomThirdPartyInvite(contentToConsider);
+                RoomThirdPartyInvite thirdPartyInvite = JsonUtils.toRoomThirdPartyInvite(contentToConsider);
 
                 thirdPartyInvite.token = event.stateKey;
 
@@ -807,6 +839,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Return an unique display name of the member userId.
+     *
      * @param userId the user id
      * @return unique display name
      */
@@ -833,7 +866,7 @@ public class RoomState implements java.io.Serializable {
         RoomMember member = getMember(userId);
 
         // Do not consider null display name
-        if ((null != member)  && !TextUtils.isEmpty(member.displayname)) {
+        if ((null != member) && !TextUtils.isEmpty(member.displayname)) {
             displayName = member.displayname;
 
             synchronized (this) {
@@ -853,7 +886,7 @@ public class RoomState implements java.io.Serializable {
                 }
             }
         } else if ((null != member) && TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_INVITE)) {
-            User user = ((MXDataHandler)mDataHandler).getUser(userId);
+            User user = ((MXDataHandler) mDataHandler).getUser(userId);
 
             if (null != user) {
                 displayName = user.displayname;

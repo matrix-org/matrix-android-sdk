@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.rest.model;
 
 import android.text.TextUtils;
+
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
@@ -300,6 +301,7 @@ public class Event implements java.io.Serializable {
 
     /**
      * Update the event type
+     *
      * @param aType the new type
      */
     public void setType(String aType) {
@@ -549,7 +551,7 @@ public class Event implements java.io.Serializable {
      * @return true if it can be resent.
      */
     public boolean canBeResent() {
-        return (mSentState == SentState.WAITING_RETRY) || (mSentState == SentState.UNDELIVERABLE) || (mSentState == SentState.FAILED_UNKNOWN_DEVICES) ;
+        return (mSentState == SentState.WAITING_RETRY) || (mSentState == SentState.UNDELIVERABLE) || (mSentState == SentState.FAILED_UNKNOWN_DEVICES);
     }
 
     /**
@@ -572,6 +574,7 @@ public class Event implements java.io.Serializable {
 
     /**
      * Tell if the message is undeliverable
+     *
      * @return true if the event is undeliverable
      */
     public boolean isUndeliverable() {
@@ -580,6 +583,7 @@ public class Event implements java.io.Serializable {
 
     /**
      * Tells if the message sending failed because some unknown devices have benn detected.
+     *
      * @return true if some unknown devices have benn detected.
      */
     public boolean isUnkownDevice() {
@@ -634,13 +638,14 @@ public class Event implements java.io.Serializable {
 
     /**
      * Tells if the current event is uploading a media.
+     *
      * @param mediasCache the media cache
      * @return true if the event is uploading a media.
      */
     public boolean isUploadingMedias(MXMediasCache mediasCache) {
         List<String> urls = getMediaUrls();
 
-        for(String url : urls) {
+        for (String url : urls) {
             if (mediasCache.getProgressValueForUploadId(url) >= 0) {
                 return true;
             }
@@ -651,13 +656,14 @@ public class Event implements java.io.Serializable {
 
     /**
      * Tells if the current event is downloading a media.
+     *
      * @param mediasCache the media cache
      * @return true if the event is downloading a media.
      */
     public boolean isDownloadingMedias(MXMediasCache mediasCache) {
         List<String> urls = getMediaUrls();
 
-        for(String url : urls) {
+        for (String url : urls) {
             if (mediasCache.getProgressValueForDownloadId(mediasCache.downloadIdFromUrl(url)) >= 0) {
                 return true;
             }
@@ -771,7 +777,8 @@ public class Event implements java.io.Serializable {
 
     /**
      * Filter a JsonObject to keep only the allowed keys.
-     * @param aContent the JsonObject to filter.
+     *
+     * @param aContent    the JsonObject to filter.
      * @param allowedKeys the allowed keys list.
      * @return the filtered JsonObject
      */
@@ -791,7 +798,7 @@ public class Event implements java.io.Serializable {
         Set<Map.Entry<String, JsonElement>> entries = aContent.entrySet();
 
         if (null != entries) {
-            for(Map.Entry<String, JsonElement> entry : entries) {
+            for (Map.Entry<String, JsonElement> entry : entries) {
                 if (allowedKeys.indexOf(entry.getKey()) >= 0) {
                     filteredContent.add(entry.getKey(), entry.getValue());
                 }
@@ -805,6 +812,7 @@ public class Event implements java.io.Serializable {
      * Prune the event which removes all keys we don't know about or think could potentially be dodgy.
      * This is used when we "redact" an event. We want to remove all fields that the user has specified,
      * but we do want to keep necessary information like type, state_key etc.
+     *
      * @param redactionEvent the event which triggers this redaction
      */
     public void prune(Event redactionEvent) {
@@ -820,14 +828,14 @@ public class Event implements java.io.Serializable {
             allowedKeys = new ArrayList<>(Arrays.asList("join_rule"));
         } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS, type)) {
             allowedKeys = new ArrayList<>(Arrays.asList("users",
-            "users_default",
-            "events",
-            "events_default",
-            "state_default",
-            "ban",
-            "kick",
-            "redact",
-            "invite"));
+                    "users_default",
+                    "events",
+                    "events_default",
+                    "state_default",
+                    "ban",
+                    "kick",
+                    "redact",
+                    "invite"));
         } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_ALIASES, type)) {
             allowedKeys = new ArrayList<>(Arrays.asList("aliases"));
         } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_CANONICAL_ALIAS, type)) {
@@ -888,16 +896,16 @@ public class Event implements java.io.Serializable {
 
     /**
      * The keys that must have been owned by the sender of this encrypted event.
-     * @discussion
-     * These don't necessarily have to come from this event itself, but may be
+     *
+     * @discussion These don't necessarily have to come from this event itself, but may be
      * implied by the cryptographic session.
      */
     private transient Map<String, String> mKeysProved;
 
     /**
      * The additional keys the sender of this encrypted event claims to possess.
-     * @discussion
-     * These don't necessarily have to come from this event itself, but may be
+     *
+     * @discussion These don't necessarily have to come from this event itself, but may be
      * implied by the cryptographic session.
      * For example megolm messages don't claim keys directly, but instead
      * inherit a claim from the olm message that established the session.
@@ -920,7 +928,7 @@ public class Event implements java.io.Serializable {
      */
     public String senderKey() {
         if (null != getKeysProved()) {
-            return  getKeysProved().get("curve25519");
+            return getKeysProved().get("curve25519");
         } else {
             return null;
         }
@@ -939,6 +947,7 @@ public class Event implements java.io.Serializable {
 
     /**
      * Update the key proved
+     *
      * @param keysProved the keys proved
      */
     public void setKeysProved(Map<String, String> keysProved) {
@@ -962,6 +971,7 @@ public class Event implements java.io.Serializable {
 
     /**
      * Update tke ley claimed
+     *
      * @param keysClaimed the new key claimed map
      */
     public void setKeysClaimed(Map<String, String> keysClaimed) {
@@ -981,6 +991,7 @@ public class Event implements java.io.Serializable {
 
     /**
      * Update the linked crypto error
+     *
      * @param error the new crypto error.
      */
     public void setCryptoError(MXCryptoError error) {
@@ -989,6 +1000,7 @@ public class Event implements java.io.Serializable {
 
     /**
      * Update the clear event
+     *
      * @param aClearEvent the clean event.
      */
     public void setClearEvent(Event aClearEvent) {

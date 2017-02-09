@@ -29,7 +29,7 @@ public class MXCryptoError extends MatrixError {
     /**
      * Error codes
      */
-    public static final String ENCRYPTING_NOT_ENABLED_ERROR_CODE= "ENCRYPTING_NOT_ENABLED";
+    public static final String ENCRYPTING_NOT_ENABLED_ERROR_CODE = "ENCRYPTING_NOT_ENABLED";
     public static final String UNABLE_TO_ENCRYPT_ERROR_CODE = "UNABLE_TO_ENCRYPT";
     public static final String UNABLE_TO_DECRYPT_ERROR_CODE = "UNABLE_TO_DECRYPT";
     public static final String UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE = "UNKNOWN_INBOUND_SESSION_ID";
@@ -50,18 +50,18 @@ public class MXCryptoError extends MatrixError {
     /**
      * short error reasons
      */
-    public static final String UNABLE_TO_DECRYPT =  "Unable to decrypt";
-    public static final String UNABLE_TO_ENCRYPT =  "Unable to encrypt";
+    public static final String UNABLE_TO_DECRYPT = "Unable to decrypt";
+    public static final String UNABLE_TO_ENCRYPT = "Unable to encrypt";
 
     /**
      * Detailed error reasons
      */
     public static final String ENCRYPTING_NOT_ENABLED_REASON = "Encryption not enabled";
-    public static final String UNABLE_TO_ENCRYPT_REASON =  "Unable to encrypt %s";
-    public static final String UNABLE_TO_DECRYPT_REASON =  "Unable to decrypt %1$s. Algorithm: %2$s";
-    public static final String OLM_REASON =  "OLM error: %1$s";
-    public static final String DETAILLED_OLM_REASON =  "Unable to decrypt %1$s. OLM error: %2$s";
-    public static final String UNKNOWN_INBOUND_SESSSION_ID_REASON = "Unknown inbound session id";
+    public static final String UNABLE_TO_ENCRYPT_REASON = "Unable to encrypt %s";
+    public static final String UNABLE_TO_DECRYPT_REASON = "Unable to decrypt %1$s. Algorithm: %2$s";
+    public static final String OLM_REASON = "OLM error: %1$s";
+    public static final String DETAILLED_OLM_REASON = "Unable to decrypt %1$s. OLM error: %2$s";
+    public static final String UNKNOWN_INBOUND_SESSION_ID_REASON = "Unknown inbound session id";
     public static final String INBOUND_SESSION_MISMATCH_ROOM_ID_REASON = "Mismatched room_id for inbound group session (expected %1$s, was %2$s)";
     public static final String MISSING_FIELDS_REASON = "Missing fields in input";
     public static final String MISSING_CIPHER_TEXT_REASON = "Missing ciphertext";
@@ -69,11 +69,11 @@ public class MXCryptoError extends MatrixError {
     public static final String BAD_RECIPIENT_REASON = "Message was intented for %1$s";
     public static final String BAD_RECIPIENT_KEY_REASON = "Message not intended for this device";
     public static final String FORWARDED_MESSAGE_REASON = "Message forwarded from %1$s";
-    public static final String BAD_ROOM_REASON =  "Message intended for room %1$s";
+    public static final String BAD_ROOM_REASON = "Message intended for room %1$s";
     public static final String BAD_ENCRYPTED_MESSAGE_REASON = "Bad Encrypted Message";
     public static final String DUPLICATE_MESSAGE_INDEX_REASON = "Duplicate message index, possible replay attack %1$s";
     public static final String ERROR_MISSING_PROPERTY_REASON = "No '%1$s' property. Cannot prevent unknown-key attack";
-    public static final String UNKNOWN_DEVICES_REASON = "his room contains unknown devices which have not been verified. \nWe strongly recommend you verify them before continuing.";
+    public static final String UNKNOWN_DEVICES_REASON = "This room contains unknown devices which have not been verified. \nWe strongly recommend you verify them before continuing.";
 
     /**
      * Describe the error with more details
@@ -88,8 +88,9 @@ public class MXCryptoError extends MatrixError {
 
     /**
      * Create a crypto error
-     * @param code the error code (see XX_ERROR_CODE)
-     * @param shortErrorDescription the short error description
+     *
+     * @param code                     the error code (see XX_ERROR_CODE)
+     * @param shortErrorDescription    the short error description
      * @param detailedErrorDescription the detailed error description
      */
     public MXCryptoError(String code, String shortErrorDescription, String detailedErrorDescription) {
@@ -100,10 +101,11 @@ public class MXCryptoError extends MatrixError {
 
     /**
      * Create a crypto error
-     * @param code the error code (see XX_ERROR_CODE)
-     * @param shortErrorDescription the short error description
+     *
+     * @param code                     the error code (see XX_ERROR_CODE)
+     * @param shortErrorDescription    the short error description
      * @param detailedErrorDescription the detailed error description
-     * @param exceptionData the exception data
+     * @param exceptionData            the exception data
      */
     public MXCryptoError(String code, String shortErrorDescription, String detailedErrorDescription, Object exceptionData) {
         errcode = code;

@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +18,7 @@
 package org.matrix.androidsdk.data;
 
 import org.matrix.androidsdk.rest.model.Event;
+
 import java.util.HashMap;
 import java.util.Set;
 
@@ -33,6 +35,7 @@ public class RoomAccountData implements java.io.Serializable {
 
     /**
      * Process an event that modifies room account data (like m.tag event).
+     *
      * @param event an event
      */
     public void handleEvent(Event event) {
@@ -43,6 +46,7 @@ public class RoomAccountData implements java.io.Serializable {
 
     /**
      * Provide a RoomTag for a key.
+     *
      * @param key the key.
      * @return the roomTag if it is found else null
      */

@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,6 +85,7 @@ public class User implements java.io.Serializable {
     /**
      * Check if mEventListeners has been initialized before providing it.
      * The users are now serialized and the transient fields are not initialized.
+     *
      * @return the events listener
      */
     private Map<IMXEventListener, IMXEventListener> getEventListeners() {
@@ -97,6 +99,7 @@ public class User implements java.io.Serializable {
     /**
      * Check if mPendingListeners has been initialized before providing it.
      * The users are now serialized and the transient fields are not initialized.
+     *
      * @return the pending listener
      */
     private ArrayList<IMXEventListener> getPendingListeners() {
@@ -127,6 +130,7 @@ public class User implements java.io.Serializable {
 
     /**
      * Clone an user into this instance
+     *
      * @param user the user to clone.
      */
     protected void clone(User user) {
@@ -151,6 +155,7 @@ public class User implements java.io.Serializable {
 
     /**
      * Create a deep copy of the current user.
+     *
      * @return a deep copy of the current object
      */
     public User deepCopy() {
@@ -161,6 +166,7 @@ public class User implements java.io.Serializable {
 
     /**
      * Tells if an user is active
+     *
      * @return true if the user is active
      */
     public boolean isActive() {
@@ -169,6 +175,7 @@ public class User implements java.io.Serializable {
 
     /**
      * Set the latest presence event time.
+     *
      * @param ts the timestamp.
      */
     public void setLatestPresenceTs(long ts) {
@@ -185,6 +192,7 @@ public class User implements java.io.Serializable {
 
     /**
      * Get the user's last active ago time by adding the one given by the server and the time since elapsed.
+     *
      * @return how long ago the user was last active (in ms)
      */
     public long getAbsoluteLastActiveAgo() {
@@ -198,18 +206,20 @@ public class User implements java.io.Serializable {
 
     /**
      * Set the event listener to send back events to. This is typically the DataHandler for dispatching the events to listeners.
+     *
      * @param dataHandler should be the main data handler for dispatching back events to registered listeners.
      */
     public void setDataHandler(MXDataHandler dataHandler) {
         mDataHandler = dataHandler;
 
-        for(IMXEventListener listener : getPendingListeners()) {
+        for (IMXEventListener listener : getPendingListeners()) {
             mDataHandler.addListener(listener);
         }
     }
 
     /**
      * Add an event listener to this room. Only events relative to the room will come down.
+     *
      * @param eventListener the event listener to add
      */
     public void addEventListener(final IMXEventListener eventListener) {
@@ -235,6 +245,7 @@ public class User implements java.io.Serializable {
 
     /**
      * Remove an event listener.
+     *
      * @param eventListener the event listener to remove
      */
     public void removeEventListener(IMXEventListener eventListener) {
