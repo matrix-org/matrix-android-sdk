@@ -1028,8 +1028,10 @@ public class Room {
         mStore.storeLiveStateForRoom(getRoomId());
 
         // flush the summary
-        summary.setUnreadEventsCount(0);
-        mStore.flushSummary(summary);
+        if (null != summary) {
+            summary.setUnreadEventsCount(0);
+            mStore.flushSummary(summary);
+        }
 
         mStore.commit();
     }
