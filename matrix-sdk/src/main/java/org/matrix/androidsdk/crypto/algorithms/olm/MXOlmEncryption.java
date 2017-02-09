@@ -82,7 +82,7 @@ public class MXOlmEncryption implements IMXEncrypting {
                                         continue;
                                     }
 
-                                    if (device.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED) {
+                                    if (device.isBlocked()) {
                                         // Don't bother setting up sessions with blocked users
                                         continue;
                                     }

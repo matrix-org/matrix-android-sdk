@@ -1076,7 +1076,7 @@ public class MXCrypto {
                     if (null != device) {
                         // assume if the device is either verified or blocked
                         // it means that the device is known
-                        if (device.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_UNKNOWN) {
+                        if (device.isUnknown()) {
                             device.mVerified = MXDeviceInfo.DEVICE_VERIFICATION_UNVERIFIED;
                             mCryptoStore.storeUserDevice(di.userId, device);
                         }
@@ -1204,7 +1204,7 @@ public class MXCrypto {
 
         try {
             Constructor<?> ctor = encryptingClass.getConstructors()[0];
-            alg = (IMXEncrypting)ctor.newInstance(new Object[]{});
+            alg = (IMXEncrypting)ctor.newInstance();
         } catch (Exception e) {
             Log.e(LOG_TAG, "## setEncryptionInRoom() : fail to load the class");
             return false;
@@ -1277,7 +1277,7 @@ public class MXCrypto {
                     continue;
                 }
 
-                if (device.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED) {
+                if (device.isVerified()) {
                     // Don't bother setting up sessions with blocked users
                     continue;
                 }
@@ -1607,7 +1607,7 @@ public class MXCrypto {
                         getUIHandler().post(new Runnable() {
                             @Override
                             public void run() {
-                                callback.onMatrixError(new MXCryptoError(MXCryptoError.UNABLE_TO_ENCRYPT_ERROR_CODE, MXCryptoError.UNABLE_TO_ENCRYPT, reason));;
+                                callback.onMatrixError(new MXCryptoError(MXCryptoError.UNABLE_TO_ENCRYPT_ERROR_CODE, MXCryptoError.UNABLE_TO_ENCRYPT, reason));
                             }
                         });
                     }
@@ -2329,7 +2329,7 @@ public class MXCrypto {
         if (null != decryptingClass) {
             try {
                 Constructor<?> ctor = decryptingClass.getConstructors()[0];
-                alg = (IMXDecrypting) ctor.newInstance(new Object[]{});
+                alg = (IMXDecrypting) ctor.newInstance();
 
                 if (null != alg) {
                     alg.initWithMatrixSession(mSession);

@@ -380,7 +380,7 @@ public class CryptoTest {
 
         // Continue testing other methods
         assertTrue (null != mBobSession.getCrypto().deviceWithIdentityKey(mAliceSession.getCrypto().getOlmDevice().getDeviceCurve25519Key(), mAliceSession.getMyUserId(), MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM));
-        assertTrue (aliceDeviceFromBobPOV.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_UNVERIFIED);
+        assertTrue (aliceDeviceFromBobPOV.isUnverified());
 
         final CountDownLatch lock3a = new CountDownLatch(1);
         mBobSession.getCrypto().setDeviceVerification(
@@ -412,7 +412,7 @@ public class CryptoTest {
         );
         lock3a.await(1000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("setDeviceVerification1"));
-        assertTrue (aliceDeviceFromBobPOV.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED);
+        assertTrue (aliceDeviceFromBobPOV.isBlocked());
 
         Credentials bobCredentials = mBobSession.getCredentials();
 
@@ -517,7 +517,7 @@ public class CryptoTest {
 
         assertTrue (null != aliceDeviceFromBobPOV3);
         assertTrue (TextUtils.equals(aliceDeviceFromBobPOV3.fingerprint(), mAliceSession.getCrypto().getOlmDevice().getDeviceEd25519Key()));
-        assertTrue(aliceDeviceFromBobPOV3.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED);
+        assertTrue(aliceDeviceFromBobPOV3.isBlocked());
 
         mAliceSession.clear(context);
         mBobSession.clear(context);

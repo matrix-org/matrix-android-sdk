@@ -46,7 +46,7 @@ public class Log {
     private static File sCacheDirectory = null;
     private static String sFileName = "matrix";
     
-    public static enum EventTag {
+    public enum EventTag {
         /** A navigation event, e.g. onPause */ NAVIGATION,
         /** A user triggered event, e.g. onClick */ USER,
         /** User-visible notifications */ NOTICE,

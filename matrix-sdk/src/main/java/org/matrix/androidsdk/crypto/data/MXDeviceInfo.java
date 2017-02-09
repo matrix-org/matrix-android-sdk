@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,10 +26,12 @@ import java.util.List;
 import java.util.Map;
 
 public class MXDeviceInfo implements Serializable {
+    // define a serialVersionUID to avoid having to redefine the class after updates
+    private static final long serialVersionUID = 201702071720L;
     //
     //private static final String LOG_TAG = "MXDeviceInfo";
 
-    // The user has not yet verified this device.
+    // This device is a new device and the user was not warned it has been added.
     public static final int DEVICE_VERIFICATION_UNKNOWN = -1;
 
     // The user has not yet verified this device.
@@ -72,7 +75,7 @@ public class MXDeviceInfo implements Serializable {
     public Map<String, Object> unsigned;
 
     /**
-     Verification state of this device.
+     * Verification state of this device.
      */
     public int mVerified;
 
@@ -90,6 +93,38 @@ public class MXDeviceInfo implements Serializable {
     public MXDeviceInfo(String aDeviceId) {
         deviceId = aDeviceId;
         mVerified = DEVICE_VERIFICATION_UNKNOWN;
+    }
+
+    /**
+     * Tells if the device is unknown
+     * @return true if the device is unknown
+     */
+    public boolean isUnknown() {
+        return mVerified == DEVICE_VERIFICATION_UNKNOWN;
+    }
+
+    /**
+     * Tells if the device is verified.
+     * @return true if the device is verified
+     */
+    public boolean isVerified() {
+        return mVerified ==  DEVICE_VERIFICATION_VERIFIED;
+    }
+
+    /**
+     * Tells if the device is unverified.
+     * @return true if the device is unverified
+     */
+    public boolean isUnverified() {
+        return mVerified ==  DEVICE_VERIFICATION_UNVERIFIED;
+    }
+
+    /**
+     * Tells if the device is blocked.
+     * @return true if the device is blocked
+     */
+    public boolean isBlocked() {
+        return mVerified ==  DEVICE_VERIFICATION_BLOCKED;
     }
 
     /**
@@ -149,7 +184,7 @@ public class MXDeviceInfo implements Serializable {
     }
 
     /**
-     * @return a dictionnary of the parameters
+     * @return a dictionary of the parameters
      */
     public Map<String, Object>JSONDictionary() {
         HashMap<String, Object> JSONDictionary = new HashMap<>();

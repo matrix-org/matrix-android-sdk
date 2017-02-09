@@ -189,7 +189,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
     @Override
     public void onDeviceVerification(MXDeviceInfo device, int oldVerified) {
-        if (device.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED) {
+        if (device.isBlocked()) {
             Log.d(LOG_TAG, "## onDeviceVerification() : Discarding outbound megolm session in " + mRoomId + "due to the blacklisting of " + device);
             mOutboundSession = null;
         }
@@ -228,7 +228,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
             for (String deviceId : deviceIds) {
                 MXDeviceInfo deviceInfo = devicesInRoom.getObject(deviceId, userId);
 
-                if (deviceInfo.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_UNKNOWN) {
+                if (deviceInfo.isUnknown()) {
                     unknownDevices.setObject(deviceInfo, userId, deviceId);
                 }
             }
@@ -295,7 +295,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                             for (String deviceId : deviceIds) {
                                 MXDeviceInfo deviceInfo = usersDevices.getObject(deviceId, userId);
 
-                                if (deviceInfo.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED) {
+                                if (deviceInfo.isBlocked()) {
                                     continue;
                                 }
 
