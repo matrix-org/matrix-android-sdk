@@ -1,6 +1,7 @@
 /*
  * Copyright 2014 OpenMarket Ltd
- *
+ * Copyright 2017 Vector Creations Ltd
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -41,6 +42,9 @@ public class RoomMember implements java.io.Serializable {
     // the id of the sender which has created this member
     private String mInviter;
 
+    // the event used to build the room member
+    private Event mOriginalEvent = null;
+
     public String getUserId() {
         return userId;
     }
@@ -55,6 +59,14 @@ public class RoomMember implements java.io.Serializable {
 
     public long getOriginServerTs() {
         return mOriginServerTs;
+    }
+
+    public void setOriginalEvent(Event event) {
+        mOriginalEvent = event;
+    }
+
+    public Event getOriginalEvent() {
+        return mOriginalEvent;
     }
 
     public String getInviterId() {
@@ -190,6 +202,7 @@ public class RoomMember implements java.io.Serializable {
         copy.avatarUrl = avatarUrl;
         copy.membership = membership;
         copy.userId = userId;
+        copy.mOriginalEvent = mOriginalEvent;
         return copy;
     }
 

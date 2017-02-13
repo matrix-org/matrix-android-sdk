@@ -86,6 +86,13 @@ public interface IMXStore {
     boolean isCorrupted();
 
     /**
+     * Warn that the store data are corrupted.
+     * It might append if an update request failed.
+     * @param reason the corruption reason
+     */
+    void setCorrupted(String reason);
+
+    /**
      * Returns to disk usage size in bytes.
      * @return disk usage size
      */

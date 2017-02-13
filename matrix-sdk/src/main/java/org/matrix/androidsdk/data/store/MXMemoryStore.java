@@ -201,6 +201,16 @@ public class MXMemoryStore implements IMXStore {
     }
 
     /**
+     * Warn that the store data are corrupted.
+     * It might append if an update request failed.
+     * @param reason the corruption reason
+     */
+    @Override
+    public void setCorrupted(String reason) {
+        dispatchOnStoreCorrupted(mCredentials.userId, reason);
+    }
+
+    /**
      * Returns to disk usage size in bytes.
      * @return disk usage size
      */
