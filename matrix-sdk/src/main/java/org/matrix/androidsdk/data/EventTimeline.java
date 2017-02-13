@@ -1509,17 +1509,20 @@ public class EventTimeline {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "forceRoomStateServerSync : onNetworkError " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "forceRoomStateServerSync : onNetworkError " + e.getMessage());
+                mStore.setCorrupted(e.getMessage());
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "forceRoomStateServerSync : onMatrixError " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "forceRoomStateServerSync : onMatrixError " + e.getMessage());
+                mStore.setCorrupted(e.getMessage());
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "forceRoomStateServerSync : onUnexpectedError " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "forceRoomStateServerSync : onUnexpectedError " + e.getMessage());
+                mStore.setCorrupted(e.getMessage());
             }
         });
     }
