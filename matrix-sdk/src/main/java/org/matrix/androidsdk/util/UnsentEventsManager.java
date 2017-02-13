@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -49,12 +50,14 @@ public class UnsentEventsManager {
     // 3 minutes
     private static final int MAX_MESSAGE_LIFETIME_MS = 180000;
 
-    // Some matrix errors could have been triggered.
-    // Assume that the server requires some delays because of internal issues
-    private static final List<Integer> AUTO_RESENT_MS_DELAYS =  Arrays.asList(1 * 1000, 5 * 1000, 10 * 1000);
-
     // perform only MAX_RETRIES retries
     private static final int MAX_RETRIES = 3;
+
+    // The base time in milliseconds between 2 retries.
+    private static final int RETRY_AFTER_MS = 5000;
+
+    // The jitter value to apply to compute a random retry time.
+    private static final int RETRY_JITTER_MS = 3000;
 
     // the network receiver
     private final NetworkConnectivityReceiver mNetworkConnectivityReceiver;
@@ -452,7 +455,8 @@ public class UnsentEventsManager {
                         //    It never happens, so the message is never resent.
                         //
                         if (mbIsConnected) {
-                            snapshot.resendEventAfter((matrixRetryTimeout > 0) ? matrixRetryTimeout : AUTO_RESENT_MS_DELAYS.get(snapshot.mRetryCount - 1));
+                            int jitterTime = RETRY_AFTER_MS + (Math.abs(new Random(System.currentTimeMillis()).nextInt()) % RETRY_JITTER_MS);
+                            snapshot.resendEventAfter((matrixRetryTimeout > 0) ? matrixRetryTimeout : jitterTime);
                         }
                     }
                 }
