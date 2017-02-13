@@ -51,10 +51,7 @@ public class UnsentEventsManager {
     private static final int MAX_MESSAGE_LIFETIME_MS = 180000;
 
     // perform only MAX_RETRIES retries
-    private static final int MAX_RETRIES = 3;
-
-    // The base time in milliseconds between 2 retries.
-    private static final int RETRY_AFTER_MS = 5000;
+    private static final int MAX_RETRIES = 4;
 
     // The jitter value to apply to compute a random retry time.
     private static final int RETRY_JITTER_MS = 3000;
@@ -455,7 +452,7 @@ public class UnsentEventsManager {
                         //    It never happens, so the message is never resent.
                         //
                         if (mbIsConnected) {
-                            int jitterTime = RETRY_AFTER_MS + (Math.abs(new Random(System.currentTimeMillis()).nextInt()) % RETRY_JITTER_MS);
+                            int jitterTime = ((int)Math.pow(2, snapshot.mRetryCount)) + (Math.abs(new Random(System.currentTimeMillis()).nextInt()) % RETRY_JITTER_MS);
                             snapshot.resendEventAfter((matrixRetryTimeout > 0) ? matrixRetryTimeout : jitterTime);
                         }
                     }
