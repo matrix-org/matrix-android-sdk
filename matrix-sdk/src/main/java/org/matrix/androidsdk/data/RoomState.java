@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,14 +68,20 @@ public class RoomState implements java.io.Serializable {
     // The power level of room members
     private PowerLevels powerLevels;
 
-    // The aliases of this room by state_key (domain)
+    // The aliases
     public List<String> aliases;
 
+    // The room aliases. The key is the domain.
+    private Map<String, Event> mRoomAliases = new HashMap<>();
+
     // the aliases are defined for each home server url
-    private HashMap<String, List<String>> mAliasesByDomain = new HashMap();
+    private Map<String, List<String>> mAliasesByDomain = new HashMap();
 
     // merged from mAliasesByHomeServerUrl
     private ArrayList<String> mMergedAliasesList;
+
+    //
+    private Map<String, Event> mStateEvents = new HashMap<>();
 
     // Informs which alias is the canonical one.
     public String alias;
@@ -216,6 +223,38 @@ public class RoomState implements java.io.Serializable {
         }
 
         return res;
+    }
+
+    /**
+     * Provides the latest state events used to create this room state
+     * @return the latest state events list
+     */
+    public List<Event> getStateEvents() {
+        ArrayList<Event> stateEvents = new ArrayList<>();
+
+        stateEvents.addAll(mStateEvents.values());
+
+        // Members are also state events
+        Collection<RoomMember> members = getMembers();
+        for(RoomMember m : members) {
+            if (null != m.getOriginalEvent()) {
+                stateEvents.add(m.getOriginalEvent());
+            }
+        }
+
+        // room aliases events
+        stateEvents.addAll(mRoomAliases.values());
+
+        // Third party invites events
+        Collection<RoomThirdPartyInvite> thirdPartyInvites = mThirdPartyInvites.values();
+
+        for(RoomThirdPartyInvite thirdPartyInvite : thirdPartyInvites) {
+            if (null != thirdPartyInvite.getOriginalEvent()) {
+                stateEvents.add(thirdPartyInvite.getOriginalEvent());
+            }
+        }
+
+        return stateEvents;
     }
 
     /**
@@ -452,6 +491,8 @@ public class RoomState implements java.io.Serializable {
         copy.mIsLive = mIsLive;
         copy.mIsConferenceUserRoom = mIsConferenceUserRoom;
         copy.algorithm = algorithm;
+        copy.mRoomAliases = new HashMap<>(mRoomAliases);
+        copy.mStateEvents = new HashMap<>(mStateEvents);
 
         synchronized (this) {
             Iterator it = mMembers.entrySet().iterator();
@@ -707,6 +748,7 @@ public class RoomState implements java.io.Serializable {
                     // sanity check
                     if (null != aliases) {
                         mAliasesByDomain.put(event.stateKey, aliases);
+                        mRoomAliases.put(event.stateKey, event);
                     } else {
                         mAliasesByDomain.put(event.stateKey, new ArrayList<String>());
                     }
@@ -738,6 +780,7 @@ public class RoomState implements java.io.Serializable {
                     member.setUserId(userId);
                     member.setOriginServerTs(event.getOriginServerTs());
                     member.setInviterId(event.getSender());
+                    member.setOriginalEvent(event);
 
                     RoomMember currentMember = getMember(userId);
 
@@ -784,11 +827,14 @@ public class RoomState implements java.io.Serializable {
                 RoomThirdPartyInvite thirdPartyInvite  = JsonUtils.toRoomThirdPartyInvite(contentToConsider);
 
                 thirdPartyInvite.token = event.stateKey;
+                thirdPartyInvite.setOriginalEvent(event);
 
                 if (!TextUtils.isEmpty(thirdPartyInvite.token)) {
                     mThirdPartyInvites.put(thirdPartyInvite.token, thirdPartyInvite);
                 }
             }
+
+            mStateEvents.put(eventType, event);
         } catch (Exception e) {
             Log.e(LOG_TAG, "applyState failed with error " + e.getLocalizedMessage());
         }

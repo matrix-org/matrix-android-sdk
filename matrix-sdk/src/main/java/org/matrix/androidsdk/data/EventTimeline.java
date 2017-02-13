@@ -1,6 +1,7 @@
 /*
  * Copyright 2016 OpenMarket Ltd
- *
+ * Copyright 2017 Vector Creations Ltd
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -277,6 +278,33 @@ public class EventTimeline {
             mDataHandler.resetReplayAttackCheckInTimeline(getTimelineId());
             mDataHandler.getDataRetriever().cancelHistoryRequest(mRoomId);
         }
+    }
+
+    /**
+     * Init the history with a list of stateEvents
+     * @param stateEvents the state events
+     */
+    private void initHistory(List<Event> stateEvents) {
+        // clear the states
+        mState = new RoomState();
+        mState.roomId = mRoomId;
+        mState.setDataHandler(mDataHandler);
+
+        if (null != stateEvents) {
+            for (Event event : stateEvents) {
+                try {
+                    processStateEvent(event, Direction.FORWARDS);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "initHistory failed " + e.getMessage());
+                }
+            }
+        }
+
+        mStore.storeLiveStateForRoom(mRoomId);
+        initHistory();
+
+        // warn that there was a flush
+        mDataHandler.onRoomFlush(mRoomId);
     }
 
     /**
@@ -1379,18 +1407,40 @@ public class EventTimeline {
         if (null != event.stateKey) {
             Log.d(LOG_TAG, "checkStateEventRedaction from event " + event.eventId);
 
-            // let the server provides an up to update room state.
-            // we should apply the pruned event to the latest room state
-            // because it might concern an older state.
-            // Else, the current state would be invalid.
-            // eg with this room history
-            //
-            // message_1 : A renames this room to Name1
-            // message_2 : A renames this room to Name2
-            // If message_1 is redacted, the room name must not be cleared
-            // If the messages have been room member name updates,
-            // the user must keep his latest name but his name must be updated in the history
-            checkStateEventRedaction(event.eventId);
+            // check if the state events is locally known
+            // to avoid triggering a room initial sync
+            List<Event> stateEvents = mState.getStateEvents();
+
+            boolean isFound = false;
+            for(int index = 0; index < stateEvents.size(); index++) {
+                Event stateEvent = stateEvents.get(index);
+
+                if (TextUtils.equals(stateEvent.eventId, event.eventId)) {
+                    stateEvents.remove(index);
+                    stateEvents.set(index, event);
+                    isFound = true;
+                    break;
+                }
+            }
+
+            // if the room state can be locally pruned
+            // and can create a new valid room state
+            if (isFound) {
+                initHistory(stateEvents);
+            } else {
+                // let the server provides an up to update room state.
+                // we should apply the pruned event to the latest room state
+                // because it might concern an older state.
+                // Else, the current state would be invalid.
+                // eg with this room history
+                //
+                // message_1 : A renames this room to Name1
+                // message_2 : A renames this room to Name2
+                // If message_1 is redacted, the room name must not be cleared
+                // If the messages have been room member name updates,
+                // the user must keep his latest name but his name must be updated in the history
+                checkStateEventRedaction(event.eventId);
+            }
         }
     }
 
@@ -1451,27 +1501,7 @@ public class EventTimeline {
                 // else assume the state has already been updated
                 if (curRoomState == mState) {
                     Log.d(LOG_TAG, "forceRoomStateServerSync updates the state");
-
-                    // clear the states
-                    mState = new RoomState();
-                    mState.roomId = mRoomId;
-                    mState.setDataHandler(mDataHandler);
-
-                    if (null != roomResponse.state) {
-                        for (Event event : roomResponse.state) {
-                            try {
-                                processStateEvent(event, Direction.FORWARDS);
-                            } catch (Exception e) {
-                                Log.e(LOG_TAG, "processStateEvent failed " + e.getLocalizedMessage());
-                            }
-                        }
-                    }
-
-                    mStore.storeLiveStateForRoom(mRoomId);
-                    initHistory();
-
-                    // warn that there was a flush
-                    mDataHandler.onRoomFlush(mRoomId);
+                    initHistory(roomResponse.state);
                 } else {
                     Log.d(LOG_TAG, "forceRoomStateServerSync : the room state has been udpated, don't know what to do");
                 }
