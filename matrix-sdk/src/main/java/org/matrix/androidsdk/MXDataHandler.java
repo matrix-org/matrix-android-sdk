@@ -91,7 +91,7 @@ public class MXDataHandler implements IMXEventListener {
 
     private final IMXStore mStore;
     private final Credentials mCredentials;
-    private volatile boolean mInitialSyncComplete = false;
+    private volatile String mInitialSyncToToken = null;
     private DataRetriever mDataRetriever;
     private BingRulesManager mBingRulesManager;
     private MXCallsManager mCallsManager;
@@ -292,7 +292,7 @@ public class MXDataHandler implements IMXEventListener {
      */
     public boolean isInitialSyncComplete() {
         checkIfAlive();
-        return mInitialSyncComplete;
+        return (null != mInitialSyncToToken);
     }
 
     /**
@@ -418,8 +418,8 @@ public class MXDataHandler implements IMXEventListener {
                 }
             }
 
-            if (mInitialSyncComplete) {
-                listener.onInitialSyncComplete();
+            if (null != mInitialSyncToToken) {
+                listener.onInitialSyncComplete(mInitialSyncToToken);
             }
         }
     }
@@ -911,15 +911,15 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Manage a syncResponse.
      * @param syncResponse the syncResponse to manage.
-     * @param isInitialSync  true if the sync response if an initial sync one.
+     * @param fromToken the start sync token
      */
-    public void onSyncResponse(final SyncResponse syncResponse, final boolean isInitialSync) {
+    public void onSyncResponse(final SyncResponse syncResponse, final String fromToken) {
         // perform the sync in background
         // to avoid UI thread lags.
         mSyncHandler.post(new Runnable() {
             @Override
             public void run() {
-               manageResponse(syncResponse, isInitialSync);
+               manageResponse(syncResponse, fromToken);
             }
         });
     }
@@ -927,14 +927,15 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Manage the sync response in the UI thread.
      * @param syncResponse the syncResponse to manage.
-     * @param isInitialSync  true if the sync response if an initial sync one.
+     * @param fromToken the start sync token
      */
-    private void manageResponse(final SyncResponse syncResponse, final boolean isInitialSync) {
+    private void manageResponse(final SyncResponse syncResponse, final String fromToken) {
         if (!isAlive()) {
             Log.e(LOG_TAG, "manageResponse : ignored because the session has been closed");
             return;
         }
 
+        boolean isInitialSync = (null == fromToken);
         boolean isEmptyResponse = true;
 
         // sanity check
@@ -994,6 +995,7 @@ public class MXDataHandler implements IMXEventListener {
 
                         // sanity check
                         if (null != room) {
+
                             room.handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
 
                             // issue reported by richvdh
@@ -1043,10 +1045,10 @@ public class MXDataHandler implements IMXEventListener {
         }
 
         if (isInitialSync) {
-            onInitialSyncComplete();
+            onInitialSyncComplete((null != syncResponse) ? syncResponse.nextBatch : null);
         } else {
             try {
-                onLiveEventsChunkProcessed();
+                onLiveEventsChunkProcessed(fromToken, (null != syncResponse) ? syncResponse.nextBatch : fromToken);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "onLiveEventsChunkProcessed failed " + e.getMessage());
             }
@@ -1248,11 +1250,11 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     @Override
-    public void onLiveEventsChunkProcessed() {
+    public void onLiveEventsChunkProcessed(final String startToken, final String toToken) {
         refreshUnreadCounters();
 
         if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onLiveEventsChunkProcessed();
+            mCryptoEventsListener.onLiveEventsChunkProcessed(startToken, toToken);
         }
 
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
@@ -1262,7 +1264,7 @@ public class MXDataHandler implements IMXEventListener {
             public void run() {
                 for (IMXEventListener listener : eventListeners) {
                     try {
-                        listener.onLiveEventsChunkProcessed();
+                        listener.onLiveEventsChunkProcessed(startToken, toToken);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onLiveEventsChunkProcessed " + e.getMessage());
                     }
@@ -1380,13 +1382,13 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Dispatch the onInitialSyncComplete event.
      */
-    private void dispatchOnInitialSyncComplete() {
-        mInitialSyncComplete = true;
+    private void dispatchOnInitialSyncComplete(final String toToken) {
+        mInitialSyncToToken = toToken;
 
         refreshUnreadCounters();
 
         if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onInitialSyncComplete();
+            mCryptoEventsListener.onInitialSyncComplete(toToken);
         }
 
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
@@ -1396,7 +1398,7 @@ public class MXDataHandler implements IMXEventListener {
             public void run() {
                 for (IMXEventListener listener : eventListeners) {
                     try {
-                        listener.onInitialSyncComplete();
+                        listener.onInitialSyncComplete(mInitialSyncToToken);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onInitialSyncComplete " + e.getMessage());
                     }
@@ -1461,9 +1463,9 @@ public class MXDataHandler implements IMXEventListener {
 
 
     @Override
-    public void onInitialSyncComplete() {
+    public void onInitialSyncComplete(String toToken) {
         startCrypto();
-        dispatchOnInitialSyncComplete();
+        dispatchOnInitialSyncComplete(toToken);
     }
 
     @Override

@@ -31,8 +31,8 @@ public class DefaultEventsThreadListener implements EventsThreadListener {
     }
 
     @Override
-    public void onSyncResponse(SyncResponse syncResponse, boolean isInitialSync) {
-        mData.onSyncResponse(syncResponse, isInitialSync);
+    public void onSyncResponse(SyncResponse syncResponse, String fromToken) {
+        mData.onSyncResponse(syncResponse, fromToken);
     }
 
     @Override

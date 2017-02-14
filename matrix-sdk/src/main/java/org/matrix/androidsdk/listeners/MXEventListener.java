@@ -47,7 +47,7 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
-    public void onLiveEventsChunkProcessed() {
+    public void onLiveEventsChunkProcessed(String fromToken, String toToken) {
     }
 
     @Override
@@ -75,7 +75,7 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
-    public void onInitialSyncComplete() {
+    public void onInitialSyncComplete(String toToken) {
     }
 
     @Override

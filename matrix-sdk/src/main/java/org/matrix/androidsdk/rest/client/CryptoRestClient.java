@@ -16,6 +16,8 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.rest.model.KeyChangesResponse;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
@@ -265,6 +267,27 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
                     setDeviceName(deviceId, deviceName, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend setDeviceName : failed " + e.getMessage());
+                }
+            }
+        }));
+    }
+
+    /**
+     * Get the update devices list from two sync token.
+     * @param from the start token.
+     * @param to the up-to token.
+     * @param callback the asynchronous callback
+     */
+    public void getKeyChanges(final String from, final String to, final ApiCallback<KeyChangesResponse> callback) {
+        final String description = "getKeyChanges";
+
+        mApi.getKeyChanges(from, to, new RestAdapterCallback<KeyChangesResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    getKeyChanges(from, to, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend getKeyChanges : failed " + e.getMessage());
                 }
             }
         }));

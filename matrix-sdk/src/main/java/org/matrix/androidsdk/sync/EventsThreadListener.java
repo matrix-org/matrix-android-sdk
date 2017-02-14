@@ -24,9 +24,9 @@ public interface EventsThreadListener {
     /**
      * Call when a sync request has been performed with the API V2.
      * @param response the response (can be null)
-     * @param isInitialSync true if the response is triggered by an initial sync
+     * @param fromToken the start token
      */
-    void onSyncResponse(SyncResponse response, boolean isInitialSync);
+    void onSyncResponse(SyncResponse response, String fromToken);
 
     /**
      * the server returns an invalid token error

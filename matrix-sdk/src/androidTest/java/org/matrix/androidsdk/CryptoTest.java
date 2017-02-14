@@ -226,7 +226,7 @@ public class CryptoTest {
 
         MXEventListener eventsListener = new MXEventListener() {
             @Override
-            public void onInitialSyncComplete() {
+            public void onInitialSyncComplete(String toToken) {
                 results.put("onInitialSyncComplete", "onInitialSyncComplete");
                 lock2.countDown();
             }
@@ -493,7 +493,7 @@ public class CryptoTest {
         final CountDownLatch lock4b = new CountDownLatch(2);
         MXEventListener eventListener = new MXEventListener() {
             @Override
-            public void onInitialSyncComplete() {
+            public void onInitialSyncComplete(String toToken) {
                 results.put("onInitialSyncComplete", "onInitialSyncComplete");
                 lock4b.countDown();
             }
@@ -766,7 +766,7 @@ public class CryptoTest {
         final CountDownLatch lock5b = new CountDownLatch(2);
         MXEventListener eventListener = new MXEventListener() {
             @Override
-            public void onInitialSyncComplete() {
+            public void onInitialSyncComplete(String toToken) {
                 results.put("onInitialSyncComplete", "onInitialSyncComplete");
                 lock5b.countDown();
             }
@@ -1273,7 +1273,7 @@ public class CryptoTest {
         final CountDownLatch lock1b = new CountDownLatch(2);
         MXEventListener eventListener = new MXEventListener() {
             @Override
-            public void onInitialSyncComplete() {
+            public void onInitialSyncComplete(String toToken) {
                 results.put("onInitialSyncComplete", "onInitialSyncComplete");
                 lock1b.countDown();
             }
@@ -1445,7 +1445,7 @@ public class CryptoTest {
         final CountDownLatch lock2 = new CountDownLatch(2);
         MXEventListener eventListener = new MXEventListener() {
             @Override
-            public void onInitialSyncComplete() {
+            public void onInitialSyncComplete(String toToken) {
                 results.put("onInitialSyncComplete", "onInitialSyncComplete");
                 lock2.countDown();
             }
@@ -1507,7 +1507,7 @@ public class CryptoTest {
 
         MXEventListener eventListener = new MXEventListener() {
             @Override
-            public void onInitialSyncComplete() {
+            public void onInitialSyncComplete(String toToken) {
                 results.put("onInitialSyncComplete", "onInitialSyncComplete");
                 lock1.countDown();
             }
@@ -3213,7 +3213,7 @@ public class CryptoTest {
         final CountDownLatch lock2 = new CountDownLatch(2);
         MXEventListener eventListener = new MXEventListener() {
             @Override
-            public void onInitialSyncComplete() {
+            public void onInitialSyncComplete(String toToken) {
                 results.put("onInitialSyncComplete", "onInitialSyncComplete");
                 lock2.countDown();
             }

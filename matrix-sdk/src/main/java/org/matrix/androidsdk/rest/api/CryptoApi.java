@@ -22,11 +22,14 @@ import retrofit.http.GET;
 import retrofit.http.POST;
 import retrofit.http.PUT;
 import retrofit.http.Path;
+import retrofit.http.Query;
 
 import org.matrix.androidsdk.rest.model.ChangePasswordParams;
 import org.matrix.androidsdk.rest.model.DeleteDeviceAuth;
 import org.matrix.androidsdk.rest.model.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.DevicesListResponse;
+import org.matrix.androidsdk.rest.model.KeyChangesResponse;
+import org.matrix.androidsdk.rest.model.PidResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysClaimResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
@@ -101,4 +104,13 @@ public interface CryptoApi {
      */
     @PUT("/devices/{device_id}")
     void updateDeviceInfo(@Path("device_id")String deviceId, @Body Map<String, String> params, Callback<Void> callback);
+
+    /**
+     * Get the update devices list from two sync token.
+     * @param oldToken the start token.
+     * @param newToken the up-to token.
+     * @param callback the asynchronous callback
+     */
+    @GET("/keys/changes")
+    void getKeyChanges(@Query("from") String oldToken, @Query("to") String newToken, Callback<KeyChangesResponse> callback);
 }

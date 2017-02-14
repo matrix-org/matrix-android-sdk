@@ -1723,9 +1723,9 @@ public class Room {
             }
 
             @Override
-            public void onLiveEventsChunkProcessed() {
+            public void onLiveEventsChunkProcessed(String fromToken, String toToken) {
                 try {
-                    eventListener.onLiveEventsChunkProcessed();
+                    eventListener.onLiveEventsChunkProcessed(fromToken, toToken);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "onLiveEventsChunkProcessed exception " + e.getMessage());
                 }
