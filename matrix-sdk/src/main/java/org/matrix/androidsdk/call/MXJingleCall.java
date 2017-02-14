@@ -1561,7 +1561,7 @@ public class MXJingleCall extends MXCall {
      * the callee who did not answer must display a "answered elsewhere" message.
      */
     @Override
-    public void onAnsweredElsewhere() {;
+    public void onAnsweredElsewhere() {
         String state = getCallState();
 
         Log.d(LOG_TAG, "onAnsweredElsewhere in state " + state);

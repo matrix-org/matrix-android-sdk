@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,12 +71,14 @@ public interface IMXStore {
     /**
      * Indicate if the MXStore implementation stores data permanently.
      * Permanent storage allows the SDK to make less requests at the startup.
+     *
      * @return true if permanent.
      */
     boolean isPermanent();
 
     /**
      * Check if the initial load is performed.
+     *
      * @return true if it is ready.
      */
     boolean isReady();
@@ -94,30 +97,35 @@ public interface IMXStore {
 
     /**
      * Returns to disk usage size in bytes.
+     *
      * @return disk usage size
      */
     long diskUsage();
 
     /**
      * Returns the latest known event stream token
+     *
      * @return the event stream token
      */
     String getEventStreamToken();
 
     /**
      * Set the event stream token.
+     *
      * @param token the event stream token
      */
     void setEventStreamToken(String token);
 
     /**
      * Add a MXStore listener.
+     *
      * @param listener the listener
      */
     void addMXStoreListener(IMXStoreListener listener);
 
     /**
      * remive a MXStore listener.
+     *
      * @param listener the listener
      */
     void removeMXStoreListener(IMXStoreListener listener);
@@ -126,76 +134,96 @@ public interface IMXStore {
      * profile information
      */
     String displayName();
+
     void setDisplayName(String displayName);
+
     String avatarURL();
+
     void setAvatarURL(String avatarURL);
+
     List<ThirdPartyIdentifier> thirdPartyIdentifiers();
+
     void setThirdPartyIdentifiers(List<ThirdPartyIdentifier> identifiers);
-    void setIgnoredUserIdsList(List<String>users);
+
+    void setIgnoredUserIdsList(List<String> users);
+
     void setDirectChatRoomsDict(Map<String, List<String>> directChatRoomsDict);
 
     /**
      * getters.
      */
     Collection<Room> getRooms();
+
     Room getRoom(String roomId);
+
     Collection<User> getUsers();
+
     User getUser(String userId);
+
     List<String> getIgnoredUserIdsList();
+
     Map<String, List<String>> getDirectChatRoomsDict();
 
     /**
      * flush methods
      */
     void storeUser(User user);
+
     void updateUserWithRoomMemberEvent(RoomMember roomMember);
+
     void storeRoom(Room room);
 
     /**
      * Store a block of room events either live or from pagination.
-     * @param roomId the room id
+     *
+     * @param roomId         the room id
      * @param eventsResponse The events to be stored.
-     * @param direction the direction; forwards for live, backwards for pagination
+     * @param direction      the direction; forwards for live, backwards for pagination
      */
     void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, EventTimeline.Direction direction);
 
     /**
      * Store the back token of a room.
-     * @param roomId the room id.
+     *
+     * @param roomId    the room id.
      * @param backToken the back token
      */
     void storeBackToken(String roomId, String backToken);
 
     /**
      * Store a live room event.
+     *
      * @param event The event to be stored.
      */
     void storeLiveRoomEvent(Event event);
 
     /**
      * @param eventId the id of the event to retrieve.
-     * @param roomId the id of the room.
+     * @param roomId  the id of the room.
      * @return true if the event exists in the store.
      */
     boolean doesEventExist(String eventId, String roomId);
 
     /**
      * Retrieve an event from its room Id and its Event id
+     *
      * @param eventId the event id
-     * @param roomId the room Id
+     * @param roomId  the room Id
      * @return the event (null if it is not found)
      */
     Event getEvent(String eventId, String roomId);
 
     /**
      * Delete an event
+     *
      * @param event The event to be deleted.
      */
     void deleteEvent(Event event);
 
     /**
      * Remove all sent messages in a room.
-     * @param roomId the id of the room.
+     *
+     * @param roomId     the id of the room.
      * @param keepUnsent set to true to do not delete the unsent message
      */
     void deleteAllRoomMessages(String roomId, boolean keepUnsent);
@@ -203,6 +231,7 @@ public interface IMXStore {
     /**
      * Delete the room from the storage.
      * The room data and its reference will be deleted.
+     *
      * @param roomId the roomId.
      */
     void deleteRoom(String roomId);
@@ -210,12 +239,14 @@ public interface IMXStore {
     /**
      * Delete the room data from the storage;
      * The room data are cleared but the getRoom returned object will be the same.
+     *
      * @param roomId the roomId.
      */
     void deleteRoomData(String roomId);
 
     /**
      * Retrieve all non-state room events for this room.
+     *
      * @param roomId The room ID
      * @return A collection of events. null if there is no cached event.
      */
@@ -223,14 +254,17 @@ public interface IMXStore {
 
     /**
      * Retrieve all non-state room events for this room.
-     * @param roomId The room ID
+     *
+     * @param roomId    The room ID
      * @param fromToken the token
-     * @param limit the maximum number of messages to retrieve.
+     * @param limit     the maximum number of messages to retrieve.
      * @return A collection of events. null if there is no cached event.
      */
     TokensChunkResponse<Event> getEarlierMessages(final String roomId, final String fromToken, final int limit);
+
     /**
      * Get the oldest event from the given room (to prevent pagination overlap).
+     *
      * @param roomId the room id
      * @return the event
      */
@@ -238,6 +272,7 @@ public interface IMXStore {
 
     /**
      * Get the latest event from the given room (to update summary for example)
+     *
      * @param roomId the room id
      * @return the event
      */
@@ -245,7 +280,8 @@ public interface IMXStore {
 
     /**
      * Count the number of events after the provided events id
-     * @param roomId the room id.
+     *
+     * @param roomId  the room id.
      * @param eventId the event id to find.
      * @return the events count after this event if
      */
@@ -255,15 +291,18 @@ public interface IMXStore {
     //              how they are storing the data to do this in an efficient manner (e.g. SQL JOINs)
     //              compared to calling getRooms() then getRoomEvents(roomId, limit=1) for each room
     //              (which forces single SELECTs)
+
     /**
      * <p>Retrieve a list of all the room summaries stored.</p>
      * Typically this method will be called when generating a 'Recent Activity' list.
+     *
      * @return A collection of room summaries.
      */
     Collection<RoomSummary> getSummaries();
 
     /**
      * Get the stored summary for the given room.
+     *
      * @param roomId the room id
      * @return the summary for the room
      */
@@ -271,6 +310,7 @@ public interface IMXStore {
 
     /**
      * Flush a room summmary
+     *
      * @param summary the summary.
      */
     void flushSummary(RoomSummary summary);
@@ -282,9 +322,10 @@ public interface IMXStore {
 
     /**
      * Store the summary for the given room id.
-     * @param roomId the room id
-     * @param event the latest event of the room
-     * @param roomState the room state - used to display the event
+     *
+     * @param roomId     the room id
+     * @param event      the latest event of the room
+     * @param roomState  the room state - used to display the event
      * @param selfUserId our own user id - used to display the room name
      * @return the new RoomSummary.
      */
@@ -292,6 +333,7 @@ public interface IMXStore {
 
     /**
      * Store the room liveState.
+     *
      * @param roomId roomId the id of the room.
      */
     void storeLiveStateForRoom(String roomId);
@@ -300,25 +342,36 @@ public interface IMXStore {
      * Return the list of latest unsent events.
      * The provided events are the unsent ones since the last sent one.
      * They are ordered.
+     *
      * @param roomId the room id
      * @return list of unsent events
      */
-    Collection<Event> getLatestUnsentEvents(String roomId);
+    List<Event> getLatestUnsentEvents(String roomId);
 
     /**
      * Return the list of undeliverable events
+     *
      * @param roomId the room id
-     * @return  list of undeliverable events
+     * @return list of undeliverable events
      */
-    Collection<Event> getUndeliverableEvents(String roomId);
+    List<Event> getUndeliverableEvents(String roomId);
+
+    /**
+     * Return the list of unknown device events.
+     *
+     * @param roomId the room id
+     * @return list of unknown device events
+     */
+    List<Event> getUnknownDeviceEvents(String roomId);
 
     /**
      * Returns the receipts list for an event in a dedicated room.
      * if sort is set to YES, they are sorted from the latest to the oldest ones.
-     * @param roomId The room Id.
-     * @param eventId The event Id. (null to retrieve all existing receipts)
+     *
+     * @param roomId      The room Id.
+     * @param eventId     The event Id. (null to retrieve all existing receipts)
      * @param excludeSelf exclude the oneself read receipts.
-     * @param sort to sort them from the latest to the oldest
+     * @param sort        to sort them from the latest to the oldest
      * @return the receipts for an event in a dedicated room.
      */
     List<ReceiptData> getEventReceipts(String roomId, String eventId, boolean excludeSelf, boolean sort);
@@ -326,14 +379,16 @@ public interface IMXStore {
     /**
      * Store the receipt for an user in a room.
      * The receipt validity is checked i.e the receipt is not for an already read message.
+     *
      * @param receipt The event
-     * @param roomId The roomId
+     * @param roomId  The roomId
      * @return true if the receipt has been stored
      */
     boolean storeReceipt(ReceiptData receipt, String roomId);
 
     /**
      * Get the receipt for an user in a dedicated room.
+     *
      * @param roomId the room id.
      * @param userId the user id.
      * @return the dedicated receipt
@@ -342,16 +397,18 @@ public interface IMXStore {
 
     /**
      * Provides the unread events list.
+     *
      * @param roomId the room id.
-     * @param types an array of event types strings (Event.EVENT_TYPE_XXX).
+     * @param types  an array of event types strings (Event.EVENT_TYPE_XXX).
      * @return the unread events list.
      */
     List<Event> unreadEvents(String roomId, List<String> types);
 
     /**
      * Check if an event has been read by an user.
-     * @param roomId the room Id
-     * @param userId the user id
+     *
+     * @param roomId  the room Id
+     * @param userId  the user id
      * @param eventId the event id
      * @return true if the user has read the message.
      */
@@ -360,19 +417,21 @@ public interface IMXStore {
     /**
      * Store the user data for a room.
      *
-     * @param roomId The room Id.
+     * @param roomId      The room Id.
      * @param accountData the account data.
      */
     void storeAccountData(String roomId, RoomAccountData accountData);
 
     /**
      * Provides the store preload time in milliseconds.
+     *
      * @return the store preload time in milliseconds.
      */
     long getPreloadTime();
 
     /**
      * Provides some store stats
+     *
      * @return the store stats
      */
     Map<String, Long> getStats();
