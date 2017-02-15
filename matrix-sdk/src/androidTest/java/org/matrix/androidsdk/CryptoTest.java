@@ -272,6 +272,7 @@ public class CryptoTest {
             @Override
             public void onSuccess(Void info) {
                 results.put("enableCrypto", "enableCrypto");
+                lock0.countDown();
             }
 
             @Override
@@ -524,7 +525,7 @@ public class CryptoTest {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
                 results.put("downloadKeys2", info);
-                lock4.countDown();
+                lock5.countDown();
             }
 
             @Override
