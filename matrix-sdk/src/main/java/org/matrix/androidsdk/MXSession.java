@@ -1878,7 +1878,7 @@ public class MXSession {
                 fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
                 fileCryptoStore.open();
                 mCrypto = new MXCrypto(this, fileCryptoStore);
-                mCrypto.start(new ApiCallback<Void>() {
+                mCrypto.start(true, new ApiCallback<Void>() {
                     @Override
                     public void onSuccess(Void info) {
                         decryptRoomSummaries();
