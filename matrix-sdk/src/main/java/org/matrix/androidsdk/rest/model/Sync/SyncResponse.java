@@ -16,6 +16,8 @@
 
 package org.matrix.androidsdk.rest.model.Sync;
 
+import org.matrix.androidsdk.rest.model.DeviceListResponse;
+
 import java.util.Map;
 
 // SyncResponse represents the request response for server sync v2.
@@ -46,5 +48,8 @@ public class SyncResponse implements java.io.Serializable {
      */
     public RoomsSyncResponse rooms;
 
-
+    /**
+     * Devices list update
+     */
+    public DeviceListResponse device_lists;
 }

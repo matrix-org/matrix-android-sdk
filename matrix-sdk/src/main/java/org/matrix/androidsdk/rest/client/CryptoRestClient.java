@@ -106,9 +106,10 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
     /**
      * Download device keys.
      * @param userIds list of users to get keys for.
+     * @param token the up-to token
      * @param callback the asynchronous callback
      */
-    public void downloadKeysForUsers(final List<String> userIds , final ApiCallback<KeysQueryResponse> callback) {
+    public void downloadKeysForUsers(final List<String> userIds, final String token, final ApiCallback<KeysQueryResponse> callback) {
         final String description = "downloadKeysForUsers";
 
         HashMap<String, Map<String, Object>> downloadQuery = new HashMap<>();
@@ -122,11 +123,15 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
         HashMap<String, Object> parameters = new HashMap<>();
         parameters.put("device_keys", downloadQuery);
 
+        if (!TextUtils.isEmpty(token)) {
+            parameters.put("token", token);
+        }
+
         mApi.downloadKeysForUsers(parameters, new RestAdapterCallback<KeysQueryResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
-                    downloadKeysForUsers(userIds, callback);
+                    downloadKeysForUsers(userIds, token, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend downloadKeysForUsers : failed " + e.getMessage());
                 }

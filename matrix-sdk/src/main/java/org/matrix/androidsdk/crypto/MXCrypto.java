@@ -88,8 +88,9 @@ public class MXCrypto {
         public final List<String> mFailedUserIds;
 
         public DoKeyDownloadForUsersResponse(MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap, List<String> failedUserIds) {
-            mUsersDevicesInfoMap = usersDevicesInfoMap;
-            mFailedUserIds = failedUserIds;
+            // null case
+            mUsersDevicesInfoMap = (null == usersDevicesInfoMap) ? new MXUsersDevicesMap<MXDeviceInfo>() : usersDevicesInfoMap;
+            mFailedUserIds = (null == failedUserIds) ? new ArrayList<String>() : failedUserIds;
         }
     }
 
@@ -122,10 +123,6 @@ public class MXCrypto {
 
     // Timer to periodically upload keys
     private Timer mUploadKeysTimer;
-
-    // Users with new devices
-    private final HashSet<String> mPendingUsersWithNewDevices;
-    private final HashSet<String> mInProgressUsersWithNewDevices;
 
     // the crypto background threads
     private HandlerThread mEncryptingHandlerThread = null;
@@ -165,14 +162,19 @@ public class MXCrypto {
         }
 
         @Override
-        public void onInitialSyncComplete(String toToken) {
-        }
-
-        @Override
         public void onLiveEventsChunkProcessed(String fromToken, String toToken) {
+            // We delay handling these until the intialsync has completed, so that we
+            // can do all of them together.
+            if (isStarted()) {
+                getEncryptingThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        refreshOutdatedDeviceLists();
+                    }
+                });
+            }
         }
     };
-
 
     // initialization callbacks
     private final ArrayList<ApiCallback<Void>> mInitializationCallbacks = new ArrayList();
@@ -193,8 +195,6 @@ public class MXCrypto {
         mOlmDevice = new MXOlmDevice(mCryptoStore);
         mRoomEncryptors = new HashMap<>();
         mRoomDecryptors = new HashMap<>();
-        mPendingUsersWithNewDevices = new HashSet<>();
-        mInProgressUsersWithNewDevices = new HashSet<>();
 
         String deviceId = mSession.getCredentials().deviceId;
         // deviceId should always be defined
@@ -513,6 +513,11 @@ public class MXCrypto {
                                                 });
                                             }
                                             mInitializationCallbacks.clear();
+
+                                            if (isInitialSync) {
+                                                // refresh the devices list for each known room members
+                                                invalidateUserDeviceList(getE2eRoomMembers());
+                                            }
                                         }
 
                                         @Override
@@ -813,11 +818,9 @@ public class MXCrypto {
                     if (null == devices) {
                         downloadUsers.add(userId);
                     } else {
-                        // If we have some pending new devices for this user, force download their devices keys.
-                        // The keys will be downloaded twice (in flushNewDeviceRequests and here)
-                        // but this is better than no keys.
-                        if (mPendingUsersWithNewDevices.contains(userId) ||
-                                mInProgressUsersWithNewDevices.contains(userId)) {
+                        // the keys download won't be triggered twice
+                        // but the callback requires the dedicated keys
+                        if (isKeysDownloading(userId)) {
                             downloadUsers.add(userId);
                         } else {
                             stored.setObjects(devices, userId);
@@ -901,7 +904,7 @@ public class MXCrypto {
         // get the user ids which did not already trigger a keys download
         final List<String> filteredUsers = addDownloadKeysPromise(downloadUsers, callback);
 
-        mSession.getCryptoRestClient().downloadKeysForUsers(filteredUsers, new ApiCallback<KeysQueryResponse>() {
+        mSession.getCryptoRestClient().downloadKeysForUsers(filteredUsers, mSession.getDataHandler().getStore().getEventStreamToken(), new ApiCallback<KeysQueryResponse>() {
             @Override
             public void onSuccess(final KeysQueryResponse keysQueryResponse) {
                 getEncryptingThreadHandler().post(new Runnable() {
@@ -1827,6 +1830,10 @@ public class MXCrypto {
         return res;
     }
 
+    /**
+     * Provides the list of e2e rooms
+     * @return the list of e2e rooms
+     */
     private List<Room> getE2eRooms() {
         List<Room> rooms = new ArrayList<>(mSession.getDataHandler().getStore().getRooms());
         List<Room> e2eRooms = new ArrayList<>();
@@ -1841,6 +1848,28 @@ public class MXCrypto {
     }
 
     /**
+     * get the users we share an e2e-enabled room with
+     *
+     * @returns {Object<string>} userid->userid map (should be a Set but argh ES6)
+     */
+    private List<String> getE2eRoomMembers() {
+        HashSet<String> list = new HashSet<>();
+        List<Room> rooms = getE2eRooms();
+
+        for(Room r : rooms) {
+            Collection<RoomMember> activeMembers = r.getActiveMembers();
+
+            for(RoomMember m : activeMembers) {
+                // add only the matrix id
+                if (MXSession.PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER.matcher(m.getUserId()).matches()) {
+                    list.add(m.getUserId());
+                }
+            }
+        }
+        return new ArrayList<>(list);
+    }
+
+    /**
      * Announce the device to the server.
      * This method must be called from the getCryptoHandler() thread.
      * The callback is called in the UI thread.
@@ -1850,7 +1879,7 @@ public class MXCrypto {
     private void checkDeviceAnnounced(final ApiCallback<Void> callback) {
         if (mCryptoStore.deviceAnnounced()) {
             // Catch up on any m.new_device events which arrived during the initial sync.
-            flushNewDeviceRequests(null);
+            refreshOutdatedDeviceLists();
 
             if (null != callback) {
                 getUIHandler().post(new Runnable() {
@@ -1866,7 +1895,7 @@ public class MXCrypto {
         // Catch up on any m.new_device events which arrived during the initial sync.
         // And force download all devices keys  the user already has.
         mPendingUsersWithNewDevices.add(mMyDevice.userId);
-        flushNewDeviceRequests(null);
+        refreshOutdatedDeviceLists();
 
         // We need to tell all the devices in all the rooms we are members of that
         // we have arrived.
@@ -2052,12 +2081,21 @@ public class MXCrypto {
             return;
         }
 
-        mPendingUsersWithNewDevices.add(userId);
+        synchronized (mPendingUsersWithNewDevices) {
+            mPendingUsersWithNewDevices.add(userId);
+        }
+    }
 
-        // We delay handling these until the intialsync has completed, so that we
-        // can do all of them together.
-        if (mSession.getDataHandler().isInitialSyncComplete()) {
-            flushNewDeviceRequests(null);
+    /**
+     * Invalidate the user device list
+     * @param userIds the user ids list
+     */
+    public void invalidateUserDeviceList(List<String> userIds) {
+        if ((null != userIds) && (0 != userIds.size())) {
+            Log.d(LOG_TAG, "## invalidateUserDeviceList() : " + userIds);
+            synchronized (mPendingUsersWithNewDevices) {
+                mPendingUsersWithNewDevices.addAll(userIds);
+            }
         }
     }
 
@@ -2065,19 +2103,20 @@ public class MXCrypto {
      * Start device queries for any users who sent us an m.new_device recently
      * This method must be called on getEncryptingThreadHandler() thread.
      */
-    private void flushNewDeviceRequests(final ApiCallback<Void> callback) {
-        final List<String> users = new ArrayList<>(mPendingUsersWithNewDevices);
+    private void refreshOutdatedDeviceLists() {
+        final List<String> users;
+
+        synchronized (mPendingUsersWithNewDevices) {
+            users = new ArrayList<>(mPendingUsersWithNewDevices);
+
+            // We've kicked off requests to these users: remove their
+            // pending flag for now.
+            mPendingUsersWithNewDevices.clear();
+        }
 
         if (users.size() == 0) {
             return;
         }
-
-        // We've kicked off requests to these users: remove their
-        // pending flag for now.
-        mPendingUsersWithNewDevices.clear();
-
-        // Keep track of requests in progress
-        mInProgressUsersWithNewDevices.addAll(users);
 
         doKeyDownloadForUsers(users, new ApiCallback<DoKeyDownloadForUsersResponse>() {
             @Override
@@ -2091,96 +2130,43 @@ public class MXCrypto {
                             Log.d(LOG_TAG, "## flushNewDeviceRequests() : succeeded");
                         }
 
-                        // Consider the request for these users as done
-                        mInProgressUsersWithNewDevices.removeAll(response.mUsersDevicesInfoMap.getUserIds());
-
                         if (response.mFailedUserIds.size() > 0) {
                             // Reinstate the pending flags on any users which failed; this will
                             // mean that we will do another download in the future, but won't
                             // tight-loop.
-                            mPendingUsersWithNewDevices.addAll(response.mFailedUserIds);
-                        }
-
-                        if (null != callback) {
-                            getUIHandler().post(new Runnable() {
-                                                    @Override
-                                                    public void run() {
-                                                        callback.onSuccess(null);
-                                                    }
-                                                }
-                            );
+                            synchronized (mPendingUsersWithNewDevices) {
+                                mPendingUsersWithNewDevices.addAll(response.mFailedUserIds);
+                            }
                         }
                     }
                 });
+            }
+
+            private void onError(String error) {
+                synchronized (mPendingUsersWithNewDevices) {
+                    mPendingUsersWithNewDevices.addAll(users);
+                }
+
+                Log.e(LOG_TAG, "## flushNewDeviceRequests() : ERROR updating device keys for users " + mPendingUsersWithNewDevices + " : " + error);
+
             }
 
             @Override
             public void onNetworkError(final Exception e) {
-                getEncryptingThreadHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        mPendingUsersWithNewDevices.addAll(users);
-                        if (null != callback) {
-                            getUIHandler().post(new Runnable() {
-                                                    @Override
-                                                    public void run() {
-                                                        callback.onNetworkError(e);
-                                                    }
-                                                }
-                            );
-                        }
-                    }
-                });
-
-                Log.e(LOG_TAG, "## flushNewDeviceRequests() : ERROR updating device keys for users " + mPendingUsersWithNewDevices + " : " + e.getMessage());
+                onError(e.getMessage());
             }
 
             @Override
             public void onMatrixError(final MatrixError e) {
-                getEncryptingThreadHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        mPendingUsersWithNewDevices.addAll(users);
-
-                        if (null != callback) {
-                            getUIHandler().post(new Runnable() {
-                                                    @Override
-                                                    public void run() {
-                                                        callback.onMatrixError(e);
-                                                    }
-                                                }
-                            );
-                        }
-                    }
-                });
-
-                Log.e(LOG_TAG, "## flushNewDeviceRequests() : ERROR updating device keys for users " + mPendingUsersWithNewDevices + " : " + e.getMessage());
+                onError(e.getMessage());
             }
 
             @Override
             public void onUnexpectedError(final Exception e) {
-                getEncryptingThreadHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        mPendingUsersWithNewDevices.addAll(users);
-
-                        if (null != callback) {
-                            getUIHandler().post(new Runnable() {
-                                                    @Override
-                                                    public void run() {
-                                                        callback.onUnexpectedError(e);
-                                                    }
-                                                }
-                            );
-                        }
-                    }
-                });
-
-                Log.e(LOG_TAG, "## flushNewDeviceRequests() : ERROR updating device keys for users " + mPendingUsersWithNewDevices + " : " + e.getMessage());
+                onError(e.getMessage());
             }
         });
     }
-
 
     /**
      * Handle an m.room.encryption event.
@@ -2629,8 +2615,11 @@ public class MXCrypto {
     // Download keys queue management
     //==============================================================================================================
 
-    // User ids list
-    private HashSet<String> mUserKeyDownloads = new HashSet<>();
+    // keys in progress
+    private final HashSet<String> mUserKeyDownloadsInProgress = new HashSet<>();
+
+    // pending request
+    private final HashSet<String> mPendingUsersWithNewDevices = new HashSet<>();
 
     // download keys queue
     class DownloadKeysPromise {
@@ -2659,6 +2648,19 @@ public class MXCrypto {
     private List<DownloadKeysPromise> mDownloadKeysQueues = new ArrayList<>();
 
     /**
+     * Tells if the keys downloads for an user id is either in progress or pending
+     * @param userId the user id
+     * @return true if teh keys download is either in progress or pending
+     */
+    private boolean isKeysDownloading(String userId) {
+        if (null != userId) {
+            return mUserKeyDownloadsInProgress.contains(userId) || mPendingUsersWithNewDevices.contains(userId);
+        }
+
+        return false;
+    }
+
+    /**
      * Add a download keys promise
      * @param userIds the user ids list
      * @param callback the asynchronous callback
@@ -2667,9 +2669,9 @@ public class MXCrypto {
     private List<String> addDownloadKeysPromise(List<String> userIds, ApiCallback<DoKeyDownloadForUsersResponse> callback) {
         if (null != userIds) {
             List<String> filteredUserIds = new ArrayList<>(userIds);
-            filteredUserIds.removeAll(mUserKeyDownloads);
+            filteredUserIds.removeAll(mUserKeyDownloadsInProgress);
 
-            mUserKeyDownloads.addAll(userIds);
+            mUserKeyDownloadsInProgress.addAll(userIds);
             mDownloadKeysQueues.add(new DownloadKeysPromise(userIds, callback));
 
             return filteredUserIds;
@@ -2684,12 +2686,12 @@ public class MXCrypto {
      */
     private void onKeysDownloadFailed(final List<String> userIds) {
         if (null != userIds) {
-            mUserKeyDownloads.removeAll(userIds);
+            mUserKeyDownloadsInProgress.removeAll(userIds);
         }
     }
 
     /**
-     *
+     * the keys download succeeded.
      * @param userIds
      */
     private void onKeysDownloadSucceed(List<String> userIds) {
@@ -2734,7 +2736,7 @@ public class MXCrypto {
             }
 
             mDownloadKeysQueues.removeAll(promisesToRemove);
-            mUserKeyDownloads.removeAll(userIds);
+            mUserKeyDownloadsInProgress.removeAll(userIds);
         }
     }
 }
