@@ -1092,15 +1092,42 @@ public class MXCrypto {
         getEncryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
-                for (MXDeviceInfo di : devices) {
-                    MXDeviceInfo device = mCryptoStore.getUserDevice(di.deviceId, di.userId);
+                // build a devices map
+                Map<String, List<String>> devicesIdListByUserId = new HashMap<>();
 
-                    if (null != device) {
-                        // assume if the device is either verified or blocked
-                        // it means that the device is known
-                        if (device.isUnknown()) {
-                            device.mVerified = MXDeviceInfo.DEVICE_VERIFICATION_UNVERIFIED;
-                            mCryptoStore.storeUserDevice(di.userId, device);
+                for (MXDeviceInfo di : devices) {
+                    List<String> deviceIdsList = devicesIdListByUserId.get(di.userId);
+
+                    if (null == deviceIdsList) {
+                        deviceIdsList = new ArrayList<>();
+                        devicesIdListByUserId.put(di.userId, deviceIdsList);
+                    }
+                    deviceIdsList.add(di.deviceId);
+                }
+
+                Set<String> userIds = devicesIdListByUserId.keySet();
+
+                for(String userId : userIds) {
+                    Map<String, MXDeviceInfo> storedDeviceIDs = mCryptoStore.getUserDevices(userId);
+
+                    // sanity checks
+                    if (null != storedDeviceIDs) {
+                        boolean isUpdated = false;
+                        List<String> deviceIds = devicesIdListByUserId.get(userId);
+
+                        for (String deviceId : deviceIds) {
+                            MXDeviceInfo device = storedDeviceIDs.get(deviceId);
+
+                            // assume if the device is either verified or blocked
+                            // it means that the device is known
+                            if (device.isUnknown()) {
+                                device.mVerified = MXDeviceInfo.DEVICE_VERIFICATION_UNVERIFIED;
+                                isUpdated = true;
+                            }
+                        }
+
+                        if (isUpdated) {
+                            mCryptoStore.storeUserDevices(userId, storedDeviceIDs);
                         }
                     }
                 }
