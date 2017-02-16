@@ -43,7 +43,6 @@ import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.data.EventTimeline;
-import org.matrix.androidsdk.data.cryptostore.MXFileCryptoStore;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXFileStore;
 import org.matrix.androidsdk.data.Room;
@@ -3602,7 +3601,7 @@ public class CryptoTest {
         });
 
         lock6.await(2000, TimeUnit.DAYS.MILLISECONDS);
-        assertTrue(1 == receivedEvents.size());
+        assertTrue(1 == receivedEvents2.size());
 
         event = receivedEvents2.get(0);
         assertTrue(checkEncryptedEvent(event, mRoomId, message2FromAlice, mAliceSession));
