@@ -33,5 +33,5 @@ public class KeysQueryResponse {
     /**
      *  The failures sorted by homeservers.
      */
-    public Map<Object, Object> failures;
+    public Map<String, Map<String, Object>> failures;
 }
