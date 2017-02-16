@@ -26,7 +26,6 @@ import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
-import com.google.gson.internal.ObjectConstructor;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXSession;
@@ -126,6 +125,8 @@ public class MXCrypto {
 
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
 
+    private final MXDownloadKeysPromisesManager mPromisesManager;
+
     private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
         @Override
         public void onNetworkConnectionUpdate(boolean isConnected) {
@@ -203,6 +204,8 @@ public class MXCrypto {
 
         mMyDevice = new MXDeviceInfo(deviceId);
         mMyDevice.userId = mSession.getMyUserId();
+
+        mPromisesManager = new MXDownloadKeysPromisesManager(this);
 
         HashMap<String, String> keys = new HashMap<>();
 
@@ -810,7 +813,7 @@ public class MXCrypto {
                     } else {
                         // the keys download won't be triggered twice
                         // but the callback requires the dedicated keys
-                        if (isKeysDownloading(userId)) {
+                        if (mPromisesManager.isKeysDownloading(userId)) {
                             downloadUsers.add(userId);
                         } else {
                             stored.setObjects(devices, userId);
@@ -885,7 +888,7 @@ public class MXCrypto {
         Log.d(LOG_TAG, "## doKeyDownloadForUsers() : doKeyDownloadForUsers " + downloadUsers);
 
         // get the user ids which did not already trigger a keys download
-        final List<String> filteredUsers = addDownloadKeysPromise(downloadUsers, callback);
+        final List<String> filteredUsers = mPromisesManager.addDownloadKeysPromise(downloadUsers, callback);
 
         // if there is no new keys request
         if (0 == filteredUsers.size()) {
@@ -951,7 +954,7 @@ public class MXCrypto {
                             }
                         }
 
-                        onKeysDownloadSucceed(filteredUsers, keysQueryResponse.failures);
+                        mPromisesManager.onKeysDownloadSucceed(filteredUsers, keysQueryResponse.failures);
                     }
                 });
             }
@@ -961,7 +964,7 @@ public class MXCrypto {
                 getEncryptingThreadHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        onKeysDownloadFailed(filteredUsers);
+                        mPromisesManager.onKeysDownloadFailed(filteredUsers);
                     }
                 });
 
@@ -978,7 +981,7 @@ public class MXCrypto {
                 getEncryptingThreadHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        onKeysDownloadFailed(filteredUsers);
+                        mPromisesManager.onKeysDownloadFailed(filteredUsers);
                     }
                 });
 
@@ -994,7 +997,7 @@ public class MXCrypto {
                 getEncryptingThreadHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        onKeysDownloadFailed(filteredUsers);
+                        mPromisesManager.onKeysDownloadFailed(filteredUsers);
                     }
                 });
 
@@ -1842,7 +1845,7 @@ public class MXCrypto {
     /**
      * get the users we share an e2e-enabled room with
      *
-     * @returns {Object<string>} userid->userid map (should be a Set but argh ES6)
+     * @return {Object<string>} userid->userid map (should be a Set but argh ES6)
      */
     private List<String> getE2eRoomMembers() {
         HashSet<String> list = new HashSet<>();
@@ -1886,7 +1889,7 @@ public class MXCrypto {
 
         // Catch up on any m.new_device events which arrived during the initial sync.
         // And force download all devices keys  the user already has.
-        mPendingUsersWithNewDevices.add(mMyDevice.userId);
+        mPromisesManager.addPendingUsersWithNewDevices(Arrays.asList(mMyDevice.userId));
         refreshOutdatedDeviceLists();
 
         // We need to tell all the devices in all the rooms we are members of that
@@ -2073,9 +2076,7 @@ public class MXCrypto {
             return;
         }
 
-        synchronized (mPendingUsersWithNewDevices) {
-            mPendingUsersWithNewDevices.add(userId);
-        }
+        mPromisesManager.addPendingUsersWithNewDevices(Arrays.asList(userId));
     }
 
     /**
@@ -2085,11 +2086,9 @@ public class MXCrypto {
     public void invalidateUserDeviceList(List<String> userIds) {
         if ((null != userIds) && (0 != userIds.size())) {
             Log.d(LOG_TAG, "## invalidateUserDeviceList() : " + userIds);
-            synchronized (mPendingUsersWithNewDevices) {
-                mPendingUsersWithNewDevices.addAll(userIds);
-            }
 
-            clearUnavailableServersList();
+            mPromisesManager.addPendingUsersWithNewDevices(userIds);
+            mPromisesManager.clearUnavailableServersList();
         }
     }
 
@@ -2098,15 +2097,7 @@ public class MXCrypto {
      * This method must be called on getEncryptingThreadHandler() thread.
      */
     private void refreshOutdatedDeviceLists() {
-        final List<String> users;
-
-        synchronized (mPendingUsersWithNewDevices) {
-            users = new ArrayList<>(mPendingUsersWithNewDevices);
-
-            // We've kicked off requests to these users: remove their
-            // pending flag for now.
-            mPendingUsersWithNewDevices.clear();
-        }
+        final List<String> users = mPromisesManager.getPendingUsersWithNewDevices();
 
         if (users.size() == 0) {
             return;
@@ -2585,213 +2576,5 @@ public class MXCrypto {
      */
     public void setWarnOnUnknownDevices(boolean warn) {
         mWarnOnUnknownDevices = warn;
-    }
-
-    //==============================================================================================================
-    // Download keys queue management
-    //==============================================================================================================
-
-    // keys in progress
-    private final HashSet<String> mUserKeyDownloadsInProgress = new HashSet<>();
-
-    // pending request
-    private final HashSet<String> mPendingUsersWithNewDevices = new HashSet<>();
-
-
-    private final HashSet<String> mNotReadyToRetryhHS = new HashSet<>();
-
-    // download keys queue
-    class DownloadKeysPromise {
-        // list of remain pending device keys
-        final List<String> mPendingUserIdsList;
-
-        // the unfiltered user ids list
-        final List<String> mUserIdsList;
-
-        // the request callback
-        final ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> mCallback;
-
-        /**
-         * Creator
-         * @param userIds the user ids list
-         * @param callback the asynchronous callback
-         */
-        DownloadKeysPromise(List<String> userIds, ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> callback) {
-            mPendingUserIdsList = new ArrayList<>(userIds);
-            mUserIdsList = new ArrayList<>(userIds);
-            mCallback = callback;
-        }
-    }
-
-    // pending queues list
-    private List<DownloadKeysPromise> mDownloadKeysQueues = new ArrayList<>();
-
-    /**
-     * Tells if the keys downloads for an user id is either in progress or pending
-     * @param userId the user id
-     * @return true if teh keys download is either in progress or pending
-     */
-    private boolean isKeysDownloading(String userId) {
-        if (null != userId) {
-            return mUserKeyDownloadsInProgress.contains(userId) || mPendingUsersWithNewDevices.contains(userId);
-        }
-
-        return false;
-    }
-
-    /**
-     * Tells if the key downloads should be tried
-     * @param userId the userId
-     * @return true if the keys download can be retrieved
-     */
-    private boolean canRetryKeysDownload(String userId) {
-        boolean res = false;
-
-        if (!TextUtils.isEmpty(userId) && userId.contains(":")) {
-            try {
-                synchronized (mNotReadyToRetryhHS) {
-                    res = !mNotReadyToRetryhHS.contains(userId.substring(userId.lastIndexOf(":") + 1));
-                }
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## canRetryKeysDownload() failed : " + e.getMessage());
-            }
-        }
-
-        return res;
-    }
-
-    /**
-     * Add a download keys promise
-     * @param userIds the user ids list
-     * @param callback the asynchronous callback
-     * @return the filtered user ids list i.e the one which require a remote request
-     */
-    private List<String> addDownloadKeysPromise(List<String> userIds, ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> callback) {
-        if (null != userIds) {
-            List<String> filteredUserIds = new ArrayList<>(userIds);
-
-            synchronized (mUserKeyDownloadsInProgress) {
-                filteredUserIds.removeAll(mUserKeyDownloadsInProgress);
-                mUserKeyDownloadsInProgress.addAll(userIds);
-            }
-
-            synchronized (mPendingUsersWithNewDevices) {
-                mPendingUsersWithNewDevices.removeAll(userIds);
-            }
-
-            mDownloadKeysQueues.add(new DownloadKeysPromise(userIds, callback));
-
-            return filteredUserIds;
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * Clear the unavailable server lists
-     */
-    private void clearUnavailableServersList() {
-        synchronized (mNotReadyToRetryhHS) {
-            mNotReadyToRetryhHS.clear();
-        }
-    }
-
-    /**
-     * The keys download failed
-     * @param userIds the user ids list
-     */
-    private void onKeysDownloadFailed(final List<String> userIds) {
-        if (null != userIds) {
-            synchronized (mUserKeyDownloadsInProgress) {
-                mUserKeyDownloadsInProgress.removeAll(userIds);
-            }
-
-            synchronized (mPendingUsersWithNewDevices) {
-                mPendingUsersWithNewDevices.addAll(userIds);
-            }
-        }
-    }
-
-    /**
-     * The keys download succeeded.
-     *
-     * @param userIds
-     */
-    private void onKeysDownloadSucceed(List<String> userIds, Map<String, Map<String, Object>> failures) {
-
-        if (null != failures) {
-            Set<String> keys = failures.keySet();
-
-            for(String k : keys) {
-                Map<String, Object> value = failures.get(k);
-
-                if (value.containsKey("status")) {
-                    Object statusCodeAsVoid = value.get("status");
-                    int statusCode = 0;
-
-                    if (statusCodeAsVoid instanceof Double) {
-                        statusCode = ((Double)statusCodeAsVoid).intValue();
-                    } else if (statusCodeAsVoid instanceof Integer) {
-                        statusCode = ((Integer)statusCodeAsVoid).intValue();
-                    }
-
-                    if (statusCode == 503) {
-                        synchronized (mNotReadyToRetryhHS) {
-                            mNotReadyToRetryhHS.add(k);
-                        }
-                    }
-                }
-            }
-        }
-
-        if (null != userIds) {
-            if (mDownloadKeysQueues.size() > 0) {
-                ArrayList<DownloadKeysPromise> promisesToRemove = new ArrayList<>();
-
-                for (DownloadKeysPromise promise : mDownloadKeysQueues) {
-                    promise.mPendingUserIdsList.removeAll(userIds);
-
-                    if (promise.mPendingUserIdsList.size() == 0) {
-                        // private members
-                        final MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = new MXUsersDevicesMap<>();
-
-                        for (String userId : promise.mUserIdsList) {
-                            Map<String, MXDeviceInfo> devices = mSession.getCrypto().getCryptoStore().getUserDevices(userId);
-
-                            if (null == devices) {
-                                synchronized (mPendingUsersWithNewDevices) {
-                                    if (canRetryKeysDownload(userId)) {
-                                        mPendingUsersWithNewDevices.add(userId);
-                                        Log.e(LOG_TAG, "failed to retry the devices of " + userId + " : retry later");
-                                    } else {
-                                        Log.e(LOG_TAG, "failed to retry the devices of " + userId + " : the HS is not available");
-                                    }
-                                }
-                            } else {
-                                // And the response result
-                                usersDevicesInfoMap.setObjects(devices, userId);
-                            }
-                        }
-
-                        if (!hasBeenReleased()) {
-                            final ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> callback = promise.mCallback;
-
-                            if (null != callback) {
-                                getUIHandler().post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        callback.onSuccess(usersDevicesInfoMap);
-                                    }
-                                });
-                            }
-                        }
-                        promisesToRemove.add(promise);
-                    }
-                }
-                mDownloadKeysQueues.removeAll(promisesToRemove);
-            }
-
-            mUserKeyDownloadsInProgress.removeAll(userIds);
-        }
     }
 }
