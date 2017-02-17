@@ -52,5 +52,5 @@ public class SyncResponse implements java.io.Serializable {
     /**
      * Devices list update
      */
-    public DeviceListResponse device_lists;
+    public DeviceListResponse deviceLists;
 }

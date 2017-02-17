@@ -116,7 +116,7 @@ public interface IMXEventListener {
 
     /**
      * The initial sync is complete and the store can be queried for current state.
-     * @param toToken the up-yo sync token
+     * @param toToken the up-to sync token
      */
     void onInitialSyncComplete(String toToken);
 

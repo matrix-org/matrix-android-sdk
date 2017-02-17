@@ -18,7 +18,7 @@ package org.matrix.androidsdk.rest.model;
 import java.util.List;
 
 /**
- * This class describes the device list reponse from a sync request
+ * This class describes the device list response from a sync request
  */
 public class DeviceListResponse {
     // user ids list which have new crypto devices
