@@ -112,45 +112,43 @@ public class ThreePid {
                 resetValidationParameters();
             }
 
-            if (TextUtils.equals(medium, MEDIUM_EMAIL)) {
-                mValidationState = AUTH_STATE_TOKEN_REQUESTED;
+            mValidationState = AUTH_STATE_TOKEN_REQUESTED;
 
-                restClient.requestValidationToken(address, clientSecret, sendAttempt, nextLink, new ApiCallback<RequestEmailValidationResponse>() {
+            restClient.requestValidationToken(address, clientSecret, sendAttempt, nextLink, new ApiCallback<RequestEmailValidationResponse>() {
 
-                    @Override
-                    public void onSuccess(RequestEmailValidationResponse requestEmailValidationResponse) {
+                @Override
+                public void onSuccess(RequestEmailValidationResponse requestEmailValidationResponse) {
 
-                        if (TextUtils.equals(requestEmailValidationResponse.clientSecret, clientSecret)) {
-                            mValidationState = AUTH_STATE_TOKEN_RECEIVED;
-                            sid = requestEmailValidationResponse.sid;
-                            callback.onSuccess(null);
-                        }
+                    if (TextUtils.equals(requestEmailValidationResponse.clientSecret, clientSecret)) {
+                        mValidationState = AUTH_STATE_TOKEN_RECEIVED;
+                        sid = requestEmailValidationResponse.sid;
+                        callback.onSuccess(null);
                     }
+                }
 
-                    private void commonError() {
-                        sendAttempt++;
-                        mValidationState = AUTH_STATE_TOKEN_UNKNOWN;
-                    }
+                private void commonError() {
+                    sendAttempt++;
+                    mValidationState = AUTH_STATE_TOKEN_UNKNOWN;
+                }
 
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        commonError();
-                        callback.onNetworkError(e);
-                    }
+                @Override
+                public void onNetworkError(Exception e) {
+                    commonError();
+                    callback.onNetworkError(e);
+                }
 
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        commonError();
-                        callback.onMatrixError(e);
-                    }
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    commonError();
+                    callback.onMatrixError(e);
+                }
 
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        commonError();
-                        callback.onUnexpectedError(e);
-                    }
-                });
-            }
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    commonError();
+                    callback.onUnexpectedError(e);
+                }
+            });
         }
     }
 

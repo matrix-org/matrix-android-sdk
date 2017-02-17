@@ -49,7 +49,9 @@ public class MyUser extends User {
     private transient Handler mUiHandler;
 
     // linked emails to the account
-    private transient List<ThirdPartyIdentifier> mThirdPartyIdentifiers = new ArrayList<>();
+    private transient List<ThirdPartyIdentifier> mEmailIdentifiers = new ArrayList<>();
+    // linked phone number to the account
+    private transient List<ThirdPartyIdentifier> mPhoneNumberIdentifiers = new ArrayList<>();
 
     public MyUser(User user) {
         clone(user);
@@ -131,8 +133,8 @@ public class MyUser extends User {
             mDataHandler.getProfileRestClient().add3PID(pid, bind, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
-                    // refresh the emails list
-                    refreshLinkedEmails(callback);
+                    // refresh the third party identifiers lists
+                    refreshThirdPartyIdentifier(callback);
                 }
 
                 @Override
@@ -160,37 +162,44 @@ public class MyUser extends User {
     }
 
     /**
-     * @return the list of third party identifiers
+     * Build the lists of identifiers
      */
-    public List<ThirdPartyIdentifier> getThirdPartyIdentifiers() {
-        List<ThirdPartyIdentifier> list;
-
-        if (mAre3PIdsLoaded) {
-            list = mThirdPartyIdentifiers;
-        } else {
-            list = mDataHandler.getStore().thirdPartyIdentifiers();
+    private void buildIdentifiersLists() {
+        List<ThirdPartyIdentifier> identifiers = mDataHandler.getStore().thirdPartyIdentifiers();
+        mEmailIdentifiers = new ArrayList<>();
+        mPhoneNumberIdentifiers = new ArrayList<>();
+        for (ThirdPartyIdentifier identifier : identifiers) {
+            switch (identifier.medium) {
+                case ThreePid.MEDIUM_EMAIL:
+                    mEmailIdentifiers.add(identifier);
+                    break;
+                case ThreePid.MEDIUM_MSISDN:
+                    mPhoneNumberIdentifiers.add(identifier);
+                    break;
+            }
         }
-
-        if (null == list) {
-            list = new ArrayList<>();
-        }
-
-        return list;
     }
 
     /**
      * @return the list of linked emails
      */
-    public List<String> getlinkedEmails() {
-        List<ThirdPartyIdentifier> list = getThirdPartyIdentifiers();
-
-        ArrayList<String>emails = new ArrayList<>();
-
-        for(ThirdPartyIdentifier identifier : list) {
-            emails.add(identifier.address);
+    public List<ThirdPartyIdentifier> getlinkedEmails() {
+        if (mEmailIdentifiers == null) {
+            buildIdentifiersLists();
         }
 
-        return emails;
+        return mEmailIdentifiers;
+    }
+
+    /**
+     * @return the list of linked emails
+     */
+    public List<ThirdPartyIdentifier> getlinkedPhoneNumbers() {
+        if (mPhoneNumberIdentifiers == null) {
+            buildIdentifiersLists();
+        }
+
+        return mPhoneNumberIdentifiers;
     }
 
     //================================================================================
@@ -209,7 +218,7 @@ public class MyUser extends User {
      * Refresh the user data if it is required
      * @param callback callback when the job is done.
      */
-    public void refreshLinkedEmails(final ApiCallback<Void> callback) {
+    public void refreshThirdPartyIdentifier(final ApiCallback<Void> callback) {
         mAre3PIdsLoaded = false;
         refreshUserInfos(false, callback);
     }
@@ -389,11 +398,10 @@ public class MyUser extends User {
             @Override
             public void onSuccess(List<ThirdPartyIdentifier> identifiers) {
                 if (mDataHandler.isAlive()) {
-                    // local value
-                    mThirdPartyIdentifiers = identifiers;
-
                     // store
                     mDataHandler.getStore().setThirdPartyIdentifiers(identifiers);
+
+                    buildIdentifiersLists();
 
                     mAre3PIdsLoaded = true;
 
