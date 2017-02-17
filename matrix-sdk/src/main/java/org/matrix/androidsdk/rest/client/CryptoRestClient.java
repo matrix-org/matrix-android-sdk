@@ -1,6 +1,7 @@
 /* 
  * Copyright 2016 OpenMarket Ltd
- * 
+ * Copyright 2017 Vector Creations Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -16,6 +17,8 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.rest.model.KeyChangesResponse;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
@@ -104,9 +107,10 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
     /**
      * Download device keys.
      * @param userIds list of users to get keys for.
+     * @param token the up-to token
      * @param callback the asynchronous callback
      */
-    public void downloadKeysForUsers(final List<String> userIds , final ApiCallback<KeysQueryResponse> callback) {
+    public void downloadKeysForUsers(final List<String> userIds, final String token, final ApiCallback<KeysQueryResponse> callback) {
         final String description = "downloadKeysForUsers";
 
         HashMap<String, Map<String, Object>> downloadQuery = new HashMap<>();
@@ -120,11 +124,15 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
         HashMap<String, Object> parameters = new HashMap<>();
         parameters.put("device_keys", downloadQuery);
 
+        if (!TextUtils.isEmpty(token)) {
+            parameters.put("token", token);
+        }
+
         mApi.downloadKeysForUsers(parameters, new RestAdapterCallback<KeysQueryResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
-                    downloadKeysForUsers(userIds, callback);
+                    downloadKeysForUsers(userIds, token, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend downloadKeysForUsers : failed " + e.getMessage());
                 }
@@ -265,6 +273,27 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
                     setDeviceName(deviceId, deviceName, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend setDeviceName : failed " + e.getMessage());
+                }
+            }
+        }));
+    }
+
+    /**
+     * Get the update devices list from two sync token.
+     * @param from the start token.
+     * @param to the up-to token.
+     * @param callback the asynchronous callback
+     */
+    public void getKeyChanges(final String from, final String to, final ApiCallback<KeyChangesResponse> callback) {
+        final String description = "getKeyChanges";
+
+        mApi.getKeyChanges(from, to, new RestAdapterCallback<KeyChangesResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    getKeyChanges(from, to, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend getKeyChanges : failed " + e.getMessage());
                 }
             }
         }));

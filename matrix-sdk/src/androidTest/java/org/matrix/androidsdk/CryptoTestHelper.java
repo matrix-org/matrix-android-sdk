@@ -162,7 +162,7 @@ public class CryptoTestHelper {
         mLock = new CountDownLatch(1);
         mxSession.getDataHandler().addListener(new MXEventListener() {
             @Override
-            public void onInitialSyncComplete() {
+            public void onInitialSyncComplete(String toToken) {
                 params.put("isInit", true);
                 mLock.countDown();
             }
@@ -236,7 +236,7 @@ public class CryptoTestHelper {
         mLock = new CountDownLatch(2);
         mxSession.getDataHandler().addListener(new MXEventListener() {
             @Override
-            public void onInitialSyncComplete() {
+            public void onInitialSyncComplete(String toToken) {
                 params.put("isInit", true);
                 mLock.countDown();
             }

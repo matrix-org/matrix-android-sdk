@@ -392,7 +392,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             devicesMap = new HashMap<>(mUsersDevicesInfoMap.getMap().get(userId));
         }
 
-        storeObject(devicesMap, mDevicesFolder, userId, "storeUserDevice " + userId);
+        storeObject(devicesMap, mDevicesFolder, userId, "storeUserDevice " + userId + " with " + devicesMap.size() + " devices");
     }
 
     @Override

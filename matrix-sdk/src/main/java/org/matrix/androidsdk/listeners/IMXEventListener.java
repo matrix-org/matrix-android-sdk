@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -64,8 +65,10 @@ public interface IMXEventListener {
 
     /**
      * The live events from a chunk are performed.
+     * @param fromToken the start sync token
+     * @param toToken the up-to sync token
      */
-    void onLiveEventsChunkProcessed();
+    void onLiveEventsChunkProcessed(String fromToken, String toToken);
 
     /**
      * A received event fulfills the bing rules
@@ -113,8 +116,9 @@ public interface IMXEventListener {
 
     /**
      * The initial sync is complete and the store can be queried for current state.
+     * @param toToken the up-to sync token
      */
-    void onInitialSyncComplete();
+    void onInitialSyncComplete(String toToken);
 
     /**
      * The crypto sync is complete

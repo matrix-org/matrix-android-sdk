@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1878,7 +1879,7 @@ public class MXSession {
                 fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
                 fileCryptoStore.open();
                 mCrypto = new MXCrypto(this, fileCryptoStore);
-                mCrypto.start(new ApiCallback<Void>() {
+                mCrypto.start(true, new ApiCallback<Void>() {
                     @Override
                     public void onSuccess(Void info) {
                         decryptRoomSummaries();

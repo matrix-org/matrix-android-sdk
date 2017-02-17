@@ -1,6 +1,7 @@
 /*
  * Copyright 2016 OpenMarket Ltd
- *
+ * Copyright 2017 Vector Creations Ltd
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -24,9 +25,9 @@ public interface EventsThreadListener {
     /**
      * Call when a sync request has been performed with the API V2.
      * @param response the response (can be null)
-     * @param isInitialSync true if the response is triggered by an initial sync
+     * @param fromToken the start token
      */
-    void onSyncResponse(SyncResponse response, boolean isInitialSync);
+    void onSyncResponse(SyncResponse response, String fromToken);
 
     /**
      * the server returns an invalid token error

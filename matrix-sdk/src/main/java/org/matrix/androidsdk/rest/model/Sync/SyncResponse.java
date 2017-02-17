@@ -1,6 +1,7 @@
 /* 
  * Copyright 2016 OpenMarket Ltd
- * 
+ * Copyright 2017 Vector Creations Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,6 +16,8 @@
  */
 
 package org.matrix.androidsdk.rest.model.Sync;
+
+import org.matrix.androidsdk.rest.model.DeviceListResponse;
 
 import java.util.Map;
 
@@ -46,5 +49,8 @@ public class SyncResponse implements java.io.Serializable {
      */
     public RoomsSyncResponse rooms;
 
-
+    /**
+     * Devices list update
+     */
+    public DeviceListResponse deviceLists;
 }

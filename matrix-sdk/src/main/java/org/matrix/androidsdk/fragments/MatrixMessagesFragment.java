@@ -118,7 +118,7 @@ public class MatrixMessagesFragment extends Fragment {
     // The adapted listener to register to the SDK
     private final IMXEventListener mEventListener = new MXEventListener() {
         @Override
-        public void onLiveEventsChunkProcessed() {
+        public void onLiveEventsChunkProcessed(String fromToken, String toToken) {
             if (null != mMatrixMessagesListener) {
                 mMatrixMessagesListener.onLiveEventsChunkProcessed();
             }
