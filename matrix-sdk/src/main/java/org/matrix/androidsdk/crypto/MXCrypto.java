@@ -2604,4 +2604,67 @@ public class MXCrypto {
     public void setWarnOnUnknownDevices(boolean warn) {
         mWarnOnUnknownDevices = warn;
     }
+
+    /**
+     * Provides the list of unknown devices
+     *
+     * @param devicesInRoom the devices map
+     * @return the unknown devices map
+     */
+    public static MXUsersDevicesMap<MXDeviceInfo> getUnknownDevices(MXUsersDevicesMap<MXDeviceInfo> devicesInRoom) {
+        MXUsersDevicesMap<MXDeviceInfo> unknownDevices = new MXUsersDevicesMap<>();
+
+        List<String> userIds = devicesInRoom.getUserIds();
+        for (String userId : userIds) {
+            List<String> deviceIds = devicesInRoom.getUserDeviceIds(userId);
+            for (String deviceId : deviceIds) {
+                MXDeviceInfo deviceInfo = devicesInRoom.getObject(deviceId, userId);
+
+                if (deviceInfo.isUnknown()) {
+                    unknownDevices.setObject(deviceInfo, userId, deviceId);
+                }
+            }
+        }
+
+        return unknownDevices;
+    }
+
+    /**
+     * Check if the user ids list have some unknown devices.
+     * A success means there is no unknown devices.
+     * If there are some unknown devices, a MXCryptoError.UNKNOWN_DEVICES_CODE exception is triggered.
+     * @param userIds the user ids list
+     * @param callback the asynchronous callback.
+     */
+    public void checkUnknownDevices(List<String> userIds, final ApiCallback<Void> callback) {
+        // force the refresh to ensure that the devices list is up-to-date
+        mSession.getCrypto().downloadKeys(userIds, true, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+            @Override
+            public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> devicesMap) {
+                MXUsersDevicesMap<MXDeviceInfo> unknownDevices = MXCrypto.getUnknownDevices(devicesMap);
+
+                if (unknownDevices.getMap().size() == 0) {
+                    callback.onSuccess(null);
+                } else {
+                    // trigger an an unknown devices exception
+                    callback.onMatrixError(new MXCryptoError(MXCryptoError.UNKNOWN_DEVICES_CODE, MXCryptoError.UNABLE_TO_ENCRYPT, MXCryptoError.UNKNOWN_DEVICES_REASON, unknownDevices));
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                callback.onNetworkError(e);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                callback.onMatrixError(e);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                callback.onUnexpectedError(e);
+            }
+        });
+    }
 }

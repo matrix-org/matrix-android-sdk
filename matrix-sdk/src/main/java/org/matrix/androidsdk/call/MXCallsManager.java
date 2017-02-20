@@ -524,18 +524,64 @@ public class MXCallsManager {
 
                 if (joinedMembers > 1) {
                     if (joinedMembers == 2) {
-                        Log.d(LOG_TAG, "createCallInRoom : Standard 1:1 call");
+                        // when a room is encrypted, test first there is no unknown device
+                        // else the call will fail.
+                        // So it seems safer to reject the call creation it it will fail.
+                        if (room.isEncrypted() && mSession.getCrypto().warnOnUnknownDevices()) {
+                            List<RoomMember> members = new ArrayList<>(room.getJoinedMembers());
+                            String userId1 = members.get(0).getUserId();
+                            String userId2 = members.get(1).getUserId();
 
-                        final IMXCall call = getCallWithCallId(null, true);
-                        call.setRooms(room, room);
-
-                        if (null != callback) {
-                            mUIThreadHandler.post(new Runnable() {
+                            // force the refresh to ensure that the devices list is up-to-date
+                            mSession.getCrypto().checkUnknownDevices(Arrays.asList(userId1, userId2), new ApiCallback<Void>() {
                                 @Override
-                                public void run() {
-                                    callback.onSuccess(call);
+                                public void onSuccess(Void anything) {
+                                    final IMXCall call = getCallWithCallId(null, true);
+                                    call.setRooms(room, room);
+
+                                    if (null != callback) {
+                                        mUIThreadHandler.post(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                callback.onSuccess(call);
+                                            }
+                                        });
+                                    }
+                                }
+
+                                @Override
+                                public void onNetworkError(Exception e) {
+                                    if (null != callback) {
+                                        callback.onNetworkError(e);
+                                    }
+                                }
+
+                                @Override
+                                public void onMatrixError(MatrixError e) {
+                                    if (null != callback) {
+                                        callback.onMatrixError(e);
+                                    }
+                                }
+
+                                @Override
+                                public void onUnexpectedError(Exception e) {
+                                    if (null != callback) {
+                                        callback.onUnexpectedError(e);
+                                    }
                                 }
                             });
+                        } else {
+                            final IMXCall call = getCallWithCallId(null, true);
+                            call.setRooms(room, room);
+
+                            if (null != callback) {
+                                mUIThreadHandler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        callback.onSuccess(call);
+                                    }
+                                });
+                            }
                         }
                     } else {
                         Log.d(LOG_TAG, "createCallInRoom : inviteConferenceUser");

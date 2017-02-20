@@ -216,30 +216,6 @@ public class MXMegolmEncryption implements IMXEncrypting {
     }
 
     /**
-     * Provides the list of unknown devices
-     *
-     * @param devicesInRoom the devices map
-     * @return the unknown devices map
-     */
-    private static MXUsersDevicesMap<MXDeviceInfo> getUnknownDevices(MXUsersDevicesMap<MXDeviceInfo> devicesInRoom) {
-        MXUsersDevicesMap<MXDeviceInfo> unknownDevices = new MXUsersDevicesMap<>();
-
-        List<String> userIds = devicesInRoom.getUserIds();
-        for (String userId : userIds) {
-            List<String> deviceIds = devicesInRoom.getUserDeviceIds(userId);
-            for (String deviceId : deviceIds) {
-                MXDeviceInfo deviceInfo = devicesInRoom.getObject(deviceId, userId);
-
-                if (deviceInfo.isUnknown()) {
-                    unknownDevices.setObject(deviceInfo, userId, deviceId);
-                }
-            }
-        }
-
-        return unknownDevices;
-    }
-
-    /**
      * Ensure the outbound session
      *
      * @param userIds  the users Ids list
@@ -274,7 +250,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                         Log.d(LOG_TAG, "## ensureOutboundSessionInRoom() : getDevicesInRoom() succeeds after " + (System.currentTimeMillis() - t0) + " ms");
 
                         if (mCrypto.warnOnUnknownDevices()) {
-                            final MXUsersDevicesMap<MXDeviceInfo> unknownDevices = getUnknownDevices(usersDevices);
+                            final MXUsersDevicesMap<MXDeviceInfo> unknownDevices = MXCrypto.getUnknownDevices(usersDevices);
 
                             if (unknownDevices.getUserIds().size() > 0) {
                                 mCrypto.getUIHandler().post(new Runnable() {
