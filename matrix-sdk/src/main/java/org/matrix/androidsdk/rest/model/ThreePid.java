@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 OpenMarket Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,16 +21,15 @@ import android.text.TextUtils;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 
-import java.util.Map;
 import java.util.UUID;
 
 /**
  * 3 pid
  */
-public class ThreePid {
+public class ThreePid implements java.io.Serializable {
     /**
      * Types of third party media.
-     * The list is not exhautive and depends on the Identity server capabilities.
+     * The list is not exhaustive and depends on the Identity server capabilities.
      */
     public static final String MEDIUM_EMAIL = "email";
     public static final String MEDIUM_MSISDN = "msisdn";
@@ -42,14 +42,27 @@ public class ThreePid {
     public static final int AUTH_STATE_TOKEN_AUTHENTIFICATED = 4;
 
     /**
-     *  The 3rd party system where the user is defined.
+     *  Types of third party media.
      */
     public String medium;
 
     /**
-     * The id of the user in the 3rd party system.
+     * The email of the user
+     * Used when MEDIUM_EMAIL
      */
-    public String address;
+    public String emailAddress;
+
+    /**
+     * The phone number of the user
+     * Used when MEDIUM_MSISDN
+     */
+    public String phoneNumber;
+
+    /**
+     * The country of the user
+     * Usedwhen MEDIUM_MSISDN
+     */
+    public String country;
 
     /**
      * The current client secret key used during email validation.
@@ -72,17 +85,33 @@ public class ThreePid {
     private int mValidationState;
 
     /**
-     * Two params constructors
-     * @param anAddress the address.
-     * @param aMedium the address medium
+     * Two params constructors (MEDIUM_EMAIL)
+     *
+     * @param emailAddress the email address.
+     * @param medium       the identifier medium, MEDIUM_EMAIL in that case
      */
-    public ThreePid(String anAddress, String aMedium) {
-        medium = aMedium;
-        address = anAddress;
+    public ThreePid(String emailAddress, String medium) {
+        this.medium = medium;
+        this.emailAddress = emailAddress;
 
-        if (TextUtils.equals(MEDIUM_EMAIL, medium) && !TextUtils.isEmpty(anAddress)) {
-            address = address.toLowerCase();
+        if (TextUtils.equals(MEDIUM_EMAIL, this.medium) && !TextUtils.isEmpty(emailAddress)) {
+            this.emailAddress = this.emailAddress.toLowerCase();
         }
+
+        this.clientSecret =  UUID.randomUUID().toString();
+    }
+
+    /**
+     * Build a ThreePid with the given phone number and country (MEDIUM_MSISDN)
+     *
+     * @param phoneNumber the phone number (national or international format)
+     * @param country     country code of the phone number (can be empty if phone number has international format and starts by "+")
+     * @param medium      the identifier medium, MEDIUM_MSISDN in that case
+     */
+    public ThreePid(String phoneNumber, String country, String medium) {
+        this.medium = medium;
+        this.phoneNumber = phoneNumber;
+        this.country = country == null ? "" : country.toUpperCase();
 
         clientSecret =  UUID.randomUUID().toString();
     }
@@ -99,12 +128,12 @@ public class ThreePid {
     }
 
     /**
-     * Request a validation token.
-     * @param restClient the restclient to use.
+     * Request an email validation token.
+     * @param restClient the rest client to use.
      * @param nextLink the nextLink
      * @param callback the callback when the operation is done
      */
-    public void requestValidationToken(final ThirdPidRestClient restClient, String nextLink, final ApiCallback<Void> callback) {
+    public void requestEmailValidationToken(final ThirdPidRestClient restClient, String nextLink, final ApiCallback<Void> callback) {
         // sanity check
         if ((null != restClient) && (mValidationState != AUTH_STATE_TOKEN_REQUESTED)) {
 
@@ -112,61 +141,115 @@ public class ThreePid {
                 resetValidationParameters();
             }
 
-            if (TextUtils.equals(medium, MEDIUM_EMAIL)) {
-                mValidationState = AUTH_STATE_TOKEN_REQUESTED;
+            mValidationState = AUTH_STATE_TOKEN_REQUESTED;
+            restClient.requestEmailValidationToken(emailAddress, clientSecret, sendAttempt, nextLink, new ApiCallback<RequestEmailValidationResponse>() {
 
-                restClient.requestValidationToken(address, clientSecret, sendAttempt, nextLink, new ApiCallback<RequestEmailValidationResponse>() {
+                @Override
+                public void onSuccess(RequestEmailValidationResponse requestEmailValidationResponse) {
 
-                    @Override
-                    public void onSuccess(RequestEmailValidationResponse requestEmailValidationResponse) {
-
-                        if (TextUtils.equals(requestEmailValidationResponse.clientSecret, clientSecret)) {
-                            mValidationState = AUTH_STATE_TOKEN_RECEIVED;
-                            sid = requestEmailValidationResponse.sid;
-                            callback.onSuccess(null);
-                        }
+                    if (TextUtils.equals(requestEmailValidationResponse.clientSecret, clientSecret)) {
+                        mValidationState = AUTH_STATE_TOKEN_RECEIVED;
+                        sid = requestEmailValidationResponse.sid;
+                        callback.onSuccess(null);
                     }
+                }
 
-                    private void commonError() {
-                        sendAttempt++;
-                        mValidationState = AUTH_STATE_TOKEN_UNKNOWN;
-                    }
+                private void commonError() {
+                    sendAttempt++;
+                    mValidationState = AUTH_STATE_TOKEN_UNKNOWN;
+                }
 
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        commonError();
-                        callback.onNetworkError(e);
-                    }
+                @Override
+                public void onNetworkError(Exception e) {
+                    commonError();
+                    callback.onNetworkError(e);
+                }
 
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        commonError();
-                        callback.onMatrixError(e);
-                    }
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    commonError();
+                    callback.onMatrixError(e);
+                }
 
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        commonError();
-                        callback.onUnexpectedError(e);
-                    }
-                });
-            }
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    commonError();
+                    callback.onUnexpectedError(e);
+                }
+            });
+
         }
     }
 
     /**
-     * Request the ownership validation of an email address previously set
-     * by {@link #requestValidationToken(ThirdPidRestClient, String, ApiCallback)}.
+     * Request a phone number validation token.
+     * @param restClient the rest client to use.
+     * @param nextLink the nextLink
+     * @param callback the callback when the operation is done
+     */
+    public void requestPhoneNumberValidationToken(final ThirdPidRestClient restClient, String nextLink, final ApiCallback<RequestPhoneNumberValidationResponse> callback) {
+        // sanity check
+        if ((null != restClient) && (mValidationState != AUTH_STATE_TOKEN_REQUESTED)) {
+
+            if (mValidationState != AUTH_STATE_TOKEN_UNKNOWN) {
+                resetValidationParameters();
+            }
+
+            mValidationState = AUTH_STATE_TOKEN_REQUESTED;
+
+            restClient.requestPhoneNumberValidationToken(phoneNumber, country, clientSecret, sendAttempt, nextLink, new ApiCallback<RequestPhoneNumberValidationResponse>() {
+
+                @Override
+                public void onSuccess(RequestPhoneNumberValidationResponse requestPhoneNumberValidationResponse) {
+
+                    if (TextUtils.equals(requestPhoneNumberValidationResponse.clientSecret, clientSecret)) {
+                        mValidationState = AUTH_STATE_TOKEN_RECEIVED;
+                        sid = requestPhoneNumberValidationResponse.sid;
+                        callback.onSuccess(requestPhoneNumberValidationResponse);
+                    }
+                }
+
+                private void commonError() {
+                    sendAttempt++;
+                    mValidationState = AUTH_STATE_TOKEN_UNKNOWN;
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    commonError();
+                    callback.onNetworkError(e);
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    commonError();
+                    callback.onMatrixError(e);
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    commonError();
+                    callback.onUnexpectedError(e);
+                }
+            });
+        }
+    }
+
+    /**
+     * Request the ownership validation of an email address or a phone number previously set
+     * by {@link #requestEmailValidationToken(ThirdPidRestClient, String, ApiCallback)}.
      * @param restClient REST client
-     * @param token the token generated by the requestValidationToken call
-     * @param clientSecret the client secret which was supplied in the requestValidationToken call
+     * @param token the token generated by the requestEmailValidationToken or requestPhoneNumberValidationToken call
+     * @param clientSecret the client secret which was supplied in the requestEmailValidationToken or requestPhoneNumberValidationToken call
      * @param sid the sid for the session
      * @param respCallback asynchronous callback response
      */
-    public void submitEmailValidationToken(final ThirdPidRestClient restClient, String token, String clientSecret, String sid, final ApiCallback<Map<String,Object>> respCallback) {
-    // sanity check
-    if (null != restClient) {
-        restClient.submitEmailValidationToken(token, clientSecret, sid, respCallback);
+    public void submitValidationToken(final ThirdPidRestClient restClient, final String token, final String clientSecret,
+                                      final String sid, final ApiCallback<Boolean> respCallback) {
+        // sanity check
+        if (null != restClient) {
+            restClient.submitValidationToken(medium, token, clientSecret, sid, respCallback);
         }
     }
+
 }
