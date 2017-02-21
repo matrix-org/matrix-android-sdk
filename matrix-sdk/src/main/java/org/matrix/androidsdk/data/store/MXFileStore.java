@@ -42,6 +42,7 @@ import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -368,6 +369,17 @@ public class MXFileStore extends MXMemoryStore {
                                         Log.e(LOG_TAG, errorDescription);
                                     } else {
                                         Log.e(LOG_TAG, "loadSummaries succeeds");
+
+                                        // Check if the room summaries match to existing rooms.
+                                        // We could have more rooms than summaries because
+                                        // some of them are hidden.
+                                        // For example, the conference calls create a dummy room to manage
+                                        // the call events.
+                                        succeed = mRooms.keySet().containsAll(mRoomSummaries.keySet());
+
+                                        if (!succeed) {
+                                            Log.e(LOG_TAG, "loadSummaries : some summaries don't match to rooms, assume that the store is corrupted");
+                                        }
                                     }
                                 }
 
