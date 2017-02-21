@@ -302,6 +302,27 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     }
 
     /**
+     * Unban an user from a room.
+     * @param roomId the room id
+     * @param user the banned user (userId)
+     * @param callback the async callback
+     */
+    public void unbanFromRoom(final String roomId, final BannedUser user, final ApiCallback<Void> callback) {
+        final String description = "Unban : roomId " + roomId + " userId " + user.userId;
+
+        mApi.unban(roomId, user, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    unbanFromRoom(roomId, user, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend unbanFromRoom : failed " + e.getLocalizedMessage());
+                }
+            }
+        }));
+    }
+
+    /**
      * Create a new room.
      * @param name the room name
      * @param topic the room topic

@@ -195,6 +195,15 @@ public interface RoomsApi {
     void ban(@Path("roomId") String roomId, @Body BannedUser user, Callback<Void> callback);
 
     /**
+     * unban a user from the given room.
+     * @param roomId the room id
+     * @param user the banned user object (userId and reason for unban)
+     * @param callback the asynchronous callback called when finished
+     */
+    @POST("/rooms/{roomId}/unban")
+    void unban(@Path("roomId") String roomId, @Body BannedUser user, Callback<Void> callback);
+
+    /**
      * Change the membership state for a user in a room.
      * @param roomId the room id
      * @param userId the user id
