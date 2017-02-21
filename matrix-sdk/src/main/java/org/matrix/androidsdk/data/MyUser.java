@@ -148,7 +148,7 @@ public class MyUser extends User {
                 @Override
                 public void onSuccess(Void info) {
                     // refresh the third party identifiers lists
-                    refreshThirdPartyIdentifier(callback);
+                    refreshThirdPartyIdentifiers(callback);
                 }
 
                 @Override
@@ -232,7 +232,7 @@ public class MyUser extends User {
      * Refresh the user data if it is required
      * @param callback callback when the job is done.
      */
-    public void refreshThirdPartyIdentifier(final ApiCallback<Void> callback) {
+    public void refreshThirdPartyIdentifiers(final ApiCallback<Void> callback) {
         mAre3PIdsLoaded = false;
         refreshUserInfos(false, callback);
     }

@@ -21,7 +21,6 @@ import android.text.TextUtils;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -245,17 +244,11 @@ public class ThreePid implements java.io.Serializable {
      * @param sid the sid for the session
      * @param respCallback asynchronous callback response
      */
-    public void submitValidationToken(final ThirdPidRestClient restClient, String token, String clientSecret, String sid, final ApiCallback<Map<String, Object>> respCallback) {
+    public void submitValidationToken(final ThirdPidRestClient restClient, final String token, final String clientSecret,
+                                      final String sid, final ApiCallback<Boolean> respCallback) {
         // sanity check
         if (null != restClient) {
-            switch (medium) {
-                case MEDIUM_EMAIL:
-                    restClient.submitEmailValidationToken(token, clientSecret, sid, respCallback);
-                    break;
-                case MEDIUM_MSISDN:
-                    restClient.submitPhoneNumberValidationToken(token, clientSecret, sid, respCallback);
-                    break;
-            }
+            restClient.submitValidationToken(medium, token, clientSecret, sid, respCallback);
         }
     }
 
