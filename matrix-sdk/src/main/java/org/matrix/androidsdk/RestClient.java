@@ -15,8 +15,6 @@
  */
 package org.matrix.androidsdk;
 
-import org.matrix.androidsdk.util.Log;
-
 import com.google.gson.Gson;
 import com.squareup.okhttp.OkHttpClient;
 
@@ -24,8 +22,8 @@ import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.rest.client.MXRestExecutor;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.ssl.CertUtil;
-
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.UnsentEventsManager;
 
 import java.util.concurrent.TimeUnit;
@@ -44,10 +42,6 @@ public class RestClient<T> {
 
     public static final String URI_API_PREFIX_PATH_R0 = "/_matrix/client/r0";
     public static final String URI_API_PREFIX_PATH_UNSTABLE = "/_matrix/client/unstable";
-
-    //
-    public static final String URI_API_PREFIX_PATH_V1 = "/_matrix/client/api/v1";
-    public static final String URI_API_PREFIX_PATh_V2_ALPHA = "/_matrix/client/v2_alpha";
 
     /**
      * Prefix used in path of identity server API requests.

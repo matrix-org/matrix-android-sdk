@@ -1,6 +1,6 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
- * Copyright 2017 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -137,14 +137,54 @@ public class MyUser extends User {
     }
 
     /**
-     * Add a a new pid to the account.
-     * @param pid the pid to add.
-     * @param bind true to add it.
+     * Add a new pid to the account.
+     *
+     * @param pid      the pid to add.
+     * @param bind     true to add it.
      * @param callback the async callback
      */
-    public void add3Pid(ThreePid pid, boolean bind, final ApiCallback<Void> callback) {
+    public void add3Pid(final ThreePid pid, final boolean bind, final ApiCallback<Void> callback) {
         if (null != pid) {
             mDataHandler.getProfileRestClient().add3PID(pid, bind, new ApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    // refresh the third party identifiers lists
+                    refreshThirdPartyIdentifiers(callback);
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    if (null != callback) {
+                        callback.onNetworkError(e);
+                    }
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    if (null != callback) {
+                        callback.onMatrixError(e);
+                    }
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    if (null != callback) {
+                        callback.onUnexpectedError(e);
+                    }
+                }
+            });
+        }
+    }
+
+    /**
+     * Delete a 3pid from an account
+     *
+     * @param pid      the pid to delete
+     * @param callback the async callback
+     */
+    public void delete3Pid(final ThirdPartyIdentifier pid, final ApiCallback<Void> callback){
+        if (null != pid) {
+            mDataHandler.getProfileRestClient().delete3PID(pid, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
                     // refresh the third party identifiers lists
