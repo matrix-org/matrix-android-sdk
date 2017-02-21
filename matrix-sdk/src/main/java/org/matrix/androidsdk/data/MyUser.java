@@ -1,5 +1,6 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 OpenMarket Ltd
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +19,8 @@ package org.matrix.androidsdk.data;
 
 import android.os.Handler;
 import android.os.Looper;
+
+import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationResponse;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -112,13 +115,24 @@ public class MyUser extends User {
     }
 
     /**
-     * Request a validation token for a dedicated 3Pid
+     * Request a validation token for an email address 3Pid
      * @param pid the pid to retrieve a token
      * @param callback the callback when the operation is done
      */
-    public void requestValidationToken(ThreePid pid, ApiCallback<Void> callback) {
+    public void requestEmailValidationToken(ThreePid pid, ApiCallback<Void> callback) {
         if (null != pid) {
-            pid.requestValidationToken(mDataHandler.getThirdPidRestClient(), null, callback);
+            pid.requestEmailValidationToken(mDataHandler.getThirdPidRestClient(), null, callback);
+        }
+    }
+
+    /**
+     * Request a validation token for a phone number 3Pid
+     * @param pid the pid to retrieve a token
+     * @param callback the callback when the operation is done
+     */
+    public void requestPhoneNumberValidationToken(ThreePid pid, ApiCallback<RequestPhoneNumberValidationResponse> callback) {
+        if (null != pid) {
+            pid.requestPhoneNumberValidationToken(mDataHandler.getThirdPidRestClient(), null, callback);
         }
     }
 

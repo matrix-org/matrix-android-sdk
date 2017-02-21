@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 OpenMarket Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,22 +23,19 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
-import org.matrix.androidsdk.util.Log;
-
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCrypto;
 import org.matrix.androidsdk.data.DataRetriever;
-import org.matrix.androidsdk.data.RoomSummary;
-import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
-import org.matrix.androidsdk.data.store.IMXStore;
-import org.matrix.androidsdk.data.cryptostore.MXFileCryptoStore;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.RoomTag;
+import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
+import org.matrix.androidsdk.data.cryptostore.MXFileCryptoStore;
+import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXStoreListener;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediasCache;
@@ -76,6 +74,7 @@ import org.matrix.androidsdk.sync.EventsThreadListener;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.UnsentEventsManager;
 import org.matrix.olm.OlmManager;
 
@@ -87,7 +86,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.RunnableFuture;
 import java.util.regex.Pattern;
 
 /**
@@ -431,6 +429,11 @@ public class MXSession {
     public BingRulesRestClient getBingRulesApiClient() {
         checkIfAlive();
         return mBingRulesRestClient;
+    }
+
+    public ThirdPidRestClient getThirdPidRestClient() {
+        checkIfAlive();
+        return mThirdPidRestClient;
     }
 
     public CallRestClient getCallRestClient() {
