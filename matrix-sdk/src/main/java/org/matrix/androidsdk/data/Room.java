@@ -2340,8 +2340,10 @@ public class Room {
      * @param callback the async callback
      */
     public void unban(String userId, ApiCallback<Void> callback) {
-        // Unbanning is just setting a member's state to left, like kick
-        kick(userId, callback);
+        BannedUser user = new BannedUser();
+        user.userId = userId;
+
+        mDataHandler.getDataRetriever().getRoomsRestClient().unbanFromRoom(getRoomId(), user, callback);
     }
 
     //================================================================================

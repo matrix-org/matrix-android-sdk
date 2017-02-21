@@ -1,5 +1,6 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -193,6 +194,15 @@ public interface RoomsApi {
      */
     @POST("/rooms/{roomId}/ban")
     void ban(@Path("roomId") String roomId, @Body BannedUser user, Callback<Void> callback);
+
+    /**
+     * unban a user from the given room.
+     * @param roomId the room id
+     * @param user the banned user object (userId and reason for unban)
+     * @param callback the asynchronous callback called when finished
+     */
+    @POST("/rooms/{roomId}/unban")
+    void unban(@Path("roomId") String roomId, @Body BannedUser user, Callback<Void> callback);
 
     /**
      * Change the membership state for a user in a room.
