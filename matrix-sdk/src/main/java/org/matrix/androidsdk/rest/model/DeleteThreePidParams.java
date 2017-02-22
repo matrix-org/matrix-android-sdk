@@ -13,25 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.matrix.androidsdk.rest.model;
 
 /**
- *  Response to a request an phone number validation request
+ * Parameters to delete a 3Pid of a user
  */
-public class RequestPhoneNumberValidationResponse {
+public class DeleteThreePidParams {
 
-    // the client secret key
-    public String clientSecret;
+    // the 3pid medium (email, phone number, etc.)
+    public String medium;
 
-    // the attempt count
-    public Integer sendAttempt;
-
-    // the email sid
-    public String sid;
-
-    // the msisdn
-    public String msisdn;
-
-    // phone number international format
-    public String intl_fmt;
+    // the msisdn that will be deleted from the account
+    public String address;
 }

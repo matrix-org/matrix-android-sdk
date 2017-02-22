@@ -1,6 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
- * Copyright 2017 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,10 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import android.content.Context;
 import android.text.TextUtils;
 
+import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 
@@ -250,6 +252,27 @@ public class ThreePid implements java.io.Serializable {
         if (null != restClient) {
             restClient.submitValidationToken(medium, token, clientSecret, sid, respCallback);
         }
+    }
+
+    /**
+     * Get the friendly name of the medium
+     *
+     * @param medium medium of the 3pid
+     * @param context
+     * @return friendly name of the medium
+     */
+    public static String getMediumFriendlyName(final String medium,  final Context context){
+        String mediumFriendlyName = "";
+        switch (medium){
+            case MEDIUM_EMAIL:
+                mediumFriendlyName = context.getString(R.string.medium_email);
+                break;
+            case MEDIUM_MSISDN:
+                mediumFriendlyName = context.getString(R.string.medium_phone_number);
+                break;
+        }
+
+        return mediumFriendlyName;
     }
 
 }
