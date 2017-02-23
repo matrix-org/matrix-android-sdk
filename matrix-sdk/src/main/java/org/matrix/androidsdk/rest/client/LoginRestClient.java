@@ -113,24 +113,42 @@ public class LoginRestClient extends RestClient<LoginApi> {
     }
 
     /**
-     * Attempt a user/password log in.
-     * @param user the user name
+     * Attempt to login with username/password
+     *
+     * @param user     the username
      * @param password the password
      * @param callback the callback success and failure callback
      */
-    public void loginWithPassword(final String user, final String password, final ApiCallback<Credentials> callback) {
-        final String description = "loginWithPassword user : " + user;
+    public void loginWithUser(final String user, final String password, final ApiCallback<Credentials> callback) {
+        final String description = "loginWithUser : " + user;
 
         PasswordLoginParams params = new PasswordLoginParams();
-        params.type = "m.login.password";
-        
-        if (android.util.Patterns.EMAIL_ADDRESS.matcher(user).matches()) {
-            params.address = user.toLowerCase();
-            params.medium = "email";
-        } else {
-            params.user = user;
-        }
+        params.user = user;
 
+        login(params, password, callback, description);
+    }
+
+    /**
+     * Attempt to login with 3pid/password
+     *
+     * @param medium   the medium of the 3pid
+     * @param address  the address of the 3pid
+     * @param password the password
+     * @param callback the callback success and failure callback
+     */
+    public void loginWith3Pid(final String medium, final String address, final String password, final ApiCallback<Credentials> callback) {
+        final String description = "loginWith3pid : " + address;
+
+        PasswordLoginParams params = new PasswordLoginParams();
+        params.medium = medium;
+        params.address = address;
+
+        login(params, password, callback, description);
+    }
+
+    private void login(final PasswordLoginParams params, final String password, final ApiCallback<Credentials> callback,
+                       final String description) {
+        params.type = "m.login.password";
         params.password = password;
         params.initial_device_display_name = Build.MODEL.trim();
 
@@ -139,11 +157,11 @@ public class LoginRestClient extends RestClient<LoginApi> {
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        loginWithPassword(user, password, callback);
+                        login(params, password, callback, description);
                     }
                 }
 
-                ) {
+        ) {
             @Override
             public void success(JsonObject jsonObject, Response response) {
                 onEventSent();
