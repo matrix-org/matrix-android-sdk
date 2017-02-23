@@ -21,6 +21,11 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Base64;
+import android.view.View;
+
+import org.matrix.androidsdk.crypto.MXCryptoError;
+import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
+import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
@@ -53,11 +58,14 @@ public class MXCallsManager {
     public interface MXCallsManagerListener {
         /**
          * Called when there is an incoming call within the room.
+         * @param call the incoming call
+         * @param unknownDevices the unknown e2e devices list
          */
-        void onIncomingCall(IMXCall call);
+        void onIncomingCall(IMXCall call, MXUsersDevicesMap<MXDeviceInfo> unknownDevices);
 
         /**
          * Called when a called has been hung up
+         * @param call the incoming call
          */
         void onCallHangUp(IMXCall call);
 
@@ -487,14 +495,63 @@ public class MXCallsManager {
             public void run() {
                 if (mxPendingIncomingCallId.size() > 0) {
                     for (String callId : mxPendingIncomingCallId) {
-                        IMXCall call = getCallWithCallId(callId);
+                        final IMXCall call = getCallWithCallId(callId);
 
                         if (null != call) {
-                            dispatchOnIncomingCall(call);
+                            Room room = call.getRoom();
+
+                            // for encrypted rooms with 2 members
+                            // check if there are some unknown devices before warning
+                            // of the incoming call.
+                            // If there are some unknown devices, the answer event would not be encrypted.
+                            if ((null != room) &&
+                                    room.isEncrypted() &&
+                                    mSession.getCrypto().warnOnUnknownDevices() &&
+                                    (room.getJoinedMembers().size() == 2)) {
+
+                            }
+                            List<RoomMember> members = new ArrayList<>(room.getJoinedMembers());
+                            String userId1 = members.get(0).getUserId();
+                            String userId2 = members.get(1).getUserId();
+
+                            //
+                            mSession.getCrypto().checkUnknownDevices(Arrays.asList(userId1, userId2), new ApiCallback<Void>() {
+                                @Override
+                                public void onSuccess(Void anything) {
+                                    dispatchOnIncomingCall(call, null);
+                                }
+
+                                @Override
+                                public void onNetworkError(Exception e) {
+                                    dispatchOnIncomingCall(call, null);
+                                }
+
+                                @Override
+                                public void onMatrixError(MatrixError e) {
+                                    MXUsersDevicesMap<MXDeviceInfo> unknownDevices = null;
+
+                                    if (e instanceof MXCryptoError) {
+                                        MXCryptoError cryptoError = (MXCryptoError)e;
+
+                                        if (MXCryptoError.UNKNOWN_DEVICES_CODE.equals(cryptoError.errcode)) {
+                                            unknownDevices = (MXUsersDevicesMap<MXDeviceInfo> )cryptoError.mExceptionData;
+                                        }
+                                    }
+
+                                    dispatchOnIncomingCall(call, unknownDevices);
+                                }
+
+                                @Override
+                                public void onUnexpectedError(Exception e) {
+                                    dispatchOnIncomingCall(call, null);
+                                }
+                            });
+                        } else {
+                            dispatchOnIncomingCall(call, null);
                         }
                     }
-                    mxPendingIncomingCallId.clear();
                 }
+                mxPendingIncomingCallId.clear();
             }
         });
     }
@@ -1045,15 +1102,16 @@ public class MXCallsManager {
     /**
      * dispatch the onIncomingCall event to the listeners
      * @param call the call
+     * @param unknownDevices the unknown e2e devices list.
      */
-    private void dispatchOnIncomingCall(IMXCall call) {
+    private void dispatchOnIncomingCall(IMXCall call, final MXUsersDevicesMap<MXDeviceInfo> unknownDevices) {
         Log.d(LOG_TAG, "dispatchOnIncomingCall " + call.getCallId());
 
         List<MXCallsManagerListener> listeners = getListeners();
 
         for(MXCallsManagerListener l : listeners) {
             try {
-                l.onIncomingCall(call);
+                l.onIncomingCall(call, unknownDevices);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "dispatchOnIncomingCall " + e.getMessage());
             }
