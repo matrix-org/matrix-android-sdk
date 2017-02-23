@@ -3565,7 +3565,7 @@ public class CryptoTest {
                 lock5.countDown();
             }
         });
-        lock5.await(2000, TimeUnit.DAYS.MILLISECONDS);
+        lock5.await(5000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("joinRoom2"));
 
         Room roomFromBobPOV2 = bobSession2.getDataHandler().getRoom(mRoomId);
@@ -3600,7 +3600,7 @@ public class CryptoTest {
             }
         });
 
-        lock6.await(2000, TimeUnit.DAYS.MILLISECONDS);
+        lock6.await(5000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(1 == receivedEvents2.size());
 
         event = receivedEvents2.get(0);

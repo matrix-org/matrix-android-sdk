@@ -1862,7 +1862,17 @@ public class MXCrypto {
 
         for(Room r : rooms) {
             if (r.isEncrypted()) {
-                e2eRooms.add(r);
+                RoomMember me = r.getMember(mSession.getMyUserId());
+
+                if (null != me) {
+                    String membership = me.membership;
+
+                    // ignore any rooms which we have left
+                    if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_JOIN) ||
+                        TextUtils.equals(membership, RoomMember.MEMBERSHIP_INVITE)) {
+                        e2eRooms.add(r);
+                    }
+                }
             }
         }
 
