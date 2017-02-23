@@ -192,7 +192,7 @@ public class CryptoTestHelper {
         mLock = new CountDownLatch(1);
 
         // get the registration session id
-        loginRestClient.loginWithPassword(userName, password, new ApiCallback<Credentials>() {
+        loginRestClient.loginWithUser(userName, password, new ApiCallback<Credentials>() {
             @Override
             public void onSuccess(Credentials credentials) {
                 params.put("credentials", credentials);
