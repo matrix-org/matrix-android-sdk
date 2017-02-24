@@ -125,7 +125,7 @@ public class MXCrypto {
 
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
 
-    private final MXDownloadKeysPromisesManager mPromisesManager;
+    private final MXDeviceList mDevicesList;
 
     private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
         @Override
@@ -160,7 +160,7 @@ public class MXCrypto {
                 getEncryptingThreadHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        refreshOutdatedDeviceLists();
+                        mDevicesList.refreshOutdatedDeviceLists();
                     }
                 });
             }
@@ -205,7 +205,7 @@ public class MXCrypto {
         mMyDevice = new MXDeviceInfo(deviceId);
         mMyDevice.userId = mSession.getMyUserId();
 
-        mPromisesManager = new MXDownloadKeysPromisesManager(this);
+        mDevicesList = new MXDeviceList(matrixSession, this);
 
         HashMap<String, String> keys = new HashMap<>();
 
@@ -249,7 +249,7 @@ public class MXCrypto {
         if (refreshDevicesList) {
             // ensure to have the up-to-date devices list
             // got some issues when upgrading from Riot < 0.6.4
-            doKeyDownloadForUsers(Arrays.asList(mSession.getMyUserId()), null);
+            mDevicesList.addPendingUsersWithNewDevices(Arrays.asList(mSession.getMyUserId()));
         }
     }
 
@@ -352,6 +352,13 @@ public class MXCrypto {
      */
     public IMXCryptoStore getCryptoStore() {
         return mCryptoStore;
+    }
+
+    /**
+     * @return the deviceList
+     */
+    public MXDeviceList getDeviceList() {
+        return mDevicesList;
     }
 
     /**
@@ -509,7 +516,7 @@ public class MXCrypto {
 
                                             if (isInitialSync) {
                                                 // refresh the devices list for each known room members
-                                                invalidateUserDeviceList(getE2eRoomMembers());
+                                                getDeviceList().invalidateUserDeviceList(getE2eRoomMembers());
                                             }
                                         }
 
@@ -747,7 +754,7 @@ public class MXCrypto {
         getEncryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
-                downloadKeys(userIds, true, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+                mDevicesList.downloadKeys(userIds, true, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
                     @Override
                     public void onSuccess(final MXUsersDevicesMap<MXDeviceInfo> map) {
                         if (null != callback) {
@@ -776,234 +783,6 @@ public class MXCrypto {
                         }
                     }
                 });
-            }
-        });
-    }
-
-    /**
-     * Download the device keys for a list of users and stores the keys in the MXStore.
-     * It must be called in getEncryptingThreadHandler() thread.
-     * The callback is called in the UI thread.
-     *
-     * @param userIds       The users to fetch.
-     * @param forceDownload Always download the keys even if cached.
-     * @param callback      the asynchronous callback
-     */
-    public void downloadKeys(List<String> userIds, boolean forceDownload, final ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> callback) {
-        Log.d(LOG_TAG, "## downloadKeys() : forceDownload " + forceDownload + " : " + userIds);
-
-        // Map from userid -> deviceid -> DeviceInfo
-        final MXUsersDevicesMap<MXDeviceInfo> stored = new MXUsersDevicesMap<>();
-
-        // List of user ids we need to download keys for
-        final ArrayList<String> downloadUsers;
-
-        if (forceDownload) {
-            downloadUsers = (null == userIds) ? new ArrayList<String>() : new ArrayList<>(userIds);
-        } else {
-            downloadUsers = new ArrayList<>();
-
-            if (null != userIds) {
-                for (String userId : userIds) {
-
-                    Map<String, MXDeviceInfo> devices = mCryptoStore.getUserDevices(userId);
-
-                    if (null == devices) {
-                        downloadUsers.add(userId);
-                    } else {
-                        // the keys download won't be triggered twice
-                        // but the callback requires the dedicated keys
-                        if (mPromisesManager.isKeysDownloading(userId)) {
-                            downloadUsers.add(userId);
-                        } else {
-                            stored.setObjects(devices, userId);
-                        }
-                    }
-                }
-            }
-        }
-
-        if (0 == downloadUsers.size()) {
-            Log.d(LOG_TAG, "## doKeyDownloadForUsers() : no new user device");
-
-            if (null != callback) {
-                getUIHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        callback.onSuccess(stored);
-                    }
-                });
-            }
-        } else {
-            Log.d(LOG_TAG, "## doKeyDownloadForUsers() : starts");
-            final long t0 = System.currentTimeMillis();
-
-            doKeyDownloadForUsers(downloadUsers, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
-                public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap) {
-                    Log.d(LOG_TAG, "## downloadKeys() : doKeyDownloadForUsers succeeds after " + (System.currentTimeMillis() - t0) + " ms");
-
-                    usersDevicesInfoMap.addEntriesFromMap(stored);
-
-                    if (null != callback) {
-                        callback.onSuccess(usersDevicesInfoMap);
-                    }
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    Log.e(LOG_TAG, "## downloadKeys() : doKeyDownloadForUsers onNetworkError " + e.getMessage());
-                    if (null != callback) {
-                        callback.onNetworkError(e);
-                    }
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    Log.e(LOG_TAG, "## downloadKeys() : doKeyDownloadForUsers onMatrixError " + e.getLocalizedMessage());
-                    if (null != callback) {
-                        callback.onMatrixError(e);
-                    }
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    Log.e(LOG_TAG, "## downloadKeys() : doKeyDownloadForUsers onUnexpectedError " + e.getMessage());
-                    if (null != callback) {
-                        callback.onUnexpectedError(e);
-                    }
-                }
-            });
-        }
-    }
-
-    /**
-     * Download the devices keys for a set of users.
-     * It must be called in getEncryptingThreadHandler() thread.
-     * The callback is called in the UI thread.
-     *
-     * @param downloadUsers the user ids list
-     * @param callback      the asynchronous callback
-     */
-    private void doKeyDownloadForUsers(final List<String> downloadUsers, final ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> callback) {
-        Log.d(LOG_TAG, "## doKeyDownloadForUsers() : doKeyDownloadForUsers " + downloadUsers);
-
-        // get the user ids which did not already trigger a keys download
-        final List<String> filteredUsers = mPromisesManager.addDownloadKeysPromise(downloadUsers, callback);
-
-        // if there is no new keys request
-        if (0 == filteredUsers.size()) {
-            // trigger nothing
-            return;
-        }
-
-        mSession.getCryptoRestClient().downloadKeysForUsers(filteredUsers, mSession.getDataHandler().getStore().getEventStreamToken(), new ApiCallback<KeysQueryResponse>() {
-            @Override
-            public void onSuccess(final KeysQueryResponse keysQueryResponse) {
-                getEncryptingThreadHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-
-                        Log.d(LOG_TAG, "## doKeyDownloadForUsers() : Got keys for " + filteredUsers.size() + " users");
-
-                        for (String userId : filteredUsers) {
-                            Map<String, MXDeviceInfo> devices = keysQueryResponse.deviceKeys.get(userId);
-
-                            Log.d(LOG_TAG, "## doKeyDownloadForUsers() : Got keys for " + userId + " : " + devices);
-
-                            if (null != devices) {
-                                HashMap<String, MXDeviceInfo> mutabledevices = new HashMap<>(devices);
-                                ArrayList<String> deviceIds = new ArrayList<>(mutabledevices.keySet());
-
-                                for (String deviceId : deviceIds) {
-                                    // the user has been logged out
-                                    if (null == mCryptoStore) {
-                                        break;
-                                    }
-
-                                    // Get the potential previously store device keys for this device
-                                    MXDeviceInfo previouslyStoredDeviceKeys = mCryptoStore.getUserDevice(deviceId, userId);
-                                    MXDeviceInfo deviceInfo = mutabledevices.get(deviceId);
-
-                                    // in some race conditions (like unit tests)
-                                    // the self device must be seen as verified
-                                    if (TextUtils.equals(deviceInfo.deviceId, mMyDevice.deviceId) &&
-                                            TextUtils.equals(userId, mMyDevice.userId)) {
-                                        deviceInfo.mVerified = MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED;
-                                    }
-
-                                    // Validate received keys
-                                    if (!validateDeviceKeys(deviceInfo, userId, deviceId, previouslyStoredDeviceKeys)) {
-                                        // New device keys are not valid. Do not store them
-                                        mutabledevices.remove(deviceId);
-
-                                        if (null != previouslyStoredDeviceKeys) {
-                                            // But keep old validated ones if any
-                                            mutabledevices.put(deviceId, previouslyStoredDeviceKeys);
-                                        }
-                                    } else if (null != previouslyStoredDeviceKeys) {
-                                        // The verified status is not sync'ed with hs.
-                                        // This is a client side information, valid only for this client.
-                                        // So, transfer its previous value
-                                        mutabledevices.get(deviceId).mVerified = previouslyStoredDeviceKeys.mVerified;
-                                    }
-                                }
-
-                                // Update the store
-                                // Note that devices which aren't in the response will be removed from the stores
-                                mCryptoStore.storeUserDevices(userId, mutabledevices);
-                            }
-                        }
-
-                        mPromisesManager.onKeysDownloadSucceed(filteredUsers, keysQueryResponse.failures);
-                    }
-                });
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                getEncryptingThreadHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        mPromisesManager.onKeysDownloadFailed(filteredUsers);
-                    }
-                });
-
-                Log.e(LOG_TAG, "##doKeyDownloadForUsers() : onNetworkError " + e.getMessage());
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "##doKeyDownloadForUsers() : onMatrixError " + e.getMessage());
-
-                getEncryptingThreadHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        mPromisesManager.onKeysDownloadFailed(filteredUsers);
-                    }
-                });
-
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "##doKeyDownloadForUsers() : onUnexpectedError " + e.getMessage());
-
-                getEncryptingThreadHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        mPromisesManager.onKeysDownloadFailed(filteredUsers);
-                    }
-                });
-
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
             }
         });
     }
@@ -1911,7 +1690,7 @@ public class MXCrypto {
     private void checkDeviceAnnounced(final ApiCallback<Void> callback) {
         if (mCryptoStore.deviceAnnounced()) {
             // Catch up on any m.new_device events which arrived during the initial sync.
-            refreshOutdatedDeviceLists();
+            mDevicesList.refreshOutdatedDeviceLists();
 
             if (null != callback) {
                 getUIHandler().post(new Runnable() {
@@ -1926,8 +1705,8 @@ public class MXCrypto {
 
         // Catch up on any m.new_device events which arrived during the initial sync.
         // And force download all devices keys  the user already has.
-        mPromisesManager.addPendingUsersWithNewDevices(Arrays.asList(mMyDevice.userId));
-        refreshOutdatedDeviceLists();
+        mDevicesList.addPendingUsersWithNewDevices(Arrays.asList(mMyDevice.userId));
+        mDevicesList.refreshOutdatedDeviceLists();
 
         // We need to tell all the devices in all the rooms we are members of that
         // we have arrived.
@@ -2113,63 +1892,7 @@ public class MXCrypto {
             return;
         }
 
-        mPromisesManager.addPendingUsersWithNewDevices(Arrays.asList(userId));
-    }
-
-    /**
-     * Invalidate the user device list
-     * @param userIds the user ids list
-     */
-    public void invalidateUserDeviceList(List<String> userIds) {
-        if ((null != userIds) && (0 != userIds.size())) {
-            Log.d(LOG_TAG, "## invalidateUserDeviceList() : " + userIds);
-
-            mPromisesManager.addPendingUsersWithNewDevices(userIds);
-            mPromisesManager.clearUnavailableServersList();
-        }
-    }
-
-    /**
-     * Start device queries for any users who sent us an m.new_device recently
-     * This method must be called on getEncryptingThreadHandler() thread.
-     */
-    private void refreshOutdatedDeviceLists() {
-        final List<String> users = mPromisesManager.getPendingUsersWithNewDevices();
-
-        if (users.size() == 0) {
-            return;
-        }
-
-        doKeyDownloadForUsers(users, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
-            @Override
-            public void onSuccess(final MXUsersDevicesMap<MXDeviceInfo> response) {
-                getEncryptingThreadHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        Log.d(LOG_TAG, "## refreshOutdatedDeviceLists() : done");
-                    }
-                });
-            }
-
-            private void onError(String error) {
-                Log.e(LOG_TAG, "## refreshOutdatedDeviceLists() : ERROR updating device keys for users " + users + " : " + error);
-            }
-
-            @Override
-            public void onNetworkError(final Exception e) {
-                onError(e.getMessage());
-            }
-
-            @Override
-            public void onMatrixError(final MatrixError e) {
-                onError(e.getMessage());
-            }
-
-            @Override
-            public void onUnexpectedError(final Exception e) {
-                onError(e.getMessage());
-            }
-        });
+        mDevicesList.addPendingUsersWithNewDevices(Arrays.asList(userId));
     }
 
     /**
@@ -2326,84 +2049,6 @@ public class MXCrypto {
                 }
             }
         });
-    }
-
-    /**
-     * Validate device keys.
-     * This method must called on getEncryptingThreadHandler() thread.
-     *
-     * @param deviceKeys                 the device keys to validate.
-     * @param userId                     the id of the user of the device.
-     * @param deviceId                   the id of the device.
-     * @param previouslyStoredDeviceKeys the device keys we received before for this device
-     * @return true if succeeds
-     */
-    private boolean validateDeviceKeys(MXDeviceInfo deviceKeys, String userId, String deviceId, MXDeviceInfo previouslyStoredDeviceKeys) {
-        if ((null == deviceKeys) || (null == deviceKeys.keys)) {
-            // no keys?
-            return false;
-        }
-
-        // Check that the user_id and device_id in the received deviceKeys are correct
-        if (!TextUtils.equals(deviceKeys.userId, userId)) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : Mismatched user_id " + deviceKeys.userId + " from " + userId + ":" + deviceId);
-            return false;
-        }
-
-        if (!TextUtils.equals(deviceKeys.deviceId, deviceId)) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : Mismatched device_id " + deviceKeys.deviceId + " from " + userId + ":" + deviceId);
-            return false;
-        }
-
-        String signKeyId = "ed25519:" + deviceKeys.deviceId;
-        String signKey = deviceKeys.keys.get(signKeyId);
-
-        if (null == signKey) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : Device " + userId + ":" + deviceKeys.deviceId + " has no ed25519 key");
-            return false;
-        }
-
-        Map<String, String> signatureMap = deviceKeys.signatures.get(userId);
-
-        if (null == signatureMap) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : Device " + userId + ":" + deviceKeys.deviceId + " has no map for " + userId);
-            return false;
-        }
-
-        String signature = signatureMap.get(signKeyId);
-
-        if (null == signature) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : Device " + userId + ":" + deviceKeys.deviceId + " is not signed");
-            return false;
-        }
-
-        boolean isVerified = false;
-        String errorMessage = null;
-
-        try {
-            isVerified = mOlmDevice.verifySignature(signKey, deviceKeys.signalableJSONDictionary(), signature);
-        } catch (Exception e) {
-            errorMessage = e.getMessage();
-        }
-
-
-        if (!isVerified) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : Unable to verify signature on device " + userId + ":" + deviceKeys.deviceId + " with error " + errorMessage);
-            return false;
-        }
-
-        if (null != previouslyStoredDeviceKeys) {
-            if (!TextUtils.equals(previouslyStoredDeviceKeys.fingerprint(), signKey)) {
-                // This should only happen if the list has been MITMed; we are
-                // best off sticking with the original keys.
-                //
-                // Should we warn the user about it somehow?
-                Log.e(LOG_TAG, "## validateDeviceKeys() : WARNING:Ed25519 key for device " + userId + ":" + deviceKeys.deviceId + " has changed");
-                return false;
-            }
-        }
-
-        return true;
     }
 
     /**
@@ -2648,7 +2293,7 @@ public class MXCrypto {
      */
     public void checkUnknownDevices(List<String> userIds, final ApiCallback<Void> callback) {
         // force the refresh to ensure that the devices list is up-to-date
-        mSession.getCrypto().downloadKeys(userIds, true, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+        mDevicesList.downloadKeys(userIds, true, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> devicesMap) {
                 MXUsersDevicesMap<MXDeviceInfo> unknownDevices = MXCrypto.getUnknownDevices(devicesMap);

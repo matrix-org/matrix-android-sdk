@@ -1038,7 +1038,7 @@ public class MXDataHandler implements IMXEventListener {
             }
 
             if ((null != syncResponse.deviceLists) && (null != mCrypto)) {
-                mCrypto.invalidateUserDeviceList(syncResponse.deviceLists.changed);
+                mCrypto.getDeviceList().invalidateUserDeviceList(syncResponse.deviceLists.changed);
             }
 
             IMXStore store = getStore();

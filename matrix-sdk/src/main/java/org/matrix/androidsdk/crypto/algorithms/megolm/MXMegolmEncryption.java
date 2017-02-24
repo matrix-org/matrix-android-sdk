@@ -241,7 +241,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
         Log.d(LOG_TAG, "## ensureOutboundSessionInRoom() : starts");
 
         // No share in progress: check if we need to share with any devices
-        mCrypto.downloadKeys(userIds, false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+        mCrypto.getDeviceList().downloadKeys(userIds, false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
             @Override
             public void onSuccess(final MXUsersDevicesMap<MXDeviceInfo> usersDevices) {
                 mCrypto.getEncryptingThreadHandler().post(new Runnable() {
