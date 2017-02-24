@@ -180,4 +180,32 @@ public interface IMXCryptoStore {
      * @param senderKey the base64-encoded curve25519 key of the sender.
      */
     void removeInboundGroupSession(String sessionId, String senderKey);
+
+    /**
+     * Set the global override for whether the client should ever send encrypted
+     * messages to unverified devices.
+     * If false, it can still be overridden per-room.
+     * If true, it overrides the per-room settings.
+     * @param block true to unilaterally blacklist all
+     */
+    void setGlobalBlacklistUnverifiedDevices(boolean block);
+
+    /**
+     * @return true to unilaterally blacklist all unverified devices.
+     */
+    boolean getGlobalBlacklistUnverifiedDevices();
+
+    /**
+     * Set the status to send encrypted messages to unverified devices within this room.
+     * @param roomId the room id
+     * @param block true to blacklist unverified devices.
+     */
+    void setRoomBlacklistUnverifiedDevices(String roomId, boolean block);
+
+    /**
+     * Tells to blacklist all unverified devices of this room.
+     * @param roomId the room id
+     * @return true to blacklist all unverified devices of this room.
+     */
+    boolean getRoomBlacklistUnverifiedDevices(String roomId);
 }

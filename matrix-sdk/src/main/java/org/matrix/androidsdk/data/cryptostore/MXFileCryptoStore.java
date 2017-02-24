@@ -632,6 +632,29 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         mInboundGroupSessions.clear();
     }
 
+    @Override
+    public void setGlobalBlacklistUnverifiedDevices(boolean block) {
+        mMetaData.mGlobalBlacklistUnverifiedDevices = block;
+        saveMetaData();
+    }
+
+    @Override
+    public boolean getGlobalBlacklistUnverifiedDevices() {
+        return mMetaData.mGlobalBlacklistUnverifiedDevices;
+    }
+
+    @Override
+    public void setRoomBlacklistUnverifiedDevices(String roomId, boolean block) {
+        if (null != roomId) {
+
+        }
+    }
+
+    @Override
+    public  boolean getRoomBlacklistUnverifiedDevices(String roomId) {
+        return false;
+    }
+
     /**
      * Reset the crypto store data
      */

@@ -16,6 +16,9 @@
 
 package org.matrix.androidsdk.data.cryptostore;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class MXFileCryptoStoreMetaData2 implements java.io.Serializable {
     // avoid creating another MXFileCryptoStoreMetaData3
     // set a serialVersionUID allows to update the class.
@@ -33,8 +36,11 @@ public class MXFileCryptoStoreMetaData2 implements java.io.Serializable {
     // flag to tell if the device is announced
     public boolean mDeviceAnnounced;
 
-    // flag to tell if the unverified devices are black listed
-    public boolean mBlacklistUnverifiedDevices;
+    // flag to tell if the unverified devices are blacklisted for any room.
+    public boolean mGlobalBlacklistUnverifiedDevices;
+
+    // Room ids list in which the unverified devices are blacklisted
+    public List<String> mBlacklistUnverifiedDevicesRoomIdsList;
 
     /**
      * Default constructor
@@ -47,7 +53,8 @@ public class MXFileCryptoStoreMetaData2 implements java.io.Serializable {
         mDeviceId = (null != deviceId) ? new String(deviceId) : null;
         mVersion = version;
         mDeviceAnnounced = false;
-        mBlacklistUnverifiedDevices = false;
+        mGlobalBlacklistUnverifiedDevices = false;
+        mBlacklistUnverifiedDevicesRoomIdsList = new ArrayList<>();
     }
 
     /**
@@ -59,6 +66,7 @@ public class MXFileCryptoStoreMetaData2 implements java.io.Serializable {
         mDeviceId = metadata.mDeviceId;
         mVersion = metadata.mVersion;
         mDeviceAnnounced = metadata.mDeviceAnnounced;
-        mBlacklistUnverifiedDevices = false;
+        mGlobalBlacklistUnverifiedDevices = false;
+        mBlacklistUnverifiedDevicesRoomIdsList = new ArrayList<>();
     }
 }
