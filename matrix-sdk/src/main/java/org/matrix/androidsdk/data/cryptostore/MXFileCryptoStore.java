@@ -81,7 +81,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private Credentials mCredentials;
 
     // Meta data about the store
-    private MXFileCryptoStoreMetaData mMetaData;
+    private MXFileCryptoStoreMetaData2 mMetaData;
 
     // The olm account
     private OlmAccount mOlmAccount;
@@ -168,13 +168,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 && (null != credentials.homeServer)
                 && (null != credentials.userId)
                 && (null != credentials.accessToken)) {
-            mMetaData = new MXFileCryptoStoreMetaData();
-            mMetaData.mUserId = new String(mCredentials.userId);
-            if (null != mCredentials.deviceId) {
-                mMetaData.mDeviceId = new String(mCredentials.deviceId);
-            }
-            mMetaData.mVersion = MXFILE_CRYPTO_VERSION;
-            mMetaData.mDeviceAnnounced = false;
+            mMetaData = new MXFileCryptoStoreMetaData2(mCredentials.userId, mCredentials.deviceId, MXFILE_CRYPTO_VERSION);
         }
 
         mUsersDevicesInfoMap = new MXUsersDevicesMap<>();
@@ -251,13 +245,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 && (null != mCredentials.homeServer)
                 && (null != mCredentials.userId)
                 && (null != mCredentials.accessToken)) {
-            mMetaData = new MXFileCryptoStoreMetaData();
-            mMetaData.mUserId = new String(mCredentials.userId);
-            if (null != mCredentials.deviceId) {
-                mMetaData.mDeviceId = new String(mCredentials.deviceId);
-            }
-            mMetaData.mVersion = MXFILE_CRYPTO_VERSION;
-            mMetaData.mDeviceAnnounced = false;
+            mMetaData = new MXFileCryptoStoreMetaData2(mCredentials.userId, mCredentials.deviceId, MXFILE_CRYPTO_VERSION);
             saveMetaData();
         }
     }
@@ -726,7 +714,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
         if (null != metadataAsVoid) {
             try {
-                mMetaData = (MXFileCryptoStoreMetaData) metadataAsVoid;
+                if (metadataAsVoid instanceof MXFileCryptoStoreMetaData2) {
+                    mMetaData = (MXFileCryptoStoreMetaData2) metadataAsVoid;
+                } else {
+                    mMetaData = new MXFileCryptoStoreMetaData2((MXFileCryptoStoreMetaData)metadataAsVoid);
+                }
             } catch (Exception e) {
                 mIsCorrupted = true;
                 Log.e(LOG_TAG, "## loadMetadata() : metadata has been corrupted");
