@@ -15,8 +15,6 @@
  */
 package org.matrix.androidsdk.util;
 
-import org.matrix.androidsdk.util.Log;
-
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -70,6 +68,15 @@ public class JsonUtils {
             .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
             .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
             .serializeNulls()
+            .registerTypeAdapter(Condition.class, new ConditionDeserializer())
+            .create();
+
+    // for crypto (canonicalize)
+    // avoid converting "=" to \u003d
+    private static Gson gsonWithoutHtmlEscaping = new GsonBuilder()
+            .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+            .disableHtmlEscaping()
+            .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
             .registerTypeAdapter(Condition.class, new ConditionDeserializer())
             .create();
 
@@ -339,9 +346,9 @@ public class JsonUtils {
 
         if (null != object) {
             if (object instanceof JsonElement) {
-                canonicalizedJsonString = gson.toJson(canonicalize((JsonElement)object));
+                canonicalizedJsonString = gsonWithoutHtmlEscaping.toJson(canonicalize((JsonElement)object));
             } else {
-                canonicalizedJsonString = gson.toJson(canonicalize(gson.toJsonTree(object)));
+                canonicalizedJsonString = gsonWithoutHtmlEscaping.toJson(canonicalize(gsonWithoutHtmlEscaping.toJsonTree(object)));
             }
 
             if (null != canonicalizedJsonString) {
@@ -428,5 +435,4 @@ public class JsonUtils {
 
         return out;
     }
-
 }
