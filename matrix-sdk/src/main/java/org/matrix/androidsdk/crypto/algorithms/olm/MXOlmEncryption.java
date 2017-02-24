@@ -142,7 +142,7 @@ public class MXOlmEncryption implements IMXEncrypting {
      * @param callback the asynchronous callback
      */
     private void ensureSession(final List<String> users, final ApiCallback<Void> callback) {
-        mCrypto.downloadKeys(users, true, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+        mCrypto.getDeviceList().downloadKeys(users, true, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
                 mCrypto.ensureOlmSessionsForUsers(users, new ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>>() {

@@ -347,7 +347,7 @@ public class CryptoTest {
         assertTrue(results.containsKey("enableCrypto2"));
 
         final CountDownLatch lock3 = new CountDownLatch(1);
-        mBobSession.getCrypto().downloadKeys(Arrays.asList(mBobSession.getMyUserId(), mAliceSession.getMyUserId()), false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+        mBobSession.getCrypto().getDeviceList().downloadKeys(Arrays.asList(mBobSession.getMyUserId(), mAliceSession.getMyUserId()), false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
                 results.put("downloadKeys", info);
@@ -520,7 +520,7 @@ public class CryptoTest {
 
         // Download again alice device
         final CountDownLatch lock5 = new CountDownLatch(1);
-        bobSession2.getCrypto().downloadKeys(Arrays.asList(mAliceSession.getMyUserId()), true, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+        bobSession2.getCrypto().getDeviceList().downloadKeys(Arrays.asList(mAliceSession.getMyUserId()), true, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
                 results.put("downloadKeys2", info);
@@ -651,7 +651,7 @@ public class CryptoTest {
         assertTrue(results.containsKey("enableCryptoBob"));
 
         final CountDownLatch lock3 = new CountDownLatch(1);
-        mBobSession.getCrypto().downloadKeys(Arrays.asList(mBobSession.getMyUserId(), mAliceSession.getMyUserId()), false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+        mBobSession.getCrypto().getDeviceList().downloadKeys(Arrays.asList(mBobSession.getMyUserId(), mAliceSession.getMyUserId()), false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> map) {
                 results.put("downloadKeys", map);
@@ -2889,7 +2889,7 @@ public class CryptoTest {
         assertTrue(roomFromAlicePOV.isEncrypted());
 
         final CountDownLatch lock1 = new CountDownLatch(1);
-        mAliceSession.getCrypto().downloadKeys(Arrays.asList(mBobSession.getMyUserId(), "@pppppppppppp:matrix.org"), false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+        mAliceSession.getCrypto().getDeviceList().downloadKeys(Arrays.asList(mBobSession.getMyUserId(), "@pppppppppppp:matrix.org"), false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
                 results.put("downloadKeys", info);
@@ -2938,7 +2938,7 @@ public class CryptoTest {
         mAliceSession.getCrypto().setWarnOnUnknownDevices(false);
 
         final CountDownLatch lock1 = new CountDownLatch(1);
-        mAliceSession.getCrypto().downloadKeys(Arrays.asList(mBobSession.getMyUserId()), false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+        mAliceSession.getCrypto().getDeviceList().downloadKeys(Arrays.asList(mBobSession.getMyUserId()), false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
                 results.put("downloadKeys", info);
@@ -2974,7 +2974,7 @@ public class CryptoTest {
         // try again
         // it should not failed
         final CountDownLatch lock2 = new CountDownLatch(1);
-        mAliceSession.getCrypto().downloadKeys(Arrays.asList(mBobSession.getMyUserId()), false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+        mAliceSession.getCrypto().getDeviceList().downloadKeys(Arrays.asList(mBobSession.getMyUserId()), false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
                 results.put("downloadKeys2", info);
