@@ -78,6 +78,9 @@ public class MXDeviceList {
 
     private final MXSession mxSession;
 
+    // tells if there is a download keys request in progress
+    private boolean mIsDownloadingKeys = false;
+
     /**
      * Constructor
      *
@@ -193,6 +196,7 @@ public class MXDeviceList {
 
     /**
      * Invalidate the user device list
+     *
      * @param userIds the user ids list
      */
     public void invalidateUserDeviceList(List<String> userIds) {
@@ -203,8 +207,6 @@ public class MXDeviceList {
             clearUnavailableServersList();
         }
     }
-
-    
 
     /**
      * The keys download failed
@@ -221,6 +223,8 @@ public class MXDeviceList {
                 mPendingUsersWithNewDevices.addAll(userIds);
             }
         }
+
+        mIsDownloadingKeys = false;
     }
 
     /**
@@ -303,6 +307,8 @@ public class MXDeviceList {
 
             mUserKeyDownloadsInProgress.removeAll(userIds);
         }
+
+        mIsDownloadingKeys = false;
     }
 
     /**
@@ -422,6 +428,13 @@ public class MXDeviceList {
             // trigger nothing
             return;
         }
+
+        // sanity check
+        if ((null == mxSession.getDataHandler()) || (null == mxSession.getDataHandler().getStore())) {
+            return;
+        }
+
+        mIsDownloadingKeys = true;
 
         mxSession.getCryptoRestClient().downloadKeysForUsers(filteredUsers, mxSession.getDataHandler().getStore().getEventStreamToken(), new ApiCallback<KeysQueryResponse>() {
             @Override
@@ -590,7 +603,7 @@ public class MXDeviceList {
         String errorMessage = null;
 
         try {
-            isVerified =  mxCrypto.getOlmDevice().verifySignature(signKey, deviceKeys.signalableJSONDictionary(), signature);
+            isVerified = mxCrypto.getOlmDevice().verifySignature(signKey, deviceKeys.signalableJSONDictionary(), signature);
         } catch (Exception e) {
             errorMessage = e.getMessage();
         }
@@ -626,6 +639,13 @@ public class MXDeviceList {
                 final List<String> users = getPendingUsersWithNewDevices();
 
                 if (users.size() == 0) {
+                    return;
+                }
+
+                if (mIsDownloadingKeys) {
+                    // request already in progress - do nothing. (We will automatically
+                    // make another request if there are more users with outdated
+                    // device lists when the current request completes).
                     return;
                 }
 
