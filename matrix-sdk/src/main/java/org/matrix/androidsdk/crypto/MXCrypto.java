@@ -516,7 +516,7 @@ public class MXCrypto {
 
                                             if (isInitialSync) {
                                                 // refresh the devices list for each known room members
-                                                invalidateUserDeviceList(getE2eRoomMembers());
+                                                getDeviceList().invalidateUserDeviceList(getE2eRoomMembers());
                                             }
                                         }
 
@@ -1893,19 +1893,6 @@ public class MXCrypto {
         }
 
         mDevicesList.addPendingUsersWithNewDevices(Arrays.asList(userId));
-    }
-
-    /**
-     * Invalidate the user device list
-     * @param userIds the user ids list
-     */
-    public void invalidateUserDeviceList(List<String> userIds) {
-        if ((null != userIds) && (0 != userIds.size())) {
-            Log.d(LOG_TAG, "## invalidateUserDeviceList() : " + userIds);
-
-            mDevicesList.addPendingUsersWithNewDevices(userIds);
-            mDevicesList.clearUnavailableServersList();
-        }
     }
 
     /**
