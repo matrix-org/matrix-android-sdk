@@ -292,7 +292,9 @@ public class EventsThread extends Thread {
             serverTimeout = 0;
             // dummy initial sync
             // to hide the splash screen
-            mListener.onSyncResponse(null, mCurrentToken);
+            SyncResponse dummySyncResponse = new SyncResponse();
+            dummySyncResponse.nextBatch = mCurrentToken;
+            mListener.onSyncResponse(dummySyncResponse, null);
         } else {
 
             // Start with initial sync
