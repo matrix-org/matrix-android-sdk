@@ -644,15 +644,18 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public void setRoomBlacklistUnverifiedDevices(String roomId, boolean block) {
-        if (null != roomId) {
-
-        }
+    public void setRoomsListBlacklistUnverifiedDevices(List<String> roomIds) {
+        mMetaData.mBlacklistUnverifiedDevicesRoomIdsList = roomIds;
+        saveMetaData();
     }
 
     @Override
-    public  boolean getRoomBlacklistUnverifiedDevices(String roomId) {
-        return false;
+    public List<String> getRoomsListBlacklistUnverifiedDevices() {
+        if (null == mMetaData.mBlacklistUnverifiedDevicesRoomIdsList) {
+            return new ArrayList<>();
+        } else {
+            return new ArrayList<>(mMetaData.mBlacklistUnverifiedDevicesRoomIdsList);
+        }
     }
 
     /**

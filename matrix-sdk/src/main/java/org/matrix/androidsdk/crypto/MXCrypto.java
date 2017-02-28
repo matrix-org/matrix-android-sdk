@@ -23,6 +23,7 @@ import android.os.Looper;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
@@ -2319,6 +2320,131 @@ public class MXCrypto {
             @Override
             public void onUnexpectedError(Exception e) {
                 callback.onUnexpectedError(e);
+            }
+        });
+    }
+
+    /**
+     * Set the global override for whether the client should ever send encrypted
+     * messages to unverified devices.
+     * If false, it can still be overridden per-room.
+     * If true, it overrides the per-room settings.
+     * @param block true to unilaterally blacklist all
+     * @param callback the asynchronous callback.
+     */
+    public void setGlobalBlacklistUnverifiedDevices(final boolean block, final ApiCallback<Void> callback) {
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                mCryptoStore.setGlobalBlacklistUnverifiedDevices(block);
+
+                if (null != callback) {
+                    callback.onSuccess(null);
+                }
+            }
+        });
+    }
+
+    /**
+     * Tells whether the client should ever send encrypted
+     * messages to unverified devices.
+     * This function must be called in the getEncryptingThreadHandler() thread.
+     * @return true to unilaterally blacklist all unverified devices.
+     */
+    public boolean getGlobalBlacklistUnverifiedDevices() {
+        return mCryptoStore.getGlobalBlacklistUnverifiedDevices();
+    }
+
+    /**
+     * Tells whether the client should ever send encrypted
+     * messages to unverified devices.
+     * @param callback the asynchrnous callback
+     */
+    public void getGlobalBlacklistUnverifiedDevices(final ApiCallback<Boolean> callback) {
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                if (null != callback) {
+                    callback.onSuccess(getGlobalBlacklistUnverifiedDevices());
+                }
+            }
+        });
+    }
+
+    /**
+     * Tells whether the client should encrypt messages only for the verified devices
+     * in this room.
+     * This function must be called in the getEncryptingThreadHandler() thread.
+     * @param roomId the room id
+     * @return true if the client should encrypt messages only for the verified devices.
+     */
+    public boolean isRoomBlacklistUnverifiedDevices(String roomId) {
+        if (null != roomId) {
+            return mCryptoStore.getRoomsListBlacklistUnverifiedDevices().contains(roomId);
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Tells whether the client should encrypt messages only for the verified devices
+     * in this room.
+     * This function must be called in the getEncryptingThreadHandler() thread.
+     * @param roomId the room id
+     * @param callback the asynchronous callback
+     */
+    public void isRoomBlacklistUnverifiedDevices(final String roomId, final ApiCallback<Boolean> callback) {
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                if (null != callback) {
+                    callback.onSuccess(isRoomBlacklistUnverifiedDevices(roomId));
+                }
+            }
+        });
+    }
+
+    /**
+     * Add this room to the black listed ones.
+     * @param roomId the room id
+     * @param callback the asynchronous callback
+     */
+    public void setRoomBlacklistUnverifiedDevices(final String roomId, final ApiCallback<Void> callback) {
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                List<String> roomIds = mCryptoStore.getRoomsListBlacklistUnverifiedDevices();
+
+                if (!roomIds.contains(roomId)) {
+                    roomIds.add(roomId);
+                    mCryptoStore.setRoomsListBlacklistUnverifiedDevices(roomIds);
+                }
+                if (null != callback) {
+                    callback.onSuccess(null);
+                }
+            }
+        });
+    }
+
+    /**
+     * Remove this room to the black listed ones.
+     * This function must be called in the getEncryptingThreadHandler() thread.
+     * @param roomId the room id
+     * @param callback the asynchronous callback
+     */
+    public void setRoomUnblacklistUnverifiedDevices(final String roomId, final ApiCallback<Void> callback) {
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                List<String> roomIds = mCryptoStore.getRoomsListBlacklistUnverifiedDevices();
+
+                if (roomIds.contains(roomId)) {
+                    roomIds.remove(roomId);
+                    mCryptoStore.setRoomsListBlacklistUnverifiedDevices(roomIds);
+                }
+                if (null != callback) {
+                    callback.onSuccess(null);
+                }
             }
         });
     }

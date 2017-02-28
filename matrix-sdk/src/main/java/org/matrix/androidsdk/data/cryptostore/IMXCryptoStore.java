@@ -196,16 +196,14 @@ public interface IMXCryptoStore {
     boolean getGlobalBlacklistUnverifiedDevices();
 
     /**
-     * Set the status to send encrypted messages to unverified devices within this room.
-     * @param roomId the room id
-     * @param block true to blacklist unverified devices.
+     * Updates the rooms ids list in which the messages are not encrypted for the unverified devices.
+     * @param roomIds the room ids list
      */
-    void setRoomBlacklistUnverifiedDevices(String roomId, boolean block);
+    void setRoomsListBlacklistUnverifiedDevices(List<String> roomIds);
 
     /**
-     * Tells to blacklist all unverified devices of this room.
-     * @param roomId the room id
-     * @return true to blacklist all unverified devices of this room.
+     * Provides the rooms ids list in which the messages are not encrypted for the unverified devices.
+     * @return the room Ids list
      */
-    boolean getRoomBlacklistUnverifiedDevices(String roomId);
+    List<String> getRoomsListBlacklistUnverifiedDevices();
 }

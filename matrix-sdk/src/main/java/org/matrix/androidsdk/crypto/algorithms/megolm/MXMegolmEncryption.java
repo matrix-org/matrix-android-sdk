@@ -248,6 +248,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                     @Override
                     public void run() {
                         Log.d(LOG_TAG, "## ensureOutboundSessionInRoom() : getDevicesInRoom() succeeds after " + (System.currentTimeMillis() - t0) + " ms");
+                        boolean encryptToVerifiedDevicesOnly = mCrypto.getGlobalBlacklistUnverifiedDevices() || mCrypto.isRoomBlacklistUnverifiedDevices(mRoomId);
 
                         if (mCrypto.warnOnUnknownDevices()) {
                             final MXUsersDevicesMap<MXDeviceInfo> unknownDevices = MXCrypto.getUnknownDevices(usersDevices);
@@ -277,6 +278,10 @@ public class MXMegolmEncryption implements IMXEncrypting {
                                 MXDeviceInfo deviceInfo = usersDevices.getObject(deviceId, userId);
 
                                 if (deviceInfo.isBlocked()) {
+                                    continue;
+                                }
+
+                                if (!deviceInfo.isVerified() && encryptToVerifiedDevicesOnly) {
                                     continue;
                                 }
 
