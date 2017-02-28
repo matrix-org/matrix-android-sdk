@@ -714,21 +714,11 @@ public class MXOlmDevice {
      * @param key the ed25519 key.
      * @param JSONDictinary the JSON object which was signed.
      * @param signature the base64-encoded signature to be checked.
-     * @return true if valid.
-     * @exception OlmException the exception
+     * @exception Exception the exception
      */
-    public boolean verifySignature(String key, Map<String, Object> JSONDictinary, String signature) throws OlmException {
-        boolean succeed = false;
-
-        try {
-            // Check signature on the canonical version of the JSON
-            mOlmUtility.verifyEd25519Signature(signature, key, JsonUtils.getCanonicalizedJsonString(JSONDictinary));
-            succeed = true;
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## verifySignature() : failed " + e.getMessage());
-        }
-
-        return succeed;
+    public void verifySignature(String key, Map<String, Object> JSONDictinary, String signature) throws Exception {
+        // Check signature on the canonical version of the JSON
+        mOlmUtility.verifyEd25519Signature(signature, key, JsonUtils.getCanonicalizedJsonString(JSONDictinary));
     }
 
     /**

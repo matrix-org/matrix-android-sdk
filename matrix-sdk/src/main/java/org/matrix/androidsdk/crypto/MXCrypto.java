@@ -1328,7 +1328,8 @@ public class MXCrypto {
             String errorMessage = null;
 
             try {
-                isVerified = mOlmDevice.verifySignature(deviceInfo.fingerprint(), oneTimeKey.signalableJSONDictionary(), signature);
+                mOlmDevice.verifySignature(deviceInfo.fingerprint(), oneTimeKey.signalableJSONDictionary(), signature);
+                isVerified = true;
             } catch (Exception e) {
                 errorMessage = e.getMessage();
             }

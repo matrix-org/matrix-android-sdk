@@ -603,12 +603,12 @@ public class MXDeviceList {
         String errorMessage = null;
 
         try {
-            isVerified = mxCrypto.getOlmDevice().verifySignature(signKey, deviceKeys.signalableJSONDictionary(), signature);
+            mxCrypto.getOlmDevice().verifySignature(signKey, deviceKeys.signalableJSONDictionary(), signature);
+            isVerified = true;
         } catch (Exception e) {
             errorMessage = e.getMessage();
         }
-
-
+        
         if (!isVerified) {
             Log.e(LOG_TAG, "## validateDeviceKeys() : Unable to verify signature on device " + userId + ":" + deviceKeys.deviceId + " with error " + errorMessage);
             return false;
