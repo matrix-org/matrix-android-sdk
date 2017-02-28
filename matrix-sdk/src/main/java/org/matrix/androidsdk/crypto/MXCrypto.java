@@ -2333,14 +2333,46 @@ public class MXCrypto {
      * @param callback the asynchronous callback.
      */
     public void setGlobalBlacklistUnverifiedDevices(final boolean block, final ApiCallback<Void> callback) {
+        final String userId = mSession.getMyUserId();
+        final ArrayList<String> userRoomIds = new ArrayList<>();
+
+        Collection<Room> rooms = mSession.getDataHandler().getStore().getRooms();
+
+        for (Room room : rooms) {
+            if (room.isEncrypted()) {
+                RoomMember roomMember = room.getMember(userId);
+
+                // test if the user joins the room
+                if ((null != roomMember) && TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_JOIN)) {
+                    userRoomIds.add(room.getRoomId());
+                }
+            }
+        }
+
         getEncryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
                 mCryptoStore.setGlobalBlacklistUnverifiedDevices(block);
+                for (String roomId : userRoomIds) {
+                    IMXEncrypting alg;
 
-                if (null != callback) {
-                    callback.onSuccess(null);
+                    synchronized (mRoomEncryptors) {
+                        alg = mRoomEncryptors.get(roomId);
+                    }
+
+                    if (null != alg) {
+                        alg.onBlacklistUnverifiedDevices();
+                    }
                 }
+
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (null != callback) {
+                            callback.onSuccess(null);
+                        }
+                    }
+                });
             }
         });
     }
@@ -2365,7 +2397,14 @@ public class MXCrypto {
             @Override
             public void run() {
                 if (null != callback) {
-                    callback.onSuccess(getGlobalBlacklistUnverifiedDevices());
+                    final boolean status = getGlobalBlacklistUnverifiedDevices();
+
+                    getUIHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onSuccess(status);
+                        }
+                    });
                 }
             }
         });
@@ -2397,9 +2436,16 @@ public class MXCrypto {
         getEncryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
-                if (null != callback) {
-                    callback.onSuccess(isRoomBlacklistUnverifiedDevices(roomId));
-                }
+                final boolean status = isRoomBlacklistUnverifiedDevices(roomId);
+
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (null != callback) {
+                            callback.onSuccess(status);
+                        }
+                    }
+                });
             }
         });
     }
@@ -2410,6 +2456,20 @@ public class MXCrypto {
      * @param callback the asynchronous callback
      */
     public void setRoomBlacklistUnverifiedDevices(final String roomId, final ApiCallback<Void> callback) {
+        final Room room = mSession.getDataHandler().getRoom(roomId);
+
+        // sanity check
+        if (null == room) {
+            getUIHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    callback.onSuccess(null);
+                }
+            });
+
+            return;
+        }
+
         getEncryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
@@ -2418,10 +2478,26 @@ public class MXCrypto {
                 if (!roomIds.contains(roomId)) {
                     roomIds.add(roomId);
                     mCryptoStore.setRoomsListBlacklistUnverifiedDevices(roomIds);
+
+                    IMXEncrypting alg;
+
+                    synchronized (mRoomEncryptors) {
+                        alg = mRoomEncryptors.get(roomId);
+                    }
+
+                    if (null != alg) {
+                        alg.onBlacklistUnverifiedDevices();
+                    }
                 }
-                if (null != callback) {
-                    callback.onSuccess(null);
-                }
+
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (null != callback) {
+                            callback.onSuccess(null);
+                        }
+                    }
+                });
             }
         });
     }
@@ -2433,6 +2509,20 @@ public class MXCrypto {
      * @param callback the asynchronous callback
      */
     public void setRoomUnblacklistUnverifiedDevices(final String roomId, final ApiCallback<Void> callback) {
+        final Room room = mSession.getDataHandler().getRoom(roomId);
+
+        // sanity check
+        if (null == room) {
+            getUIHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    callback.onSuccess(null);
+                }
+            });
+
+            return;
+        }
+
         getEncryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
@@ -2441,10 +2531,26 @@ public class MXCrypto {
                 if (roomIds.contains(roomId)) {
                     roomIds.remove(roomId);
                     mCryptoStore.setRoomsListBlacklistUnverifiedDevices(roomIds);
+
+                    IMXEncrypting alg;
+
+                    synchronized (mRoomEncryptors) {
+                        alg = mRoomEncryptors.get(roomId);
+                    }
+
+                    if (null != alg) {
+                        alg.onBlacklistUnverifiedDevices();
+                    }
                 }
-                if (null != callback) {
-                    callback.onSuccess(null);
-                }
+
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (null != callback) {
+                            callback.onSuccess(null);
+                        }
+                    }
+                });
             }
         });
     }

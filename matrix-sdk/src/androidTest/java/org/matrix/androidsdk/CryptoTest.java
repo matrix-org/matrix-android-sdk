@@ -24,13 +24,9 @@ import android.os.SystemClock;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
 import android.text.TextUtils;
-import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -43,10 +39,10 @@ import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.data.EventTimeline;
-import org.matrix.androidsdk.data.store.IMXStore;
-import org.matrix.androidsdk.data.store.MXFileStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.store.IMXStore;
+import org.matrix.androidsdk.data.store.MXFileStore;
 import org.matrix.androidsdk.data.store.MXStoreListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -56,6 +52,7 @@ import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -64,6 +61,9 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(AndroidJUnit4.class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -82,7 +82,7 @@ public class CryptoTest {
 
     private static final String MXTESTS_SAM = "mxSam";
     private static final String MXTESTS_SAM_PWD = "samsam";
-    
+
     @Test
     public void test01_testCryptoNoDeviceId() throws Exception {
         Log.e(LOG_TAG, "test01_testCryptoNoDeviceId");
@@ -3608,6 +3608,503 @@ public class CryptoTest {
 
         bobSession2.clear(context);
         mAliceSession.clear(context);
+    }
+
+    @Test
+    public void test26_testBlackListUnverifiedDevices() throws Exception {
+        Log.e(LOG_TAG, "test26_testBlackListUnverifiedDevices");
+
+        Context context = InstrumentationRegistry.getContext();
+        final HashMap<String, Object> results = new HashMap<>();
+
+        doE2ETestWithAliceAndBobAndSamInARoom();
+
+        final String messageFromAlice = "Hello I'm Alice!";
+
+        Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
+        Room roomFromAlicePOV =  mAliceSession.getDataHandler().getRoom(mRoomId);
+        Room roomFromSamPOV = mSamSession.getDataHandler().getRoom(mRoomId);
+
+        assertTrue(roomFromBobPOV.isEncrypted());
+        assertTrue(roomFromAlicePOV.isEncrypted());
+        assertTrue(roomFromSamPOV.isEncrypted());
+
+        final CountDownLatch lock1 = new CountDownLatch(1);
+
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                lock1.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock1.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                results.put("sendEventError", e);
+                lock1.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock1.countDown();
+            }
+        });
+
+        lock1.await(3000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("sendEventError"));
+        MXCryptoError error = (MXCryptoError)results.get("sendEventError");
+        assertTrue(TextUtils.equals(error.errcode, MXCryptoError.UNKNOWN_DEVICES_CODE));
+        MXUsersDevicesMap<MXDeviceInfo> unknownDevices = (MXUsersDevicesMap<MXDeviceInfo> )error.mExceptionData;
+
+        // only one bob device
+        List<String> deviceInfos = unknownDevices.getUserDeviceIds(mBobSession.getMyUserId());
+        assertTrue(1 == deviceInfos.size());
+        assertTrue(deviceInfos.contains(mBobSession.getCrypto().getMyDevice().deviceId));
+
+        // only one Sam device
+        deviceInfos = unknownDevices.getUserDeviceIds(mSamSession.getMyUserId());
+        assertTrue(1 == deviceInfos.size());
+        assertTrue(deviceInfos.contains(mSamSession.getCrypto().getMyDevice().deviceId));
+
+        final CountDownLatch lock2 = new CountDownLatch(1);
+        mAliceSession.getCrypto().setDevicesKnown(Arrays.asList(mBobSession.getCrypto().getMyDevice(), mSamSession.getCrypto().getMyDevice()), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                results.put("setDevicesKnown", "setDevicesKnown");
+                lock2.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock2.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock2.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock2.countDown();
+            }
+        });
+
+        lock2.await(3000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("setDevicesKnown"));
+
+        final CountDownLatch lock3 = new CountDownLatch(5);
+
+        MXEventListener eventListenerBob1 = new MXEventListener() {
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                try {
+                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                        if (checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession)) {
+                            results.put("onLiveEventBob1", "onLiveEvent");
+                            lock3.countDown();
+                        }
+                    }
+                } catch (Exception e) {
+                }
+            }
+        };
+
+        MXEventListener eventListenerSam1 = new MXEventListener() {
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                try {
+                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                        if (checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession)) {
+                            results.put("onLiveEventSam1", "onLiveEvent");
+                            lock3.countDown();
+                        }
+                    }
+                } catch (Exception e) {
+                }
+            }
+        };
+
+        mBobSession.getDataHandler().addListener(new MXEventListener() {
+            @Override
+            public void onToDeviceEvent(Event event) {
+                results.put("onToDeviceEventBob", event);
+                lock3.countDown();
+            }
+        });
+
+        mSamSession.getDataHandler().addListener(new MXEventListener() {
+            @Override
+            public void onToDeviceEvent(Event event) {
+                results.put("onToDeviceEventSam", event);
+                lock3.countDown();
+            }
+        });
+
+        roomFromBobPOV.addEventListener(eventListenerBob1);
+        roomFromSamPOV.addEventListener(eventListenerSam1);
+
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                lock3.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock3.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock3.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock3.countDown();
+            }
+        });
+
+        lock3.await(3000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("onToDeviceEventBob"));
+        assertTrue(results.containsKey("onToDeviceEventSam"));
+        assertTrue(results.containsKey("onLiveEventBob1"));
+        assertTrue(results.containsKey("onLiveEventSam1"));
+
+        roomFromBobPOV.removeEventListener(eventListenerBob1);
+        roomFromSamPOV.removeEventListener(eventListenerSam1);
+
+        // play with the device black listing
+        final List<CountDownLatch> activeLock = new ArrayList<>();
+        final List<String> activeMessage = new ArrayList<>();
+
+        MXEventListener eventListenerBob2 = new MXEventListener() {
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                try {
+                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                        if (checkEncryptedEvent(event, mRoomId, activeMessage.get(0), mAliceSession)) {
+                            results.put("eventListenerBob2", "onLiveEvent");
+                            activeLock.get(0).countDown();
+                        }
+                    } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
+                        results.put("eventListenerEncyptedBob2", "onLiveEvent");
+                        activeLock.get(0).countDown();
+                    }
+                } catch (Exception e) {
+                }
+            }
+        };
+
+        MXEventListener eventListenerSam2 = new MXEventListener() {
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                try {
+                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                        if (checkEncryptedEvent(event, mRoomId, activeMessage.get(0), mAliceSession)) {
+                            results.put("eventListenerSam2", "onLiveEvent");
+                            activeLock.get(0).countDown();
+                        }
+                    } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
+                        results.put("eventListenerEncyptedSam2", "onLiveEvent");
+                        activeLock.get(0).countDown();
+                    }
+                } catch (Exception e) {
+                }
+            }
+        };
+
+        roomFromBobPOV.addEventListener(eventListenerBob2);
+        roomFromSamPOV.addEventListener(eventListenerSam2);
+
+        final CountDownLatch lock4 = new CountDownLatch(1);
+        mAliceSession.getCrypto().setGlobalBlacklistUnverifiedDevices(true, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                results.put("setGlobalBlacklistUnverifiedDevicesTrue", "setGlobalBlacklistUnverifiedDevices");
+                lock4.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock4.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock4.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock4.countDown();
+            }
+        });
+        lock4.await(3000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("setGlobalBlacklistUnverifiedDevicesTrue"));
+
+        // ensure that there is no received message
+        results.clear();
+        final CountDownLatch lock5 = new CountDownLatch(3);
+        activeLock.clear();
+        activeLock.add(lock5);
+
+        activeMessage.clear();
+        activeMessage.add("message 1");
+
+        roomFromAlicePOV.sendEvent(buildTextEvent(activeMessage.get(0), mAliceSession), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                lock5.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock5.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock5.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock5.countDown();
+            }
+        });
+
+        lock5.await(3000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(!results.containsKey("eventListenerBob2"));
+        assertTrue(!results.containsKey("eventListenerSam2"));
+        assertTrue(results.containsKey("eventListenerEncyptedBob2"));
+        assertTrue(results.containsKey("eventListenerEncyptedSam2"));
+
+        final CountDownLatch lock6 = new CountDownLatch(1);
+        mAliceSession.getCrypto().setGlobalBlacklistUnverifiedDevices(false, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                results.put("setGlobalBlacklistUnverifiedDevicesfalse", "setGlobalBlacklistUnverifiedDevices");
+                lock6.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock6.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock6.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock6.countDown();
+            }
+        });
+        lock6.await(3000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("setGlobalBlacklistUnverifiedDevicesfalse"));
+
+        // ensure that the messages are received
+        results.clear();
+        final CountDownLatch lock7 = new CountDownLatch(3);
+        activeLock.clear();
+        activeLock.add(lock7);
+
+        activeMessage.clear();
+        activeMessage.add("message 2");
+
+        roomFromAlicePOV.sendEvent(buildTextEvent(activeMessage.get(0), mAliceSession), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                lock7.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock7.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock7.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock7.countDown();
+            }
+        });
+
+        lock7.await(3000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("eventListenerBob2"));
+        assertTrue(results.containsKey("eventListenerSam2"));
+        assertTrue(!results.containsKey("eventListenerEncyptedBob2"));
+        assertTrue(!results.containsKey("eventListenerEncyptedSam2"));
+
+        // verify the bob device
+        final CountDownLatch lock8 = new CountDownLatch(3);
+        mAliceSession.getCrypto().setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED,
+                mBobSession.getCrypto().getMyDevice().deviceId,
+                mBobSession.getMyUserId(), new ApiCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void info) {
+                        results.put("setDeviceVerificationBob", "setDeviceVerificationBob");
+                        lock8.countDown();
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        lock8.countDown();
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        lock8.countDown();
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        lock8.countDown();
+                    }
+                }
+        );
+        lock8.await(3000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("setDeviceVerificationBob"));
+
+        final CountDownLatch lock9 = new CountDownLatch(3);
+        mAliceSession.getCrypto().setRoomBlacklistUnverifiedDevices(roomFromAlicePOV.getRoomId(), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                results.put("setRoomBlacklistUnverifiedDevices", "setRoomBlacklistUnverifiedDevices");
+                lock9.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock9.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock9.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock9.countDown();
+            }
+        });
+        lock9.await(3000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("setRoomBlacklistUnverifiedDevices"));
+
+        // ensure that the messages are received
+        results.clear();
+        final CountDownLatch lock10 = new CountDownLatch(3);
+        activeLock.clear();
+        activeLock.add(lock10);
+
+        activeMessage.clear();
+        activeMessage.add("message 3");
+
+        roomFromAlicePOV.sendEvent(buildTextEvent(activeMessage.get(0), mAliceSession), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                lock10.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock10.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock10.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock10.countDown();
+            }
+        });
+
+        lock10.await(3000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("eventListenerBob2"));
+        assertTrue(!results.containsKey("eventListenerSam2"));
+        assertTrue(!results.containsKey("eventListenerEncyptedBob2"));
+        assertTrue(results.containsKey("eventListenerEncyptedSam2"));
+
+        final CountDownLatch lock11 = new CountDownLatch(3);
+        mAliceSession.getCrypto().setRoomUnblacklistUnverifiedDevices(roomFromAlicePOV.getRoomId(), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                results.put("setRoomUnblacklistUnverifiedDevices", "setRoomUnblacklistUnverifiedDevices");
+                lock11.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock11.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock11.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock11.countDown();
+            }
+        });
+        lock11.await(3000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("setRoomUnblacklistUnverifiedDevices"));
+
+        // ensure that the messages are received
+        results.clear();
+        final CountDownLatch lock12 = new CountDownLatch(3);
+        activeLock.clear();
+        activeLock.add(lock12);
+
+        activeMessage.clear();
+        activeMessage.add("message 3");
+
+        roomFromAlicePOV.sendEvent(buildTextEvent(activeMessage.get(0), mAliceSession), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                lock12.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock12.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock12.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock12.countDown();
+            }
+        });
+
+        lock12.await(3000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("eventListenerBob2"));
+        assertTrue(results.containsKey("eventListenerSam2"));
+        assertTrue(!results.containsKey("eventListenerEncyptedBob2"));
+        assertTrue(!results.containsKey("eventListenerEncyptedSam2"));
+
+        mBobSession.clear(context);
     }
 
 

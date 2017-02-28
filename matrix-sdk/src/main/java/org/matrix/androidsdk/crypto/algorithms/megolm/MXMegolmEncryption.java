@@ -198,6 +198,11 @@ public class MXMegolmEncryption implements IMXEncrypting {
         // message thanks to [self ensureOutboundSessionInRoom]
     }
 
+    @Override
+    public void onBlacklistUnverifiedDevices() {
+        mOutboundSession = null;
+    }
+
     /**
      * Prepare a new session.
      *

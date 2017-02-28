@@ -133,6 +133,12 @@ public class MXOlmEncryption implements IMXEncrypting {
 
     @Override
     public void onDeviceVerification(MXDeviceInfo device, int oldVerified) {
+        // No impact for olm
+    }
+
+    @Override
+    public void onBlacklistUnverifiedDevices() {
+        // No impact for olm
     }
 
     /**
