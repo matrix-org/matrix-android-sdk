@@ -27,7 +27,6 @@ import org.matrix.androidsdk.crypto.algorithms.IMXEncrypting;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
-import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
@@ -35,20 +34,16 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class MXOlmEncryption implements IMXEncrypting {
-
-    private MXSession mSession;
     private MXCrypto mCrypto;
     private String mRoomId;
 
     @Override
     public void initWithMatrixSession(MXSession matrixSession, String roomId) {
-        mSession = matrixSession;
         mCrypto = matrixSession.getCrypto();
         mRoomId = roomId;
     }
@@ -142,7 +137,7 @@ public class MXOlmEncryption implements IMXEncrypting {
      * @param callback the asynchronous callback
      */
     private void ensureSession(final List<String> users, final ApiCallback<Void> callback) {
-        mCrypto.getDeviceList().downloadKeys(users, true, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+        mCrypto.getDeviceList().downloadKeys(users, false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
                 mCrypto.ensureOlmSessionsForUsers(users, new ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>>() {

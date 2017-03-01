@@ -49,7 +49,6 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.NewDeviceContent;
 import org.matrix.androidsdk.rest.model.RoomKeyContent;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
 import org.matrix.androidsdk.util.JsonUtils;
 
@@ -448,27 +447,6 @@ public class MXCrypto {
             @Override
             public void run() {
                 uploadKeys(5, new ApiCallback<Void>() {
-                    private void onDone() {
-                        if (null != mNetworkConnectivityReceiver) {
-                            mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
-                        }
-
-                        mIsStarting = false;
-                        mIsStarted = true;
-                        startUploadKeysTimer(true);
-
-                        for (ApiCallback<Void> callback : mInitializationCallbacks) {
-                            final ApiCallback<Void> fCallback = callback;
-                            getUIHandler().post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    fCallback.onSuccess(null);
-                                }
-                            });
-                        }
-                        mInitializationCallbacks.clear();
-                    }
-
                     private void onError() {
                         getUIHandler().postDelayed(new Runnable() {
                             @Override
@@ -515,6 +493,7 @@ public class MXCrypto {
                                             mInitializationCallbacks.clear();
 
                                             if (isInitialSync) {
+                                                Log.d(LOG_TAG, "completed first initialsync; invalidating all device list caches");
                                                 // refresh the devices list for each known room members
                                                 getDeviceList().invalidateUserDeviceList(getE2eRoomMembers());
                                             }
@@ -1084,6 +1063,29 @@ public class MXCrypto {
 
         synchronized (mRoomEncryptors) {
             mRoomEncryptors.put(roomId, alg);
+        }
+
+        // if encryption was not previously enabled in this room, we will have been
+        // ignoring new device events for these users so far. We may well have
+        // up-to-date lists for some users, for instance if we were sharing other
+        // e2e rooms with them, so there is room for optimisation here, but for now
+        // we just invalidate everyone in the room.
+        if (null == existingAlgorithm) {
+            Log.d(LOG_TAG, "Enabling encryption in " + roomId + " for the first time; invalidating device lists for all users therein");
+
+            Room room = mSession.getDataHandler().getRoom(roomId);
+            if (null != room) {
+                Collection<RoomMember> members = room.getJoinedMembers();
+                List<String> userIds = new ArrayList<>();
+
+                for(RoomMember m : members) {
+                    userIds.add(m.getUserId());
+                }
+
+                getDeviceList().invalidateUserDeviceList(userIds);
+                // the actual refresh happens once we've finished processing the sync,
+                // in _onSyncCompleted.
+            }
         }
 
         return true;
