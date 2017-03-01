@@ -62,4 +62,9 @@ public interface IMXEncrypting {
      * @param oldVerified the old verification status.
      */
     void onDeviceVerification(MXDeviceInfo device, int oldVerified);
+
+    /**
+     * Called when the unverified devices list status has been toggled.
+     */
+    void onBlacklistUnverifiedDevices();
 }
