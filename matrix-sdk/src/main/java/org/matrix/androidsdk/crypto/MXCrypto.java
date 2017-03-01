@@ -2451,11 +2451,12 @@ public class MXCrypto {
     }
 
     /**
-     * Add this room to the black listed ones.
+     * Manages the room black-listing for unverified devices.
      * @param roomId the room id
+     * @param add true to add the room id to the list, false to remove it.
      * @param callback the asynchronous callback
      */
-    public void setRoomBlacklistUnverifiedDevices(final String roomId, final ApiCallback<Void> callback) {
+    private void setRoomBlacklistUnverifiedDevices(final String roomId, final boolean add, final ApiCallback<Void> callback) {
         final Room room = mSession.getDataHandler().getRoom(roomId);
 
         // sanity check
@@ -2475,19 +2476,25 @@ public class MXCrypto {
             public void run() {
                 List<String> roomIds = mCryptoStore.getRoomsListBlacklistUnverifiedDevices();
 
-                if (!roomIds.contains(roomId)) {
-                    roomIds.add(roomId);
-                    mCryptoStore.setRoomsListBlacklistUnverifiedDevices(roomIds);
-
-                    IMXEncrypting alg;
-
-                    synchronized (mRoomEncryptors) {
-                        alg = mRoomEncryptors.get(roomId);
+                if (add) {
+                    if (!roomIds.contains(roomId)) {
+                        roomIds.add(roomId);
                     }
+                } else {
+                    roomIds.remove(roomId);
+                }
 
-                    if (null != alg) {
-                        alg.onBlacklistUnverifiedDevices();
-                    }
+                mCryptoStore.setRoomsListBlacklistUnverifiedDevices(roomIds);
+
+                // warn the dedicated
+                IMXEncrypting alg;
+
+                synchronized (mRoomEncryptors) {
+                    alg = mRoomEncryptors.get(roomId);
+                }
+
+                if (null != alg) {
+                    alg.onBlacklistUnverifiedDevices();
                 }
 
                 getUIHandler().post(new Runnable() {
@@ -2502,56 +2509,22 @@ public class MXCrypto {
         });
     }
 
+
     /**
-     * Remove this room to the black listed ones.
-     * This function must be called in the getEncryptingThreadHandler() thread.
+     * Add this room to the ones which don't encrypt messages to unverified devices.
+     * @param roomId the room id
+     * @param callback the asynchronous callback
+     */
+    public void setRoomBlacklistUnverifiedDevices(final String roomId, final ApiCallback<Void> callback) {
+        setRoomBlacklistUnverifiedDevices(roomId, true, callback);
+    }
+
+    /**
+     * Remove this room to the ones which don't encrypt messages to unverified devices.
      * @param roomId the room id
      * @param callback the asynchronous callback
      */
     public void setRoomUnblacklistUnverifiedDevices(final String roomId, final ApiCallback<Void> callback) {
-        final Room room = mSession.getDataHandler().getRoom(roomId);
-
-        // sanity check
-        if (null == room) {
-            getUIHandler().post(new Runnable() {
-                @Override
-                public void run() {
-                    callback.onSuccess(null);
-                }
-            });
-
-            return;
-        }
-
-        getEncryptingThreadHandler().post(new Runnable() {
-            @Override
-            public void run() {
-                List<String> roomIds = mCryptoStore.getRoomsListBlacklistUnverifiedDevices();
-
-                if (roomIds.contains(roomId)) {
-                    roomIds.remove(roomId);
-                    mCryptoStore.setRoomsListBlacklistUnverifiedDevices(roomIds);
-
-                    IMXEncrypting alg;
-
-                    synchronized (mRoomEncryptors) {
-                        alg = mRoomEncryptors.get(roomId);
-                    }
-
-                    if (null != alg) {
-                        alg.onBlacklistUnverifiedDevices();
-                    }
-                }
-
-                getUIHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (null != callback) {
-                            callback.onSuccess(null);
-                        }
-                    }
-                });
-            }
-        });
+        setRoomBlacklistUnverifiedDevices(roomId, false, callback);
     }
 }

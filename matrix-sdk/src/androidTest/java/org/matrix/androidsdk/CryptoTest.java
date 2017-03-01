@@ -3611,6 +3611,24 @@ public class CryptoTest {
     }
 
     @Test
+    // Bob, Alice and Sam are in an enctypted room
+    // Alice sends a message
+    // The message sending fails because of unknown devices (Bob and Sam ones)
+    // Alice marks the Bob and Sam devices as known (UNVERIFIED)
+    // Alice sends another message
+    // Checks that the Bob and Sam devices receive the message and can decrypt it.
+    // Alice black lists the unverified devices
+    // Alice sends a message
+    // checks that the Sam and the Bob devices receive the message but it cannot be decrypted
+    // Alice unblack-lists the unverified devices
+    // Alice sends a message
+    // checks that the Sam and the Bob devices receive the message and it can be decrypted on the both devices
+    // Alice verifies the Bob device and black lists the unverified devices in the current room.
+    // Alice sends a message
+    // Check that the message can be decrypted by Bob's device but not by Sam's device
+    // Alice unblack-lists the unverified devices in the current room
+    // Alice sends a message
+    // Check that the message can be decrypted by the Bob's device and the Sam's device
     public void test26_testBlackListUnverifiedDevices() throws Exception {
         Log.e(LOG_TAG, "test26_testBlackListUnverifiedDevices");
 
