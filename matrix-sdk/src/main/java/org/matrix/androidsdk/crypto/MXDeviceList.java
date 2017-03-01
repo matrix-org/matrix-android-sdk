@@ -22,7 +22,6 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
-import org.matrix.androidsdk.data.cryptostore.MXFileCryptoStore;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
@@ -164,7 +163,7 @@ public class MXDeviceList {
      * @param callback the asynchronous callback
      * @return the filtered user ids list i.e the one which require a remote request
      */
-    public List<String> addDownloadKeysPromise(List<String> userIds, ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> callback) {
+    private List<String> addDownloadKeysPromise(List<String> userIds, ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> callback) {
         if (null != userIds) {
             List<String> filteredUserIds = new ArrayList<>(userIds);
 
@@ -188,7 +187,7 @@ public class MXDeviceList {
     /**
      * Clear the unavailable server lists
      */
-    public void clearUnavailableServersList() {
+    private void clearUnavailableServersList() {
         synchronized (mNotReadyToRetryHS) {
             mNotReadyToRetryHS.clear();
         }
@@ -230,7 +229,8 @@ public class MXDeviceList {
     /**
      * The keys download succeeded.
      *
-     * @param userIds
+     * @param userIds the userIds list
+     * @param failures the failure map.
      */
     private void onKeysDownloadSucceed(List<String> userIds, Map<String, Map<String, Object>> failures) {
         if (null != failures) {
@@ -357,7 +357,7 @@ public class MXDeviceList {
         }
 
         if (0 == downloadUsers.size()) {
-            Log.d(LOG_TAG, "## doKeyDownloadForUsers() : no new user device");
+            Log.d(LOG_TAG, "## downloadKeys() : no new user device");
 
             if (null != callback) {
                 mxCrypto.getUIHandler().post(new Runnable() {
@@ -368,7 +368,7 @@ public class MXDeviceList {
                 });
             }
         } else {
-            Log.d(LOG_TAG, "## doKeyDownloadForUsers() : starts");
+            Log.d(LOG_TAG, "## downloadKeys() : starts");
             final long t0 = System.currentTimeMillis();
 
             doKeyDownloadForUsers(downloadUsers, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
@@ -453,8 +453,8 @@ public class MXDeviceList {
                             Log.d(LOG_TAG, "## doKeyDownloadForUsers() : Got keys for " + userId + " : " + devices);
 
                             if (null != devices) {
-                                HashMap<String, MXDeviceInfo> mutabledevices = new HashMap<>(devices);
-                                ArrayList<String> deviceIds = new ArrayList<>(mutabledevices.keySet());
+                                HashMap<String, MXDeviceInfo> mutableDevices = new HashMap<>(devices);
+                                ArrayList<String> deviceIds = new ArrayList<>(mutableDevices.keySet());
 
                                 for (String deviceId : deviceIds) {
                                     // the user has been logged out
@@ -464,7 +464,7 @@ public class MXDeviceList {
 
                                     // Get the potential previously store device keys for this device
                                     MXDeviceInfo previouslyStoredDeviceKeys = cryptoStore.getUserDevice(deviceId, userId);
-                                    MXDeviceInfo deviceInfo = mutabledevices.get(deviceId);
+                                    MXDeviceInfo deviceInfo = mutableDevices.get(deviceId);
 
                                     // in some race conditions (like unit tests)
                                     // the self device must be seen as verified
@@ -476,23 +476,23 @@ public class MXDeviceList {
                                     // Validate received keys
                                     if (!validateDeviceKeys(deviceInfo, userId, deviceId, previouslyStoredDeviceKeys)) {
                                         // New device keys are not valid. Do not store them
-                                        mutabledevices.remove(deviceId);
+                                        mutableDevices.remove(deviceId);
 
                                         if (null != previouslyStoredDeviceKeys) {
                                             // But keep old validated ones if any
-                                            mutabledevices.put(deviceId, previouslyStoredDeviceKeys);
+                                            mutableDevices.put(deviceId, previouslyStoredDeviceKeys);
                                         }
                                     } else if (null != previouslyStoredDeviceKeys) {
                                         // The verified status is not sync'ed with hs.
                                         // This is a client side information, valid only for this client.
                                         // So, transfer its previous value
-                                        mutabledevices.get(deviceId).mVerified = previouslyStoredDeviceKeys.mVerified;
+                                        mutableDevices.get(deviceId).mVerified = previouslyStoredDeviceKeys.mVerified;
                                     }
                                 }
 
                                 // Update the store
                                 // Note that devices which aren't in the response will be removed from the stores
-                                cryptoStore.storeUserDevices(userId, mutabledevices);
+                                cryptoStore.storeUserDevices(userId, mutableDevices);
                             }
                         }
 
