@@ -2378,8 +2378,8 @@ public class MXCrypto {
     }
 
     /**
-     * Tells whether the client should ever send encrypted
-     * messages to unverified devices.
+     * Tells whether the client should ever send encrypted messages to unverified devices.
+     * The default value is false.
      * This function must be called in the getEncryptingThreadHandler() thread.
      * @return true to unilaterally blacklist all unverified devices.
      */
@@ -2388,9 +2388,10 @@ public class MXCrypto {
     }
 
     /**
-     * Tells whether the client should ever send encrypted
+     * Tells whether the client should ever send encrypted messages to unverified devices.
+     * The default value is false.
      * messages to unverified devices.
-     * @param callback the asynchrnous callback
+     * @param callback the asynchronous callback
      */
     public void getGlobalBlacklistUnverifiedDevices(final ApiCallback<Boolean> callback) {
         getEncryptingThreadHandler().post(new Runnable() {
@@ -2413,6 +2414,7 @@ public class MXCrypto {
     /**
      * Tells whether the client should encrypt messages only for the verified devices
      * in this room.
+     * The default value is false.
      * This function must be called in the getEncryptingThreadHandler() thread.
      * @param roomId the room id
      * @return true if the client should encrypt messages only for the verified devices.
@@ -2428,6 +2430,7 @@ public class MXCrypto {
     /**
      * Tells whether the client should encrypt messages only for the verified devices
      * in this room.
+     * The default value is false.
      * This function must be called in the getEncryptingThreadHandler() thread.
      * @param roomId the room id
      * @param callback the asynchronous callback
