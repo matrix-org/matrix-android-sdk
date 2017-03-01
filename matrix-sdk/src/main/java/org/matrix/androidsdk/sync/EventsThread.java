@@ -57,7 +57,8 @@ public class EventsThread extends Thread {
 
     private boolean mKilling = false;
 
-    private int mServerTimeoutms = DEFAULT_SERVER_TIMEOUT_MS;
+    private int mDefaultServerTimeoutms = DEFAULT_SERVER_TIMEOUT_MS;
+    private int mNextServerTimeoutms = DEFAULT_SERVER_TIMEOUT_MS;
 
     // add a delay between two sync requests
     private int mRequestDelayMs = 0;
@@ -109,8 +110,8 @@ public class EventsThread extends Thread {
      * @param ms the timeout in ms
      */
     public void setServerLongPollTimeout(int ms) {
-        mServerTimeoutms = Math.max(ms, DEFAULT_SERVER_TIMEOUT_MS);
-        Log.d(LOG_TAG, "setServerLongPollTimeout : " + mServerTimeoutms);
+        mDefaultServerTimeoutms = Math.max(ms, DEFAULT_SERVER_TIMEOUT_MS);
+        Log.d(LOG_TAG, "setServerLongPollTimeout : " + mDefaultServerTimeoutms);
 
     }
 
@@ -118,7 +119,7 @@ public class EventsThread extends Thread {
      * @return the long poll timeout
      */
     public int getServerLongPollTimeout() {
-        return mServerTimeoutms;
+        return mDefaultServerTimeoutms;
     }
 
     /**
@@ -359,7 +360,7 @@ public class EventsThread extends Thread {
                 }
             }
 
-            serverTimeout = mServerTimeoutms;
+            serverTimeout = mDefaultServerTimeoutms;
         }
 
         Log.d(LOG_TAG, "Starting event stream from token " + mCurrentToken);
@@ -431,6 +432,9 @@ public class EventsThread extends Thread {
 
                 Log.d(LOG_TAG, "Get events from token " + mCurrentToken);
 
+                final int fServerTimeout = serverTimeout;
+                mNextServerTimeoutms = mDefaultServerTimeoutms;
+
                 mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, DEFAULT_CLIENT_TIMEOUT_MS, (mIsCatchingUp && mIsOnline) ? "offline" : null, inlineFilter, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
@@ -447,6 +451,16 @@ public class EventsThread extends Thread {
                             mListener.onSyncResponse(syncResponse, mCurrentToken);
                             mCurrentToken = syncResponse.nextBatch;
                             Log.d(LOG_TAG, "mCurrentToken is now set to " + mCurrentToken);
+
+                            // poll /sync with timeout=0 until
+                            // we get no to_device messages back.
+                            if (0 == fServerTimeout) {
+                                if ((null != syncResponse.deviceLists) &&
+                                        (null != syncResponse.deviceLists.changed) &&
+                                        (syncResponse.deviceLists.changed.size() > 0)) {
+                                    mNextServerTimeoutms = 0;
+                                }
+                            }
                         }
 
                         // unblock the events thread
@@ -504,7 +518,7 @@ public class EventsThread extends Thread {
                 }
             }
 
-            serverTimeout = mServerTimeoutms;
+            serverTimeout = mNextServerTimeoutms;
         }
 
         if (null != mNetworkConnectivityReceiver) {
