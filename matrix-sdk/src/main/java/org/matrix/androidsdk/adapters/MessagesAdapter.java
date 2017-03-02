@@ -2686,7 +2686,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     /**
      * Retrieves the sanitised html.
-     *
+     * !!!!!! WARNING !!!!!!
+     * IT IS NOT REMOTELY A COMPREHENSIVE SANITIZER AND SHOULD NOT BE TRUSTED FOR SECURITY PURPOSES.
+     * WE ARE EFFECTIVELY RELYING ON THE LIMITED CAPABILITIES OF THE HTML RENDERER UI TO AVOID SECURITY ISSUES LEAKING UP.
+
      * @param html the html to sanitize
      * @return the sanitised HTML
      */
