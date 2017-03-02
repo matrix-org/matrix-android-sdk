@@ -957,6 +957,37 @@ public class MXDataHandler implements IMXEventListener {
 
             // sanity check
             if (null != syncResponse.rooms) {
+                // joined rooms events
+                if ((null != syncResponse.rooms.join) && (syncResponse.rooms.join.size() > 0)) {
+                    Log.d(LOG_TAG, "Received " + syncResponse.rooms.join.size() + " joined rooms");
+
+                    Set<String> roomIds = syncResponse.rooms.join.keySet();
+
+                    // Handle first joined rooms
+                    for (String roomId : roomIds) {
+                        Room room = getRoom(roomId);
+
+                        // sanity check
+                        if (null != room) {
+                            room.handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
+                        }
+                    }
+
+                    isEmptyResponse = false;
+                }
+
+                // invited room management
+                if ((null != syncResponse.rooms.invite) && (syncResponse.rooms.invite.size() > 0)) {
+                    Log.d(LOG_TAG, "Received " + syncResponse.rooms.invite.size() + " invited rooms");
+
+                    Set<String> roomIds = syncResponse.rooms.invite.keySet();
+
+                    for (String roomId : roomIds) {
+                        getRoom(roomId).handleInvitedRoomSync(syncResponse.rooms.invite.get(roomId));
+                    }
+
+                    isEmptyResponse = false;
+                }
 
                 // left room management
                 // it should be done at the end but it seems there is a server issue
@@ -973,54 +1004,18 @@ public class MXDataHandler implements IMXEventListener {
                         // FIXME SYNC V2 Archive/Display the left rooms!
                         // For that create 'handleArchivedRoomSync' method
 
+                        Room room = this.getStore().getRoom(roomId);
                         // Retrieve existing room
                         // check if the room still exists.
-                        if (null != this.getStore().getRoom(roomId)) {
-                            this.getStore().deleteRoom(roomId);
+                        if (null != room) {
+                            // use 'handleJoinedRoomSync' to pass the last events to the room before leaving it.
+                            // The room will then able to notify its listeners.
+                            room.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), isInitialSync);
+
                             Log.e(LOG_TAG, "## manageResponse() : leave the room " + roomId);
+                            this.getStore().deleteRoom(roomId);
                             onLeaveRoom(roomId);
                         }
-                    }
-
-                    isEmptyResponse = false;
-                }
-
-                // joined rooms events
-                if ((null != syncResponse.rooms.join) && (syncResponse.rooms.join.size() > 0)) {
-                    Log.d(LOG_TAG, "Received " + syncResponse.rooms.join.size() + " joined rooms");
-
-                    Set<String> roomIds = syncResponse.rooms.join.keySet();
-
-                    // Handle first joined rooms
-                    for (String roomId : roomIds) {
-                        Room room = getRoom(roomId);
-
-                        // sanity check
-                        if (null != room) {
-
-                            room.handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
-
-                            // issue reported by richvdh
-                            // the member is not defined in the members list
-                            // it seems being a server issue.
-                            if (isInitialSync && (null == room.getLiveState().getMember(getMyUser().user_id))) {
-                                Log.e(LOG_TAG, "## manageResponse() : leave the room " + roomId + " because the user is not anymore a member");
-                             	this.getStore().deleteRoom(roomId);
-                            }
-                        }
-                    }
-
-                    isEmptyResponse = false;
-                }
-
-                // invited room management
-                if ((null != syncResponse.rooms.invite) && (syncResponse.rooms.invite.size() > 0)) {
-                    Log.d(LOG_TAG, "Received " + syncResponse.rooms.invite.size() + " invited rooms");
-
-                    Set<String> roomIds = syncResponse.rooms.invite.keySet();
-
-                    for (String roomId : roomIds) {
-                        getRoom(roomId).handleInvitedRoomSync(syncResponse.rooms.invite.get(roomId));
                     }
 
                     isEmptyResponse = false;

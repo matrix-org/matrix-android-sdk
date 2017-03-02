@@ -509,26 +509,6 @@ public class EventTimeline {
         // the EventTimeLine is used when displaying a room preview
         // so, the following items should only be called when it is a live one.
         if (mIsLiveTimeline) {
-            // wait the end of the events chunk processing to detect if the user leaves the room
-            // The timeline events could contain a leave event followed by a join.
-            // so, the user does not leave.
-            // The handleLiveEvent used to warn the client that a room was left where as it should not
-            selfMember = mState.getMember(myUserId);
-
-            if (null != selfMember) {
-                membership = selfMember.membership;
-
-                if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE) || TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN)) {
-                    // check if the room still exists.
-                    if (null != mStore.getRoom(mRoomId)) {
-                        Log.e(LOG_TAG, "## handleJoinedRoomSync() : the room " + mRoomId + " has been left");
-                        mStore.deleteRoom(mRoomId);
-                        mDataHandler.onLeaveRoom(mRoomId);
-                    }
-                }
-            }
-
-
             // check if the summary is defined
             // after a sync, the room summary might not be defined because the latest message did not generate a room summary/
             if (null != mStore.getRoom(mRoomId)) {
