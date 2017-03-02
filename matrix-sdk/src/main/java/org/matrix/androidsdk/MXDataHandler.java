@@ -399,8 +399,8 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
-     * Set the crypto events listrner
-     * @param listener
+     * Set the crypto events listener
+     * @param listener the listener
      */
     public void setCryptoEventsListener(IMXEventListener listener) {
         mCryptoEventsListener = listener;

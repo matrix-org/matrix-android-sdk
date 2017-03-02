@@ -2387,7 +2387,6 @@ public class CryptoTest {
         mAliceSession.getDataHandler().addListener(aliceEventListener);
 
         // login with a new device id
-        // does not work by now
         MXSession bobSession2 = CryptoTestHelper.logAccountAndSync(context, bobId, MXTESTS_BOB_PWD);
 
         String bobDeviceId2 = bobSession2.getCredentials().deviceId;

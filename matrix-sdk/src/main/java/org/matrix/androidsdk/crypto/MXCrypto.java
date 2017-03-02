@@ -151,20 +151,6 @@ public class MXCrypto {
                 onRoomMembership(event);
             }
         }
-
-        @Override
-        public void onLiveEventsChunkProcessed(String fromToken, String toToken) {
-            // We delay handling these until the intialsync has completed, so that we
-            // can do all of them together.
-            if (isStarted()) {
-                getEncryptingThreadHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        mDevicesList.refreshOutdatedDeviceLists();
-                    }
-                });
-            }
-        }
     };
 
     // initialization callbacks
@@ -280,7 +266,7 @@ public class MXCrypto {
     /**
      * @return the decrypting thread handler
      */
-    public Handler getDecryptingThreadHandler() {
+    private Handler getDecryptingThreadHandler() {
         // mDecryptingHandlerThread was not yet ready
         if (null == mDecryptingHandler) {
             mDecryptingHandler = new Handler(mDecryptingHandlerThread.getLooper());
@@ -401,46 +387,75 @@ public class MXCrypto {
 
                     @Override
                     public void onSuccess(KeysUploadResponse info) {
-                        maybeUploadOneTimeKeys(new ApiCallback<Void>() {
+                        getEncryptingThreadHandler().post(new Runnable() {
                             @Override
-                            public void onSuccess(Void info) {
-                                getEncryptingThreadHandler().post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        if (!hasBeenReleased()) {
-                                            Log.d(LOG_TAG, "###########################################################");
-                                            Log.d(LOG_TAG, "uploadDeviceKeys done for " + mSession.getMyUserId());
-                                            Log.d(LOG_TAG, "  - device id  : " + mSession.getCredentials().deviceId);
-                                            Log.d(LOG_TAG, "  - ed25519    : " + mOlmDevice.getDeviceEd25519Key());
-                                            Log.d(LOG_TAG, "  - curve25519 : " + mOlmDevice.getDeviceCurve25519Key());
-                                            Log.d(LOG_TAG, "  - oneTimeKeys: " + mLastPublishedOneTimeKeys);     // They are
-                                            Log.d(LOG_TAG, "");
+                            public void run() {
+                                if (!hasBeenReleased()) {
+                                    Log.d(LOG_TAG, "###########################################################");
+                                    Log.d(LOG_TAG, "uploadDeviceKeys done for " + mSession.getMyUserId());
+                                    Log.d(LOG_TAG, "  - device id  : " + mSession.getCredentials().deviceId);
+                                    Log.d(LOG_TAG, "  - ed25519    : " + mOlmDevice.getDeviceEd25519Key());
+                                    Log.d(LOG_TAG, "  - curve25519 : " + mOlmDevice.getDeviceCurve25519Key());
+                                    Log.d(LOG_TAG, "  - oneTimeKeys: " + mLastPublishedOneTimeKeys);     // They are
+                                    Log.d(LOG_TAG, "");
 
+                                    getEncryptingThreadHandler().post(new Runnable() {
+                                        @Override
+                                        public void run() {
                                             checkDeviceAnnounced(new ApiCallback<Void>() {
                                                 @Override
                                                 public void onSuccess(Void info) {
-                                                    if (null != mNetworkConnectivityReceiver) {
-                                                        mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
-                                                    }
+                                                    getEncryptingThreadHandler().post(new Runnable() {
+                                                        @Override
+                                                        public void run() {
+                                                            // Make sure we process to-device messages before generating new one-time-keys #2782
+                                                            maybeUploadOneTimeKeys(new ApiCallback<Void>() {
+                                                                @Override
+                                                                public void onSuccess(Void info) {
+                                                                    if (null != mNetworkConnectivityReceiver) {
+                                                                        mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
+                                                                    }
 
-                                                    mIsStarting = false;
-                                                    mIsStarted = true;
+                                                                    mIsStarting = false;
+                                                                    mIsStarted = true;
 
-                                                    for (ApiCallback<Void> callback : mInitializationCallbacks) {
-                                                        final ApiCallback<Void> fCallback = callback;
-                                                        getUIHandler().post(new Runnable() {
-                                                            @Override
-                                                            public void run() {
-                                                                fCallback.onSuccess(null);
-                                                            }
-                                                        });
-                                                    }
-                                                    mInitializationCallbacks.clear();
+                                                                    for (ApiCallback<Void> callback : mInitializationCallbacks) {
+                                                                        final ApiCallback<Void> fCallback = callback;
+                                                                        getUIHandler().post(new Runnable() {
+                                                                            @Override
+                                                                            public void run() {
+                                                                                fCallback.onSuccess(null);
+                                                                            }
+                                                                        });
+                                                                    }
+                                                                    mInitializationCallbacks.clear();
 
-                                                    if (isInitialSync) {
-                                                        // refresh the devices list for each known room members
-                                                        getDeviceList().invalidateUserDeviceList(getE2eRoomMembers());
-                                                    }
+                                                                    if (isInitialSync) {
+                                                                        // refresh the devices list for each known room members
+                                                                        getDeviceList().invalidateUserDeviceList(getE2eRoomMembers());
+                                                                    }
+                                                                }
+
+                                                                @Override
+                                                                public void onNetworkError(Exception e) {
+                                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                                                    onError();
+                                                                }
+
+                                                                @Override
+                                                                public void onMatrixError(MatrixError e) {
+                                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                                                    onError();
+                                                                }
+
+                                                                @Override
+                                                                public void onUnexpectedError(Exception e) {
+                                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                                                    onError();
+                                                                }
+                                                            });
+                                                        }
+                                                    });
                                                 }
 
                                                 @Override
@@ -462,26 +477,8 @@ public class MXCrypto {
                                                 }
                                             });
                                         }
-                                    }
-                                });
-                            }
-
-                            @Override
-                            public void onNetworkError(Exception e) {
-                                Log.e(LOG_TAG, "## start failed : " + e.getMessage());
-                                onError();
-                            }
-
-                            @Override
-                            public void onMatrixError(MatrixError e) {
-                                Log.e(LOG_TAG, "## start failed : " + e.getMessage());
-                                onError();
-                            }
-
-                            @Override
-                            public void onUnexpectedError(Exception e) {
-                                Log.e(LOG_TAG, "## start failed : " + e.getMessage());
-                                onError();
+                                    });
+                                }
                             }
                         });
                     }
@@ -567,7 +564,12 @@ public class MXCrypto {
                     getDeviceList().invalidateUserDeviceList(syncResponse.deviceLists.changed);
                 }
 
-                if (!isCatchingUp) {
+                if (isStarted()) {
+                    // Make sure we process to-device messages before generating new one-time-keys #2782
+                    mDevicesList.refreshOutdatedDeviceLists();
+                }
+
+                if (!isCatchingUp && isStarted()) {
                     maybeUploadOneTimeKeys();
                 }
             }
