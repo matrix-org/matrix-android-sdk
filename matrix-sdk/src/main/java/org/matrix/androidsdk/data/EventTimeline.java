@@ -521,6 +521,7 @@ public class EventTimeline {
                 if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE) || TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN)) {
                     // check if the room still exists.
                     if (null != mStore.getRoom(mRoomId)) {
+                        Log.e(LOG_TAG, "## handleJoinedRoomSync() : the room " + mRoomId + " has been left");
                         mStore.deleteRoom(mRoomId);
                         mDataHandler.onLeaveRoom(mRoomId);
                     }

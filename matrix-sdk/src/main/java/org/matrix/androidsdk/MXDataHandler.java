@@ -977,6 +977,7 @@ public class MXDataHandler implements IMXEventListener {
                         // check if the room still exists.
                         if (null != this.getStore().getRoom(roomId)) {
                             this.getStore().deleteRoom(roomId);
+                            Log.e(LOG_TAG, "## manageResponse() : leave the room " + roomId);
                             onLeaveRoom(roomId);
                         }
                     }
@@ -1003,6 +1004,7 @@ public class MXDataHandler implements IMXEventListener {
                             // the member is not defined in the members list
                             // it seems being a server issue.
                             if (isInitialSync && (null == room.getLiveState().getMember(getMyUser().user_id))) {
+                                Log.e(LOG_TAG, "## manageResponse() : leave the room " + roomId + " because the user is not anymore a member");
                              	this.getStore().deleteRoom(roomId);
                             }
                         }
