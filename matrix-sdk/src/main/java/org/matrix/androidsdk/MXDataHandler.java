@@ -913,14 +913,15 @@ public class MXDataHandler implements IMXEventListener {
      * Manage a syncResponse.
      * @param syncResponse the syncResponse to manage.
      * @param fromToken the start sync token
+     * @param isCatchingUp true when there is a pending catch-up
      */
-    public void onSyncResponse(final SyncResponse syncResponse, final String fromToken) {
+    public void onSyncResponse(final SyncResponse syncResponse, final String fromToken, final boolean isCatchingUp) {
         // perform the sync in background
         // to avoid UI thread lags.
         mSyncHandler.post(new Runnable() {
             @Override
             public void run() {
-               manageResponse(syncResponse, fromToken);
+               manageResponse(syncResponse, fromToken, isCatchingUp);
             }
         });
     }
@@ -929,8 +930,9 @@ public class MXDataHandler implements IMXEventListener {
      * Manage the sync response in the UI thread.
      * @param syncResponse the syncResponse to manage.
      * @param fromToken the start sync token
+     * @param isCatchingUp true when there is a pending catch-up
      */
-    private void manageResponse(final SyncResponse syncResponse, final String fromToken) {
+    private void manageResponse(final SyncResponse syncResponse, final String fromToken, final boolean isCatchingUp) {
         if (!isAlive()) {
             Log.e(LOG_TAG, "manageResponse : ignored because the session has been closed");
             return;
@@ -1037,8 +1039,8 @@ public class MXDataHandler implements IMXEventListener {
                 manageAccountData(syncResponse.accountData, isInitialSync);
             }
 
-            if ((null != syncResponse.deviceLists) && (null != mCrypto)) {
-                mCrypto.getDeviceList().invalidateUserDeviceList(syncResponse.deviceLists.changed);
+            if (null != mCrypto) {
+                mCrypto.onSyncCompleted(syncResponse, fromToken, isCatchingUp);
             }
 
             IMXStore store = getStore();

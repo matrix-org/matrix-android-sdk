@@ -160,7 +160,7 @@ public class CryptoTest {
                 lock0.countDown();
             }
         });
-        lock0.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock0.await(1000000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("enableCrypto"));
 
         assertTrue (null != mBobSession.getCrypto());
@@ -289,11 +289,11 @@ public class CryptoTest {
                 lock0.countDown();
             }
         });
-        lock0.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock0.await(100000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("enableCrypto"));
 
         final CountDownLatch lock1 = new CountDownLatch(1);
-        mAliceSession.getCrypto().uploadKeys(10, new ApiCallback<Void>() {
+        mAliceSession.getCrypto().uploadKeys(new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 results.put("uploadKeys", "uploadKeys");
@@ -315,7 +315,7 @@ public class CryptoTest {
                 lock1.countDown();
             }
         });
-        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock1.await(100000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("uploadKeys"));
 
         createBobAccount();
@@ -343,7 +343,7 @@ public class CryptoTest {
                 lock2.countDown();
             }
         });
-        lock2.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock2.await(100000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("enableCrypto2"));
 
         final CountDownLatch lock3 = new CountDownLatch(1);
@@ -370,7 +370,7 @@ public class CryptoTest {
             }
         });
 
-        lock3.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock3.await(100000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("downloadKeys"));
         MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = (MXUsersDevicesMap<MXDeviceInfo> )results.get("downloadKeys");
 
@@ -410,7 +410,7 @@ public class CryptoTest {
                     }
                 }
         );
-        lock3a.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock3a.await(100000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("setDevicesKnown"));
         assertTrue (aliceDeviceFromBobPOV.isUnverified());
 
@@ -442,7 +442,7 @@ public class CryptoTest {
                     }
                 }
         );
-        lock3b.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock3b.await(100000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("setDeviceVerification1"));
         assertTrue (aliceDeviceFromBobPOV.isBlocked());
 
@@ -487,7 +487,7 @@ public class CryptoTest {
         bobSession2.getDataHandler().getStore().addMXStoreListener(listener);
         bobSession2.getDataHandler().getStore().open();
 
-        lock4.await(2000, TimeUnit.DAYS.MILLISECONDS);
+        lock4.await(2000000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onStoreReady"));
 
         final CountDownLatch lock4b = new CountDownLatch(2);
@@ -592,11 +592,11 @@ public class CryptoTest {
             }
         });
 
-        lock0.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock0.await(100000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("enableCryptoAlice"));
 
         final CountDownLatch lock1 = new CountDownLatch(1);
-        mAliceSession.getCrypto().uploadKeys(10, new ApiCallback<Void>() {
+        mAliceSession.getCrypto().uploadKeys(new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 results.put("uploadKeys", "uploadKeys");
@@ -618,7 +618,7 @@ public class CryptoTest {
                 lock1.countDown();
             }
         });
-        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock1.await(100000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("uploadKeys"));
 
         createBobAccount();
@@ -647,7 +647,7 @@ public class CryptoTest {
             }
         });
 
-        lock2.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock2.await(100000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("enableCryptoBob"));
 
         final CountDownLatch lock3 = new CountDownLatch(1);
@@ -674,7 +674,7 @@ public class CryptoTest {
             }
         });
 
-        lock3.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock3.await(100000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("downloadKeys"));
 
         final CountDownLatch lock4 = new CountDownLatch(1);
@@ -701,7 +701,7 @@ public class CryptoTest {
             }
         });
 
-        lock4.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock4.await(100000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("ensureOlmSessionsForUsers"));
 
         MXUsersDevicesMap<MXOlmSessionResult> result = (MXUsersDevicesMap<MXOlmSessionResult>)results.get("ensureOlmSessionsForUsers");
@@ -760,7 +760,7 @@ public class CryptoTest {
                 lock5.countDown();
             }
         });
-        lock5.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock5.await(100000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onStoreReady"));
 
         final CountDownLatch lock5b = new CountDownLatch(2);
@@ -781,7 +781,7 @@ public class CryptoTest {
         bobSession2.getDataHandler().addListener(eventListener);
         bobSession2.startEventStream(null);
 
-        lock5b.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock5b.await(100000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onInitialSyncComplete"));
         assertTrue(results.containsKey("onCryptoSyncComplete"));
 
@@ -808,7 +808,7 @@ public class CryptoTest {
                 lock6.countDown();
             }
         });
-        lock6.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock6.await(100000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue (results.containsKey("ensureOlmSessionsForUsers2"));
 
         MXUsersDevicesMap<MXOlmSessionResult> result2 = (MXUsersDevicesMap<MXOlmSessionResult>)results.get("ensureOlmSessionsForUsers2");

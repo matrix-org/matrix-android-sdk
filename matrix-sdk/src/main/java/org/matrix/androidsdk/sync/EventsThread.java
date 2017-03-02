@@ -295,7 +295,7 @@ public class EventsThread extends Thread {
             // to hide the splash screen
             SyncResponse dummySyncResponse = new SyncResponse();
             dummySyncResponse.nextBatch = mCurrentToken;
-            mListener.onSyncResponse(dummySyncResponse, null);
+            mListener.onSyncResponse(dummySyncResponse, null, true);
         } else {
 
             // Start with initial sync
@@ -306,7 +306,7 @@ public class EventsThread extends Thread {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         Log.d(LOG_TAG, "Received initial sync response.");
-                        mListener.onSyncResponse(syncResponse, null);
+                        mListener.onSyncResponse(syncResponse, null, true);
                         mCurrentToken = syncResponse.nextBatch;
                         mInitialSyncDone = true;
                         // unblock the events thread
@@ -439,19 +439,6 @@ public class EventsThread extends Thread {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         if (!mKilling) {
-                            // the catchup request is done once.
-                            if (mIsCatchingUp) {
-                                Log.e(LOG_TAG, "Stop the catchup");
-                                // stop any catch up
-                                mIsCatchingUp = false;
-                                mPaused = true;
-                            }
-
-                            Log.d(LOG_TAG, "Got event response");
-                            mListener.onSyncResponse(syncResponse, mCurrentToken);
-                            mCurrentToken = syncResponse.nextBatch;
-                            Log.d(LOG_TAG, "mCurrentToken is now set to " + mCurrentToken);
-
                             // poll /sync with timeout=0 until
                             // we get no to_device messages back.
                             if (0 == fServerTimeout) {
@@ -461,6 +448,20 @@ public class EventsThread extends Thread {
                                     mNextServerTimeoutms = 0;
                                 }
                             }
+
+                            // the catchup request is suspended when there is no need
+                            // to loop again
+                            if (mIsCatchingUp && (0 != mNextServerTimeoutms)) {
+                                Log.e(LOG_TAG, "Stop the catchup");
+                                // stop any catch up
+                                mIsCatchingUp = false;
+                                mPaused = true;
+                            }
+                            Log.d(LOG_TAG, "Got event response");
+                            mListener.onSyncResponse(syncResponse, mCurrentToken, (0 == mNextServerTimeoutms));
+                            mCurrentToken = syncResponse.nextBatch;
+                            Log.d(LOG_TAG, "mCurrentToken is now set to " + mCurrentToken);
+
                         }
 
                         // unblock the events thread

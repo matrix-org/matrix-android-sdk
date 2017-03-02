@@ -23,6 +23,7 @@ import android.os.Looper;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
+import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
@@ -49,7 +50,6 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.NewDeviceContent;
 import org.matrix.androidsdk.rest.model.RoomKeyContent;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
 import org.matrix.androidsdk.util.JsonUtils;
 
@@ -62,8 +62,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
@@ -79,9 +77,14 @@ import java.util.concurrent.CountDownLatch;
 public class MXCrypto {
     private static final String LOG_TAG = "MXCrypto";
 
-    private static final long UPLOAD_KEYS_DELAY_MS = 10 * 60 * 1000;
-
+    // max number of keys to upload at once
+    // Creating keys can be an expensive operation so we limit the
+    // number we generate in one go to avoid blocking the application
+    // for too long.
     private static final int ONE_TIME_KEY_GENERATION_MAX_NUMBER = 5;
+
+    // frequency with which to check & upload one-time keys
+    private static final long ONE_TIME_KEY_UPLOAD_PERIOD =  60 * 1000; // one minute
 
     // The Matrix session.
     private final MXSession mSession;
@@ -109,9 +112,6 @@ public class MXCrypto {
 
     // tell if the crypto is started
     private boolean mIsStarted;
-
-    // Timer to periodically upload keys
-    private Timer mUploadKeysTimer;
 
     // the crypto background threads
     private HandlerThread mEncryptingHandlerThread = null;
@@ -172,6 +172,12 @@ public class MXCrypto {
 
     // Warn the user if some new devices are detected while encrypting a message.
     private boolean mWarnOnUnknownDevices = true;
+
+    // tell if there is a OTK check in progress
+    private boolean mOneTimeKeyCheckInProgress = false;
+
+    // last OTK check timestamp
+    private long mLastOneTimeKeyCheck = 0;
 
     /**
      * Constructor
@@ -301,32 +307,6 @@ public class MXCrypto {
     }
 
     /**
-     * The MXSession is paused.
-     */
-    public void pause() {
-        stopUploadKeysTimer();
-    }
-
-    /**
-     * The MXSession is resumed.
-     */
-    public void resume() {
-        if (mIsStarted) {
-            startUploadKeysTimer(false);
-        }
-    }
-
-    /**
-     * Stop the upload keys timer
-     */
-    private void stopUploadKeysTimer() {
-        if (null != mUploadKeysTimer) {
-            mUploadKeysTimer.cancel();
-            mUploadKeysTimer = null;
-        }
-    }
-
-    /**
      * @return true if some saved data is corrupted
      */
     public boolean isCorrupted() {
@@ -359,44 +339,6 @@ public class MXCrypto {
      */
     public MXDeviceList getDeviceList() {
         return mDevicesList;
-    }
-
-    /**
-     * Start the timer to periodically upload the keys
-     *
-     * @param delayed true when the keys upload must be delayed
-     */
-    private void startUploadKeysTimer(boolean delayed) {
-        mUploadKeysTimer = new Timer();
-        mUploadKeysTimer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                // check race conditions while logging out
-                if (null != mMyDevice) {
-                    uploadKeys(ONE_TIME_KEY_GENERATION_MAX_NUMBER, new ApiCallback<Void>() {
-                        @Override
-                        public void onSuccess(Void info) {
-                            Log.d(LOG_TAG, "## startUploadKeysTimer() : uploaded");
-                        }
-
-                        @Override
-                        public void onNetworkError(Exception e) {
-                            Log.e(LOG_TAG, "## startUploadKeysTimer() : failed " + e.getMessage());
-                        }
-
-                        @Override
-                        public void onMatrixError(MatrixError e) {
-                            Log.e(LOG_TAG, "## startUploadKeysTimer() : failed " + e.getMessage());
-                        }
-
-                        @Override
-                        public void onUnexpectedError(Exception e) {
-                            Log.e(LOG_TAG, "## startUploadKeysTimer() : failed " + e.getMessage());
-                        }
-                    });
-                }
-            }
-        }, delayed ? UPLOAD_KEYS_DELAY_MS : 0, UPLOAD_KEYS_DELAY_MS);
     }
 
     /**
@@ -447,28 +389,7 @@ public class MXCrypto {
         getEncryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
-                uploadKeys(5, new ApiCallback<Void>() {
-                    private void onDone() {
-                        if (null != mNetworkConnectivityReceiver) {
-                            mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
-                        }
-
-                        mIsStarting = false;
-                        mIsStarted = true;
-                        startUploadKeysTimer(true);
-
-                        for (ApiCallback<Void> callback : mInitializationCallbacks) {
-                            final ApiCallback<Void> fCallback = callback;
-                            getUIHandler().post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    fCallback.onSuccess(null);
-                                }
-                            });
-                        }
-                        mInitializationCallbacks.clear();
-                    }
-
+                maybeUploadOneTimeKeys(new ApiCallback<Void>() {
                     private void onError() {
                         getUIHandler().postDelayed(new Runnable() {
                             @Override
@@ -501,7 +422,6 @@ public class MXCrypto {
 
                                             mIsStarting = false;
                                             mIsStarted = true;
-                                            startUploadKeysTimer(true);
 
                                             for (ApiCallback<Void> callback : mInitializationCallbacks) {
                                                 final ApiCallback<Void> fCallback = callback;
@@ -581,8 +501,6 @@ public class MXCrypto {
 
                     mMyDevice = null;
 
-                    stopUploadKeysTimer();
-
                     mCryptoStore.close();
                     mCryptoStore = null;
 
@@ -613,176 +531,22 @@ public class MXCrypto {
     }
 
     /**
-     * Upload the device keys to the homeserver and ensure
-     * that the homeserver has enough one-time keys.
-     *
-     * @param maxKeys  The maximum number of keys to generate.
-     * @param callback the asynchronous callback
+     * A sync response has been received
+     * @param syncResponse the syncResponse
+     * @param fromToken the start sync token
+     * @param isCatchingUp true if there is a catch-up in progress.
      */
-    public void uploadKeys(final int maxKeys, final ApiCallback<Void> callback) {
+    public void onSyncCompleted(final SyncResponse syncResponse, final String fromToken, final boolean isCatchingUp) {
         getEncryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
-                uploadDeviceKeys(new ApiCallback<KeysUploadResponse>() {
-                    @Override
-                    public void onSuccess(final KeysUploadResponse keysUploadResponse) {
-                        if (!hasBeenReleased()) {
-                            getEncryptingThreadHandler().post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    // We need to keep a pool of one time public keys on the server so that
-                                    // other devices can start conversations with us. But we can only store
-                                    // a finite number of private keys in the olm Account object.
-                                    // To complicate things further then can be a delay between a device
-                                    // claiming a public one time key from the server and it sending us a
-                                    // message. We need to keep the corresponding private key locally until
-                                    // we receive the message.
-                                    // But that message might never arrive leaving us stuck with duff
-                                    // private keys clogging up our local storage.
-                                    // So we need some kind of enginering compromise to balance all of
-                                    // these factors.
+                if (null != syncResponse.deviceLists) {
+                    getDeviceList().invalidateUserDeviceList(syncResponse.deviceLists.changed);
+                }
 
-                                    // We first find how many keys the server has for us.
-                                    int keyCount = keysUploadResponse.oneTimeKeyCountsForAlgorithm("signed_curve25519");
-
-                                    // We then check how many keys we can store in the Account object.
-                                    float maxOneTimeKeys = mOlmDevice.getMaxNumberOfOneTimeKeys();
-
-                                    // Try to keep at most half that number on the server. This leaves the
-                                    // rest of the slots free to hold keys that have been claimed from the
-                                    // server but we haven't recevied a message for.
-                                    // If we run out of slots when generating new keys then olm will
-                                    // discard the oldest private keys first. This will eventually clean
-                                    // out stale private keys that won't receive a message.
-                                    int keyLimit = (int) Math.floor(maxOneTimeKeys / 2.0);
-
-                                    // We work out how many new keys we need to create to top up the server
-                                    // If there are too many keys on the server then we don't need to
-                                    // create any more keys.
-                                    int numberToGenerate = Math.max(keyLimit - keyCount, 0);
-
-                                    if (maxKeys > 0) {
-                                        // Creating keys can be an expensive operation so we limit the
-                                        // number we generate in one go to avoid blocking the application
-                                        // for too long.
-                                        numberToGenerate = Math.min(numberToGenerate, maxKeys);
-
-                                        // Ask olm to generate new one time keys, then upload them to synapse.
-                                        mOlmDevice.generateOneTimeKeys(numberToGenerate);
-
-                                        uploadOneTimeKeys(new ApiCallback<KeysUploadResponse>() {
-                                            @Override
-                                            public void onSuccess(KeysUploadResponse info) {
-                                                callback.onSuccess(null);
-                                            }
-
-                                            @Override
-                                            public void onNetworkError(final Exception e) {
-                                                if (null != callback) {
-                                                    callback.onNetworkError(e);
-                                                }
-                                            }
-
-                                            @Override
-                                            public void onMatrixError(final MatrixError e) {
-                                                if (null != callback) {
-                                                    callback.onMatrixError(e);
-                                                }
-                                            }
-
-                                            @Override
-                                            public void onUnexpectedError(final Exception e) {
-                                                if (null != callback) {
-                                                    callback.onUnexpectedError(e);
-                                                }
-                                            }
-                                        });
-                                    } else {
-                                        // If we don't need to generate any keys then we are done.
-                                        if (null != callback) {
-                                            getUIHandler().post(new Runnable() {
-                                                @Override
-                                                public void run() {
-                                                    callback.onSuccess(null);
-                                                }
-                                            });
-                                        }
-                                    }
-                                }
-                            });
-                        }
-                    }
-
-                    @Override
-                    public void onNetworkError(final Exception e) {
-                        Log.e(LOG_TAG, "## uploadKeys() : onNetworkError " + e.getMessage());
-
-                        if (null != callback) {
-                            callback.onNetworkError(e);
-                        }
-                    }
-
-                    @Override
-                    public void onMatrixError(final MatrixError e) {
-                        Log.e(LOG_TAG, "## uploadKeys() : onMatrixError " + e.getMessage());
-
-                        if (null != callback) {
-                            callback.onMatrixError(e);
-                        }
-                    }
-
-                    @Override
-                    public void onUnexpectedError(final Exception e) {
-                        Log.e(LOG_TAG, "## uploadKeys() : onUnexpectedError " + e.getMessage());
-
-                        if (null != callback) {
-                            callback.onUnexpectedError(e);
-                        }
-                    }
-                });
-            }
-        });
-    }
-
-    /**
-     * Download the device keys for a list of users and stores the keys in the MXStore.
-     *
-     * @param userIds  The users to fetch.
-     * @param callback the asynchronous callback
-     */
-    public void downloadKeys(final List<String> userIds, final ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> callback) {
-        getEncryptingThreadHandler().post(new Runnable() {
-            @Override
-            public void run() {
-                mDevicesList.downloadKeys(userIds, true, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
-                    @Override
-                    public void onSuccess(final MXUsersDevicesMap<MXDeviceInfo> map) {
-                        if (null != callback) {
-                            callback.onSuccess(map);
-                        }
-                    }
-
-                    @Override
-                    public void onNetworkError(final Exception e) {
-                        if (null != callback) {
-                            callback.onNetworkError(e);
-                        }
-                    }
-
-                    @Override
-                    public void onMatrixError(final MatrixError e) {
-                        if (null != callback) {
-                            callback.onMatrixError(e);
-                        }
-                    }
-
-                    @Override
-                    public void onUnexpectedError(final Exception e) {
-                        if (null != callback) {
-                            callback.onUnexpectedError(e);
-                        }
-                    }
-                });
+                if (!isCatchingUp) {
+                    maybeUploadOneTimeKeys();
+                }
             }
         });
     }
@@ -1949,6 +1713,49 @@ public class MXCrypto {
     }
 
     /**
+     * Upload the device keys to the homeserver and ensure
+     * that the homeserver has enough one-time keys.
+     *
+     * @param callback the asynchronous callback
+     */
+    public void uploadKeys(final ApiCallback<Void> callback) {
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                uploadOneTimeKeys(new ApiCallback<KeysUploadResponse>() {
+                    @Override
+                    public void onSuccess(KeysUploadResponse info) {
+                        if (null != callback) {
+                            callback.onSuccess(null);
+                        }
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        if (null != callback) {
+                            callback.onNetworkError(e);
+                        }
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        if (null != callback) {
+                            callback.onMatrixError(e);
+                        }
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        if (null != callback) {
+                            callback.onUnexpectedError(e);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    /**
      * Upload my user's device keys.
      * This method must called on getEncryptingThreadHandler() thread.
      * The callback will called on UI thread.
@@ -1971,6 +1778,243 @@ public class MXCrypto {
         // For now, we set the device id explicitly, as we may not be using the
         // same one as used in login.
         mSession.getCryptoRestClient().uploadKeys(mMyDevice.JSONDictionary(), null, mMyDevice.deviceId, callback);
+    }
+
+    /**
+     * OTK upload loop
+     * @param numberToGenerate the number of key to generate
+     * @param callback the asynchronous callback
+     */
+    private void uploadLoop(final int numberToGenerate, final ApiCallback<Void> callback) {
+        if (numberToGenerate <= 0) {
+            // If we don't need to generate any more keys then we are done.
+            if (null != callback) {
+                callback.onSuccess(null);
+            }
+            return;
+        }
+
+        final int keysThisLoop = Math.min(numberToGenerate, ONE_TIME_KEY_GENERATION_MAX_NUMBER);
+        getOlmDevice().generateOneTimeKeys(keysThisLoop);
+
+        uploadOneTimeKeys(new ApiCallback<KeysUploadResponse>() {
+            @Override
+            public void onSuccess(KeysUploadResponse Response) {
+                uploadLoop(numberToGenerate - keysThisLoop, callback);
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        });
+    }
+
+    /**
+     * Check if the OTK must be uploaded.
+     */
+    private void maybeUploadOneTimeKeys() {
+        maybeUploadOneTimeKeys(null);
+    }
+
+    /**
+     * Check if the OTK must be uploaded.
+     * @param callback the asynchronous callback
+     */
+    private void maybeUploadOneTimeKeys(final ApiCallback<Void> callback) {
+        if (mOneTimeKeyCheckInProgress) {
+            getUIHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    if (null != callback) {
+                        callback.onSuccess(null);
+                    }
+                }
+            });
+            return;
+        }
+
+        if ((System.currentTimeMillis() - mLastOneTimeKeyCheck) < ONE_TIME_KEY_UPLOAD_PERIOD) {
+            // we've done a key upload recently.
+            getUIHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    if (null != callback) {
+                        callback.onSuccess(null);
+                    }
+                }
+            });
+            return;
+        }
+
+        mLastOneTimeKeyCheck = System.currentTimeMillis();
+
+        mOneTimeKeyCheckInProgress = true;
+
+        // ask the server how many keys we have
+        mSession.getCryptoRestClient().uploadKeys(null, null, mMyDevice.deviceId, new ApiCallback<KeysUploadResponse>() {
+
+            private void uploadKeysDone(String errorMessage) {
+                if (null != errorMessage) {
+                    Log.e(LOG_TAG, "## maybeUploadOneTimeKeys() : failed " + errorMessage);
+                }
+                mOneTimeKeyCheckInProgress = false;
+            }
+
+            @Override
+            public void onSuccess(final KeysUploadResponse keysUploadResponse) {
+                getEncryptingThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (!hasBeenReleased()) {
+                            // We need to keep a pool of one time public keys on the server so that
+                            // other devices can start conversations with us. But we can only store
+                            // a finite number of private keys in the olm Account object.
+                            // To complicate things further then can be a delay between a device
+                            // claiming a public one time key from the server and it sending us a
+                            // message. We need to keep the corresponding private key locally until
+                            // we receive the message.
+                            // But that message might never arrive leaving us stuck with duff
+                            // private keys clogging up our local storage.
+                            // So we need some kind of enginering compromise to balance all of
+                            // these factors.
+                            long keyCount = keysUploadResponse.oneTimeKeyCountsForAlgorithm("signed_curve25519");
+
+                            // We then check how many keys we can store in the Account object.
+                            long maxOneTimeKeys = getOlmDevice().getMaxNumberOfOneTimeKeys();
+
+                            // Try to keep at most half that number on the server. This leaves the
+                            // rest of the slots free to hold keys that have been claimed from the
+                            // server but we haven't recevied a message for.
+                            // If we run out of slots when generating new keys then olm will
+                            // discard the oldest private keys first. This will eventually clean
+                            // out stale private keys that won't receive a message.
+                            int keyLimit = (int) Math.floor(maxOneTimeKeys / 2.0);
+
+                            // We work out how many new keys we need to create to top up the server
+                            // If there are too many keys on the server then we don't need to
+                            // create any more keys.
+                            int numberToGenerate = (int) Math.max(keyLimit - keyCount, 0);
+
+                            uploadLoop(numberToGenerate, new ApiCallback<Void>() {
+                                @Override
+                                public void onSuccess(Void info) {
+                                    Log.d(LOG_TAG, "## maybeUploadOneTimeKeys() : succeeded");
+                                    uploadKeysDone(null);
+
+                                    getUIHandler().post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            if (null != callback) {
+                                                callback.onSuccess(null);
+                                            }
+                                        }
+                                    });
+                                }
+
+                                @Override
+                                public void onNetworkError(final Exception e) {
+                                    uploadKeysDone(e.getMessage());
+
+                                    getUIHandler().post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            if (null != callback) {
+                                                callback.onNetworkError(e);
+                                            }
+                                        }
+                                    });
+                                }
+
+                                @Override
+                                public void onMatrixError(final MatrixError e) {
+                                    uploadKeysDone(e.getMessage());
+
+                                    getUIHandler().post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            if (null != callback) {
+                                                callback.onMatrixError(e);
+                                            }
+                                        }
+                                    });
+                                }
+
+                                @Override
+                                public void onUnexpectedError(final Exception e) {
+                                    uploadKeysDone(e.getMessage());
+                                    getUIHandler().post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            if (null != callback) {
+                                                callback.onUnexpectedError(e);
+                                            }
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onNetworkError(final Exception e) {
+                uploadKeysDone(e.getMessage());
+
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (null != callback) {
+                            callback.onNetworkError(e);
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onMatrixError(final MatrixError e) {
+                uploadKeysDone(e.getMessage());
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (null != callback) {
+                            callback.onMatrixError(e);
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onUnexpectedError(final Exception e) {
+                uploadKeysDone(e.getMessage());
+
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (null != callback) {
+                            callback.onUnexpectedError(e);
+                        }
+                    }
+                });
+            }
+        });
     }
 
     /**
@@ -2114,10 +2158,12 @@ public class MXCrypto {
         return alg;
     }
 
+
     /**
      * Export the crypto keys
      *
-     * @return exported crypto data.
+     * @param password the password
+     * @param callback the exported keys
      */
     public void exportRoomKeys(final String password, final ApiCallback<byte[]> callback) {
         getDecryptingThreadHandler().post(new Runnable() {
