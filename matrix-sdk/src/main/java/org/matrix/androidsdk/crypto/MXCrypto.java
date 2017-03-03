@@ -85,7 +85,7 @@ public class MXCrypto {
     private static final int ONE_TIME_KEY_GENERATION_MAX_NUMBER = 5;
 
     // frequency with which to check & upload one-time keys
-    private static final long ONE_TIME_KEY_UPLOAD_PERIOD =  60 * 1000; // one minute
+    private static final long ONE_TIME_KEY_UPLOAD_PERIOD = 60 * 1000; // one minute
 
     // The Matrix session.
     private final MXSession mSession;
@@ -148,8 +148,6 @@ public class MXCrypto {
         public void onLiveEvent(Event event, RoomState roomState) {
             if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTION)) {
                 onCryptoEvent(event);
-            } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
-                onRoomMembership(event);
             }
         }
     };
@@ -553,8 +551,9 @@ public class MXCrypto {
 
     /**
      * A sync response has been received
+     *
      * @param syncResponse the syncResponse
-     * @param fromToken the start sync token
+     * @param fromToken    the start sync token
      * @param isCatchingUp true if there is a catch-up in progress.
      */
     public void onSyncCompleted(final SyncResponse syncResponse, final String fromToken, final boolean isCatchingUp) {
@@ -716,7 +715,7 @@ public class MXCrypto {
 
                 Set<String> userIds = devicesIdListByUserId.keySet();
 
-                for(String userId : userIds) {
+                for (String userId : userIds) {
                     Map<String, MXDeviceInfo> storedDeviceIDs = mCryptoStore.getUserDevices(userId);
 
                     // sanity checks
@@ -800,21 +799,8 @@ public class MXCrypto {
                 }
 
                 if (device.mVerified != verificationStatus) {
-                    int oldVerified = device.mVerified;
                     device.mVerified = verificationStatus;
                     mCryptoStore.storeUserDevice(userId, device);
-
-                    for (String roomId : userRoomIds) {
-                        IMXEncrypting alg;
-
-                        synchronized (mRoomEncryptors) {
-                            alg = mRoomEncryptors.get(roomId);
-                        }
-
-                        if (null != alg) {
-                            alg.onDeviceVerification(device, oldVerified);
-                        }
-                    }
                 }
 
                 if (null != callback) {
@@ -889,7 +875,7 @@ public class MXCrypto {
                 Collection<RoomMember> members = room.getJoinedMembers();
                 List<String> userIds = new ArrayList<>();
 
-                for(RoomMember m : members) {
+                for (RoomMember m : members) {
                     userIds.add(m.getUserId());
                 }
 
@@ -1447,13 +1433,14 @@ public class MXCrypto {
 
     /**
      * Provides the list of e2e rooms
+     *
      * @return the list of e2e rooms
      */
     private List<Room> getE2eRooms() {
         List<Room> rooms = new ArrayList<>(mSession.getDataHandler().getStore().getRooms());
         List<Room> e2eRooms = new ArrayList<>();
 
-        for(Room r : rooms) {
+        for (Room r : rooms) {
             if (r.isEncrypted()) {
                 RoomMember me = r.getMember(mSession.getMyUserId());
 
@@ -1462,7 +1449,7 @@ public class MXCrypto {
 
                     // ignore any rooms which we have left
                     if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_JOIN) ||
-                        TextUtils.equals(membership, RoomMember.MEMBERSHIP_INVITE)) {
+                            TextUtils.equals(membership, RoomMember.MEMBERSHIP_INVITE)) {
                         e2eRooms.add(r);
                     }
                 }
@@ -1481,10 +1468,10 @@ public class MXCrypto {
         HashSet<String> list = new HashSet<>();
         List<Room> rooms = getE2eRooms();
 
-        for(Room r : rooms) {
+        for (Room r : rooms) {
             Collection<RoomMember> activeMembers = r.getActiveMembers();
 
-            for(RoomMember m : activeMembers) {
+            for (RoomMember m : activeMembers) {
                 // add only the matrix id
                 if (MXSession.PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER.matcher(m.getUserId()).matches()) {
                     list.add(m.getUserId());
@@ -1726,42 +1713,6 @@ public class MXCrypto {
     }
 
     /**
-     * Handle a change in the membership state of a member of a room.
-     *
-     * @param event the membership event causing the change
-     */
-    private void onRoomMembership(final Event event) {
-        final IMXEncrypting alg;
-
-        synchronized (mRoomEncryptors) {
-            alg = mRoomEncryptors.get(event.roomId);
-        }
-
-        if (null == alg) {
-            // No encrypting in this room
-            return;
-        }
-
-        String userId = event.stateKey;
-
-        final RoomMember roomMember = mSession.getDataHandler().getRoom(event.roomId).getLiveState().getMember(userId);
-
-        if (null != roomMember) {
-            final RoomMember prevRoomMember = JsonUtils.toRoomMember(event.prev_content);
-
-            getEncryptingThreadHandler().post(new Runnable() {
-                @Override
-                public void run() {
-                    alg.onRoomMembership(event, roomMember, (null != prevRoomMember) ? prevRoomMember.membership : null);
-                }
-            });
-
-        } /*else {
-            Log.e(LOG_TAG, "## onRoomMembership() : Error cannot find the room member in event: " + event);
-        }*/
-    }
-
-    /**
      * Upload my user's device keys.
      * This method must called on getEncryptingThreadHandler() thread.
      * The callback will called on UI thread.
@@ -1788,8 +1739,9 @@ public class MXCrypto {
 
     /**
      * OTK upload loop
+     *
      * @param numberToGenerate the number of key to generate
-     * @param callback the asynchronous callback
+     * @param callback         the asynchronous callback
      */
     private void uploadLoop(final int numberToGenerate, final ApiCallback<Void> callback) {
         if (numberToGenerate <= 0) {
@@ -1841,6 +1793,7 @@ public class MXCrypto {
 
     /**
      * Check if the OTK must be uploaded.
+     *
      * @param callback the asynchronous callback
      */
     private void maybeUploadOneTimeKeys(final ApiCallback<Void> callback) {
@@ -2341,7 +2294,8 @@ public class MXCrypto {
      * Check if the user ids list have some unknown devices.
      * A success means there is no unknown devices.
      * If there are some unknown devices, a MXCryptoError.UNKNOWN_DEVICES_CODE exception is triggered.
-     * @param userIds the user ids list
+     *
+     * @param userIds  the user ids list
      * @param callback the asynchronous callback.
      */
     public void checkUnknownDevices(List<String> userIds, final ApiCallback<Void> callback) {
@@ -2381,7 +2335,8 @@ public class MXCrypto {
      * messages to unverified devices.
      * If false, it can still be overridden per-room.
      * If true, it overrides the per-room settings.
-     * @param block true to unilaterally blacklist all
+     *
+     * @param block    true to unilaterally blacklist all
      * @param callback the asynchronous callback.
      */
     public void setGlobalBlacklistUnverifiedDevices(final boolean block, final ApiCallback<Void> callback) {
@@ -2405,18 +2360,6 @@ public class MXCrypto {
             @Override
             public void run() {
                 mCryptoStore.setGlobalBlacklistUnverifiedDevices(block);
-                for (String roomId : userRoomIds) {
-                    IMXEncrypting alg;
-
-                    synchronized (mRoomEncryptors) {
-                        alg = mRoomEncryptors.get(roomId);
-                    }
-
-                    if (null != alg) {
-                        alg.onBlacklistUnverifiedDevices();
-                    }
-                }
-
                 getUIHandler().post(new Runnable() {
                     @Override
                     public void run() {
@@ -2433,6 +2376,7 @@ public class MXCrypto {
      * Tells whether the client should ever send encrypted messages to unverified devices.
      * The default value is false.
      * This function must be called in the getEncryptingThreadHandler() thread.
+     *
      * @return true to unilaterally blacklist all unverified devices.
      */
     public boolean getGlobalBlacklistUnverifiedDevices() {
@@ -2443,6 +2387,7 @@ public class MXCrypto {
      * Tells whether the client should ever send encrypted messages to unverified devices.
      * The default value is false.
      * messages to unverified devices.
+     *
      * @param callback the asynchronous callback
      */
     public void getGlobalBlacklistUnverifiedDevices(final ApiCallback<Boolean> callback) {
@@ -2468,6 +2413,7 @@ public class MXCrypto {
      * in this room.
      * The default value is false.
      * This function must be called in the getEncryptingThreadHandler() thread.
+     *
      * @param roomId the room id
      * @return true if the client should encrypt messages only for the verified devices.
      */
@@ -2484,7 +2430,8 @@ public class MXCrypto {
      * in this room.
      * The default value is false.
      * This function must be called in the getEncryptingThreadHandler() thread.
-     * @param roomId the room id
+     *
+     * @param roomId   the room id
      * @param callback the asynchronous callback
      */
     public void isRoomBlacklistUnverifiedDevices(final String roomId, final ApiCallback<Boolean> callback) {
@@ -2507,8 +2454,9 @@ public class MXCrypto {
 
     /**
      * Manages the room black-listing for unverified devices.
-     * @param roomId the room id
-     * @param add true to add the room id to the list, false to remove it.
+     *
+     * @param roomId   the room id
+     * @param add      true to add the room id to the list, false to remove it.
      * @param callback the asynchronous callback
      */
     private void setRoomBlacklistUnverifiedDevices(final String roomId, final boolean add, final ApiCallback<Void> callback) {
@@ -2541,17 +2489,6 @@ public class MXCrypto {
 
                 mCryptoStore.setRoomsListBlacklistUnverifiedDevices(roomIds);
 
-                // warn the dedicated
-                IMXEncrypting alg;
-
-                synchronized (mRoomEncryptors) {
-                    alg = mRoomEncryptors.get(roomId);
-                }
-
-                if (null != alg) {
-                    alg.onBlacklistUnverifiedDevices();
-                }
-
                 getUIHandler().post(new Runnable() {
                     @Override
                     public void run() {
@@ -2567,7 +2504,8 @@ public class MXCrypto {
 
     /**
      * Add this room to the ones which don't encrypt messages to unverified devices.
-     * @param roomId the room id
+     *
+     * @param roomId   the room id
      * @param callback the asynchronous callback
      */
     public void setRoomBlacklistUnverifiedDevices(final String roomId, final ApiCallback<Void> callback) {
@@ -2576,7 +2514,8 @@ public class MXCrypto {
 
     /**
      * Remove this room to the ones which don't encrypt messages to unverified devices.
-     * @param roomId the room id
+     *
+     * @param roomId   the room id
      * @param callback the asynchronous callback
      */
     public void setRoomUnblacklistUnverifiedDevices(final String roomId, final ApiCallback<Void> callback) {
