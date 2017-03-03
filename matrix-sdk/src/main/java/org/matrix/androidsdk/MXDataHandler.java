@@ -554,7 +554,7 @@ public class MXDataHandler implements IMXEventListener {
      * @return the corresponding room
      */
     public Room getRoom(String roomId, boolean create) {
-        return  getRoom(mStore, roomId, create);
+        return getRoom(mStore, roomId, create);
     }
 
     /**
@@ -580,6 +580,7 @@ public class MXDataHandler implements IMXEventListener {
         synchronized (this) {
             room = store.getRoom(roomId);
             if ((room == null) && create) {
+                Log.d(LOG_TAG, "## getRoom() : create the room " + roomId);
                 room = new Room();
                 room.init(roomId, this);
                 store.storeRoom(room);
@@ -967,12 +968,7 @@ public class MXDataHandler implements IMXEventListener {
 
                     // Handle first joined rooms
                     for (String roomId : roomIds) {
-                        Room room = getRoom(roomId);
-
-                        // sanity check
-                        if (null != room) {
-                            room.handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
-                        }
+                        getRoom(roomId).handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
                     }
 
                     isEmptyResponse = false;
@@ -985,6 +981,7 @@ public class MXDataHandler implements IMXEventListener {
                     Set<String> roomIds = syncResponse.rooms.invite.keySet();
 
                     for (String roomId : roomIds) {
+                        Log.d(LOG_TAG, "## manageResponse() : the user has been invited to " + roomId);
                         getRoom(roomId).handleInvitedRoomSync(syncResponse.rooms.invite.get(roomId));
                     }
 
@@ -1014,9 +1011,11 @@ public class MXDataHandler implements IMXEventListener {
                             // The room will then able to notify its listeners.
                             room.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), isInitialSync);
 
-                            Log.e(LOG_TAG, "## manageResponse() : leave the room " + roomId);
+                            Log.d(LOG_TAG, "## manageResponse() : leave the room " + roomId);
                             this.getStore().deleteRoom(roomId);
                             onLeaveRoom(roomId);
+                        } else {
+                            Log.d(LOG_TAG, "## manageResponse() : Try to leave an unknown room " + roomId);
                         }
                     }
 
