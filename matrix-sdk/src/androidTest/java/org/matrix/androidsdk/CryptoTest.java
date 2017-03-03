@@ -292,32 +292,6 @@ public class CryptoTest {
         lock0.await(1000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("enableCrypto"));
 
-        final CountDownLatch lock1 = new CountDownLatch(1);
-        mAliceSession.getCrypto().uploadKeys(10, new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                results.put("uploadKeys", "uploadKeys");
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
-            }
-        });
-        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
-        assertTrue(results.containsKey("uploadKeys"));
-
         createBobAccount();
         final CountDownLatch lock2 = new CountDownLatch(1);
         mBobSession.getCredentials().deviceId = "BobDevice";
@@ -594,32 +568,6 @@ public class CryptoTest {
 
         lock0.await(1000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("enableCryptoAlice"));
-
-        final CountDownLatch lock1 = new CountDownLatch(1);
-        mAliceSession.getCrypto().uploadKeys(10, new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                results.put("uploadKeys", "uploadKeys");
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
-            }
-        });
-        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
-        assertTrue(results.containsKey("uploadKeys"));
 
         createBobAccount();
 
@@ -2439,7 +2387,6 @@ public class CryptoTest {
         mAliceSession.getDataHandler().addListener(aliceEventListener);
 
         // login with a new device id
-        // does not work by now
         MXSession bobSession2 = CryptoTestHelper.logAccountAndSync(context, bobId, MXTESTS_BOB_PWD);
 
         String bobDeviceId2 = bobSession2.getCredentials().deviceId;
@@ -2448,6 +2395,8 @@ public class CryptoTest {
         // before sending a message, wait that the device event is received.
         lock3.await(10000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onToDeviceEvent2"));
+
+        SystemClock.sleep(1000);
 
         final Room roomFromBobPOV2 = bobSession2.getDataHandler().getRoom(mRoomId);
         assertTrue(null != roomFromBobPOV2);

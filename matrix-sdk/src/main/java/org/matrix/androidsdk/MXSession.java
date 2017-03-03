@@ -765,10 +765,6 @@ public class MXSession {
         } else {
             Log.e(LOG_TAG, "pauseEventStream : mEventsThread is null");
         }
-
-        if (null != mCrypto) {
-            mCrypto.pause();
-        }
     }
 
     /**
@@ -792,10 +788,6 @@ public class MXSession {
             mEventsThread.unpause();
         } else {
             Log.e(LOG_TAG, "resumeEventStream : mEventsThread is null");
-        }
-
-        if (null != mCrypto) {
-            mCrypto.resume();
         }
     }
 

@@ -633,52 +633,47 @@ public class MXDeviceList {
      * This method must be called on getEncryptingThreadHandler() thread.
      */
     public void refreshOutdatedDeviceLists() {
-        mxCrypto.getEncryptingThreadHandler().post(new Runnable() {
+        final List<String> users = getPendingUsersWithNewDevices();
+
+        if (users.size() == 0) {
+            return;
+        }
+
+        if (mIsDownloadingKeys) {
+            // request already in progress - do nothing. (We will automatically
+            // make another request if there are more users with outdated
+            // device lists when the current request completes).
+            return;
+        }
+
+        doKeyDownloadForUsers(users, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
             @Override
-            public void run() {
-                final List<String> users = getPendingUsersWithNewDevices();
-
-                if (users.size() == 0) {
-                    return;
-                }
-
-                if (mIsDownloadingKeys) {
-                    // request already in progress - do nothing. (We will automatically
-                    // make another request if there are more users with outdated
-                    // device lists when the current request completes).
-                    return;
-                }
-
-                doKeyDownloadForUsers(users, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+            public void onSuccess(final MXUsersDevicesMap<MXDeviceInfo> response) {
+                mxCrypto.getEncryptingThreadHandler().post(new Runnable() {
                     @Override
-                    public void onSuccess(final MXUsersDevicesMap<MXDeviceInfo> response) {
-                        mxCrypto.getEncryptingThreadHandler().post(new Runnable() {
-                            @Override
-                            public void run() {
-                                Log.d(LOG_TAG, "## refreshOutdatedDeviceLists() : done");
-                            }
-                        });
-                    }
-
-                    private void onError(String error) {
-                        Log.e(LOG_TAG, "## refreshOutdatedDeviceLists() : ERROR updating device keys for users " + users + " : " + error);
-                    }
-
-                    @Override
-                    public void onNetworkError(final Exception e) {
-                        onError(e.getMessage());
-                    }
-
-                    @Override
-                    public void onMatrixError(final MatrixError e) {
-                        onError(e.getMessage());
-                    }
-
-                    @Override
-                    public void onUnexpectedError(final Exception e) {
-                        onError(e.getMessage());
+                    public void run() {
+                        Log.d(LOG_TAG, "## refreshOutdatedDeviceLists() : done");
                     }
                 });
+            }
+
+            private void onError(String error) {
+                Log.e(LOG_TAG, "## refreshOutdatedDeviceLists() : ERROR updating device keys for users " + users + " : " + error);
+            }
+
+            @Override
+            public void onNetworkError(final Exception e) {
+                onError(e.getMessage());
+            }
+
+            @Override
+            public void onMatrixError(final MatrixError e) {
+                onError(e.getMessage());
+            }
+
+            @Override
+            public void onUnexpectedError(final Exception e) {
+                onError(e.getMessage());
             }
         });
     }
