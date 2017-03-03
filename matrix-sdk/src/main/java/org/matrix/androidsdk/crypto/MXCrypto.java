@@ -23,7 +23,6 @@ import android.os.Looper;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
@@ -147,8 +146,6 @@ public class MXCrypto {
         public void onLiveEvent(Event event, RoomState roomState) {
             if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTION)) {
                 onCryptoEvent(event);
-            } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
-                onRoomMembership(event);
             }
         }
 
@@ -990,21 +987,8 @@ public class MXCrypto {
                 }
 
                 if (device.mVerified != verificationStatus) {
-                    int oldVerified = device.mVerified;
                     device.mVerified = verificationStatus;
                     mCryptoStore.storeUserDevice(userId, device);
-
-                    for (String roomId : userRoomIds) {
-                        IMXEncrypting alg;
-
-                        synchronized (mRoomEncryptors) {
-                            alg = mRoomEncryptors.get(roomId);
-                        }
-
-                        if (null != alg) {
-                            alg.onDeviceVerification(device, oldVerified);
-                        }
-                    }
                 }
 
                 if (null != callback) {
@@ -1916,42 +1900,6 @@ public class MXCrypto {
     }
 
     /**
-     * Handle a change in the membership state of a member of a room.
-     *
-     * @param event the membership event causing the change
-     */
-    private void onRoomMembership(final Event event) {
-        final IMXEncrypting alg;
-
-        synchronized (mRoomEncryptors) {
-            alg = mRoomEncryptors.get(event.roomId);
-        }
-
-        if (null == alg) {
-            // No encrypting in this room
-            return;
-        }
-
-        String userId = event.stateKey;
-
-        final RoomMember roomMember = mSession.getDataHandler().getRoom(event.roomId).getLiveState().getMember(userId);
-
-        if (null != roomMember) {
-            final RoomMember prevRoomMember = JsonUtils.toRoomMember(event.prev_content);
-
-            getEncryptingThreadHandler().post(new Runnable() {
-                @Override
-                public void run() {
-                    alg.onRoomMembership(event, roomMember, (null != prevRoomMember) ? prevRoomMember.membership : null);
-                }
-            });
-
-        } /*else {
-            Log.e(LOG_TAG, "## onRoomMembership() : Error cannot find the room member in event: " + event);
-        }*/
-    }
-
-    /**
      * Upload my user's device keys.
      * This method must called on getEncryptingThreadHandler() thread.
      * The callback will called on UI thread.
@@ -2356,18 +2304,6 @@ public class MXCrypto {
             @Override
             public void run() {
                 mCryptoStore.setGlobalBlacklistUnverifiedDevices(block);
-                for (String roomId : userRoomIds) {
-                    IMXEncrypting alg;
-
-                    synchronized (mRoomEncryptors) {
-                        alg = mRoomEncryptors.get(roomId);
-                    }
-
-                    if (null != alg) {
-                        alg.onBlacklistUnverifiedDevices();
-                    }
-                }
-
                 getUIHandler().post(new Runnable() {
                     @Override
                     public void run() {
@@ -2491,17 +2427,6 @@ public class MXCrypto {
                 }
 
                 mCryptoStore.setRoomsListBlacklistUnverifiedDevices(roomIds);
-
-                // warn the dedicated
-                IMXEncrypting alg;
-
-                synchronized (mRoomEncryptors) {
-                    alg = mRoomEncryptors.get(roomId);
-                }
-
-                if (null != alg) {
-                    alg.onBlacklistUnverifiedDevices();
-                }
 
                 getUIHandler().post(new Runnable() {
                     @Override

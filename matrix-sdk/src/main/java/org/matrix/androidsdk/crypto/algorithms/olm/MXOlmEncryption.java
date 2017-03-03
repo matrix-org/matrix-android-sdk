@@ -28,9 +28,7 @@ import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
@@ -119,21 +117,6 @@ public class MXOlmEncryption implements IMXEncrypting {
                     }
                 }
         );
-    }
-
-    @Override
-    public void onRoomMembership(Event event, RoomMember member, String oldMembership) {
-        // No impact for olm
-    }
-
-    @Override
-    public void onDeviceVerification(MXDeviceInfo device, int oldVerified) {
-        // No impact for olm
-    }
-
-    @Override
-    public void onBlacklistUnverifiedDevices() {
-        // No impact for olm
     }
 
     /**

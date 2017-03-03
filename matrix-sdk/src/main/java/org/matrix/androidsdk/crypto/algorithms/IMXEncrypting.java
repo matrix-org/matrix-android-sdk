@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,11 +20,7 @@ package org.matrix.androidsdk.crypto.algorithms;
 import com.google.gson.JsonElement;
 
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
-import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.RoomMember;
 
 import java.util.List;
 
@@ -47,24 +44,4 @@ public interface IMXEncrypting {
      * @param callback the asynchronous callback
      */
     void encryptEventContent(JsonElement eventContent, String eventType, List<String> userIds, ApiCallback<JsonElement> callback);
-
-    /**
-     * Called when the membership of a member of the room changes.
-     * @param event the event causing the change.
-     * @param member the user whose membership changed.
-     * @param oldMembership the previous membership.
-     */
-     void onRoomMembership(Event event, RoomMember member, String oldMembership);
-
-    /**
-     * Called when the verification status of a device changes.
-     * @param device the device which the 'verified' property changed.
-     * @param oldVerified the old verification status.
-     */
-    void onDeviceVerification(MXDeviceInfo device, int oldVerified);
-
-    /**
-     * Called when the unverified devices list status has been toggled.
-     */
-    void onBlacklistUnverifiedDevices();
 }
