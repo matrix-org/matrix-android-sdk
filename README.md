@@ -41,7 +41,8 @@ Logging in
 To log in, use an instance of the login API client.
 
 ```java
-new LoginApiClient("https://matrix.org").loginWithPassword("user", "password", callback);
+HomeserverConnectionConfig hsConfig = new HomeserverConnectionConfig(Uri.parse("https://matrix.org"));
+new LoginRestClient(hsConfig).loginWithPassword(username, password, new SimpleApiCallback<Credentials>());
 ```
 
 If successful, the callback will provide the user credentials to use from then on.
