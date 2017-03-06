@@ -1048,6 +1048,10 @@ public class MXDataHandler implements IMXEventListener {
         }
 
         if (isInitialSync) {
+            // the events thread sends a dummy initial sync event
+            // when the application is restarted.
+            startCrypto(!isEmptyResponse);
+
             onInitialSyncComplete((null != syncResponse) ? syncResponse.nextBatch : null);
         } else {
             try {
@@ -1255,8 +1259,6 @@ public class MXDataHandler implements IMXEventListener {
     @Override
     public void onLiveEventsChunkProcessed(final String startToken, final String toToken) {
         refreshUnreadCounters();
-
-        startCrypto(false);
 
         if (null != mCryptoEventsListener) {
             mCryptoEventsListener.onLiveEventsChunkProcessed(startToken, toToken);
@@ -1469,7 +1471,6 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onInitialSyncComplete(String toToken) {
-        startCrypto(true);
         dispatchOnInitialSyncComplete(toToken);
     }
 
