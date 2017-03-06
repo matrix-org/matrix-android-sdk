@@ -123,6 +123,9 @@ public class MXDataHandler implements IMXEventListener {
     // e2e decoder
     private MXCrypto mCrypto;
 
+    // the crypto is only started when the sync did not retrieve new device
+    private boolean mIsStartingCryptoWithInitialSync = false;
+
     /**
      * Default constructor.
      * @param store the data storage implementation.
@@ -1048,12 +1051,21 @@ public class MXDataHandler implements IMXEventListener {
         }
 
         if (isInitialSync) {
-            // the events thread sends a dummy initial sync event
-            // when the application is restarted.
-            startCrypto(!isEmptyResponse);
+            if (!isCatchingUp) {
+                startCrypto(true);
+            } else {
+                // the events thread sends a dummy initial sync event
+                // when the application is restarted.
+                mIsStartingCryptoWithInitialSync = !isEmptyResponse;
+            }
 
             onInitialSyncComplete((null != syncResponse) ? syncResponse.nextBatch : null);
         } else {
+
+            if (!isCatchingUp) {
+                startCrypto(mIsStartingCryptoWithInitialSync);
+            }
+
             try {
                 onLiveEventsChunkProcessed(fromToken, (null != syncResponse) ? syncResponse.nextBatch : fromToken);
             } catch (Exception e) {
