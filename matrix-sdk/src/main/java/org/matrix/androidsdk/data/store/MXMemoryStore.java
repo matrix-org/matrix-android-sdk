@@ -444,7 +444,7 @@ public class MXMemoryStore implements IMXStore {
                 if (null == user) {
                     user = new User();
                     user.user_id = roomMember.getUserId();
-                    user.mIsRetrievedFromRoomMember = true;
+                    user.setRetrievedFromRoomMember();
                     storeUser(user);
                 }
 
@@ -461,7 +461,7 @@ public class MXMemoryStore implements IMXStore {
                             user.displayname = roomMember.displayname;
                             user.setAvatarUrl(roomMember.avatarUrl);
                             user.setLatestPresenceTs(roomMember.getOriginServerTs());
-                            user.mIsRetrievedFromRoomMember = true;
+                            user.setRetrievedFromRoomMember();
                         }
                     }
                 }

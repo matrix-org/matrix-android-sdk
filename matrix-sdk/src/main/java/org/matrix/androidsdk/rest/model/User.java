@@ -71,7 +71,7 @@ public class User implements java.io.Serializable {
 
     // The user data can have been retrieved by a room member
     // The data can be partially invalid until a presence is received
-    public boolean mIsRetrievedFromRoomMember = false;
+    private boolean mIsRetrievedFromRoomMember = false;
 
     // avatar URLs setter / getter
     public String getAvatarUrl() {
@@ -80,6 +80,20 @@ public class User implements java.io.Serializable {
 
     public void setAvatarUrl(String newAvatarUrl) {
         avatar_url = newAvatarUrl;
+    }
+
+    /**
+     * Tells if this user has been created from a room member event
+     */
+    public boolean isRetrievedFromRoomMember() {
+        return mIsRetrievedFromRoomMember;
+    }
+
+    /**
+     * Set that this user has been created from a room member.
+     */
+    public void setRetrievedFromRoomMember() {
+        mIsRetrievedFromRoomMember = true;
     }
 
     /**

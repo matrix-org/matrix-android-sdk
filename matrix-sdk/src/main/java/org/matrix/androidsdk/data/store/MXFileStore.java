@@ -944,7 +944,7 @@ public class MXFileStore extends MXMemoryStore {
                 User currentUser = mUsers.get(user.user_id);
 
                 if ((null == currentUser) || // not defined
-                        currentUser.mIsRetrievedFromRoomMember || // tmp user until retrieved it
+                        currentUser.isRetrievedFromRoomMember() || // tmp user until retrieved it
                         (currentUser.getLatestPresenceTs() < user.getLatestPresenceTs())) // newer presence
                 {
                     mUsers.put(user.user_id, user);
