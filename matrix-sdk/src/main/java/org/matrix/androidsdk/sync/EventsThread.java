@@ -272,6 +272,17 @@ public class EventsThread extends Thread {
     }
 
     /**
+     * Tells if a sync request contains some changed devices.
+     * @param syncResponse the sync response
+     * @return true if the response contains some changed devices.
+     */
+    private static boolean hasDevicesChanged(SyncResponse syncResponse) {
+        return (null != syncResponse.deviceLists) &&
+                (null != syncResponse.deviceLists.changed) &&
+                (syncResponse.deviceLists.changed.size() > 0);
+    }
+
+    /**
      * Start the events sync
      */
     private void startSync() {
@@ -301,12 +312,12 @@ public class EventsThread extends Thread {
             // Start with initial sync
             while (!mInitialSyncDone) {
                 final CountDownLatch latch = new CountDownLatch(1);
-
                 mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, null, null, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         Log.d(LOG_TAG, "Received initial sync response.");
-                        mListener.onSyncResponse(syncResponse, null, true);
+                        mNextServerTimeoutms = hasDevicesChanged(syncResponse) ? 0 : mDefaultServerTimeoutms;
+                        mListener.onSyncResponse(syncResponse, null, (0 == mNextServerTimeoutms));
                         mCurrentToken = syncResponse.nextBatch;
                         mInitialSyncDone = true;
                         // unblock the events thread
@@ -359,8 +370,7 @@ public class EventsThread extends Thread {
                     Log.e(LOG_TAG, "Interrupted whilst performing initial sync.");
                 }
             }
-
-            serverTimeout = mDefaultServerTimeoutms;
+            serverTimeout = mNextServerTimeoutms;
         }
 
         Log.d(LOG_TAG, "Starting event stream from token " + mCurrentToken);
@@ -442,9 +452,7 @@ public class EventsThread extends Thread {
                             // poll /sync with timeout=0 until
                             // we get no to_device messages back.
                             if (0 == fServerTimeout) {
-                                if ((null != syncResponse.deviceLists) &&
-                                        (null != syncResponse.deviceLists.changed) &&
-                                        (syncResponse.deviceLists.changed.size() > 0)) {
+                                if (hasDevicesChanged(syncResponse)) {
                                     mNextServerTimeoutms = 0;
                                 }
                             }

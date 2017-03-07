@@ -401,14 +401,14 @@ public class MXCrypto {
                                     getEncryptingThreadHandler().post(new Runnable() {
                                         @Override
                                         public void run() {
-                                            checkDeviceAnnounced(new ApiCallback<Void>() {
+                                            maybeUploadOneTimeKeys(new ApiCallback<Void>() {
                                                 @Override
                                                 public void onSuccess(Void info) {
                                                     getEncryptingThreadHandler().post(new Runnable() {
                                                         @Override
                                                         public void run() {
                                                             // Make sure we process to-device messages before generating new one-time-keys #2782
-                                                            maybeUploadOneTimeKeys(new ApiCallback<Void>() {
+                                                            checkDeviceAnnounced(new ApiCallback<Void>() {
                                                                 @Override
                                                                 public void onSuccess(Void info) {
                                                                     if (null != mNetworkConnectivityReceiver) {
@@ -430,8 +430,14 @@ public class MXCrypto {
                                                                     mInitializationCallbacks.clear();
 
                                                                     if (isInitialSync) {
-                                                                        // refresh the devices list for each known room members
-                                                                        getDeviceList().invalidateUserDeviceList(getE2eRoomMembers());
+                                                                        getEncryptingThreadHandler().post(new Runnable() {
+                                                                            @Override
+                                                                            public void run() {
+                                                                                // refresh the devices list for each known room members
+                                                                                getDeviceList().invalidateUserDeviceList(getE2eRoomMembers());
+                                                                                mDevicesList.refreshOutdatedDeviceLists();
+                                                                            }
+                                                                        });
                                                                     }
                                                                 }
 
@@ -1437,9 +1443,14 @@ public class MXCrypto {
      * @return the list of e2e rooms
      */
     private List<Room> getE2eRooms() {
-        List<Room> rooms = new ArrayList<>(mSession.getDataHandler().getStore().getRooms());
         List<Room> e2eRooms = new ArrayList<>();
 
+        // sanity checks
+        if ((null == mSession.getDataHandler()) || (null == mSession.getDataHandler().getStore())) {
+            return e2eRooms;
+        }
+
+        List<Room> rooms = new ArrayList<>(mSession.getDataHandler().getStore().getRooms());
         for (Room r : rooms) {
             if (r.isEncrypted()) {
                 RoomMember me = r.getMember(mSession.getMyUserId());
