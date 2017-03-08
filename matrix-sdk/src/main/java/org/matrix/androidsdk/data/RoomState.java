@@ -21,6 +21,7 @@ import android.text.TextUtils;
 
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonObject;
@@ -34,6 +35,10 @@ import org.matrix.androidsdk.rest.model.RoomThirdPartyInvite;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.JsonUtils;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -44,7 +49,7 @@ import java.util.Map;
 /**
  * The state of a room.
  */
-public class RoomState implements java.io.Serializable {
+public class RoomState implements Externalizable {
     private static final String LOG_TAG = "RoomState";
     private static final long serialVersionUID = -6019932024524988201L;
 
@@ -87,7 +92,7 @@ public class RoomState implements java.io.Serializable {
     private Map<String, List<String>> mAliasesByDomain = new HashMap();
 
     // merged from mAliasesByHomeServerUrl
-    private ArrayList<String> mMergedAliasesList;
+    private List<String> mMergedAliasesList;
 
     //
     private Map<String, Event> mStateEvents = new HashMap<>();
@@ -937,4 +942,229 @@ public class RoomState implements java.io.Serializable {
 
         return displayName;
     }
+
+    @Override
+    public void readExternal(ObjectInput input) throws IOException, ClassNotFoundException {
+        if (input.readBoolean()) {
+            roomId = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            powerLevels = (PowerLevels) input.readObject();
+        }
+
+        if (input.readBoolean()) {
+            aliases = (List<String>) input.readObject();
+        }
+
+        List<Event> roomAliasesEvents = (List<Event>) input.readObject();
+        for (Event e : roomAliasesEvents) {
+            mRoomAliases.put(e.stateKey, e);
+        }
+
+        mAliasesByDomain = (Map<String, List<String>>) input.readObject();
+
+        if (input.readBoolean()) {
+            mMergedAliasesList = (List<String>) input.readObject();
+        }
+
+        List<Event> stateEvents = (List<Event>) input.readObject();
+        for (Event e : stateEvents) {
+            mStateEvents.put(e.getType(), e);
+        }
+
+        if (input.readBoolean()) {
+            alias = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            name = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            topic = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            url = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            avatar_url = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            creator = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            join_rule = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            guest_access = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            history_visibility = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            roomAliasName = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            visibility = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            algorithm = input.readUTF();
+        }
+
+        mNotificationCount = input.readInt();
+        mHighlightCount = input.readInt();
+
+        if (input.readBoolean()) {
+            token = input.readUTF();
+        }
+
+        List<RoomMember> members = (List<RoomMember>) input.readObject();
+        for (RoomMember r : members) {
+            mMembers.put(r.getUserId(), r);
+        }
+
+        List<RoomThirdPartyInvite> invites = (List<RoomThirdPartyInvite>) input.readObject();
+        for (RoomThirdPartyInvite i : invites) {
+            mThirdPartyInvites.put(i.token, i);
+        }
+
+        List<RoomMember> inviteTokens = (List<RoomMember>) input.readObject();
+        for (RoomMember r : inviteTokens) {
+            mMembersWithThirdPartyInviteTokenCache.put(r.getThirdPartyInviteToken(), r);
+        }
+
+        if (input.readBoolean()) {
+            mMembership = input.readUTF();
+        }
+
+        mIsLive = input.readBoolean();
+
+        if (input.readBoolean()) {
+            mIsConferenceUserRoom = input.readBoolean();
+        }
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput output) throws IOException {
+        output.writeBoolean(null != roomId);
+        if (null != roomId) {
+            output.writeUTF(roomId);
+        }
+
+        output.writeBoolean(null != powerLevels);
+        if (null != powerLevels) {
+            output.writeObject(powerLevels);
+        }
+
+        output.writeBoolean(null != aliases);
+        if (null != aliases) {
+            output.writeObject(aliases);
+        }
+
+        output.writeObject(new ArrayList<>(mRoomAliases.values()));
+
+        output.writeObject(mAliasesByDomain);
+
+        output.writeBoolean(null != mMergedAliasesList);
+        if (null != mMergedAliasesList) {
+            output.writeObject(mMergedAliasesList);
+        }
+
+        output.writeObject(new ArrayList<>(mStateEvents.values()));
+
+        output.writeBoolean(null != alias);
+        if (null != alias) {
+            output.writeUTF(alias);
+        }
+
+        output.writeBoolean(null != name);
+        if (null != name) {
+            output.writeUTF(name);
+        }
+
+        output.writeBoolean(null != topic);
+        if (null != topic) {
+            output.writeUTF(topic);
+        }
+
+        output.writeBoolean(null != url);
+        if (null != url) {
+            output.writeUTF(url);
+        }
+
+        output.writeBoolean(null != avatar_url);
+        if (null != avatar_url) {
+            output.writeUTF(avatar_url);
+        }
+
+        output.writeBoolean(null != creator);
+        if (null != creator) {
+            output.writeUTF(creator);
+        }
+
+        output.writeBoolean(null != join_rule);
+        if (null != join_rule) {
+            output.writeUTF(join_rule);
+        }
+
+        output.writeBoolean(null != guest_access);
+        if (null != guest_access) {
+            output.writeUTF(guest_access);
+        }
+
+        output.writeBoolean(null != history_visibility);
+        if (null != history_visibility) {
+            output.writeUTF(history_visibility);
+        }
+
+        output.writeBoolean(null != roomAliasName);
+        if (null != roomAliasName) {
+            output.writeUTF(roomAliasName);
+        }
+
+        output.writeBoolean(null != visibility);
+        if (null != visibility) {
+            output.writeUTF(visibility);
+        }
+
+        output.writeBoolean(null != algorithm);
+        if (null != algorithm) {
+            output.writeUTF(algorithm);
+        }
+
+        output.writeInt(mNotificationCount);
+        output.writeInt(mHighlightCount);
+
+        output.writeBoolean(null != token);
+        if (null != token) {
+            output.writeUTF(token);
+        }
+
+        output.writeObject(new ArrayList<>(mMembers.values()));
+        output.writeObject(new ArrayList<>(mThirdPartyInvites.values()));
+        output.writeObject(new ArrayList<>(mMembersWithThirdPartyInviteTokenCache.values()));
+
+        output.writeBoolean(null != mMembership);
+        if (null != mMembership) {
+            output.writeUTF(mMembership);
+        }
+
+        output.writeBoolean(mIsLive);
+
+        output.writeBoolean(null != mIsConferenceUserRoom);
+        if (null != mIsConferenceUserRoom) {
+            output.writeBoolean(mIsConferenceUserRoom);
+        }
+    }
+
 }
