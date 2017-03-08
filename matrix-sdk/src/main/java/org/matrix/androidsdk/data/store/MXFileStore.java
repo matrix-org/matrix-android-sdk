@@ -17,8 +17,12 @@
 package org.matrix.androidsdk.data.store;
 
 import android.content.Context;
+import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Looper;
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
@@ -58,7 +62,7 @@ public class MXFileStore extends MXMemoryStore {
     private static final String LOG_TAG = "MXFileStore";
 
     // some constant values
-    private static final int MXFILE_VERSION = 4;
+    private static final int MXFILE_VERSION = 5;
 
     // ensure that there is enough messages to fill a tablet screen
     private static final int MAX_STORED_MESSAGES_COUNT = 50;
@@ -69,6 +73,7 @@ public class MXFileStore extends MXMemoryStore {
     private static final String MXFILE_STORE_GZ_ROOMS_MESSAGES_FOLDER = "messages_gz";
     private static final String MXFILE_STORE_ROOMS_TOKENS_FOLDER = "tokens";
     private static final String MXFILE_STORE_GZ_ROOMS_STATE_FOLDER = "state_gz";
+    private static final String MXFILE_STORE_GZ_ROOMS_STATE_EVENTS_FOLDER = "state_rooms_events";
     private static final String MXFILE_STORE_ROOMS_SUMMARY_FOLDER = "summary";
     private static final String MXFILE_STORE_ROOMS_RECEIPT_FOLDER = "receipts";
     private static final String MXFILE_STORE_ROOMS_ACCOUNT_DATA_FOLDER = "accountData";
@@ -97,6 +102,7 @@ public class MXFileStore extends MXMemoryStore {
     private File mGzStoreRoomsMessagesFolderFile = null;
     private File mStoreRoomsTokensFolderFile = null;
     private File mGzStoreRoomsStateFolderFile = null;
+    private File mGzStoreRoomsStateEventsFolderFile = null;
     private File mStoreRoomsSummaryFolderFile = null;
     private File mStoreRoomsMessagesReceiptsFolderFile = null;
     private File mStoreRoomsAccountDataFolderFile = null;
@@ -156,6 +162,11 @@ public class MXFileStore extends MXMemoryStore {
         mGzStoreRoomsStateFolderFile = new File(mStoreFolderFile, MXFILE_STORE_GZ_ROOMS_STATE_FOLDER);
         if (!mGzStoreRoomsStateFolderFile.exists()) {
             mGzStoreRoomsStateFolderFile.mkdirs();
+        }
+
+        mGzStoreRoomsStateEventsFolderFile = new File(mStoreFolderFile, MXFILE_STORE_GZ_ROOMS_STATE_EVENTS_FOLDER);
+        if (!mGzStoreRoomsStateEventsFolderFile.exists()) {
+            mGzStoreRoomsStateEventsFolderFile.mkdirs();
         }
 
         mStoreRoomsSummaryFolderFile = new File(mStoreFolderFile, MXFILE_STORE_ROOMS_SUMMARY_FOLDER);
@@ -1255,6 +1266,51 @@ public class MXFileStore extends MXMemoryStore {
     // Room states management
     //================================================================================
 
+    @Override
+    public void getRoomStateEvents(final String roomId, final SimpleApiCallback<List<Event>> callback) {
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                mFileStoreHandler.post(new Runnable() {
+                    public void run() {
+                        if (!isKilled()) {
+                            ArrayList<Event> eventsList = new ArrayList<>();
+
+                            File statesEventsFolder = new File(mGzStoreRoomsStateEventsFolderFile, roomId);
+                            long start = System.currentTimeMillis();
+
+                            if (statesEventsFolder.exists()) {
+                                File[] files = statesEventsFolder.listFiles();
+
+                                for(int i = 0; i < files.length; i++) {
+                                    File file = files[i];
+
+                                    try {
+                                        Object eventAsVoid = readObject("getRoomStateEvents", file);
+
+                                        if (null != eventAsVoid) {
+                                            Event event = (Event)eventAsVoid;
+                                            event.finalizeDeserialization();
+                                            eventsList.add(event);
+                                        }
+                                    } catch (Exception e){
+                                        Log.e(LOG_TAG, "getRoomStateEvents failed : " + e.getMessage());
+                                    }
+                                }
+                            }
+
+                            Log.d(LOG_TAG, "getRoomStateEvents : retrieve " +  eventsList.size() + " events in " + (System.currentTimeMillis() - start) + " ms");
+                            callback.onSuccess(eventsList);
+                        }
+                    }
+                });
+            }
+        };
+
+        Thread t = new Thread(r);
+        t.start();
+    }
+
     /**
      * Delete the room state file.
      * @param roomId the room id.
@@ -1271,6 +1327,15 @@ public class MXFileStore extends MXMemoryStore {
             }
         }
 
+        File statesEventsFolder = new File(mGzStoreRoomsStateEventsFolderFile, roomId);
+
+        if (statesEventsFolder.exists()) {
+            try {
+                ContentUtils.deleteDirectory(statesEventsFolder);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "deleteRoomStateFile failed with error " + e.getMessage());
+            }
+        }
     }
 
     /**
@@ -1278,16 +1343,52 @@ public class MXFileStore extends MXMemoryStore {
      * @param roomId the room id.
      */
     private void saveRoomState(String roomId) {
+        Log.d(LOG_TAG, "++ saveRoomsState " + roomId);
+
         File roomStateFile = new File(mGzStoreRoomsStateFolderFile, roomId);
         Room room = mRooms.get(roomId);
 
         if (null != room) {
             long start1 = System.currentTimeMillis();
             writeObject("saveRoomsState " + roomId, roomStateFile, room.getState());
-            Log.d(LOG_TAG, "saveRoomsState " + room.getState().getMembers().size() + " : " + (System.currentTimeMillis() - start1) + " ms");
+            Log.d(LOG_TAG, "saveRoomsState " + room.getState().getMembers().size() + " members : " + (System.currentTimeMillis() - start1) + " ms");
+
+            List<Event> stateEvents;
+
+            synchronized (mRoomStateEventsByRoomId) {
+                if (mRoomStateEventsByRoomId.containsKey(roomId)) {
+                    stateEvents = mRoomStateEventsByRoomId.get(roomId);
+                    mRoomStateEventsByRoomId.remove(roomId);
+                } else {
+                    stateEvents = null;
+                }
+            }
+
+            if (null != stateEvents) {
+                File roomStateEventsFile = new File(mGzStoreRoomsStateEventsFolderFile, roomId);
+
+                if (!roomStateEventsFile.exists()) {
+                    roomStateEventsFile.mkdirs();
+                }
+
+                long start2 = System.currentTimeMillis();
+
+                for(Event event : stateEvents) {
+                    File roomStateEventFile = new File(roomStateEventsFile, event.eventId);
+                    event.prepareSerialization();
+                    writeObject("saveRoomsState : save state events " + roomId + " " + event.eventId, roomStateEventFile, event);
+                }
+
+                Log.d(LOG_TAG, "saveRoomsState : save " +  stateEvents.size() +  " stateEvents in " + (System.currentTimeMillis() - start2) + " ms");
+            } else {
+                Log.d(LOG_TAG, "saveRoomsState : no state events to save");
+            }
         } else {
+            Log.d(LOG_TAG, "saveRoomsState : delete the room state");
             deleteRoomStateFile(roomId);
         }
+
+        Log.d(LOG_TAG, "-- saveRoomsState " + roomId);
     }
 
     /**

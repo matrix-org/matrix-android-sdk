@@ -24,6 +24,7 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -337,6 +338,23 @@ public interface IMXStore {
      * @param roomId roomId the id of the room.
      */
     void storeLiveStateForRoom(String roomId);
+
+    /**
+     * Store a room state event.
+     * The room states are built with several events.
+     *
+     * @param roomId the room id
+     * @param event the event
+     */
+    void storeRoomStateEvent(String roomId, Event event);
+
+    /**
+     * Retrieve the room state creation events
+     *
+     * @param roomId the room id
+     * @param callback the asynchronous callback
+     */
+    void getRoomStateEvents(String roomId, SimpleApiCallback<List<Event>> callback);
 
     /**
      * Return the list of latest unsent events.

@@ -32,7 +32,7 @@ public class RoomThirdPartyInvite implements java.io.Serializable {
     public String token;
 
     // the event used to build this class
-    private Event mOriginalEvent = null;
+    private String mOriginalEventId = null;
 
     /**
      * @return a RoomThirdPartyInvite deep copy.
@@ -41,23 +41,23 @@ public class RoomThirdPartyInvite implements java.io.Serializable {
         RoomThirdPartyInvite copy = new RoomThirdPartyInvite();
         copy.display_name = display_name;
         copy.token = token;
-        copy.mOriginalEvent = mOriginalEvent;
+        copy.mOriginalEventId = mOriginalEventId;
         return copy;
     }
 
     /**
      * Set the original used to create this class
-     * @param event the event
+     * @param eventId the event id
      */
-    public void setOriginalEvent(Event event) {
-        mOriginalEvent = event;
+    public void setOriginalEventid(String eventId) {
+        mOriginalEventId = eventId;
     }
 
     /**
      * Provides the even used to create this class
      * @return the event uses to create this class
      */
-    public Event getOriginalEvent() {
-        return mOriginalEvent;
+    public String getOriginalEventId() {
+        return mOriginalEventId;
     }
 }

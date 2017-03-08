@@ -18,6 +18,8 @@
 package org.matrix.androidsdk.data.store;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -26,6 +28,7 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -69,6 +72,9 @@ public class MXMemoryStore implements IMXStore {
     // dict of dict of MXReceiptData indexed by userId
     protected final Object mReceiptsByRoomIdLock = new Object();
     protected Map<String, Map<String, ReceiptData>> mReceiptsByRoomId;
+
+    // room state events
+    protected final Map<String, List<Event>> mRoomStateEventsByRoomId = new HashMap<>();
 
     // common context
     private static Context mSharedContext = null;
@@ -842,6 +848,38 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public void storeLiveStateForRoom(String roomId) {
+    }
+
+    @Override
+    public void storeRoomStateEvent(String roomId, Event event) {
+        synchronized (mRoomStateEventsByRoomId) {
+            List<Event> events = mRoomStateEventsByRoomId.get(roomId);
+
+            if (null == events) {
+                events = new ArrayList<>();
+                mRoomStateEventsByRoomId.put(roomId, events);
+            }
+
+            events.add(event);
+        }
+    }
+
+    @Override
+    public void getRoomStateEvents(final String roomId, final SimpleApiCallback<List<Event>> callback) {
+        final List<Event> events = new ArrayList<>();
+
+        synchronized (mRoomStateEventsByRoomId) {
+            if (mRoomStateEventsByRoomId.containsKey(roomId)) {
+                events.addAll(mRoomStateEventsByRoomId.get(roomId));
+            }
+        }
+
+        (new Handler(Looper.getMainLooper())).post(new Runnable() {
+            @Override
+            public void run() {
+                callback.onSuccess(events);
+            }
+        });
     }
 
     /**

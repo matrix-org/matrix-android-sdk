@@ -1384,44 +1384,47 @@ public class EventTimeline {
      * because the room states has to be been updated.
      * @param event the redacted event
      */
-    private void checkStateEventRedaction(Event event) {
+    private void checkStateEventRedaction(final Event event) {
         if (null != event.stateKey) {
             Log.d(LOG_TAG, "checkStateEventRedaction from event " + event.eventId);
 
             // check if the state events is locally known
             // to avoid triggering a room initial sync
-            List<Event> stateEvents = mState.getStateEvents();
+            mState.getStateEvents(new SimpleApiCallback<List<Event>>() {
+                @Override
+                public void onSuccess(List<Event> stateEvents) {
+                    boolean isFound = false;
+                    for(int index = 0; index < stateEvents.size(); index++) {
+                        Event stateEvent = stateEvents.get(index);
 
-            boolean isFound = false;
-            for(int index = 0; index < stateEvents.size(); index++) {
-                Event stateEvent = stateEvents.get(index);
+                        if (TextUtils.equals(stateEvent.eventId, event.eventId)) {
+                            stateEvents.remove(index);
+                            stateEvents.set(index, event);
+                            isFound = true;
+                            break;
+                        }
+                    }
 
-                if (TextUtils.equals(stateEvent.eventId, event.eventId)) {
-                    stateEvents.remove(index);
-                    stateEvents.set(index, event);
-                    isFound = true;
-                    break;
+                    // if the room state can be locally pruned
+                    // and can create a new valid room state
+                    if (isFound) {
+                        initHistory(stateEvents);
+                    } else {
+                        // let the server provides an up to update room state.
+                        // we should apply the pruned event to the latest room state
+                        // because it might concern an older state.
+                        // Else, the current state would be invalid.
+                        // eg with this room history
+                        //
+                        // message_1 : A renames this room to Name1
+                        // message_2 : A renames this room to Name2
+                        // If message_1 is redacted, the room name must not be cleared
+                        // If the messages have been room member name updates,
+                        // the user must keep his latest name but his name must be updated in the history
+                        checkStateEventRedaction(event.eventId);
+                    }
                 }
-            }
-
-            // if the room state can be locally pruned
-            // and can create a new valid room state
-            if (isFound) {
-                initHistory(stateEvents);
-            } else {
-                // let the server provides an up to update room state.
-                // we should apply the pruned event to the latest room state
-                // because it might concern an older state.
-                // Else, the current state would be invalid.
-                // eg with this room history
-                //
-                // message_1 : A renames this room to Name1
-                // message_2 : A renames this room to Name2
-                // If message_1 is redacted, the room name must not be cleared
-                // If the messages have been room member name updates,
-                // the user must keep his latest name but his name must be updated in the history
-                checkStateEventRedaction(event.eventId);
-            }
+            });
         }
     }
 

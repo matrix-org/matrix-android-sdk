@@ -43,7 +43,7 @@ public class RoomMember implements java.io.Serializable {
     private String mInviter;
 
     // the event used to build the room member
-    private Event mOriginalEvent = null;
+    private String mOriginalEventId = null;
 
     public String getUserId() {
         return userId;
@@ -61,12 +61,12 @@ public class RoomMember implements java.io.Serializable {
         return mOriginServerTs;
     }
 
-    public void setOriginalEvent(Event event) {
-        mOriginalEvent = event;
+    public void setOriginalEventId(String eventId) {
+        mOriginalEventId = eventId;
     }
 
-    public Event getOriginalEvent() {
-        return mOriginalEvent;
+    public String getOriginalEventId() {
+        return mOriginalEventId;
     }
 
     public String getInviterId() {
@@ -202,7 +202,7 @@ public class RoomMember implements java.io.Serializable {
         copy.avatarUrl = avatarUrl;
         copy.membership = membership;
         copy.userId = userId;
-        copy.mOriginalEvent = mOriginalEvent;
+        copy.mOriginalEventId = mOriginalEventId;
         return copy;
     }
 

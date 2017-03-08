@@ -19,6 +19,8 @@ package org.matrix.androidsdk.data;
 
 import android.text.TextUtils;
 
+import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonObject;
@@ -238,35 +240,23 @@ public class RoomState implements java.io.Serializable {
     }
 
     /**
-     * Provides the latest state events used to create this room state
+     * Provides the latest state events used to create this room state.
+     * It includes the room member creation events (they are not loaded in memory by default).
      * @return the latest state events list
      */
-    public List<Event> getStateEvents() {
-        ArrayList<Event> stateEvents = new ArrayList<>();
+    public void getStateEvents(final SimpleApiCallback<List<Event>> callback) {
+        final ArrayList<Event> stateEvents = new ArrayList<>();
 
         stateEvents.addAll(mStateEvents.values());
 
-        // Members are also state events
-        Collection<RoomMember> members = getMembers();
-        for(RoomMember m : members) {
-            if (null != m.getOriginalEvent()) {
-                stateEvents.add(m.getOriginalEvent());
+        // retrieve the roomMember creation events
+        ((MXDataHandler) mDataHandler).getStore().getRoomStateEvents(roomId, new SimpleApiCallback<List<Event>>() {
+            @Override
+            public void onSuccess(List<Event> events) {
+                stateEvents.addAll(events);
+                callback.onSuccess(stateEvents);
             }
-        }
-
-        // room aliases events
-        stateEvents.addAll(mRoomAliases.values());
-
-        // Third party invites events
-        Collection<RoomThirdPartyInvite> thirdPartyInvites = mThirdPartyInvites.values();
-
-        for(RoomThirdPartyInvite thirdPartyInvite : thirdPartyInvites) {
-            if (null != thirdPartyInvite.getOriginalEvent()) {
-                stateEvents.add(thirdPartyInvite.getOriginalEvent());
-            }
-        }
-
-        return stateEvents;
+        });
     }
 
     /**
@@ -813,7 +803,7 @@ public class RoomState implements java.io.Serializable {
                     member.setUserId(userId);
                     member.setOriginServerTs(event.getOriginServerTs());
                     member.setInviterId(event.getSender());
-                    member.setOriginalEvent(event);
+                    ((MXDataHandler) mDataHandler).getStore().storeRoomStateEvent(roomId, event);
 
                     RoomMember currentMember = getMember(userId);
 
@@ -860,7 +850,7 @@ public class RoomState implements java.io.Serializable {
                 RoomThirdPartyInvite thirdPartyInvite = JsonUtils.toRoomThirdPartyInvite(contentToConsider);
 
                 thirdPartyInvite.token = event.stateKey;
-                thirdPartyInvite.setOriginalEvent(event);
+                ((MXDataHandler) mDataHandler).getStore().storeRoomStateEvent(roomId, event);
 
                 if (!TextUtils.isEmpty(thirdPartyInvite.token)) {
                     mThirdPartyInvites.put(thirdPartyInvite.token, thirdPartyInvite);
