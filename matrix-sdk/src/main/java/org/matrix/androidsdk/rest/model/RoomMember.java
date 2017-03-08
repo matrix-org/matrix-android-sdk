@@ -18,11 +18,18 @@ package org.matrix.androidsdk.rest.model;
 
 import android.text.TextUtils;
 
+import org.matrix.androidsdk.util.Log;
+
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.security.acl.LastOwnerException;
 import java.util.Comparator;
 /**
  * Class representing a room member: a user with membership information.
  */
-public class RoomMember implements java.io.Serializable {
+public class RoomMember implements Externalizable {
     public static final String MEMBERSHIP_JOIN = "join";
     public static final String MEMBERSHIP_INVITE = "invite";
     public static final String MEMBERSHIP_LEAVE = "leave";
@@ -44,6 +51,88 @@ public class RoomMember implements java.io.Serializable {
 
     // the event used to build the room member
     private String mOriginalEventId = null;
+
+    @Override
+    public void readExternal(ObjectInput input) throws IOException, ClassNotFoundException {
+        if (input.readBoolean()) {
+            displayname = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            avatarUrl = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            membership = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            thirdPartyInvite = (Invite)input.readObject();
+        }
+
+        if (input.readBoolean()) {
+            is_direct = input.readBoolean();
+        }
+
+        if (input.readBoolean()) {
+            userId = input.readUTF();
+        }
+
+        mOriginServerTs = input.readLong();
+
+        if (input.readBoolean()) {
+            mInviter = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            mOriginalEventId = input.readUTF();
+        }
+    }
+
+    @Override
+    public  void writeExternal(ObjectOutput output) throws IOException {
+        output.writeBoolean(null != displayname);
+        if (null != displayname) {
+            output.writeUTF(displayname);
+        }
+
+        output.writeBoolean(null != avatarUrl);
+        if (null != avatarUrl) {
+            output.writeUTF(avatarUrl);
+        }
+
+        output.writeBoolean(null != membership);
+        if (null != membership) {
+            output.writeUTF(membership);
+        }
+
+        output.writeBoolean(null != thirdPartyInvite);
+        if (null != thirdPartyInvite) {
+            output.writeObject(thirdPartyInvite);
+        }
+
+        output.writeBoolean(null != is_direct);
+        if (null != is_direct) {
+            output.writeBoolean(is_direct);
+        }
+
+        output.writeBoolean(null != userId);
+        if (null != userId) {
+            output.writeUTF(userId);
+        }
+
+        output.writeLong(mOriginServerTs);
+
+        output.writeBoolean(null != mInviter);
+        if (null != mInviter) {
+            output.writeUTF(mInviter);
+        }
+
+        output.writeBoolean(null != mOriginalEventId);
+        if (null != mOriginalEventId) {
+            output.writeUTF(mOriginalEventId);
+        }
+    }
 
     public String getUserId() {
         return userId;
