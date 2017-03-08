@@ -62,7 +62,7 @@ public class MXFileStore extends MXMemoryStore {
     private static final String LOG_TAG = "MXFileStore";
 
     // some constant values
-    private static final int MXFILE_VERSION = 5;
+    private static final int MXFILE_VERSION = 7;
 
     // ensure that there is enough messages to fill a tablet screen
     private static final int MAX_STORED_MESSAGES_COUNT = 50;
@@ -1032,7 +1032,6 @@ public class MXFileStore extends MXMemoryStore {
 
             for (int index = startIndex; index < eventsList.size(); index++) {
                 Event event = eventsList.get(index);
-                event.prepareSerialization();
                 hashCopy.put(event.eventId, event);
             }
 
@@ -1129,7 +1128,7 @@ public class MXFileStore extends MXMemoryStore {
                         shouldSave = true;
                     }
 
-                    event.finalizeDeserialization();
+                    //event.finalizeDeserialization();
 
                     eventIds.add(event.eventId);
                 }
@@ -1290,7 +1289,7 @@ public class MXFileStore extends MXMemoryStore {
 
                                         if (null != eventAsVoid) {
                                             Event event = (Event)eventAsVoid;
-                                            event.finalizeDeserialization();
+                                            //event.finalizeDeserialization();
                                             eventsList.add(event);
                                         }
                                     } catch (Exception e){
@@ -1375,7 +1374,6 @@ public class MXFileStore extends MXMemoryStore {
 
                 for(Event event : stateEvents) {
                     File roomStateEventFile = new File(roomStateEventsFile, event.eventId);
-                    event.prepareSerialization();
                     writeObject("saveRoomsState : save state events " + roomId + " " + event.eventId, roomStateEventFile, event);
                 }
 
@@ -1693,7 +1691,6 @@ public class MXFileStore extends MXMemoryStore {
                                         RoomSummary roomSummary = mRoomSummaries.get(roomId);
 
                                         if (null != roomSummary) {
-                                            roomSummary.getLatestReceivedEvent().prepareSerialization();
                                             writeObject("saveSummaries " + roomId, roomSummaryFile, roomSummary);
                                         } else {
                                             deleteRoomSummaryFile(roomId);
@@ -1746,7 +1743,7 @@ public class MXFileStore extends MXMemoryStore {
         }
 
         if (null != summary) {
-            summary.getLatestReceivedEvent().finalizeDeserialization();
+            //summary.getLatestReceivedEvent().finalizeDeserialization();
 
             Room room = getRoom(summary.getRoomId());
 
