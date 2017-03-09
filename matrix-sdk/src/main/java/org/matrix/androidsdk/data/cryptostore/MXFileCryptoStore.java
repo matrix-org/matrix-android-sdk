@@ -924,9 +924,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     }
                     mOlmSessions.put(decodeFilename(deviceKey), olmSessionSubMap);
                 }
-            }
 
-            Log.d(LOG_TAG, "## preloadCryptoData() : load mOlmSessions in " + (System.currentTimeMillis() - t3));
+                Log.d(LOG_TAG, "## preloadCryptoData() : load + " + olmSessionFiles.length + " olmsessions in " + (System.currentTimeMillis() - t3));
+            }
         } else {
             Object olmSessionsAsVoid;
 
