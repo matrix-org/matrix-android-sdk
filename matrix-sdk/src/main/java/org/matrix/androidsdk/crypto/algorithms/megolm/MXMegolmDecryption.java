@@ -70,7 +70,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
             return false;
         }
 
-        EncryptedEventContent encryptedEventContent = JsonUtils.toEncryptedEventContent(event.content.getAsJsonObject());
+        EncryptedEventContent encryptedEventContent = JsonUtils.toEncryptedEventContent(event.getWireContent().getAsJsonObject());
 
         String senderKey = encryptedEventContent.sender_key;
         String ciphertext = encryptedEventContent.ciphertext;
@@ -122,7 +122,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
      * @param timelineId the timeline identifier
      */
     private void addEventToPendingList(Event event, String timelineId) {
-        EncryptedEventContent encryptedEventContent = JsonUtils.toEncryptedEventContent(event.content.getAsJsonObject());
+        EncryptedEventContent encryptedEventContent = JsonUtils.toEncryptedEventContent(event.getWireContent().getAsJsonObject());
 
         String senderKey = encryptedEventContent.sender_key;
         String sessionId = encryptedEventContent.session_id;
