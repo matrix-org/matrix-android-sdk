@@ -200,9 +200,9 @@ public class MXMegolmDecryption implements IMXDecrypting {
                                 mSession.getDataHandler().onEventDecrypted(fEvent);
                             }
                         });
-                        Log.d(LOG_TAG, "## onRoomKeyEvent() : successful re-decryption of " + event.eventId);
+                        Log.d(LOG_TAG, "## onNewSession() : successful re-decryption of " + event.eventId);
                     } else {
-                        Log.e(LOG_TAG, "## onRoomKeyEvent() : Still can't decrypt " + event.eventId + ". Error " + event.getCryptoError().getMessage());
+                        Log.e(LOG_TAG, "## onNewSession() : Still can't decrypt " + event.eventId + ". Error " + event.getCryptoError().getMessage());
                     }
                 }
             }
