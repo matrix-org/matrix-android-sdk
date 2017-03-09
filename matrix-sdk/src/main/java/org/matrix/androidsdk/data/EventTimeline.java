@@ -1398,7 +1398,6 @@ public class EventTimeline {
                         Event stateEvent = stateEvents.get(index);
 
                         if (TextUtils.equals(stateEvent.eventId, event.eventId)) {
-                            stateEvents.remove(index);
                             stateEvents.set(index, event);
                             isFound = true;
                             break;
