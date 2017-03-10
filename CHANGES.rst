@@ -1,3 +1,22 @@
+Changes to Matrix Android SDK in 0.7.10 (2017-03-10)
+=======================================================
+
+Features:
+* Add the e2e keys import/export.
+* Add some settings to send encrypted messages to veryfied devices only (for a dedicated room or any room).
+* Add the MSDISN management for the registration and the authentification (3Pid).
+
+Improvements: 
+* Improve the session loading time.
+* Add a callback to prevent sending messages to unknown devices.
+
+Bugfixes:
+* Fix many cryptography issues.
+* Fix many issues reported by GA.
+* #929 : Retry schedule is too aggressive for arbitrary endpoints
+* #938 : Unbanning users is broken
+* #952 : Launch a call in a e2e and 1:1 room with unknown devices make the call fails.
+
 Changes to Matrix Android SDK in 0.7.9 (2017-01-27)
 =======================================================
 
