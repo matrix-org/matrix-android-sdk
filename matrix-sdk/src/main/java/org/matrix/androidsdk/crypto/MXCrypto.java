@@ -2120,7 +2120,7 @@ public class MXCrypto {
                     }
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## decryptEvent() : fail to load the class");
+                Log.e(LOG_TAG, "## getRoomDecryptor() : fail to load the class");
                 return null;
             }
         }

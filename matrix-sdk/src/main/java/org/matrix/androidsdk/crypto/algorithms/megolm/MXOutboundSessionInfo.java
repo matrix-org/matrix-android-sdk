@@ -69,12 +69,12 @@ public class MXOutboundSessionInfo {
         List<String> userIds = mSharedWithDevices.getUserIds();
 
         for (String userId : userIds) {
-            List<String> deviceIds = devicesInRoom.getUserDeviceIds(userId);
-
-            if (null == deviceIds) {
+            if (null == devicesInRoom.getUserDeviceIds(userId)) {
                 Log.d(LOG_TAG, "## sharedWithTooManyDevices() : Starting new session because we shared with " + userId);
                 return true;
             }
+
+            List<String> deviceIds = mSharedWithDevices.getUserDeviceIds(userId);
 
             for (String deviceId : deviceIds) {
                 if (null == devicesInRoom.getObject(deviceId, userId)) {

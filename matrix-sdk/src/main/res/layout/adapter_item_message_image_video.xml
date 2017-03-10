@@ -77,7 +77,6 @@
 
                             <org.matrix.androidsdk.view.PieFractionView
                                 android:id="@+id/content_download_progress_piechart"
-                                android:layout_centerInParent="true"
                                 android:layout_width="@dimen/chat_avatar_size"
                                 android:layout_height="@dimen/chat_avatar_size"/>
 

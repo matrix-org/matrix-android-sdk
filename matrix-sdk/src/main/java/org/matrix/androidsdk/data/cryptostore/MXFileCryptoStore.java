@@ -371,9 +371,58 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         return mMetaData.mDeviceAnnounced;
     }
 
+    /**
+     * Load the user devices from the filesystem
+     * if it is not yet done.
+     * @param userId the user id.
+     */
+    private void loadUserDevices(String userId) {
+        if (!TextUtils.isEmpty(userId)) {
+            boolean alreadyDone;
+
+            synchronized (mUsersDevicesInfoMapLock) {
+                alreadyDone = mUsersDevicesInfoMap.getMap().containsKey(userId);
+            }
+
+            if (!alreadyDone) {
+                File devicesFile = new File(mDevicesFolder, userId);
+
+                if (devicesFile.exists()) {
+                    long t0 = System.currentTimeMillis();
+
+                    Object devicesMapAsVoid = loadObject(devicesFile, "load devices of " + userId);
+
+                    if (null != devicesMapAsVoid) {
+                        try {
+                            synchronized (mUsersDevicesInfoMapLock) {
+                                mUsersDevicesInfoMap.setObjects((Map<String, MXDeviceInfo>) devicesMapAsVoid, userId);
+                            }
+                        } catch (Exception e) {
+                            mIsCorrupted = true;
+                        }
+                    }
+
+                    // something was wrong (loadObject set this boolean)
+                    if (mIsCorrupted) {
+                        Log.e(LOG_TAG, "## loadUserDevices : failed to load the device of " + userId);
+
+                        // delete the corrupted file
+                        devicesFile.delete();
+                        // it is not a blocking thing
+                        mIsCorrupted = false;
+                    } else {
+                        Log.d(LOG_TAG, "## loadUserDevices : Load the devices of " + userId + " in " + (System.currentTimeMillis() - t0) + "ms");
+                    }
+                }
+            }
+        }
+    }
+
     @Override
     public void storeUserDevice(String userId, MXDeviceInfo device) {
         final HashMap<String, MXDeviceInfo> devicesMap;
+
+        loadUserDevices(userId);
 
         synchronized (mUsersDevicesInfoMapLock) {
             mUsersDevicesInfoMap.setObject(device, userId, device.deviceId);
@@ -386,6 +435,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     @Override
     public MXDeviceInfo getUserDevice(String deviceId, String userId) {
         MXDeviceInfo deviceInfo;
+
+        loadUserDevices(userId);
 
         synchronized (mUsersDevicesInfoMapLock) {
             deviceInfo = mUsersDevicesInfoMap.getObject(deviceId, userId);
@@ -407,6 +458,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     public Map<String, MXDeviceInfo> getUserDevices(String userId) {
         if (null != userId) {
             Map<String, MXDeviceInfo> devicesMap;
+
+            loadUserDevices(userId);
 
             synchronized (mUsersDevicesInfoMapLock) {
                 devicesMap = mUsersDevicesInfoMap.getMap().get(userId);
@@ -756,6 +809,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
      * Preload the crypto data
      */
     private void preloadCryptoData() {
+        Log.d(LOG_TAG, "## preloadCryptoData() starts");
+
+        long t0 = System.currentTimeMillis();
         Object olmAccountAsVoid;
 
         if (mAccountFileTmp.exists()) {
@@ -772,6 +828,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 Log.e(LOG_TAG, "## preloadCryptoData() - invalid mAccountFile " + e.getMessage());
             }
         }
+
+        Log.d(LOG_TAG, "## preloadCryptoData() : load mOlmAccount in " + (System.currentTimeMillis() - t0));
 
         // previous store format
         if (!mDevicesFolder.exists()) {
@@ -811,25 +869,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 mDevicesFile.delete();
             }
         } else {
-            String[] files = mDevicesFolder.list();
-            HashMap<String, Map<String, MXDeviceInfo>> map = new HashMap<>();
-
-            for (int i = 0; i < files.length; i++) {
-                String userId = files[i];
-                Object devicesMapAsVoid = loadObject(new File(mDevicesFolder, userId), "load devices of " + userId);
-
-                if (null != devicesMapAsVoid) {
-                    try {
-                        map.put(userId, (Map<String, MXDeviceInfo>) devicesMapAsVoid);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "## preloadCryptoData() - cannot cast to map");
-                    }
-                }
-            }
-            // ignore any file corruption, it will be automatically fixed.
-            mIsCorrupted = false;
-            mUsersDevicesInfoMap = new MXUsersDevicesMap<>(map);
+            // the user devices are loaded on demand
+            mUsersDevicesInfoMap = new MXUsersDevicesMap<>();
         }
+
+        long t2 = System.currentTimeMillis();
 
         Object algorithmsAsVoid;
 
@@ -848,8 +892,12 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 Log.e(LOG_TAG, "## preloadCryptoData() - invalid mAlgorithmsFile " + e.getMessage());
             }
         }
+        Log.d(LOG_TAG, "## preloadCryptoData() : load mRoomsAlgorithms in " + (System.currentTimeMillis() - t2));
+
 
         if (mOlmSessionsFolder.exists()) {
+            long t3 = System.currentTimeMillis();
+
             mOlmSessions = new HashMap<>();
 
             String[] olmSessionFiles = mOlmSessionsFolder.list();
@@ -874,9 +922,10 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                             }
                         }
                     }
-
                     mOlmSessions.put(decodeFilename(deviceKey), olmSessionSubMap);
                 }
+
+                Log.d(LOG_TAG, "## preloadCryptoData() : load + " + olmSessionFiles.length + " olmsessions in " + (System.currentTimeMillis() - t3));
             }
         } else {
             Object olmSessionsAsVoid;
@@ -926,6 +975,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         }
 
         if (mInboundGroupSessionsFolder.exists()) {
+            long t4 = System.currentTimeMillis();
             mInboundGroupSessions = new HashMap<>();
 
             String[] keysFolder = mInboundGroupSessionsFolder.list();
@@ -963,6 +1013,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     mInboundGroupSessions.put(decodeFilename(keysFolder[i]), submap);
                 }
             }
+
+            Log.d(LOG_TAG, "## preloadCryptoData() : load mInboundGroupSessions in " + (System.currentTimeMillis() - t4));
         } else {
             Object inboundGroupSessionsAsVoid;
 

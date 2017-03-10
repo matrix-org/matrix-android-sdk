@@ -325,9 +325,9 @@ public class Event implements Externalizable {
      */
     public JsonElement getContent() {
         if (null != mClearEvent) {
-            return mClearEvent.content;
+            return mClearEvent.getWireContent();
         } else {
-            return content;
+            return getWireContent();
         }
     }
 
@@ -335,6 +335,7 @@ public class Event implements Externalizable {
      * @return the wired event content
      */
     public JsonElement getWireContent() {
+        finalizeDeserialization();
         return content;
     }
 
@@ -354,6 +355,8 @@ public class Event implements Externalizable {
      * @return the prev_content casted as JsonObject.
      */
     public JsonObject getPrevContentAsJsonObject() {
+        finalizeDeserialization();
+
         if ((null != unsigned) && (null != unsigned.prev_content)) {
             // avoid getting two value for the same thing
             if (null == prev_content) {
@@ -517,6 +520,8 @@ public class Event implements Externalizable {
      * @return the copy
      */
     public Event deepCopy() {
+        finalizeDeserialization();
+
         Event copy = new Event();
         copy.type = type;
         copy.content = content;
@@ -532,6 +537,7 @@ public class Event implements Externalizable {
 
         copy.stateKey = stateKey;
         copy.prev_content = prev_content;
+        copy.prev_content_as_string = prev_content_as_string;
 
         copy.unsigned = unsigned;
         copy.invite_room_state = invite_room_state;
@@ -686,17 +692,17 @@ public class Event implements Externalizable {
 
         text += "  \"content\" {\n";
 
-        if (null != content) {
-            if (content.isJsonArray()) {
-                for (JsonElement e : content.getAsJsonArray()) {
+        if (null != getWireContent()) {
+            if (getWireContent().isJsonArray()) {
+                for (JsonElement e : getWireContent().getAsJsonArray()) {
                     text += "   " + e.toString() + "\n,";
                 }
-            } else if (content.isJsonObject()) {
-                for (Map.Entry<String, JsonElement> e : content.getAsJsonObject().entrySet()) {
+            } else if (getWireContent().isJsonObject()) {
+                for (Map.Entry<String, JsonElement> e : getWireContent().getAsJsonObject().entrySet()) {
                     text += "    \"" + e.getKey() + ": " + e.getValue().toString() + ",\n";
                 }
             } else {
-                text += content.toString();
+                text += getWireContent().toString();
             }
         }
 
@@ -814,8 +820,6 @@ public class Event implements Externalizable {
         }
 
         mTimeZoneRawOffset = input.readLong();
-
-        finalizeDeserialization();
     }
 
     @Override
@@ -936,7 +940,8 @@ public class Event implements Externalizable {
             try {
                 content = new JsonParser().parse(contentAsString).getAsJsonObject();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "finalizeDeserialization : contentAsString deserialization " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "finalizeDeserialization : contentAsString deserialization " + e.getMessage());
+                contentAsString = null;
             }
         }
 
@@ -944,7 +949,8 @@ public class Event implements Externalizable {
             try {
                 prev_content = new JsonParser().parse(prev_content_as_string).getAsJsonObject();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "finalizeDeserialization : prev_content_as_string deserialization " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "finalizeDeserialization : prev_content_as_string deserialization " + e.getMessage());
+                prev_content_as_string = null;
             }
         }
     }
