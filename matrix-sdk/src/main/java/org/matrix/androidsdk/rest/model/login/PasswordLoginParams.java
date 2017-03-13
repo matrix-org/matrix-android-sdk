@@ -39,14 +39,14 @@ public class PasswordLoginParams extends LoginParams {
     public static String IDENTIFIER_KEY_NUMBER = "number";
 
     // identifier parameters
-    private Map<String, Object> identifier;
+    public Map<String, Object> identifier;
 
     // user name login
-    private String user;
+    public String user;
 
     // email login
-    private String address;
-    private String medium;
+    public String address;
+    public String medium;
 
     // common
     public String password;
@@ -64,7 +64,7 @@ public class PasswordLoginParams extends LoginParams {
         setOtherData(password);
     }
 
-    public void setThirdPartyIentifier(@NonNull final String medium, @NonNull final String address, @NonNull final String password) {
+    public void setThirdPartyIdentifier(@NonNull final String medium, @NonNull final String address, @NonNull final String password) {
         identifier = new HashMap<>();
         identifier.put(IDENTIFIER_KEY_TYPE, IDENTIFIER_KEY_TYPE_THIRD_PARTY);
         identifier.put(IDENTIFIER_KEY_MEDIUM, medium);
@@ -76,7 +76,7 @@ public class PasswordLoginParams extends LoginParams {
         setOtherData(password);
     }
 
-    public void setPhoneIentifier(@NonNull final String phoneNumber, @NonNull final String countryCode, @NonNull final String password) {
+    public void setPhoneIdentifier(@NonNull final String phoneNumber, @NonNull final String countryCode, @NonNull final String password) {
         identifier = new HashMap<>();
         identifier.put(IDENTIFIER_KEY_TYPE, IDENTIFIER_KEY_TYPE_PHONE);
         identifier.put(IDENTIFIER_KEY_NUMBER, phoneNumber);

@@ -141,7 +141,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
         final String description = "loginWith3pid : " + address;
 
         PasswordLoginParams params = new PasswordLoginParams();
-        params.setThirdPartyIentifier(medium, address, password);
+        params.setThirdPartyIdentifier(medium, address, password);
 
         login(params, callback, description);
     }
@@ -158,7 +158,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
         final String description = "loginWithPhoneNumber : " + phoneNumber;
 
         PasswordLoginParams params = new PasswordLoginParams();
-        params.setPhoneIentifier(phoneNumber, countryCode, password);
+        params.setPhoneIdentifier(phoneNumber, countryCode, password);
 
         login(params, callback, description);
     }
