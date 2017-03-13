@@ -15,6 +15,10 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
 /**
  * This class describes the device information
  */
@@ -24,4 +28,25 @@ public class DeviceInfo {
     public long last_seen_ts = 0;
     public String last_seen_ip;
     public String device_id;
+
+
+    /**
+     * Sort a devices list by their presence (
+     * @param deviceInfos
+     */
+    public static void sortByLastSeen(List<DeviceInfo> deviceInfos) {
+        if (null != deviceInfos)
+            Collections.sort(deviceInfos,  new Comparator<DeviceInfo>() {
+                @Override
+                public int compare(DeviceInfo lhs, DeviceInfo rhs) {
+                    if (lhs.last_seen_ts == rhs.last_seen_ts) {
+                        return 0;
+                    } else  if (lhs.last_seen_ts > rhs.last_seen_ts) {
+                        return +1;
+                    } else {
+                        return -1;
+                    }
+                }
+            });
+    }
 }
