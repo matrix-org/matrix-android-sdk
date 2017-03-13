@@ -1,6 +1,7 @@
 /*
  * Copyright 2014 OpenMarket Ltd
- *
+ * Copyright 2017 Vector Creations Ltd
+ 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,6 +15,12 @@
  * limitations under the License.
  */
 package org.matrix.androidsdk;
+
+import android.content.Context;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.text.TextUtils;
 
 import com.google.gson.Gson;
 import com.squareup.okhttp.OkHttpClient;
@@ -115,6 +122,11 @@ public class RestClient<T> {
                 .setRequestInterceptor(new RequestInterceptor() {
                     @Override
                     public void intercept(RequestInterceptor.RequestFacade request) {
+                        if (null != mUserAgent) {
+                            // set a custom user agent
+                            request.addHeader("User-Agent", mUserAgent);
+                        }
+
                         // Add the access token to all requests if it is set
                         if ((mCredentials != null) && (mCredentials.accessToken != null)) {
                             request.addEncodedQueryParam(PARAM_ACCESS_TOKEN, mCredentials.accessToken);
@@ -132,6 +144,48 @@ public class RestClient<T> {
         //restAdapter.setLogLevel(RestAdapter.LogLevel.FULL);
 
         mApi = restAdapter.create(type);
+    }
+
+    /**
+     * Create an user agent with the application version.
+     * @param appContext the application context
+     */
+    public static void initUserAgent(Context appContext) {
+        String appName = "";
+        String appVersion = "";
+
+        if (null != appContext) {
+            try {
+                PackageManager pm = appContext.getPackageManager();
+                ApplicationInfo appInfo = pm.getApplicationInfo(appContext.getApplicationContext().getPackageName(), 0);
+                appName = pm.getApplicationLabel(appInfo).toString();
+
+                PackageInfo pkgInfo = pm.getPackageInfo(appContext.getApplicationContext().getPackageName(), 0);
+                appVersion = pkgInfo.versionName;
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## initUserAgent() : failed " + e.getMessage());
+            }
+        }
+
+        mUserAgent = System.getProperty("http.agent");
+
+        // cannot retrieve the application version
+        if (TextUtils.isEmpty(appName) || TextUtils.isEmpty(appVersion)) {
+            if (null == mUserAgent) {
+                mUserAgent = "Java" + System.getProperty("java.version");
+            }
+            return;
+        }
+
+        // if there is no user agent or cannot parse it
+        if ((null == mUserAgent) || (mUserAgent.lastIndexOf(")") == -1) || (mUserAgent.indexOf("(") == -1))  {
+            mUserAgent = appName + "/" + appVersion + " (MatrixAndroidSDK " + BuildConfig.VERSION_NAME + ")";
+        } else {
+            // update
+            mUserAgent = appName + "/" + appVersion + " " +
+                    mUserAgent.substring(mUserAgent.indexOf("("), mUserAgent.lastIndexOf(")") - 1) +
+                            "; MatrixAndroidSDK " +  BuildConfig.VERSION_NAME + ")";
+        }
     }
 
     /**

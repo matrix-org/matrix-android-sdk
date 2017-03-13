@@ -288,6 +288,14 @@ public class MXSession {
     }
 
     /**
+     * Init the user-agent used by the REST requests.
+     * @param context the application context
+     */
+    public static void initUserAgent(Context context) {
+        RestClient.initUserAgent(context);
+    }
+
+    /**
      * @return the SDK version.
      */
     public String getVersion(boolean longFormat) {
