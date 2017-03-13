@@ -829,7 +829,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             }
         }
 
-        Log.d(LOG_TAG, "## preloadCryptoData() : load mOlmAccount in " + (System.currentTimeMillis() - t0));
+        Log.d(LOG_TAG, "## preloadCryptoData() : load mOlmAccount in " + (System.currentTimeMillis() - t0) + " ms");
 
         // previous store format
         if (!mDevicesFolder.exists()) {
@@ -874,6 +874,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         }
 
         long t2 = System.currentTimeMillis();
+        int algoSize = 0;
 
         Object algorithmsAsVoid;
 
@@ -883,16 +884,18 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             algorithmsAsVoid = loadObject(mAlgorithmsFile, "preloadCryptoData - mRoomsAlgorithms");
         }
 
+
         if (null != algorithmsAsVoid) {
             try {
                 Map<String, String> algorithmsMap = (Map<String, String>) algorithmsAsVoid;
                 mRoomsAlgorithms = new HashMap<>(algorithmsMap);
+                algoSize = mRoomsAlgorithms.size();
             } catch (Exception e) {
                 mIsCorrupted = true;
                 Log.e(LOG_TAG, "## preloadCryptoData() - invalid mAlgorithmsFile " + e.getMessage());
             }
         }
-        Log.d(LOG_TAG, "## preloadCryptoData() : load mRoomsAlgorithms in " + (System.currentTimeMillis() - t2));
+        Log.d(LOG_TAG, "## preloadCryptoData() : load mRoomsAlgorithms ("+ algoSize + " algos) in " + (System.currentTimeMillis() - t2) + " ms");
 
 
         if (mOlmSessionsFolder.exists()) {
@@ -925,7 +928,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     mOlmSessions.put(decodeFilename(deviceKey), olmSessionSubMap);
                 }
 
-                Log.d(LOG_TAG, "## preloadCryptoData() : load + " + olmSessionFiles.length + " olmsessions in " + (System.currentTimeMillis() - t3));
+                Log.d(LOG_TAG, "## preloadCryptoData() : load " + olmSessionFiles.length + " olmsessions in " + (System.currentTimeMillis() - t3) + " ms");
             }
         } else {
             Object olmSessionsAsVoid;
@@ -978,6 +981,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             long t4 = System.currentTimeMillis();
             mInboundGroupSessions = new HashMap<>();
 
+            int count = 0;
+
             String[] keysFolder = mInboundGroupSessionsFolder.list();
 
             if (null != keysFolder) {
@@ -1004,6 +1009,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                                 if (null != inboundSession) {
                                     submap.put(decodeFilename(sessionIds[j]), inboundSession);
                                 }
+                                count++;
                             } catch (Exception e) {
                                 Log.e(LOG_TAG, "## preloadCryptoData() - invalid mInboundGroupSessions " + e.getMessage());
                             }
@@ -1014,7 +1020,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 }
             }
 
-            Log.d(LOG_TAG, "## preloadCryptoData() : load mInboundGroupSessions in " + (System.currentTimeMillis() - t4));
+            Log.d(LOG_TAG, "## preloadCryptoData() : load " + count +  " inboundGroupSessions in " + (System.currentTimeMillis() - t4) + " ms");
         } else {
             Object inboundGroupSessionsAsVoid;
 
