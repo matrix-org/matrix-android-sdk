@@ -562,17 +562,17 @@ public class MXDeviceList {
      */
     private boolean validateDeviceKeys(MXDeviceInfo deviceKeys, String userId, String deviceId, MXDeviceInfo previouslyStoredDeviceKeys) {
         if (null == deviceKeys) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : deviceKeys is null");
+            Log.e(LOG_TAG, "## validateDeviceKeys() : deviceKeys is null from " + userId + ":" + deviceId);
             return false;
         }
 
         if (null == deviceKeys.keys) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : deviceKeys.keys is null");
+            Log.e(LOG_TAG, "## validateDeviceKeys() : deviceKeys.keys is null from " + userId + ":" + deviceId);
             return false;
         }
 
         if (null == deviceKeys.signatures) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : deviceKeys.signatures is null");
+            Log.e(LOG_TAG, "## validateDeviceKeys() : deviceKeys.signatures is null from " + userId + ":" + deviceId);
             return false;
         }
 
