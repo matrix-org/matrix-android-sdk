@@ -2864,7 +2864,7 @@ public class CryptoTest {
             }
         });
 
-        lock1.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        lock1.await(40000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results + "", results.containsKey("downloadKeys"));
 
         MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = (MXUsersDevicesMap<MXDeviceInfo>)results.get("downloadKeys");
