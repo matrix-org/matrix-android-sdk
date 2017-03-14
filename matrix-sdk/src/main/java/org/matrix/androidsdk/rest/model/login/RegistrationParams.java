@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,4 +39,8 @@ public class RegistrationParams {
 
     // device name
     public String initial_device_display_name;
+
+    // Temporary flag to notify the server that we support msisdn flow. Used to prevent old app
+    // versions to end up in fallback because the HS returns the msisdn flow which they don't support
+    public Boolean x_show_msisdn;
 }
