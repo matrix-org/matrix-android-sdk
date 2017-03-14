@@ -1,5 +1,6 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -163,6 +164,13 @@ public class LoginRestClient extends RestClient<LoginApi> {
         login(params, callback, description);
     }
 
+    /**
+     * Make login request
+     *
+     * @param params login params
+     * @param callback
+     * @param description
+     */
     private void login(final PasswordLoginParams params, final ApiCallback<Credentials> callback, final String description) {
         mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
 

@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,6 +55,12 @@ public class PasswordLoginParams extends LoginParams {
     // A display name to assign to the newly-created device
     public String initial_device_display_name;
 
+    /**
+     * Set login params for username/password
+     *
+     * @param username
+     * @param password
+     */
     public void setUserIdentifier(@NonNull final String username, @NonNull final String password) {
         identifier = new HashMap<>();
         identifier.put(IDENTIFIER_KEY_TYPE, IDENTIFIER_KEY_TYPE_USER);
@@ -64,6 +71,13 @@ public class PasswordLoginParams extends LoginParams {
         setOtherData(password);
     }
 
+    /**
+     * Set login params for 3pid(except phone number)/password
+     *
+     * @param medium   3pid type
+     * @param address  3pid value
+     * @param password
+     */
     public void setThirdPartyIdentifier(@NonNull final String medium, @NonNull final String address, @NonNull final String password) {
         identifier = new HashMap<>();
         identifier.put(IDENTIFIER_KEY_TYPE, IDENTIFIER_KEY_TYPE_THIRD_PARTY);
@@ -76,6 +90,13 @@ public class PasswordLoginParams extends LoginParams {
         setOtherData(password);
     }
 
+    /**
+     * Set login params for phone number/password
+     *
+     * @param phoneNumber
+     * @param countryCode
+     * @param password
+     */
     public void setPhoneIdentifier(@NonNull final String phoneNumber, @NonNull final String countryCode, @NonNull final String password) {
         identifier = new HashMap<>();
         identifier.put(IDENTIFIER_KEY_TYPE, IDENTIFIER_KEY_TYPE_PHONE);
@@ -85,6 +106,11 @@ public class PasswordLoginParams extends LoginParams {
         setOtherData(password);
     }
 
+    /**
+     * Set basic params
+     *
+     * @param password
+     */
     private void setOtherData(@NonNull final String password) {
         this.password = password;
         this.type = LoginRestClient.LOGIN_FLOW_TYPE_PASSWORD;
