@@ -74,6 +74,9 @@ public class RestClient<T> {
     // unitary tests only
     public static boolean mUseMXExececutor = false;
 
+    // the user agent
+    private static String sUserAgent = null;
+
     // http client
     private OkHttpClient mOkHttpClient = new OkHttpClient();
 
@@ -122,9 +125,9 @@ public class RestClient<T> {
                 .setRequestInterceptor(new RequestInterceptor() {
                     @Override
                     public void intercept(RequestInterceptor.RequestFacade request) {
-                        if (null != mUserAgent) {
+                        if (null != sUserAgent) {
                             // set a custom user agent
-                            request.addHeader("User-Agent", mUserAgent);
+                            request.addHeader("User-Agent", sUserAgent);
                         }
 
                         // Add the access token to all requests if it is set
@@ -167,23 +170,23 @@ public class RestClient<T> {
             }
         }
 
-        mUserAgent = System.getProperty("http.agent");
+        sUserAgent = System.getProperty("http.agent");
 
         // cannot retrieve the application version
         if (TextUtils.isEmpty(appName) || TextUtils.isEmpty(appVersion)) {
-            if (null == mUserAgent) {
-                mUserAgent = "Java" + System.getProperty("java.version");
+            if (null == sUserAgent) {
+                sUserAgent = "Java" + System.getProperty("java.version");
             }
             return;
         }
 
         // if there is no user agent or cannot parse it
-        if ((null == mUserAgent) || (mUserAgent.lastIndexOf(")") == -1) || (mUserAgent.indexOf("(") == -1))  {
-            mUserAgent = appName + "/" + appVersion + " (MatrixAndroidSDK " + BuildConfig.VERSION_NAME + ")";
+        if ((null == sUserAgent) || (sUserAgent.lastIndexOf(")") == -1) || (sUserAgent.indexOf("(") == -1))  {
+            sUserAgent = appName + "/" + appVersion + " (MatrixAndroidSDK " + BuildConfig.VERSION_NAME + ")";
         } else {
             // update
-            mUserAgent = appName + "/" + appVersion + " " +
-                    mUserAgent.substring(mUserAgent.indexOf("("), mUserAgent.lastIndexOf(")") - 1) +
+            sUserAgent = appName + "/" + appVersion + " " +
+                    sUserAgent.substring(sUserAgent.indexOf("("), sUserAgent.lastIndexOf(")") - 1) +
                             "; MatrixAndroidSDK " +  BuildConfig.VERSION_NAME + ")";
         }
     }
