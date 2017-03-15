@@ -1,14 +1,16 @@
-Changes to Matrix Android SDK in 0.7.10 (2017-03-10)
+Changes to Matrix Android SDK in 0.7.10 (2017-03-15)
 =======================================================
 
 Features:
+* Add the MSDISN support for the registration and the authentification (3Pid).
 * Add the e2e keys import/export.
 * Add some settings to send encrypted messages to veryfied devices only (for a dedicated room or any room).
-* Add the MSDISN management for the registration and the authentification (3Pid).
 
 Improvements: 
 * Improve the session loading time.
 * Add a callback to prevent sending messages to unknown devices.
+* Add a custom user agent with the application / SDK version.
+* Improve the audio attachments support
 
 Bugfixes:
 * Fix many cryptography issues.
