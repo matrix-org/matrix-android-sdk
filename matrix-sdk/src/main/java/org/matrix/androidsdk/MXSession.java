@@ -171,7 +171,7 @@ public class MXSession {
      *
      * @param hsConfig the home server connection config
      */
-    public MXSession(HomeserverConnectionConfig hsConfig) {
+    private MXSession(HomeserverConnectionConfig hsConfig) {
         mCredentials = hsConfig.getCredentials();
         mHsConfig = hsConfig;
 
