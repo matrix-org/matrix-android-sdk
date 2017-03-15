@@ -16,6 +16,8 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.rest.model.DeleteThreePidParams;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
@@ -52,7 +54,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * {@inheritDoc}
      */
     public ProfileRestClient(HomeserverConnectionConfig hsConfig) {
-        super(hsConfig, ProfileApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
+        super(hsConfig, ProfileApi.class, "", false);
     }
 
     /**
@@ -319,5 +321,28 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
                     }
                 }
         ));
+    }
+
+    /**
+     * Delete a 3pid of the user
+     *
+     * @param pid      the 3Pid to delete
+     * @param callback the asynchronous callback called with the response
+     */
+    public void delete3PID(final ThirdPartyIdentifier pid, final ApiCallback<Void> callback) {
+        final String description = "delete3PID";
+
+        final DeleteThreePidParams params = new DeleteThreePidParams();
+        params.medium = pid.medium;
+        params.address = pid.address;
+
+        mApi.delete3PID(params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback,
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        delete3PID(pid, callback);
+                    }
+                })
+        );
     }
 }

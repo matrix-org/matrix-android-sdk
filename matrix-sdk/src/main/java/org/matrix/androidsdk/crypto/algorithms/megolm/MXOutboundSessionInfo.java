@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +17,20 @@
 
 package org.matrix.androidsdk.crypto.algorithms.megolm;
 
+import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
+
+import java.util.List;
 
 public class MXOutboundSessionInfo {
     private static final String LOG_TAG = "MXOutboundSessionInfo";
 
     // When the session was created
-    private long mCreationTime;
+    private final long mCreationTime;
 
     // The id of the session
-    public String mSessionId;
+    public final String mSessionId;
 
     // Number of times this session has been used
     public int mUseCount;
@@ -53,5 +57,33 @@ public class MXOutboundSessionInfo {
         }
 
         return needsRotation;
+    }
+
+    /**
+     * Determine if this session has been shared with devices which it shouldn't have been.
+     *
+     * @param devicesInRoom the devices map
+     * @return true if we have shared the session with devices which aren't in devicesInRoom.
+     */
+    public boolean sharedWithTooManyDevices(MXUsersDevicesMap<MXDeviceInfo> devicesInRoom) {
+        List<String> userIds = mSharedWithDevices.getUserIds();
+
+        for (String userId : userIds) {
+            if (null == devicesInRoom.getUserDeviceIds(userId)) {
+                Log.d(LOG_TAG, "## sharedWithTooManyDevices() : Starting new session because we shared with " + userId);
+                return true;
+            }
+
+            List<String> deviceIds = mSharedWithDevices.getUserDeviceIds(userId);
+
+            for (String deviceId : deviceIds) {
+                if (null == devicesInRoom.getObject(deviceId, userId)) {
+                    Log.d(LOG_TAG, "## sharedWithTooManyDevices() : Starting new session because we shared with " + userId + ":" + deviceId);
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

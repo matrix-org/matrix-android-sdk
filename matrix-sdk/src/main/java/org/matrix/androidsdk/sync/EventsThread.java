@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,7 +57,8 @@ public class EventsThread extends Thread {
 
     private boolean mKilling = false;
 
-    private int mServerTimeoutms = DEFAULT_SERVER_TIMEOUT_MS;
+    private int mDefaultServerTimeoutms = DEFAULT_SERVER_TIMEOUT_MS;
+    private int mNextServerTimeoutms = DEFAULT_SERVER_TIMEOUT_MS;
 
     // add a delay between two sync requests
     private int mRequestDelayMs = 0;
@@ -108,8 +110,8 @@ public class EventsThread extends Thread {
      * @param ms the timeout in ms
      */
     public void setServerLongPollTimeout(int ms) {
-        mServerTimeoutms = Math.max(ms, DEFAULT_SERVER_TIMEOUT_MS);
-        Log.d(LOG_TAG, "setServerLongPollTimeout : " + mServerTimeoutms);
+        mDefaultServerTimeoutms = Math.max(ms, DEFAULT_SERVER_TIMEOUT_MS);
+        Log.d(LOG_TAG, "setServerLongPollTimeout : " + mDefaultServerTimeoutms);
 
     }
 
@@ -117,7 +119,7 @@ public class EventsThread extends Thread {
      * @return the long poll timeout
      */
     public int getServerLongPollTimeout() {
-        return mServerTimeoutms;
+        return mDefaultServerTimeoutms;
     }
 
     /**
@@ -270,6 +272,17 @@ public class EventsThread extends Thread {
     }
 
     /**
+     * Tells if a sync request contains some changed devices.
+     * @param syncResponse the sync response
+     * @return true if the response contains some changed devices.
+     */
+    private static boolean hasDevicesChanged(SyncResponse syncResponse) {
+        return (null != syncResponse.deviceLists) &&
+                (null != syncResponse.deviceLists.changed) &&
+                (syncResponse.deviceLists.changed.size() > 0);
+    }
+
+    /**
      * Start the events sync
      */
     private void startSync() {
@@ -291,18 +304,20 @@ public class EventsThread extends Thread {
             serverTimeout = 0;
             // dummy initial sync
             // to hide the splash screen
-            mListener.onSyncResponse(null, true);
+            SyncResponse dummySyncResponse = new SyncResponse();
+            dummySyncResponse.nextBatch = mCurrentToken;
+            mListener.onSyncResponse(dummySyncResponse, null, true);
         } else {
 
             // Start with initial sync
             while (!mInitialSyncDone) {
                 final CountDownLatch latch = new CountDownLatch(1);
-
                 mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, null, null, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         Log.d(LOG_TAG, "Received initial sync response.");
-                        mListener.onSyncResponse(syncResponse, true);
+                        mNextServerTimeoutms = hasDevicesChanged(syncResponse) ? 0 : mDefaultServerTimeoutms;
+                        mListener.onSyncResponse(syncResponse, null, (0 == mNextServerTimeoutms));
                         mCurrentToken = syncResponse.nextBatch;
                         mInitialSyncDone = true;
                         // unblock the events thread
@@ -355,8 +370,7 @@ public class EventsThread extends Thread {
                     Log.e(LOG_TAG, "Interrupted whilst performing initial sync.");
                 }
             }
-
-            serverTimeout = mServerTimeoutms;
+            serverTimeout = mNextServerTimeoutms;
         }
 
         Log.d(LOG_TAG, "Starting event stream from token " + mCurrentToken);
@@ -428,22 +442,34 @@ public class EventsThread extends Thread {
 
                 Log.d(LOG_TAG, "Get events from token " + mCurrentToken);
 
+                final int fServerTimeout = serverTimeout;
+                mNextServerTimeoutms = mDefaultServerTimeoutms;
+
                 mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, DEFAULT_CLIENT_TIMEOUT_MS, (mIsCatchingUp && mIsOnline) ? "offline" : null, inlineFilter, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         if (!mKilling) {
-                            // the catchup request is done once.
-                            if (mIsCatchingUp) {
+                            // poll /sync with timeout=0 until
+                            // we get no to_device messages back.
+                            if (0 == fServerTimeout) {
+                                if (hasDevicesChanged(syncResponse)) {
+                                    mNextServerTimeoutms = 0;
+                                }
+                            }
+
+                            // the catchup request is suspended when there is no need
+                            // to loop again
+                            if (mIsCatchingUp && (0 != mNextServerTimeoutms)) {
                                 Log.e(LOG_TAG, "Stop the catchup");
                                 // stop any catch up
                                 mIsCatchingUp = false;
                                 mPaused = true;
                             }
-
                             Log.d(LOG_TAG, "Got event response");
-                            mListener.onSyncResponse(syncResponse, false);
+                            mListener.onSyncResponse(syncResponse, mCurrentToken, (0 == mNextServerTimeoutms));
                             mCurrentToken = syncResponse.nextBatch;
                             Log.d(LOG_TAG, "mCurrentToken is now set to " + mCurrentToken);
+
                         }
 
                         // unblock the events thread
@@ -501,7 +527,7 @@ public class EventsThread extends Thread {
                 }
             }
 
-            serverTimeout = mServerTimeoutms;
+            serverTimeout = mNextServerTimeoutms;
         }
 
         if (null != mNetworkConnectivityReceiver) {

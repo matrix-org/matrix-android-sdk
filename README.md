@@ -41,7 +41,8 @@ Logging in
 To log in, use an instance of the login API client.
 
 ```java
-new LoginApiClient("https://matrix.org").loginWithPassword("user", "password", callback);
+HomeserverConnectionConfig hsConfig = new HomeserverConnectionConfig(Uri.parse("https://matrix.org"));
+new LoginRestClient(hsConfig).loginWithPassword(username, password, new SimpleApiCallback<Credentials>());
 ```
 
 If successful, the callback will provide the user credentials to use from then on.
@@ -51,20 +52,20 @@ Starting the matrix session
 The session represents one user's session with a particular home server. There can potentially be multiple sessions for handling multiple accounts.
 
 ```java
-MXSession session = new MXSession(credentials);
+MXSession session = new MXSession(hsConfig);
 ```
 
 sets up a session for interacting with the home server.
 
 The session gives access to the different APIs through the REST clients:
 
-```session.getEventsRestClient()``` for the events API
+```session.getEventsApiClient()``` for the events API
 
-```session.getProfileRestClient()``` for the profile API
+```session.getProfileApiClient()``` for the profile API
 
-```session.getPresenceRestClient()``` for the presence API
+```session.getPresenceApiClient()``` for the presence API
 
-```session.getRoomsRestClient()``` for the rooms API
+```session.getRoomsApiClient()``` for the rooms API
 
 For the complete list of methods, please refer to the [Javadoc].
 
@@ -72,7 +73,7 @@ For the complete list of methods, please refer to the [Javadoc].
 Getting the list of members of a chat room would look something like this:
 
 ```java
-session.getRoomsRestClient().getRoomMembers(<roomId>, callback);
+session.getRoomsApiClient().getRoomMembers(<roomId>, callback);
 ```
 
 The same session object should be used for each request. This may require use

@@ -57,6 +57,8 @@ public class PieFractionView extends View {
         TypedArray typedArray = context.obtainStyledAttributes(attrs, attrArray);
         int width = typedArray.getDimensionPixelSize(0, 0);
         int height = typedArray.getDimensionPixelSize(1, 0);
+        typedArray.recycle();
+
         rectF = new RectF(0, 0, width, height);
         paint = new Paint();
 

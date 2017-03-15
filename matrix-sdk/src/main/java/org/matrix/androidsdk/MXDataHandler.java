@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -91,7 +92,7 @@ public class MXDataHandler implements IMXEventListener {
 
     private final IMXStore mStore;
     private final Credentials mCredentials;
-    private volatile boolean mInitialSyncComplete = false;
+    private volatile String mInitialSyncToToken = null;
     private DataRetriever mDataRetriever;
     private BingRulesManager mBingRulesManager;
     private MXCallsManager mCallsManager;
@@ -121,6 +122,9 @@ public class MXDataHandler implements IMXEventListener {
 
     // e2e decoder
     private MXCrypto mCrypto;
+
+    // the crypto is only started when the sync did not retrieve new device
+    private boolean mIsStartingCryptoWithInitialSync = false;
 
     /**
      * Default constructor.
@@ -292,7 +296,7 @@ public class MXDataHandler implements IMXEventListener {
      */
     public boolean isInitialSyncComplete() {
         checkIfAlive();
-        return mInitialSyncComplete;
+        return (null != mInitialSyncToToken);
     }
 
     /**
@@ -398,8 +402,8 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
-     * Set the crypto events listrner
-     * @param listener
+     * Set the crypto events listener
+     * @param listener the listener
      */
     public void setCryptoEventsListener(IMXEventListener listener) {
         mCryptoEventsListener = listener;
@@ -418,8 +422,8 @@ public class MXDataHandler implements IMXEventListener {
                 }
             }
 
-            if (mInitialSyncComplete) {
-                listener.onInitialSyncComplete();
+            if (null != mInitialSyncToToken) {
+                listener.onInitialSyncComplete(mInitialSyncToToken);
             }
         }
     }
@@ -553,7 +557,7 @@ public class MXDataHandler implements IMXEventListener {
      * @return the corresponding room
      */
     public Room getRoom(String roomId, boolean create) {
-        return  getRoom(mStore, roomId, create);
+        return getRoom(mStore, roomId, create);
     }
 
     /**
@@ -579,6 +583,7 @@ public class MXDataHandler implements IMXEventListener {
         synchronized (this) {
             room = store.getRoom(roomId);
             if ((room == null) && create) {
+                Log.d(LOG_TAG, "## getRoom() : create the room " + roomId);
                 room = new Room();
                 room.init(roomId, this);
                 store.storeRoom(room);
@@ -911,15 +916,16 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Manage a syncResponse.
      * @param syncResponse the syncResponse to manage.
-     * @param isInitialSync  true if the sync response if an initial sync one.
+     * @param fromToken the start sync token
+     * @param isCatchingUp true when there is a pending catch-up
      */
-    public void onSyncResponse(final SyncResponse syncResponse, final boolean isInitialSync) {
+    public void onSyncResponse(final SyncResponse syncResponse, final String fromToken, final boolean isCatchingUp) {
         // perform the sync in background
         // to avoid UI thread lags.
         mSyncHandler.post(new Runnable() {
             @Override
             public void run() {
-               manageResponse(syncResponse, isInitialSync);
+               manageResponse(syncResponse, fromToken, isCatchingUp);
             }
         });
     }
@@ -927,14 +933,16 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Manage the sync response in the UI thread.
      * @param syncResponse the syncResponse to manage.
-     * @param isInitialSync  true if the sync response if an initial sync one.
+     * @param fromToken the start sync token
+     * @param isCatchingUp true when there is a pending catch-up
      */
-    private void manageResponse(final SyncResponse syncResponse, final boolean isInitialSync) {
+    private void manageResponse(final SyncResponse syncResponse, final String fromToken, final boolean isCatchingUp) {
         if (!isAlive()) {
             Log.e(LOG_TAG, "manageResponse : ignored because the session has been closed");
             return;
         }
 
+        boolean isInitialSync = (null == fromToken);
         boolean isEmptyResponse = true;
 
         // sanity check
@@ -955,6 +963,33 @@ public class MXDataHandler implements IMXEventListener {
 
             // sanity check
             if (null != syncResponse.rooms) {
+                // joined rooms events
+                if ((null != syncResponse.rooms.join) && (syncResponse.rooms.join.size() > 0)) {
+                    Log.d(LOG_TAG, "Received " + syncResponse.rooms.join.size() + " joined rooms");
+
+                    Set<String> roomIds = syncResponse.rooms.join.keySet();
+
+                    // Handle first joined rooms
+                    for (String roomId : roomIds) {
+                        getRoom(roomId).handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
+                    }
+
+                    isEmptyResponse = false;
+                }
+
+                // invited room management
+                if ((null != syncResponse.rooms.invite) && (syncResponse.rooms.invite.size() > 0)) {
+                    Log.d(LOG_TAG, "Received " + syncResponse.rooms.invite.size() + " invited rooms");
+
+                    Set<String> roomIds = syncResponse.rooms.invite.keySet();
+
+                    for (String roomId : roomIds) {
+                        Log.d(LOG_TAG, "## manageResponse() : the user has been invited to " + roomId);
+                        getRoom(roomId).handleInvitedRoomSync(syncResponse.rooms.invite.get(roomId));
+                    }
+
+                    isEmptyResponse = false;
+                }
 
                 // left room management
                 // it should be done at the end but it seems there is a server issue
@@ -971,51 +1006,20 @@ public class MXDataHandler implements IMXEventListener {
                         // FIXME SYNC V2 Archive/Display the left rooms!
                         // For that create 'handleArchivedRoomSync' method
 
+                        Room room = this.getStore().getRoom(roomId);
                         // Retrieve existing room
                         // check if the room still exists.
-                        if (null != this.getStore().getRoom(roomId)) {
+                        if (null != room) {
+                            // use 'handleJoinedRoomSync' to pass the last events to the room before leaving it.
+                            // The room will then able to notify its listeners.
+                            room.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), isInitialSync);
+
+                            Log.d(LOG_TAG, "## manageResponse() : leave the room " + roomId);
                             this.getStore().deleteRoom(roomId);
                             onLeaveRoom(roomId);
+                        } else {
+                            Log.d(LOG_TAG, "## manageResponse() : Try to leave an unknown room " + roomId);
                         }
-                    }
-
-                    isEmptyResponse = false;
-                }
-
-                // joined rooms events
-                if ((null != syncResponse.rooms.join) && (syncResponse.rooms.join.size() > 0)) {
-                    Log.d(LOG_TAG, "Received " + syncResponse.rooms.join.size() + " joined rooms");
-
-                    Set<String> roomIds = syncResponse.rooms.join.keySet();
-
-                    // Handle first joined rooms
-                    for (String roomId : roomIds) {
-                        Room room = getRoom(roomId);
-
-                        // sanity check
-                        if (null != room) {
-                            room.handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
-
-                            // issue reported by richvdh
-                            // the member is not defined in the members list
-                            // it seems being a server issue.
-                            if (isInitialSync && (null == room.getLiveState().getMember(getMyUser().user_id))) {
-                             	this.getStore().deleteRoom(roomId);
-                            }
-                        }
-                    }
-
-                    isEmptyResponse = false;
-                }
-
-                // invited room management
-                if ((null != syncResponse.rooms.invite) && (syncResponse.rooms.invite.size() > 0)) {
-                    Log.d(LOG_TAG, "Received " + syncResponse.rooms.invite.size() + " invited rooms");
-
-                    Set<String> roomIds = syncResponse.rooms.invite.keySet();
-
-                    for (String roomId : roomIds) {
-                        getRoom(roomId).handleInvitedRoomSync(syncResponse.rooms.invite.get(roomId));
                     }
 
                     isEmptyResponse = false;
@@ -1034,6 +1038,10 @@ public class MXDataHandler implements IMXEventListener {
                 manageAccountData(syncResponse.accountData, isInitialSync);
             }
 
+            if (null != mCrypto) {
+                mCrypto.onSyncCompleted(syncResponse, fromToken, isCatchingUp);
+            }
+
             IMXStore store = getStore();
 
             if (!isEmptyResponse && (null != store)) {
@@ -1043,10 +1051,23 @@ public class MXDataHandler implements IMXEventListener {
         }
 
         if (isInitialSync) {
-            onInitialSyncComplete();
+            if (!isCatchingUp) {
+                startCrypto(true);
+            } else {
+                // the events thread sends a dummy initial sync event
+                // when the application is restarted.
+                mIsStartingCryptoWithInitialSync = !isEmptyResponse;
+            }
+
+            onInitialSyncComplete((null != syncResponse) ? syncResponse.nextBatch : null);
         } else {
+
+            if (!isCatchingUp) {
+                startCrypto(mIsStartingCryptoWithInitialSync);
+            }
+
             try {
-                onLiveEventsChunkProcessed();
+                onLiveEventsChunkProcessed(fromToken, (null != syncResponse) ? syncResponse.nextBatch : fromToken);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "onLiveEventsChunkProcessed failed " + e.getMessage());
             }
@@ -1248,11 +1269,11 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     @Override
-    public void onLiveEventsChunkProcessed() {
+    public void onLiveEventsChunkProcessed(final String startToken, final String toToken) {
         refreshUnreadCounters();
 
         if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onLiveEventsChunkProcessed();
+            mCryptoEventsListener.onLiveEventsChunkProcessed(startToken, toToken);
         }
 
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
@@ -1262,7 +1283,7 @@ public class MXDataHandler implements IMXEventListener {
             public void run() {
                 for (IMXEventListener listener : eventListeners) {
                     try {
-                        listener.onLiveEventsChunkProcessed();
+                        listener.onLiveEventsChunkProcessed(startToken, toToken);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onLiveEventsChunkProcessed " + e.getMessage());
                     }
@@ -1380,13 +1401,13 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Dispatch the onInitialSyncComplete event.
      */
-    private void dispatchOnInitialSyncComplete() {
-        mInitialSyncComplete = true;
+    private void dispatchOnInitialSyncComplete(final String toToken) {
+        mInitialSyncToToken = toToken;
 
         refreshUnreadCounters();
 
         if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onInitialSyncComplete();
+            mCryptoEventsListener.onInitialSyncComplete(toToken);
         }
 
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
@@ -1396,7 +1417,7 @@ public class MXDataHandler implements IMXEventListener {
             public void run() {
                 for (IMXEventListener listener : eventListeners) {
                     try {
-                        listener.onInitialSyncComplete();
+                        listener.onInitialSyncComplete(mInitialSyncToToken);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onInitialSyncComplete " + e.getMessage());
                     }
@@ -1428,10 +1449,10 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Start the crypto
      */
-    private void startCrypto() {
-        if ((null != getCrypto()) && !getCrypto().isIsStarted()) {
+    private void startCrypto(final boolean isInitialSync) {
+        if ((null != getCrypto()) && !getCrypto().isStarted() && !getCrypto().isStarting()) {
             getCrypto().setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
-            getCrypto().start(new ApiCallback<Void>() {
+            getCrypto().start(isInitialSync, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
                     dispatchOnCryptoSyncComplete();
@@ -1461,9 +1482,8 @@ public class MXDataHandler implements IMXEventListener {
 
 
     @Override
-    public void onInitialSyncComplete() {
-        startCrypto();
-        dispatchOnInitialSyncComplete();
+    public void onInitialSyncComplete(String toToken) {
+        dispatchOnInitialSyncComplete(toToken);
     }
 
     @Override

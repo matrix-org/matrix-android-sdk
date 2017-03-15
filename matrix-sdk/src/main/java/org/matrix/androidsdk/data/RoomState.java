@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +18,10 @@
 package org.matrix.androidsdk.data;
 
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonObject;
@@ -30,6 +35,10 @@ import org.matrix.androidsdk.rest.model.RoomThirdPartyInvite;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.JsonUtils;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -40,8 +49,9 @@ import java.util.Map;
 /**
  * The state of a room.
  */
-public class RoomState implements java.io.Serializable {
+public class RoomState implements Externalizable {
     private static final String LOG_TAG = "RoomState";
+    private static final long serialVersionUID = -6019932024524988201L;
 
     public static final String DIRECTORY_VISIBILITY_PRIVATE = "private";
     public static final String DIRECTORY_VISIBILITY_PUBLIC = "public";
@@ -49,15 +59,20 @@ public class RoomState implements java.io.Serializable {
     public static final String JOIN_RULE_PUBLIC = "public";
     public static final String JOIN_RULE_INVITE = "invite";
 
-    /** room access is granted to guests **/
+    /**
+     * room access is granted to guests
+     **/
     public static final String GUEST_ACCESS_CAN_JOIN = "can_join";
-    /** room access is denied to guests **/
+    /**
+     * room access is denied to guests
+     **/
     public static final String GUEST_ACCESS_FORBIDDEN = "forbidden";
 
     public static final String HISTORY_VISIBILITY_SHARED = "shared";
     public static final String HISTORY_VISIBILITY_INVITED = "invited";
     public static final String HISTORY_VISIBILITY_JOINED = "joined";
     public static final String HISTORY_VISIBILITY_WORLD_READABLE = "world_readable";
+
 
     // Public members used for JSON mapping
 
@@ -67,14 +82,20 @@ public class RoomState implements java.io.Serializable {
     // The power level of room members
     private PowerLevels powerLevels;
 
-    // The aliases of this room by state_key (domain)
+    // The aliases
     public List<String> aliases;
 
+    // The room aliases. The key is the domain.
+    private Map<String, Event> mRoomAliases = new HashMap<>();
+
     // the aliases are defined for each home server url
-    private HashMap<String, List<String>> mAliasesByDomain = new HashMap();
+    private Map<String, List<String>> mAliasesByDomain = new HashMap();
 
     // merged from mAliasesByHomeServerUrl
-    private ArrayList<String> mMergedAliasesList;
+    private List<String> mMergedAliasesList;
+
+    //
+    private Map<String, Event> mStateEvents = new HashMap<>();
 
     // Informs which alias is the canonical one.
     public String alias;
@@ -95,7 +116,9 @@ public class RoomState implements java.io.Serializable {
     // the join rule
     public String join_rule;
 
-    /** the guest access policy of the room **/
+    /**
+     * the guest access policy of the room
+     **/
     public String guest_access;
 
     // SPEC-134
@@ -104,7 +127,9 @@ public class RoomState implements java.io.Serializable {
     // the public room alias / name
     public String roomAliasName;
 
-    /**  the room visibility in the directory list (i.e. public, private...) **/
+    /**
+     * the room visibility in the directory list (i.e. public, private...)
+     **/
     public String visibility;
 
     // the encryption algorithm
@@ -189,6 +214,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Update the token.
+     *
      * @param token the new token
      */
     public void setToken(String token) {
@@ -219,8 +245,29 @@ public class RoomState implements java.io.Serializable {
     }
 
     /**
+     * Provides the latest state events used to create this room state.
+     * It includes the room member creation events (they are not loaded in memory by default).
+     * @return the latest state events list
+     */
+    public void getStateEvents(final SimpleApiCallback<List<Event>> callback) {
+        final ArrayList<Event> stateEvents = new ArrayList<>();
+
+        stateEvents.addAll(mStateEvents.values());
+
+        // retrieve the roomMember creation events
+        ((MXDataHandler) mDataHandler).getStore().getRoomStateEvents(roomId, new SimpleApiCallback<List<Event>>() {
+            @Override
+            public void onSuccess(List<Event> events) {
+                stateEvents.addAll(events);
+                callback.onSuccess(stateEvents);
+            }
+        });
+    }
+
+    /**
      * Provides a list of displayable members.
      * Some dummy members are created to internal stuff.
+     *
      * @return a copy of the displayable room members list.
      */
     public Collection<RoomMember> getDisplayableMembers() {
@@ -240,6 +287,7 @@ public class RoomState implements java.io.Serializable {
     /**
      * Tells if the room is a call conference one
      * i.e. this room has been created to manage the call conference
+     *
      * @return true if it is a call conference room.
      */
     public boolean isConferenceUserRoom() {
@@ -252,7 +300,7 @@ public class RoomState implements java.io.Serializable {
 
             // works only with 1:1 room
             if (2 == members.size()) {
-                for(RoomMember member : members) {
+                for (RoomMember member : members) {
                     if (MXCallsManager.isConferenceUserId(member.getUserId())) {
                         mIsConferenceUserRoom = true;
                         break;
@@ -266,6 +314,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Set this room as a conference user room
+     *
      * @param isConferenceUserRoom true when it is an user conference room.
      */
     public void setIsConferenceUserRoom(boolean isConferenceUserRoom) {
@@ -274,6 +323,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Update the room member from its user id.
+     *
      * @param userId the user id.
      * @param member the new member value.
      */
@@ -292,6 +342,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Retrieve a room member from its user id.
+     *
      * @param userId the user id.
      * @return the linked member it exists.
      */
@@ -307,6 +358,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Remove a member defines by its user id.
+     *
      * @param userId the user id.
      */
     public void removeMember(String userId) {
@@ -321,6 +373,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Retrieve a member from an invitation token.
+     *
      * @param thirdPartyInviteToken the third party invitation token.
      * @return the member it exists.
      */
@@ -330,6 +383,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Retrieve a RoomThirdPartyInvite from its token.
+     *
      * @param thirdPartyInviteToken the third party invitation token.
      * @return the linked RoomThirdPartyInvite if it exists
      */
@@ -357,6 +411,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Update the power levels.
+     *
      * @param powerLevels the new power levels
      */
     public void setPowerLevels(PowerLevels powerLevels) {
@@ -365,6 +420,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Update the linked dataHandler.
+     *
      * @param dataHandler the new dataHandler
      */
     public void setDataHandler(MXDataHandler dataHandler) {
@@ -375,11 +431,12 @@ public class RoomState implements java.io.Serializable {
      * @return the user dataHandler
      */
     public MXDataHandler getDataHandler() {
-        return (MXDataHandler)mDataHandler;
+        return (MXDataHandler) mDataHandler;
     }
 
     /**
      * Update the notified messages count.
+     *
      * @param notificationCount the new notified messages count.
      */
     public void setNotificationCount(int notificationCount) {
@@ -395,6 +452,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Update the highlighted messages count.
+     *
      * @param highlightCount the new highlighted messages count.
      */
     public void setHighlightCount(int highlightCount) {
@@ -410,6 +468,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Check if the user userId can back paginate.
+     *
      * @param userId the user Id.
      * @return true if the user can backpaginate.
      */
@@ -418,15 +477,16 @@ public class RoomState implements java.io.Serializable {
         String membership = (null != member) ? member.membership : "";
         String visibility = TextUtils.isEmpty(history_visibility) ? HISTORY_VISIBILITY_SHARED : history_visibility;
 
-        return  visibility.equals(HISTORY_VISIBILITY_WORLD_READABLE) ||
+        return visibility.equals(HISTORY_VISIBILITY_WORLD_READABLE) ||
                 visibility.equals(HISTORY_VISIBILITY_SHARED) ||
-                (RoomMember.MEMBERSHIP_JOIN.equals(membership)) /*&&visibility == invited or joined */  ||
+                (RoomMember.MEMBERSHIP_JOIN.equals(membership)) /*&&visibility == invited or joined */ ||
                 (RoomMember.MEMBERSHIP_INVITE.equals(membership) && visibility.equals(HISTORY_VISIBILITY_INVITED))
                 ;
     }
 
     /**
      * Make a deep copy of this room state object.
+     *
      * @return the copy
      */
     public RoomState deepCopy() {
@@ -452,6 +512,8 @@ public class RoomState implements java.io.Serializable {
         copy.mIsLive = mIsLive;
         copy.mIsConferenceUserRoom = mIsConferenceUserRoom;
         copy.algorithm = algorithm;
+        copy.mRoomAliases = new HashMap<>(mRoomAliases);
+        copy.mStateEvents = new HashMap<>(mStateEvents);
 
         synchronized (this) {
             Iterator it = mMembers.entrySet().iterator();
@@ -461,12 +523,12 @@ public class RoomState implements java.io.Serializable {
             }
 
             Collection<String> keys = mThirdPartyInvites.keySet();
-            for(String key : keys) {
+            for (String key : keys) {
                 copy.mThirdPartyInvites.put(key, mThirdPartyInvites.get(key).deepCopy());
             }
 
             keys = mMembersWithThirdPartyInviteTokenCache.keySet();
-            for(String key : keys) {
+            for (String key : keys) {
                 copy.mMembersWithThirdPartyInviteTokenCache.put(key, mMembersWithThirdPartyInviteTokenCache.get(key).deepCopy());
             }
         }
@@ -482,7 +544,7 @@ public class RoomState implements java.io.Serializable {
         // SPEC-125
         if (!TextUtils.isEmpty(alias)) {
             return alias;
-        } else if(!TextUtils.isEmpty(getFirstAlias())) {
+        } else if (!TextUtils.isEmpty(getFirstAlias())) {
             return getFirstAlias();
         }
 
@@ -491,6 +553,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Returns the first room alias.
+     *
      * @return the first room alias
      */
     private String getFirstAlias() {
@@ -505,6 +568,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Provides the aliases for any known domains
+     *
      * @return the aliases list
      */
     public List<String> getAliases() {
@@ -518,7 +582,7 @@ public class RoomState implements java.io.Serializable {
             // ensure that the current aliases have been added.
             // for example for the public rooms because there is no applystate call.
             if (null != aliases) {
-                for(String anAlias : aliases) {
+                for (String anAlias : aliases) {
                     if (mMergedAliasesList.indexOf(anAlias) < 0) {
                         mMergedAliasesList.add(anAlias);
                     }
@@ -531,6 +595,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Provides the aliases by domain
+     *
      * @return the aliases list map
      */
     public Map<String, List<String>> getAliasesByDomain() {
@@ -539,6 +604,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Remove an alias.
+     *
      * @param alias the alias to remove
      */
     public void removeAlias(String alias) {
@@ -547,7 +613,7 @@ public class RoomState implements java.io.Serializable {
                 aliases.remove(alias);
             }
 
-            for(String host : mAliasesByDomain.keySet()) {
+            for (String host : mAliasesByDomain.keySet()) {
                 mAliasesByDomain.get(host).remove(alias);
             }
 
@@ -557,6 +623,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Add an alias.
+     *
      * @param alias the alias to add
      */
     public void addAlias(String alias) {
@@ -568,6 +635,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Build and return the room's display name.
+     *
      * @param selfUserId this user's user id (to exclude from members)
      * @return the display name
      */
@@ -669,7 +737,8 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Apply the given event (relevant for state changes) to our state.
-     * @param event the event
+     *
+     * @param event     the event
      * @param direction how the event should affect the state: Forwards for applying, backwards for un-applying (applying the previous state)
      * @return true if the event is managed
      */
@@ -707,6 +776,7 @@ public class RoomState implements java.io.Serializable {
                     // sanity check
                     if (null != aliases) {
                         mAliasesByDomain.put(event.stateKey, aliases);
+                        mRoomAliases.put(event.stateKey, event);
                     } else {
                         mAliasesByDomain.put(event.stateKey, new ArrayList<String>());
                     }
@@ -738,6 +808,7 @@ public class RoomState implements java.io.Serializable {
                     member.setUserId(userId);
                     member.setOriginServerTs(event.getOriginServerTs());
                     member.setInviterId(event.getSender());
+                    ((MXDataHandler) mDataHandler).getStore().storeRoomStateEvent(roomId, event);
 
                     RoomMember currentMember = getMember(userId);
 
@@ -765,9 +836,9 @@ public class RoomState implements java.io.Serializable {
                         }
                     }
 
-                    if ((direction == EventTimeline.Direction.FORWARDS) ) {
+                    if ((direction == EventTimeline.Direction.FORWARDS)) {
                         if (null != mDataHandler) {
-                            ((MXDataHandler)mDataHandler).getStore().updateUserWithRoomMemberEvent(member);
+                            ((MXDataHandler) mDataHandler).getStore().updateUserWithRoomMemberEvent(member);
                         }
                     }
 
@@ -781,14 +852,17 @@ public class RoomState implements java.io.Serializable {
             } else if (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(eventType)) {
                 powerLevels = JsonUtils.toPowerLevels(contentToConsider);
             } else if (Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.getType())) {
-                RoomThirdPartyInvite thirdPartyInvite  = JsonUtils.toRoomThirdPartyInvite(contentToConsider);
+                RoomThirdPartyInvite thirdPartyInvite = JsonUtils.toRoomThirdPartyInvite(contentToConsider);
 
                 thirdPartyInvite.token = event.stateKey;
+                ((MXDataHandler) mDataHandler).getStore().storeRoomStateEvent(roomId, event);
 
                 if (!TextUtils.isEmpty(thirdPartyInvite.token)) {
                     mThirdPartyInvites.put(thirdPartyInvite.token, thirdPartyInvite);
                 }
             }
+
+            mStateEvents.put(eventType, event);
         } catch (Exception e) {
             Log.e(LOG_TAG, "applyState failed with error " + e.getLocalizedMessage());
         }
@@ -805,6 +879,7 @@ public class RoomState implements java.io.Serializable {
 
     /**
      * Return an unique display name of the member userId.
+     *
      * @param userId the user id
      * @return unique display name
      */
@@ -831,7 +906,7 @@ public class RoomState implements java.io.Serializable {
         RoomMember member = getMember(userId);
 
         // Do not consider null display name
-        if ((null != member)  && !TextUtils.isEmpty(member.displayname)) {
+        if ((null != member) && !TextUtils.isEmpty(member.displayname)) {
             displayName = member.displayname;
 
             synchronized (this) {
@@ -851,7 +926,7 @@ public class RoomState implements java.io.Serializable {
                 }
             }
         } else if ((null != member) && TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_INVITE)) {
-            User user = ((MXDataHandler)mDataHandler).getUser(userId);
+            User user = ((MXDataHandler) mDataHandler).getUser(userId);
 
             if (null != user) {
                 displayName = user.displayname;
@@ -867,4 +942,229 @@ public class RoomState implements java.io.Serializable {
 
         return displayName;
     }
+
+    @Override
+    public void readExternal(ObjectInput input) throws IOException, ClassNotFoundException {
+        if (input.readBoolean()) {
+            roomId = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            powerLevels = (PowerLevels) input.readObject();
+        }
+
+        if (input.readBoolean()) {
+            aliases = (List<String>) input.readObject();
+        }
+
+        List<Event> roomAliasesEvents = (List<Event>) input.readObject();
+        for (Event e : roomAliasesEvents) {
+            mRoomAliases.put(e.stateKey, e);
+        }
+
+        mAliasesByDomain = (Map<String, List<String>>) input.readObject();
+
+        if (input.readBoolean()) {
+            mMergedAliasesList = (List<String>) input.readObject();
+        }
+
+        List<Event> stateEvents = (List<Event>) input.readObject();
+        for (Event e : stateEvents) {
+            mStateEvents.put(e.getType(), e);
+        }
+
+        if (input.readBoolean()) {
+            alias = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            name = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            topic = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            url = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            avatar_url = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            creator = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            join_rule = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            guest_access = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            history_visibility = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            roomAliasName = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            visibility = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            algorithm = input.readUTF();
+        }
+
+        mNotificationCount = input.readInt();
+        mHighlightCount = input.readInt();
+
+        if (input.readBoolean()) {
+            token = input.readUTF();
+        }
+
+        List<RoomMember> members = (List<RoomMember>) input.readObject();
+        for (RoomMember r : members) {
+            mMembers.put(r.getUserId(), r);
+        }
+
+        List<RoomThirdPartyInvite> invites = (List<RoomThirdPartyInvite>) input.readObject();
+        for (RoomThirdPartyInvite i : invites) {
+            mThirdPartyInvites.put(i.token, i);
+        }
+
+        List<RoomMember> inviteTokens = (List<RoomMember>) input.readObject();
+        for (RoomMember r : inviteTokens) {
+            mMembersWithThirdPartyInviteTokenCache.put(r.getThirdPartyInviteToken(), r);
+        }
+
+        if (input.readBoolean()) {
+            mMembership = input.readUTF();
+        }
+
+        mIsLive = input.readBoolean();
+
+        if (input.readBoolean()) {
+            mIsConferenceUserRoom = input.readBoolean();
+        }
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput output) throws IOException {
+        output.writeBoolean(null != roomId);
+        if (null != roomId) {
+            output.writeUTF(roomId);
+        }
+
+        output.writeBoolean(null != powerLevels);
+        if (null != powerLevels) {
+            output.writeObject(powerLevels);
+        }
+
+        output.writeBoolean(null != aliases);
+        if (null != aliases) {
+            output.writeObject(aliases);
+        }
+
+        output.writeObject(new ArrayList<>(mRoomAliases.values()));
+
+        output.writeObject(mAliasesByDomain);
+
+        output.writeBoolean(null != mMergedAliasesList);
+        if (null != mMergedAliasesList) {
+            output.writeObject(mMergedAliasesList);
+        }
+
+        output.writeObject(new ArrayList<>(mStateEvents.values()));
+
+        output.writeBoolean(null != alias);
+        if (null != alias) {
+            output.writeUTF(alias);
+        }
+
+        output.writeBoolean(null != name);
+        if (null != name) {
+            output.writeUTF(name);
+        }
+
+        output.writeBoolean(null != topic);
+        if (null != topic) {
+            output.writeUTF(topic);
+        }
+
+        output.writeBoolean(null != url);
+        if (null != url) {
+            output.writeUTF(url);
+        }
+
+        output.writeBoolean(null != avatar_url);
+        if (null != avatar_url) {
+            output.writeUTF(avatar_url);
+        }
+
+        output.writeBoolean(null != creator);
+        if (null != creator) {
+            output.writeUTF(creator);
+        }
+
+        output.writeBoolean(null != join_rule);
+        if (null != join_rule) {
+            output.writeUTF(join_rule);
+        }
+
+        output.writeBoolean(null != guest_access);
+        if (null != guest_access) {
+            output.writeUTF(guest_access);
+        }
+
+        output.writeBoolean(null != history_visibility);
+        if (null != history_visibility) {
+            output.writeUTF(history_visibility);
+        }
+
+        output.writeBoolean(null != roomAliasName);
+        if (null != roomAliasName) {
+            output.writeUTF(roomAliasName);
+        }
+
+        output.writeBoolean(null != visibility);
+        if (null != visibility) {
+            output.writeUTF(visibility);
+        }
+
+        output.writeBoolean(null != algorithm);
+        if (null != algorithm) {
+            output.writeUTF(algorithm);
+        }
+
+        output.writeInt(mNotificationCount);
+        output.writeInt(mHighlightCount);
+
+        output.writeBoolean(null != token);
+        if (null != token) {
+            output.writeUTF(token);
+        }
+
+        output.writeObject(new ArrayList<>(mMembers.values()));
+        output.writeObject(new ArrayList<>(mThirdPartyInvites.values()));
+        output.writeObject(new ArrayList<>(mMembersWithThirdPartyInviteTokenCache.values()));
+
+        output.writeBoolean(null != mMembership);
+        if (null != mMembership) {
+            output.writeUTF(mMembership);
+        }
+
+        output.writeBoolean(mIsLive);
+
+        output.writeBoolean(null != mIsConferenceUserRoom);
+        if (null != mIsConferenceUserRoom) {
+            output.writeBoolean(mIsConferenceUserRoom);
+        }
+    }
+
 }

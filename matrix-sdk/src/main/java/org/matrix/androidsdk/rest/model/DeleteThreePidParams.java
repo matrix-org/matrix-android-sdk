@@ -1,13 +1,12 @@
-/* 
- * Copyright 2016 OpenMarket Ltd
+/*
  * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,24 +14,16 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.rest.model.crypto;
-
-import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
-
-import java.util.Map;
-import java.util.Objects;
+package org.matrix.androidsdk.rest.model;
 
 /**
- * This class represents the response to /keys/query request made by downloadKeysForUsers
+ * Parameters to delete a 3Pid of a user
  */
-public class KeysQueryResponse {
-    /**
-     * The device keys per devices per users.
-     */
-    public Map<String, Map<String, MXDeviceInfo>> deviceKeys;
+public class DeleteThreePidParams {
 
-    /**
-     *  The failures sorted by homeservers.
-     */
-    public Map<String, Map<String, Object>> failures;
+    // the 3pid medium (email, phone number, etc.)
+    public String medium;
+
+    // the msisdn that will be deleted from the account
+    public String address;
 }

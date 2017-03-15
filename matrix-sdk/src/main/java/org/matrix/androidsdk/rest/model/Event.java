@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +17,7 @@
 package org.matrix.androidsdk.rest.model;
 
 import android.text.TextUtils;
+
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
@@ -26,6 +28,10 @@ import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.util.JsonUtils;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -40,9 +46,10 @@ import java.util.TimeZone;
 /**
  * Generic event class with all possible fields for events.
  */
-public class Event implements java.io.Serializable {
+public class Event implements Externalizable {
 
     private static final String LOG_TAG = "Event";
+    private static final long serialVersionUID = -1431845331022808337L;
 
     public enum SentState {
         UNSENT,  // the event has not been sent
@@ -50,7 +57,8 @@ public class Event implements java.io.Serializable {
         SENDING, // the event is currently sending
         WAITING_RETRY, // the event is going to be resent asap
         SENT,    // the event has been sent
-        UNDELIVERABLE   // The event failed to be sent
+        UNDELIVERABLE,   // The event failed to be sent
+        FAILED_UNKNOWN_DEVICES // the event failed to be sent because some unknown devices have been found while encrypting it
     }
 
     // when there is no more message to be paginated in a room
@@ -297,6 +305,7 @@ public class Event implements java.io.Serializable {
 
     /**
      * Update the event type
+     *
      * @param aType the new type
      */
     public void setType(String aType) {
@@ -316,9 +325,9 @@ public class Event implements java.io.Serializable {
      */
     public JsonElement getContent() {
         if (null != mClearEvent) {
-            return mClearEvent.content;
+            return mClearEvent.getWireContent();
         } else {
-            return content;
+            return getWireContent();
         }
     }
 
@@ -326,6 +335,7 @@ public class Event implements java.io.Serializable {
      * @return the wired event content
      */
     public JsonElement getWireContent() {
+        finalizeDeserialization();
         return content;
     }
 
@@ -345,6 +355,8 @@ public class Event implements java.io.Serializable {
      * @return the prev_content casted as JsonObject.
      */
     public JsonObject getPrevContentAsJsonObject() {
+        finalizeDeserialization();
+
         if ((null != unsigned) && (null != unsigned.prev_content)) {
             // avoid getting two value for the same thing
             if (null == prev_content) {
@@ -508,6 +520,8 @@ public class Event implements java.io.Serializable {
      * @return the copy
      */
     public Event deepCopy() {
+        finalizeDeserialization();
+
         Event copy = new Event();
         copy.type = type;
         copy.content = content;
@@ -523,6 +537,7 @@ public class Event implements java.io.Serializable {
 
         copy.stateKey = stateKey;
         copy.prev_content = prev_content;
+        copy.prev_content_as_string = prev_content_as_string;
 
         copy.unsigned = unsigned;
         copy.invite_room_state = invite_room_state;
@@ -546,7 +561,7 @@ public class Event implements java.io.Serializable {
      * @return true if it can be resent.
      */
     public boolean canBeResent() {
-        return (mSentState == SentState.WAITING_RETRY) || (mSentState == SentState.UNDELIVERABLE);
+        return (mSentState == SentState.WAITING_RETRY) || (mSentState == SentState.UNDELIVERABLE) || (mSentState == SentState.FAILED_UNKNOWN_DEVICES);
     }
 
     /**
@@ -568,12 +583,21 @@ public class Event implements java.io.Serializable {
     }
 
     /**
-     * Check if the current event failed to be sent
+     * Tell if the message is undeliverable
      *
-     * @return true if the event failed to be sent.
+     * @return true if the event is undeliverable
      */
     public boolean isUndeliverable() {
         return (mSentState == SentState.UNDELIVERABLE);
+    }
+
+    /**
+     * Tells if the message sending failed because some unknown devices have benn detected.
+     *
+     * @return true if some unknown devices have benn detected.
+     */
+    public boolean isUnkownDevice() {
+        return (mSentState == SentState.FAILED_UNKNOWN_DEVICES);
     }
 
     /**
@@ -604,7 +628,7 @@ public class Event implements java.io.Serializable {
                 if (null != imageMessage.getThumbnailUrl()) {
                     urls.add(imageMessage.getThumbnailUrl());
                 }
-            } else if (Message.MSGTYPE_FILE.equals(msgType)) {
+            } else if (Message.MSGTYPE_FILE.equals(msgType) || Message.MSGTYPE_AUDIO.equals(msgType) ) {
                 FileMessage fileMessage = JsonUtils.toFileMessage(getContent());
 
                 if (null != fileMessage.getUrl()) {
@@ -624,13 +648,14 @@ public class Event implements java.io.Serializable {
 
     /**
      * Tells if the current event is uploading a media.
+     *
      * @param mediasCache the media cache
      * @return true if the event is uploading a media.
      */
     public boolean isUploadingMedias(MXMediasCache mediasCache) {
         List<String> urls = getMediaUrls();
 
-        for(String url : urls) {
+        for (String url : urls) {
             if (mediasCache.getProgressValueForUploadId(url) >= 0) {
                 return true;
             }
@@ -641,13 +666,14 @@ public class Event implements java.io.Serializable {
 
     /**
      * Tells if the current event is downloading a media.
+     *
      * @param mediasCache the media cache
      * @return true if the event is downloading a media.
      */
     public boolean isDownloadingMedias(MXMediasCache mediasCache) {
         List<String> urls = getMediaUrls();
 
-        for(String url : urls) {
+        for (String url : urls) {
             if (mediasCache.getProgressValueForDownloadId(mediasCache.downloadIdFromUrl(url)) >= 0) {
                 return true;
             }
@@ -666,17 +692,17 @@ public class Event implements java.io.Serializable {
 
         text += "  \"content\" {\n";
 
-        if (null != content) {
-            if (content.isJsonArray()) {
-                for (JsonElement e : content.getAsJsonArray()) {
+        if (null != getWireContent()) {
+            if (getWireContent().isJsonArray()) {
+                for (JsonElement e : getWireContent().getAsJsonArray()) {
                     text += "   " + e.toString() + "\n,";
                 }
-            } else if (content.isJsonObject()) {
-                for (Map.Entry<String, JsonElement> e : content.getAsJsonObject().entrySet()) {
+            } else if (getWireContent().isJsonObject()) {
+                for (Map.Entry<String, JsonElement> e : getWireContent().getAsJsonObject().entrySet()) {
                     text += "    \"" + e.getKey() + ": " + e.getValue().toString() + ",\n";
                 }
             } else {
-                text += content.toString();
+                text += getWireContent().toString();
             }
         }
 
@@ -702,6 +728,8 @@ public class Event implements java.io.Serializable {
             text += "SENT";
         } else if (mSentState == SentState.UNDELIVERABLE) {
             text += "UNDELIVERABLE";
+        } else if (mSentState == SentState.FAILED_UNKNOWN_DEVICES) {
+            text += "FAILED UNKNOWN DEVICES";
         }
 
         text += "\n\n";
@@ -719,10 +747,178 @@ public class Event implements java.io.Serializable {
         return text;
     }
 
+    @Override
+    public void readExternal(ObjectInput input) throws IOException, ClassNotFoundException {
+        if (input.readBoolean()) {
+            type = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            contentAsString = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            prev_content_as_string = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            eventId = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            roomId = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            userId = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            sender = input.readUTF();
+        }
+
+        originServerTs = input.readLong();
+
+        if (input.readBoolean()) {
+            age = input.readLong();
+        }
+
+        if (input.readBoolean()) {
+            stateKey = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            unsigned = (UnsignedData)input.readObject();
+        }
+
+        if (input.readBoolean()) {
+            redacts = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            invite_room_state = (List<Event>) input.readObject();
+        }
+
+        if (input.readBoolean()) {
+            unsentException = (Exception) input.readObject();
+        }
+
+        if (input.readBoolean()) {
+            unsentMatrixError = (MatrixError)input.readObject();
+        }
+
+        mSentState = (SentState) input.readObject();
+
+        if (input.readBoolean()) {
+            mToken = input.readUTF();
+        }
+
+        mIsInternalPaginationToken = input.readBoolean();
+
+        if (input.readBoolean()) {
+            mMatrixId = input.readUTF();
+        }
+
+        mTimeZoneRawOffset = input.readLong();
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput output) throws IOException {
+        prepareSerialization();
+
+        output.writeBoolean(null != type);
+        if (null != type) {
+            output.writeUTF(type);
+        }
+
+        output.writeBoolean(null != contentAsString);
+        if (null != contentAsString) {
+            output.writeUTF(contentAsString);
+        }
+
+        output.writeBoolean(null != prev_content_as_string);
+        if (null != prev_content_as_string) {
+            output.writeUTF(prev_content_as_string);
+        }
+
+        output.writeBoolean(null != eventId);
+        if (null != eventId) {
+            output.writeUTF(eventId);
+        }
+
+        output.writeBoolean(null != roomId);
+        if (null != roomId) {
+            output.writeUTF(roomId);
+        }
+
+        output.writeBoolean(null != userId);
+        if (null != userId) {
+            output.writeUTF(userId);
+        }
+
+        output.writeBoolean(null != sender);
+        if (null != sender) {
+            output.writeUTF(sender);
+        }
+
+        output.writeLong(originServerTs);
+
+        output.writeBoolean(null != age);
+        if (null != age) {
+            output.writeLong(age);
+        }
+
+        output.writeBoolean(null != stateKey);
+        if (null != stateKey) {
+            output.writeUTF(stateKey);
+        }
+
+        output.writeBoolean(null != unsigned);
+        if (null != unsigned) {
+            output.writeObject(unsigned);
+        }
+
+        output.writeBoolean(null != redacts);
+        if (null != redacts) {
+            output.writeUTF(redacts);
+        }
+
+        output.writeBoolean(null != invite_room_state);
+        if (null != invite_room_state) {
+            output.writeObject(invite_room_state);
+        }
+
+        output.writeBoolean(null != unsentException);
+        if (null != unsentException) {
+            output.writeObject(unsentException);
+        }
+
+        output.writeBoolean(null != unsentMatrixError);
+        if (null != unsentMatrixError) {
+            output.writeObject(unsentMatrixError);
+        }
+
+        output.writeObject(mSentState);
+
+        output.writeBoolean(null != mToken);
+        if (null != mToken) {
+            output.writeUTF(mToken);
+        }
+
+        output.writeBoolean(mIsInternalPaginationToken);
+
+        output.writeBoolean(null != mMatrixId);
+        if (null != mMatrixId) {
+            output.writeUTF(mMatrixId);
+        }
+
+        output.writeLong(mTimeZoneRawOffset);
+    }
+
     /**
      * Init some internal fields to serialize the event.
      */
-    public void prepareSerialization() {
+    private void prepareSerialization() {
         if ((null != content) && (null == contentAsString)) {
             contentAsString = content.toString();
         }
@@ -739,12 +935,13 @@ public class Event implements java.io.Serializable {
     /**
      * Deserialize the event.
      */
-    public void finalizeDeserialization() {
+    private void finalizeDeserialization() {
         if ((null != contentAsString) && (null == content)) {
             try {
                 content = new JsonParser().parse(contentAsString).getAsJsonObject();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "finalizeDeserialization : contentAsString deserialization " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "finalizeDeserialization : contentAsString deserialization " + e.getMessage());
+                contentAsString = null;
             }
         }
 
@@ -752,14 +949,16 @@ public class Event implements java.io.Serializable {
             try {
                 prev_content = new JsonParser().parse(prev_content_as_string).getAsJsonObject();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "finalizeDeserialization : prev_content_as_string deserialization " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "finalizeDeserialization : prev_content_as_string deserialization " + e.getMessage());
+                prev_content_as_string = null;
             }
         }
     }
 
     /**
      * Filter a JsonObject to keep only the allowed keys.
-     * @param aContent the JsonObject to filter.
+     *
+     * @param aContent    the JsonObject to filter.
      * @param allowedKeys the allowed keys list.
      * @return the filtered JsonObject
      */
@@ -779,7 +978,7 @@ public class Event implements java.io.Serializable {
         Set<Map.Entry<String, JsonElement>> entries = aContent.entrySet();
 
         if (null != entries) {
-            for(Map.Entry<String, JsonElement> entry : entries) {
+            for (Map.Entry<String, JsonElement> entry : entries) {
                 if (allowedKeys.indexOf(entry.getKey()) >= 0) {
                     filteredContent.add(entry.getKey(), entry.getValue());
                 }
@@ -793,6 +992,7 @@ public class Event implements java.io.Serializable {
      * Prune the event which removes all keys we don't know about or think could potentially be dodgy.
      * This is used when we "redact" an event. We want to remove all fields that the user has specified,
      * but we do want to keep necessary information like type, state_key etc.
+     *
      * @param redactionEvent the event which triggers this redaction
      */
     public void prune(Event redactionEvent) {
@@ -808,14 +1008,14 @@ public class Event implements java.io.Serializable {
             allowedKeys = new ArrayList<>(Arrays.asList("join_rule"));
         } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS, type)) {
             allowedKeys = new ArrayList<>(Arrays.asList("users",
-            "users_default",
-            "events",
-            "events_default",
-            "state_default",
-            "ban",
-            "kick",
-            "redact",
-            "invite"));
+                    "users_default",
+                    "events",
+                    "events_default",
+                    "state_default",
+                    "ban",
+                    "kick",
+                    "redact",
+                    "invite"));
         } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_ALIASES, type)) {
             allowedKeys = new ArrayList<>(Arrays.asList("aliases"));
         } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_CANONICAL_ALIAS, type)) {
@@ -876,16 +1076,16 @@ public class Event implements java.io.Serializable {
 
     /**
      * The keys that must have been owned by the sender of this encrypted event.
-     * @discussion
-     * These don't necessarily have to come from this event itself, but may be
+     *
+     * @discussion These don't necessarily have to come from this event itself, but may be
      * implied by the cryptographic session.
      */
     private transient Map<String, String> mKeysProved;
 
     /**
      * The additional keys the sender of this encrypted event claims to possess.
-     * @discussion
-     * These don't necessarily have to come from this event itself, but may be
+     *
+     * @discussion These don't necessarily have to come from this event itself, but may be
      * implied by the cryptographic session.
      * For example megolm messages don't claim keys directly, but instead
      * inherit a claim from the olm message that established the session.
@@ -908,7 +1108,7 @@ public class Event implements java.io.Serializable {
      */
     public String senderKey() {
         if (null != getKeysProved()) {
-            return  getKeysProved().get("curve25519");
+            return getKeysProved().get("curve25519");
         } else {
             return null;
         }
@@ -927,6 +1127,7 @@ public class Event implements java.io.Serializable {
 
     /**
      * Update the key proved
+     *
      * @param keysProved the keys proved
      */
     public void setKeysProved(Map<String, String> keysProved) {
@@ -950,6 +1151,7 @@ public class Event implements java.io.Serializable {
 
     /**
      * Update tke ley claimed
+     *
      * @param keysClaimed the new key claimed map
      */
     public void setKeysClaimed(Map<String, String> keysClaimed) {
@@ -969,6 +1171,7 @@ public class Event implements java.io.Serializable {
 
     /**
      * Update the linked crypto error
+     *
      * @param error the new crypto error.
      */
     public void setCryptoError(MXCryptoError error) {
@@ -977,6 +1180,7 @@ public class Event implements java.io.Serializable {
 
     /**
      * Update the clear event
+     *
      * @param aClearEvent the clean event.
      */
     public void setClearEvent(Event aClearEvent) {

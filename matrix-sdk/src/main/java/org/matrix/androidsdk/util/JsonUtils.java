@@ -1,5 +1,6 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +16,6 @@
  */
 package org.matrix.androidsdk.util;
 
-import org.matrix.androidsdk.util.Log;
-
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -26,6 +25,7 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.json.ConditionDeserializer;
+import org.matrix.androidsdk.rest.model.AudioMessage;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.EncryptedEventContent;
 import org.matrix.androidsdk.rest.model.Event;
@@ -70,6 +70,15 @@ public class JsonUtils {
             .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
             .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
             .serializeNulls()
+            .registerTypeAdapter(Condition.class, new ConditionDeserializer())
+            .create();
+
+    // for crypto (canonicalize)
+    // avoid converting "=" to \u003d
+    private static Gson gsonWithoutHtmlEscaping = new GsonBuilder()
+            .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+            .disableHtmlEscaping()
+            .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
             .registerTypeAdapter(Condition.class, new ConditionDeserializer())
             .create();
 
@@ -170,6 +179,10 @@ public class JsonUtils {
                 return toFileMessage(jsonObject);
             }
 
+            if (Message.MSGTYPE_AUDIO.equals(message.msgtype)) {
+                return toAudioMessage(jsonObject);
+            }
+
             // Fall back to the generic Message type
             return message;
         } catch (Exception e) {
@@ -247,6 +260,16 @@ public class JsonUtils {
         }
 
         return new FileMessage();
+    }
+
+    public static AudioMessage toAudioMessage(JsonElement jsonObject) {
+        try {
+            return gson.fromJson(jsonObject, AudioMessage.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toAudioMessage failed " + e.getMessage());
+        }
+
+        return new AudioMessage();
     }
 
     public static VideoMessage toVideoMessage(JsonElement jsonObject) {
@@ -339,9 +362,9 @@ public class JsonUtils {
 
         if (null != object) {
             if (object instanceof JsonElement) {
-                canonicalizedJsonString = gson.toJson(canonicalize((JsonElement)object));
+                canonicalizedJsonString = gsonWithoutHtmlEscaping.toJson(canonicalize((JsonElement)object));
             } else {
-                canonicalizedJsonString = gson.toJson(canonicalize(gson.toJsonTree(object)));
+                canonicalizedJsonString = gsonWithoutHtmlEscaping.toJson(canonicalize(gsonWithoutHtmlEscaping.toJsonTree(object)));
             }
 
             if (null != canonicalizedJsonString) {
@@ -428,5 +451,4 @@ public class JsonUtils {
 
         return out;
     }
-
 }

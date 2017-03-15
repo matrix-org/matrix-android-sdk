@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +18,8 @@
 package org.matrix.androidsdk.crypto.algorithms.megolm;
 
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
@@ -33,7 +36,6 @@ import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
@@ -95,7 +97,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
     }
 
     @Override
-    public void encryptEventContent(JsonElement eventContent, String eventType, List<String> userIds, ApiCallback<JsonElement> callback) {
+    public void encryptEventContent(final JsonElement eventContent, final String eventType, final List<String> userIds, final ApiCallback<JsonElement> callback) {
         // Queue the encryption request
         // It will be processed when everything is set up
         MXQueuedEncryption queuedEncryption = new MXQueuedEncryption();
@@ -111,20 +113,13 @@ public class MXMegolmEncryption implements IMXEncrypting {
         final long t0 = System.currentTimeMillis();
         Log.d(LOG_TAG, "## encryptEventContent () starts");
 
-        ensureOutboundSession(userIds, new ApiCallback<MXOutboundSessionInfo>() {
-            @Override
-            public void onSuccess(final MXOutboundSessionInfo session) {
-                mCrypto.getEncryptingThreadHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        Log.d(LOG_TAG, "## encryptEventContent () processPendingEncryptions after " + (System.currentTimeMillis() - t0) + "ms");
-                        processPendingEncryptions(session);
-                    }
-                });
-            }
+        getDevicesInRoom(userIds, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
 
-            @Override
-            public void onNetworkError(Exception e) {
+            /**
+             * A network error has been received while encrypting
+             * @param e the exception
+             */
+            private void dispatchNetworkError(Exception e) {
                 Log.e(LOG_TAG, "## encryptEventContent() : onNetworkError " + e.getMessage());
                 List<MXQueuedEncryption> queuedEncryptions = getPendingEncryptions();
 
@@ -137,8 +132,11 @@ public class MXMegolmEncryption implements IMXEncrypting {
                 }
             }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
+            /**
+             * A matrix error has been received while encrypting
+             * @param e the exception
+             */
+            private void dispatchMatrixError(MatrixError e) {
                 Log.e(LOG_TAG, "## encryptEventContent() : onMatrixError " + e.getMessage());
 
                 List<MXQueuedEncryption> queuedEncryptions = getPendingEncryptions();
@@ -152,8 +150,11 @@ public class MXMegolmEncryption implements IMXEncrypting {
                 }
             }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
+            /**
+             * An unexpected error has been received while encrypting
+             * @param e the exception
+             */
+            private void dispatchUnexpectedError(Exception e) {
                 Log.e(LOG_TAG, "## onUnexpectedError() : onMatrixError " + e.getMessage());
 
                 List<MXQueuedEncryption> queuedEncryptions = getPendingEncryptions();
@@ -166,37 +167,60 @@ public class MXMegolmEncryption implements IMXEncrypting {
                     mPendingEncryptions.removeAll(queuedEncryptions);
                 }
             }
+
+            @Override
+            public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> devicesInRoom) {
+                ensureOutboundSession(devicesInRoom, new ApiCallback<MXOutboundSessionInfo>() {
+                    @Override
+                    public void onSuccess(final MXOutboundSessionInfo session) {
+                        mCrypto.getEncryptingThreadHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                Log.d(LOG_TAG, "## encryptEventContent () processPendingEncryptions after " + (System.currentTimeMillis() - t0) + "ms");
+                                processPendingEncryptions(session);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        dispatchNetworkError(e);
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        dispatchMatrixError(e);
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        dispatchUnexpectedError(e);
+                    }
+                });
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                dispatchNetworkError(e);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                dispatchMatrixError(e);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                dispatchUnexpectedError(e);
+            }
         });
-    }
 
-    @Override
-    public void onRoomMembership(Event event, RoomMember member, String oldMembership) {
-        String newMembership = member.membership;
 
-        if (TextUtils.equals(newMembership, RoomMember.MEMBERSHIP_JOIN) || TextUtils.equals(oldMembership, RoomMember.MEMBERSHIP_INVITE)) {
-            return;
-        }
-
-        // Otherwise we assume the user is leaving, and start a new outbound session.
-        Log.d(LOG_TAG, "## onRoomMembership() :  Discarding outbound megolm session due to change in membership of " + member.getUserId () +  " "  + oldMembership + " -> " + newMembership);
-
-        // This ensures that we will start a new session on the next message.
-        mOutboundSession = null;
-    }
-
-    @Override
-    public void onDeviceVerification(MXDeviceInfo device, int oldVerified) {
-        if (device.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED) {
-            Log.d(LOG_TAG, "## onDeviceVerification() : Discarding outbound megolm session in " + mRoomId + "due to the blacklisting of " + device);
-            mOutboundSession = null;
-        }
-
-        // In other cases, the key will be shared to this device on the next
-        // message thanks to [self ensureOutboundSessionInRoom]
     }
 
     /**
      * Prepare a new session.
+     *
      * @return the session description
      */
     private MXOutboundSessionInfo prepareNewSessionInRoom() {
@@ -208,19 +232,23 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
         olmDevice.addInboundGroupSession(sessionId, olmDevice.getSessionKey(sessionId), mRoomId, olmDevice.getDeviceCurve25519Key(), keysClaimedMap);
 
-       return new MXOutboundSessionInfo(sessionId);
+        return new MXOutboundSessionInfo(sessionId);
     }
 
     /**
      * Ensure the outbound session
-     * @param userIds the users Ids list
-     * @param callback the asynchronous callback.
+     *
+     * @param devicesInRoom the devices list
+     * @param callback      the asynchronous callback.
      */
-    private void ensureOutboundSession(List<String> userIds, final ApiCallback<MXOutboundSessionInfo> callback) {
+    private void ensureOutboundSession(MXUsersDevicesMap<MXDeviceInfo> devicesInRoom, final ApiCallback<MXOutboundSessionInfo> callback) {
         MXOutboundSessionInfo session = mOutboundSession;
 
-        // Need to make a brand new session?
-        if ((null == session) || session.needsRotation(mSessionRotationPeriodMsgs, mSessionRotationPeriodMs)) {
+        if ((null == session) ||
+                // Need to make a brand new session?
+                session.needsRotation(mSessionRotationPeriodMsgs, mSessionRotationPeriodMs) ||
+                // Determine if we have shared with anyone we shouldn't have
+                session.sharedWithTooManyDevices(devicesInRoom)) {
             mOutboundSession = session = prepareNewSessionInRoom();
         }
 
@@ -232,92 +260,39 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
         final MXOutboundSessionInfo fSession = session;
 
-        final long t0 = System.currentTimeMillis();
-        Log.d(LOG_TAG, "## ensureOutboundSessionInRoom() : starts");
+        HashMap<String, /* userId */ArrayList<MXDeviceInfo>> shareMap = new HashMap<>();
 
-        // No share in progress: check if we need to share with any devices
-        mCrypto.downloadKeys(userIds, false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
-            @Override
-            public void onSuccess(final MXUsersDevicesMap<MXDeviceInfo> usersdevices) {
-                mCrypto.getEncryptingThreadHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        Log.d(LOG_TAG, "## ensureOutboundSessionInRoom() : getDevicesInRoom() succeeds after " + (System.currentTimeMillis() - t0) + " ms");
+        List<String> userIds = devicesInRoom.getUserIds();
 
-                        HashMap<String, /* userId */ArrayList<MXDeviceInfo>> shareMap = new HashMap<>();
+        for (String userId : userIds) {
+            List<String> deviceIds = devicesInRoom.getUserDeviceIds(userId);
 
-                        List<String> userIds = usersdevices.getUserIds();
+            for (String deviceId : deviceIds) {
+                MXDeviceInfo deviceInfo = devicesInRoom.getObject(deviceId, userId);
 
-                        for(String userId : userIds) {
-                            List<String> deviceIds = usersdevices.getUserDeviceIds(userId);
-
-                            for (String deviceId : deviceIds) {
-                                MXDeviceInfo deviceInfo = usersdevices.getObject(deviceId, userId);
-
-                                if (deviceInfo.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED) {
-                                    continue;
-                                }
-
-                                if (TextUtils.equals(deviceInfo.identityKey(), mCrypto.getOlmDevice().getDeviceCurve25519Key())) {
-                                    // Don't bother sending to ourself
-                                    continue;
-                                }
-
-                                if (null == fSession.mSharedWithDevices.getObject(deviceId, userId)) {
-                                    if (!shareMap.containsKey(userId)) {
-                                        shareMap.put(userId, new ArrayList<MXDeviceInfo>());
-                                    }
-
-                                    shareMap.get(userId).add(deviceInfo);
-                                }
-                            }
-                        }
-
-                        shareKey(fSession, shareMap, new ApiCallback<Void>() {
-                            @Override
-                            public void onSuccess(Void anything) {
-                                mShareOperationIsProgress = false;
-                                if (null != callback) {
-                                    callback.onSuccess(fSession);
-                                }
-                            }
-
-                            @Override
-                            public void onNetworkError(final Exception e) {
-                                Log.e(LOG_TAG, "## ensureOutboundSessionInRoom() : shareKey onNetworkError " + e.getMessage());
-
-                                if (null != callback) {
-                                    callback.onNetworkError(e);
-                                }
-                                mShareOperationIsProgress = false;
-                            }
-
-                            @Override
-                            public void onMatrixError(final MatrixError e) {
-                                Log.e(LOG_TAG, "## ensureOutboundSessionInRoom() : shareKey onMatrixError " + e.getMessage());
-
-                                if (null != callback) {
-                                    callback.onMatrixError(e);
-                                }
-                                mShareOperationIsProgress = false;
-                            }
-
-                            @Override
-                            public void onUnexpectedError(final Exception e) {
-                                Log.e(LOG_TAG, "## ensureOutboundSessionInRoom() : shareKey onUnexpectedError " + e.getMessage());
-
-                                if (null != callback) {
-                                    callback.onUnexpectedError(e);
-                                }
-                                mShareOperationIsProgress = false;
-                            }
-                        });
+                if (null == fSession.mSharedWithDevices.getObject(deviceId, userId)) {
+                    if (!shareMap.containsKey(userId)) {
+                        shareMap.put(userId, new ArrayList<MXDeviceInfo>());
                     }
-                });
+
+                    shareMap.get(userId).add(deviceInfo);
+                }
+            }
+        }
+
+        shareKey(fSession, shareMap, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void anything) {
+                mShareOperationIsProgress = false;
+                if (null != callback) {
+                    callback.onSuccess(fSession);
+                }
             }
 
             @Override
             public void onNetworkError(final Exception e) {
+                Log.e(LOG_TAG, "## ensureOutboundSessionInRoom() : shareKey onNetworkError " + e.getMessage());
+
                 if (null != callback) {
                     callback.onNetworkError(e);
                 }
@@ -326,6 +301,8 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
             @Override
             public void onMatrixError(final MatrixError e) {
+                Log.e(LOG_TAG, "## ensureOutboundSessionInRoom() : shareKey onMatrixError " + e.getMessage());
+
                 if (null != callback) {
                     callback.onMatrixError(e);
                 }
@@ -334,19 +311,23 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
             @Override
             public void onUnexpectedError(final Exception e) {
+                Log.e(LOG_TAG, "## ensureOutboundSessionInRoom() : shareKey onUnexpectedError " + e.getMessage());
+
                 if (null != callback) {
                     callback.onUnexpectedError(e);
                 }
                 mShareOperationIsProgress = false;
             }
         });
+
     }
 
     /**
      * Share the device key to a list of users
-     * @param session the session info
+     *
+     * @param session        the session info
      * @param devicesByUsers the devices map
-     * @param callback the asynchronous callback
+     * @param callback       the asynchronous callback
      */
     private void shareKey(final MXOutboundSessionInfo session, final HashMap<String, ArrayList<MXDeviceInfo>> devicesByUsers, final ApiCallback<Void> callback) {
         // nothing to send, the task is done
@@ -371,7 +352,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
         final ArrayList<String> userIds = new ArrayList<>();
         int devicesCount = 0;
 
-        for(String userId : devicesByUsers.keySet()) {
+        for (String userId : devicesByUsers.keySet()) {
             ArrayList<MXDeviceInfo> devicesList = devicesByUsers.get(userId);
 
             userIds.add(userId);
@@ -391,7 +372,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                 mCrypto.getEncryptingThreadHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        for(String userId : userIds) {
+                        for (String userId : userIds) {
                             devicesByUsers.remove(userId);
                         }
                         shareKey(session, devicesByUsers, callback);
@@ -401,7 +382,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.d(LOG_TAG, "## shareKey() ; userIds " + userIds +  " failed " + e.getMessage());
+                Log.d(LOG_TAG, "## shareKey() ; userIds " + userIds + " failed " + e.getMessage());
                 if (null != callback) {
                     callback.onNetworkError(e);
                 }
@@ -409,7 +390,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.d(LOG_TAG, "## shareKey() ; userIds " + userIds +  " failed " + e.getMessage());
+                Log.d(LOG_TAG, "## shareKey() ; userIds " + userIds + " failed " + e.getMessage());
                 if (null != callback) {
                     callback.onMatrixError(e);
                 }
@@ -417,7 +398,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.d(LOG_TAG, "## shareKey() ; userIds " + userIds +  " failed " + e.getMessage());
+                Log.d(LOG_TAG, "## shareKey() ; userIds " + userIds + " failed " + e.getMessage());
                 if (null != callback) {
                     callback.onUnexpectedError(e);
                 }
@@ -427,9 +408,10 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
     /**
      * Share the device keys of a an user
-     * @param session the session info
+     *
+     * @param session       the session info
      * @param devicesByUser the devices map
-     * @param callback the asynchronous callback
+     * @param callback      the asynchronous callback
      */
     private void shareUserDevicesKey(final MXOutboundSessionInfo session, final HashMap<String, ArrayList<MXDeviceInfo>> devicesByUser, final ApiCallback<Void> callback) {
         final String sessionKey = mCrypto.getOlmDevice().getSessionKey(session.mSessionId);
@@ -511,7 +493,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                                             for (String userId : devicesByUser.keySet()) {
                                                 List<MXDeviceInfo> devicesToShareWith = devicesByUser.get(userId);
 
-                                                for(MXDeviceInfo deviceInfo : devicesToShareWith) {
+                                                for (MXDeviceInfo deviceInfo : devicesToShareWith) {
                                                     session.mSharedWithDevices.setObject(chainIndex, userId, deviceInfo.deviceId);
                                                 }
                                             }
@@ -605,7 +587,6 @@ public class MXMegolmEncryption implements IMXEncrypting {
      */
     private void processPendingEncryptions(MXOutboundSessionInfo session) {
         if (null != session) {
-
             List<MXQueuedEncryption> queuedEncryptions = getPendingEncryptions();
 
             // Everything is in place, encrypt all pending events
@@ -644,5 +625,93 @@ public class MXMegolmEncryption implements IMXEncrypting {
                 mPendingEncryptions.removeAll(queuedEncryptions);
             }
         }
+    }
+
+    /**
+     * Get the list of devices which can encrypt data to.
+     * This method must be called in getDecryptingThreadHandler() thread.
+     *
+     * @param userIds  the user ids whose devices must be checked.
+     * @param callback the asynchronous callback
+     */
+    private void getDevicesInRoom(final List<String> userIds, final ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> callback) {
+        // We are happy to use a cached version here: we assume that if we already
+        // have a list of the user's devices, then we already share an e2e room
+        // with them, which means that they will have announced any new devices via
+        // an m.new_device.
+        mCrypto.getDeviceList().downloadKeys(userIds, false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+            @Override
+            public void onSuccess(final MXUsersDevicesMap<MXDeviceInfo> devices) {
+                mCrypto.getEncryptingThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        boolean encryptToVerifiedDevicesOnly = mCrypto.getGlobalBlacklistUnverifiedDevices() || mCrypto.isRoomBlacklistUnverifiedDevices(mRoomId);
+
+                        final MXUsersDevicesMap<MXDeviceInfo> devicesInRoom = new MXUsersDevicesMap<>();
+                        final MXUsersDevicesMap<MXDeviceInfo> unknownDevices = new MXUsersDevicesMap<>();
+
+                        List<String> userIds = devices.getUserIds();
+
+                        for (String userId : userIds) {
+                            List<String> deviceIds = devices.getUserDeviceIds(userId);
+
+                            for (String deviceId : deviceIds) {
+                                MXDeviceInfo deviceInfo = devices.getObject(deviceId, userId);
+
+                                if (mCrypto.warnOnUnknownDevices() && deviceInfo.isUnknown()) {
+                                    // The device is not yet known by the user
+                                    unknownDevices.setObject(deviceInfo, userId, deviceId);
+                                    continue;
+                                }
+
+                                if (deviceInfo.isBlocked()) {
+                                    // Remove any blocked devices
+                                    continue;
+                                }
+
+                                if (!deviceInfo.isVerified() && encryptToVerifiedDevicesOnly) {
+                                    continue;
+                                }
+
+                                if (TextUtils.equals(deviceInfo.identityKey(), mCrypto.getOlmDevice().getDeviceCurve25519Key())) {
+                                    // Don't bother sending to ourself
+                                    continue;
+                                }
+
+                                devicesInRoom.setObject(deviceInfo, userId, deviceId);
+                            }
+                        }
+
+                        mCrypto.getUIHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                // Check if any of these devices are not yet known to the user.
+                                // if so, warn the user so they can verify or ignore.
+                                if (0 != unknownDevices.getMap().size()) {
+                                    callback.onMatrixError(new MXCryptoError(MXCryptoError.UNKNOWN_DEVICES_CODE, MXCryptoError.UNABLE_TO_ENCRYPT, MXCryptoError.UNKNOWN_DEVICES_REASON, unknownDevices));
+                                } else {
+                                    callback.onSuccess(devicesInRoom);
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                callback.onNetworkError(e);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                callback.onMatrixError(e);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                callback.onUnexpectedError(e);
+            }
+        });
     }
 }

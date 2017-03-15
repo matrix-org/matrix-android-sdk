@@ -70,7 +70,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
             return false;
         }
 
-        EncryptedEventContent encryptedEventContent = JsonUtils.toEncryptedEventContent(event.content.getAsJsonObject());
+        EncryptedEventContent encryptedEventContent = JsonUtils.toEncryptedEventContent(event.getWireContent().getAsJsonObject());
 
         String senderKey = encryptedEventContent.sender_key;
         String ciphertext = encryptedEventContent.ciphertext;
@@ -122,7 +122,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
      * @param timelineId the timeline identifier
      */
     private void addEventToPendingList(Event event, String timelineId) {
-        EncryptedEventContent encryptedEventContent = JsonUtils.toEncryptedEventContent(event.content.getAsJsonObject());
+        EncryptedEventContent encryptedEventContent = JsonUtils.toEncryptedEventContent(event.getWireContent().getAsJsonObject());
 
         String senderKey = encryptedEventContent.sender_key;
         String sessionId = encryptedEventContent.session_id;
@@ -169,7 +169,16 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
         mOlmDevice.addInboundGroupSession(sessionId, sessionKey, roomId, roomKeyEvent.senderKey(), roomKeyEvent.getKeysClaimed());
 
-        String k = roomKeyEvent.senderKey() + "|" + sessionId;
+        onNewSession(roomKeyEvent.senderKey(), sessionId);
+    }
+
+    /**
+     * Check if the some messages can be decrypted with a new session
+     * @param senderKey the session sender key
+     * @param sessionId the session id
+     */
+    public void onNewSession(String senderKey, String sessionId) {
+        String k = senderKey + "|" + sessionId;
 
         HashMap<String, ArrayList<Event>> pending = mPendingEvents.get(k);
 
@@ -182,7 +191,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
             for (String timelineId : timelineIds) {
                 ArrayList<Event> events = pending.get(timelineId);
 
-                for(Event event : events) {
+                for (Event event : events) {
                     if (decryptEvent(event, TextUtils.isEmpty(timelineId) ? null : timelineId)) {
                         final Event fEvent = event;
                         mSession.getCrypto().getUIHandler().post(new Runnable() {
@@ -191,13 +200,13 @@ public class MXMegolmDecryption implements IMXDecrypting {
                                 mSession.getDataHandler().onEventDecrypted(fEvent);
                             }
                         });
-                        Log.d(LOG_TAG, "## onRoomKeyEvent() : successful re-decryption of " + event.eventId);
+                        Log.d(LOG_TAG, "## onNewSession() : successful re-decryption of " + event.eventId);
                     } else {
-                        Log.e(LOG_TAG, "## onRoomKeyEvent() : Still can't decrypt " + event.eventId + ". Error " + event.getCryptoError().getMessage());
+                        Log.e(LOG_TAG, "## onNewSession() : Still can't decrypt " + event.eventId + ". Error " + event.getCryptoError().getMessage());
                     }
                 }
             }
         }
-
     }
+
 }

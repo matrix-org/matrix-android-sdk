@@ -38,7 +38,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -122,7 +121,7 @@ public class CryptoRestTest {
         assertTrue(0 == keysUploadResponse.oneTimeKeyCountsForAlgorithm("deded"));
 
         final CountDownLatch lock1 = new CountDownLatch(1);
-        mBobSession.getCryptoRestClient().downloadKeysForUsers(Arrays.asList(mBobSession.getMyUserId()), new ApiCallback<KeysQueryResponse>() {
+        mBobSession.getCryptoRestClient().downloadKeysForUsers(Arrays.asList(mBobSession.getMyUserId()), null, new ApiCallback<KeysQueryResponse>() {
             @Override
             public void onSuccess(KeysQueryResponse keysQueryResponse) {
                 results.put("keysQueryResponse", keysQueryResponse);

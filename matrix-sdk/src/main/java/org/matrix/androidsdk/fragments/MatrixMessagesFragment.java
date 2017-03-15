@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +23,9 @@ import android.os.Looper;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
+
 import org.matrix.androidsdk.util.Log;
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -85,11 +88,15 @@ public class MatrixMessagesFragment extends Fragment {
 
     public interface MatrixMessagesListener {
         void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState);
+
         void onLiveEventsChunkProcessed();
+
         void onReceiptEvent(List<String> senderIds);
+
         void onRoomFlush();
 
         EventTimeline getEventTimeLine();
+
         void onTimelineInitialized();
 
         /**
@@ -99,6 +106,7 @@ public class MatrixMessagesFragment extends Fragment {
 
         // UI events
         void showInitLoading();
+
         void hideInitLoading();
 
         // get the room preview data
@@ -110,7 +118,7 @@ public class MatrixMessagesFragment extends Fragment {
     // The adapted listener to register to the SDK
     private final IMXEventListener mEventListener = new MXEventListener() {
         @Override
-        public void onLiveEventsChunkProcessed() {
+        public void onLiveEventsChunkProcessed(String fromToken, String toToken) {
             if (null != mMatrixMessagesListener) {
                 mMatrixMessagesListener.onLiveEventsChunkProcessed();
             }
@@ -226,10 +234,9 @@ public class MatrixMessagesFragment extends Fragment {
         mSession.getDataHandler().checkRoom(mRoom);
 
         // display the message history around a dedicated message
-        if ((null != mEventTimeline) &&  !mEventTimeline.isLiveTimeline() && (null != mEventTimeline.getInitialEventId())) {
+        if ((null != mEventTimeline) && !mEventTimeline.isLiveTimeline() && (null != mEventTimeline.getInitialEventId())) {
             initializeTimeline();
-        }
-        else {
+        } else {
             boolean joinedRoom = false;
             // does the room already exist ?
             if ((mRoom != null) && (null != mEventTimeline)) {
@@ -256,8 +263,7 @@ public class MatrixMessagesFragment extends Fragment {
                 else if (!joinedRoom) {
                     Log.d(LOG_TAG, "Joining room >> " + roomId);
                     joinRoom();
-                }
-                else {
+                } else {
                     // the room is already joined
                     // fill the messages list
                     requestInitialHistory();
@@ -310,7 +316,7 @@ public class MatrixMessagesFragment extends Fragment {
             RoomPreviewData roomPreviewData = mMatrixMessagesListener.getRoomPreviewData();
 
             if (null != roomPreviewData) {
-                if  (null != roomPreviewData.getRoomResponse()) {
+                if (null != roomPreviewData.getRoomResponse()) {
                     Log.d(LOG_TAG, "A preview data is provided with sync response");
                     RoomResponse roomResponse = roomPreviewData.getRoomResponse();
 
@@ -388,15 +394,16 @@ public class MatrixMessagesFragment extends Fragment {
 
     /**
      * Display the InitializeTimeline error.
+     *
      * @param error the error
      */
     protected void displayInitializeTimelineError(Object error) {
         String errorMessage = "";
 
         if (error instanceof MatrixError) {
-            errorMessage = ((MatrixError)error).getLocalizedMessage();
+            errorMessage = ((MatrixError) error).getLocalizedMessage();
         } else if (error instanceof Exception) {
-            errorMessage = ((Exception)error).getLocalizedMessage();
+            errorMessage = ((Exception) error).getLocalizedMessage();
         }
 
         if (!TextUtils.isEmpty(errorMessage)) {
@@ -523,6 +530,7 @@ public class MatrixMessagesFragment extends Fragment {
     /**
      * Set the listener which will be informed of matrix messages. This setter is provided so either
      * a Fragment or an Activity can directly receive callbacks.
+     *
      * @param listener the listener for this fragment
      */
     public void setMatrixMessagesListener(MatrixMessagesListener listener) {
@@ -531,6 +539,7 @@ public class MatrixMessagesFragment extends Fragment {
 
     /**
      * Set the MX session
+     *
      * @param session the session.
      */
     public void setMXSession(MXSession session) {
@@ -543,6 +552,7 @@ public class MatrixMessagesFragment extends Fragment {
 
     /**
      * Tells if a back pagination can be done.
+     *
      * @return true if a back pagination can be done.
      */
     public boolean canBackPaginate() {
@@ -555,6 +565,7 @@ public class MatrixMessagesFragment extends Fragment {
 
     /**
      * Request earlier messages in this room.
+     *
      * @param callback the callback
      * @return true if the request is really started
      */
@@ -568,6 +579,7 @@ public class MatrixMessagesFragment extends Fragment {
 
     /**
      * Request the next events in the timeline.
+     *
      * @param callback the callback
      * @return true if the request is really started
      */
@@ -581,7 +593,8 @@ public class MatrixMessagesFragment extends Fragment {
 
     /**
      * Send an event in a room
-     * @param event the event
+     *
+     * @param event    the event
      * @param callback the callback
      */
     public void sendEvent(Event event, ApiCallback<Void> callback) {
@@ -592,7 +605,8 @@ public class MatrixMessagesFragment extends Fragment {
 
     /**
      * Redact an event.
-     * @param eventId the event Id
+     *
+     * @param eventId  the event Id
      * @param callback the callback.
      */
     public void redact(String eventId, ApiCallback<Event> callback) {

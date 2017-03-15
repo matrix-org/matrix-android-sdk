@@ -1,5 +1,6 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +19,8 @@ package org.matrix.androidsdk.data;
 
 import android.os.Handler;
 import android.os.Looper;
+
+import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationResponse;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -49,7 +52,9 @@ public class MyUser extends User {
     private transient Handler mUiHandler;
 
     // linked emails to the account
-    private transient List<ThirdPartyIdentifier> mThirdPartyIdentifiers = new ArrayList<>();
+    private transient List<ThirdPartyIdentifier> mEmailIdentifiers = new ArrayList<>();
+    // linked phone number to the account
+    private transient List<ThirdPartyIdentifier> mPhoneNumberIdentifiers = new ArrayList<>();
 
     public MyUser(User user) {
         clone(user);
@@ -110,29 +115,41 @@ public class MyUser extends User {
     }
 
     /**
-     * Request a validation token for a dedicated 3Pid
+     * Request a validation token for an email address 3Pid
      * @param pid the pid to retrieve a token
      * @param callback the callback when the operation is done
      */
-    public void requestValidationToken(ThreePid pid, ApiCallback<Void> callback) {
+    public void requestEmailValidationToken(ThreePid pid, ApiCallback<Void> callback) {
         if (null != pid) {
-            pid.requestValidationToken(mDataHandler.getThirdPidRestClient(), null, callback);
+            pid.requestEmailValidationToken(mDataHandler.getThirdPidRestClient(), null, callback);
         }
     }
 
     /**
-     * Add a a new pid to the account.
-     * @param pid the pid to add.
-     * @param bind true to add it.
+     * Request a validation token for a phone number 3Pid
+     * @param pid the pid to retrieve a token
+     * @param callback the callback when the operation is done
+     */
+    public void requestPhoneNumberValidationToken(ThreePid pid, ApiCallback<RequestPhoneNumberValidationResponse> callback) {
+        if (null != pid) {
+            pid.requestPhoneNumberValidationToken(mDataHandler.getThirdPidRestClient(), null, callback);
+        }
+    }
+
+    /**
+     * Add a new pid to the account.
+     *
+     * @param pid      the pid to add.
+     * @param bind     true to add it.
      * @param callback the async callback
      */
-    public void add3Pid(ThreePid pid, boolean bind, final ApiCallback<Void> callback) {
+    public void add3Pid(final ThreePid pid, final boolean bind, final ApiCallback<Void> callback) {
         if (null != pid) {
             mDataHandler.getProfileRestClient().add3PID(pid, bind, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
-                    // refresh the emails list
-                    refreshLinkedEmails(callback);
+                    // refresh the third party identifiers lists
+                    refreshThirdPartyIdentifiers(callback);
                 }
 
                 @Override
@@ -160,37 +177,83 @@ public class MyUser extends User {
     }
 
     /**
-     * @return the list of third party identifiers
+     * Delete a 3pid from an account
+     *
+     * @param pid      the pid to delete
+     * @param callback the async callback
      */
-    public List<ThirdPartyIdentifier> getThirdPartyIdentifiers() {
-        List<ThirdPartyIdentifier> list;
+    public void delete3Pid(final ThirdPartyIdentifier pid, final ApiCallback<Void> callback){
+        if (null != pid) {
+            mDataHandler.getProfileRestClient().delete3PID(pid, new ApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    // refresh the third party identifiers lists
+                    refreshThirdPartyIdentifiers(callback);
+                }
 
-        if (mAre3PIdsLoaded) {
-            list = mThirdPartyIdentifiers;
-        } else {
-            list = mDataHandler.getStore().thirdPartyIdentifiers();
+                @Override
+                public void onNetworkError(Exception e) {
+                    if (null != callback) {
+                        callback.onNetworkError(e);
+                    }
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    if (null != callback) {
+                        callback.onMatrixError(e);
+                    }
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    if (null != callback) {
+                        callback.onUnexpectedError(e);
+                    }
+                }
+            });
         }
+    }
 
-        if (null == list) {
-            list = new ArrayList<>();
+    /**
+     * Build the lists of identifiers
+     */
+    private void buildIdentifiersLists() {
+        List<ThirdPartyIdentifier> identifiers = mDataHandler.getStore().thirdPartyIdentifiers();
+        mEmailIdentifiers = new ArrayList<>();
+        mPhoneNumberIdentifiers = new ArrayList<>();
+        for (ThirdPartyIdentifier identifier : identifiers) {
+            switch (identifier.medium) {
+                case ThreePid.MEDIUM_EMAIL:
+                    mEmailIdentifiers.add(identifier);
+                    break;
+                case ThreePid.MEDIUM_MSISDN:
+                    mPhoneNumberIdentifiers.add(identifier);
+                    break;
+            }
         }
-
-        return list;
     }
 
     /**
      * @return the list of linked emails
      */
-    public List<String> getlinkedEmails() {
-        List<ThirdPartyIdentifier> list = getThirdPartyIdentifiers();
-
-        ArrayList<String>emails = new ArrayList<>();
-
-        for(ThirdPartyIdentifier identifier : list) {
-            emails.add(identifier.address);
+    public List<ThirdPartyIdentifier> getlinkedEmails() {
+        if (mEmailIdentifiers == null) {
+            buildIdentifiersLists();
         }
 
-        return emails;
+        return mEmailIdentifiers;
+    }
+
+    /**
+     * @return the list of linked emails
+     */
+    public List<ThirdPartyIdentifier> getlinkedPhoneNumbers() {
+        if (mPhoneNumberIdentifiers == null) {
+            buildIdentifiersLists();
+        }
+
+        return mPhoneNumberIdentifiers;
     }
 
     //================================================================================
@@ -209,7 +272,7 @@ public class MyUser extends User {
      * Refresh the user data if it is required
      * @param callback callback when the job is done.
      */
-    public void refreshLinkedEmails(final ApiCallback<Void> callback) {
+    public void refreshThirdPartyIdentifiers(final ApiCallback<Void> callback) {
         mAre3PIdsLoaded = false;
         refreshUserInfos(false, callback);
     }
@@ -389,11 +452,10 @@ public class MyUser extends User {
             @Override
             public void onSuccess(List<ThirdPartyIdentifier> identifiers) {
                 if (mDataHandler.isAlive()) {
-                    // local value
-                    mThirdPartyIdentifiers = identifiers;
-
                     // store
                     mDataHandler.getStore().setThirdPartyIdentifiers(identifiers);
+
+                    buildIdentifiersLists();
 
                     mAre3PIdsLoaded = true;
 
