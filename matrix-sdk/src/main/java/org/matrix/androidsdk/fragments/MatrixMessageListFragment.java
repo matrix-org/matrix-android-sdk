@@ -34,6 +34,7 @@ import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.crypto.MXCryptoError;
+import org.matrix.androidsdk.rest.model.AudioMessage;
 import org.matrix.androidsdk.util.Log;
 
 import android.view.LayoutInflater;
@@ -1119,7 +1120,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      */
     public void uploadFileContent(final String mediaUrl, String mimeType, final String mediaFilename) {
         // create a tmp row
-        final FileMessage tmpFileMessage = new FileMessage();
+        final FileMessage tmpFileMessage;
+
+        if ((null != mimeType) && mimeType.startsWith("audio/")) {
+            tmpFileMessage = new AudioMessage();
+        } else {
+            tmpFileMessage = new FileMessage();
+        }
 
         tmpFileMessage.url = mediaUrl;
         tmpFileMessage.body = mediaFilename;
