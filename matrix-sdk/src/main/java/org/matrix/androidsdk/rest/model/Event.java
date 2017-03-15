@@ -628,7 +628,7 @@ public class Event implements Externalizable {
                 if (null != imageMessage.getThumbnailUrl()) {
                     urls.add(imageMessage.getThumbnailUrl());
                 }
-            } else if (Message.MSGTYPE_FILE.equals(msgType)) {
+            } else if (Message.MSGTYPE_FILE.equals(msgType) || Message.MSGTYPE_AUDIO.equals(msgType) ) {
                 FileMessage fileMessage = JsonUtils.toFileMessage(getContent());
 
                 if (null != fileMessage.getUrl()) {
