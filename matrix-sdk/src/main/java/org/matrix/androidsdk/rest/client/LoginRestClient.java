@@ -129,9 +129,9 @@ public class LoginRestClient extends RestClient<LoginApi> {
         final String description = "loginWithUser : " + user;
 
         PasswordLoginParams params = new PasswordLoginParams();
-        params.user = user;
+        params.setUserIdentifier(user, password);
 
-        login(params, password, callback, description);
+        login(params, callback, description);
     }
 
     /**
@@ -146,24 +146,42 @@ public class LoginRestClient extends RestClient<LoginApi> {
         final String description = "loginWith3pid : " + address;
 
         PasswordLoginParams params = new PasswordLoginParams();
-        params.medium = medium;
-        params.address = address;
+        params.setThirdPartyIdentifier(medium, address, password);
 
-        login(params, password, callback, description);
+        login(params, callback, description);
     }
 
-    private void login(final PasswordLoginParams params, final String password, final ApiCallback<Credentials> callback,
-                       final String description) {
-        params.type = "m.login.password";
-        params.password = password;
-        params.initial_device_display_name = Build.MODEL.trim();
+    /**
+     * Attempt to login with phone number/password
+     *
+     * @param phoneNumber the phone number
+     * @param countryCode the ISO country code
+     * @param password    the password
+     * @param callback    the callback success and failure callback
+     */
+    public void loginWithPhoneNumber(final String phoneNumber, final String countryCode, final String password, final ApiCallback<Credentials> callback) {
+        final String description = "loginWithPhoneNumber : " + phoneNumber;
 
+        PasswordLoginParams params = new PasswordLoginParams();
+        params.setPhoneIdentifier(phoneNumber, countryCode, password);
+
+        login(params, callback, description);
+    }
+
+    /**
+     * Make login request
+     *
+     * @param params login params
+     * @param callback
+     * @param description
+     */
+    private void login(final PasswordLoginParams params, final ApiCallback<Credentials> callback, final String description) {
         mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
 
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        login(params, password, callback, description);
+                        login(params, callback, description);
                     }
                 }
 
