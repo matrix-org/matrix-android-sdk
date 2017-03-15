@@ -833,7 +833,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 viewType = ROW_TYPE_EMOTE;
             } else if (Message.MSGTYPE_NOTICE.equals(msgType)) {
                 viewType = ROW_TYPE_NOTICE;
-            } else if (Message.MSGTYPE_FILE.equals(msgType)) {
+            } else if (Message.MSGTYPE_FILE.equals(msgType) || Message.MSGTYPE_AUDIO.equals(msgType)) {
                 viewType = ROW_TYPE_FILE;
             } else if (Message.MSGTYPE_VIDEO.equals(msgType)) {
                 viewType = ROW_TYPE_VIDEO;
