@@ -27,6 +27,7 @@ import android.view.View;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
@@ -499,7 +500,7 @@ public class MXCallsManager {
                         final IMXCall call = getCallWithCallId(callId);
 
                         if (null != call) {
-                            Room room = call.getRoom();
+                            final Room room = call.getRoom();
 
                             // for encrypted rooms with 2 members
                             // check if there are some unknown devices before warning
@@ -509,51 +510,72 @@ public class MXCallsManager {
                                     room.isEncrypted() &&
                                     mSession.getCrypto().warnOnUnknownDevices() &&
                                     (room.getJoinedMembers().size() == 2)) {
-                                List<RoomMember> members = new ArrayList<>(room.getJoinedMembers());
-                                String userId1 = members.get(0).getUserId();
-                                String userId2 = members.get(1).getUserId();
 
-                                Log.d(LOG_TAG, "## checkPendingIncomingCalls() : check the unknown devices");
-
-                                //
-                                mSession.getCrypto().checkUnknownDevices(Arrays.asList(userId1, userId2), new ApiCallback<Void>() {
+                                // test if the encrypted events are sent only to the verified devices (any room)
+                                mSession.getCrypto().getGlobalBlacklistUnverifiedDevices(new SimpleApiCallback<Boolean>() {
                                     @Override
-                                    public void onSuccess(Void anything) {
-                                        Log.d(LOG_TAG, "## checkPendingIncomingCalls() : no unknown device");
-                                        dispatchOnIncomingCall(call, null);
-                                    }
-
-                                    @Override
-                                    public void onNetworkError(Exception e) {
-                                        Log.e(LOG_TAG, "## checkPendingIncomingCalls() : checkUnknownDevices failed " + e.getMessage());
-                                        dispatchOnIncomingCall(call, null);
-                                    }
-
-                                    @Override
-                                    public void onMatrixError(MatrixError e) {
-                                        MXUsersDevicesMap<MXDeviceInfo> unknownDevices = null;
-
-                                        if (e instanceof MXCryptoError) {
-                                            MXCryptoError cryptoError = (MXCryptoError) e;
-
-                                            if (MXCryptoError.UNKNOWN_DEVICES_CODE.equals(cryptoError.errcode)) {
-                                                unknownDevices = (MXUsersDevicesMap<MXDeviceInfo>) cryptoError.mExceptionData;
-                                            }
-                                        }
-
-                                        if (null != unknownDevices) {
-                                            Log.d(LOG_TAG, "## checkPendingIncomingCalls() : checkUnknownDevices found some unknown devices");
+                                    public void onSuccess(Boolean sendToVerifiedDevicesOnly) {
+                                        if (sendToVerifiedDevicesOnly) {
+                                            dispatchOnIncomingCall(call, null);
                                         } else {
-                                            Log.e(LOG_TAG, "## checkPendingIncomingCalls() : checkUnknownDevices failed " + e.getMessage());
+                                            //  test if the encrypted events are sent only to the verified devices (only this room)
+                                            mSession.getCrypto().isRoomBlacklistUnverifiedDevices(room.getRoomId(), new SimpleApiCallback<Boolean>() {
+                                                @Override
+                                                public void onSuccess(Boolean sendToVerifiedDevicesOnly) {
+                                                    if (sendToVerifiedDevicesOnly) {
+                                                        dispatchOnIncomingCall(call, null);
+                                                    } else {
+                                                        List<RoomMember> members = new ArrayList<>(room.getJoinedMembers());
+                                                        String userId1 = members.get(0).getUserId();
+                                                        String userId2 = members.get(1).getUserId();
+
+                                                        Log.d(LOG_TAG, "## checkPendingIncomingCalls() : check the unknown devices");
+
+                                                        //
+                                                        mSession.getCrypto().checkUnknownDevices(Arrays.asList(userId1, userId2), new ApiCallback<Void>() {
+                                                            @Override
+                                                            public void onSuccess(Void anything) {
+                                                                Log.d(LOG_TAG, "## checkPendingIncomingCalls() : no unknown device");
+                                                                dispatchOnIncomingCall(call, null);
+                                                            }
+
+                                                            @Override
+                                                            public void onNetworkError(Exception e) {
+                                                                Log.e(LOG_TAG, "## checkPendingIncomingCalls() : checkUnknownDevices failed " + e.getMessage());
+                                                                dispatchOnIncomingCall(call, null);
+                                                            }
+
+                                                            @Override
+                                                            public void onMatrixError(MatrixError e) {
+                                                                MXUsersDevicesMap<MXDeviceInfo> unknownDevices = null;
+
+                                                                if (e instanceof MXCryptoError) {
+                                                                    MXCryptoError cryptoError = (MXCryptoError) e;
+
+                                                                    if (MXCryptoError.UNKNOWN_DEVICES_CODE.equals(cryptoError.errcode)) {
+                                                                        unknownDevices = (MXUsersDevicesMap<MXDeviceInfo>) cryptoError.mExceptionData;
+                                                                    }
+                                                                }
+
+                                                                if (null != unknownDevices) {
+                                                                    Log.d(LOG_TAG, "## checkPendingIncomingCalls() : checkUnknownDevices found some unknown devices");
+                                                                } else {
+                                                                    Log.e(LOG_TAG, "## checkPendingIncomingCalls() : checkUnknownDevices failed " + e.getMessage());
+                                                                }
+
+                                                                dispatchOnIncomingCall(call, unknownDevices);
+                                                            }
+
+                                                            @Override
+                                                            public void onUnexpectedError(Exception e) {
+                                                                Log.e(LOG_TAG, "## checkPendingIncomingCalls() : checkUnknownDevices failed " + e.getMessage());
+                                                                dispatchOnIncomingCall(call, null);
+                                                            }
+                                                        });
+                                                    }
+                                                }
+                                            });
                                         }
-
-                                        dispatchOnIncomingCall(call, unknownDevices);
-                                    }
-
-                                    @Override
-                                    public void onUnexpectedError(Exception e) {
-                                        Log.e(LOG_TAG, "## checkPendingIncomingCalls() : checkUnknownDevices failed " + e.getMessage());
-                                        dispatchOnIncomingCall(call, null);
                                     }
                                 });
                             } else {
