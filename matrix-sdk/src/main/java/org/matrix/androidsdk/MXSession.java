@@ -171,7 +171,7 @@ public class MXSession {
      *
      * @param hsConfig the home server connection config
      */
-    public MXSession(HomeserverConnectionConfig hsConfig) {
+    private MXSession(HomeserverConnectionConfig hsConfig) {
         mCredentials = hsConfig.getCredentials();
         mHsConfig = hsConfig;
 
@@ -285,6 +285,14 @@ public class MXSession {
                 //throw new AssertionError("Should not used a cleared mxsession ");
             }
         }
+    }
+
+    /**
+     * Init the user-agent used by the REST requests.
+     * @param context the application context
+     */
+    public static void initUserAgent(Context context) {
+        RestClient.initUserAgent(context);
     }
 
     /**

@@ -1758,7 +1758,12 @@ public class MXCrypto {
         if (numberToGenerate <= 0) {
             // If we don't need to generate any more keys then we are done.
             if (null != callback) {
-                callback.onSuccess(null);
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onSuccess(null);
+                    }
+                });
             }
             return;
         }
@@ -1769,7 +1774,12 @@ public class MXCrypto {
         uploadOneTimeKeys(new ApiCallback<KeysUploadResponse>() {
             @Override
             public void onSuccess(KeysUploadResponse Response) {
-                uploadLoop(numberToGenerate - keysThisLoop, callback);
+                getEncryptingThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        uploadLoop(numberToGenerate - keysThisLoop, callback);
+                    }
+                });
             }
 
             @Override

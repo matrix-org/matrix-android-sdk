@@ -47,6 +47,7 @@ import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.text.style.URLSpan;
 
+import org.matrix.androidsdk.rest.model.AudioMessage;
 import org.matrix.androidsdk.util.Log;
 
 import android.view.Display;
@@ -833,7 +834,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 viewType = ROW_TYPE_EMOTE;
             } else if (Message.MSGTYPE_NOTICE.equals(msgType)) {
                 viewType = ROW_TYPE_NOTICE;
-            } else if (Message.MSGTYPE_FILE.equals(msgType)) {
+            } else if (Message.MSGTYPE_FILE.equals(msgType) || Message.MSGTYPE_AUDIO.equals(msgType)) {
                 viewType = ROW_TYPE_FILE;
             } else if (Message.MSGTYPE_VIDEO.equals(msgType)) {
                 viewType = ROW_TYPE_VIDEO;
@@ -2348,6 +2349,15 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         fileTextView.setPaintFlags(fileTextView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
         fileTextView.setText("\n" + fileMessage.body + "\n");
+
+        // display the right message type icon.
+        // Audio and File messages are managed by the same method
+        final ImageView imageTypeView = (ImageView) convertView.findViewById(R.id.messagesAdapter_image_type);
+
+        if (null != imageTypeView) {
+            imageTypeView.setImageResource(Message.MSGTYPE_AUDIO.equals(fileMessage.msgtype) ? R.drawable.filetype_audio : R.drawable.filetype_attachment);
+        }
+        imageTypeView.setBackgroundColor(Color.TRANSPARENT);
 
         managePendingFileDownload(convertView, event, fileMessage, position);
         managePendingUpload(convertView, event, ROW_TYPE_FILE, fileMessage.url);

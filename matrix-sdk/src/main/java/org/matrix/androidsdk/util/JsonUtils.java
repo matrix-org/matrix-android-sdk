@@ -1,5 +1,6 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +25,7 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.json.ConditionDeserializer;
+import org.matrix.androidsdk.rest.model.AudioMessage;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.EncryptedEventContent;
 import org.matrix.androidsdk.rest.model.Event;
@@ -177,6 +179,10 @@ public class JsonUtils {
                 return toFileMessage(jsonObject);
             }
 
+            if (Message.MSGTYPE_AUDIO.equals(message.msgtype)) {
+                return toAudioMessage(jsonObject);
+            }
+
             // Fall back to the generic Message type
             return message;
         } catch (Exception e) {
@@ -254,6 +260,16 @@ public class JsonUtils {
         }
 
         return new FileMessage();
+    }
+
+    public static AudioMessage toAudioMessage(JsonElement jsonObject) {
+        try {
+            return gson.fromJson(jsonObject, AudioMessage.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toAudioMessage failed " + e.getMessage());
+        }
+
+        return new AudioMessage();
     }
 
     public static VideoMessage toVideoMessage(JsonElement jsonObject) {
