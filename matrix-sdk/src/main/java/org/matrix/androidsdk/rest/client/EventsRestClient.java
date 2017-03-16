@@ -83,6 +83,18 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * @param callback the public rooms count callbacks
      */
     public void getPublicRoomsCount(final ApiCallback<Integer> callback) {
+        getPublicRoomsCount(null, false, callback);
+    }
+
+    /**
+     * Get the public rooms count.
+     * The count can be null.
+     *
+     * @param thirdPartyInstanceId the third party instance id (optional)
+     * @param includeAllNetworks true to search in all the connected network
+     * @param callback the asynchronous callback
+     */
+    public void getPublicRoomsCount(final String thirdPartyInstanceId, final boolean includeAllNetworks, final ApiCallback<Integer> callback) {
         final String description = "getPublicRoomsCount";
 
         PublicRoomsParams publicRoomsParams = new PublicRoomsParams();
@@ -90,11 +102,13 @@ public class EventsRestClient extends RestClient<EventsApi> {
         publicRoomsParams.server = null;
         publicRoomsParams.limit = 0;
         publicRoomsParams.since = null;
+        publicRoomsParams.thirdPartyInstanceId = thirdPartyInstanceId;
+        publicRoomsParams.includeAllNetworks = includeAllNetworks;
 
         mApi.publicRooms(publicRoomsParams, new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                getPublicRoomsCount(callback);
+                getPublicRoomsCount(thirdPartyInstanceId, includeAllNetworks, callback);
             }
         }) {
             @Override
@@ -108,18 +122,23 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
     /**
      * Get the list of the public rooms.
+     *
      * @param server search on this home server only (null for any one)
+     * @param thirdPartyInstanceId the third party instance id (optional)
+     * @param includeAllNetworks true to search in all the connected network
      * @param pattern the pattern to search
      * @param since the pagination token
      * @param limit the maximum number of public rooms
      * @param callback the public rooms callbacks
      */
-    public void loadPublicRooms(final String server, final String pattern, final String since, final int limit, final ApiCallback<PublicRoomsResponse> callback) {
+    public void loadPublicRooms(final String server, final String thirdPartyInstanceId, final boolean includeAllNetworks, final String pattern, final String since, final int limit, final ApiCallback<PublicRoomsResponse> callback) {
         final String description = "loadPublicRooms";
 
         PublicRoomsParams publicRoomsParams = new PublicRoomsParams();
 
         publicRoomsParams.server = server;
+        publicRoomsParams.thirdPartyInstanceId = thirdPartyInstanceId;
+        publicRoomsParams.includeAllNetworks = includeAllNetworks;
         publicRoomsParams.limit = Math.max(1, limit);
         publicRoomsParams.since = since;
 
@@ -131,7 +150,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
         mApi.publicRooms(publicRoomsParams, new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                loadPublicRooms(server, pattern, since, limit, callback);
+                loadPublicRooms(server, thirdPartyInstanceId, includeAllNetworks, pattern, since, limit, callback);
             }
         }));
     }
