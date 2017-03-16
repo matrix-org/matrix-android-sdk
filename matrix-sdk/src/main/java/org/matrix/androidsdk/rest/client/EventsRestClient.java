@@ -1,5 +1,6 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,10 +32,12 @@ import org.matrix.androidsdk.rest.model.Search.SearchParams;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchRoomEventCategoryParams;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
+import org.matrix.androidsdk.rest.model.ThirdPartyProtocol;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import retrofit.client.Response;
 
@@ -52,11 +55,26 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * {@inheritDoc}
      */
     public EventsRestClient(HomeserverConnectionConfig hsConfig) {
-        super(hsConfig, EventsApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
+        super(hsConfig, EventsApi.class, "", false);
     }
 
     protected EventsRestClient(EventsApi api) {
         mApi = api;
+    }
+
+    /**
+     * Retrieves the third party server protocols
+     * @param callback the asynchronous callback
+     */
+    public void getThirdPartyServerProtocols(final ApiCallback<Map<String, ThirdPartyProtocol>> callback) {
+        final String description = "getThirdPartyServerProtocols";
+
+        mApi.thirdpartyProtocols(new RestAdapterCallback<Map<String, ThirdPartyProtocol>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                getThirdPartyServerProtocols(callback);
+            }
+        }));
     }
 
     /**
