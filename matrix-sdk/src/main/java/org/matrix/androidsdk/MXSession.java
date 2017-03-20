@@ -1094,15 +1094,20 @@ public class MXSession {
      * @param rooms the rooms list
      * @param callback the asynchronous callback
      */
-    public void markAsRead(List<Room> rooms, ApiCallback<Void> callback) {
+    public void markRoomsAsRead(final Collection<Room> rooms, final ApiCallback<Void> callback) {
         if ((null == rooms) || (0 == rooms.size())) {
             if (null != callback) {
-                callback.onSuccess(null);
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onSuccess(null);
+                    }
+                });
             }
             return;
         }
 
-        markAsRead(rooms.iterator(), callback);
+        markRoomsAsRead(rooms.iterator(), callback);
     }
 
     /**
@@ -1110,7 +1115,7 @@ public class MXSession {
      * @param roomsIterator the rooms list iterator
      * @param callback the asynchronous callback
      */
-    private void markAsRead(final Iterator roomsIterator, final ApiCallback<Void> callback) {
+    private void markRoomsAsRead(final Iterator roomsIterator, final ApiCallback<Void> callback) {
         if (roomsIterator.hasNext()) {
             Room room = (Room) roomsIterator.next();
             boolean isRequestSent = false;
@@ -1119,7 +1124,7 @@ public class MXSession {
                 isRequestSent = room.sendReadReceipt(new ApiCallback<Void>() {
                     @Override
                     public void onSuccess(Void anything) {
-                        markAsRead(roomsIterator, callback);
+                        markRoomsAsRead(roomsIterator, callback);
                     }
 
                     @Override
@@ -1149,12 +1154,17 @@ public class MXSession {
             }
 
             if (!isRequestSent) {
-                markAsRead(roomsIterator, callback);
+                markRoomsAsRead(roomsIterator, callback);
             }
 
         } else {
             if (null != callback) {
-                callback.onSuccess(null);
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onSuccess(null);
+                    }
+                });
             }
         }
     }
