@@ -84,6 +84,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -1085,6 +1086,76 @@ public class MXSession {
                     }
                 }
             });
+        }
+    }
+
+    /**
+     * Send the read receipts to the latest room messages.
+     * @param rooms the rooms list
+     * @param callback the asynchronous callback
+     */
+    public void markAsRead(List<Room> rooms, ApiCallback<Void> callback) {
+        if ((null == rooms) || (0 == rooms.size())) {
+            if (null != callback) {
+                callback.onSuccess(null);
+            }
+            return;
+        }
+
+        markAsRead(rooms.iterator(), callback);
+    }
+
+    /**
+     * Send the read receipts to the latest room messages.
+     * @param roomsIterator the rooms list iterator
+     * @param callback the asynchronous callback
+     */
+    private void markAsRead(final Iterator roomsIterator, final ApiCallback<Void> callback) {
+        if (roomsIterator.hasNext()) {
+            Room room = (Room) roomsIterator.next();
+            boolean isRequestSent = false;
+
+            if (mNetworkConnectivityReceiver.isConnected()) {
+                isRequestSent = room.sendReadReceipt(new ApiCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void anything) {
+                        markAsRead(roomsIterator, callback);
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        if (null != callback) {
+                            callback.onNetworkError(e);
+                        }
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        if (null != callback) {
+                            callback.onMatrixError(e);
+                        }
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        if (null != callback) {
+                            callback.onUnexpectedError(e);
+                        }
+                    }
+                });
+            } else {
+                // update the local data
+                room.sendReadReceipt(null);
+            }
+
+            if (!isRequestSent) {
+                markAsRead(roomsIterator, callback);
+            }
+
+        } else {
+            if (null != callback) {
+                callback.onSuccess(null);
+            }
         }
     }
 
