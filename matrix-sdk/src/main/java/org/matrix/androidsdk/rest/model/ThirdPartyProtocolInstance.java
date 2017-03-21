@@ -15,12 +15,13 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import java.io.Serializable;
 import java.util.Map;
 
 /**
  * This class describes a third party protocol instance
  */
-public class ThirdPartyProtocolInstance {
+public class ThirdPartyProtocolInstance implements Serializable {
 
     // the network identifier
     public String networkId;
