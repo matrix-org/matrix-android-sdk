@@ -26,12 +26,12 @@ public class PublicRoomsParams {
     public String server;
 
     /**
-     * the third party instance id
+     * The third party instance id
      */
     public String thirdPartyInstanceId;
 
     /**
-     * tell if the server must be done in all the connected networks.
+     * Tell if the query must be done in all the connected networks.
      */
     public boolean includeAllNetworks;
 
