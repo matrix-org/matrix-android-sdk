@@ -101,6 +101,9 @@ public class LoginRestClient extends RestClient<LoginApi> {
             // Only send it if we send any params at all (the password param is
             // mandatory, so if we send any params, we'll send the password param)
             params.x_show_msisdn = true;
+        } else if (params.password == null && params.username == null && params.auth == null) {
+            // Happens when we call the method to get flows, also add flag in that case
+            params.x_show_msisdn = true;
         }
 
         mApi.register(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
