@@ -992,12 +992,31 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public Collection<RoomSummary> getSummaries() {
-        return mRoomSummaries.values();
+        List<RoomSummary> summaries = new ArrayList<>();
+
+        for(String roomId : mRoomSummaries.keySet()) {
+            if (mRooms.containsKey(roomId)) {
+                summaries.add(mRoomSummaries.get(roomId));
+            } else {
+                Log.e(LOG_TAG, "## getSummaries() : a summary exists for the roomId " + roomId + " but it does not exist in the room list");
+            }
+        }
+
+        return summaries;
     }
 
     @Override
     public RoomSummary getSummary(String roomId) {
-        return mRoomSummaries.get(roomId);
+        if (mRoomSummaries.containsKey(roomId)) {
+            if (!mRooms.containsKey(roomId)) {
+                Log.e(LOG_TAG, "## getSummary() : a summary exists for the roomId " + roomId + " but it does not exist in the room list");
+                return null;
+            }
+
+            return mRoomSummaries.get(roomId);
+        }
+
+        return null;
     }
 
     @Override
