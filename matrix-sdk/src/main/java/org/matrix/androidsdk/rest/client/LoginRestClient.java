@@ -95,11 +95,13 @@ public class LoginRestClient extends RestClient<LoginApi> {
         // define a default device name only there is a password
         if (!TextUtils.isEmpty(params.password) && TextUtils.isEmpty(params.initial_device_display_name)) {
             params.initial_device_display_name = Build.MODEL.trim();
-        }
 
-        // Temporary flag to notify the server that we support msisdn flow. Used to prevent old app
-        // versions to end up in fallback because the HS returns the msisdn flow which they don't support
-        params.x_show_msisdn = true;
+            // Temporary flag to notify the server that we support msisdn flow. Used to prevent old app
+            // versions to end up in fallback because the HS returns the msisdn flow which they don't support
+            // Only send it if we send any params at all (the password param is
+            // mandatory, so if we send any params, we'll send the password param)
+            params.x_show_msisdn = true;
+        }
 
         mApi.register(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
