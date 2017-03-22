@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,9 +37,11 @@ import retrofit.http.QueryMap;
  * The events API.
  */
 public interface EventsApi {
+
     /**
      * Perform the initial sync to find the rooms that concern the user, the participants' presence, etc.
-     * @param params the GET params.
+     *
+     * @param params   the GET params.
      * @param callback The asynchronous callback to call when finished
      */
     @GET(RestClient.URI_API_PREFIX_PATH_R0 + "/sync")
@@ -47,24 +50,28 @@ public interface EventsApi {
 
     /**
      * Get the third party server protocols.
+     *
      * @param callback The asynchronous callback to call when finished
      */
-    @GET(RestClient.URI_API_PREFIX_PATH_UNSTABLE +  "/thirdparty/protocols")
+    @GET(RestClient.URI_API_PREFIX_PATH_UNSTABLE + "/thirdparty/protocols")
     void thirdpartyProtocols(Callback<Map<String, ThirdPartyProtocol>> callback);
 
     /**
      * Get the list of public rooms.
+     *
+     * @param server            the server (might be null)
      * @param publicRoomsParams the request params
-     * @param callback The asynchronous callback to call when finished
+     * @param callback          The asynchronous callback to call when finished
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/publicRooms")
-    void publicRooms(@Body PublicRoomsParams publicRoomsParams, Callback<PublicRoomsResponse> callback);
+    void publicRooms(@Query("server") String server, @Body PublicRoomsParams publicRoomsParams, Callback<PublicRoomsResponse> callback);
 
     /**
      * Perform a search.
+     *
      * @param searchParams the search params.
-     * @param callback The search result.
+     * @param callback     The search result.
      */
-    @POST(RestClient.URI_API_PREFIX_PATH_R0 +  "/search")
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/search")
     void search(@Body SearchParams searchParams, @Query("next_batch") String nextBatch, Callback<SearchResponse> callback);
 }

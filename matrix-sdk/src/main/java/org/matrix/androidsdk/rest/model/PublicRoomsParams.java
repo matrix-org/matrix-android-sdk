@@ -21,11 +21,6 @@ package org.matrix.androidsdk.rest.model;
  */
 public class PublicRoomsParams {
     /**
-     * The remote server to query for the room list.
-     **/
-    public String server;
-
-    /**
      * The third party instance id
      */
     public String thirdPartyInstanceId;
