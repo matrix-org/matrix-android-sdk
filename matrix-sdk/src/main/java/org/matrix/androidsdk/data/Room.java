@@ -789,12 +789,12 @@ public class Room {
             List<RoomMember> members = new ArrayList<>(getState().getMembers());
 
             if (members.size() == 1) {
-                res = members.get(0).avatarUrl;
+                res = members.get(0).getAvatarUrl();
             } else if (members.size() == 2) {
                 RoomMember m1 = members.get(0);
                 RoomMember m2 = members.get(1);
 
-                res = TextUtils.equals(m1.getUserId(), mMyUserId) ? m2.avatarUrl : m1.avatarUrl;
+                res = TextUtils.equals(m1.getUserId(), mMyUserId) ? m2.getAvatarUrl() : m1.getAvatarUrl();
             }
         }
 
@@ -816,9 +816,9 @@ public class Room {
         if (2 == joinedMembers.size()) {
             // use other member avatar.
             if (TextUtils.equals(mMyUserId, joinedMembers.get(0).getUserId())) {
-                avatarURL = joinedMembers.get(1).avatarUrl;
+                avatarURL = joinedMembers.get(1).getAvatarUrl();
             } else {
-                avatarURL = joinedMembers.get(0).avatarUrl;
+                avatarURL = joinedMembers.get(0).getAvatarUrl();
             }
         } else {
             //
