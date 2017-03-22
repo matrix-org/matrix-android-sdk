@@ -170,7 +170,7 @@ public class RoomMember implements Externalizable {
 
     public String getAvatarUrl() {
         // allow only url which starts with mxc://
-        if ((null != avatarUrl) && !avatarUrl.startsWith(ContentManager.MATRIX_CONTENT_URI_SCHEME)) {
+        if ((null != avatarUrl) && !avatarUrl.toLowerCase().startsWith(ContentManager.MATRIX_CONTENT_URI_SCHEME)) {
             Log.e(LOG_TAG, "## getAvatarUrl() : the member " + userId + " has an invalid avatar url " + avatarUrl);
             return null;
         }
