@@ -1376,7 +1376,7 @@ public class MXFileStore extends MXMemoryStore {
      *
      * @param roomId the room id.
      */
-    private void saveRoomState(String roomId) {
+    private void saveRoomState(final String roomId) {
         Log.d(LOG_TAG, "++ saveRoomsState " + roomId);
 
         File roomStateFile = new File(mGzStoreRoomsStateFolderFile, roomId);
@@ -1387,35 +1387,52 @@ public class MXFileStore extends MXMemoryStore {
             writeObject("saveRoomsState " + roomId, roomStateFile, room.getState());
             Log.d(LOG_TAG, "saveRoomsState " + room.getState().getMembers().size() + " members : " + (System.currentTimeMillis() - start1) + " ms");
 
-            List<Event> stateEvents;
+            // the state events are with low priority
+            // because they are only used in redact cases
+            Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    mFileStoreHandler.post(new Runnable() {
+                        public void run() {
+                            if (!isKilled()) {
+                                List<Event> stateEvents;
 
-            synchronized (mRoomStateEventsByRoomId) {
-                if (mRoomStateEventsByRoomId.containsKey(roomId)) {
-                    stateEvents = mRoomStateEventsByRoomId.get(roomId);
-                    mRoomStateEventsByRoomId.remove(roomId);
-                } else {
-                    stateEvents = null;
+                                synchronized (mRoomStateEventsByRoomId) {
+                                    if (mRoomStateEventsByRoomId.containsKey(roomId)) {
+                                        stateEvents = mRoomStateEventsByRoomId.get(roomId);
+                                        mRoomStateEventsByRoomId.remove(roomId);
+                                    } else {
+                                        stateEvents = null;
+                                    }
+                                }
+
+                                if (null != stateEvents) {
+                                    File roomStateEventsFile = new File(mGzStoreRoomsStateEventsFolderFile, roomId);
+
+                                    if (!roomStateEventsFile.exists()) {
+                                        roomStateEventsFile.mkdirs();
+                                    }
+
+                                    long start2 = System.currentTimeMillis();
+
+                                    for (Event event : stateEvents) {
+                                        File roomStateEventFile = new File(roomStateEventsFile, event.eventId);
+                                        writeObject("saveRoomsState : save state events " + roomId + " " + event.eventId, roomStateEventFile, event);
+                                    }
+
+                                    Log.d(LOG_TAG, "saveRoomsState : save " + stateEvents.size() + " stateEvents in " + (System.currentTimeMillis() - start2) + " ms in " + roomId);
+                                } else {
+                                    Log.d(LOG_TAG, "saveRoomsState : no state events to save");
+                                }
+                            }
+                        }
+                    });
                 }
-            }
+            };
 
-            if (null != stateEvents) {
-                File roomStateEventsFile = new File(mGzStoreRoomsStateEventsFolderFile, roomId);
-
-                if (!roomStateEventsFile.exists()) {
-                    roomStateEventsFile.mkdirs();
-                }
-
-                long start2 = System.currentTimeMillis();
-
-                for (Event event : stateEvents) {
-                    File roomStateEventFile = new File(roomStateEventsFile, event.eventId);
-                    writeObject("saveRoomsState : save state events " + roomId + " " + event.eventId, roomStateEventFile, event);
-                }
-
-                Log.d(LOG_TAG, "saveRoomsState : save " + stateEvents.size() + " stateEvents in " + (System.currentTimeMillis() - start2) + " ms");
-            } else {
-                Log.d(LOG_TAG, "saveRoomsState : no state events to save");
-            }
+            Thread t = new Thread(r);
+            t.setPriority(Thread.MIN_PRIORITY);
+            t.start();
         } else {
             Log.d(LOG_TAG, "saveRoomsState : delete the room state");
             deleteRoomStateFile(roomId);
