@@ -31,7 +31,7 @@
     <string name="notice_placed_voice_call">%s начал(а) голосовой вызов.</string>
     <string name="notice_answered_call">%s ответил(а) на звонок.</string>
     <string name="notice_ended_call">%s завершил(а) вызов.</string>
-    <string name="notice_made_future_room_visibility">%1$s слелал(а) будующую историю компаны видимой %2$s</string>
+    <string name="notice_made_future_room_visibility">%1$s слелал(а) будующую историю комнаты видимой %2$s</string>
     <string name="notice_room_visibility_invited">всем членам, с момента их приглашения.</string>
     <string name="notice_room_visibility_joined">всем членам, с момента присоединения.</string>
     <string name="notice_room_visibility_shared">всем членам.</string>
