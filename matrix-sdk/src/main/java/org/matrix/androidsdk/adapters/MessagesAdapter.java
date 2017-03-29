@@ -704,7 +704,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             if ((!mIsSearchMode) && refresh) {
                 this.notifyDataSetChanged();
+            } else {
+                setNotifyOnChange(true);
             }
+        } else {
+            setNotifyOnChange(true);
         }
     }
 
