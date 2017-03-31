@@ -995,8 +995,13 @@ public class MXMemoryStore implements IMXStore {
         List<RoomSummary> summaries = new ArrayList<>();
 
         for(String roomId : mRoomSummaries.keySet()) {
-            if (mRooms.containsKey(roomId)) {
-                summaries.add(mRoomSummaries.get(roomId));
+            Room room = mRooms.get(roomId);
+            if (null != room) {
+                if (null == room.getMember(mCredentials.userId)) {
+                    Log.e(LOG_TAG, "## getSummaries() : a summary exists for the roomId " + roomId + " but the user is not anymore a member");
+                } else {
+                    summaries.add(mRoomSummaries.get(roomId));
+                }
             } else {
                 Log.e(LOG_TAG, "## getSummaries() : a summary exists for the roomId " + roomId + " but it does not exist in the room list");
             }
@@ -1007,13 +1012,15 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public RoomSummary getSummary(String roomId) {
-        if (mRoomSummaries.containsKey(roomId)) {
-            if (!mRooms.containsKey(roomId)) {
-                Log.e(LOG_TAG, "## getSummary() : a summary exists for the roomId " + roomId + " but it does not exist in the room list");
-                return null;
+        Room room = mRooms.get(roomId);
+        if (null != room) {
+            if (null == room.getMember(mCredentials.userId)) {
+                Log.e(LOG_TAG, "## getSummary() : a summary exists for the roomId " + roomId + " but the user is not anymore a member");
+            } else {
+                return mRoomSummaries.get(roomId);
             }
-
-            return mRoomSummaries.get(roomId);
+        } else {
+            Log.e(LOG_TAG, "## getSummary() : a summary exists for the roomId " + roomId + " but it does not exist in the room list");
         }
 
         return null;
