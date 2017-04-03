@@ -206,7 +206,6 @@ public class MXEncryptedAttachments implements Serializable {
 
             // decrypt the last chunk
             decodedBytes = decryptCipher.doFinal();
-            messageDigest.update(decodedBytes);
             outStream.write(decodedBytes);
 
             String currentDigestValue = base64ToUnpaddedBase64(Base64.encodeToString(messageDigest.digest(), Base64.DEFAULT));
