@@ -1,11 +1,7 @@
 <resources>
     <string name="app_name">Matrix Android SDK</string>
 
-    <string name="downloading">Am Herunterladen</string>
-
     <string name="summary_message">%1$s: %2$s</string>
-    <string name="summary_invitation">Raum Einladung</string>
-    <string name="summary_user_invitation">%s\'s Einladung</string>
     <string name="summary_user_sent_image">%1$s sandte ein Bild.</string>
 
     <string name="notice_room_invite_no_invitee">%s\'s Einladung</string>
@@ -22,11 +18,8 @@
     <string name="notice_display_name_set">%1$s setzte den Anzeigenamen auf %2$s</string>
     <string name="notice_display_name_changed_from">%1$s änderte den Anzeigenamen von %2$s nach %3$s</string>
     <string name="notice_display_name_removed">%1$s entfernte den Anzeigenamen (%2$s)</string>
-    <string name="notice_display_name_changed">%1$s änderte den Anzeigenamen nach %2$s</string>
     <string name="notice_topic_changed">%1$s änderte das Thema zu: %2$s</string>
     <string name="notice_room_name_changed">%1$s änderte den Raumnamen zu: %2$s</string>
-    <string name="notice_outgoing_call">Ausgehender Anruf</string>
-    <string name="notice_incoming_call">Eingehender Anruf</string>
     <string name="notice_placed_video_call">%s plazierte einen Videoanruf.</string>
     <string name="notice_placed_voice_call">%s plazierte einen Audioanruf.</string>
     <string name="notice_answered_call">%s beantwortete den Anruf.</string>
@@ -50,24 +43,6 @@
     <string name="notice_event_redacted_by"> durch %1$s</string>
     <string name="notice_event_redacted_reason">  [Grund: %1$s]</string>
     <string name="notice_profile_change_redacted">%1$s aktualisierte sein/ihr Profil %2$s</string>
-    <string name="notice_room_created">%1$s erzeugte den Raum</string>
-    <string name="notice_room_join_rule">Die Zutritt-Regel ist: %1$s</string>
-    <string name="notice_room_power_level_intro">Das Berechtigungslevel der Raummitglieder ist:</string>
-    <string name="notice_room_power_level_acting_requirement">Das min. Berechtigungslevel, das Nutzer brauchen um etwas zu tun ist:</string>
-    <string name="notice_room_power_level_event_requirement">Das min. Berechtigungslevel bzgl. Ereignissen ist:</string>
-    <string name="notice_room_aliases">Die Raum-Aliase sind: %1$s</string>
-    <string name="notice_image_attachment">Bild-Anhang</string>
-    <string name="notice_audio_attachment">Ton-Anhang</string>
-    <string name="notice_video_attachment">Video-Anhang</string>
-    <string name="notice_location_attachment">Standort-Anhang</string>
-    <string name="notice_file_attachment">Datei-Anhang</string>
-    <string name="notice_invalid_attachment">Ungültiger Anhang</string>
-    <string name="notice_unsupported_attachment">Nicht unterstützter Anhang: %1$s</string>
-    <string name="notice_feedback">Feedback-Ereignis (ID: %1$s): %2$s</string>
-    <string name="notice_redaction">%1$s verbarg ein Ereignis (id: %2$s)</string>
-    <string name="notice_error_unsupported_event">Nicht unterstütztes Ereignis</string>
-    <string name="notice_error_unexpected_event">Unerwartetes Ereignis</string>
-    <string name="notice_error_unknown_event_type">Unbekannter Ereignis-Typ</string>
     <string name="notice_room_third_party_invite">%1$s sandte eine Einlatung an %2$s um dem Raum beizutreten</string>
     <string name="notice_room_third_party_registered_invite">%1$s akzeptierte die Einladung für %2$s</string>
 
@@ -77,16 +52,12 @@
     <!-- Room Screen -->
     <string name="could_not_redact">Konnte nicht verbergen</string>
     <string name="unable_to_send_message">Nachricht nicht sendbar</string>
-    <string name="downloading_dot">Lade herunter ...</string>
-    <string name="uploading_dot">Lade hoch ...</string>
 
-    <string name="message_uploading">Lade hoch&#8230;</string>
     <string name="message_failed_to_upload">Hochladen fehlgeschlagen</string>
 
     <!-- general errors -->
     <string name="network_error">Netzwerk-Fehler</string>
     <string name="matrix_error">Matrix-Fehler</string>
-    <string name="unexpected_error">Unerwarteter Fehler</string>
 
     <!-- Home Screen -->
     <string name="users"> Nutzer</string>
@@ -99,11 +70,6 @@
     <string name="last_seen_days">%dd</string>
 
     <!-- call events -->
-    <string name="call_invitation">Anruf-Einladung.</string>
-    <string name="call_hungup">Anruf aufgelegt.</string>
-    <string name="call_answered">Anruf beantwortet.</string>
-    <string name="call_error_user_media_failed">Kamera-Initialisierungs-Fehler.</string>
-    <string name="call_error_ice_failed">Verbindung fehlgeschlagen..</string>
 
     <!-- room error messages -->
     <string name="room_error_join_failed_empty_room">Esist aktuell nicht möglich zu leeren Räumen beizutreten.</string>
