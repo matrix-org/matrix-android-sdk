@@ -103,6 +103,11 @@ public class RestClient<T> {
 
         try {
             mOkHttpClient.setSslSocketFactory(CertUtil.newPinnedSSLSocketFactory(hsConfig));
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage());
+        }
+
+        try {
             mOkHttpClient.setHostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
         } catch (Exception e) {
             Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage());

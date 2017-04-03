@@ -1116,6 +1116,12 @@ public class Room {
         final Event lastEvent = mStore.getLatestEvent(getRoomId());
         final Event fEvent;
 
+        // reported by GA
+        if (null == lastEvent) {
+            Log.e(LOG_TAG, "## sendReadReceipt(): no last event");
+            return false;
+        }
+
         // the event is provided
         if (null != anEvent) {
             Log.d(LOG_TAG, "## sendReadReceipt(): roomId=" + getRoomId() + " to " + anEvent.eventId);

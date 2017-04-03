@@ -1,11 +1,7 @@
 <resources>
     <string name="app_name">Matrix Android SDK</string>
-    
-    <string name="downloading">Загрузка</string>
-    
+
     <string name="summary_message">%1$s: %2$s</string>
-    <string name="summary_invitation">Room Invitation</string>
-    <string name="summary_user_invitation">приглашение %s</string>
     <string name="summary_user_sent_image">%1$s отправил(а) изображение.</string>
     
     <string name="notice_room_invite_no_invitee">%s приглашение</string>
@@ -17,21 +13,18 @@
     <string name="notice_room_kick">%1$s kicked %2$s</string>
     <string name="notice_room_unban">%1$s разбанил(а) %2$s</string>
     <string name="notice_room_ban">%1$s забанил(а) %2$s</string>
-    <string name="notice_room_withdraw">%1$s отозвал(а) приглашение %2$</string>
+    <string name="notice_room_withdraw">%1$s отозвал(а) приглашение %2$s</string>
     <string name="notice_avatar_url_changed">%1$s изменил(а) свой аватар</string>
     <string name="notice_display_name_set">%1$s установил(а) имя %2$s</string>
     <string name="notice_display_name_changed_from">%1$s изменил(а) имя с %2$s на %3$s</string>
     <string name="notice_display_name_removed">%1$s удалил(а) своё имя (%2$s)</string>
-    <string name="notice_display_name_changed">%1$s изменил(а) имя на %2$s</string>
     <string name="notice_topic_changed">%1$s изменил(а) тему на: %2$s</string>
     <string name="notice_room_name_changed">%1$s изменил(а) имя комнаты: %2$s</string>
-    <string name="notice_outgoing_call">Исходящий вызов</string>
-    <string name="notice_incoming_call">Входящий вызов</string>
     <string name="notice_placed_video_call">%s начал(а) видео вызов.</string>
     <string name="notice_placed_voice_call">%s начал(а) голосовой вызов.</string>
     <string name="notice_answered_call">%s ответил(а) на звонок.</string>
     <string name="notice_ended_call">%s завершил(а) вызов.</string>
-    <string name="notice_made_future_room_visibility">%1$s слелал(а) будующую историю компаны видимой %2$s</string>
+    <string name="notice_made_future_room_visibility">%1$s слелал(а) будующую историю комнаты видимой %2$s</string>
     <string name="notice_room_visibility_invited">всем членам, с момента их приглашения.</string>
     <string name="notice_room_visibility_joined">всем членам, с момента присоединения.</string>
     <string name="notice_room_visibility_shared">всем членам.</string>
@@ -50,24 +43,6 @@
     <string name="notice_event_redacted_by"> %1$s</string>
     <string name="notice_event_redacted_reason">  [причина: %1$s]</string>
     <string name="notice_profile_change_redacted">%1$s обновил(а) свой профиль %2$s</string>
-    <string name="notice_room_created">%1$s создал(а) комнату</string>
-    <string name="notice_room_join_rule">The join rule is: %1$s</string>
-    <string name="notice_room_power_level_intro">The power level of room members are:</string>
-    <string name="notice_room_power_level_acting_requirement">The minimum power levels that a user must have before acting are:</string>
-    <string name="notice_room_power_level_event_requirement">The minimum power levels related to events are:</string>
-    <string name="notice_room_aliases">Алиасы комнаты: %1$s</string>
-    <string name="notice_image_attachment">изображение</string>
-    <string name="notice_audio_attachment">аудио вложение</string>
-    <string name="notice_video_attachment">видео вложение</string>
-    <string name="notice_location_attachment">вложение с координатами</string>
-    <string name="notice_file_attachment">файловое вложение</string>
-    <string name="notice_invalid_attachment">некорректное вложение</string>
-    <string name="notice_unsupported_attachment">Неподдерживаемое вложение: %1$s</string>
-    <string name="notice_feedback">Событие обратной связи (id: %1$s): %2$s</string>
-    <string name="notice_redaction">%1$s удалил событие (id: %2$s)</string>
-    <string name="notice_error_unsupported_event">Неподдерживаемое событие</string>
-    <string name="notice_error_unexpected_event">Неожиданное событие</string>
-    <string name="notice_error_unknown_event_type">Неизвестный тип события</string>
     <string name="notice_room_third_party_invite">%1$s отправил(а) %2$s приглашение в комнату</string>
     <string name="notice_room_third_party_registered_invite">%1$s принял(а) приглашение от %2$s</string>
     
@@ -77,17 +52,13 @@
     <!-- Room Screen -->
     <string name="could_not_redact">Не удалось удалить</string>
     <string name="unable_to_send_message">Не удалось отправить сообщение</string>
-    <string name="downloading_dot">Загрузка…</string>
-    <string name="uploading_dot">Загрузка…</string>
-    
-    <string name="message_uploading">Загрузка…</string>
+
     <string name="message_failed_to_upload">Ошибка загрузки изображения</string>
     
     <!-- general errors -->
     <string name="network_error">Сетевой сбой</string>
     <string name="matrix_error">Сбой Matrix</string>
-    <string name="unexpected_error">Неожиданный сбой</string>
-    
+
     <!-- Home Screen -->
     <string name="users"> пользователей</string>
     <string name="user"> пользователь</string>
@@ -99,12 +70,7 @@
     <string name="last_seen_days">%dд</string>
     
     <!-- call events -->
-    <string name="call_invitation">Вызов.</string>
-    <string name="call_hungup">Вызов прерван.</string>
-    <string name="call_answered">Вызов отвечен.</string>
-    <string name="call_error_user_media_failed">Сбой иниализации камеры.</string>
-    <string name="call_error_ice_failed">Ошибка соединения.</string>
-    
+
     <!-- room error messages -->
     <string name="room_error_join_failed_empty_room">Невозможно пере-присоединиться к пустой комнате.</string>
     
