@@ -524,6 +524,10 @@ public class EventsThread extends Thread {
                     latch.await();
                 } catch (InterruptedException e) {
                     Log.e(LOG_TAG, "Interrupted whilst polling message");
+                } catch (Exception e) {
+                    // reported by GA
+                    // The thread might have been killed.
+                    Log.e(LOG_TAG, "latch.await() failed " + e.getMessage());
                 }
             }
 
