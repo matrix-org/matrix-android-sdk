@@ -19,6 +19,10 @@ package org.matrix.androidsdk.sync;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
+import org.matrix.androidsdk.rest.model.Sync.RoomSync;
+import org.matrix.androidsdk.rest.model.Sync.RoomsSyncResponse;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
@@ -29,6 +33,7 @@ import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
@@ -460,10 +465,28 @@ public class EventsThread extends Thread {
                             // the catchup request is suspended when there is no need
                             // to loop again
                             if (mIsCatchingUp && (0 != mNextServerTimeoutms)) {
-                                Log.e(LOG_TAG, "Stop the catchup");
-                                // stop any catch up
-                                mIsCatchingUp = false;
-                                mPaused = true;
+                                int eventCounts = 0;
+
+                                if (null != syncResponse.rooms) {
+                                    RoomsSyncResponse roomsSyncResponse = syncResponse.rooms;
+
+                                    if (null != roomsSyncResponse.join) {
+                                        eventCounts += roomsSyncResponse.join.size();
+                                    }
+
+                                    if (null != roomsSyncResponse.invite) {
+                                        eventCounts += roomsSyncResponse.invite.size();
+                                    }
+                                }
+
+                                if (0 == eventCounts) {
+                                    Log.e(LOG_TAG, "do not Stop catchup because the current sync was empty");
+                                } else {
+                                    Log.e(LOG_TAG, "Stop the catchup");
+                                    // stop any catch up
+                                    mIsCatchingUp = false;
+                                    mPaused = true;
+                                }
                             }
                             Log.d(LOG_TAG, "Got event response");
                             mListener.onSyncResponse(syncResponse, mCurrentToken, (0 == mNextServerTimeoutms));
