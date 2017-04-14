@@ -2325,6 +2325,18 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
+    public void onSentEvent(Event event) {
+        // detect if a message was sent but not yet added to the adapter
+        // For example, the quick reply does not use the fragement to send messages
+        // Thus, the messages are not added to the adapater.
+        // onEvent is not called because the server event echo manages an event sent by itself
+        if ((null == mAdapter.getMessageRow(event.eventId)) && canAddEvent(event)) {
+            // refresh the listView only when it is a live timeline or a search
+            mAdapter.add(new MessageRow(event, mRoom.getLiveState()), true);
+        }
+    }
+
+    @Override
     public void onLiveEventsChunkProcessed() {
         // NOP
     }
