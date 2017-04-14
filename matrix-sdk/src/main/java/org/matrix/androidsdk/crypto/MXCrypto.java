@@ -295,7 +295,7 @@ public class MXCrypto {
      * @return true if some saved data is corrupted
      */
     public boolean isCorrupted() {
-        return mCryptoStore.isCorrupted();
+        return (null != mCryptoStore) && mCryptoStore.isCorrupted();
     }
 
     /**
@@ -734,7 +734,7 @@ public class MXCrypto {
 
                             // assume if the device is either verified or blocked
                             // it means that the device is known
-                            if (device.isUnknown()) {
+                            if ((null != device) && device.isUnknown()) {
                                 device.mVerified = MXDeviceInfo.DEVICE_VERIFICATION_UNVERIFIED;
                                 isUpdated = true;
                             }

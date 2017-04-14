@@ -789,12 +789,12 @@ public class Room {
             List<RoomMember> members = new ArrayList<>(getState().getMembers());
 
             if (members.size() == 1) {
-                res = members.get(0).avatarUrl;
+                res = members.get(0).getAvatarUrl();
             } else if (members.size() == 2) {
                 RoomMember m1 = members.get(0);
                 RoomMember m2 = members.get(1);
 
-                res = TextUtils.equals(m1.getUserId(), mMyUserId) ? m2.avatarUrl : m1.avatarUrl;
+                res = TextUtils.equals(m1.getUserId(), mMyUserId) ? m2.getAvatarUrl() : m1.getAvatarUrl();
             }
         }
 
@@ -816,9 +816,9 @@ public class Room {
         if (2 == joinedMembers.size()) {
             // use other member avatar.
             if (TextUtils.equals(mMyUserId, joinedMembers.get(0).getUserId())) {
-                avatarURL = joinedMembers.get(1).avatarUrl;
+                avatarURL = joinedMembers.get(1).getAvatarUrl();
             } else {
-                avatarURL = joinedMembers.get(0).avatarUrl;
+                avatarURL = joinedMembers.get(0).getAvatarUrl();
             }
         } else {
             //
@@ -1083,9 +1083,13 @@ public class Room {
         if (!res) {
             RoomSummary summary = mDataHandler.getStore().getSummary(getRoomId());
 
-            if ((null != summary) && (0 != summary.getUnreadEventsCount())) {
-                Log.e(LOG_TAG, "## sendReadReceipt() : the unread message count for " + getRoomId() + " should have been cleared");
-                summary.setUnreadEventsCount(0);
+            if (null != summary) {
+                if (0 != summary.getUnreadEventsCount()) {
+                    Log.e(LOG_TAG, "## sendReadReceipt() : the unread message count for " + getRoomId() + " should have been cleared");
+                    summary.setUnreadEventsCount(0);
+                }
+
+                summary.setHighlighted(false);
             }
 
             if ((0 != getLiveState().getNotificationCount()) || (0 != getLiveState().getHighlightCount())) {
@@ -1111,6 +1115,12 @@ public class Room {
     public boolean sendReadReceipt(Event anEvent, final ApiCallback<Void> aRespCallback) {
         final Event lastEvent = mStore.getLatestEvent(getRoomId());
         final Event fEvent;
+
+        // reported by GA
+        if (null == lastEvent) {
+            Log.e(LOG_TAG, "## sendReadReceipt(): no last event");
+            return false;
+        }
 
         // the event is provided
         if (null != anEvent) {
