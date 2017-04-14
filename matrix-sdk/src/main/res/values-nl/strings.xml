@@ -1,11 +1,7 @@
 <resources>
     <string name="app_name">Matrix Android SDK</string>
 
-    <string name="downloading">Downloaden</string>
-
     <string name="summary_message">%1$s: %2$s</string>
-    <string name="summary_invitation">Ruimte Uitnodiging</string>
-    <string name="summary_user_invitation">%s\'s uitnodiging</string>
     <string name="summary_user_sent_image">%1$s stuurde een afbeelding.</string>
 
     <string name="notice_room_invite_no_invitee">%s\'s uitnodiging</string>
@@ -22,15 +18,12 @@
     <string name="notice_display_name_set">%1$s heeft hun naam %2$s aangepast</string>
     <string name="notice_display_name_changed_from">%1$s heeft hun naam aangepast van %2$s naar %3$s</string>
     <string name="notice_display_name_removed">%1$s heeft hun naam verwijderd (%2$s)</string>
-    <string name="notice_display_name_changed">%1$s heeft hun naam aangepast naar %2$s</string>
     <string name="notice_topic_changed">%1$s heeft het onderwerp veranderd naar: %2$s</string>
     <string name="notice_room_name_changed">%1$s heeft de ruimtenaam veranderd naar: %2$s</string>
-    <string name="notice_outgoing_call">Uitgaande Oproep</string>
-    <string name="notice_incoming_call">Binnenkomende Oproep</string>
     <string name="notice_placed_video_call">%s heeft een video-oproep geplaatst.</string>
     <string name="notice_placed_voice_call">%s heeft een spraak-oproep geplaatst.</string>
     <string name="notice_answered_call">%s heeft de oproep beantwoord.</string>
-    <string name="notice_ended_call">%s heeft de oproep be&euml;indigd.</string>
+    <string name="notice_ended_call">%s heeft de oproep be \u00EB indigd.</string>
     <string name="notice_made_future_room_visibility">%1$s heeft de toekomstige geschiedenis beschikbaar gemaakt voor %2$s</string>
     <string name="notice_room_visibility_invited">alle ruimte deelnemers, vanaf het punt dat ze zijn uitgenodigd.</string>
     <string name="notice_room_visibility_joined">alle ruimte deelnemers, vanaf het punt dat ze zijn toegetreden.</string>
@@ -49,25 +42,7 @@
     <string name="notice_event_redacted">verdwijderd %1$s </string>
     <string name="notice_event_redacted_by"> door %1$s</string>
     <string name="notice_event_redacted_reason">  [reden: %1$s]</string>
-    <string name="notice_profile_change_redacted">%1$s heeft hun profiel %2$s ge&uuml;pdatet</string>
-    <string name="notice_room_created">%1$s heeft de ruimte gemaakt</string>
-    <string name="notice_room_join_rule">De deelnemingsregel is: %1$s</string>
-    <string name="notice_room_power_level_intro">De rechten niveau\'s van deelnemers zijn:</string>
-    <string name="notice_room_power_level_acting_requirement">De minimum rechten niveau\'s dat een gebruiker alvorens te handelen moet hebben:</string>
-    <string name="notice_room_power_level_event_requirement">De minimum rechten niveau\'s gerelateerd aan de gebeurtenissen zijn:</string>
-    <string name="notice_room_aliases">De ruimte aliassen zijn: %1$s</string>
-    <string name="notice_image_attachment">afbeelding bijlage</string>
-    <string name="notice_audio_attachment">audio bijlage</string>
-    <string name="notice_video_attachment">video bijlage</string>
-    <string name="notice_location_attachment">locatie bijlage</string>
-    <string name="notice_file_attachment">bestand bijlage</string>
-    <string name="notice_invalid_attachment">ongeldige bijlage</string>
-    <string name="notice_unsupported_attachment">Niet ondersteunde bijlage: %1$s</string>
-    <string name="notice_feedback">Feedback gebeurtenis (id: %1$s): %2$s</string>
-    <string name="notice_redaction">%1$s verwijderde een toedracht (id: %2$s)</string>
-    <string name="notice_error_unsupported_event">Niet ondersteunde gebeurtenis</string>
-    <string name="notice_error_unexpected_event">Onverwachte gebeurtenis</string>
-    <string name="notice_error_unknown_event_type">Onbekend gebeurtenis type</string>
+    <string name="notice_profile_change_redacted">%1$s heeft hun profiel %2$s ge\u00FCpdatet</string>
     <string name="notice_room_third_party_invite">%1$s stuurde een uitnodiging naar %2$s om de ruimte toe te treden</string>
     <string name="notice_room_third_party_registered_invite">%1$s accepteerde de uitnodiging voor %2$s</string>
 
@@ -77,16 +52,12 @@
     <!-- Room Screen -->
     <string name="could_not_redact">Kon niet verwijderd worden</string>
     <string name="unable_to_send_message">Niet in staat om het bericht te sturen</string>
-    <string name="downloading_dot">Downloaden ...</string>
-    <string name="uploading_dot">Uploaden ...</string>
 
-    <string name="message_uploading">Uploaden&#8230;</string>
     <string name="message_failed_to_upload">Uploaden van de afbeelding mislukt</string>
 
     <!-- general errors -->
     <string name="network_error">Netwerkfout</string>
     <string name="matrix_error">Matrix fout</string>
-    <string name="unexpected_error">Onverwachte fout</string>
 
     <!-- Home Screen -->
     <string name="users"> gebruikers</string>
@@ -97,13 +68,6 @@
     <string name="last_seen_mins">%dm</string>
     <string name="last_seen_hours">%du</string>
     <string name="last_seen_days">%dd</string>
-
-    <!-- call events -->
-    <string name="call_invitation">Oproepuitnodiging.</string>
-    <string name="call_hungup">Oproep opgehangen.</string>
-    <string name="call_answered">Oproep beantwoord.</string>
-    <string name="call_error_user_media_failed">Camera initialisatie fout.</string>
-    <string name="call_error_ice_failed">Connectie is mislukt..</string>
 
     <!-- room error messages -->
     <string name="room_error_join_failed_empty_room">Het is momenteel niet mogelijk om een lege ruimte opnieuw toe te treden.</string>
