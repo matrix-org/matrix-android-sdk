@@ -58,6 +58,7 @@ public class EventsThread extends Thread {
     private boolean mPaused = true;
     private boolean mIsNetworkSuspended = false;
     private boolean mIsCatchingUp = false;
+    private boolean mGotFirstCatchupChunk = false;
     private boolean mIsOnline = true;
 
     private boolean mKilling = false;
@@ -239,6 +240,7 @@ public class EventsThread extends Thread {
             }
         }
 
+        mGotFirstCatchupChunk = false;
         mIsCatchingUp = true;
     }
 
@@ -465,6 +467,7 @@ public class EventsThread extends Thread {
                             // the catchup request is suspended when there is no need
                             // to loop again
                             if (mIsCatchingUp && (0 != mNextServerTimeoutms)) {
+                                // the catchup triggers sync requests until there are some useful events
                                 int eventCounts = 0;
 
                                 if (null != syncResponse.rooms) {
@@ -479,13 +482,28 @@ public class EventsThread extends Thread {
                                     }
                                 }
 
-                                if (0 == eventCounts) {
-                                    Log.e(LOG_TAG, "do not Stop catchup because the current sync was empty");
+                                Log.d(LOG_TAG, "Got " + eventCounts + " useful events which catching up");
+
+                                if (!mGotFirstCatchupChunk) {
+                                    mGotFirstCatchupChunk = (0 != eventCounts);
+
+                                    if (mGotFirstCatchupChunk) {
+                                        Log.e(LOG_TAG, "Got first catchup chunk");
+                                    } else {
+                                        Log.e(LOG_TAG, "Empty chunk : sync again");
+                                    }
+
+                                    mNextServerTimeoutms = 0;
                                 } else {
-                                    Log.e(LOG_TAG, "Stop the catchup");
-                                    // stop any catch up
-                                    mIsCatchingUp = false;
-                                    mPaused = true;
+                                    if (0 == eventCounts) {
+                                        Log.e(LOG_TAG, "Stop the catchup");
+                                        // stop any catch up
+                                        mIsCatchingUp = false;
+                                        mPaused = true;
+                                    } else {
+                                        Log.e(LOG_TAG, "Catchup still in progress");
+                                        mNextServerTimeoutms = 0;
+                                    }
                                 }
                             }
                             Log.d(LOG_TAG, "Got event response");
