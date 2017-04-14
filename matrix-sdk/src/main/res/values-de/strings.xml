@@ -72,7 +72,7 @@
     <!-- call events -->
 
     <!-- room error messages -->
-    <string name="room_error_join_failed_empty_room">Esist aktuell nicht möglich zu leeren Räumen beizutreten.</string>
+    <string name="room_error_join_failed_empty_room">Es ist aktuell nicht möglich leeren Räumen beizutreten.</string>
 
     <string name="encrypted_message">Verschlüsselte Nachricht</string>
 
