@@ -493,7 +493,7 @@ public class EventsThread extends Thread {
                                         Log.e(LOG_TAG, "Empty chunk : sync again");
                                     }
 
-                                    mNextServerTimeoutms = 0;
+                                    mNextServerTimeoutms = 500;
                                 } else {
                                     if (0 == eventCounts) {
                                         Log.e(LOG_TAG, "Stop the catchup");
@@ -502,7 +502,7 @@ public class EventsThread extends Thread {
                                         mPaused = true;
                                     } else {
                                         Log.e(LOG_TAG, "Catchup still in progress");
-                                        mNextServerTimeoutms = 0;
+                                        mNextServerTimeoutms = 500;
                                     }
                                 }
                             }
