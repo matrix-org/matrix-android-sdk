@@ -256,4 +256,12 @@ public class BingRule {
     public boolean shouldNotify() {
         return null != jsonPrimitive(ACTION_NOTIFY);
     }
+
+    /**
+     * Return true if the rule should not highlight the event.
+     * @return true if the rule should not play sound
+     */
+    public boolean shouldNotNotify() {
+        return null != jsonPrimitive(ACTION_DONT_NOTIFY);
+    }
 }

@@ -780,6 +780,31 @@ public class BingRulesManager {
     }
 
     /**
+     * Tell whether the regular notifications are disabled for the room.
+     * @param room the room
+     * @return true if the regular notifications are disabled (mention only)
+     */
+    public boolean isRoomMentionOnly(Room room) {
+        if (null != mRulesSet.room) {
+            for (BingRule roomRule : mRulesSet.room) {
+                if (TextUtils.equals(roomRule.ruleId, room.getRoomId())) {
+                    List<BingRule> roomRules = getPushRulesForRoom(room);
+
+                    if (0 != roomRules.size()) {
+                        for(BingRule rule : roomRules) {
+                            if (rule.shouldNotNotify()) {
+                                return rule.isEnabled;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Test if the room has a dedicated rule which disables notification.
      * @return true if there is a rule to disable notifications.
      */
