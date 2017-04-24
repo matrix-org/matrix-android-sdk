@@ -760,7 +760,7 @@ public class MXDataHandler implements IMXEventListener {
             if (TextUtils.equals(type, "m.push_rules")) {
                 if (event.containsKey("content")) {
                     Gson gson = new GsonBuilder()
-                            .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+                            .setFieldNamingStrategy(new JsonUtils.MatrixFieldNamingStrategy())
                             .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
                             .registerTypeAdapter(Condition.class, new ConditionDeserializer())
                             .create();
