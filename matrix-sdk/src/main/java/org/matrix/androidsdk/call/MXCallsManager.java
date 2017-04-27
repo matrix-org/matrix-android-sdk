@@ -854,7 +854,6 @@ public class MXCallsManager {
                         mTurnServerTimer.schedule(new TimerTask() {
                             @Override
                             public void run() {
-                                Log.d(LOG_TAG, "refreshTurnServer cancelled");
                                 mTurnServerTimer.cancel();
                                 mTurnServerTimer = null;
 
