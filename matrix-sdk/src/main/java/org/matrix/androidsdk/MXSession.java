@@ -138,7 +138,7 @@ public class MXSession {
 
     // the application is launched from a notification
     // so, mEventsThread.start might be not ready
-    private boolean mIsCatchupPending = false;
+    private boolean mIsBgCatchupPending = false;
 
     // load the crypto libs.
     public static OlmManager mOlmManager = new OlmManager();
@@ -621,18 +621,11 @@ public class MXSession {
                 Log.e(LOG_TAG, "## startEventStream() :  mEventsThread.start failed " + e.getMessage());
             }
 
-            if (mIsCatchupPending) {
-                Log.d(LOG_TAG, "startEventStream : there was a pending catchup : the catchup will be triggered in 5 seconds");
-
-                mIsCatchupPending = false;
-                Handler handler = new Handler(Looper.getMainLooper());
-                handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        Log.d(LOG_TAG, "startEventStream : pause the stream");
-                        pauseEventStream();
-                    }
-                }, 5000);
+            if (mIsBgCatchupPending) {
+                Log.d(LOG_TAG, "startEventStream : start a catchup");
+                mIsBgCatchupPending = false;
+                // catchup retrieve any avaliable messages before stop the sync
+                mEventsThread.catchup();
             }
         }
     }
@@ -793,7 +786,12 @@ public class MXSession {
         }
 
         if (null != mEventsThread) {
-            Log.d(LOG_TAG, "unpause");
+            if (mIsBgCatchupPending) {
+                mIsBgCatchupPending = false;
+                Log.d(LOG_TAG, "## resumeEventStream') : unpause and cancel loading catchup");
+            } else {
+                Log.d(LOG_TAG, "## resumeEventStream') : unpause");
+            }
             mEventsThread.unpause();
         } else {
             Log.e(LOG_TAG, "resumeEventStream : mEventsThread is null");
@@ -811,7 +809,7 @@ public class MXSession {
             mEventsThread.catchup();
         } else {
             Log.e(LOG_TAG, "catchupEventStream : mEventsThread is null so catchup when the thread will be created");
-            mIsCatchupPending = true;
+            mIsBgCatchupPending = true;
         }
     }
 
