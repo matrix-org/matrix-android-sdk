@@ -482,7 +482,7 @@ public class EventsThread extends Thread {
                                     }
                                 }
 
-                                Log.d(LOG_TAG, "Got " + eventCounts + " useful events which catching up");
+                                Log.d(LOG_TAG, "Got " + eventCounts + " useful events while catching up");
 
                                 if (!mGotFirstCatchupChunk) {
                                     mGotFirstCatchupChunk = (0 != eventCounts);

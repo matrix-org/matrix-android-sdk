@@ -613,7 +613,6 @@ public class MXSession {
         }
 
         if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
-
             // GA issue
             try {
                 mEventsThread.start();
@@ -624,7 +623,7 @@ public class MXSession {
             if (mIsBgCatchupPending) {
                 Log.d(LOG_TAG, "startEventStream : start a catchup");
                 mIsBgCatchupPending = false;
-                // catchup retrieve any avaliable messages before stop the sync
+                // catchup retrieve any available messages before stop the sync
                 mEventsThread.catchup();
             }
         }
@@ -786,15 +785,15 @@ public class MXSession {
         }
 
         if (null != mEventsThread) {
-            if (mIsBgCatchupPending) {
-                mIsBgCatchupPending = false;
-                Log.d(LOG_TAG, "## resumeEventStream') : unpause and cancel loading catchup");
-            } else {
-                Log.d(LOG_TAG, "## resumeEventStream') : unpause");
-            }
+            Log.d(LOG_TAG, "## resumeEventStream() : unpause");
             mEventsThread.unpause();
         } else {
             Log.e(LOG_TAG, "resumeEventStream : mEventsThread is null");
+        }
+
+        if (mIsBgCatchupPending) {
+            mIsBgCatchupPending = false;
+            Log.d(LOG_TAG, "## resumeEventStream() : cancel bg sync");
         }
     }
 
