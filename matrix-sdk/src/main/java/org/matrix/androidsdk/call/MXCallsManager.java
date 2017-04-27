@@ -839,7 +839,7 @@ public class MXCallsManager {
             return;
         }
 
-        Log.d(LOG_TAG, "refreshTurnServer");
+        Log.d(LOG_TAG, "## refreshTurnServer () starts");
 
         mUIThreadHandler.post(new Runnable() {
             @Override
@@ -865,7 +865,7 @@ public class MXCallsManager {
                     @Override
                     public void onSuccess(JsonObject info) {
                         // privacy
-                        Log.d(LOG_TAG, "onSuccess ");
+                        Log.d(LOG_TAG, "## refreshTurnServer () : onSuccess");
                         //Log.d(LOG_TAG, "onSuccess " + info);
 
                         if (null != info) {
@@ -886,6 +886,7 @@ public class MXCallsManager {
                                     Log.e(LOG_TAG, "Fail to retrieve ttl " + e.getMessage());
                                 }
 
+                                Log.d(LOG_TAG, "## refreshTurnServer () : onSuccess : retry after " + ttl + "ms");
                                 restartAfter(ttl);
                             }
                         }
@@ -893,13 +894,17 @@ public class MXCallsManager {
 
                     @Override
                     public void onNetworkError(Exception e) {
+                        Log.e(LOG_TAG, "## refreshTurnServer () : onNetworkError " + e);
                         restartAfter(60000);
                     }
 
                     @Override
                     public void onMatrixError(MatrixError e) {
-                        if (TextUtils.equals(e.errcode, MatrixError.LIMIT_EXCEEDED)) {
-                            restartAfter(60000);
+                        Log.e(LOG_TAG, "## refreshTurnServer () : onMatrixError() : " + e.errcode );
+
+                        if (TextUtils.equals(e.errcode, MatrixError.LIMIT_EXCEEDED) && (null != e.retry_after_ms)) {
+                            Log.e(LOG_TAG, "## refreshTurnServer () : onMatrixError() : retry after " + e.retry_after_ms + " ms");
+                            restartAfter(e.retry_after_ms);
                         }
                     }
 
