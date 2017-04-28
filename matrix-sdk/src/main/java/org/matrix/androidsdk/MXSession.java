@@ -769,6 +769,18 @@ public class MXSession {
     }
 
     /**
+     * Refresh the network connection information.
+     * On android >= 6.0, the doze mode might have killed the network connection.
+     */
+    public void refreshNetworkConnection() {
+        if (null != mNetworkConnectivityReceiver) {
+            // mNetworkConnectivityReceiver is a broadcastReceiver
+            // but some users reported that the network updates were not dispatched
+            mNetworkConnectivityReceiver.checkNetworkConnection(mAppContent);
+        }
+    }
+
+    /**
      * Resume the event stream
      */
     public void resumeEventStream() {
