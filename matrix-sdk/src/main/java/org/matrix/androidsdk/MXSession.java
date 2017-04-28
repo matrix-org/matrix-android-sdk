@@ -776,7 +776,7 @@ public class MXSession {
 
         if (null != mNetworkConnectivityReceiver) {
             // mNetworkConnectivityReceiver is a broadcastReceiver
-            // but some users reported that the network updates wre not broadcasted.
+            // but some users reported that the network updates were not dispatched
             mNetworkConnectivityReceiver.checkNetworkConnection(mAppContent);
         }
 
