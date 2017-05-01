@@ -18,7 +18,6 @@ package org.matrix.androidsdk.util;
 
 import android.content.Context;
 import android.text.TextUtils;
-import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
@@ -28,9 +27,7 @@ import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
