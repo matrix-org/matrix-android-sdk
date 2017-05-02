@@ -20,8 +20,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
-import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.Sync.RoomsSyncResponse;
 import org.matrix.androidsdk.util.Log;
 
@@ -33,7 +31,6 @@ import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 
-import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
@@ -100,8 +97,9 @@ public class EventsThread extends Thread {
 
     /**
      * Default constructor.
-     * @param apiClient API client to make the events API calls
-     * @param listener a listener to inform
+     *
+     * @param apiClient    API client to make the events API calls
+     * @param listener     a listener to inform
      * @param initialToken the sync initial token.
      */
     public EventsThread(EventsRestClient apiClient, EventsThreadListener listener, String initialToken) {
@@ -113,6 +111,7 @@ public class EventsThread extends Thread {
 
     /**
      * Update the long poll timeout.
+     *
      * @param ms the timeout in ms
      */
     public void setServerLongPollTimeout(int ms) {
@@ -130,6 +129,7 @@ public class EventsThread extends Thread {
 
     /**
      * Set a delay between two sync requests.
+     *
      * @param ms the delay in ms
      */
     public void setSyncDelay(int ms) {
@@ -137,16 +137,35 @@ public class EventsThread extends Thread {
 
         Log.d(LOG_TAG, "setSyncDelay : " + mRequestDelayMs);
 
-        // cancel any pending delay timer
-        if (null != mSyncDelayTimer) {
-            Log.d(LOG_TAG, "setSyncDelay : cancel the delay timer");
+        Handler handler = null;
 
-            mSyncDelayTimer.cancel();
-            // and sync asap
-            synchronized (mSyncObject) {
-                mSyncObject.notify();
-            }
+        try {
+            handler = new Handler();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## setSyncDelay failed " + e.getMessage());
         }
+
+        // use a default one
+        if (null == handler) {
+            handler = new Handler(Looper.getMainLooper());
+        }
+
+        // call mSyncDelayTimer on the same thread
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                // cancel any pending delay timer
+                if (null != mSyncDelayTimer) {
+                    Log.d(LOG_TAG, "setSyncDelay : cancel the delay timer");
+
+                    mSyncDelayTimer.cancel();
+                    // and sync asap
+                    synchronized (mSyncObject) {
+                        mSyncObject.notify();
+                    }
+                }
+            }
+        });
     }
 
     /**
@@ -159,6 +178,7 @@ public class EventsThread extends Thread {
     /**
      * Set the network connectivity listener.
      * It is used to avoid restarting the events threads each 10 seconds when there is no available network.
+     *
      * @param networkConnectivityReceiver the network receiver
      */
     public void setNetworkConnectivityReceiver(NetworkConnectivityReceiver networkConnectivityReceiver) {
@@ -167,6 +187,7 @@ public class EventsThread extends Thread {
 
     /**
      * Set the failure callback.
+     *
      * @param failureCallback the failure callback.
      */
     public void setFailureCallback(ApiFailureCallback failureCallback) {
@@ -266,6 +287,7 @@ public class EventsThread extends Thread {
 
     /**
      * Update the online status
+     *
      * @param isOnline true if the client must be seen as online
      */
     public void setIsOnline(boolean isOnline) {
@@ -275,11 +297,17 @@ public class EventsThread extends Thread {
 
     @Override
     public void run() {
+        try {
+            Looper.prepare();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## run() : prepare failed " + e.getMessage());
+        }
         startSync();
     }
 
     /**
      * Tells if a sync request contains some changed devices.
+     *
      * @param syncResponse the sync response
      * @return true if the response contains some changed devices.
      */
