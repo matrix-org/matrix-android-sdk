@@ -84,7 +84,6 @@ public class MXJingleCall extends MXCall {
     private VideoTrack mLocalVideoTrack = null;
     private AudioSource mAudioSource = null;
     private AudioTrack mLocalAudioTrack = null;
-    private MediaStream mLocalMediaStream = null;
 
     private VideoTrack mRemoteVideoTrack = null;
     private PeerConnection mPeerConnection = null;
@@ -493,6 +492,8 @@ public class MXJingleCall extends MXCall {
             terminate(IMXCall.END_CALL_REASON_UNDEFINED);
             return;
         }
+
+        MediaStream mLocalMediaStream;
 
         // create our local stream to add our audio and video tracks
         mLocalMediaStream = mPeerConnectionFactory.createLocalMediaStream("ARDAMS");
