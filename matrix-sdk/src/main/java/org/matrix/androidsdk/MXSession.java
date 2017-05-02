@@ -1960,6 +1960,43 @@ public class MXSession {
     }
 
     /**
+     * Check if the crypto engine is properly initialized.
+     * Launch it it is was not yet done.
+     */
+    public void checkCrypto() {
+        MXFileCryptoStore fileCryptoStore = new MXFileCryptoStore();
+        fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
+
+        if (fileCryptoStore.hasData() && (null == mCrypto)) {
+            Log.e(LOG_TAG, "## checkCrypto() : there are some crypto data but the engine was not launched");
+
+            enableCrypto(true, new ApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    Log.e(LOG_TAG, "## checkCrypto() : restarted");
+                    mDataHandler.setCrypto(mCrypto);
+                    decryptRoomSummaries();
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    Log.e(LOG_TAG, "## checkCrypto() : failed " + e.getMessage());
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    Log.e(LOG_TAG, "## checkCrypto() : failed " + e.getMessage());
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    Log.e(LOG_TAG, "## checkCrypto() : failed " + e.getMessage());
+                }
+            });
+        }
+    }
+
+    /**
      * Enable / disable the crypto
      * @param cryptoEnabled true to enable the crypto
      */
