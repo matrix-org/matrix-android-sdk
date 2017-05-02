@@ -1245,24 +1245,24 @@ public class CryptoTest {
 
         final CountDownLatch lock2 = new CountDownLatch(1);
 
-        // The android client does not echo its own message
-        MXEventListener aliceEventListener = new MXEventListener() {
-            @Override
-            public void onLiveEvent(Event event, RoomState roomState) {
-                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                    try {
-                        if (checkEncryptedEvent(event, mRoomId, message, aliceSession2)) {
+        if (false) {
+            // The android client does not echo its own message
+            MXEventListener aliceEventListener = new MXEventListener() {
+                @Override
+                public void onLiveEvent(Event event, RoomState roomState) {
+                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                        try {
+                            if (checkEncryptedEvent(event, mRoomId, message, aliceSession2)) {
                                 lock2.countDown();
+                            }
+                        } catch (Exception e) {
                         }
-                    } catch (Exception e) {
-                        e.printStackTrace();
                     }
                 }
-            }
-        };
+            };
 
-        roomFromAlicePOV2.addEventListener(aliceEventListener);
-
+            roomFromAlicePOV2.addEventListener(aliceEventListener);
+        }
 
         // the IOS client echoes the message
         // the android client does not
