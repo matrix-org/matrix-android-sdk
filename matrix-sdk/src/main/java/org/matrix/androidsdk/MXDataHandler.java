@@ -1028,6 +1028,7 @@ public class MXDataHandler implements IMXEventListener {
 
             // Handle presence of other users
             if ((null != syncResponse.presence) && (null != syncResponse.presence.events)) {
+                Log.d(LOG_TAG, "Received " + syncResponse.presence.events.size() + " presence events");
                 for (Event presenceEvent : syncResponse.presence.events) {
                     handlePresenceEvent(presenceEvent);
                 }
@@ -1035,6 +1036,7 @@ public class MXDataHandler implements IMXEventListener {
 
             // account data
             if (null != syncResponse.accountData) {
+                Log.d(LOG_TAG, "Received " + syncResponse.accountData.size() + " accountData events");
                 manageAccountData(syncResponse.accountData, isInitialSync);
             }
 
