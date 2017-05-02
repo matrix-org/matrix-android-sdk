@@ -172,9 +172,7 @@ public class CertUtil {
 
             SSLContext sslContext = SSLContext.getInstance("TLS");
             sslContext.init(null, trustPinned, new java.security.SecureRandom());
-            SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-
-            return sslSocketFactory;
+            return sslContext.getSocketFactory();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

@@ -1,17 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <android.opengl.GLSurfaceView android:id="@+id/remoteSurfaceView"
+    <android.opengl.GLSurfaceView
+        android:id="@+id/remoteSurfaceView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
-    <android.opengl.GLSurfaceView android:id="@+id/selfSurfaceView"
-        android:layout_marginLeft="20dp"
-        android:layout_marginTop="20dp"
+    <android.opengl.GLSurfaceView
+        android:id="@+id/selfSurfaceView"
         android:layout_width="150dp"
-        android:layout_height="150dp"/>
+        android:layout_height="150dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="20dp"/>
 
 </RelativeLayout>

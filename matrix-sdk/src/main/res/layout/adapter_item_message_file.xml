@@ -26,6 +26,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical"
             android:layout_marginLeft="0dp"
+            android:layout_marginStart="0dp"
             android:layout_weight="1"
             android:orientation="vertical"
             android:paddingBottom="5dp">
@@ -55,7 +56,7 @@
                         android:id="@+id/messagesAdapter_file_layout"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_gravity="right">
+                        android:layout_gravity="end">
 
                         <LinearLayout
                             android:layout_width="wrap_content"
@@ -98,6 +99,7 @@
                                     android:layout_height="wrap_content"
                                     android:layout_gravity="center_vertical"
                                     android:layout_marginLeft="5dp"
+                                    android:layout_marginStart="5dp"
                                     android:text="estimation / total \n bitrate \n remaining time"
                                     android:textSize="7sp"/>
 
@@ -121,6 +123,7 @@
                                     android:layout_height="wrap_content"
                                     android:layout_gravity="center_vertical"
                                     android:layout_marginLeft="5dp"
+                                    android:layout_marginStart="5dp"
                                     android:text="estimation / total \n bitrate \n remaining time"
                                     android:textSize="7sp"/>
 

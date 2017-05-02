@@ -852,7 +852,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         if (null != eventId) {
-            mEventType.put(eventId, new Integer(viewType));
+            mEventType.put(eventId, viewType);
         }
 
         return viewType;
@@ -1272,7 +1272,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 tsTextView.setVisibility(View.VISIBLE);
                 tsTextView.setText(timeStamp);
 
-                tsTextView.setGravity(isAvatarOnRightSide ? Gravity.LEFT : Gravity.RIGHT);
+                tsTextView.setGravity(isAvatarOnRightSide ? Gravity.START : Gravity.END);
             }
 
             if (row.getEvent().isUndeliverable() || row.getEvent().isUnkownDevice()) {
@@ -1418,7 +1418,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         ViewGroup.LayoutParams avatarLayout = view.getLayoutParams();
 
         if (!isAvatarOnRightSide) {
-            subViewLinearLayout.gravity = Gravity.LEFT | Gravity.CENTER_VERTICAL;
+            subViewLinearLayout.gravity = Gravity.START | Gravity.CENTER_VERTICAL;
 
             if (isMergedView) {
                 bodyLayout.setMargins(avatarLayout.width, bodyLayout.topMargin, 4, bodyLayout.bottomMargin);
@@ -1428,7 +1428,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
             subView.setLayoutParams(bodyLayout);
         } else {
-            subViewLinearLayout.gravity = Gravity.RIGHT | Gravity.CENTER_VERTICAL;
+            subViewLinearLayout.gravity = Gravity.END | Gravity.CENTER_VERTICAL;
 
             if (isMergedView) {
                 bodyLayout.setMargins(4, bodyLayout.topMargin, avatarLayout.width, bodyLayout.bottomMargin);
@@ -2694,7 +2694,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * !!!!!! WARNING !!!!!!
      * IT IS NOT REMOTELY A COMPREHENSIVE SANITIZER AND SHOULD NOT BE TRUSTED FOR SECURITY PURPOSES.
      * WE ARE EFFECTIVELY RELYING ON THE LIMITED CAPABILITIES OF THE HTML RENDERER UI TO AVOID SECURITY ISSUES LEAKING UP.
-
+     *
      * @param html the html to sanitize
      * @return the sanitised HTML
      */
