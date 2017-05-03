@@ -211,10 +211,11 @@ public class EventTimeline {
 
     /**
      * Defines that the current timeline is an historical one
-     * @param isHistoricalRoom true when the current timeline is an historical one
+     * @param isHistorical true when the current timeline is an historical one
      */
     public void setIsHistorical(boolean isHistorical) {
         mIsHistorical = isHistorical;
+    }
 
     /*    
      * @return the unique identifier
