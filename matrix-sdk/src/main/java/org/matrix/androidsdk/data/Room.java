@@ -126,8 +126,8 @@ public class Room {
     // call conference user id
     private String mCallConferenceUserId;
 
-    // true when the current room is an historical one
-    private boolean mIsHistorical;
+    // true when the current room is a left one
+    private boolean mIsLeft;
 
     /**
      * Default room creator
@@ -190,19 +190,19 @@ public class Room {
     }
 
     /**
-     * Defines that the current room is an historical one
-     * @param isHistorical true when the current room is an historical one
+     * Defines that the current room is a left one
+     * @param isLeft true when the current room is a left one
      */
-    public void setIsHistorical(boolean isHistorical) {
-        mIsHistorical = isHistorical;
-        mLiveTimeline.setIsHistorical(isHistorical);
+    public void setIsLeft(boolean isLeft) {
+        mIsLeft = isLeft;
+        mLiveTimeline.setIsHistorical(isLeft);
     }
 
     /**
-     * @return true if the current room is an historical one
+     * @return true if the current room is an left one
      */
-    public boolean isHistorical() {
-        return mIsHistorical;
+    public boolean isLeft() {
+        return mIsLeft;
     }
 
     //================================================================================
@@ -2339,6 +2339,62 @@ public class Room {
             }
         });
     }
+
+    /**
+     * Forget the room.
+     *
+     * @param callback the callback for when done
+     */
+    public void forget(final ApiCallback<Void> callback) {
+        mDataHandler.getDataRetriever().getRoomsRestClient().forgetRoom(getRoomId(), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                if (mDataHandler.isAlive()) {
+                    // don't call onSuccess.deleteRoom because it moves an existing room to historical store
+                    IMXStore store = mDataHandler.getStore(getRoomId());
+
+                    if (null != store) {
+                        store.deleteRoom(getRoomId());
+                        mStore.commit();
+                    }
+
+                    try {
+                        callback.onSuccess(info);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "forget exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                try {
+                    callback.onNetworkError(e);
+                } catch (Exception anException) {
+                    Log.e(LOG_TAG, "forget exception " + anException.getMessage());
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                try {
+                    callback.onMatrixError(e);
+                } catch (Exception anException) {
+                    Log.e(LOG_TAG, "forget exception " + anException.getMessage());
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                try {
+                    callback.onUnexpectedError(e);
+                } catch (Exception anException) {
+                    Log.e(LOG_TAG, "forget exception " + anException.getMessage());
+                }
+            }
+        });
+    }
+
 
     /**
      * Kick a user from the room.

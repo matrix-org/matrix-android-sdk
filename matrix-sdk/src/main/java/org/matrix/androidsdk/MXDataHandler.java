@@ -584,6 +584,13 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
+     * @return the left rooms
+     */
+    public Collection<Room> getLeftRooms() {
+        return new ArrayList<>(mLeftRoomsStore.getRooms());
+    }
+
+    /**
      * Get the room object for the corresponding room id. Creates and initializes the object if there is none.
      * @param roomId the room id
      * @return the corresponding room
@@ -1034,7 +1041,7 @@ public class MXDataHandler implements IMXEventListener {
         if (null != r) {
             if (mAreLeftRoomsSynced) {
                 Room leftRoom = getRoom(mLeftRoomsStore, roomId, true);
-                leftRoom.setIsHistorical(true);
+                leftRoom.setIsLeft(true);
 
                 // copy the summary
                 RoomSummary summary = getStore().getSummary(roomId);
@@ -1319,7 +1326,7 @@ public class MXDataHandler implements IMXEventListener {
 
                                         // sanity check
                                         if (null != room) {
-                                            room.setIsHistorical(true);
+                                            room.setIsLeft(true);
                                             room.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), true);
                                         }
                                     }
