@@ -1,5 +1,6 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +15,9 @@
  * limitations under the License.
  */
 package org.matrix.androidsdk.rest.client;
+
+import android.os.Build;
+import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
 
@@ -44,7 +48,8 @@ public class LoginRestClient extends RestClient<LoginApi> {
     public static final String LOGIN_FLOW_TYPE_EMAIL_CODE = "m.login.email.code";
     public static final String LOGIN_FLOW_TYPE_EMAIL_URL = "m.login.email.url";
     public static final String LOGIN_FLOW_TYPE_EMAIL_IDENTITY = "m.login.email.identity";
-    public static final String LOGIN_FLOW_TYPE_EMAIL_RECAPTCHA = "m.login.recaptcha";
+    public static final String LOGIN_FLOW_TYPE_MSISDN = "m.login.msisdn";
+    public static final String LOGIN_FLOW_TYPE_RECAPTCHA = "m.login.recaptcha";
     public static final String LOGIN_FLOW_TYPE_DUMMY = "m.login.dummy";
 
     /**
@@ -87,6 +92,20 @@ public class LoginRestClient extends RestClient<LoginApi> {
     public void register(final RegistrationParams params, final ApiCallback<Credentials> callback) {
         final String description = "register";
 
+        // define a default device name only there is a password
+        if (!TextUtils.isEmpty(params.password) && TextUtils.isEmpty(params.initial_device_display_name)) {
+            params.initial_device_display_name = Build.MODEL.trim();
+
+            // Temporary flag to notify the server that we support msisdn flow. Used to prevent old app
+            // versions to end up in fallback because the HS returns the msisdn flow which they don't support
+            // Only send it if we send any params at all (the password param is
+            // mandatory, so if we send any params, we'll send the password param)
+            params.x_show_msisdn = true;
+        } else if (params.password == null && params.username == null && params.auth == null) {
+            // Happens when we call the method to get flows, also add flag in that case
+            params.x_show_msisdn = true;
+        }
+
         mApi.register(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
@@ -105,36 +124,73 @@ public class LoginRestClient extends RestClient<LoginApi> {
     }
 
     /**
-     * Attempt a user/password log in.
-     * @param user the user name
+     * Attempt to login with username/password
+     *
+     * @param user     the username
      * @param password the password
      * @param callback the callback success and failure callback
      */
-    public void loginWithPassword(final String user, final String password, final ApiCallback<Credentials> callback) {
-        final String description = "loginWithPassword user : " + user;
+    public void loginWithUser(final String user, final String password, final ApiCallback<Credentials> callback) {
+        final String description = "loginWithUser : " + user;
 
         PasswordLoginParams params = new PasswordLoginParams();
-        params.type = "m.login.password";
-        
-        if (android.util.Patterns.EMAIL_ADDRESS.matcher(user).matches()) {
-            params.address = user.toLowerCase();
-            params.medium = "email";
-        } else {
-            params.user = user;
-        }
+        params.setUserIdentifier(user, password);
 
-        params.password = password;
+        login(params, callback, description);
+    }
 
+    /**
+     * Attempt to login with 3pid/password
+     *
+     * @param medium   the medium of the 3pid
+     * @param address  the address of the 3pid
+     * @param password the password
+     * @param callback the callback success and failure callback
+     */
+    public void loginWith3Pid(final String medium, final String address, final String password, final ApiCallback<Credentials> callback) {
+        final String description = "loginWith3pid : " + address;
+
+        PasswordLoginParams params = new PasswordLoginParams();
+        params.setThirdPartyIdentifier(medium, address, password);
+
+        login(params, callback, description);
+    }
+
+    /**
+     * Attempt to login with phone number/password
+     *
+     * @param phoneNumber the phone number
+     * @param countryCode the ISO country code
+     * @param password    the password
+     * @param callback    the callback success and failure callback
+     */
+    public void loginWithPhoneNumber(final String phoneNumber, final String countryCode, final String password, final ApiCallback<Credentials> callback) {
+        final String description = "loginWithPhoneNumber : " + phoneNumber;
+
+        PasswordLoginParams params = new PasswordLoginParams();
+        params.setPhoneIdentifier(phoneNumber, countryCode, password);
+
+        login(params, callback, description);
+    }
+
+    /**
+     * Make login request
+     *
+     * @param params login params
+     * @param callback
+     * @param description
+     */
+    private void login(final PasswordLoginParams params, final ApiCallback<Credentials> callback, final String description) {
         mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
 
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        loginWithPassword(user, password, callback);
+                        login(params, callback, description);
                     }
                 }
 
-                ) {
+        ) {
             @Override
             public void success(JsonObject jsonObject, Response response) {
                 onEventSent();
@@ -170,6 +226,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
         params.user = user;
         params.token = token;
         params.txn_id = txn_id;
+        params.initial_device_display_name = Build.MODEL.trim();
 
         mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
 

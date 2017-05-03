@@ -1,3 +1,140 @@
+Changes to Matrix Android SDK in 0.7.10 (2017-03-15)
+=======================================================
+
+Features:
+* Add the MSDISN support for the registration and the authentification (3Pid).
+* Add the e2e keys import/export.
+* Add some settings to send encrypted messages to veryfied devices only (for a dedicated room or any room).
+
+Improvements: 
+* Improve the session loading time.
+* Add a callback to prevent sending messages to unknown devices.
+* Add a custom user agent with the application / SDK version.
+* Improve the audio attachments support
+
+Bugfixes:
+* Fix many cryptography issues.
+* Fix many issues reported by GA.
+* #929 : Retry schedule is too aggressive for arbitrary endpoints
+* #938 : Unbanning users is broken
+* #952 : Launch a call in a e2e and 1:1 room with unknown devices make the call fails.
+
+Changes to Matrix Android SDK in 0.7.9 (2017-01-27)
+=======================================================
+
+Improvements: 
+* Use the new contacts lookup request.
+
+Bugfixes:
+* #894 : matrix user id regex does not allow underscore in the name
+* Fix backward compatibility issue.
+
+Changes to Matrix Android SDK in 0.7.8 (2017-01-23)
+=======================================================
+
+Improvements: 
+* Update the olm library.
+* Improve the email bunch lookup method
+
+Bugfixes:
+* The users were not saved after the login. They were only saved after restarting the application.
+
+Changes to Matrix Android SDK in 0.7.7 (2017-01-17)
+=======================================================
+
+Improvements: 
+* Video call : The local preview is moveable.
+* e2e : The e2e data is now saved synchronously to avoid not being able to read our own messages if the application crashes.
+* Use a dedicated logger to avoid having truncated logs.
+
+Bugfixes:
+* Fix many crashes reported by Google Analytics.
+* Update the olm library (fix the random string generation issue, invalid emoji support...).
+* #816 : Custom server URL bug.
+* #821 : Room creation with a matrix user from the contacts list creates several empty rooms.
+* #841 : Infinite call ringing.
+
+Changes to Matrix Android SDK in 0.7.5 (2016-12-19)
+=======================================================
+
+Improvements: 
+* The e2e keys are sent by 100 devices chunk
+
+Bugfixes:
+* Several issues reported by GA.
+* In some edge cases, the read all function does not clear the unread messages counters.
+
+Changes to Matrix Android SDK in 0.7.4 (2016-12-13)
+=======================================================
+
+Improvements: 
+* Many e2e improvements
+* Reduce the stores launching times.
+
+Bugfixes:
+* Several issues reported by GA.
+* #374 : Check if Event.unsigned.age can be used to detect if the event is still valid. 
+* #687 : User adress instead of display name in call event
+* #723 : Cancelling download of encrypted image does not work
+
+Changes to Matrix Android SDK in 0.7.3 (2016-11-24)
+=======================================================
+
+Improvements: 
+* reduce the memory use to avoid having out of memory error.
+
+Bugfixes:
+* The rest clients did not with http v2 servers.
+
+Changes to Matrix Android SDK in 0.7.2 (2016-11-23)
+=======================================================
+
+Features:
+* Add room.isDirectChatInvitation method
+* Send thumbnail for the image messages
+* Update to the attachment encryptions V2
+
+Improvements: 
+* Improve the cryptostore management to avoid working on UI thread.
+* Improve the crypto store to avoid application logout when the files are corrupted
+* Update the olm lib.
+
+Bugfixes:
+* #680 : Unsupported TLS protocol version
+* #731 : Crypto : Some device informations are not displayed whereas the messages can be decrypted.
+* #739 : [e2e] Ringtone from call is different according to the encryption state of the room
+* #742 : Unable to send messages in #megolm since build 810: Network error 
+
+Changes to Matrix Android SDK in 0.7.1 (2016-11-21)
+=======================================================
+
+Improvements: 
+* Improve the cryptostore management to avoid working on UI thread.
+
+Bugfixes:
+* Add try / catch block in JSonUtils methods (GA issues)
+
+Changes to Matrix Android SDK in 0.7.0 (2016-11-18)
+=======================================================
+
+Features:
+* Encryption
+* DirectChat management
+* Devices list management
+
+Bugfixes:
+* GA issues
+* #529 : the unread notified messages are not properly cleared when the network connection is lost / unstable
+* #540 : All the store data is lost if there is an OOM error while saving it.
+* #546 : Invite a left user doesn't display his displayname.
+* #558 ! Global search : the back pagination does not work anymore
+* #561 : URLs containing $s aren't linkified correctly 
+* #562 : Some redacted events were restored at next application launch
+* #589 : Login as email is case sensistive 
+* #590 : Email validation token is sent even to invalid emails 
+* #602 : The 1:1 room avatar must be the other member avatar if no room avatar was set
+* #611 : Remove display name event is blank 
+
 Changes to Matrix Android SDK in 0.6.2 (2016-09-19)
 =======================================================
 

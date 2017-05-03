@@ -1,6 +1,7 @@
 /*
  * Copyright 2014 OpenMarket Ltd
- *
+ * Copyright 2017 Vector Creations Ltd
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -17,11 +18,20 @@ package org.matrix.androidsdk.rest.model;
 
 import android.text.TextUtils;
 
+import org.matrix.androidsdk.util.ContentManager;
+import org.matrix.androidsdk.util.Log;
+
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Comparator;
 /**
  * Class representing a room member: a user with membership information.
  */
-public class RoomMember implements java.io.Serializable {
+public class RoomMember implements Externalizable {
+    private static final String LOG_TAG = "RoomMember";
+
     public static final String MEMBERSHIP_JOIN = "join";
     public static final String MEMBERSHIP_INVITE = "invite";
     public static final String MEMBERSHIP_LEAVE = "leave";
@@ -32,12 +42,99 @@ public class RoomMember implements java.io.Serializable {
     public String membership;
     public Invite thirdPartyInvite;
 
+    // tells that the inviter starts a direct chat room
+    public Boolean is_direct;
 
     private String userId = null;
     // timestamp of the event which has created this member
     private long mOriginServerTs = -1;
     // the id of the sender which has created this member
     private String mInviter;
+
+    // the event used to build the room member
+    private String mOriginalEventId = null;
+
+    @Override
+    public void readExternal(ObjectInput input) throws IOException, ClassNotFoundException {
+        if (input.readBoolean()) {
+            displayname = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            avatarUrl = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            membership = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            thirdPartyInvite = (Invite)input.readObject();
+        }
+
+        if (input.readBoolean()) {
+            is_direct = input.readBoolean();
+        }
+
+        if (input.readBoolean()) {
+            userId = input.readUTF();
+        }
+
+        mOriginServerTs = input.readLong();
+
+        if (input.readBoolean()) {
+            mInviter = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            mOriginalEventId = input.readUTF();
+        }
+    }
+
+    @Override
+    public  void writeExternal(ObjectOutput output) throws IOException {
+        output.writeBoolean(null != displayname);
+        if (null != displayname) {
+            output.writeUTF(displayname);
+        }
+
+        output.writeBoolean(null != avatarUrl);
+        if (null != avatarUrl) {
+            output.writeUTF(avatarUrl);
+        }
+
+        output.writeBoolean(null != membership);
+        if (null != membership) {
+            output.writeUTF(membership);
+        }
+
+        output.writeBoolean(null != thirdPartyInvite);
+        if (null != thirdPartyInvite) {
+            output.writeObject(thirdPartyInvite);
+        }
+
+        output.writeBoolean(null != is_direct);
+        if (null != is_direct) {
+            output.writeBoolean(is_direct);
+        }
+
+        output.writeBoolean(null != userId);
+        if (null != userId) {
+            output.writeUTF(userId);
+        }
+
+        output.writeLong(mOriginServerTs);
+
+        output.writeBoolean(null != mInviter);
+        if (null != mInviter) {
+            output.writeUTF(mInviter);
+        }
+
+        output.writeBoolean(null != mOriginalEventId);
+        if (null != mOriginalEventId) {
+            output.writeUTF(mOriginalEventId);
+        }
+    }
 
     public String getUserId() {
         return userId;
@@ -55,12 +152,34 @@ public class RoomMember implements java.io.Serializable {
         return mOriginServerTs;
     }
 
+    public void setOriginalEventId(String eventId) {
+        mOriginalEventId = eventId;
+    }
+
+    public String getOriginalEventId() {
+        return mOriginalEventId;
+    }
+
     public String getInviterId() {
         return mInviter;
     }
 
     public void setInviterId(String userId) {
         mInviter = userId;
+    }
+
+    public String getAvatarUrl() {
+        // allow only url which starts with mxc://
+        if ((null != avatarUrl) && !avatarUrl.toLowerCase().startsWith(ContentManager.MATRIX_CONTENT_URI_SCHEME)) {
+            Log.e(LOG_TAG, "## getAvatarUrl() : the member " + userId + " has an invalid avatar url " + avatarUrl);
+            return null;
+        }
+
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String anAvatarUrl) {
+        avatarUrl = anAvatarUrl;
     }
 
     public String getThirdPartyInviteToken() {
@@ -188,6 +307,7 @@ public class RoomMember implements java.io.Serializable {
         copy.avatarUrl = avatarUrl;
         copy.membership = membership;
         copy.userId = userId;
+        copy.mOriginalEventId = mOriginalEventId;
         return copy;
     }
 

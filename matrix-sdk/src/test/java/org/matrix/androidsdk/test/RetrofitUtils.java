@@ -8,6 +8,7 @@ import junit.framework.Assert;
 
 import org.json.JSONObject;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.util.JsonUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -92,7 +93,7 @@ public class RetrofitUtils {
 
     public static RetrofitError createMatrixError(String url, Response response) {
         Gson gson = new GsonBuilder()
-                .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+                .setFieldNamingStrategy(new JsonUtils.MatrixFieldNamingStrategy())
                 .create();
         Converter converter = new GsonConverter(gson);
         return  RetrofitError.httpError(url, response, converter, MatrixError.class);

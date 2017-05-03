@@ -324,7 +324,7 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
             if (userId.equals(m.getUserId())) {
                 // Copy members
                 m.displayname = member.displayname;
-                m.avatarUrl = member.avatarUrl;
+                m.setAvatarUrl(member.getAvatarUrl());
                 m.membership = member.membership;
                 notifyDataSetChanged();
                 break;
@@ -375,7 +375,7 @@ public abstract class RoomMembersAdapter extends ArrayAdapter<RoomMember> {
         ImageView imageView = (ImageView) convertView.findViewById(R.id.avatar_img);
         imageView.setTag(null);
         imageView.setImageResource(R.drawable.ic_contact_picture_holo_light);
-        String url = member.avatarUrl;
+        String url = member.getAvatarUrl();
 
         if (TextUtils.isEmpty(url)) {
             url = ContentManager.getIdenticonURL(member.getUserId());

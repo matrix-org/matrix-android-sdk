@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +18,8 @@
 package org.matrix.androidsdk.data;
 
 import android.text.TextUtils;
-import android.util.Log;
+
+import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -31,8 +33,9 @@ import org.matrix.androidsdk.rest.model.RoomMember;
  * Stores summarised information about the room.
  */
 public class RoomSummary implements java.io.Serializable {
-
     private static final String LOG_TAG = "RoomSummary";
+
+    private static final long serialVersionUID = -3683013938626566489L;
 
     private String mRoomId = null;
     private String mName = null;
@@ -61,14 +64,16 @@ public class RoomSummary implements java.io.Serializable {
 
     private boolean mIsHighlighted = false;
 
-    public RoomSummary() {}
+    public RoomSummary() {
+    }
 
     /**
      * Create a room summary
+     *
      * @param roomId the room id
-     * @param name the room display name
-     * @param topic the topic
-     * @param event the latest received event
+     * @param name   the room display name
+     * @param topic  the topic
+     * @param event  the latest received event
      */
     public RoomSummary(String roomId, String name, String topic, Event event) {
         mLatestReceivedEvent = event;
@@ -82,6 +87,7 @@ public class RoomSummary implements java.io.Serializable {
     /**
      * Test if the event can be summarized.
      * Some event types are not yet supported.
+     *
      * @param event the event to test.
      * @return true if the event can be summarized
      */
@@ -101,7 +107,7 @@ public class RoomSummary implements java.io.Serializable {
                     msgType = element.getAsString();
                 }
 
-                isSupported = TextUtils.equals(msgType, Message.MSGTYPE_TEXT)||
+                isSupported = TextUtils.equals(msgType, Message.MSGTYPE_TEXT) ||
                         TextUtils.equals(msgType, Message.MSGTYPE_EMOTE) ||
                         TextUtils.equals(msgType, Message.MSGTYPE_NOTICE) ||
                         TextUtils.equals(msgType, Message.MSGTYPE_IMAGE) ||
@@ -115,7 +121,9 @@ public class RoomSummary implements java.io.Serializable {
             } catch (Exception e) {
                 Log.e(LOG_TAG, "isSupportedEvent failed " + e.getMessage());
             }
-        } else if (!TextUtils.isEmpty(type)){
+        } else if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, type)) {
+            isSupported = event.hasContentFields();
+        } else if (!TextUtils.isEmpty(type)) {
             isSupported = TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_TOPIC, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTION, type) ||
@@ -189,6 +197,7 @@ public class RoomSummary implements java.io.Serializable {
 
     /**
      * Compute the room summary display name.
+     *
      * @return the room summary display name.
      */
     public String getRoomName() {
@@ -253,6 +262,7 @@ public class RoomSummary implements java.io.Serializable {
 
     /**
      * Update the linked matrix id.
+     *
      * @param matrixId the new matrix id.
      */
     public void setMatrixId(String matrixId) {
@@ -261,6 +271,7 @@ public class RoomSummary implements java.io.Serializable {
 
     /**
      * Set the room's {@link org.matrix.androidsdk.rest.model.Event#EVENT_TYPE_STATE_ROOM_TOPIC}.
+     *
      * @param topic The topic
      * @return This summary for chaining calls.
      */
@@ -271,6 +282,7 @@ public class RoomSummary implements java.io.Serializable {
 
     /**
      * Set the room's {@link org.matrix.androidsdk.rest.model.Event#EVENT_TYPE_STATE_ROOM_NAME}.
+     *
      * @param name The name
      * @return This summary for chaining calls.
      */
@@ -281,6 +293,7 @@ public class RoomSummary implements java.io.Serializable {
 
     /**
      * Set the room's ID..
+     *
      * @param roomId The room ID
      * @return This summary for chaining calls.
      */
@@ -291,6 +304,7 @@ public class RoomSummary implements java.io.Serializable {
 
     /**
      * Set the latest tracked event (e.g. the latest m.room.message)
+     *
      * @param event The most-recent event.
      * @return This summary for chaining calls.
      */
@@ -301,6 +315,7 @@ public class RoomSummary implements java.io.Serializable {
 
     /**
      * Set the latest tracked event (e.g. the latest m.room.message)
+     *
      * @param roomState The room state of the latest event.
      * @return This summary for chaining calls.
      */
@@ -340,6 +355,7 @@ public class RoomSummary implements java.io.Serializable {
 
     /**
      * Set the highlight status.
+     *
      * @param isHighlighted the new highlight status.
      * @return true if there is an update
      */
@@ -353,6 +369,7 @@ public class RoomSummary implements java.io.Serializable {
 
     /**
      * Set the user ID of the person who invited the user to this room.
+     *
      * @param inviterUserId The user ID of the inviter
      * @return This summary for chaining calls.
      */
@@ -363,6 +380,7 @@ public class RoomSummary implements java.io.Serializable {
 
     /**
      * Update the latest read event Id
+     *
      * @param eventId the event id.
      */
     public void setLatestReadEventId(String eventId) {
@@ -378,6 +396,7 @@ public class RoomSummary implements java.io.Serializable {
 
     /**
      * Update the unread message counter
+     *
      * @param count the unread events count.
      */
     public void setUnreadEventsCount(int count) {

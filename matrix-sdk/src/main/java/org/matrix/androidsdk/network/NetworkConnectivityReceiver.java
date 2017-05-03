@@ -19,13 +19,16 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
+import android.net.Network;
 import android.net.NetworkInfo;
 import android.os.Bundle;
-import android.util.Log;
+
+import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -44,42 +47,71 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(final Context context, final Intent intent) {
+        NetworkInfo networkInfo = null;
+
         if (null != intent) {
+
             Log.d(LOG_TAG, "## onReceive() : action " + intent.getAction());
 
-            Bundle extras =intent.getExtras();
+            Bundle extras = intent.getExtras();
 
             if (null != extras) {
                 Set<String> keys = extras.keySet();
 
-                for(String key : keys) {
+                for (String key : keys) {
                     Log.d(LOG_TAG, "## onReceive() : " + key + " -> " + extras.get(key));
+                }
+
+                if (extras.containsKey("networkInfo")) {
+                    Object networkInfoAsVoid = extras.get("networkInfo");
+
+                    if (networkInfoAsVoid instanceof NetworkInfo) {
+                        networkInfo = (NetworkInfo) networkInfoAsVoid;
+                    }
                 }
             }
         } else {
             Log.d(LOG_TAG, "## onReceive()");
         }
 
-        checkNetworkConnection(context);
+        checkNetworkConnection(context, networkInfo);
     }
 
     /**
      * Check if there is a connection update.
+     *
      * @param context the context
      */
     public void checkNetworkConnection(Context context) {
+        checkNetworkConnection(context, null);
+    }
+
+    /**
+     * Check if there is a connection update.
+     *
+     * @param context the context
+     */
+    private void checkNetworkConnection(Context context, NetworkInfo aNetworkInfo) {
         synchronized (LOG_TAG) {
             try {
-                ConnectivityManager connMgr = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-                NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
-                boolean isConnected = (networkInfo != null) && networkInfo.isConnected();
+                NetworkInfo networkInfo = aNetworkInfo;
+
+                // https://issuetracker.google.com/issues/37137911
+                // it seems that getActiveNetworkInfo does not provide the true active network connection
+                if (null == networkInfo) {
+                    ConnectivityManager connMgr = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                    networkInfo = connMgr.getActiveNetworkInfo();
+                }
+                boolean isConnected = (networkInfo != null) && networkInfo.isConnectedOrConnecting();
 
                 if (isConnected) {
                     Log.d(LOG_TAG, "## checkNetworkConnection() : Connected to " + networkInfo);
                 } else if (null != networkInfo) {
                     Log.d(LOG_TAG, "## checkNetworkConnection() : there is a default connection but it is not connected " + networkInfo);
+                    listNetworkConnections(context);
                 } else {
                     Log.d(LOG_TAG, "## checkNetworkConnection() : there is no connection");
+                    listNetworkConnections(context);
                 }
 
                 // avoid triggering useless info
@@ -97,7 +129,43 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
     }
 
     /**
+     * List the available network connections
+     *
+     * @param context the context
+     */
+    private static void listNetworkConnections(Context context) {
+        ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        List<NetworkInfo> networkInfos = new ArrayList<>();
+
+        //
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            Network[] activeNetworks = cm.getAllNetworks();
+            if (null != activeNetworks) {
+                for (Network network : activeNetworks) {
+                    NetworkInfo networkInfo = cm.getNetworkInfo(network);
+                    if (null != networkInfo) {
+                        networkInfos.add(networkInfo);
+                    }
+                }
+            }
+        } else {
+            NetworkInfo[] info = cm.getAllNetworkInfo();
+
+            if (info != null) {
+                networkInfos.addAll(Arrays.asList(info));
+            }
+        }
+
+        Log.d(LOG_TAG, "## listNetworkConnections() : " + networkInfos.size() + " connections");
+
+        for (NetworkInfo networkInfo : networkInfos) {
+            Log.d(LOG_TAG, "-> " + networkInfo);
+        }
+    }
+
+    /**
      * Add a network event listener.
+     *
      * @param networkEventListener the event listener to add
      */
     public void addEventListener(final IMXNetworkEventListener networkEventListener) {
@@ -110,6 +178,7 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
      * Add a ONE CALL network event listener.
      * The listener is called when a data connection is established.
      * The listener is removed from the listeners list once its callback is called.
+     *
      * @param networkEventListener the event listener to add
      */
     public void addOnConnectedEventListener(final IMXNetworkEventListener networkEventListener) {
@@ -122,6 +191,7 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
 
     /**
      * Remove a network event listener.
+     *
      * @param networkEventListener the event listener to remove
      */
     public void removeEventListener(final IMXNetworkEventListener networkEventListener) {
@@ -159,7 +229,7 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
             for (IMXNetworkEventListener listener : mOnNetworkConnectedEventListeners) {
                 try {
                     listener.onNetworkConnectionUpdate(true);
-                } catch(Exception e) {
+                } catch (Exception e) {
                     Log.e(LOG_TAG, "## onNetworkUpdate() : onNetworkConnectionUpdate failed " + e.getMessage());
                 }
             }

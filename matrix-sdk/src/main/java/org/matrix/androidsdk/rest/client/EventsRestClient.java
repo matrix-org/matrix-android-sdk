@@ -1,5 +1,6 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,10 +32,12 @@ import org.matrix.androidsdk.rest.model.Search.SearchParams;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchRoomEventCategoryParams;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
+import org.matrix.androidsdk.rest.model.ThirdPartyProtocol;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import retrofit.client.Response;
 
@@ -45,14 +48,14 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
     private static final int EVENT_STREAM_TIMEOUT_MS = 30000;
 
-    private String mSearchPattern = null;
-    private String mSearchMediaName = null;
+    private String mSearchPatternIdentifier = null;
+    private String mSearchMediaNameIdentifier = null;
 
     /**
      * {@inheritDoc}
      */
     public EventsRestClient(HomeserverConnectionConfig hsConfig) {
-        super(hsConfig, EventsApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
+        super(hsConfig, EventsApi.class, "", false);
     }
 
     protected EventsRestClient(EventsApi api) {
@@ -60,49 +63,92 @@ public class EventsRestClient extends RestClient<EventsApi> {
     }
 
     /**
+     * Retrieves the third party server protocols
+     *
+     * @param callback the asynchronous callback
+     */
+    public void getThirdPartyServerProtocols(final ApiCallback<Map<String, ThirdPartyProtocol>> callback) {
+        final String description = "getThirdPartyServerProtocols";
+
+        mApi.thirdpartyProtocols(new RestAdapterCallback<Map<String, ThirdPartyProtocol>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                getThirdPartyServerProtocols(callback);
+            }
+        }));
+    }
+
+    /**
      * Get the public rooms count.
      * The count can be null.
+     *
      * @param callback the public rooms count callbacks
      */
     public void getPublicRoomsCount(final ApiCallback<Integer> callback) {
-        final String description = "getPublicRoomsCount";
+        getPublicRoomsCount(null, null, false, callback);
+    }
 
-        PublicRoomsParams publicRoomsParams = new PublicRoomsParams();
+    /**
+     * Get the public rooms count.
+     * The count can be null.
+     *
+     * @param callback the asynchronous callback
+     */
+    public void getPublicRoomsCount(final String server, final ApiCallback<Integer> callback) {
+        getPublicRoomsCount(server, null, false, callback);
+    }
 
-        publicRoomsParams.server = null;
-        publicRoomsParams.limit = 0;
-        publicRoomsParams.since = null;
-
-        mApi.publicRooms(publicRoomsParams, new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+    /**
+     * Get the public rooms count.
+     * The count can be null.
+     *
+     * @param thirdPartyInstanceId the third party instance id (optional)
+     * @param includeAllNetworks   true to search in all the connected network
+     * @param callback             the asynchronous callback
+     */
+    public void getPublicRoomsCount(final String server, final String thirdPartyInstanceId, final boolean includeAllNetworks, final ApiCallback<Integer> callback) {
+        loadPublicRooms(server, thirdPartyInstanceId, includeAllNetworks, null, null, 0, new ApiCallback<PublicRoomsResponse>() {
             @Override
-            public void onRetry() {
-                getPublicRoomsCount(callback);
-            }
-        }) {
-            @Override
-            public void success(PublicRoomsResponse publicRoomsResponse, Response response) {
-                onEventSent();
+            public void onSuccess(PublicRoomsResponse publicRoomsResponse) {
                 callback.onSuccess(publicRoomsResponse.total_room_count_estimate);
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                callback.onNetworkError(e);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                callback.onMatrixError(e);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                callback.onUnexpectedError(e);
             }
         });
     }
 
-
     /**
      * Get the list of the public rooms.
-     * @param server search on this home server only (null for any one)
-     * @param pattern the pattern to search
-     * @param since the pagination token
-     * @param limit the maximum number of public rooms
-     * @param callback the public rooms callbacks
+     *
+     * @param server               search on this home server only (null for any one)
+     * @param thirdPartyInstanceId the third party instance id (optional)
+     * @param includeAllNetworks   true to search in all the connected network
+     * @param pattern              the pattern to search
+     * @param since                the pagination token
+     * @param limit                the maximum number of public rooms
+     * @param callback             the public rooms callbacks
      */
-    public void loadPublicRooms(final String server, final String pattern, final String since, final int limit, final ApiCallback<PublicRoomsResponse> callback) {
+    public void loadPublicRooms(final String server, final String thirdPartyInstanceId, final boolean includeAllNetworks, final String pattern, final String since, final int limit, final ApiCallback<PublicRoomsResponse> callback) {
         final String description = "loadPublicRooms";
 
         PublicRoomsParams publicRoomsParams = new PublicRoomsParams();
 
-        publicRoomsParams.server = server;
-        publicRoomsParams.limit = Math.max(1, limit);
+        publicRoomsParams.thirdPartyInstanceId = thirdPartyInstanceId;
+        publicRoomsParams.includeAllNetworks = includeAllNetworks;
+        publicRoomsParams.limit = Math.max(0, limit);
         publicRoomsParams.since = since;
 
         if (!TextUtils.isEmpty(pattern)) {
@@ -110,32 +156,32 @@ public class EventsRestClient extends RestClient<EventsApi> {
             publicRoomsParams.filter.generic_search_term = pattern;
         }
 
-        mApi.publicRooms(publicRoomsParams, new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.publicRooms(server, publicRoomsParams, new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                loadPublicRooms(server, pattern, since, limit, callback);
+                loadPublicRooms(server, thirdPartyInstanceId, includeAllNetworks, pattern, since, limit, callback);
             }
         }));
     }
 
     /**
      * Synchronise the client's state and receive new messages. Based on server sync C-S v2 API.
-
+     * <p>
      * Synchronise the client's state with the latest state on the server.
      * Client's use this API when they first log in to get an initial snapshot
      * of the state on the server, and then continue to call this API to get
      * incremental deltas to the state, and to receive new messages.
-
-     * @param token the token to stream from (nil in case of initial sync).
+     *
+     * @param token         the token to stream from (nil in case of initial sync).
      * @param serverTimeout the maximum time in ms to wait for an event.
      * @param clientTimeout the maximum time in ms the SDK must wait for the server response.
-     * @param setPresence  the optional parameter which controls whether the client is automatically
-     * marked as online by polling this API. If this parameter is omitted then the client is
-     * automatically marked as online when it uses this API. Otherwise if
-     * the parameter is set to "offline" then the client is not marked as
-     * being online when it uses this API.
-     * @param filterId the ID of a filter created using the filter API (optional).
-     * @param callback The request callback
+     * @param setPresence   the optional parameter which controls whether the client is automatically
+     *                      marked as online by polling this API. If this parameter is omitted then the client is
+     *                      automatically marked as online when it uses this API. Otherwise if
+     *                      the parameter is set to "offline" then the client is not marked as
+     *                      being online when it uses this API.
+     * @param filterId      the ID of a filter created using the filter API (optional).
+     * @param callback      The request callback
      */
     public void syncFromToken(final String token, final int serverTimeout, final int clientTimeout, final String setPresence, final String filterId, final ApiCallback<SyncResponse> callback) {
         HashMap<String, Object> params = new HashMap<>();
@@ -204,52 +250,61 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
         final String description = "searchMessageText";
 
-        mSearchPattern = text;
+        final String uid = System.currentTimeMillis() + "";
+        mSearchPatternIdentifier = uid + text;
 
         // don't retry to send the request
         // if the search fails, stop it
         mApi.search(searchParams, nextBatch, new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
+            /**
+             * Tells if the current response for the latest request.
+             * @return true if it is the response of the latest request.
+             */
+            private boolean isActiveRequest() {
+                return TextUtils.equals(mSearchPatternIdentifier, uid + text);
+            }
+
             @Override
             public void onSuccess(SearchResponse response) {
-                if (TextUtils.equals(mSearchPattern, text)) {
+                if (isActiveRequest()) {
                     if (null != callback) {
                         callback.onSuccess(response);
                     }
 
-                    mSearchPattern = null;
+                    mSearchPatternIdentifier = null;
                 }
             }
 
             @Override
             public void onNetworkError(Exception e) {
-                if (TextUtils.equals(mSearchPattern, text)) {
+                if (isActiveRequest()) {
                     if (null != callback) {
                         callback.onNetworkError(e);
                     }
 
-                    mSearchPattern = null;
+                    mSearchPatternIdentifier = null;
                 }
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                if (TextUtils.equals(mSearchPattern, text)) {
+                if (isActiveRequest()) {
                     if (null != callback) {
                         callback.onMatrixError(e);
                     }
 
-                    mSearchPattern = null;
+                    mSearchPatternIdentifier = null;
                 }
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                if (TextUtils.equals(mSearchPattern, text)) {
+                if (isActiveRequest()) {
                     if (null != callback) {
                         callback.onUnexpectedError(e);
                     }
 
-                    mSearchPattern = null;
+                    mSearchPatternIdentifier = null;
                 }
             }
 
@@ -264,12 +319,12 @@ public class EventsRestClient extends RestClient<EventsApi> {
     /**
      * Search a media from its name.
      *
-     * @param name          the text to search for.
-     * @param rooms         a list of rooms to search in. nil means all rooms the user is in.
-     * @param beforeLimit   the number of events to get before the matching results.
-     * @param afterLimit    the number of events to get after the matching results.
-     * @param nextBatch     the token to pass for doing pagination from a previous response.
-     * @param callback      the request callback
+     * @param name        the text to search for.
+     * @param rooms       a list of rooms to search in. nil means all rooms the user is in.
+     * @param beforeLimit the number of events to get before the matching results.
+     * @param afterLimit  the number of events to get after the matching results.
+     * @param nextBatch   the token to pass for doing pagination from a previous response.
+     * @param callback    the request callback
      */
     public void searchMediasByText(final String name, final List<String> rooms, final int beforeLimit, final int afterLimit, final String nextBatch, final ApiCallback<SearchResponse> callback) {
         SearchParams searchParams = new SearchParams();
@@ -303,43 +358,53 @@ public class EventsRestClient extends RestClient<EventsApi> {
         // not_rooms
         // senders
         // not_senders
-        
-        mSearchMediaName = name;
+
+        final String uid = System.currentTimeMillis() + "";
+        mSearchMediaNameIdentifier = uid + name;
 
         final String description = "searchMediasByText";
 
         // don't retry to send the request
         // if the search fails, stop it
         mApi.search(searchParams, nextBatch, new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
+
+            /**
+             * Tells if the current response for the latest request.
+             * @return true if it is the response of the latest request.
+             */
+            private boolean isActiveRequest() {
+                return TextUtils.equals(mSearchMediaNameIdentifier, uid + name);
+            }
+
             @Override
             public void onSuccess(SearchResponse newSearchResponse) {
-                if (TextUtils.equals(mSearchMediaName, name)) {
+                if (isActiveRequest()) {
                     callback.onSuccess(newSearchResponse);
-                    mSearchMediaName = null;
+                    mSearchMediaNameIdentifier = null;
                 }
             }
 
             @Override
             public void onNetworkError(Exception e) {
-                if (TextUtils.equals(mSearchMediaName, name)) {
+                if (isActiveRequest()) {
                     callback.onNetworkError(e);
-                    mSearchMediaName = null;
+                    mSearchMediaNameIdentifier = null;
                 }
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                if (TextUtils.equals(mSearchMediaName, name)) {
+                if (isActiveRequest()) {
                     callback.onMatrixError(e);
-                    mSearchMediaName = null;
+                    mSearchMediaNameIdentifier = null;
                 }
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                if (TextUtils.equals(mSearchMediaName, name)) {
+                if (isActiveRequest()) {
                     callback.onUnexpectedError(e);
-                    mSearchMediaName = null;
+                    mSearchMediaNameIdentifier = null;
                 }
             }
 
@@ -355,13 +420,13 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * Cancel any pending file search request
      */
     public void cancelSearchMediasByText() {
-        mSearchMediaName = null;
+        mSearchMediaNameIdentifier = null;
     }
 
     /**
      * Cancel any pending search request
      */
     public void cancelSearchMessagesByText() {
-        mSearchPattern = null;
+        mSearchPatternIdentifier = null;
     }
 }

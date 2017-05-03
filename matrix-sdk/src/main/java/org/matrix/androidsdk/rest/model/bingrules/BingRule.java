@@ -16,7 +16,7 @@
 package org.matrix.androidsdk.rest.model.bingrules;
 
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -255,5 +255,13 @@ public class BingRule {
      */
     public boolean shouldNotify() {
         return null != jsonPrimitive(ACTION_NOTIFY);
+    }
+
+    /**
+     * Return true if the rule should not highlight the event.
+     * @return true if the rule should not play sound
+     */
+    public boolean shouldNotNotify() {
+        return null != jsonPrimitive(ACTION_DONT_NOTIFY);
     }
 }

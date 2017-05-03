@@ -1,6 +1,7 @@
 /* 
  * Copyright 2016 OpenMarket Ltd
- * 
+ * Copyright 2017 Vector Creations Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -19,6 +20,7 @@ package org.matrix.androidsdk.rest.model.crypto;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * This class represents the response to /keys/query request made by downloadKeysForUsers
@@ -28,4 +30,9 @@ public class KeysQueryResponse {
      * The device keys per devices per users.
      */
     public Map<String, Map<String, MXDeviceInfo>> deviceKeys;
+
+    /**
+     *  The failures sorted by homeservers.
+     */
+    public Map<String, Map<String, Object>> failures;
 }

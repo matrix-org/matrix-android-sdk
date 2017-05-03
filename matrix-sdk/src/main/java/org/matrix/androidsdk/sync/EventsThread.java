@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +19,9 @@ package org.matrix.androidsdk.sync;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
-import android.util.Log;
+
+import org.matrix.androidsdk.rest.model.Sync.RoomsSyncResponse;
+import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
@@ -52,11 +55,13 @@ public class EventsThread extends Thread {
     private boolean mPaused = true;
     private boolean mIsNetworkSuspended = false;
     private boolean mIsCatchingUp = false;
+    private boolean mGotFirstCatchupChunk = false;
     private boolean mIsOnline = true;
 
     private boolean mKilling = false;
 
-    private int mServerTimeoutms = DEFAULT_SERVER_TIMEOUT_MS;
+    private int mDefaultServerTimeoutms = DEFAULT_SERVER_TIMEOUT_MS;
+    private int mNextServerTimeoutms = DEFAULT_SERVER_TIMEOUT_MS;
 
     // add a delay between two sync requests
     private int mRequestDelayMs = 0;
@@ -92,8 +97,9 @@ public class EventsThread extends Thread {
 
     /**
      * Default constructor.
-     * @param apiClient API client to make the events API calls
-     * @param listener a listener to inform
+     *
+     * @param apiClient    API client to make the events API calls
+     * @param listener     a listener to inform
      * @param initialToken the sync initial token.
      */
     public EventsThread(EventsRestClient apiClient, EventsThreadListener listener, String initialToken) {
@@ -105,11 +111,12 @@ public class EventsThread extends Thread {
 
     /**
      * Update the long poll timeout.
+     *
      * @param ms the timeout in ms
      */
     public void setServerLongPollTimeout(int ms) {
-        mServerTimeoutms = Math.max(ms, DEFAULT_SERVER_TIMEOUT_MS);
-        Log.d(LOG_TAG, "setServerLongPollTimeout : " + mServerTimeoutms);
+        mDefaultServerTimeoutms = Math.max(ms, DEFAULT_SERVER_TIMEOUT_MS);
+        Log.d(LOG_TAG, "setServerLongPollTimeout : " + mDefaultServerTimeoutms);
 
     }
 
@@ -117,11 +124,12 @@ public class EventsThread extends Thread {
      * @return the long poll timeout
      */
     public int getServerLongPollTimeout() {
-        return mServerTimeoutms;
+        return mDefaultServerTimeoutms;
     }
 
     /**
      * Set a delay between two sync requests.
+     *
      * @param ms the delay in ms
      */
     public void setSyncDelay(int ms) {
@@ -129,16 +137,35 @@ public class EventsThread extends Thread {
 
         Log.d(LOG_TAG, "setSyncDelay : " + mRequestDelayMs);
 
-        // cancel any pending delay timer
-        if (null != mSyncDelayTimer) {
-            Log.d(LOG_TAG, "setSyncDelay : cancel the delay timer");
+        Handler handler = null;
 
-            mSyncDelayTimer.cancel();
-            // and sync asap
-            synchronized (mSyncObject) {
-                mSyncObject.notify();
-            }
+        try {
+            handler = new Handler();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## setSyncDelay failed " + e.getMessage());
         }
+
+        // use a default one
+        if (null == handler) {
+            handler = new Handler(Looper.getMainLooper());
+        }
+
+        // call mSyncDelayTimer on the same thread
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                // cancel any pending delay timer
+                if (null != mSyncDelayTimer) {
+                    Log.d(LOG_TAG, "setSyncDelay : cancel the delay timer");
+
+                    mSyncDelayTimer.cancel();
+                    // and sync asap
+                    synchronized (mSyncObject) {
+                        mSyncObject.notify();
+                    }
+                }
+            }
+        });
     }
 
     /**
@@ -151,6 +178,7 @@ public class EventsThread extends Thread {
     /**
      * Set the network connectivity listener.
      * It is used to avoid restarting the events threads each 10 seconds when there is no available network.
+     *
      * @param networkConnectivityReceiver the network receiver
      */
     public void setNetworkConnectivityReceiver(NetworkConnectivityReceiver networkConnectivityReceiver) {
@@ -159,6 +187,7 @@ public class EventsThread extends Thread {
 
     /**
      * Set the failure callback.
+     *
      * @param failureCallback the failure callback.
      */
     public void setFailureCallback(ApiFailureCallback failureCallback) {
@@ -232,6 +261,7 @@ public class EventsThread extends Thread {
             }
         }
 
+        mGotFirstCatchupChunk = false;
         mIsCatchingUp = true;
     }
 
@@ -257,6 +287,7 @@ public class EventsThread extends Thread {
 
     /**
      * Update the online status
+     *
      * @param isOnline true if the client must be seen as online
      */
     public void setIsOnline(boolean isOnline) {
@@ -266,7 +297,24 @@ public class EventsThread extends Thread {
 
     @Override
     public void run() {
+        try {
+            Looper.prepare();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## run() : prepare failed " + e.getMessage());
+        }
         startSync();
+    }
+
+    /**
+     * Tells if a sync request contains some changed devices.
+     *
+     * @param syncResponse the sync response
+     * @return true if the response contains some changed devices.
+     */
+    private static boolean hasDevicesChanged(SyncResponse syncResponse) {
+        return (null != syncResponse.deviceLists) &&
+                (null != syncResponse.deviceLists.changed) &&
+                (syncResponse.deviceLists.changed.size() > 0);
     }
 
     /**
@@ -291,18 +339,20 @@ public class EventsThread extends Thread {
             serverTimeout = 0;
             // dummy initial sync
             // to hide the splash screen
-            mListener.onSyncResponse(null, true);
+            SyncResponse dummySyncResponse = new SyncResponse();
+            dummySyncResponse.nextBatch = mCurrentToken;
+            mListener.onSyncResponse(dummySyncResponse, null, true);
         } else {
 
             // Start with initial sync
             while (!mInitialSyncDone) {
                 final CountDownLatch latch = new CountDownLatch(1);
-
                 mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, null, null, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         Log.d(LOG_TAG, "Received initial sync response.");
-                        mListener.onSyncResponse(syncResponse, true);
+                        mNextServerTimeoutms = hasDevicesChanged(syncResponse) ? 0 : mDefaultServerTimeoutms;
+                        mListener.onSyncResponse(syncResponse, null, (0 == mNextServerTimeoutms));
                         mCurrentToken = syncResponse.nextBatch;
                         mInitialSyncDone = true;
                         // unblock the events thread
@@ -355,8 +405,7 @@ public class EventsThread extends Thread {
                     Log.e(LOG_TAG, "Interrupted whilst performing initial sync.");
                 }
             }
-
-            serverTimeout = mServerTimeoutms;
+            serverTimeout = mNextServerTimeoutms;
         }
 
         Log.d(LOG_TAG, "Starting event stream from token " + mCurrentToken);
@@ -428,22 +477,68 @@ public class EventsThread extends Thread {
 
                 Log.d(LOG_TAG, "Get events from token " + mCurrentToken);
 
+                final int fServerTimeout = serverTimeout;
+                mNextServerTimeoutms = mDefaultServerTimeoutms;
+
                 mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, DEFAULT_CLIENT_TIMEOUT_MS, (mIsCatchingUp && mIsOnline) ? "offline" : null, inlineFilter, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         if (!mKilling) {
-                            // the catchup request is done once.
-                            if (mIsCatchingUp) {
-                                Log.e(LOG_TAG, "Stop the catchup");
-                                // stop any catch up
-                                mIsCatchingUp = false;
-                                mPaused = true;
+                            // poll /sync with timeout=0 until
+                            // we get no to_device messages back.
+                            if (0 == fServerTimeout) {
+                                if (hasDevicesChanged(syncResponse)) {
+                                    mNextServerTimeoutms = 0;
+                                }
                             }
 
+                            // the catchup request is suspended when there is no need
+                            // to loop again
+                            if (mIsCatchingUp && (0 != mNextServerTimeoutms)) {
+                                // the catchup triggers sync requests until there are some useful events
+                                int eventCounts = 0;
+
+                                if (null != syncResponse.rooms) {
+                                    RoomsSyncResponse roomsSyncResponse = syncResponse.rooms;
+
+                                    if (null != roomsSyncResponse.join) {
+                                        eventCounts += roomsSyncResponse.join.size();
+                                    }
+
+                                    if (null != roomsSyncResponse.invite) {
+                                        eventCounts += roomsSyncResponse.invite.size();
+                                    }
+                                }
+
+                                Log.d(LOG_TAG, "Got " + eventCounts + " useful events while catching up");
+
+                                if (!mGotFirstCatchupChunk) {
+                                    mGotFirstCatchupChunk = (0 != eventCounts);
+
+                                    if (mGotFirstCatchupChunk) {
+                                        Log.e(LOG_TAG, "Got first catchup chunk");
+                                    } else {
+                                        Log.e(LOG_TAG, "Empty chunk : sync again");
+                                    }
+
+                                    mNextServerTimeoutms = mDefaultServerTimeoutms / 10;
+                                } else {
+                                    if (0 == eventCounts) {
+                                        Log.e(LOG_TAG, "Stop the catchup");
+                                        // stop any catch up
+                                        mIsCatchingUp = false;
+                                        mPaused = true;
+                                    } else {
+                                        Log.e(LOG_TAG, "Catchup still in progress");
+                                        mNextServerTimeoutms = mDefaultServerTimeoutms / 10;
+                                    }
+                                }
+                            }
                             Log.d(LOG_TAG, "Got event response");
-                            mListener.onSyncResponse(syncResponse, false);
+                            mListener.onSyncResponse(syncResponse, mCurrentToken, (0 == mNextServerTimeoutms));
                             mCurrentToken = syncResponse.nextBatch;
                             Log.d(LOG_TAG, "mCurrentToken is now set to " + mCurrentToken);
+
                         }
 
                         // unblock the events thread
@@ -498,10 +593,14 @@ public class EventsThread extends Thread {
                     latch.await();
                 } catch (InterruptedException e) {
                     Log.e(LOG_TAG, "Interrupted whilst polling message");
+                } catch (Exception e) {
+                    // reported by GA
+                    // The thread might have been killed.
+                    Log.e(LOG_TAG, "latch.await() failed " + e.getMessage());
                 }
             }
 
-            serverTimeout = mServerTimeoutms;
+            serverTimeout = mNextServerTimeoutms;
         }
 
         if (null != mNetworkConnectivityReceiver) {

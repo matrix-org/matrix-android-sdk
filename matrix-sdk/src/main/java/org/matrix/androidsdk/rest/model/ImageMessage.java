@@ -17,7 +17,7 @@ package org.matrix.androidsdk.rest.model;
 
 import android.media.ExifInterface;
 import android.net.Uri;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import java.io.File;
 
@@ -29,12 +29,16 @@ public class ImageMessage extends Message {
     public String url;
     public String thumbnailUrl;
 
+    // encrypted medias
+    // url and thumbnailUrl are replaced by their dedicated file
+    public EncryptedFileInfo file;
+
     public ImageMessage() {
         msgtype = MSGTYPE_IMAGE;
     }
 
     /**
-     * Make a deep copy of this VideoMessage.
+     * Make a deep copy of this ImageMessage.
      * @return the copy
      */
     public ImageMessage deepCopy() {
@@ -52,10 +56,49 @@ public class ImageMessage extends Message {
             copy.thumbnailInfo = thumbnailInfo.deepCopy();
         }
 
+        if (null != file) {
+            copy.file = file.deepCopy();
+        }
+
         return copy;
     }
 
+    /**
+     * @return the media URL
+     */
+    public String getUrl() {
+        if (null != url) {
+            return url;
+        } else if (null != file) {
+            return file.url;
+        } else {
+            return null;
+        }
+    }
 
+    /**
+     * @return the thumbnail url
+     */
+    public String getThumbnailUrl() {
+        if (null != thumbnailUrl) {
+            return thumbnailUrl;
+        } else if ((null != info) && (null != info.thumbnail_file)) {
+            return info.thumbnail_file.url;
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * @return true if the thumbnail is a file url
+     */
+    public boolean isThumbnailLocalContent() {
+        return (null != info) && (null != thumbnailUrl) && (thumbnailUrl.startsWith("file://"));
+    }
+
+    /**
+     * @return true if the media url is a file one.
+     */
     public boolean isLocalContent() {
         return (null != url) && (url.startsWith("file://"));
     }
@@ -64,7 +107,9 @@ public class ImageMessage extends Message {
      * @return The image mimetype. null is not defined.
      */
     public String getMimeType() {
-        if (null != info) {
+        if (null != file) {
+            return file.mimetype;
+        } else if (null != info) {
             return info.mimetype;
         } else {
             return null;

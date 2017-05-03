@@ -1,6 +1,7 @@
 /*
  * Copyright 2016 OpenMarket Ltd
- *
+ * Copyright 2017 Vector Creations Ltd
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -30,6 +31,9 @@ public class RoomThirdPartyInvite implements java.io.Serializable {
      */
     public String token;
 
+    // the event used to build this class
+    private String mOriginalEventId = null;
+
     /**
      * @return a RoomThirdPartyInvite deep copy.
      */
@@ -37,6 +41,23 @@ public class RoomThirdPartyInvite implements java.io.Serializable {
         RoomThirdPartyInvite copy = new RoomThirdPartyInvite();
         copy.display_name = display_name;
         copy.token = token;
+        copy.mOriginalEventId = mOriginalEventId;
         return copy;
+    }
+
+    /**
+     * Set the original used to create this class
+     * @param eventId the event id
+     */
+    public void setOriginalEventid(String eventId) {
+        mOriginalEventId = eventId;
+    }
+
+    /**
+     * Provides the even used to create this class
+     * @return the event uses to create this class
+     */
+    public String getOriginalEventId() {
+        return mOriginalEventId;
     }
 }

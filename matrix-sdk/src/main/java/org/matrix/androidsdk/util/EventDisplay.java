@@ -24,7 +24,7 @@ import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -191,26 +191,41 @@ public class EventDisplay {
             } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
                 text = mContext.getString(R.string.notice_end_to_end, userDisplayName, mEvent.getWireEventContent().algorithm);
             } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(eventType)) {
-                String message = null;
+                // don't display
+                if (mEvent.isRedacted()) {
+                    String redactedInfo = EventDisplay.getRedactionMessage(mContext, mEvent, mRoomState);
 
-                if (null != mEvent.getCryptoError()) {
-                    if (TextUtils.equals(mEvent.getCryptoError().errcode, MXCryptoError.ENCRYPTING_NOT_ENABLE)) {
-                        message = mContext.getString(R.string.encrypted_message);
+                    if (TextUtils.isEmpty(redactedInfo)) {
+                        return null;
                     } else {
-                        message = mEvent.getCryptoError().getLocalizedMessage();
-                        if (!TextUtils.isEmpty(message)) {
-                            message = "**" + message + "**";
-                        }
+                        return redactedInfo;
                     }
-                }
+                } else {
+                    String message = null;
 
-                if (TextUtils.isEmpty(message) ) {
-                    message = mContext.getString(R.string.encrypted_message);
-                }
 
-                SpannableString spannableStr = new SpannableString(message);
-                spannableStr.setSpan(new android.text.style.StyleSpan(Typeface.ITALIC), 0, message.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                text = spannableStr;
+                    if (null != mEvent.getCryptoError()) {
+                        String errorDescription;
+
+                        MXCryptoError error = mEvent.getCryptoError();
+
+                        if (TextUtils.equals(error.errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE)) {
+                            errorDescription = mContext.getResources().getString(R.string.notice_crypto_error_unkwown_inbound_session_id);
+                        } else {
+                            errorDescription = error.getLocalizedMessage();
+                        }
+
+                        message = mContext.getString(R.string.notice_crypto_unable_to_decrypt, errorDescription);
+                    }
+
+                    if (TextUtils.isEmpty(message)) {
+                        message = mContext.getString(R.string.encrypted_message);
+                    }
+
+                    SpannableString spannableStr = new SpannableString(message);
+                    spannableStr.setSpan(new android.text.style.StyleSpan(Typeface.ITALIC), 0, message.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    text = spannableStr;
+                }
             } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType)) {
                 String topic = jsonEventContent.getAsJsonPrimitive("topic").getAsString();
 

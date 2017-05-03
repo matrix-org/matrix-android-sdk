@@ -19,10 +19,13 @@ package org.matrix.androidsdk.call;
 import android.view.View;
 
 import com.google.gson.JsonObject;
+import com.google.gson.annotations.SerializedName;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.model.Event;
+
+import java.io.Serializable;
 
 /**
  * Audio/video call interface.
@@ -88,10 +91,8 @@ public interface IMXCall {
     // the user did not respond to the call.
     String CALL_ERROR_USER_NOT_RESPONDING = "IMXCall.CALL_ERROR_USER_NOT_RESPONDING";
 
-
-    class VideoLayoutConfiguration {
+    class VideoLayoutConfiguration implements Serializable{
         public final static int INVALID_VALUE = -1;
-
 
         @Override
         public String toString() {
@@ -164,6 +165,13 @@ public interface IMXCall {
          * @param aReasonId the reason of the call ending
          */
         void onCallEnd(final int aReasonId);
+
+        /**
+         * The video preview size has been updated.
+         * @param width the new width (non scaled size)
+         * @param height the new height (non scaled size)
+         */
+        void onPreviewSizeChanged(int width, int height);
     }
 
     // creator

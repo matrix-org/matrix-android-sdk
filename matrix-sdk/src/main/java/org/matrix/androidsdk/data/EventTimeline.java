@@ -1,6 +1,7 @@
 /*
  * Copyright 2016 OpenMarket Ltd
- *
+ * Copyright 2017 Vector Creations Ltd
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,12 +19,11 @@ package org.matrix.androidsdk.data;
 
 import android.os.Looper;
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXDataHandler;
-import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXMemoryStore;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -166,6 +166,11 @@ public class EventTimeline {
     private boolean mIsHistorical;
 
     /**
+     * Unique identifier
+     */
+    private final String mTimelineId = System.currentTimeMillis() + "";
+
+    /**
      * Constructor from room.
      * @param room the linked room.
      * @param isLive true if it is a live EventTimeline
@@ -210,6 +215,12 @@ public class EventTimeline {
      */
     public void setIsHistorical(boolean isHistorical) {
         mIsHistorical = isHistorical;
+
+    /*    
+     * @return the unique identifier
+     */
+    public String getTimelineId() {
+        return mTimelineId;
     }
 
     /**
@@ -275,8 +286,36 @@ public class EventTimeline {
 
         // sanity check
         if ((null != mDataHandler) && (null != mDataHandler.getDataRetriever())) {
+            mDataHandler.resetReplayAttackCheckInTimeline(getTimelineId());
             mDataHandler.getDataRetriever().cancelHistoryRequest(mRoomId);
         }
+    }
+
+    /**
+     * Init the history with a list of stateEvents
+     * @param stateEvents the state events
+     */
+    private void initHistory(List<Event> stateEvents) {
+        // clear the states
+        mState = new RoomState();
+        mState.roomId = mRoomId;
+        mState.setDataHandler(mDataHandler);
+
+        if (null != stateEvents) {
+            for (Event event : stateEvents) {
+                try {
+                    processStateEvent(event, Direction.FORWARDS);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "initHistory failed " + e.getMessage());
+                }
+            }
+        }
+
+        mStore.storeLiveStateForRoom(mRoomId);
+        initHistory();
+
+        // warn that there was a flush
+        mDataHandler.onRoomFlush(mRoomId);
     }
 
     /**
@@ -481,25 +520,6 @@ public class EventTimeline {
         // the EventTimeLine is used when displaying a room preview
         // so, the following items should only be called when it is a live one.
         if (mIsLiveTimeline) {
-            // wait the end of the events chunk processing to detect if the user leaves the room
-            // The timeline events could contain a leave event followed by a join.
-            // so, the user does not leave.
-            // The handleLiveEvent used to warn the client that a room was left where as it should not
-            selfMember = mState.getMember(myUserId);
-
-            if ((null != selfMember) && !mIsHistorical) {
-                membership = selfMember.membership;
-
-                if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE) || TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN)) {
-                    // check if the room still exists.
-                    if (null != mStore.getRoom(mRoomId)) {
-                        mStore.deleteRoom(mRoomId);
-                        mDataHandler.onLeaveRoom(mRoomId);
-                    }
-                }
-            }
-
-
             // check if the summary is defined
             // after a sync, the room summary might not be defined because the latest message did not generate a room summary/
             if (null != mStore.getRoom(mRoomId)) {
@@ -658,6 +678,13 @@ public class EventTimeline {
                     for (int index = events.size() - 1; index >= 0; index--) {
                         Event anEvent = events.get(index);
                         if (RoomSummary.isSupportedEvent(anEvent)) {
+                            // Decrypt event if necessary
+                            if (TextUtils.equals(anEvent.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
+                                if (null != mDataHandler.getCrypto()) {
+                                    mDataHandler.getCrypto().decryptEvent(anEvent, getTimelineId());
+                                }
+                            }
+
                             EventDisplay eventDisplay = new EventDisplay(mStore.getContext(), anEvent, mState);
 
                             // ensure that message can be displayed
@@ -757,6 +784,9 @@ public class EventTimeline {
     private void handleLiveEvent(Event event, boolean checkRedactedStateEvent, boolean withPush) {
         MyUser myUser = mDataHandler.getMyUser();
 
+        // Decrypt event if necessary
+        mDataHandler.decryptEvent(event, getTimelineId());
+
         // dispatch the call events to the calls manager
         if (event.isCallEvent()) {
             mDataHandler.getCallsManager().handleCallEvent(mStore, event);
@@ -784,7 +814,6 @@ public class EventTimeline {
 
             // avoid processing event twice
             if (null != storedEvent) {
-
                 // an event has been echoed
                 if (storedEvent.getAge() == Event.DUMMY_EVENT_AGE) {
                     mStore.deleteEvent(storedEvent);
@@ -851,16 +880,6 @@ public class EventTimeline {
                         // not processed -> do not warn the application
                         // assume that the event is a duplicated one.
                         return;
-                    }
-                }
-
-                // Decrypt event if necessary
-                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
-                    if (null != mDataHandler.getCrypto()) {
-                        event.setClearEvent(mDataHandler.getCrypto().decryptEvent(event));
-                    } else {
-                        event.setClearEvent(null);
-                        event.setCryptoError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLE));
                     }
                 }
 
@@ -981,14 +1000,7 @@ public class EventTimeline {
             }
 
             // Decrypt event if necessary
-            if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
-                if (null != mDataHandler.getCrypto()) {
-                    event.setClearEvent(mDataHandler.getCrypto().decryptEvent(event));
-                } else {
-                    event.setClearEvent(null);
-                    event.setCryptoError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLE));
-                }
-            }
+            mDataHandler.decryptEvent(event, getTimelineId());
 
             if (processedEvent) {
                 // warn the listener only if the message is processed.
@@ -1105,9 +1117,13 @@ public class EventTimeline {
             public void onSuccess(TokensChunkResponse<Event> response) {
                 if (mDataHandler.isAlive()) {
 
-                    Log.d(LOG_TAG, "backPaginate : " + response.chunk.size() + " events are retrieved.");
+                    if (null != response.chunk) {
+                        Log.d(LOG_TAG, "backPaginate : " + response.chunk.size() + " events are retrieved.");
+                    } else {
+                        Log.d(LOG_TAG, "backPaginate : there is no event");
+                    }
 
-                    mIsLastBackChunk = ((0 == response.chunk.size()) && TextUtils.equals(response.end, response.start)) || (null == response.end);
+                    mIsLastBackChunk = ((null != response.chunk) && (0 == response.chunk.size()) && TextUtils.equals(response.end, response.start)) || (null == response.end);
 
                     if (mIsLastBackChunk && (null != response.end)) {
                         // save its token to avoid useless request
@@ -1121,7 +1137,7 @@ public class EventTimeline {
                         }
                     }
 
-                    addPaginationEvents(response.chunk, Direction.BACKWARDS, callback);
+                    addPaginationEvents((null == response.chunk) ? new ArrayList<Event>() : response.chunk, Direction.BACKWARDS, callback);
 
                 } else {
                     Log.d(LOG_TAG, "mDataHandler is not active.");
@@ -1281,6 +1297,8 @@ public class EventTimeline {
         // Reset the store
         mStore.deleteRoomData(mRoomId);
 
+        mDataHandler.resetReplayAttackCheckInTimeline(getTimelineId());
+
         mForwardsPaginationToken = null;
         mHasReachedHomeServerForwardsPaginationEnd = false;
 
@@ -1377,22 +1395,46 @@ public class EventTimeline {
      * because the room states has to be been updated.
      * @param event the redacted event
      */
-    private void checkStateEventRedaction(Event event) {
+    private void checkStateEventRedaction(final Event event) {
         if (null != event.stateKey) {
             Log.d(LOG_TAG, "checkStateEventRedaction from event " + event.eventId);
 
-            // let the server provides an up to update room state.
-            // we should apply the pruned event to the latest room state
-            // because it might concern an older state.
-            // Else, the current state would be invalid.
-            // eg with this room history
-            //
-            // message_1 : A renames this room to Name1
-            // message_2 : A renames this room to Name2
-            // If message_1 is redacted, the room name must not be cleared
-            // If the messages have been room member name updates,
-            // the user must keep his latest name but his name must be updated in the history
-            checkStateEventRedaction(event.eventId);
+            // check if the state events is locally known
+            // to avoid triggering a room initial sync
+            mState.getStateEvents(new SimpleApiCallback<List<Event>>() {
+                @Override
+                public void onSuccess(List<Event> stateEvents) {
+                    boolean isFound = false;
+                    for(int index = 0; index < stateEvents.size(); index++) {
+                        Event stateEvent = stateEvents.get(index);
+
+                        if (TextUtils.equals(stateEvent.eventId, event.eventId)) {
+                            stateEvents.set(index, event);
+                            isFound = true;
+                            break;
+                        }
+                    }
+
+                    // if the room state can be locally pruned
+                    // and can create a new valid room state
+                    if (isFound) {
+                        initHistory(stateEvents);
+                    } else {
+                        // let the server provides an up to update room state.
+                        // we should apply the pruned event to the latest room state
+                        // because it might concern an older state.
+                        // Else, the current state would be invalid.
+                        // eg with this room history
+                        //
+                        // message_1 : A renames this room to Name1
+                        // message_2 : A renames this room to Name2
+                        // If message_1 is redacted, the room name must not be cleared
+                        // If the messages have been room member name updates,
+                        // the user must keep his latest name but his name must be updated in the history
+                        checkStateEventRedaction(event.eventId);
+                    }
+                }
+            });
         }
     }
 
@@ -1453,27 +1495,7 @@ public class EventTimeline {
                 // else assume the state has already been updated
                 if (curRoomState == mState) {
                     Log.d(LOG_TAG, "forceRoomStateServerSync updates the state");
-
-                    // clear the states
-                    mState = new RoomState();
-                    mState.roomId = mRoomId;
-                    mState.setDataHandler(mDataHandler);
-
-                    if (null != roomResponse.state) {
-                        for (Event event : roomResponse.state) {
-                            try {
-                                processStateEvent(event, Direction.FORWARDS);
-                            } catch (Exception e) {
-                                Log.e(LOG_TAG, "processStateEvent failed " + e.getLocalizedMessage());
-                            }
-                        }
-                    }
-
-                    mStore.storeLiveStateForRoom(mRoomId);
-                    initHistory();
-
-                    // warn that there was a flush
-                    mDataHandler.onRoomFlush(mRoomId);
+                    initHistory(roomResponse.state);
                 } else {
                     Log.d(LOG_TAG, "forceRoomStateServerSync : the room state has been udpated, don't know what to do");
                 }
@@ -1481,17 +1503,20 @@ public class EventTimeline {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "forceRoomStateServerSync : onNetworkError " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "forceRoomStateServerSync : onNetworkError " + e.getMessage());
+                mStore.setCorrupted(e.getMessage());
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "forceRoomStateServerSync : onMatrixError " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "forceRoomStateServerSync : onMatrixError " + e.getMessage());
+                mStore.setCorrupted(e.getMessage());
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "forceRoomStateServerSync : onUnexpectedError " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "forceRoomStateServerSync : onUnexpectedError " + e.getMessage());
+                mStore.setCorrupted(e.getMessage());
             }
         });
     }

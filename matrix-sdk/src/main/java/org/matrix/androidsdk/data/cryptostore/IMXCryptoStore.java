@@ -19,11 +19,12 @@ package org.matrix.androidsdk.data.cryptostore;
 import android.content.Context;
 
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
-import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
+import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.olm.OlmAccount;
 import org.matrix.olm.OlmSession;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -34,9 +35,13 @@ public interface IMXCryptoStore {
      * Init a crypto store for the passed credentials.
      * @param context the application context
      * @param credentials the credentials of the account.
-     * @return the store. Call the open method before using it.
      */
     void initWithCredentials(Context context, Credentials credentials);
+
+    /**
+     * @return if the corrupted is corrupted.
+     */
+    boolean isCorrupted();
 
     /**
      * Indicate if the store contains data for the passed account.
@@ -72,7 +77,7 @@ public interface IMXCryptoStore {
 
     /**
      * Store the end to end account for the logged-in user.
-     * @param account
+     * @param account the account to save
      */
     void storeAccount(OlmAccount account);
 
@@ -96,7 +101,7 @@ public interface IMXCryptoStore {
      * @param userId The user's id.
      * @param device the device to store.
      */
-    void storeDeviceForUser(String userId, MXDeviceInfo device);
+    void storeUserDevice(String userId, MXDeviceInfo device);
 
     /**
      * Retrieve a device for a user.
@@ -104,35 +109,35 @@ public interface IMXCryptoStore {
      * @param userId The user's id.
      * @return A map from device id to 'MXDevice' object for the device.
      */
-    MXDeviceInfo deviceWithDeviceId(String deviceId, String userId);
+    MXDeviceInfo getUserDevice(String deviceId, String userId);
 
     /**
      * Store the known devices for a user.
      * @param userId  The user's id.
      * @param devices A map from device id to 'MXDevice' object for the device.
      */
-    void storeDevicesForUser(String userId, Map<String, MXDeviceInfo> devices);
+    void storeUserDevices(String userId, Map<String, MXDeviceInfo> devices);
 
     /**
      * Retrieve the known devices for a user.
      * @param userId The user's id.
-     * @return A map from device id to 'MXDevice' object for the device.
+     * @return The devices map if some devices are known, else null
      */
-    Map<String, MXDeviceInfo> devicesForUser(String userId);
+    Map<String, MXDeviceInfo> getUserDevices(String userId);
 
     /**
      *  Store the crypto algorithm for a room.
      * @param roomId the id of the room.
      * @param algorithm the algorithm.
      */
-    void storeAlgorithmForRoom(String roomId, String algorithm);
+    void storeRoomAlgorithm(String roomId, String algorithm);
 
     /**
      * Provides the algorithm used in a dedicated room.
      * @param roomId the room id
      * @return the algorithm, null is the room is not encrypted
      */
-    String algorithmForRoom(String roomId);
+    String getRoomAlgorithm(String roomId);
 
     /**
      * Store a session between the logged-in user and another device.
@@ -147,13 +152,13 @@ public interface IMXCryptoStore {
      * @param deviceKey the public key of the other device.
      * @return  A map from sessionId to Base64 end-to-end session.
      */
-    Map<String, OlmSession> sessionsWithDevice(String deviceKey);
+    Map<String, OlmSession> getDeviceSessions(String deviceKey);
 
     /**
      * Store an inbound group session.
      * @param session the inbound group session and its context.
      */
-    void storeInboundGroupSession(MXOlmInboundGroupSession session);
+    void storeInboundGroupSession(MXOlmInboundGroupSession2 session);
 
     /**
      * Retrieve an inbound group session.
@@ -161,5 +166,44 @@ public interface IMXCryptoStore {
      * @param senderKey the base64-encoded curve25519 key of the sender.
      * @return an inbound group session.
      */
-    MXOlmInboundGroupSession inboundGroupSessionWithId(String sessionId, String senderKey);
+    MXOlmInboundGroupSession2 getInboundGroupSession(String sessionId, String senderKey);
+
+    /**
+     * Retrieve the known inbound group sessions.
+     * @return an inbound group session.
+     */
+    List<MXOlmInboundGroupSession2> getInboundGroupSessions();
+
+    /**
+     * Remove an inbound group session
+     * @param sessionId the session identifier.
+     * @param senderKey the base64-encoded curve25519 key of the sender.
+     */
+    void removeInboundGroupSession(String sessionId, String senderKey);
+
+    /**
+     * Set the global override for whether the client should ever send encrypted
+     * messages to unverified devices.
+     * If false, it can still be overridden per-room.
+     * If true, it overrides the per-room settings.
+     * @param block true to unilaterally blacklist all
+     */
+    void setGlobalBlacklistUnverifiedDevices(boolean block);
+
+    /**
+     * @return true to unilaterally blacklist all unverified devices.
+     */
+    boolean getGlobalBlacklistUnverifiedDevices();
+
+    /**
+     * Updates the rooms ids list in which the messages are not encrypted for the unverified devices.
+     * @param roomIds the room ids list
+     */
+    void setRoomsListBlacklistUnverifiedDevices(List<String> roomIds);
+
+    /**
+     * Provides the rooms ids list in which the messages are not encrypted for the unverified devices.
+     * @return the room Ids list
+     */
+    List<String> getRoomsListBlacklistUnverifiedDevices();
 }

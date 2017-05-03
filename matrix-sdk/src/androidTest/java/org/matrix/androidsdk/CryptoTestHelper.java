@@ -34,6 +34,8 @@ import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.assertTrue;
+
 public class CryptoTestHelper {
     public static final String TESTS_HOME_SERVER_URL = "http://10.0.2.2:8080";
 
@@ -99,7 +101,7 @@ public class CryptoTestHelper {
 
         String session = (String)params.get("session");
 
-        assert(null != session);
+        assertTrue(null != session);
 
         registrationParams.username = userName;
         registrationParams.password = password;
@@ -137,7 +139,7 @@ public class CryptoTestHelper {
 
         Credentials credentials = (Credentials)params.get("credentials");
 
-        assert (null != credentials);
+        assertTrue (null != credentials);
 
         hs.setCredentials(credentials);
 
@@ -160,7 +162,7 @@ public class CryptoTestHelper {
         mLock = new CountDownLatch(1);
         mxSession.getDataHandler().addListener(new MXEventListener() {
             @Override
-            public void onInitialSyncComplete() {
+            public void onInitialSyncComplete(String toToken) {
                 params.put("isInit", true);
                 mLock.countDown();
             }
@@ -168,7 +170,91 @@ public class CryptoTestHelper {
 
         mLock.await(100000, TimeUnit.DAYS.MILLISECONDS);
 
-        assert(params.containsKey("isInit"));
+        assertTrue(params.containsKey("isInit"));
+
+        return mxSession;
+    }
+
+    /**
+     * Start an account login
+     * @param context the context
+     * @param userName the account username
+     * @param password the password
+     * @throws Exception
+     */
+    public static MXSession logAccountAndSync(Context context, String userName, String password) throws Exception {
+        Uri uri = Uri.parse(TESTS_HOME_SERVER_URL);
+        HomeserverConnectionConfig hs = new HomeserverConnectionConfig(uri);
+        LoginRestClient loginRestClient = new LoginRestClient(hs);
+
+        final HashMap<String, Object> params = new HashMap<>();
+
+        mLock = new CountDownLatch(1);
+
+        // get the registration session id
+        loginRestClient.loginWithUser(userName, password, new ApiCallback<Credentials>() {
+            @Override
+            public void onSuccess(Credentials credentials) {
+                params.put("credentials", credentials);
+                mLock.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                mLock.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                mLock.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                mLock.countDown();
+            }
+        });
+
+        mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
+
+        Credentials credentials = (Credentials)params.get("credentials");
+
+        assertTrue (null != credentials);
+
+        hs.setCredentials(credentials);
+
+        IMXStore store =  new MXFileStore(hs, context);
+
+        MXSession mxSession = new MXSession(hs, new MXDataHandler(store, credentials, new MXDataHandler.InvalidTokenListener() {
+            @Override
+            public void onTokenCorrupted() {
+            }
+        }), context);
+
+        mxSession.enableCryptoWhenStarting();
+
+        mLock = new CountDownLatch(2);
+        mxSession.getDataHandler().addListener(new MXEventListener() {
+            @Override
+            public void onInitialSyncComplete(String toToken) {
+                params.put("isInit", true);
+                mLock.countDown();
+            }
+
+            @Override
+            public void onCryptoSyncComplete() {
+                params.put("onCryptoSyncComplete", true);
+                mLock.countDown();
+            }
+        });
+
+        mxSession.getDataHandler().getStore().open();
+        mxSession.startEventStream(null);
+
+        mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
+
+        assertTrue(params.containsKey("isInit"));
+        assertTrue(params.containsKey("onCryptoSyncComplete"));
 
         return mxSession;
     }

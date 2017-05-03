@@ -3,7 +3,6 @@
     <color name="room_background">#f4f4f4</color>
 
     <color name="message_normal">#000</color>
-    <color name="message_emote">#d8d</color>
     <color name="message_highlighted">#00f</color>
     <color name="message_encryting">#777</color>
     <color name="message_sending">#aaa</color>

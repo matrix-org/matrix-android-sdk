@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +17,22 @@
 
 package org.matrix.androidsdk.crypto;
 
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
 import android.text.TextUtils;
-import android.util.Log;
+
+import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
+import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
+import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.crypto.algorithms.IMXDecrypting;
 import org.matrix.androidsdk.crypto.algorithms.IMXEncrypting;
-import org.matrix.androidsdk.crypto.algorithms.MXDecryptionResult;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
 import org.matrix.androidsdk.crypto.data.MXKey;
@@ -33,14 +41,16 @@ import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.NewDeviceContent;
+import org.matrix.androidsdk.rest.model.RoomKeyContent;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
 import org.matrix.androidsdk.util.JsonUtils;
 
@@ -48,18 +58,17 @@ import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * A `MXCrypto` class instance manages the end-to-end crypto for a MXSession instance.
- *
+ * <p>
  * Messages posted by the user are automatically redirected to MXCrypto in order to be encrypted
  * before sending.
  * In the other hand, received events goes through MXCrypto for decrypting.
@@ -69,9 +78,14 @@ import java.util.UUID;
 public class MXCrypto {
     private static final String LOG_TAG = "MXCrypto";
 
-    private static final long UPLOAD_KEYS_DELAY_MS = 10 * 60 * 1000;
-
+    // max number of keys to upload at once
+    // Creating keys can be an expensive operation so we limit the
+    // number we generate in one go to avoid blocking the application
+    // for too long.
     private static final int ONE_TIME_KEY_GENERATION_MAX_NUMBER = 5;
+
+    // frequency with which to check & upload one-time keys
+    private static final long ONE_TIME_KEY_UPLOAD_PERIOD = 60 * 1000; // one minute
 
     // The Matrix session.
     private final MXSession mSession;
@@ -79,8 +93,12 @@ public class MXCrypto {
     // the crypto store
     public IMXCryptoStore mCryptoStore;
 
-    // EncryptionAlgorithm instance for each room.
-    private HashMap<String, IMXEncrypting> mRoomAlgorithms;
+    // MXEncrypting instance for each room.
+    private final HashMap<String, IMXEncrypting> mRoomEncryptors;
+
+    // A map from algorithm to MXDecrypting instance, for each room
+    private final HashMap<String, /* room id */
+            HashMap<String /* algorithm */, IMXDecrypting>> mRoomDecryptors;
 
     // Our device keys
     private MXDeviceInfo mMyDevice;
@@ -90,15 +108,35 @@ public class MXCrypto {
 
     private Map<String, Map<String, String>> mLastPublishedOneTimeKeys;
 
+    // the encryption is starting
+    private boolean mIsStarting;
+
     // tell if the crypto is started
     private boolean mIsStarted;
 
-    // Timer to periodically upload keys
-    private Timer mUploadKeysTimer;
+    // the crypto background threads
+    private HandlerThread mEncryptingHandlerThread = null;
+    private Handler mEncryptingHandler = null;
 
-    // Map from userId -> deviceId -> roomId -> timestamp
-    // to manage rate limiting for pinging devices
-    private final MXUsersDevicesMap<HashMap<String, Long>> mLastNewDeviceMessageTsByUserDeviceRoom;
+    private HandlerThread mDecryptingHandlerThread = null;
+    private Handler mDecryptingHandler = null;
+
+    // the UI thread
+    private Handler mUIHandler = null;
+
+    private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
+
+    private final MXDeviceList mDevicesList;
+
+    private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
+        @Override
+        public void onNetworkConnectionUpdate(boolean isConnected) {
+            if (isConnected && !isStarted()) {
+                Log.d(LOG_TAG, "Start MXCrypto because a network connection has been retrieved ");
+                start(false, null);
+            }
+        }
+    };
 
     private final MXEventListener mEventListener = new MXEventListener() {
         @Override
@@ -110,27 +148,41 @@ public class MXCrypto {
         public void onLiveEvent(Event event, RoomState roomState) {
             if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTION)) {
                 onCryptoEvent(event);
-            } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
-                onRoomMembership(event);
             }
         }
     };
 
+    // initialization callbacks
+    private final ArrayList<ApiCallback<Void>> mInitializationCallbacks = new ArrayList();
+
+    // Warn the user if some new devices are detected while encrypting a message.
+    private boolean mWarnOnUnknownDevices = true;
+
+    // tell if there is a OTK check in progress
+    private boolean mOneTimeKeyCheckInProgress = false;
+
+    // last OTK check timestamp
+    private long mLastOneTimeKeyCheck = 0;
+
     /**
      * Constructor
+     *
      * @param matrixSession the session
-     * @param cryptoStore the crypto store
+     * @param cryptoStore   the crypto store
      */
     public MXCrypto(MXSession matrixSession, IMXCryptoStore cryptoStore) {
         mSession = matrixSession;
         mCryptoStore = cryptoStore;
 
         mOlmDevice = new MXOlmDevice(mCryptoStore);
-        mRoomAlgorithms = new HashMap<>();
+        mRoomEncryptors = new HashMap<>();
+        mRoomDecryptors = new HashMap<>();
 
         String deviceId = mSession.getCredentials().deviceId;
+        // deviceId should always be defined
+        boolean refreshDevicesList = !TextUtils.isEmpty(deviceId);
 
-        if (null == deviceId) {
+        if (TextUtils.isEmpty(deviceId)) {
             // use the stored one
             mSession.getCredentials().deviceId = deviceId = mCryptoStore.getDeviceId();
         }
@@ -143,6 +195,9 @@ public class MXCrypto {
 
         mMyDevice = new MXDeviceInfo(deviceId);
         mMyDevice.userId = mSession.getMyUserId();
+
+        mDevicesList = new MXDeviceList(matrixSession, this);
+
         HashMap<String, String> keys = new HashMap<>();
 
         if (!TextUtils.isEmpty(mOlmDevice.getDeviceEd25519Key())) {
@@ -159,7 +214,7 @@ public class MXCrypto {
         mMyDevice.mVerified = MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED;
 
         // Add our own deviceinfo to the store
-        Map<String, MXDeviceInfo> endToEndDevicesForUser = mCryptoStore.devicesForUser(mSession.getMyUserId());
+        Map<String, MXDeviceInfo> endToEndDevicesForUser = mCryptoStore.getUserDevices(mSession.getMyUserId());
 
         HashMap<String, MXDeviceInfo> myDevices;
 
@@ -171,80 +226,122 @@ public class MXCrypto {
 
         myDevices.put(mMyDevice.deviceId, mMyDevice);
 
-        mCryptoStore.storeDevicesForUser(mSession.getMyUserId(), myDevices);
+        mCryptoStore.storeUserDevices(mSession.getMyUserId(), myDevices);
         mSession.getDataHandler().setCryptoEventsListener(mEventListener);
-        mLastNewDeviceMessageTsByUserDeviceRoom = new MXUsersDevicesMap<>();
-    }
 
-    /**
-     * The MXSession is paused.
-     */
-    public void pause() {
-        stopUploadKeysTimer();
-    }
+        mEncryptingHandlerThread = new HandlerThread("MXCrypto_encrypting_" + mSession.getMyUserId(), Thread.MIN_PRIORITY);
+        mEncryptingHandlerThread.start();
 
-    /**
-     * The MXSession is resumed.
-     */
-    public void resume() {
-        if (mIsStarted) {
-            startUploadKeysTimer(false);
+        mDecryptingHandlerThread = new HandlerThread("MXCrypto_decrypting_" + mSession.getMyUserId(), Thread.MIN_PRIORITY);
+        mDecryptingHandlerThread.start();
+
+        mUIHandler = new Handler(Looper.getMainLooper());
+
+        if (refreshDevicesList) {
+            // ensure to have the up-to-date devices list
+            // got some issues when upgrading from Riot < 0.6.4
+            mDevicesList.addPendingUsersWithNewDevices(Arrays.asList(mSession.getMyUserId()));
         }
     }
 
     /**
-     * Stop the upload keys timer
+     * @return the encrypting thread handler
      */
-    private void stopUploadKeysTimer() {
-        if (null != mUploadKeysTimer) {
-            mUploadKeysTimer.cancel();
-            mUploadKeysTimer = null;
+    public Handler getEncryptingThreadHandler() {
+        // mEncryptingHandlerThread was not yet ready
+        if (null == mEncryptingHandler) {
+            mEncryptingHandler = new Handler(mEncryptingHandlerThread.getLooper());
         }
+
+        // fail to get the handler
+        // might happen if the thread is not yet ready
+        if (null == mEncryptingHandler) {
+            return mUIHandler;
+        }
+
+        return mEncryptingHandler;
     }
 
     /**
-     * Start the timer to periodically upload the keys
-     * @param delayed true when the keys upload must be delayed
+     * @return the decrypting thread handler
      */
-    private void startUploadKeysTimer(boolean delayed) {
-        mUploadKeysTimer = new Timer();
-        mUploadKeysTimer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                // check race conditions while logging out
-                if (null != mMyDevice) {
-                    uploadKeys(ONE_TIME_KEY_GENERATION_MAX_NUMBER, new ApiCallback<Void>() {
-                        @Override
-                        public void onSuccess(Void info) {
-                            Log.d(LOG_TAG, "## startUploadKeysTimer() : uploaded");
-                        }
+    private Handler getDecryptingThreadHandler() {
+        // mDecryptingHandlerThread was not yet ready
+        if (null == mDecryptingHandler) {
+            mDecryptingHandler = new Handler(mDecryptingHandlerThread.getLooper());
+        }
 
-                        @Override
-                        public void onNetworkError(Exception e) {
-                            Log.e(LOG_TAG, "## startUploadKeysTimer() : failed " + e.getMessage());
-                        }
+        // fail to get the handler
+        // might happen if the thread is not yet ready
+        if (null == mDecryptingHandler) {
+            return mUIHandler;
+        }
 
-                        @Override
-                        public void onMatrixError(MatrixError e) {
-                            Log.e(LOG_TAG, "## startUploadKeysTimer() : failed " + e.getMessage());
-                        }
+        return mDecryptingHandler;
+    }
 
-                        @Override
-                        public void onUnexpectedError(Exception e) {
-                            Log.e(LOG_TAG, "## startUploadKeysTimer() : failed " + e.getMessage());
-                        }
-                    });
-                }
-            }
-        }, delayed ? UPLOAD_KEYS_DELAY_MS : 0, UPLOAD_KEYS_DELAY_MS);
+    /**
+     * @return the UI thread handler
+     */
+    public Handler getUIHandler() {
+        return mUIHandler;
+    }
+
+    public void setNetworkConnectivityReceiver(NetworkConnectivityReceiver networkConnectivityReceiver) {
+        mNetworkConnectivityReceiver = networkConnectivityReceiver;
+    }
+
+    /**
+     * @return true if some saved data is corrupted
+     */
+    public boolean isCorrupted() {
+        return (null != mCryptoStore) && mCryptoStore.isCorrupted();
+    }
+
+    /**
+     * @return true if this instance has been released
+     */
+    public boolean hasBeenReleased() {
+        return (null == mOlmDevice);
+    }
+
+    /**
+     * @return my device info
+     */
+    public MXDeviceInfo getMyDevice() {
+        return mMyDevice;
+    }
+
+    /**
+     * @return the crypto store
+     */
+    public IMXCryptoStore getCryptoStore() {
+        return mCryptoStore;
+    }
+
+    /**
+     * @return the deviceList
+     */
+    public MXDeviceList getDeviceList() {
+        return mDevicesList;
     }
 
     /**
      * Tell if the MXCrypto is started
+     *
      * @return true if the crypto is started
      */
-    public boolean isIsStarted() {
+    public boolean isStarted() {
         return mIsStarted;
+    }
+
+    /**
+     * Tells if the MXCrypto is starting.
+     *
+     * @return true if the crypto is starting
+     */
+    public boolean isStarting() {
+        return mIsStarting;
     }
 
     /**
@@ -252,76 +349,163 @@ public class MXCrypto {
      * Device keys will be uploaded, then one time keys if there are not enough on the homeserver
      * and, then, if this is the first time, this new device will be announced to all other users
      * devices.
-     * @param callback the asynchrous callback
+     *
+     * @param aCallback the asynchronous callback
      */
-    public void start(final ApiCallback<Void> callback) {
-        uploadKeys(5, new ApiCallback<Void>() {
+    public void start(final boolean isInitialSync, final ApiCallback<Void> aCallback) {
+        if ((null != aCallback) && (mInitializationCallbacks.indexOf(aCallback) < 0)) {
+            mInitializationCallbacks.add(aCallback);
+        }
+
+        if (mIsStarting) {
+            return;
+        }
+
+        // do not start if there is not network connection
+        if ((null != mNetworkConnectivityReceiver) && !mNetworkConnectivityReceiver.isConnected()) {
+            // wait that a valid network connection is retrieved
+            mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
+            mNetworkConnectivityReceiver.addEventListener(mNetworkListener);
+            return;
+        }
+
+        mIsStarting = true;
+
+        getEncryptingThreadHandler().post(new Runnable() {
             @Override
-            public void onSuccess(Void info) {
-                Log.d(LOG_TAG, "###########################################################");
-                Log.d(LOG_TAG, "uploadKeys done for " + mSession.getMyUserId());
-                Log.d(LOG_TAG, "   - device id  : " +  mSession.getCredentials().deviceId);
-                Log.d(LOG_TAG, "  - ed25519    : " + mOlmDevice.getDeviceEd25519Key());
-                Log.d(LOG_TAG, "   - curve25519 : " + mOlmDevice.getDeviceCurve25519Key());
-                Log.d(LOG_TAG, "  - oneTimeKeys: "  + mLastPublishedOneTimeKeys);     // They are
-                Log.d(LOG_TAG, "");
+            public void run() {
+                uploadDeviceKeys(new ApiCallback<KeysUploadResponse>() {
+                    private void onError() {
+                        getUIHandler().postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                start(isInitialSync, null);
+                            }
+                        }, 5);
+                    }
 
-                checkDeviceAnnounced(new ApiCallback<Void>() {
                     @Override
-                    public void onSuccess(Void info) {
-                        mIsStarted = true;
-                        startUploadKeysTimer(true);
+                    public void onSuccess(KeysUploadResponse info) {
+                        getEncryptingThreadHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (!hasBeenReleased()) {
+                                    Log.d(LOG_TAG, "###########################################################");
+                                    Log.d(LOG_TAG, "uploadDeviceKeys done for " + mSession.getMyUserId());
+                                    Log.d(LOG_TAG, "  - device id  : " + mSession.getCredentials().deviceId);
+                                    Log.d(LOG_TAG, "  - ed25519    : " + mOlmDevice.getDeviceEd25519Key());
+                                    Log.d(LOG_TAG, "  - curve25519 : " + mOlmDevice.getDeviceCurve25519Key());
+                                    Log.d(LOG_TAG, "  - oneTimeKeys: " + mLastPublishedOneTimeKeys);     // They are
+                                    Log.d(LOG_TAG, "");
 
-                        if (null != callback) {
-                            callback.onSuccess(null);
-                        }
+                                    getEncryptingThreadHandler().post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            maybeUploadOneTimeKeys(new ApiCallback<Void>() {
+                                                @Override
+                                                public void onSuccess(Void info) {
+                                                    getEncryptingThreadHandler().post(new Runnable() {
+                                                        @Override
+                                                        public void run() {
+                                                            // Make sure we process to-device messages before generating new one-time-keys #2782
+                                                            checkDeviceAnnounced(new ApiCallback<Void>() {
+                                                                @Override
+                                                                public void onSuccess(Void info) {
+                                                                    if (null != mNetworkConnectivityReceiver) {
+                                                                        mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
+                                                                    }
+
+                                                                    mIsStarting = false;
+                                                                    mIsStarted = true;
+
+                                                                    for (ApiCallback<Void> callback : mInitializationCallbacks) {
+                                                                        final ApiCallback<Void> fCallback = callback;
+                                                                        getUIHandler().post(new Runnable() {
+                                                                            @Override
+                                                                            public void run() {
+                                                                                fCallback.onSuccess(null);
+                                                                            }
+                                                                        });
+                                                                    }
+                                                                    mInitializationCallbacks.clear();
+
+                                                                    if (isInitialSync) {
+                                                                        getEncryptingThreadHandler().post(new Runnable() {
+                                                                            @Override
+                                                                            public void run() {
+                                                                                // refresh the devices list for each known room members
+                                                                                getDeviceList().invalidateUserDeviceList(getE2eRoomMembers());
+                                                                                mDevicesList.refreshOutdatedDeviceLists();
+                                                                            }
+                                                                        });
+                                                                    }
+                                                                }
+
+                                                                @Override
+                                                                public void onNetworkError(Exception e) {
+                                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                                                    onError();
+                                                                }
+
+                                                                @Override
+                                                                public void onMatrixError(MatrixError e) {
+                                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                                                    onError();
+                                                                }
+
+                                                                @Override
+                                                                public void onUnexpectedError(Exception e) {
+                                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                                                    onError();
+                                                                }
+                                                            });
+                                                        }
+                                                    });
+                                                }
+
+                                                @Override
+                                                public void onNetworkError(Exception e) {
+                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                                    onError();
+                                                }
+
+                                                @Override
+                                                public void onMatrixError(MatrixError e) {
+                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                                    onError();
+                                                }
+
+                                                @Override
+                                                public void onUnexpectedError(Exception e) {
+                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                                    onError();
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            }
+                        });
                     }
 
                     @Override
                     public void onNetworkError(Exception e) {
-                        if (null != callback) {
-                            callback.onNetworkError(e);
-                        }
+                        Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                        onError();
                     }
 
                     @Override
                     public void onMatrixError(MatrixError e) {
-                        if (null != callback) {
-                            callback.onMatrixError(e);
-                        }
+                        Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                        onError();
                     }
 
                     @Override
                     public void onUnexpectedError(Exception e) {
-                        if (null != callback) {
-                            callback.onUnexpectedError(e);
-                        }
+                        Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                        onError();
                     }
                 });
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## uploadKeys : failed " + e.getMessage());
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "## uploadKeys : failed " + e.getMessage());
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## uploadKeys : failed " + e.getMessage());
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
             }
         });
     }
@@ -330,253 +514,34 @@ public class MXCrypto {
      * Close the crypto
      */
     public void close() {
-        mSession.getDataHandler().removeListener(mEventListener);
-
-        if (null != mOlmDevice) {
-            mOlmDevice.release();
-            mOlmDevice = null;
-        }
-
-        mRoomAlgorithms = null;
-        mMyDevice = null;
-
-        stopUploadKeysTimer();
-
-        mCryptoStore.close();
-        mCryptoStore = null;
-    }
-
-    /**
-     * @return teh olmdevice instance
-     */
-    public MXOlmDevice getOlmDevice() {
-        return mOlmDevice;
-    }
-
-    /**
-     * Upload the device keys to the homeserver and ensure
-     * that the homeserver has enough one-time keys.
-     * @param maxKeys The maximum number of keys to generate.
-     * @param callback the asynchronous callback
-     */
-    public void uploadKeys(final int maxKeys, final ApiCallback<Void> callback) {
-        uploadDeviceKeys(new ApiCallback<KeysUploadResponse>() {
-
-            @Override
-            public void onSuccess(KeysUploadResponse keysUploadResponse) {
-                // We need to keep a pool of one time public keys on the server so that
-                // other devices can start conversations with us. But we can only store
-                // a finite number of private keys in the olm Account object.
-                // To complicate things further then can be a delay between a device
-                // claiming a public one time key from the server and it sending us a
-                // message. We need to keep the corresponding private key locally until
-                // we receive the message.
-                // But that message might never arrive leaving us stuck with duff
-                // private keys clogging up our local storage.
-                // So we need some kind of enginering compromise to balance all of
-                // these factors.
-
-                // We first find how many keys the server has for us.
-                int keyCount  = keysUploadResponse.oneTimeKeyCountsForAlgorithm("signed_curve25519");
-
-                // We then check how many keys we can store in the Account object.
-                float maxOneTimeKeys = mOlmDevice.maxNumberOfOneTimeKeys();
-
-                // Try to keep at most half that number on the server. This leaves the
-                // rest of the slots free to hold keys that have been claimed from the
-                // server but we haven't recevied a message for.
-                // If we run out of slots when generating new keys then olm will
-                // discard the oldest private keys first. This will eventually clean
-                // out stale private keys that won't receive a message.
-                int keyLimit = (int)Math.floor(maxOneTimeKeys / 2.0);
-
-                // We work out how many new keys we need to create to top up the server
-                // If there are too many keys on the server then we don't need to
-                // create any more keys.
-                int numberToGenerate = Math.max(keyLimit - keyCount, 0);
-
-                if (maxKeys > 0) {
-                    // Creating keys can be an expensive operation so we limit the
-                    // number we generate in one go to avoid blocking the application
-                    // for too long.
-                    numberToGenerate = Math.min(numberToGenerate, maxKeys);
-
-                    // Ask olm to generate new one time keys, then upload them to synapse.
-                    mOlmDevice.generateOneTimeKeys(numberToGenerate);
-
-                    uploadOneTimeKeys(new ApiCallback<KeysUploadResponse>() {
-                        @Override
-                        public void onSuccess(KeysUploadResponse info) {
-                            if (null != callback) {
-                                callback.onSuccess(null);
-                            }
-                        }
-
-                        @Override
-                        public void onNetworkError(Exception e) {
-                            if (null != callback) {
-                                callback.onNetworkError(e);
-                            }
-                        }
-
-                        @Override
-                        public void onMatrixError(MatrixError e) {
-                            if (null != callback) {
-                                callback.onMatrixError(e);
-                            }
-                        }
-
-                        @Override
-                        public void onUnexpectedError(Exception e) {
-                            if (null != callback) {
-                                callback.onUnexpectedError(e);
-                            }
-                        }
-                    });
-                } else {
-                    // If we don't need to generate any keys then we are done.
-                    if (null != callback) {
-                        callback.onSuccess(null);
-                    }
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## uploadKeys() : onNetworkError " + e.getMessage());
-
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "## uploadKeys() : onMatrixError " + e.getLocalizedMessage());
-
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## uploadKeys() : onUnexpectedError " + e.getMessage());
-
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
-            }
-        });
-    }
-
-    /**
-     * Download the device keys for a list of users and stores the keys in the MXStore.
-     * @param userIds The users to fetch.
-     * @param forceDownload Always download the keys even if cached.
-     * @param callback the asynchronous callback
-     */
-    public void downloadKeys(List<String> userIds, boolean forceDownload, final ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> callback) {
-        // Map from userid -> deviceid -> DeviceInfo
-        final MXUsersDevicesMap<MXDeviceInfo> stored = new MXUsersDevicesMap<>();
-
-        // List of user ids we need to download keys for
-        final ArrayList<String> downloadUsers = new ArrayList<>();
-
-        if (null != userIds) {
-            for (String userId : userIds) {
-
-                Map<String, MXDeviceInfo> devices = mCryptoStore.devicesForUser(userId);
-                boolean isEmpty = (null == devices) || (devices.size() == 0);
-
-                if (!isEmpty) {
-                    stored.setObjects(devices, userId);
-                }
-
-                if (isEmpty || forceDownload) {
-                    downloadUsers.add(userId);
-                }
-            }
-        }
-
-        if (0 == downloadUsers.size()) {
-            if (null != callback) {
-                callback.onSuccess(stored);
-            }
-        } else {
-            // Download
-            mSession.getCryptoRestClient().downloadKeysForUsers(downloadUsers, new ApiCallback<KeysQueryResponse>() {
+        if (null != mEncryptingHandlerThread) {
+            mSession.getDataHandler().removeListener(mEventListener);
+            getEncryptingThreadHandler().post(new Runnable() {
                 @Override
-                public void onSuccess(KeysQueryResponse keysQueryResponse) {
-                    MXUsersDevicesMap<MXDeviceInfo> deviceKeys = new MXUsersDevicesMap<>(keysQueryResponse.deviceKeys);
-
-                    for (String userId : deviceKeys.userIds()) {
-                        HashMap<String, MXDeviceInfo> devices;
-
-                        if (deviceKeys.getMap().containsKey(userId)) {
-                            devices = new HashMap<>(deviceKeys.getMap().get(userId));
-                        } else {
-                            devices = new HashMap<>();
-                        }
-
-                        ArrayList<String> deviceIds = new ArrayList<>(devices.keySet());
-
-                        for (String deviceId : deviceIds) {
-                            // Get the potential previously store device keys for this device
-                            MXDeviceInfo previouslyStoredDeviceKeys = stored.objectForDevice(deviceId, userId);
-
-                            // Validate received keys
-                            if (!validateDeviceKeys(devices.get(deviceId), userId, deviceId, previouslyStoredDeviceKeys)) {
-                                // New device keys are not valid. Do not store them
-                                devices.remove(deviceId);
-
-                                if (null != previouslyStoredDeviceKeys) {
-                                    // But keep old validated ones if any
-                                    devices.put(deviceId, previouslyStoredDeviceKeys);
-                                }
-                            } else if (null != previouslyStoredDeviceKeys) {
-                                // The verified status is not sync'ed with hs.
-                                // This is a client side information, valid only for this client.
-                                // So, transfer its previous value
-                                if (devices.containsKey(deviceId)) {
-                                    devices.get(deviceId).mVerified = previouslyStoredDeviceKeys.mVerified;
-                                }
-                            }
-                        }
-
-                        // Update the store. Note
-                        mCryptoStore.storeDevicesForUser(userId, devices);
-
-                        // And the response result
-                        stored.setObjects(devices, userId);
+                public void run() {
+                    if (null != mOlmDevice) {
+                        mOlmDevice.release();
+                        mOlmDevice = null;
                     }
 
-                    if (null != callback) {
-                        callback.onSuccess(stored);
+                    mMyDevice = null;
+
+                    mCryptoStore.close();
+                    mCryptoStore = null;
+
+                    if (null != mEncryptingHandlerThread) {
+                        mEncryptingHandlerThread.quit();
+                        mEncryptingHandlerThread = null;
                     }
                 }
+            });
 
+            getDecryptingThreadHandler().post(new Runnable() {
                 @Override
-                public void onNetworkError(Exception e) {
-                    Log.e(LOG_TAG, "## downloadKeys() : onNetworkError " + e.getMessage());
-                    if (null != callback) {
-                        callback.onNetworkError(e);
-                    }
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    Log.e(LOG_TAG, "## downloadKeys() : onMatrixError " + e.getLocalizedMessage());
-                    if (null != callback) {
-                        callback.onMatrixError(e);
-                    }
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    Log.e(LOG_TAG, "## downloadKeys() : onUnexpectedError " + e.getMessage());
-                    if (null != callback) {
-                        callback.onUnexpectedError(e);
+                public void run() {
+                    if (null != mDecryptingHandlerThread) {
+                        mDecryptingHandlerThread.quit();
+                        mDecryptingHandlerThread = null;
                     }
                 }
             });
@@ -584,48 +549,112 @@ public class MXCrypto {
     }
 
     /**
-     * Get the stored device keys for a user.
-     * @param userId the user to list keys for.
-     * @return the list of devices.
+     * @return the olmdevice instance
      */
-    public List<MXDeviceInfo> storedDevicesForUser(String userId) {
-        Map<String, MXDeviceInfo> map = mCryptoStore.devicesForUser(userId);
+    public MXOlmDevice getOlmDevice() {
+        return mOlmDevice;
+    }
 
-        if (null == map) {
-            return null;
-        } else {
-            return new ArrayList<>(map.values());
-        }
+    /**
+     * A sync response has been received
+     *
+     * @param syncResponse the syncResponse
+     * @param fromToken    the start sync token
+     * @param isCatchingUp true if there is a catch-up in progress.
+     */
+    public void onSyncCompleted(final SyncResponse syncResponse, final String fromToken, final boolean isCatchingUp) {
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                if (null != syncResponse.deviceLists) {
+                    getDeviceList().invalidateUserDeviceList(syncResponse.deviceLists.changed);
+                }
+
+                if (isStarted()) {
+                    // Make sure we process to-device messages before generating new one-time-keys #2782
+                    mDevicesList.refreshOutdatedDeviceLists();
+                }
+
+                if (!isCatchingUp && isStarted()) {
+                    maybeUploadOneTimeKeys();
+                }
+            }
+        });
+    }
+
+    /**
+     * Get the stored device keys for a user.
+     *
+     * @param userId   the user to list keys for.
+     * @param callback the asynchronous callback
+     */
+    public void getUserDevices(final String userId, final ApiCallback<List<MXDeviceInfo>> callback) {
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                final List<MXDeviceInfo> list = getUserDevices(userId);
+
+                if (null != callback) {
+                    getUIHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onSuccess(list);
+                        }
+                    });
+                }
+            }
+        });
     }
 
     /**
      * Find a device by curve25519 identity key
-     * @param userId the owner of the device.
+     *
+     * @param userId    the owner of the device.
      * @param algorithm the encryption algorithm.
      * @param senderKey the curve25519 key to match.
      * @return the device info.
      */
-    public MXDeviceInfo deviceWithIdentityKey(String senderKey, String userId, String algorithm) {
-        if (!TextUtils.equals(algorithm, MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM) && !TextUtils.equals(algorithm, MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM)) {
-            // We only deal in olm keys
-            return null;
-        }
+    public MXDeviceInfo deviceWithIdentityKey(final String senderKey, final String userId, final String algorithm) {
+        if (!hasBeenReleased()) {
+            if (!TextUtils.equals(algorithm, MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM) && !TextUtils.equals(algorithm, MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM)) {
+                // We only deal in olm keys
+                return null;
+            }
 
-        if (!TextUtils.isEmpty(userId)) {
-            List<MXDeviceInfo> devices = storedDevicesForUser(userId);
+            if (!TextUtils.isEmpty(userId)) {
+                final ArrayList<MXDeviceInfo> result = new ArrayList<>();
+                final CountDownLatch lock = new CountDownLatch(1);
 
-            if (null != devices) {
-                for (MXDeviceInfo device : devices) {
-                    Set<String> keys = device.keys.keySet();
+                getDecryptingThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        List<MXDeviceInfo> devices = getUserDevices(userId);
 
-                    for (String keyId : keys) {
-                        if (keyId.startsWith("curve25519:")) {
-                            if (TextUtils.equals(senderKey, device.keys.get(keyId))) {
-                                return device;
+                        if (null != devices) {
+                            for (MXDeviceInfo device : devices) {
+                                Set<String> keys = device.keys.keySet();
+
+                                for (String keyId : keys) {
+                                    if (keyId.startsWith("curve25519:")) {
+                                        if (TextUtils.equals(senderKey, device.keys.get(keyId))) {
+                                            result.add(device);
+                                        }
+                                    }
+                                }
                             }
                         }
+
+                        lock.countDown();
                     }
+                });
+
+                try {
+                    lock.await();
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## deviceWithIdentityKey() : failed " + e.getMessage());
                 }
+
+                return (result.size() > 0) ? result.get(0) : null;
             }
         }
 
@@ -634,46 +663,180 @@ public class MXCrypto {
     }
 
     /**
-     * Update the blocked/verified state of the given device
-     * @param verificationStatus the new verification status.
-     * @param deviceId the unique identifier for the device.
-     * @param userId the owner of the device.
+     * Provides the device information for a device id and an user Id
+     *
+     * @param userId   the user id
+     * @param deviceId the device id
+     * @param callback the asynchronous callback
      */
-    public void setDeviceVerification(int verificationStatus, String deviceId, String userId) {
-        MXDeviceInfo device = mCryptoStore.deviceWithDeviceId(deviceId, userId);
+    public void getDeviceInfo(final String userId, final String deviceId, final ApiCallback<MXDeviceInfo> callback) {
+        getDecryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                final MXDeviceInfo di;
 
-        // Sanity check
-        if (null == device) {
-            Log.e(LOG_TAG, "## setDeviceVerification() : Unknown device " +  userId + ":" + deviceId);
+                if (!TextUtils.isEmpty(userId) && !TextUtils.isEmpty(deviceId)) {
+                    di = mCryptoStore.getUserDevice(deviceId, userId);
+                } else {
+                    di = null;
+                }
+
+                if (null != callback) {
+                    getUIHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onSuccess(di);
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    /**
+     * Set the devices as known
+     *
+     * @param devices  the devices
+     * @param callback the as
+     */
+    public void setDevicesKnown(final List<MXDeviceInfo> devices, final ApiCallback<Void> callback) {
+        if (hasBeenReleased()) {
+            return;
+        }
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                // build a devices map
+                Map<String, List<String>> devicesIdListByUserId = new HashMap<>();
+
+                for (MXDeviceInfo di : devices) {
+                    List<String> deviceIdsList = devicesIdListByUserId.get(di.userId);
+
+                    if (null == deviceIdsList) {
+                        deviceIdsList = new ArrayList<>();
+                        devicesIdListByUserId.put(di.userId, deviceIdsList);
+                    }
+                    deviceIdsList.add(di.deviceId);
+                }
+
+                Set<String> userIds = devicesIdListByUserId.keySet();
+
+                for (String userId : userIds) {
+                    Map<String, MXDeviceInfo> storedDeviceIDs = mCryptoStore.getUserDevices(userId);
+
+                    // sanity checks
+                    if (null != storedDeviceIDs) {
+                        boolean isUpdated = false;
+                        List<String> deviceIds = devicesIdListByUserId.get(userId);
+
+                        for (String deviceId : deviceIds) {
+                            MXDeviceInfo device = storedDeviceIDs.get(deviceId);
+
+                            // assume if the device is either verified or blocked
+                            // it means that the device is known
+                            if ((null != device) && device.isUnknown()) {
+                                device.mVerified = MXDeviceInfo.DEVICE_VERIFICATION_UNVERIFIED;
+                                isUpdated = true;
+                            }
+                        }
+
+                        if (isUpdated) {
+                            mCryptoStore.storeUserDevices(userId, storedDeviceIDs);
+                        }
+                    }
+                }
+
+                if (null != callback) {
+                    getUIHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onSuccess(null);
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    /**
+     * Update the blocked/verified state of the given device
+     *
+     * @param verificationStatus the new verification status.
+     * @param deviceId           the unique identifier for the device.
+     * @param userId             the owner of the device.
+     */
+    public void setDeviceVerification(final int verificationStatus, final String deviceId, final String userId, final ApiCallback<Void> callback) {
+        if (hasBeenReleased()) {
             return;
         }
 
-        if (device.mVerified != verificationStatus) {
-            device.mVerified = verificationStatus;
-            mCryptoStore.storeDeviceForUser(userId, device);
+        final ArrayList<String> userRoomIds = new ArrayList<>();
 
-            Collection<Room> rooms = mSession.getDataHandler().getStore().getRooms();
+        Collection<Room> rooms = mSession.getDataHandler().getStore().getRooms();
 
-            for(Room room : rooms) {
-                IMXEncrypting alg = mRoomAlgorithms.get(room.getRoomId());
+        for (Room room : rooms) {
+            if (room.isEncrypted()) {
+                RoomMember roomMember = room.getMember(userId);
 
-                if (null != alg) {
-                    alg.onDeviceVerificationStatusUpdate(userId, deviceId);
+                // test if the user joins the room
+                if ((null != roomMember) && TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_JOIN)) {
+                    userRoomIds.add(room.getRoomId());
                 }
             }
         }
+
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                MXDeviceInfo device = mCryptoStore.getUserDevice(deviceId, userId);
+
+                // Sanity check
+                if (null == device) {
+                    Log.e(LOG_TAG, "## setDeviceVerification() : Unknown device " + userId + ":" + deviceId);
+                    if (null != callback) {
+                        getUIHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                callback.onSuccess(null);
+                            }
+                        });
+                    }
+                    return;
+                }
+
+                if (device.mVerified != verificationStatus) {
+                    device.mVerified = verificationStatus;
+                    mCryptoStore.storeUserDevice(userId, device);
+                }
+
+                if (null != callback) {
+                    getUIHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onSuccess(null);
+                        }
+                    });
+                }
+            }
+        });
     }
 
     /**
      * Configure a room to use encryption.
-     * @param roomId the room id to enable encryption in.
+     * This method must be called in getEncryptingThreadHandler
+     *
+     * @param roomId    the room id to enable encryption in.
      * @param algorithm the encryption config for the room.
      * @return true if the operation succeeds.
      */
     private boolean setEncryptionInRoom(String roomId, String algorithm) {
+        if (hasBeenReleased()) {
+            return false;
+        }
+
         // If we already have encryption in this room, we should ignore this event
         // (for now at least. Maybe we should alert the user somehow?)
-        String existingAlgorithm = mCryptoStore.algorithmForRoom(roomId);
+        String existingAlgorithm = mCryptoStore.getRoomAlgorithm(roomId);
 
         if (!TextUtils.isEmpty(existingAlgorithm) && !TextUtils.equals(existingAlgorithm, algorithm)) {
             Log.e(LOG_TAG, "## setEncryptionInRoom() : Ignoring m.room.encryption event which requests a change of config in " + roomId);
@@ -687,26 +850,53 @@ public class MXCrypto {
             return false;
         }
 
-        mCryptoStore.storeAlgorithmForRoom(roomId, algorithm);
+        mCryptoStore.storeRoomAlgorithm(roomId, algorithm);
 
         IMXEncrypting alg;
 
         try {
             Constructor<?> ctor = encryptingClass.getConstructors()[0];
-            alg = (IMXEncrypting)ctor.newInstance(new Object[]{});
+            alg = (IMXEncrypting) ctor.newInstance();
         } catch (Exception e) {
             Log.e(LOG_TAG, "## setEncryptionInRoom() : fail to load the class");
             return false;
         }
 
         alg.initWithMatrixSession(mSession, roomId);
-        mRoomAlgorithms.put(roomId, alg);
+
+        synchronized (mRoomEncryptors) {
+            mRoomEncryptors.put(roomId, alg);
+        }
+
+        // if encryption was not previously enabled in this room, we will have been
+        // ignoring new device events for these users so far. We may well have
+        // up-to-date lists for some users, for instance if we were sharing other
+        // e2e rooms with them, so there is room for optimisation here, but for now
+        // we just invalidate everyone in the room.
+        if (null == existingAlgorithm) {
+            Log.d(LOG_TAG, "Enabling encryption in " + roomId + " for the first time; invalidating device lists for all users therein");
+
+            Room room = mSession.getDataHandler().getRoom(roomId);
+            if (null != room) {
+                Collection<RoomMember> members = room.getJoinedMembers();
+                List<String> userIds = new ArrayList<>();
+
+                for (RoomMember m : members) {
+                    userIds.add(m.getUserId());
+                }
+
+                getDeviceList().invalidateUserDeviceList(userIds);
+                // the actual refresh happens once we've finished processing the sync,
+                // in _onSyncCompleted.
+            }
+        }
 
         return true;
     }
 
     /**
      * Tells if a room is encrypted
+     *
      * @param roomId the room id
      * @return true if the room is encrypted
      */
@@ -714,13 +904,15 @@ public class MXCrypto {
         boolean res = false;
 
         if (null != roomId) {
-            res = mRoomAlgorithms.containsKey(roomId);
+            synchronized (mRoomEncryptors) {
+                res = mRoomEncryptors.containsKey(roomId);
 
-            if (!res) {
-                Room room = mSession.getDataHandler().getRoom(roomId);
+                if (!res) {
+                    Room room = mSession.getDataHandler().getRoom(roomId);
 
-                if (null != room) {
-                    res = room.getLiveState().isEncrypted();
+                    if (null != room) {
+                        res = room.getLiveState().isEncrypted();
+                    }
                 }
             }
         }
@@ -729,50 +921,92 @@ public class MXCrypto {
     }
 
     /**
+     * @return the stored device keys for a user.
+     */
+    public List<MXDeviceInfo> getUserDevices(final String userId) {
+        Map<String, MXDeviceInfo> map = getCryptoStore().getUserDevices(userId);
+        return (null != map) ? new ArrayList<>(map.values()) : new ArrayList<MXDeviceInfo>();
+    }
+
+    /**
      * Try to make sure we have established olm sessions for the given users.
-     * @param users a list of user ids.
+     * It must be called in getEncryptingThreadHandler() thread.
+     * The callback is called in the UI thread.
+     *
+     * @param users    a list of user ids.
      * @param callback the asynchronous callback
      */
     public void ensureOlmSessionsForUsers(List<String> users, final ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>> callback) {
+        Log.d(LOG_TAG, "## ensureOlmSessionsForUsers() : ensureOlmSessionsForUsers " + users);
+
+        HashMap<String /* userId */, ArrayList<MXDeviceInfo>> devicesByUser = new HashMap<>();
+
+        for (String userId : users) {
+            devicesByUser.put(userId, new ArrayList<MXDeviceInfo>());
+
+            List<MXDeviceInfo> devices = getUserDevices(userId);
+
+            for (MXDeviceInfo device : devices) {
+                String key = device.identityKey();
+
+                if (TextUtils.equals(key, mOlmDevice.getDeviceCurve25519Key())) {
+                    // Don't bother setting up session to ourself
+                    continue;
+                }
+
+                if (device.isVerified()) {
+                    // Don't bother setting up sessions with blocked users
+                    continue;
+                }
+
+                devicesByUser.get(userId).add(device);
+            }
+        }
+
+        ensureOlmSessionsForDevices(devicesByUser, callback);
+    }
+
+    /**
+     * Try to make sure we have established olm sessions for the given devices.
+     * It must be called in getCryptoHandler() thread.
+     * The callback is called in the UI thread.
+     *
+     * @param devicesByUser a map from userid to list of devices.
+     * @param callback      teh asynchronous callback
+     */
+    public void ensureOlmSessionsForDevices(final HashMap<String, ArrayList<MXDeviceInfo>> devicesByUser, final ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>> callback) {
         ArrayList<MXDeviceInfo> devicesWithoutSession = new ArrayList<>();
 
         final MXUsersDevicesMap<MXOlmSessionResult> results = new MXUsersDevicesMap<>();
 
-        if (null != users) {
-            for (String userId : users) {
-                List<MXDeviceInfo> devices = storedDevicesForUser(userId);
+        Set<String> userIds = devicesByUser.keySet();
 
-                if (null != devices) {
-                    for (MXDeviceInfo device : devices) {
-                        String key = device.identityKey();
+        for (String userId : userIds) {
+            ArrayList<MXDeviceInfo> deviceInfos = devicesByUser.get(userId);
 
-                        if (TextUtils.equals(key, mOlmDevice.getDeviceCurve25519Key())) {
-                            // Don't bother setting up session to ourself
-                            continue;
-                        }
+            for (MXDeviceInfo deviceInfo : deviceInfos) {
+                String deviceId = deviceInfo.deviceId;
+                String key = deviceInfo.identityKey();
 
-                        if (device.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED) {
-                            // Don't bother setting up sessions with blocked users
-                            continue;
-                        }
+                String sessionId = mOlmDevice.getSessionId(key);
 
-                        String sessionId = mOlmDevice.sessionIdForDevice(key);
-
-                        if (null == sessionId) {
-                            devicesWithoutSession.add(device);
-                        }
-
-                        MXOlmSessionResult olmSessionResult = new MXOlmSessionResult(device, sessionId);
-                        results.setObject(olmSessionResult, device.userId, device.deviceId);
-                    }
+                if (TextUtils.isEmpty(sessionId)) {
+                    devicesWithoutSession.add(deviceInfo);
                 }
+
+                MXOlmSessionResult olmSessionResult = new MXOlmSessionResult(deviceInfo, sessionId);
+                results.setObject(olmSessionResult, userId, deviceId);
             }
         }
 
-        if (0 == devicesWithoutSession.size()) {
-            // No need to get session from the homeserver
+        if (devicesWithoutSession.size() == 0) {
             if (null != callback) {
-                callback.onSuccess(results);
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onSuccess(results);
+                    }
+                });
             }
             return;
         }
@@ -782,7 +1016,7 @@ public class MXCrypto {
 
         final String oneTimeKeyAlgorithm = MXKey.KEY_SIGNED_CURVE_25519_TYPE;
 
-        for (MXDeviceInfo device : devicesWithoutSession){
+        for (MXDeviceInfo device : devicesWithoutSession) {
             usersDevicesToClaim.setObject(oneTimeKeyAlgorithm, device.userId, device.deviceId);
         }
 
@@ -796,59 +1030,71 @@ public class MXCrypto {
 
         mSession.getCryptoRestClient().claimOneTimeKeysForUsersDevices(usersDevicesToClaim, new ApiCallback<MXUsersDevicesMap<MXKey>>() {
             @Override
-            public void onSuccess(MXUsersDevicesMap<MXKey> oneTimeKeys) {
-                Log.d(LOG_TAG, "## claimOneTimeKeysForUsersDevices() : keysClaimResponse.oneTimeKeys: " + oneTimeKeys);
+            public void onSuccess(final MXUsersDevicesMap<MXKey> oneTimeKeys) {
+                getEncryptingThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            Log.d(LOG_TAG, "## claimOneTimeKeysForUsersDevices() : keysClaimResponse.oneTimeKeys: " + oneTimeKeys);
 
-                if ((null != oneTimeKeys) && (null != oneTimeKeys.userIds())) {
-                    ArrayList<String> userIds = new ArrayList<>(oneTimeKeys.userIds());
+                            Set<String> userIds = devicesByUser.keySet();
 
-                    for (String userId : userIds) {
-                        Set<String> deviceIds = oneTimeKeys.deviceIdsForUser(userId);
+                            for (String userId : userIds) {
+                                ArrayList<MXDeviceInfo> deviceInfos = devicesByUser.get(userId);
 
-                        if (null != deviceIds) {
-                            for (String deviceId : deviceIds) {
-                                MXKey key = oneTimeKeys.objectForDevice(deviceId, userId);
+                                for (MXDeviceInfo deviceInfo : deviceInfos) {
 
-                                if ((null != key) &&
-                                        (null != key.signatures) &&
-                                        key.signatures.containsKey(userId) &&
-                                        TextUtils.equals(key.type, oneTimeKeyAlgorithm)) {
+                                    MXKey oneTimeKey = null;
 
-                                    String signKeyId = "ed25519:" + deviceId;
-                                    String signature = key.signatureForUserId(userId, signKeyId);
+                                    List<String> deviceIds = oneTimeKeys.getUserDeviceIds(userId);
 
-                                    if (TextUtils.isEmpty(signature)) {
-                                        Log.e(LOG_TAG, "## claimOneTimeKeysForUsersDevices() : no signature for userid " + userId + " deviceId " + deviceId);
-                                    } else {
-                                        // Update the result for this device in results
-                                        MXOlmSessionResult olmSessionResult = results.objectForDevice(deviceId, userId);
-                                        MXDeviceInfo device = olmSessionResult.mDevice;
+                                    if (null != deviceIds) {
+                                        for (String deviceId : deviceIds) {
+                                            MXOlmSessionResult olmSessionResult = results.getObject(deviceId, userId);
 
-                                        String signKey = device.keys.get(signKeyId);
+                                            if (null != olmSessionResult.mSessionId) {
+                                                // We already have a result for this device
+                                                continue;
+                                            }
 
-                                        if (mOlmDevice.verifySignature(signKey, key.signalableJSONDictionary(), signature)) {
-                                            olmSessionResult.mSessionId = mOlmDevice.createOutboundSession(device.identityKey(), key.value);
-                                            Log.d(LOG_TAG, "Started new sessionid " + olmSessionResult.mSessionId + " for device " + device);
-                                        } else {
-                                            Log.e(LOG_TAG, "## claimOneTimeKeysForUsersDevices() : Unable to verify signature on device " + userId + ":" + deviceId);
+                                            MXKey key = oneTimeKeys.getObject(deviceId, userId);
+
+                                            if (TextUtils.equals(key.type, oneTimeKeyAlgorithm)) {
+                                                oneTimeKey = key;
+                                            }
+
+                                            if (null == oneTimeKey) {
+                                                Log.d(LOG_TAG, "## ensureOlmSessionsForDevices() : No one-time keys " + oneTimeKeyAlgorithm + " for device " + userId + " : " + deviceId);
+                                                continue;
+                                            }
+
+                                            // Update the result for this device in results
+                                            olmSessionResult.mSessionId = verifyKeyAndStartSession(oneTimeKey, userId, deviceInfo);
                                         }
                                     }
-                                } else {
-                                    Log.d(LOG_TAG, "No valid one-time keys for device " + userId + " : " + deviceId);
                                 }
+                            }
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "## ensureOlmSessionsForDevices() " + e.getMessage());
+                        }
+
+                        if (!hasBeenReleased()) {
+                            if (null != callback) {
+                                getUIHandler().post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        callback.onSuccess(results);
+                                    }
+                                });
                             }
                         }
                     }
-                }
-
-                if (null != callback) {
-                    callback.onSuccess(results);
-                }
+                });
             }
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG,"## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getMessage());
+                Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getMessage());
 
                 if (null != callback) {
                     callback.onNetworkError(e);
@@ -857,7 +1103,7 @@ public class MXCrypto {
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG,"## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getLocalizedMessage());
 
                 if (null != callback) {
                     callback.onMatrixError(e);
@@ -866,7 +1112,7 @@ public class MXCrypto {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG,"## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getMessage());
+                Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getMessage());
 
                 if (null != callback) {
                     callback.onUnexpectedError(e);
@@ -875,46 +1121,66 @@ public class MXCrypto {
         });
     }
 
+    private String verifyKeyAndStartSession(MXKey oneTimeKey, String userId, MXDeviceInfo deviceInfo) {
+        String sessionId = null;
+
+        String deviceId = deviceInfo.deviceId;
+        String signKeyId = "ed25519:" + deviceId;
+        String signature = oneTimeKey.signatureForUserId(userId, signKeyId);
+
+        if (!TextUtils.isEmpty(signature) && !TextUtils.isEmpty(deviceInfo.fingerprint())) {
+            boolean isVerified = false;
+            String errorMessage = null;
+
+            try {
+                mOlmDevice.verifySignature(deviceInfo.fingerprint(), oneTimeKey.signalableJSONDictionary(), signature);
+                isVerified = true;
+            } catch (Exception e) {
+                errorMessage = e.getMessage();
+            }
+
+            // Check one-time key signature
+            if (isVerified) {
+                sessionId = getOlmDevice().createOutboundSession(deviceInfo.identityKey(), oneTimeKey.value);
+
+                if (!TextUtils.isEmpty(sessionId)) {
+                    Log.d(LOG_TAG, "## verifyKeyAndStartSession() : Started new sessionid " + sessionId + " for device " + deviceInfo + "(theirOneTimeKey: " + oneTimeKey.value + ")");
+                } else {
+                    // Possibly a bad key
+                    Log.e(LOG_TAG, "## verifyKeyAndStartSession() : Error starting session with device " + userId + ":" + deviceId);
+                }
+            } else {
+                Log.e(LOG_TAG, "## verifyKeyAndStartSession() : Unable to verify signature on one-time key for device " + userId + ":" + deviceId + " Error " + errorMessage);
+            }
+        }
+
+        return sessionId;
+    }
+
+
     /**
      * Encrypt an event content according to the configuration of the room.
+     *
      * @param eventContent the content of the event.
-     * @param eventType the type of the event.
-     * @param room the room the event will be sent.
-     * @param callback the asynchronous callback
+     * @param eventType    the type of the event.
+     * @param room         the room the event will be sent.
+     * @param callback     the asynchronous callback
      */
-    public void encryptEventContent(JsonElement eventContent, String eventType, Room room, final ApiCallback<MXEncryptEventContentResult> callback) {
-        if (!TextUtils.equals(eventType, Event.EVENT_TYPE_MESSAGE)) {
-            // We only encrypt m.room.message
-            if (null != callback) {
-                callback.onSuccess(new MXEncryptEventContentResult(eventContent, eventType));
-            }
+    public void encryptEventContent(final JsonElement eventContent, final String eventType, final Room room, final ApiCallback<MXEncryptEventContentResult> callback) {
+        // wait that the crypto is really started
+        if (!isStarted()) {
+            Log.d(LOG_TAG, "## encryptEventContent() : wait after e2e init");
 
-            return;
-        }
-
-        IMXEncrypting alg = mRoomAlgorithms.get(room.getRoomId());
-
-        if (null == alg) {
-            String algorithm = room.getLiveState().encryptionAlgorithm();
-
-            if (null != algorithm) {
-                if (setEncryptionInRoom(room.getRoomId(), algorithm)) {
-                    alg = mRoomAlgorithms.get(room.getRoomId());
-                }
-            }
-        }
-
-        if (null != alg) {
-            alg.encryptEventContent(eventContent, eventType, room, new ApiCallback<JsonElement>() {
+            start(false, new ApiCallback<Void>() {
                 @Override
-                public void onSuccess(JsonElement encryptedContent) {
-                    if (null != callback) {
-                        callback.onSuccess(new MXEncryptEventContentResult(encryptedContent, Event.EVENT_TYPE_MESSAGE_ENCRYPTED));
-                    }
+                public void onSuccess(Void info) {
+                    encryptEventContent(eventContent, eventType, room, callback);
                 }
 
                 @Override
                 public void onNetworkError(Exception e) {
+                    Log.e(LOG_TAG, "## encryptEventContent() : onNetworkError while waiting to start e2e : " + e.getMessage());
+
                     if (null != callback) {
                         callback.onNetworkError(e);
                     }
@@ -922,6 +1188,8 @@ public class MXCrypto {
 
                 @Override
                 public void onMatrixError(MatrixError e) {
+                    Log.e(LOG_TAG, "## encryptEventContent() : onMatrixError while waiting to start e2e : " + e.getMessage());
+
                     if (null != callback) {
                         callback.onMatrixError(e);
                     }
@@ -929,114 +1197,203 @@ public class MXCrypto {
 
                 @Override
                 public void onUnexpectedError(Exception e) {
+                    Log.e(LOG_TAG, "## encryptEventContent() : onUnexpectedError while waiting to start e2e : " + e.getMessage());
+
                     if (null != callback) {
                         callback.onUnexpectedError(e);
                     }
                 }
             });
-        } else {
-            if (null != callback) {
-                callback.onMatrixError(new MXCryptoError(MXCryptoError.UNABLE_TO_ENCRYPT));
-                callback.onSuccess(new MXEncryptEventContentResult(eventContent, eventType));
-            }
+
+            return;
         }
+
+        // just as you are sending a secret message?
+        final ArrayList<String> userdIds = new ArrayList<>();
+
+        Collection<RoomMember> joinedMembers = room.getJoinedMembers();
+
+        for (RoomMember m : joinedMembers) {
+            userdIds.add(m.getUserId());
+        }
+
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                IMXEncrypting alg;
+
+                synchronized (mRoomEncryptors) {
+                    alg = mRoomEncryptors.get(room.getRoomId());
+                }
+
+                if (null == alg) {
+                    String algorithm = room.getLiveState().encryptionAlgorithm();
+
+                    if (null != algorithm) {
+                        if (setEncryptionInRoom(room.getRoomId(), algorithm)) {
+                            synchronized (mRoomEncryptors) {
+                                alg = mRoomEncryptors.get(room.getRoomId());
+                            }
+                        }
+                    }
+                }
+
+                if (null != alg) {
+                    final long t0 = System.currentTimeMillis();
+                    Log.d(LOG_TAG, "## encryptEventContent() starts");
+
+                    alg.encryptEventContent(eventContent, eventType, userdIds, new ApiCallback<JsonElement>() {
+                        @Override
+                        public void onSuccess(final JsonElement encryptedContent) {
+                            Log.d(LOG_TAG, "## encryptEventContent() : succeeds after " + (System.currentTimeMillis() - t0) + " ms");
+
+                            if (null != callback) {
+                                callback.onSuccess(new MXEncryptEventContentResult(encryptedContent, Event.EVENT_TYPE_MESSAGE_ENCRYPTED));
+                            }
+                        }
+
+                        @Override
+                        public void onNetworkError(final Exception e) {
+                            Log.e(LOG_TAG, "## encryptEventContent() : onNetworkError " + e.getMessage());
+
+                            if (null != callback) {
+                                callback.onNetworkError(e);
+                            }
+                        }
+
+                        @Override
+                        public void onMatrixError(final MatrixError e) {
+                            Log.e(LOG_TAG, "## encryptEventContent() : onMatrixError " + e.getMessage());
+
+                            if (null != callback) {
+                                callback.onMatrixError(e);
+                            }
+                        }
+
+                        @Override
+                        public void onUnexpectedError(final Exception e) {
+                            Log.e(LOG_TAG, "## encryptEventContent() : onUnexpectedError " + e.getMessage());
+
+                            if (null != callback) {
+                                callback.onUnexpectedError(e);
+                            }
+                        }
+                    });
+                } else {
+                    final String reason = String.format(MXCryptoError.UNABLE_TO_ENCRYPT_REASON, room.getLiveState().encryptionAlgorithm());
+                    Log.e(LOG_TAG, "## encryptEventContent() : " + reason);
+
+                    if (null != callback) {
+                        getUIHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                callback.onMatrixError(new MXCryptoError(MXCryptoError.UNABLE_TO_ENCRYPT_ERROR_CODE, MXCryptoError.UNABLE_TO_ENCRYPT, reason));
+                            }
+                        });
+                    }
+                }
+            }
+        });
     }
 
     /**
      * Decrypt a received event
-     * @param event the raw event.
-     * @return a cleared event or null.
+     *
+     * @param event    the raw event.
+     * @param timeline the id of the timeline where the event is decrypted. It is used to prevent replay attack.
+     * @return true if the decryption was successful.
      */
-    public Event decryptEvent(Event event) {
-        EventContent eventContent = event.getWireEventContent();
-        Class<IMXDecrypting> decryptingClass = null;
-
-        if ((null != eventContent) && (null != eventContent.algorithm)) {
-            decryptingClass = MXCryptoAlgorithms.sharedAlgorithms().decryptorClassForAlgorithm(eventContent.algorithm);
+    public boolean decryptEvent(final Event event, final String timeline) {
+        if (null == event) {
+            Log.e(LOG_TAG, "## decryptEvent : null event");
+            return false;
         }
 
-        if (null == decryptingClass) {
-            if (null != eventContent) {
-                Log.e(LOG_TAG, "## decryptEvent() : Unable to decrypt " + eventContent.algorithm);
-            } else  {
-                Log.e(LOG_TAG, "## decryptEvent() : Unable to decrypt : null event content");
+        final EventContent eventContent = event.getWireEventContent();
+
+        if (null == eventContent) {
+            Log.e(LOG_TAG, "## decryptEvent : empty event content");
+            return false;
+        }
+
+        final ArrayList<Boolean> results = new ArrayList<>();
+        final CountDownLatch lock = new CountDownLatch(1);
+
+        getDecryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                boolean result = false;
+
+                IMXDecrypting alg = getRoomDecryptor(event.roomId, eventContent.algorithm);
+
+                if (null == alg) {
+                    String reason = String.format(MXCryptoError.UNABLE_TO_DECRYPT_REASON, event.eventId, eventContent.algorithm);
+
+                    Log.e(LOG_TAG, "## decryptEvent() : " + reason);
+
+                    event.setCryptoError(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason));
+                } else {
+                    result = alg.decryptEvent(event, timeline);
+
+                    if (!result) {
+                        Log.e(LOG_TAG, "## decryptEvent() : failed " + event.getCryptoError().getDetailedErrorDescription());
+                    }
+                }
+                results.add(result);
+                lock.countDown();
             }
-            event.setCryptoError(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT));
-            return null;
-        }
-
-        IMXDecrypting alg;
+        });
 
         try {
-            Constructor<?> ctor = decryptingClass.getConstructors()[0];
-            alg = (IMXDecrypting)ctor.newInstance(new Object[]{});
+            lock.await();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## decryptEvent() : fail to load the class");
-            event.setCryptoError(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT));
-            return null;
+            Log.e(LOG_TAG, "## decryptEvent() : failed " + e.getMessage());
         }
 
-        alg.initWithMatrixSession(mSession);
+        return (results.size() > 0) && results.get(0);
+    }
 
-        MXDecryptionResult result = alg.decryptEvent(event);
-        Event clearedEvent = null;
-
-        if ((null != result) && (null != result.mPayload) && (null == result.mCryptoError)) {
-            clearedEvent = JsonUtils.toEvent(result.mPayload);
-            clearedEvent.setKeysProved(result.mKeysProved);
-            clearedEvent.setKeysClaimed(result.mKeysClaimed);
-            event.setCryptoError(null);
-        } else {
-            if ((null != result) && (null != result.mCryptoError)) {
-                Log.e(LOG_TAG, "##decryptEvent() failed " + result.mCryptoError.getMessage());
-            } else {
-                Log.e(LOG_TAG, "##decryptEvent() failed");
-            }
-            // We've got a message for a session we don't have.  Maybe the sender
-            // forgot to tell us about the session.  Remind the sender that we
-            // exist so that they might tell us about the session on their next
-            // send.
-            //
-            // (Alternatively, it might be that we are just looking at
-            // scrollback... at least we rate-limit the m.new_device events :/)
-            //
-            // XXX: this is a band-aid which masks symptoms of other bugs. It would
-            // be nice to get rid of it.
-            if ((null != event.roomId) && (null != event.sender)) {
-                // Note: if the sending device didn't tell us its device_id, fall
-                // back to all devices.
-                String deviceId = null;
-
-                try {
-                    deviceId = event.getContentAsJsonObject().get("device_id").getAsString();
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "##decryptEvent() : cannot retrieve the deviceId");
+    /**
+     * Reset replay attack data for the given timeline.
+     *
+     * @param timelineId the timeline id
+     */
+    public void resetReplayAttackCheckInTimeline(final String timelineId) {
+        if ((null != timelineId) && (null != getOlmDevice())) {
+            getDecryptingThreadHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    getOlmDevice().resetReplayAttackCheckInTimeline(timelineId);
                 }
-
-                sendPingToDevice(deviceId, event.sender, event.roomId);
-            }
-
-            if (null != result) {
-                event.setCryptoError(result.mCryptoError);
-            }
+            });
         }
-
-        return clearedEvent;
     }
 
     /**
      * Encrypt an event payload for a list of devices.
+     * This method must be called from the getCryptoHandler() thread.
+     *
      * @param payloadFields fields to include in the encrypted payload.
-     * @param participantKeys list of curve25519 keys to encrypt for.
-      * @return the content for an m.room.encrypted event.
+     * @param deviceInfos   list of device infos to encrypt for.
+     * @return the content for an m.room.encrypted event.
      */
-    public Map<String, Object> encryptMessage(Map<String, Object> payloadFields, List<String> participantKeys) {
-        Collections.sort(participantKeys);
-        String participantHash = mOlmDevice.sha256(TextUtils.join(", ", participantKeys));
+    public Map<String, Object> encryptMessage(Map<String, Object> payloadFields, List<MXDeviceInfo> deviceInfos) {
+        if (hasBeenReleased()) {
+            return new HashMap<>();
+        }
+
+        HashMap<String, MXDeviceInfo> deviceInfoParticipantKey = new HashMap<>();
+        ArrayList<String> participantKeys = new ArrayList<>();
+
+        for (MXDeviceInfo di : deviceInfos) {
+            participantKeys.add(di.identityKey());
+            deviceInfoParticipantKey.put(di.identityKey(), di);
+        }
 
         HashMap<String, Object> payloadJson = new HashMap<>(payloadFields);
-        payloadJson.put("fingerprint", participantHash);
-        payloadJson.put("sender_device", mSession.getMyUserId());
+
+        payloadJson.put("sender", mSession.getMyUserId());
+        payloadJson.put("sender_device", mSession.getCredentials().deviceId);
 
         // Include the Ed25519 key so that the recipient knows what
         // device this message came from.
@@ -1050,15 +1407,23 @@ public class MXCrypto {
         keysMap.put("ed25519", mOlmDevice.getDeviceEd25519Key());
         payloadJson.put("keys", keysMap);
 
-        String payloadString = JsonUtils.convertToUTF8(JsonUtils.canonicalize(JsonUtils.getGson(false).toJsonTree(payloadJson)).toString());
-
         HashMap<String, Object> ciphertext = new HashMap<>();
 
         for (String deviceKey : participantKeys) {
-            String sessionId = mOlmDevice.sessionIdForDevice(deviceKey);
+            String sessionId = mOlmDevice.getSessionId(deviceKey);
 
             if (!TextUtils.isEmpty(sessionId)) {
                 Log.d(LOG_TAG, "Using sessionid " + sessionId + " for device " + deviceKey);
+                MXDeviceInfo deviceInfo = deviceInfoParticipantKey.get(deviceKey);
+
+                payloadJson.put("recipient", deviceInfo.userId);
+
+                HashMap<String, String> recipientsKeysMap = new HashMap<>();
+                recipientsKeysMap.put("ed25519", deviceInfo.fingerprint());
+                payloadJson.put("recipient_keys", recipientsKeysMap);
+
+
+                String payloadString = JsonUtils.convertToUTF8(JsonUtils.canonicalize(JsonUtils.getGson(false).toJsonTree(payloadJson)).toString());
                 ciphertext.put(deviceKey, mOlmDevice.encryptMessage(deviceKey, sessionId, payloadString));
             }
         }
@@ -1073,30 +1438,96 @@ public class MXCrypto {
     }
 
     /**
+     * Provides the list of e2e rooms
+     *
+     * @return the list of e2e rooms
+     */
+    private List<Room> getE2eRooms() {
+        List<Room> e2eRooms = new ArrayList<>();
+
+        // sanity checks
+        if ((null == mSession.getDataHandler()) || (null == mSession.getDataHandler().getStore())) {
+            return e2eRooms;
+        }
+
+        List<Room> rooms = new ArrayList<>(mSession.getDataHandler().getStore().getRooms());
+        for (Room r : rooms) {
+            if (r.isEncrypted()) {
+                RoomMember me = r.getMember(mSession.getMyUserId());
+
+                if (null != me) {
+                    String membership = me.membership;
+
+                    // ignore any rooms which we have left
+                    if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_JOIN) ||
+                            TextUtils.equals(membership, RoomMember.MEMBERSHIP_INVITE)) {
+                        e2eRooms.add(r);
+                    }
+                }
+            }
+        }
+
+        return e2eRooms;
+    }
+
+    /**
+     * get the users we share an e2e-enabled room with
+     *
+     * @return {Object<string>} userid->userid map (should be a Set but argh ES6)
+     */
+    private List<String> getE2eRoomMembers() {
+        HashSet<String> list = new HashSet<>();
+        List<Room> rooms = getE2eRooms();
+
+        for (Room r : rooms) {
+            Collection<RoomMember> activeMembers = r.getActiveMembers();
+
+            for (RoomMember m : activeMembers) {
+                // add only the matrix id
+                if (MXSession.PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER.matcher(m.getUserId()).matches()) {
+                    list.add(m.getUserId());
+                }
+            }
+        }
+        return new ArrayList<>(list);
+    }
+
+    /**
      * Announce the device to the server.
+     * This method must be called from the getCryptoHandler() thread.
+     * The callback is called in the UI thread.
+     *
      * @param callback the asynchronous callback.
      */
     private void checkDeviceAnnounced(final ApiCallback<Void> callback) {
         if (mCryptoStore.deviceAnnounced()) {
+            // Catch up on any m.new_device events which arrived during the initial sync.
+            mDevicesList.refreshOutdatedDeviceLists();
+
             if (null != callback) {
-                callback.onSuccess(null);
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onSuccess(null);
+                    }
+                });
             }
             return;
         }
+
+        // Catch up on any m.new_device events which arrived during the initial sync.
+        // And force download all devices keys  the user already has.
+        mDevicesList.addPendingUsersWithNewDevices(Arrays.asList(mMyDevice.userId));
+        mDevicesList.refreshOutdatedDeviceLists();
 
         // We need to tell all the devices in all the rooms we are members of that
         // we have arrived.
         // Build a list of rooms for each user.
         HashMap<String, ArrayList<String>> roomsByUser = new HashMap<>();
 
-        ArrayList<Room> rooms = new ArrayList<>(mSession.getDataHandler().getStore().getRooms());
+        List<Room> rooms = getE2eRooms();
 
         for (Room room : rooms) {
-            // Check for rooms with encryption enabled
-            if (!room.getLiveState().isEncrypted()) {
-                continue;
-            }
-
             // Ignore any rooms which we have left
             RoomMember me = room.getMember(mSession.getMyUserId());
 
@@ -1133,16 +1564,26 @@ public class MXCrypto {
             contentMap.setObjects(map, userId);
         }
 
-        if (contentMap.userIds().size() > 0) {
+        if (contentMap.getUserIds().size() > 0) {
             mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_NEW_DEVICE, contentMap, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
-                    Log.d(LOG_TAG, "## checkDeviceAnnounced Annoucements done");
-                    mCryptoStore.storeDeviceAnnounced();
+                    getEncryptingThreadHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Log.d(LOG_TAG, "## checkDeviceAnnounced Annoucements done");
+                            mCryptoStore.storeDeviceAnnounced();
 
-                    if (null != callback) {
-                        callback.onSuccess(null);
-                    }
+                            if (null != callback) {
+                                getUIHandler().post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        callback.onSuccess(null);
+                                    }
+                                });
+                            }
+                        }
+                    });
                 }
 
                 @Override
@@ -1173,60 +1614,79 @@ public class MXCrypto {
 
         mCryptoStore.storeDeviceAnnounced();
         if (null != callback) {
-            callback.onSuccess(null);
+            getUIHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    callback.onSuccess(null);
+                }
+            });
         }
     }
 
     /**
      * Handle the 'toDevice' event
+     *
      * @param event the event
      */
-    private void onToDeviceEvent(Event event) {
+    private void onToDeviceEvent(final Event event) {
         if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_ROOM_KEY)) {
-            onRoomKeyEvent(event);
+            getDecryptingThreadHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    onRoomKeyEvent(event);
+                }
+            });
         } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_NEW_DEVICE)) {
-            onNewDeviceEvent(event);
+            getEncryptingThreadHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    onNewDeviceEvent(event);
+                }
+            });
         }
     }
 
     /**
      * Handle a key event.
+     * This method must be called on getDecryptingThreadHandler() thread.
+     *
      * @param event the key event.
      */
     private void onRoomKeyEvent(Event event) {
-        EventContent eventContent = event.getEventContent();
-
-        Class<IMXDecrypting> algClass = null;
-
-        if (!TextUtils.isEmpty(eventContent.algorithm)) {
-            algClass = MXCryptoAlgorithms.sharedAlgorithms().decryptorClassForAlgorithm(eventContent.algorithm);
-        }
-
-        if (null == algClass) {
-            Log.e(LOG_TAG, "## onRoomKeyEvent() : ERROR: Unable to handle keys for " + eventContent.algorithm);
+        // sanity check
+        if (null == event) {
+            Log.e(LOG_TAG, "## onRoomKeyEvent() : null event");
             return;
         }
 
-        IMXDecrypting alg;
+        RoomKeyContent roomKeyContent = JsonUtils.toRoomKeyContent(event.getContentAsJsonObject());
 
-        try {
-            Constructor<?> ctor = algClass.getConstructors()[0];
-            alg = (IMXDecrypting)ctor.newInstance(new Object[]{});
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## decryptEvent() : fail to load the class");
+        String roomId = roomKeyContent.room_id;
+        String algorithm = roomKeyContent.algorithm;
+
+        if (TextUtils.isEmpty(roomId) || TextUtils.isEmpty(algorithm)) {
+            Log.e(LOG_TAG, "## onRoomKeyEvent() : missing fields");
             return;
         }
 
-        alg.initWithMatrixSession(mSession);
+        IMXDecrypting alg = getRoomDecryptor(roomId, algorithm);
+
+        if (null == alg) {
+            Log.e(LOG_TAG, "## onRoomKeyEvent() : Unable to handle keys for " + algorithm);
+            return;
+        }
+
         alg.onRoomKeyEvent(event);
     }
 
     /**
      * Called when a new device announces itself.
+     * This method must be called on getEncryptingThreadHandler() thread.
+     *
      * @param event the announcement event.
      */
-    private void onNewDeviceEvent(Event event) {
-        final String userId = event.sender;
+    private void onNewDeviceEvent(final Event event) {
+        String userId = event.getSender();
         final NewDeviceContent newDeviceContent = JsonUtils.toNewDeviceContent(event.getContent());
 
         if ((null == newDeviceContent.rooms) || (null == newDeviceContent.deviceId)) {
@@ -1234,76 +1694,40 @@ public class MXCrypto {
             return;
         }
 
-        Log.d(LOG_TAG, "## onNewDeviceEvent() : m.new_device event from " + userId + ":" + newDeviceContent.deviceId + "for rooms " + newDeviceContent.rooms);
+        String deviceId = newDeviceContent.deviceId;
+        List<String> rooms = newDeviceContent.rooms;
 
-        ArrayList<String> userIds = new ArrayList<>();
-        userIds.add(userId);
+        Log.d(LOG_TAG, "## onNewDeviceEvent() m.new_device event from " + userId + ":" + deviceId + " for rooms " + rooms);
 
-        downloadKeys(userIds, true, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+        if (null != mCryptoStore.getUserDevice(deviceId, userId)) {
+            Log.e(LOG_TAG, "## onNewDeviceEvent() : known device; ignoring");
+            return;
+        }
+
+        mDevicesList.addPendingUsersWithNewDevices(Arrays.asList(userId));
+    }
+
+    /**
+     * Handle an m.room.encryption event.
+     *
+     * @param event the encryption event.
+     */
+    private void onCryptoEvent(final Event event) {
+        final EventContent eventContent = event.getWireEventContent();
+
+        getEncryptingThreadHandler().post(new Runnable() {
             @Override
-            public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap) {
-                for(String roomId : newDeviceContent.rooms) {
-                    IMXEncrypting encrypting = mRoomAlgorithms.get(roomId);
-
-                    if (null != encrypting) {
-                        // The room is encrypted, report the new device to it
-                        encrypting.onNewDevice(newDeviceContent.deviceId, userId);
-                    }
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## onNewDeviceEvent() : onNetworkError " + e.getMessage());
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "## onNewDeviceEvent() : onMatrixError " + e.getLocalizedMessage());
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## onNewDeviceEvent() : onUnexpectedError " + e.getMessage());
+            public void run() {
+                setEncryptionInRoom(event.roomId, eventContent.algorithm);
             }
         });
     }
 
     /**
-     * Handle an m.room.encryption event.
-     * @param event the encryption event.
-     */
-    private void onCryptoEvent(Event event){
-        EventContent eventContent = event.getWireEventContent();
-        setEncryptionInRoom(event.roomId, eventContent.algorithm);
-    }
-
-    /**
-     * Handle a change in the membership state of a member of a room.
-     * @param event the membership event causing the change
-     */
-    private void onRoomMembership(Event event) {
-        IMXEncrypting alg = mRoomAlgorithms.get(event.roomId);
-
-        if (null == alg) {
-            // No encrypting in this room
-            return;
-        }
-
-        String userId = event.stateKey;
-
-        RoomMember roomMember = mSession.getDataHandler().getRoom(event.roomId).getLiveState().getMember(userId);
-
-        if (null != roomMember) {
-            RoomMember prevRoomMember = JsonUtils.toRoomMember(event.prev_content);
-            alg.onRoomMembership(event, roomMember, (null != prevRoomMember) ? prevRoomMember.membership : null);
-        } /*else {
-            Log.e(LOG_TAG, "## onRoomMembership() : Error cannot find the room member in event: " + event);
-        }*/
-    }
-
-    /**
      * Upload my user's device keys.
+     * This method must called on getEncryptingThreadHandler() thread.
+     * The callback will called on UI thread.
+     *
      * @param callback the asynchronous callback
      */
     private void uploadDeviceKeys(ApiCallback<KeysUploadResponse> callback) {
@@ -1312,9 +1736,9 @@ public class MXCrypto {
         String signature = mOlmDevice.signJSON(mMyDevice.signalableJSONDictionary());
 
         HashMap<String, String> submap = new HashMap<>();
-        submap.put("ed25519:" + mMyDevice.deviceId,  signature);
+        submap.put("ed25519:" + mMyDevice.deviceId, signature);
 
-        HashMap<String, Map<String, String> > map = new HashMap<>();
+        HashMap<String, Map<String, String>> map = new HashMap<>();
         map.put(mSession.getMyUserId(), submap);
 
         mMyDevice.signatures = map;
@@ -1322,47 +1746,40 @@ public class MXCrypto {
         // For now, we set the device id explicitly, as we may not be using the
         // same one as used in login.
         mSession.getCryptoRestClient().uploadKeys(mMyDevice.JSONDictionary(), null, mMyDevice.deviceId, callback);
-      }
+    }
 
     /**
-     * Upload my user's one time keys.
-     * @param callback the asynchronous callback
+     * OTK upload loop
+     *
+     * @param numberToGenerate the number of key to generate
+     * @param callback         the asynchronous callback
      */
-    private void uploadOneTimeKeys(final ApiCallback<KeysUploadResponse> callback) {
-        final Map<String, Map<String, String>>  oneTimeKeys = mOlmDevice.oneTimeKeys();
-        HashMap<String, Object> oneTimeJson = new HashMap<>();
-
-        Map<String, String> curve25519Map = oneTimeKeys.get("curve25519");
-
-        if (null != curve25519Map) {
-            for(String key_id : curve25519Map.keySet()) {
-                HashMap<String, Object> k = new HashMap<>();
-                k.put("key", curve25519Map.get(key_id));
-
-                // the key is also signed
-                String signature = mOlmDevice.signJSON(k);
-                HashMap<String, String> submap = new HashMap<>();
-                submap.put("ed25519:" + mMyDevice.deviceId,  signature);
-
-                HashMap<String, Map<String, String> > map = new HashMap<>();
-                map.put(mSession.getMyUserId(), submap);
-                k.put("signatures", map);
-                
-                oneTimeJson.put("signed_curve25519:" + key_id, k);
+    private void uploadLoop(final int numberToGenerate, final ApiCallback<Void> callback) {
+        if (numberToGenerate <= 0) {
+            // If we don't need to generate any more keys then we are done.
+            if (null != callback) {
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onSuccess(null);
+                    }
+                });
             }
+            return;
         }
 
-        // For now, we set the device id explicitly, as we may not be using the
-        // same one as used in login.
-        mSession.getCryptoRestClient().uploadKeys(null, oneTimeJson, mMyDevice.deviceId, new ApiCallback<KeysUploadResponse>() {
-            @Override
-            public void onSuccess(KeysUploadResponse info) {
-                mLastPublishedOneTimeKeys = oneTimeKeys;
-                mOlmDevice.markKeysAsPublished();
+        final int keysThisLoop = Math.min(numberToGenerate, ONE_TIME_KEY_GENERATION_MAX_NUMBER);
+        getOlmDevice().generateOneTimeKeys(keysThisLoop);
 
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
+        uploadOneTimeKeys(new ApiCallback<KeysUploadResponse>() {
+            @Override
+            public void onSuccess(KeysUploadResponse Response) {
+                getEncryptingThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        uploadLoop(numberToGenerate - keysThisLoop, callback);
+                    }
+                });
             }
 
             @Override
@@ -1389,144 +1806,740 @@ public class MXCrypto {
     }
 
     /**
-     * Validate device keys.
-     * @param deviceKeys the device keys to validate.
-     * @param userId the id of the user of the device.
-     * @param deviceId the id of the device.
-     * @param previouslyStoredDeviceKeys the device keys we received before for this device
-     * @return true if succeeds
+     * Check if the OTK must be uploaded.
      */
-    private boolean validateDeviceKeys(MXDeviceInfo deviceKeys, String userId, String deviceId, MXDeviceInfo previouslyStoredDeviceKeys) {
-        if ((null == deviceKeys) || (null == deviceKeys.keys)) {
-            // no keys?
-            return false;
-        }
-
-        // Check that the user_id and device_id in the received deviceKeys are correct
-        if (!TextUtils.equals(deviceKeys.userId, userId)) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : Mismatched user_id " + deviceKeys.userId + " from " + userId + ":" + deviceId);
-            return false;
-        }
-
-        if (!TextUtils.equals(deviceKeys.deviceId, deviceId)) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : Mismatched device_id " + deviceKeys.deviceId + " from " + userId + ":" + deviceId);
-            return false;
-        }
-
-        String signKeyId = "ed25519:" + deviceKeys.deviceId;
-        String signKey = deviceKeys.keys.get(signKeyId);
-
-        if (null == signKey) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : Device " + userId + ":" + deviceKeys.deviceId + " has no ed25519 key");
-            return false;
-        }
-
-        Map<String, String> signatureMap = deviceKeys.signatures.get(userId);
-
-        if (null == signatureMap) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : Device " + userId + ":" + deviceKeys.deviceId + " has no map for " + userId);
-            return false;
-        }
-
-        String signature = signatureMap.get(signKeyId);
-
-        if (null == signature) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : Device " + userId + ":" + deviceKeys.deviceId + " is not signed");
-            return false;
-        }
-
-        if (!mOlmDevice.verifySignature(signKey, deviceKeys.signalableJSONDictionary(), signature)) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : Unable to verify signature on device " +  userId + ":" + deviceKeys.deviceId);
-            return false;
-        }
-
-        if (null != previouslyStoredDeviceKeys) {
-            if (! TextUtils.equals(previouslyStoredDeviceKeys.fingerprint(), signKey)) {
-                // This should only happen if the list has been MITMed; we are
-                // best off sticking with the original keys.
-                //
-                // Should we warn the user about it somehow?
-                Log.e(LOG_TAG, "## validateDeviceKeys() : WARNING:Ed25519 key for device " + userId + ":" + deviceKeys.deviceId + " has changed");
-                return false;
-            }
-        }
-
-        return true;
+    private void maybeUploadOneTimeKeys() {
+        maybeUploadOneTimeKeys(null);
     }
 
     /**
-     * Send a "m.new_device" message to remind it that we exist and are a member
-     * of a room.
-     *  This is rate limited to send a message at most once an hour per destination.
-     * @param deviceId the id of the device to ping. If nil, all devices.
-     * @param userId the id of the user to ping.
-     * @param roomId the room id
+     * Check if the OTK must be uploaded.
+     *
+     * @param callback the asynchronous callback
      */
-    private void sendPingToDevice(String deviceId, String userId, String roomId) {
-        // sanity checks
-        if ((null == userId) || (null == roomId)) {
+    private void maybeUploadOneTimeKeys(final ApiCallback<Void> callback) {
+        if (mOneTimeKeyCheckInProgress) {
+            getUIHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    if (null != callback) {
+                        callback.onSuccess(null);
+                    }
+                }
+            });
             return;
         }
 
-        if (TextUtils.isEmpty(deviceId)) {
-            deviceId = "*";
-        }
-
-        // Check rate limiting
-        HashMap<String, Long> lastTsByRoom = mLastNewDeviceMessageTsByUserDeviceRoom.objectForDevice(deviceId, userId);
-
-        if (null == lastTsByRoom) {
-            lastTsByRoom = new HashMap<>();
-        }
-
-        Long lastTs = lastTsByRoom.get(roomId);
-        if (null == lastTs) {
-            lastTs = 0L;
-        }
-
-        long now = System.currentTimeMillis();
-
-        // 1 hour
-        if ((now - lastTs) < 3600000) {
-            // rate-limiting
+        if ((System.currentTimeMillis() - mLastOneTimeKeyCheck) < ONE_TIME_KEY_UPLOAD_PERIOD) {
+            // we've done a key upload recently.
+            getUIHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    if (null != callback) {
+                        callback.onSuccess(null);
+                    }
+                }
+            });
             return;
         }
 
-        // Update rate limiting data
-        lastTsByRoom.put(roomId, now);
-        mLastNewDeviceMessageTsByUserDeviceRoom.setObject(lastTsByRoom, userId, deviceId);
+        mLastOneTimeKeyCheck = System.currentTimeMillis();
 
-        // Build a per-device message for each user
-        MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>();
+        mOneTimeKeyCheckInProgress = true;
 
-        HashMap<String, Object> submap = new HashMap<>();
-        submap.put("device_id", deviceId);
-        submap.put("rooms", Arrays.asList(roomId));
+        // ask the server how many keys we have
+        mSession.getCryptoRestClient().uploadKeys(null, null, mMyDevice.deviceId, new ApiCallback<KeysUploadResponse>() {
 
-        HashMap<String, Map<String,Object>> map = new HashMap<>();
-        map.put(deviceId, submap);
+            private void uploadKeysDone(String errorMessage) {
+                if (null != errorMessage) {
+                    Log.e(LOG_TAG, "## maybeUploadOneTimeKeys() : failed " + errorMessage);
+                }
+                mOneTimeKeyCheckInProgress = false;
+            }
 
-        contentMap.setObjects(map, userId);
-
-        mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_NEW_DEVICE, contentMap, new ApiCallback<Void>() {
             @Override
-            public void onSuccess(Void info) {
+            public void onSuccess(final KeysUploadResponse keysUploadResponse) {
+                getEncryptingThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (!hasBeenReleased()) {
+                            // We need to keep a pool of one time public keys on the server so that
+                            // other devices can start conversations with us. But we can only store
+                            // a finite number of private keys in the olm Account object.
+                            // To complicate things further then can be a delay between a device
+                            // claiming a public one time key from the server and it sending us a
+                            // message. We need to keep the corresponding private key locally until
+                            // we receive the message.
+                            // But that message might never arrive leaving us stuck with duff
+                            // private keys clogging up our local storage.
+                            // So we need some kind of enginering compromise to balance all of
+                            // these factors.
+                            long keyCount = keysUploadResponse.oneTimeKeyCountsForAlgorithm("signed_curve25519");
+
+                            // We then check how many keys we can store in the Account object.
+                            long maxOneTimeKeys = getOlmDevice().getMaxNumberOfOneTimeKeys();
+
+                            // Try to keep at most half that number on the server. This leaves the
+                            // rest of the slots free to hold keys that have been claimed from the
+                            // server but we haven't recevied a message for.
+                            // If we run out of slots when generating new keys then olm will
+                            // discard the oldest private keys first. This will eventually clean
+                            // out stale private keys that won't receive a message.
+                            int keyLimit = (int) Math.floor(maxOneTimeKeys / 2.0);
+
+                            // We work out how many new keys we need to create to top up the server
+                            // If there are too many keys on the server then we don't need to
+                            // create any more keys.
+                            int numberToGenerate = (int) Math.max(keyLimit - keyCount, 0);
+
+                            uploadLoop(numberToGenerate, new ApiCallback<Void>() {
+                                @Override
+                                public void onSuccess(Void info) {
+                                    Log.d(LOG_TAG, "## maybeUploadOneTimeKeys() : succeeded");
+                                    uploadKeysDone(null);
+
+                                    getUIHandler().post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            if (null != callback) {
+                                                callback.onSuccess(null);
+                                            }
+                                        }
+                                    });
+                                }
+
+                                @Override
+                                public void onNetworkError(final Exception e) {
+                                    uploadKeysDone(e.getMessage());
+
+                                    getUIHandler().post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            if (null != callback) {
+                                                callback.onNetworkError(e);
+                                            }
+                                        }
+                                    });
+                                }
+
+                                @Override
+                                public void onMatrixError(final MatrixError e) {
+                                    uploadKeysDone(e.getMessage());
+
+                                    getUIHandler().post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            if (null != callback) {
+                                                callback.onMatrixError(e);
+                                            }
+                                        }
+                                    });
+                                }
+
+                                @Override
+                                public void onUnexpectedError(final Exception e) {
+                                    uploadKeysDone(e.getMessage());
+                                    getUIHandler().post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            if (null != callback) {
+                                                callback.onUnexpectedError(e);
+                                            }
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onNetworkError(final Exception e) {
+                uploadKeysDone(e.getMessage());
+
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (null != callback) {
+                            callback.onNetworkError(e);
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onMatrixError(final MatrixError e) {
+                uploadKeysDone(e.getMessage());
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (null != callback) {
+                            callback.onMatrixError(e);
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onUnexpectedError(final Exception e) {
+                uploadKeysDone(e.getMessage());
+
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (null != callback) {
+                            callback.onUnexpectedError(e);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Upload my user's one time keys.
+     * This method must called on getEncryptingThreadHandler() thread.
+     * The callback will called on UI thread.
+     *
+     * @param callback the asynchronous callback
+     */
+    private void uploadOneTimeKeys(final ApiCallback<KeysUploadResponse> callback) {
+        final Map<String, Map<String, String>> oneTimeKeys = mOlmDevice.getOneTimeKeys();
+        HashMap<String, Object> oneTimeJson = new HashMap<>();
+
+        Map<String, String> curve25519Map = oneTimeKeys.get("curve25519");
+
+        if (null != curve25519Map) {
+            for (String key_id : curve25519Map.keySet()) {
+                HashMap<String, Object> k = new HashMap<>();
+                k.put("key", curve25519Map.get(key_id));
+
+                // the key is also signed
+                String signature = mOlmDevice.signJSON(k);
+                HashMap<String, String> submap = new HashMap<>();
+                submap.put("ed25519:" + mMyDevice.deviceId, signature);
+
+                HashMap<String, Map<String, String>> map = new HashMap<>();
+                map.put(mSession.getMyUserId(), submap);
+                k.put("signatures", map);
+
+                oneTimeJson.put("signed_curve25519:" + key_id, k);
+            }
+        }
+
+        // For now, we set the device id explicitly, as we may not be using the
+        // same one as used in login.
+        mSession.getCryptoRestClient().uploadKeys(null, oneTimeJson, mMyDevice.deviceId, new ApiCallback<KeysUploadResponse>() {
+            @Override
+            public void onSuccess(final KeysUploadResponse info) {
+                getEncryptingThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (!hasBeenReleased()) {
+                            mLastPublishedOneTimeKeys = oneTimeKeys;
+                            mOlmDevice.markKeysAsPublished();
+
+                            if (null != callback) {
+                                getUIHandler().post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        callback.onSuccess(info);
+                                    }
+                                });
+                            }
+                        }
+                    }
+                });
             }
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## sendPingToDevice failed " + e.getMessage());
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "## sendPingToDevice failed " + e.getLocalizedMessage());
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## sendPingToDevice failed " + e.getMessage());
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
             }
         });
+    }
+
+    /**
+     * Get a decryptor for a given room and algorithm.
+     * If we already have a decryptor for the given room and algorithm, return
+     * it. Otherwise try to instantiate it.
+     *
+     * @param roomId    the room id
+     * @param algorithm the crypto algorithm
+     * @return the decryptor
+     */
+    private IMXDecrypting getRoomDecryptor(String roomId, String algorithm) {
+        // sanity check
+        if (TextUtils.isEmpty(algorithm)) {
+            Log.e(LOG_TAG, "## getRoomDecryptor() : null algorithm");
+            return null;
+        }
+
+        if (null == mRoomDecryptors) {
+            Log.e(LOG_TAG, "## getRoomDecryptor() : null mRoomDecryptors");
+            return null;
+        }
+
+        IMXDecrypting alg = null;
+
+        if (!TextUtils.isEmpty(roomId)) {
+            synchronized (mRoomDecryptors) {
+                if (!mRoomDecryptors.containsKey(roomId)) {
+                    mRoomDecryptors.put(roomId, new HashMap<String, IMXDecrypting>());
+                }
+
+                alg = mRoomDecryptors.get(roomId).get(algorithm);
+            }
+
+            if (null != alg) {
+                return alg;
+            }
+        }
+
+        Class<IMXDecrypting> decryptingClass = MXCryptoAlgorithms.sharedAlgorithms().decryptorClassForAlgorithm(algorithm);
+
+        if (null != decryptingClass) {
+            try {
+                Constructor<?> ctor = decryptingClass.getConstructors()[0];
+                alg = (IMXDecrypting) ctor.newInstance();
+
+                if (null != alg) {
+                    alg.initWithMatrixSession(mSession);
+
+                    if (!TextUtils.isEmpty(roomId)) {
+                        synchronized (mRoomDecryptors) {
+                            mRoomDecryptors.get(roomId).put(algorithm, alg);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## getRoomDecryptor() : fail to load the class");
+                return null;
+            }
+        }
+
+        return alg;
+    }
+
+
+    /**
+     * Export the crypto keys
+     *
+     * @param password the password
+     * @param callback the exported keys
+     */
+    public void exportRoomKeys(final String password, final ApiCallback<byte[]> callback) {
+        getDecryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                ArrayList<Map<String, Object>> exportedSessions = new ArrayList<>();
+
+                List<MXOlmInboundGroupSession2> inboundGroupSessions = mCryptoStore.getInboundGroupSessions();
+
+                for (MXOlmInboundGroupSession2 session : inboundGroupSessions) {
+                    Map<String, Object> map = session.exportKeys();
+
+                    if (null != map) {
+                        exportedSessions.add(map);
+                    }
+                }
+
+                final byte[] encryptedRoomKeys;
+
+                try {
+                    String allo = JsonUtils.getGson(false).toJsonTree(exportedSessions).toString();
+                    encryptedRoomKeys = MXMegolmExportEncryption.encryptMegolmKeyFile(allo, password);
+                } catch (Exception e) {
+                    callback.onUnexpectedError(e);
+                    return;
+                }
+
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onSuccess(encryptedRoomKeys);
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Import the room keys
+     *
+     * @param roomKeysAsArray the room keys as array.
+     * @param password        the password
+     * @param callback        the asynchronous callback.
+     */
+    public void importRoomKeys(final byte[] roomKeysAsArray, final String password, final ApiCallback<Void> callback) {
+        getDecryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                long t0 = System.currentTimeMillis();
+                String roomKeys;
+
+                try {
+                    roomKeys = MXMegolmExportEncryption.decryptMegolmKeyFile(roomKeysAsArray, password);
+                } catch (final Exception e) {
+                    getUIHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onUnexpectedError(e);
+                        }
+                    });
+                    return;
+                }
+
+                List<Map<String, Object>> importedSessions;
+
+                long t1 = System.currentTimeMillis();
+
+                Log.d(LOG_TAG, "## importRoomKeys starts");
+
+                try {
+                    importedSessions = JsonUtils.getGson(false).fromJson(roomKeys, new TypeToken<List<Map<String, Object>>>() {
+                    }.getType());
+                } catch (final Exception e) {
+                    Log.e(LOG_TAG, "## importRoomKeys failed " + e.getMessage());
+                    getUIHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onUnexpectedError(e);
+                        }
+                    });
+                    return;
+                }
+
+                long t2 = System.currentTimeMillis();
+
+                Log.d(LOG_TAG, "## importRoomKeys retrieve " + importedSessions.size() + "sessions in " + (t1 - t0) + " ms");
+
+                for (int index = 0; index < importedSessions.size(); index++) {
+                    Map<String, Object> map = importedSessions.get(index);
+
+                    MXOlmInboundGroupSession2 session = mOlmDevice.importInboundGroupSession(map);
+
+                    if ((null != session) && mRoomDecryptors.containsKey(session.mRoomId)) {
+                        IMXDecrypting decrypting = mRoomDecryptors.get(session.mRoomId).get(map.get("algorithm"));
+
+                        if (null != decrypting) {
+                            try {
+                                String sessionId = session.mSession.sessionIdentifier();
+                                Log.d(LOG_TAG, "## importRoomKeys retrieve mSenderKey " + session.mSenderKey + " sessionId " + sessionId);
+
+                                decrypting.onNewSession(session.mSenderKey, sessionId);
+                            } catch (Exception e) {
+                                Log.e(LOG_TAG, "## importRoomKeys() : onNewSession failed " + e.getMessage());
+                            }
+                        }
+                    }
+                }
+
+                long t3 = System.currentTimeMillis();
+
+                Log.d(LOG_TAG, "## importRoomKeys : done in " + (t3 - t0) + " ms (" + importedSessions.size() + " sessions)");
+                Log.d(LOG_TAG, "## importRoomKeys : decryptMegolmKeyFile done in " + (t1 - t0) + " ms");
+                Log.d(LOG_TAG, "## importRoomKeys : JSON parsing " + (t2 - t1) + " ms");
+                Log.d(LOG_TAG, "## importRoomKeys : sessions import " + (t3 - t2) + " ms");
+
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onSuccess(null);
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Tells if the encryption must fail if some unknown devices are detected.
+     *
+     * @return true to warn when some unknown devices are detected.
+     */
+    public boolean warnOnUnknownDevices() {
+        return mWarnOnUnknownDevices;
+    }
+
+    /**
+     * Update the warn status when some unknown devices are detected.
+     *
+     * @param warn true to warn when some unknown devices are detected.
+     */
+    public void setWarnOnUnknownDevices(boolean warn) {
+        mWarnOnUnknownDevices = warn;
+    }
+
+    /**
+     * Provides the list of unknown devices
+     *
+     * @param devicesInRoom the devices map
+     * @return the unknown devices map
+     */
+    public static MXUsersDevicesMap<MXDeviceInfo> getUnknownDevices(MXUsersDevicesMap<MXDeviceInfo> devicesInRoom) {
+        MXUsersDevicesMap<MXDeviceInfo> unknownDevices = new MXUsersDevicesMap<>();
+
+        List<String> userIds = devicesInRoom.getUserIds();
+        for (String userId : userIds) {
+            List<String> deviceIds = devicesInRoom.getUserDeviceIds(userId);
+            for (String deviceId : deviceIds) {
+                MXDeviceInfo deviceInfo = devicesInRoom.getObject(deviceId, userId);
+
+                if (deviceInfo.isUnknown()) {
+                    unknownDevices.setObject(deviceInfo, userId, deviceId);
+                }
+            }
+        }
+
+        return unknownDevices;
+    }
+
+    /**
+     * Check if the user ids list have some unknown devices.
+     * A success means there is no unknown devices.
+     * If there are some unknown devices, a MXCryptoError.UNKNOWN_DEVICES_CODE exception is triggered.
+     *
+     * @param userIds  the user ids list
+     * @param callback the asynchronous callback.
+     */
+    public void checkUnknownDevices(List<String> userIds, final ApiCallback<Void> callback) {
+        // force the refresh to ensure that the devices list is up-to-date
+        mDevicesList.downloadKeys(userIds, true, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+            @Override
+            public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> devicesMap) {
+                MXUsersDevicesMap<MXDeviceInfo> unknownDevices = MXCrypto.getUnknownDevices(devicesMap);
+
+                if (unknownDevices.getMap().size() == 0) {
+                    callback.onSuccess(null);
+                } else {
+                    // trigger an an unknown devices exception
+                    callback.onMatrixError(new MXCryptoError(MXCryptoError.UNKNOWN_DEVICES_CODE, MXCryptoError.UNABLE_TO_ENCRYPT, MXCryptoError.UNKNOWN_DEVICES_REASON, unknownDevices));
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                callback.onNetworkError(e);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                callback.onMatrixError(e);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                callback.onUnexpectedError(e);
+            }
+        });
+    }
+
+    /**
+     * Set the global override for whether the client should ever send encrypted
+     * messages to unverified devices.
+     * If false, it can still be overridden per-room.
+     * If true, it overrides the per-room settings.
+     *
+     * @param block    true to unilaterally blacklist all
+     * @param callback the asynchronous callback.
+     */
+    public void setGlobalBlacklistUnverifiedDevices(final boolean block, final ApiCallback<Void> callback) {
+        final String userId = mSession.getMyUserId();
+        final ArrayList<String> userRoomIds = new ArrayList<>();
+
+        Collection<Room> rooms = mSession.getDataHandler().getStore().getRooms();
+
+        for (Room room : rooms) {
+            if (room.isEncrypted()) {
+                RoomMember roomMember = room.getMember(userId);
+
+                // test if the user joins the room
+                if ((null != roomMember) && TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_JOIN)) {
+                    userRoomIds.add(room.getRoomId());
+                }
+            }
+        }
+
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                mCryptoStore.setGlobalBlacklistUnverifiedDevices(block);
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (null != callback) {
+                            callback.onSuccess(null);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Tells whether the client should ever send encrypted messages to unverified devices.
+     * The default value is false.
+     * This function must be called in the getEncryptingThreadHandler() thread.
+     *
+     * @return true to unilaterally blacklist all unverified devices.
+     */
+    public boolean getGlobalBlacklistUnverifiedDevices() {
+        return mCryptoStore.getGlobalBlacklistUnverifiedDevices();
+    }
+
+    /**
+     * Tells whether the client should ever send encrypted messages to unverified devices.
+     * The default value is false.
+     * messages to unverified devices.
+     *
+     * @param callback the asynchronous callback
+     */
+    public void getGlobalBlacklistUnverifiedDevices(final ApiCallback<Boolean> callback) {
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                if (null != callback) {
+                    final boolean status = getGlobalBlacklistUnverifiedDevices();
+
+                    getUIHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onSuccess(status);
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    /**
+     * Tells whether the client should encrypt messages only for the verified devices
+     * in this room.
+     * The default value is false.
+     * This function must be called in the getEncryptingThreadHandler() thread.
+     *
+     * @param roomId the room id
+     * @return true if the client should encrypt messages only for the verified devices.
+     */
+    public boolean isRoomBlacklistUnverifiedDevices(String roomId) {
+        if (null != roomId) {
+            return mCryptoStore.getRoomsListBlacklistUnverifiedDevices().contains(roomId);
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Tells whether the client should encrypt messages only for the verified devices
+     * in this room.
+     * The default value is false.
+     * This function must be called in the getEncryptingThreadHandler() thread.
+     *
+     * @param roomId   the room id
+     * @param callback the asynchronous callback
+     */
+    public void isRoomBlacklistUnverifiedDevices(final String roomId, final ApiCallback<Boolean> callback) {
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                final boolean status = isRoomBlacklistUnverifiedDevices(roomId);
+
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (null != callback) {
+                            callback.onSuccess(status);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Manages the room black-listing for unverified devices.
+     *
+     * @param roomId   the room id
+     * @param add      true to add the room id to the list, false to remove it.
+     * @param callback the asynchronous callback
+     */
+    private void setRoomBlacklistUnverifiedDevices(final String roomId, final boolean add, final ApiCallback<Void> callback) {
+        final Room room = mSession.getDataHandler().getRoom(roomId);
+
+        // sanity check
+        if (null == room) {
+            getUIHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    callback.onSuccess(null);
+                }
+            });
+
+            return;
+        }
+
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                List<String> roomIds = mCryptoStore.getRoomsListBlacklistUnverifiedDevices();
+
+                if (add) {
+                    if (!roomIds.contains(roomId)) {
+                        roomIds.add(roomId);
+                    }
+                } else {
+                    roomIds.remove(roomId);
+                }
+
+                mCryptoStore.setRoomsListBlacklistUnverifiedDevices(roomIds);
+
+                getUIHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (null != callback) {
+                            callback.onSuccess(null);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+
+    /**
+     * Add this room to the ones which don't encrypt messages to unverified devices.
+     *
+     * @param roomId   the room id
+     * @param callback the asynchronous callback
+     */
+    public void setRoomBlacklistUnverifiedDevices(final String roomId, final ApiCallback<Void> callback) {
+        setRoomBlacklistUnverifiedDevices(roomId, true, callback);
+    }
+
+    /**
+     * Remove this room to the ones which don't encrypt messages to unverified devices.
+     *
+     * @param roomId   the room id
+     * @param callback the asynchronous callback
+     */
+    public void setRoomUnblacklistUnverifiedDevices(final String roomId, final ApiCallback<Void> callback) {
+        setRoomBlacklistUnverifiedDevices(roomId, false, callback);
     }
 }

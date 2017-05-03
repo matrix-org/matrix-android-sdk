@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,13 +32,15 @@ public interface IMXEventListener {
 
     /**
      * User presence was updated.
+     *
      * @param event The presence event.
-     * @param user The new user value.
+     * @param user  The new user value.
      */
     void onPresenceUpdate(Event event, User user);
 
     /**
      * The self user has been updated (display name, avatar url...).
+     *
      * @param myUser The updated myUser
      */
     void onAccountInfoUpdate(MyUser myUser);
@@ -54,32 +57,43 @@ public interface IMXEventListener {
 
     /**
      * A live room event was received.
-     * @param event the event
+     *
+     * @param event     the event
      * @param roomState the room state right before the event
      */
     void onLiveEvent(Event event, RoomState roomState);
 
     /**
      * The live events from a chunk are performed.
+     * @param fromToken the start sync token
+     * @param toToken the up-to sync token
      */
-    void onLiveEventsChunkProcessed();
+    void onLiveEventsChunkProcessed(String fromToken, String toToken);
 
     /**
      * A received event fulfills the bing rules
      * The first matched bing rule is provided in paramater to perform
      * dedicated action like playing a notification sound.
      *
-     * @param event the event
+     * @param event     the event
      * @param roomState the room state right before the event
-     * @param bingRule the bing rule
+     * @param bingRule  the bing rule
      */
     void onBingEvent(Event event, RoomState roomState, BingRule bingRule);
 
     /**
      * An event has been successfully encrypted.
+     *
      * @param event the encrypted event
      */
     void onEventEncrypted(Event event);
+
+    /**
+     * An event has been decrypted
+     *
+     * @param event the decrypted event
+     */
+    void onEventDecrypted(Event event);
 
     /**
      * An event has been sent.
@@ -102,8 +116,14 @@ public interface IMXEventListener {
 
     /**
      * The initial sync is complete and the store can be queried for current state.
+     * @param toToken the up-to sync token
      */
-    void onInitialSyncComplete();
+    void onInitialSyncComplete(String toToken);
+
+    /**
+     * The crypto sync is complete
+     */
+    void onCryptoSyncComplete();
 
     /**
      * A new room has been created.
@@ -122,6 +142,7 @@ public interface IMXEventListener {
     /**
      * The messages of an existing room has been flushed during server sync.
      * This flush may be due to a limited timeline in the room sync, or the redaction of a state event.
+     *
      * @param roomId the room Id
      */
     void onRoomFlush(String roomId);
@@ -153,7 +174,7 @@ public interface IMXEventListener {
      * A receipt event has been received.
      * It could be triggered when a request failed.
      *
-     * @param roomId the roomID
+     * @param roomId    the roomID
      * @param senderIds the list of the
      */
     void onReceiptEvent(String roomId, List<String> senderIds);
@@ -167,7 +188,9 @@ public interface IMXEventListener {
 
     /**
      * An event was sent to the current device.
+     *
      * @param event the event
      */
     void onToDeviceEvent(Event event);
 }
+

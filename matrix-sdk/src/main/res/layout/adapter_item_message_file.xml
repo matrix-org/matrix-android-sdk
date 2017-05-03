@@ -77,14 +77,12 @@
                             <!-- download progress -->
                             <LinearLayout
                                 android:id="@+id/content_download_progress_layout"
-                                android:layout_centerInParent="true"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:orientation="horizontal">
 
                                 <org.matrix.androidsdk.view.PieFractionView
                                     android:id="@+id/content_download_progress_piechart"
-                                    android:layout_centerInParent="true"
                                     android:layout_width="@dimen/chat_avatar_size"
                                     android:layout_height="@dimen/chat_avatar_size"/>
 
@@ -102,7 +100,6 @@
                             <!-- upload progress -->
                             <LinearLayout
                                 android:id="@+id/content_upload_progress_layout"
-                                android:layout_centerInParent="true"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:orientation="horizontal">

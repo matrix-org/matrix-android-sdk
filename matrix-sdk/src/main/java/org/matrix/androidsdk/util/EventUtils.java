@@ -16,7 +16,7 @@
 package org.matrix.androidsdk.util;
 
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
@@ -104,7 +104,15 @@ public class EventUtils {
             return false;
         }
 
-        Pattern pattern = Pattern.compile("(\\W|^)" + subString + "(\\W|$)", Pattern.CASE_INSENSITIVE);
-        return pattern.matcher(longString).find();
+        boolean res = false;
+
+        try {
+            Pattern pattern = Pattern.compile("(\\W|^)" + subString + "(\\W|$)", Pattern.CASE_INSENSITIVE);
+            res = pattern.matcher(longString).find();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## caseInsensitiveFind() : failed");
+        }
+
+        return res;
     }
 }

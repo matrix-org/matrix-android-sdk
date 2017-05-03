@@ -16,7 +16,7 @@
 package org.matrix.androidsdk.util;
 
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
@@ -40,7 +40,9 @@ import org.matrix.androidsdk.rest.model.bingrules.EventMatchCondition;
 import org.matrix.androidsdk.rest.model.bingrules.RoomMemberCountCondition;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
@@ -82,6 +84,9 @@ public class BingRulesManager {
 
     // tell if the bing rules set is initialized
     private boolean mIsInitialized = false;
+
+    // map to chheck if a room is "mention only"
+    private Map<String, Boolean> mIsMentionOnlyMap = new HashMap<>();
 
     // network management
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
@@ -231,8 +236,15 @@ public class BingRulesManager {
         }
 
         if (mRules != null) {
+            // GA issue
+            final ArrayList<BingRule> rules;
+
+            synchronized (this) {
+                rules = new ArrayList<>(mRules);
+            }
+
             // Go down the rule list until we find a match
-            for (BingRule bingRule : mRules) {
+            for (BingRule bingRule : rules) {
                 if (bingRule.isEnabled) {
                     boolean isFullfilled = false;
 
@@ -382,6 +394,7 @@ public class BingRulesManager {
                 ruleSet.content = new ArrayList<>();
             }
 
+            mIsMentionOnlyMap.clear();
             if (ruleSet.room != null) {
                 ruleSet.room = new ArrayList<>(ruleSet.room);
 
@@ -770,6 +783,41 @@ public class BingRulesManager {
         }
 
         return rules;
+    }
+
+    /**
+     * Tell whether the regular notifications are disabled for the room.
+     * @param room the room
+     * @return true if the regular notifications are disabled (mention only)
+     */
+    public boolean isRoomMentionOnly(Room room) {
+        // sanity check
+        if ((null != room) && (null != room.getRoomId())) {
+            if (mIsMentionOnlyMap.containsKey(room.getRoomId())) {
+                return mIsMentionOnlyMap.get(room.getRoomId());
+            }
+
+            if (null != mRulesSet.room) {
+                for (BingRule roomRule : mRulesSet.room) {
+                    if (TextUtils.equals(roomRule.ruleId, room.getRoomId())) {
+                        List<BingRule> roomRules = getPushRulesForRoom(room);
+
+                        if (0 != roomRules.size()) {
+                            for (BingRule rule : roomRules) {
+                                if (rule.shouldNotNotify()) {
+                                    mIsMentionOnlyMap.put(room.getRoomId(), rule.isEnabled);
+                                    return rule.isEnabled;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            mIsMentionOnlyMap.put(room.getRoomId(), false);
+        }
+
+        return false;
     }
 
     /**

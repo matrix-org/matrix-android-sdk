@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +48,7 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
-    public void onLiveEventsChunkProcessed() {
+    public void onLiveEventsChunkProcessed(String fromToken, String toToken) {
     }
 
     @Override
@@ -63,6 +64,10 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
+    public void onEventDecrypted(Event event) {
+    }
+
+    @Override
     public void onFailedSendingEvent(Event event) {
     }
 
@@ -71,7 +76,11 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
-    public void onInitialSyncComplete() {
+    public void onInitialSyncComplete(String toToken) {
+    }
+
+    @Override
+    public void onCryptoSyncComplete() {
     }
 
     @Override

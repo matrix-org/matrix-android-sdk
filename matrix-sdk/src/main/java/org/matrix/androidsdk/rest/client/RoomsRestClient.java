@@ -1,6 +1,7 @@
 /* 
  * Copyright 2016 OpenMarket Ltd
- * 
+ * Copyright 2017 Vector Creations Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -17,7 +18,7 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonObject;
 
@@ -88,21 +89,22 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
     /**
      * Send an event to a room.
+     * @param transactionId the unique transaction id (it should avoid duplicated messages)
      * @param roomId the room id
      * @param eventType the type of event
      * @param content the event content
      * @param callback the callback containing the created event if successful
      */
-    public void sendEventToRoom(final String roomId, final String eventType, final JsonObject content, final ApiCallback<Event> callback) {
+    public void sendEventToRoom(final String transactionId, final String roomId, final String eventType, final JsonObject content, final ApiCallback<Event> callback) {
         // privacy
         //final String description = "sendEvent : roomId " + roomId + " - eventType " + eventType + " content " + content;
         final String description = "sendEvent : roomId " + roomId + " - eventType " + eventType;
 
-        mApi.send(roomId, eventType, content, new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.send(transactionId, roomId, eventType, content, new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
-                    sendEventToRoom(roomId, eventType, content, callback);
+                    sendEventToRoom(transactionId, roomId, eventType, content, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend sendEvent : failed " + e.getLocalizedMessage());
                 }
@@ -295,6 +297,27 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     banFromRoom(roomId, user, callback);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "resend banFromRoom : failed " + e.getLocalizedMessage());
+                }
+            }
+        }));
+    }
+
+    /**
+     * Unban an user from a room.
+     * @param roomId the room id
+     * @param user the banned user (userId)
+     * @param callback the async callback
+     */
+    public void unbanFromRoom(final String roomId, final BannedUser user, final ApiCallback<Void> callback) {
+        final String description = "Unban : roomId " + roomId + " userId " + user.userId;
+
+        mApi.unban(roomId, user, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    unbanFromRoom(roomId, user, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend unbanFromRoom : failed " + e.getLocalizedMessage());
                 }
             }
         }));

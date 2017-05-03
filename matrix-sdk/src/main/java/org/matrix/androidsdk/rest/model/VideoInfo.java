@@ -24,6 +24,8 @@ public class VideoInfo {
     public String thumbnail_url;
     public ThumbnailInfo thumbnail_info;
 
+    public EncryptedFileInfo thumbnail_file;
+
     /**
      * Make a deep copy.
      * @return the copy
@@ -38,6 +40,10 @@ public class VideoInfo {
 
         if (null != thumbnail_info) {
             copy.thumbnail_info = thumbnail_info.deepCopy();
+        }
+
+        if (null != thumbnail_file) {
+            copy.thumbnail_file = thumbnail_file.deepCopy();
         }
 
         return copy;

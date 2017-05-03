@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,11 +18,14 @@
 package org.matrix.androidsdk.data.cryptostore;
 
 import android.content.Context;
+import android.os.Looper;
 import android.text.TextUtils;
-import android.util.Log;
+
+import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
+import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
-import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
+import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.ContentUtils;
@@ -36,7 +40,11 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * the crypto data store
@@ -47,25 +55,40 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private static final int MXFILE_CRYPTO_VERSION = 1;
 
     private static final String MXFILE_CRYPTO_STORE_FOLDER = "MXFileCryptoStore";
+
     private static final String MXFILE_CRYPTO_STORE_METADATA_FILE = "MXFileCryptoStore";
+    private static final String MXFILE_CRYPTO_STORE_METADATA_FILE_TMP = "MXFileCryptoStore.tmp";
 
     private static final String MXFILE_CRYPTO_STORE_ACCOUNT_FILE = "account";
+    private static final String MXFILE_CRYPTO_STORE_ACCOUNT_FILE_TMP = "account.tmp";
+
+    private static final String MXFILE_CRYPTO_STORE_DEVICES_FOLDER = "devicesFolder";
     private static final String MXFILE_CRYPTO_STORE_DEVICES_FILE = "devices";
+    private static final String MXFILE_CRYPTO_STORE_DEVICES_FILE_TMP = "devices.tmp";
+
     private static final String MXFILE_CRYPTO_STORE_ALGORITHMS_FILE = "roomsAlgorithms";
-    private static final String MXFILE_CRYPTO_STORE_SESSIONS_FILE = "sessions";
+    private static final String MXFILE_CRYPTO_STORE_ALGORITHMS_FILE_TMP = "roomsAlgorithms";
+
+    private static final String MXFILE_CRYPTO_STORE_OLM_SESSIONS_FILE = "sessions";
+    private static final String MXFILE_CRYPTO_STORE_OLM_SESSIONS_FILE_TMP = "sessions.tmp";
+    private static final String MXFILE_CRYPTO_STORE_OLM_SESSIONS_FOLDER = "olmSessionsFolder";
+
     private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE = "inboundGroupSessions";
+    private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE_TMP = "inboundGroupSessions.tmp";
+    private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FOLDER = "inboundGroupSessionsFolder";
 
     // The credentials used for this store
     private Credentials mCredentials;
 
     // Meta data about the store
-    private MXFileCryptoStoreMetaData mMetaData;
+    private MXFileCryptoStoreMetaData2 mMetaData;
 
     // The olm account
     private OlmAccount mOlmAccount;
 
     // All users devices keys
     private MXUsersDevicesMap<MXDeviceInfo> mUsersDevicesInfoMap;
+    private final Object mUsersDevicesInfoMapLock = new Object();
 
     // The algorithms used in rooms
     private HashMap<String, String> mRoomsAlgorithms;
@@ -73,51 +96,79 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     // The olm sessions (<device identity key> -> (<olm session id> -> <olm session>)
     private HashMap<String /*deviceKey*/,
             HashMap<String /*olmSessionId*/, OlmSession>> mOlmSessions;
+    private static final Object mOlmSessionsLock = new Object();
 
     // The inbound group megolm sessions (<senderKey> -> (<inbound group session id> -> <inbound group megolm session>)
     private HashMap<String /*senderKey*/,
-            HashMap<String /*inboundGroupSessionId*/,MXOlmInboundGroupSession>> mInboundGroupSessions;
+            HashMap<String /*inboundGroupSessionId*/, MXOlmInboundGroupSession2>> mInboundGroupSessions;
+    private final Object mInboundGroupSessionsLock = new Object();
 
-
-    private Context mContext;
 
     // The path of the MXFileCryptoStore folder
     private File mStoreFile;
+
     private File mMetaDataFile;
+    private File mMetaDataFileTmp;
+
     private File mAccountFile;
+    private File mAccountFileTmp;
+
+    private File mDevicesFolder;
     private File mDevicesFile;
+    private File mDevicesFileTmp;
+
     private File mAlgorithmsFile;
-    private File mSessionsFile;
+    private File mAlgorithmsFileTmp;
+
+    private File mOlmSessionsFile;
+    private File mOlmSessionsFileTmp;
+    private File mOlmSessionsFolder;
+
     private File mInboundGroupSessionsFile;
+    private File mInboundGroupSessionsFileTmp;
+    private File mInboundGroupSessionsFolder;
+
+    // tell if the store is corrupted
+    private boolean mIsCorrupted = false;
 
     public MXFileCryptoStore() {
     }
 
     @Override
     public void initWithCredentials(Context context, Credentials credentials) {
-        mContext = context;
         mCredentials = credentials;
 
-        mStoreFile = new File(new File(mContext.getApplicationContext().getFilesDir(), MXFILE_CRYPTO_STORE_FOLDER), mCredentials.userId);
+        mStoreFile = new File(new File(context.getApplicationContext().getFilesDir(), MXFILE_CRYPTO_STORE_FOLDER), mCredentials.userId);
+
         mMetaDataFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_METADATA_FILE);
+        mMetaDataFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_METADATA_FILE_TMP);
+
         mAccountFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_ACCOUNT_FILE);
+        mAccountFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_ACCOUNT_FILE_TMP);
+
+        mDevicesFolder = new File(mStoreFile, MXFILE_CRYPTO_STORE_DEVICES_FOLDER);
         mDevicesFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_DEVICES_FILE);
+        mDevicesFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_DEVICES_FILE_TMP);
+
         mAlgorithmsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_ALGORITHMS_FILE);
-        mSessionsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_SESSIONS_FILE);
+        mAlgorithmsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_ALGORITHMS_FILE_TMP);
+
+        // backward compatibility : the sessions used to be stored in an unique file
+        mOlmSessionsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_OLM_SESSIONS_FILE);
+        mOlmSessionsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_OLM_SESSIONS_FILE_TMP);
+        // each session is now stored in a dedicated file
+        mOlmSessionsFolder = new File(mStoreFile, MXFILE_CRYPTO_STORE_OLM_SESSIONS_FOLDER);
+
         mInboundGroupSessionsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE);
+        mInboundGroupSessionsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE_TMP);
+        mInboundGroupSessionsFolder = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FOLDER);
 
         // Build default metadata
         if ((null == mMetaData)
                 && (null != credentials.homeServer)
                 && (null != credentials.userId)
                 && (null != credentials.accessToken)) {
-            mMetaData = new MXFileCryptoStoreMetaData();
-            mMetaData.mUserId = new String(mCredentials.userId);
-            if (null != mCredentials.deviceId) {
-                mMetaData.mDeviceId = new String(mCredentials.deviceId);
-            }
-            mMetaData.mVersion = MXFILE_CRYPTO_VERSION;
-            mMetaData.mDeviceAnnounced = false;
+            mMetaData = new MXFileCryptoStoreMetaData2(mCredentials.userId, mCredentials.deviceId, MXFILE_CRYPTO_VERSION);
         }
 
         mUsersDevicesInfoMap = new MXUsersDevicesMap<>();
@@ -143,12 +194,18 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         return result;
     }
 
+
+    @Override
+    public boolean isCorrupted() {
+        return mIsCorrupted;
+    }
+
     @Override
     public void deleteStore() {
         // delete the dedicated directories
         try {
             ContentUtils.deleteDirectory(mStoreFile);
-        } catch(Exception e) {
+        } catch (Exception e) {
             Log.e(LOG_TAG, "deleteStore failed " + e.getMessage());
         }
     }
@@ -171,7 +228,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         // Check credentials
         // The device id may not have been provided in credentials.
         // Check it only if provided, else trust the stored one.
-        else if  (!TextUtils.equals(mMetaData.mUserId, mCredentials.userId) ||
+        else if (!TextUtils.equals(mMetaData.mUserId, mCredentials.userId) ||
                 ((null != mCredentials.deviceId) && !TextUtils.equals(mCredentials.deviceId, mMetaData.mDeviceId))
                 ) {
             Log.e(LOG_TAG, "## open() : Credentials do not match");
@@ -188,13 +245,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 && (null != mCredentials.homeServer)
                 && (null != mCredentials.userId)
                 && (null != mCredentials.accessToken)) {
-            mMetaData = new MXFileCryptoStoreMetaData();
-            mMetaData.mUserId = new String(mCredentials.userId);
-            if (null != mCredentials.deviceId) {
-                mMetaData.mDeviceId = new String(mCredentials.deviceId);
-            }
-            mMetaData.mVersion = MXFILE_CRYPTO_VERSION;
-            mMetaData.mDeviceAnnounced = false;
+            mMetaData = new MXFileCryptoStoreMetaData2(mCredentials.userId, mCredentials.deviceId, MXFILE_CRYPTO_VERSION);
             saveMetaData();
         }
     }
@@ -212,24 +263,57 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     /**
      * Store a serializable object into a dedicated file.
-     * @param object the object to write.
-     * @param file the file
+     *
+     * @param object      the object to write.
+     * @param folder      the folder
+     * @param filename    the filename
+     * @param description the object description
+     */
+    private void storeObject(Object object, File folder, String filename, String description) {
+        // ensure that the folder exists
+        // it should always exist but it happened
+        if (!folder.exists()) {
+            if (!folder.mkdirs()) {
+                Log.e(LOG_TAG, "Cannot create the folder " + folder);
+            }
+        }
+
+        storeObject(object, new File(folder, filename), description);
+    }
+
+    /**
+     * Store a serializable object into a dedicated file.
+     *
+     * @param object      the object to write.
+     * @param file        the file
      * @param description the object description
      */
     private void storeObject(Object object, File file, String description) {
-        try {
-            if (file.exists()) {
-                file.delete();
-            }
+        if (Thread.currentThread() == Looper.getMainLooper().getThread()) {
+            Log.e(LOG_TAG, "## storeObject() : should not be called in the UI thread " + description);
+        }
 
-            FileOutputStream fos = new FileOutputStream(file);
-            ObjectOutputStream out = new ObjectOutputStream(fos);
-            out.writeObject(object);
-            out.close();
-        } catch (OutOfMemoryError oom) {
-            Log.e(LOG_TAG, "storeObject failed : " + description + " -- " + oom.getMessage());
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "storeObject failed : " + description + " -- " + e.getMessage());
+        synchronized (LOG_TAG) {
+            try {
+                long t0 = System.currentTimeMillis();
+
+                if (file.exists()) {
+                    file.delete();
+                }
+
+                FileOutputStream fos = new FileOutputStream(file);
+                GZIPOutputStream gz = new GZIPOutputStream(fos);
+                ObjectOutputStream out = new ObjectOutputStream(gz);
+
+                out.writeObject(object);
+                out.close();
+
+                Log.d(LOG_TAG, "## storeObject () : " + description + " done in " + (System.currentTimeMillis() - t0) + " ms");
+            } catch (OutOfMemoryError oom) {
+                Log.e(LOG_TAG, "storeObject failed : " + description + " -- " + oom.getMessage());
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "storeObject failed : " + description + " -- " + e.getMessage());
+            }
         }
     }
 
@@ -237,14 +321,38 @@ public class MXFileCryptoStore implements IMXCryptoStore {
      * Save the metadata into the crypto file store
      */
     private void saveMetaData() {
-        storeObject(mMetaData, mMetaDataFile, "saveMetaData");
-    }
+        if (mMetaDataFileTmp.exists()) {
+            mMetaDataFileTmp.delete();
+        }
 
+        if (mMetaDataFile.exists()) {
+            mMetaDataFile.renameTo(mMetaDataFileTmp);
+        }
+
+        storeObject(mMetaData, mMetaDataFile, "saveMetaData");
+
+        if (mMetaDataFileTmp.exists()) {
+            mMetaDataFileTmp.delete();
+        }
+    }
 
     @Override
     public void storeAccount(OlmAccount account) {
         mOlmAccount = account;
+
+        if (mAccountFileTmp.exists()) {
+            mAccountFileTmp.delete();
+        }
+
+        if (mAccountFile.exists()) {
+            mAccountFile.renameTo(mAccountFileTmp);
+        }
+
         storeObject(mOlmAccount, mAccountFile, "storeAccount");
+
+        if (mAccountFileTmp.exists()) {
+            mAccountFileTmp.delete();
+        }
     }
 
     @Override
@@ -253,7 +361,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public  void storeDeviceAnnounced() {
+    public void storeDeviceAnnounced() {
         mMetaData.mDeviceAnnounced = true;
         saveMetaData();
     }
@@ -263,42 +371,132 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         return mMetaData.mDeviceAnnounced;
     }
 
-    @Override
-    public void storeDeviceForUser(String userId, MXDeviceInfo device) {
-        mUsersDevicesInfoMap.setObject(device, userId, device.deviceId);
-        storeObject(mUsersDevicesInfoMap, mDevicesFile, "storeDeviceForUser");
+    /**
+     * Load the user devices from the filesystem
+     * if it is not yet done.
+     * @param userId the user id.
+     */
+    private void loadUserDevices(String userId) {
+        if (!TextUtils.isEmpty(userId)) {
+            boolean alreadyDone;
+
+            synchronized (mUsersDevicesInfoMapLock) {
+                alreadyDone = mUsersDevicesInfoMap.getMap().containsKey(userId);
+            }
+
+            if (!alreadyDone) {
+                File devicesFile = new File(mDevicesFolder, userId);
+
+                if (devicesFile.exists()) {
+                    long t0 = System.currentTimeMillis();
+
+                    Object devicesMapAsVoid = loadObject(devicesFile, "load devices of " + userId);
+
+                    if (null != devicesMapAsVoid) {
+                        try {
+                            synchronized (mUsersDevicesInfoMapLock) {
+                                mUsersDevicesInfoMap.setObjects((Map<String, MXDeviceInfo>) devicesMapAsVoid, userId);
+                            }
+                        } catch (Exception e) {
+                            mIsCorrupted = true;
+                        }
+                    }
+
+                    // something was wrong (loadObject set this boolean)
+                    if (mIsCorrupted) {
+                        Log.e(LOG_TAG, "## loadUserDevices : failed to load the device of " + userId);
+
+                        // delete the corrupted file
+                        devicesFile.delete();
+                        // it is not a blocking thing
+                        mIsCorrupted = false;
+                    } else {
+                        Log.d(LOG_TAG, "## loadUserDevices : Load the devices of " + userId + " in " + (System.currentTimeMillis() - t0) + "ms");
+                    }
+                }
+            }
+        }
     }
 
     @Override
-    public MXDeviceInfo deviceWithDeviceId(String deviceId, String userId) {
-        return mUsersDevicesInfoMap.objectForDevice(deviceId, userId);
+    public void storeUserDevice(String userId, MXDeviceInfo device) {
+        final HashMap<String, MXDeviceInfo> devicesMap;
+
+        loadUserDevices(userId);
+
+        synchronized (mUsersDevicesInfoMapLock) {
+            mUsersDevicesInfoMap.setObject(device, userId, device.deviceId);
+            devicesMap = new HashMap<>(mUsersDevicesInfoMap.getMap().get(userId));
+        }
+
+        storeObject(devicesMap, mDevicesFolder, userId, "storeUserDevice " + userId + " with " + devicesMap.size() + " devices");
     }
 
     @Override
-    public void storeDevicesForUser(String userId, Map<String, MXDeviceInfo> devices) {
-        mUsersDevicesInfoMap.setObjects(devices, userId);
-        storeObject(mUsersDevicesInfoMap, mDevicesFile, "storeDeviceForUser");
+    public MXDeviceInfo getUserDevice(String deviceId, String userId) {
+        MXDeviceInfo deviceInfo;
+
+        loadUserDevices(userId);
+
+        synchronized (mUsersDevicesInfoMapLock) {
+            deviceInfo = mUsersDevicesInfoMap.getObject(deviceId, userId);
+        }
+
+        return deviceInfo;
     }
 
     @Override
-    public Map<String, MXDeviceInfo> devicesForUser(String userId) {
+    public void storeUserDevices(String userId, Map<String, MXDeviceInfo> devices) {
+        synchronized (mUsersDevicesInfoMapLock) {
+            mUsersDevicesInfoMap.setObjects(devices, userId);
+        }
+
+        storeObject(devices, mDevicesFolder, userId, "storeUserDevice " + userId);
+    }
+
+    @Override
+    public Map<String, MXDeviceInfo> getUserDevices(String userId) {
         if (null != userId) {
-            return mUsersDevicesInfoMap.getMap().get(userId);
+            Map<String, MXDeviceInfo> devicesMap;
+
+            loadUserDevices(userId);
+
+            synchronized (mUsersDevicesInfoMapLock) {
+                devicesMap = mUsersDevicesInfoMap.getMap().get(userId);
+            }
+
+            return devicesMap;
         } else {
             return null;
         }
     }
 
     @Override
-    public void storeAlgorithmForRoom(String roomId, String algorithm) {
+    public void storeRoomAlgorithm(String roomId, String algorithm) {
         if ((null != roomId) && (null != algorithm)) {
             mRoomsAlgorithms.put(roomId, algorithm);
-            storeObject(mRoomsAlgorithms, mAlgorithmsFile, "storeAlgorithmForRoom");
+
+            // delete the previous tmp
+            if (mAlgorithmsFileTmp.exists()) {
+                mAlgorithmsFileTmp.delete();
+            }
+
+            // copy the existing file
+            if (mAlgorithmsFile.exists()) {
+                mAlgorithmsFile.renameTo(mAlgorithmsFileTmp);
+            }
+
+            storeObject(mRoomsAlgorithms, mAlgorithmsFile, "storeAlgorithmForRoom - in background");
+
+            // remove the tmp file
+            if (mAlgorithmsFileTmp.exists()) {
+                mAlgorithmsFileTmp.delete();
+            }
         }
     }
 
     @Override
-    public String algorithmForRoom(String roomId) {
+    public String getRoomAlgorithm(String roomId) {
         if (null != roomId) {
             return mRoomsAlgorithms.get(roomId);
         }
@@ -307,77 +505,210 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public void storeSession(OlmSession session, String deviceKey) {
-        if ((null != session) && (null != deviceKey) && (null != session.sessionIdentifier())) {
-            if (!mOlmSessions.containsKey(deviceKey)) {
-                mOlmSessions.put(deviceKey, new HashMap<String, OlmSession>());
+    public void storeSession(final OlmSession olmSession, final String deviceKey) {
+        String sessionIdentifier = null;
+
+        if (null != olmSession) {
+            try {
+                sessionIdentifier = olmSession.sessionIdentifier();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## storeSession : session.sessionIdentifier() failed " + e.getMessage());
+            }
+        }
+
+        if ((null != deviceKey) && (null != sessionIdentifier)) {
+            synchronized (mOlmSessionsLock) {
+                if (!mOlmSessions.containsKey(deviceKey)) {
+                    mOlmSessions.put(deviceKey, new HashMap<String, OlmSession>());
+                }
+
+                OlmSession prevOlmSession = mOlmSessions.get(deviceKey).get(sessionIdentifier);
+
+                // test if the session is a new one
+                if (olmSession != prevOlmSession) {
+                    if (null != prevOlmSession) {
+                        prevOlmSession.releaseSession();
+                    }
+                    mOlmSessions.get(deviceKey).put(sessionIdentifier, olmSession);
+                }
             }
 
-            mOlmSessions.get(deviceKey).put(session.sessionIdentifier(), session);
+            final File keyFolder = new File(mOlmSessionsFolder, encodeFilename(deviceKey));
 
-            storeObject(mOlmSessions, mSessionsFile, "storeSession");
+            if (!keyFolder.exists()) {
+                keyFolder.mkdir();
+            }
+
+            storeObject(olmSession, keyFolder, encodeFilename(sessionIdentifier), "Store olm session " + deviceKey + " " + sessionIdentifier);
         }
     }
 
     @Override
-    public Map<String, OlmSession> sessionsWithDevice(String deviceKey) {
+    public Map<String, OlmSession> getDeviceSessions(String deviceKey) {
         if (null != deviceKey) {
-            return mOlmSessions.get(deviceKey);
-        }
+            Map<String, OlmSession> map;
 
-        return null;
-    }
-
-    @Override
-    public void storeInboundGroupSession(MXOlmInboundGroupSession session) {
-        if ((null != session) && (null != session.mSenderKey) && (null != session.mSession) && (null != session.mSession.sessionIdentifier())) {
-            if (!mInboundGroupSessions.containsKey(session.mSenderKey)) {
-                mInboundGroupSessions.put(session.mSenderKey, new HashMap<String, MXOlmInboundGroupSession>());
+            synchronized (mOlmSessionsLock) {
+                map = mOlmSessions.get(deviceKey);
             }
 
-            mInboundGroupSessions.get(session.mSenderKey).put(session.mSession.sessionIdentifier(), session);
+            return map;
         }
 
-        storeObject(mInboundGroupSessions, mInboundGroupSessionsFile, "storeInboundGroupSession");
+        return null;
     }
 
     @Override
-    public  MXOlmInboundGroupSession inboundGroupSessionWithId(String sessionId, String senderKey) {
-        if ((null != sessionId) && (null != senderKey) && mInboundGroupSessions.containsKey(senderKey)) {
+    public void removeInboundGroupSession(String sessionId, String senderKey) {
+        if ((null != sessionId) && (null != senderKey)) {
+            synchronized (mInboundGroupSessionsLock) {
+                if (mInboundGroupSessions.containsKey(senderKey)) {
+                    MXOlmInboundGroupSession2 session = mInboundGroupSessions.get(senderKey).get(sessionId);
 
-            return mInboundGroupSessions.get(senderKey).get(sessionId);
+                    if (null != session) {
+                        mInboundGroupSessions.get(senderKey).remove(sessionId);
+
+                        File senderKeyFolder = new File(mInboundGroupSessionsFolder, encodeFilename(session.mSenderKey));
+
+                        if (senderKeyFolder.exists()) {
+                            File inboundSessionFile = new File(senderKeyFolder, encodeFilename(sessionId));
+
+                            if (!inboundSessionFile.delete()) {
+                                Log.e(LOG_TAG, "## removeInboundGroupSession() : fail to remove the sessionid " + sessionId);
+                            }
+                        }
+
+                        // release the memory
+                        session.mSession.releaseSession();
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public void storeInboundGroupSession(final MXOlmInboundGroupSession2 session) {
+        String sessionIdentifier = null;
+
+        if ((null != session) && (null != session.mSenderKey) && (null != session.mSession)) {
+            try {
+                sessionIdentifier = session.mSession.sessionIdentifier();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## storeInboundGroupSession() : sessionIdentifier failed " + e.getMessage());
+            }
+        }
+
+        if (null != sessionIdentifier) {
+            synchronized (mInboundGroupSessionsLock) {
+                if (!mInboundGroupSessions.containsKey(session.mSenderKey)) {
+                    mInboundGroupSessions.put(session.mSenderKey, new HashMap<String, MXOlmInboundGroupSession2>());
+                }
+
+                MXOlmInboundGroupSession2 curSession = mInboundGroupSessions.get(session.mSenderKey).get(sessionIdentifier);
+
+                if (curSession != session) {
+                    // release memory
+                    if (null != curSession) {
+                        curSession.mSession.releaseSession();
+                    }
+                    // update the map
+                    mInboundGroupSessions.get(session.mSenderKey).put(sessionIdentifier, session);
+                }
+            }
+
+            Log.d(LOG_TAG, "## storeInboundGroupSession() : store session " + sessionIdentifier);
+
+            File senderKeyFolder = new File(mInboundGroupSessionsFolder, encodeFilename(session.mSenderKey));
+
+            if (!senderKeyFolder.exists()) {
+                senderKeyFolder.mkdir();
+            }
+
+            storeObject(session, senderKeyFolder, encodeFilename(sessionIdentifier), "storeInboundGroupSession - in background");
+        }
+    }
+
+    @Override
+    public MXOlmInboundGroupSession2 getInboundGroupSession(String sessionId, String senderKey) {
+        if ((null != sessionId) && (null != senderKey) && mInboundGroupSessions.containsKey(senderKey)) {
+            MXOlmInboundGroupSession2 session;
+
+            synchronized (mInboundGroupSessionsLock) {
+                session = mInboundGroupSessions.get(senderKey).get(sessionId);
+            }
+
+            return session;
         }
         return null;
+    }
+
+    @Override
+    public List<MXOlmInboundGroupSession2> getInboundGroupSessions() {
+        ArrayList<MXOlmInboundGroupSession2> inboundGroupSessions = new ArrayList<>();
+
+        synchronized (mInboundGroupSessionsLock) {
+            for (String senderKey : mInboundGroupSessions.keySet()) {
+                inboundGroupSessions.addAll(mInboundGroupSessions.get(senderKey).values());
+            }
+        }
+
+        return inboundGroupSessions;
     }
 
     @Override
     public void close() {
         // release JNI objects
         ArrayList<OlmSession> olmSessions = new ArrayList<>();
-        Collection<HashMap<String , OlmSession>> sessionValues = mOlmSessions.values();
+        Collection<HashMap<String, OlmSession>> sessionValues = mOlmSessions.values();
 
-        for(HashMap<String , OlmSession> value : sessionValues) {
+        for (HashMap<String, OlmSession> value : sessionValues) {
             olmSessions.addAll(value.values());
         }
 
-        for(OlmSession olmSession : olmSessions) {
+        for (OlmSession olmSession : olmSessions) {
             olmSession.releaseSession();
         }
         mOlmSessions.clear();
 
-        ArrayList<MXOlmInboundGroupSession> groupSessions = new ArrayList<>();
-        Collection<HashMap<String ,MXOlmInboundGroupSession>> groupSessionsValues = mInboundGroupSessions.values();
+        ArrayList<MXOlmInboundGroupSession2> groupSessions = new ArrayList<>();
+        Collection<HashMap<String, MXOlmInboundGroupSession2>> groupSessionsValues = mInboundGroupSessions.values();
 
-        for(HashMap<String ,MXOlmInboundGroupSession> map : groupSessionsValues) {
+        for (HashMap<String, MXOlmInboundGroupSession2> map : groupSessionsValues) {
             groupSessions.addAll(map.values());
         }
 
-        for(MXOlmInboundGroupSession groupSession : groupSessions) {
+        for (MXOlmInboundGroupSession2 groupSession : groupSessions) {
             if (null != groupSession.mSession) {
                 groupSession.mSession.releaseSession();
             }
         }
         mInboundGroupSessions.clear();
+    }
+
+    @Override
+    public void setGlobalBlacklistUnverifiedDevices(boolean block) {
+        mMetaData.mGlobalBlacklistUnverifiedDevices = block;
+        saveMetaData();
+    }
+
+    @Override
+    public boolean getGlobalBlacklistUnverifiedDevices() {
+        return mMetaData.mGlobalBlacklistUnverifiedDevices;
+    }
+
+    @Override
+    public void setRoomsListBlacklistUnverifiedDevices(List<String> roomIds) {
+        mMetaData.mBlacklistUnverifiedDevicesRoomIdsList = roomIds;
+        saveMetaData();
+    }
+
+    @Override
+    public List<String> getRoomsListBlacklistUnverifiedDevices() {
+        if (null == mMetaData.mBlacklistUnverifiedDevicesRoomIdsList) {
+            return new ArrayList<>();
+        } else {
+            return new ArrayList<>(mMetaData.mBlacklistUnverifiedDevicesRoomIdsList);
+        }
     }
 
     /**
@@ -386,10 +717,25 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private void resetData() {
         close();
 
-        deleteStore();
+        // ensure there is background writings while deleting the store
+        synchronized (LOG_TAG) {
+            deleteStore();
+        }
 
         if (!mStoreFile.exists()) {
             mStoreFile.mkdirs();
+        }
+
+        if (!mDevicesFolder.exists()) {
+            mDevicesFolder.mkdirs();
+        }
+
+        if (!mOlmSessionsFolder.exists()) {
+            mOlmSessionsFolder.mkdir();
+        }
+
+        if (!mInboundGroupSessionsFolder.exists()) {
+            mInboundGroupSessionsFolder.mkdirs();
         }
 
         mMetaData = null;
@@ -397,37 +743,63 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     /**
      * Load a file from the crypto store
-     * @param file the file to read
+     *
+     * @param file        the file to read
      * @param description the operation description
      * @return the read object, null if it fails
      */
     private Object loadObject(File file, String description) {
         Object object = null;
 
-        try {
-            if (file.exists()) {
+
+        if (file.exists()) {
+            try {
+                // the files are now zipped to reduce saving time
                 FileInputStream fis = new FileInputStream(file);
-                ObjectInputStream out = new ObjectInputStream(fis);
+                GZIPInputStream gz = new GZIPInputStream(fis);
+                ObjectInputStream ois = new ObjectInputStream(gz);
+                object = ois.readObject();
+                ois.close();
+            } catch (Exception e) {
+                // if the zip deflating fails, try to use the former file saving method
+                try {
+                    FileInputStream fis2 = new FileInputStream(file);
+                    ObjectInputStream out = new ObjectInputStream(fis2);
 
-                object = out.readObject();
+                    object = out.readObject();
+                    fis2.close();
+                } catch (Exception subEx) {
+                    // warn that some file loading fails
+                    mIsCorrupted = true;
+                    Log.e(LOG_TAG, description + "failed : " + subEx.getMessage());
+                }
             }
-        } catch (Exception e) {
-            Log.e(LOG_TAG, description  + "failed : " + e.getMessage());
         }
-
         return object;
     }
+
 
     /**
      * Load the metadata from the store
      */
     private void loadMetaData() {
-        Object metadataAsVoid = loadObject(mMetaDataFile, "loadMetadata");
+        Object metadataAsVoid;
+
+        if (mMetaDataFileTmp.exists()) {
+            metadataAsVoid = loadObject(mMetaDataFileTmp, "loadMetadata");
+        } else {
+            metadataAsVoid = loadObject(mMetaDataFile, "loadMetadata");
+        }
 
         if (null != metadataAsVoid) {
             try {
-                mMetaData = (MXFileCryptoStoreMetaData) metadataAsVoid;
+                if (metadataAsVoid instanceof MXFileCryptoStoreMetaData2) {
+                    mMetaData = (MXFileCryptoStoreMetaData2) metadataAsVoid;
+                } else {
+                    mMetaData = new MXFileCryptoStoreMetaData2((MXFileCryptoStoreMetaData)metadataAsVoid);
+                }
             } catch (Exception e) {
+                mIsCorrupted = true;
                 Log.e(LOG_TAG, "## loadMetadata() : metadata has been corrupted");
             }
         }
@@ -437,68 +809,327 @@ public class MXFileCryptoStore implements IMXCryptoStore {
      * Preload the crypto data
      */
     private void preloadCryptoData() {
-        Object olmAccountAsVoid = loadObject(mAccountFile, "preloadCryptoData - mAccountFile");
+        Log.d(LOG_TAG, "## preloadCryptoData() starts");
+
+        long t0 = System.currentTimeMillis();
+        Object olmAccountAsVoid;
+
+        if (mAccountFileTmp.exists()) {
+            olmAccountAsVoid = loadObject(mAccountFileTmp, "preloadCryptoData - mAccountFile - tmp");
+        } else {
+            olmAccountAsVoid = loadObject(mAccountFile, "preloadCryptoData - mAccountFile");
+        }
 
         if (null != olmAccountAsVoid) {
             try {
-                mOlmAccount = (OlmAccount)olmAccountAsVoid;
+                mOlmAccount = (OlmAccount) olmAccountAsVoid;
             } catch (Exception e) {
+                mIsCorrupted = true;
                 Log.e(LOG_TAG, "## preloadCryptoData() - invalid mAccountFile " + e.getMessage());
             }
         }
 
-        Object usersDevicesInfoMapAsVoid = loadObject(mDevicesFile, "preloadCryptoData - mUsersDevicesInfoMap");
+        Log.d(LOG_TAG, "## preloadCryptoData() : load mOlmAccount in " + (System.currentTimeMillis() - t0) + " ms");
 
-        if (null != usersDevicesInfoMapAsVoid) {
-            try {
-                MXUsersDevicesMap objectAsMap = (MXUsersDevicesMap)usersDevicesInfoMapAsVoid;
-                mUsersDevicesInfoMap = new MXUsersDevicesMap<>(objectAsMap.getMap());
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## preloadCryptoData() - invalid mUsersDevicesInfoMap " + e.getMessage());
+        // previous store format
+        if (!mDevicesFolder.exists()) {
+            Object usersDevicesInfoMapAsVoid;
+
+            // if the tmp exists, it means that the latest file backup has been killed / stopped
+            if (mDevicesFileTmp.exists()) {
+                usersDevicesInfoMapAsVoid = loadObject(mDevicesFileTmp, "preloadCryptoData - mUsersDevicesInfoMap - tmp");
+            } else {
+                usersDevicesInfoMapAsVoid = loadObject(mDevicesFile, "preloadCryptoData - mUsersDevicesInfoMap");
             }
+
+            if (null != usersDevicesInfoMapAsVoid) {
+                try {
+                    MXUsersDevicesMap objectAsMap = (MXUsersDevicesMap) usersDevicesInfoMapAsVoid;
+                    mUsersDevicesInfoMap = new MXUsersDevicesMap<>(objectAsMap.getMap());
+                } catch (Exception e) {
+                    mIsCorrupted = true;
+                    Log.e(LOG_TAG, "## preloadCryptoData() - invalid mUsersDevicesInfoMap " + e.getMessage());
+                }
+            } else {
+                mIsCorrupted = false;
+            }
+
+            mDevicesFolder.mkdirs();
+
+            if (null != mUsersDevicesInfoMap) {
+                HashMap<String, HashMap<String, MXDeviceInfo>> map = mUsersDevicesInfoMap.getMap();
+
+                Set<String> userIds = map.keySet();
+
+                for (String userId : userIds) {
+                    storeObject(map.get(userId), mDevicesFolder, userId, "convert devices map of " + userId);
+                }
+
+                mDevicesFileTmp.delete();
+                mDevicesFile.delete();
+            }
+        } else {
+            // the user devices are loaded on demand
+            mUsersDevicesInfoMap = new MXUsersDevicesMap<>();
         }
 
-        Object algorithmsAsVoid = loadObject(mAlgorithmsFile, "preloadCryptoData - mRoomsAlgorithms");
+        long t2 = System.currentTimeMillis();
+        int algoSize = 0;
+
+        Object algorithmsAsVoid;
+
+        if (mAlgorithmsFileTmp.exists()) {
+            algorithmsAsVoid = loadObject(mAlgorithmsFileTmp, "preloadCryptoData - mRoomsAlgorithms - tmp");
+        } else {
+            algorithmsAsVoid = loadObject(mAlgorithmsFile, "preloadCryptoData - mRoomsAlgorithms");
+        }
+
 
         if (null != algorithmsAsVoid) {
             try {
-                Map<String, String> algorithmsMap = (Map<String, String>)algorithmsAsVoid;
+                Map<String, String> algorithmsMap = (Map<String, String>) algorithmsAsVoid;
                 mRoomsAlgorithms = new HashMap<>(algorithmsMap);
+                algoSize = mRoomsAlgorithms.size();
             } catch (Exception e) {
+                mIsCorrupted = true;
                 Log.e(LOG_TAG, "## preloadCryptoData() - invalid mAlgorithmsFile " + e.getMessage());
             }
         }
+        Log.d(LOG_TAG, "## preloadCryptoData() : load mRoomsAlgorithms ("+ algoSize + " algos) in " + (System.currentTimeMillis() - t2) + " ms");
 
-        Object olmSessionsAsVoid = loadObject(mSessionsFile, "preloadCryptoData - mOlmSessions");
 
-        if (null != olmSessionsAsVoid) {
-            try {
-                Map<String, Map<String, OlmSession>> olmSessionMap = (Map<String, Map<String, OlmSession>>)olmSessionsAsVoid;
+        if (mOlmSessionsFolder.exists()) {
+            long t3 = System.currentTimeMillis();
 
-                mOlmSessions = new HashMap<>();
+            mOlmSessions = new HashMap<>();
 
-                for(String key : olmSessionMap.keySet()) {
-                    mOlmSessions.put(key, new HashMap<>(olmSessionMap.get(key)));
+            String[] olmSessionFiles = mOlmSessionsFolder.list();
+
+            if (null != olmSessionFiles) {
+                // build mOlmSessions for the file system
+                for (int i = 0; i < olmSessionFiles.length; i++) {
+                    String deviceKey = olmSessionFiles[i];
+
+                    HashMap<String, OlmSession> olmSessionSubMap = new HashMap<>();
+
+                    File sessionsDeviceFolder = new File(mOlmSessionsFolder, deviceKey);
+                    String[] sessionIds = sessionsDeviceFolder.list();
+
+                    if (null != sessionIds) {
+                        for (int j = 0; j < sessionIds.length; j++) {
+                            String sessionId = sessionIds[j];
+                            OlmSession olmSession = (OlmSession) loadObject(new File(sessionsDeviceFolder, sessionId), "load the olmSession " + deviceKey + " " + sessionId);
+
+                            if (null != olmSession) {
+                                olmSessionSubMap.put(decodeFilename(sessionId), olmSession);
+                            }
+                        }
+                    }
+                    mOlmSessions.put(decodeFilename(deviceKey), olmSessionSubMap);
                 }
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## preloadCryptoData() - invalid mAlgorithmsFile " + e.getMessage());
+
+                Log.d(LOG_TAG, "## preloadCryptoData() : load " + olmSessionFiles.length + " olmsessions in " + (System.currentTimeMillis() - t3) + " ms");
+            }
+        } else {
+            Object olmSessionsAsVoid;
+
+            if (mOlmSessionsFileTmp.exists()) {
+                olmSessionsAsVoid = loadObject(mOlmSessionsFileTmp, "preloadCryptoData - mOlmSessions - tmp");
+            } else {
+                olmSessionsAsVoid = loadObject(mOlmSessionsFile, "preloadCryptoData - mOlmSessions");
+            }
+
+            if (null != olmSessionsAsVoid) {
+                try {
+                    Map<String, Map<String, OlmSession>> olmSessionMap = (Map<String, Map<String, OlmSession>>) olmSessionsAsVoid;
+
+                    mOlmSessions = new HashMap<>();
+
+                    for (String key : olmSessionMap.keySet()) {
+                        mOlmSessions.put(key, new HashMap<>(olmSessionMap.get(key)));
+                    }
+
+                    // convert to the new format
+                    if (!mOlmSessionsFolder.mkdir()) {
+                        Log.e(LOG_TAG, "Cannot create the folder " + mOlmSessionsFolder);
+                    }
+
+                    for (String key : olmSessionMap.keySet()) {
+                        Map<String, OlmSession> submap = olmSessionMap.get(key);
+
+                        File submapFolder = new File(mOlmSessionsFolder, encodeFilename(key));
+
+                        if (!submapFolder.mkdir()) {
+                            Log.e(LOG_TAG, "Cannot create the folder " + submapFolder);
+                        }
+
+                        for (String sessionId : submap.keySet()) {
+                            storeObject(submap.get(sessionId), submapFolder, encodeFilename(sessionId), "Convert olmSession " + key + " " + sessionId);
+                        }
+                    }
+                } catch (Exception e) {
+                    mIsCorrupted = true;
+                    Log.e(LOG_TAG, "## preloadCryptoData() - invalid mSessionsFile " + e.getMessage());
+                }
+
+                mOlmSessionsFileTmp.delete();
+                mOlmSessionsFile.delete();
             }
         }
 
-        Object inboundGroupSessionsAsVoid = loadObject(mInboundGroupSessionsFile, "preloadCryptoData - mInboundGroupSessions");
+        if (mInboundGroupSessionsFolder.exists()) {
+            long t4 = System.currentTimeMillis();
+            mInboundGroupSessions = new HashMap<>();
 
-        if (null != inboundGroupSessionsAsVoid) {
-            try {
-                Map<String, Map<String, MXOlmInboundGroupSession>> inboundGroupSessionsMap = (Map<String, Map<String, MXOlmInboundGroupSession>>)inboundGroupSessionsAsVoid;
+            int count = 0;
 
-                mInboundGroupSessions = new HashMap<>();
+            String[] keysFolder = mInboundGroupSessionsFolder.list();
 
-                for (String key : inboundGroupSessionsMap.keySet()) {
-                    mInboundGroupSessions.put(key, new HashMap<>(inboundGroupSessionsMap.get(key)));
+            if (null != keysFolder) {
+                for (int i = 0; i < keysFolder.length; i++) {
+                    File keyFolder = new File(mInboundGroupSessionsFolder, keysFolder[i]);
+
+                    HashMap<String, MXOlmInboundGroupSession2> submap = new HashMap<>();
+
+                    String[] sessionIds = keyFolder.list();
+
+                    if (null != sessionIds) {
+                        for (int j = 0; j < sessionIds.length; j++) {
+                            File inboundSessionFile = new File(keyFolder, sessionIds[j]);
+                            try {
+                                Object inboundSessionAsVoid = loadObject(inboundSessionFile, "load inboundsession");
+                                MXOlmInboundGroupSession2 inboundSession;
+
+                                if ((null != inboundSessionAsVoid) && (inboundSessionAsVoid instanceof MXOlmInboundGroupSession)) {
+                                    inboundSession = new MXOlmInboundGroupSession2((MXOlmInboundGroupSession) inboundSessionAsVoid);
+                                } else {
+                                    inboundSession = (MXOlmInboundGroupSession2) inboundSessionAsVoid;
+                                }
+
+                                if (null != inboundSession) {
+                                    submap.put(decodeFilename(sessionIds[j]), inboundSession);
+                                }
+                                count++;
+                            } catch (Exception e) {
+                                Log.e(LOG_TAG, "## preloadCryptoData() - invalid mInboundGroupSessions " + e.getMessage());
+                            }
+                        }
+                    }
+
+                    mInboundGroupSessions.put(decodeFilename(keysFolder[i]), submap);
                 }
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## preloadCryptoData() - invalid mInboundGroupSessions " + e.getMessage());
             }
+
+            Log.d(LOG_TAG, "## preloadCryptoData() : load " + count +  " inboundGroupSessions in " + (System.currentTimeMillis() - t4) + " ms");
+        } else {
+            Object inboundGroupSessionsAsVoid;
+
+            if (mInboundGroupSessionsFileTmp.exists()) {
+                inboundGroupSessionsAsVoid = loadObject(mInboundGroupSessionsFileTmp, "preloadCryptoData - mInboundGroupSessions - tmp");
+            } else {
+                inboundGroupSessionsAsVoid = loadObject(mInboundGroupSessionsFile, "preloadCryptoData - mInboundGroupSessions");
+            }
+
+            if (null != inboundGroupSessionsAsVoid) {
+                try {
+                    Map<String, Map<String, MXOlmInboundGroupSession2>> inboundGroupSessionsMap = (Map<String, Map<String, MXOlmInboundGroupSession2>>) inboundGroupSessionsAsVoid;
+
+                    mInboundGroupSessions = new HashMap<>();
+
+                    for (String key : inboundGroupSessionsMap.keySet()) {
+                        mInboundGroupSessions.put(key, new HashMap<>(inboundGroupSessionsMap.get(key)));
+                    }
+                } catch (Exception e) {
+                    mIsCorrupted = true;
+                    Log.e(LOG_TAG, "## preloadCryptoData() - invalid mInboundGroupSessions " + e.getMessage());
+                }
+
+                if (!mInboundGroupSessionsFolder.mkdirs()) {
+                    Log.e(LOG_TAG, "Cannot create the folder " + mInboundGroupSessionsFolder);
+                }
+
+                // convert to the new format
+                for (String key : mInboundGroupSessions.keySet()) {
+                    File keyFolder = new File(mInboundGroupSessionsFolder, encodeFilename(key));
+
+                    if (!keyFolder.mkdirs()) {
+                        Log.e(LOG_TAG, "Cannot create the folder " + keyFolder);
+                    }
+
+                    Map<String, MXOlmInboundGroupSession2> inboundMaps = mInboundGroupSessions.get(key);
+
+                    for (String sessionId : inboundMaps.keySet()) {
+                        storeObject(inboundMaps.get(sessionId), keyFolder, encodeFilename(sessionId), "Convert inboundsession");
+                    }
+                }
+            }
+
+            mInboundGroupSessionsFileTmp.delete();
+            mInboundGroupSessionsFile.delete();
         }
+
+        if ((null == mOlmAccount) && (mUsersDevicesInfoMap.getMap().size() > 0)) {
+            mIsCorrupted = true;
+            Log.e(LOG_TAG, "## preloadCryptoData() - there is no account but some devices are defined");
+        }
+    }
+
+    final private static char[] hexArray = "0123456789ABCDEF".toCharArray();
+
+    /**
+     * Encode the provided filename
+     *
+     * @param filename the filename to encode
+     * @return the encoded filename
+     */
+    public static String encodeFilename(String filename) {
+        if (null == filename) {
+            return null;
+        }
+
+        try {
+            byte[] bytes = filename.getBytes("UTF-8");
+            char[] hexChars = new char[bytes.length * 2];
+
+            for (int j = 0; j < bytes.length; j++) {
+                int v = bytes[j] & 0xFF;
+                hexChars[j * 2] = hexArray[v >>> 4];
+                hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+            }
+            return new String(hexChars);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## encodeFilename() - failed " + e.getMessage());
+        }
+
+        return filename;
+    }
+
+    /**
+     * Decode an encoded filename.
+     *
+     * @param encodedFilename the encoded filename
+     * @return the decodec filename
+     */
+    public static String decodeFilename(String encodedFilename) {
+        if (null == encodedFilename) {
+            return null;
+        }
+
+        int length = encodedFilename.length();
+
+        byte[] bytes = new byte[length / 2];
+
+        for (int i = 0; i < length; i += 2) {
+            bytes[i / 2] = (byte) ((Character.digit(encodedFilename.charAt(i), 16) << 4)
+                    + Character.digit(encodedFilename.charAt(i + 1), 16));
+        }
+
+        try {
+            return new String(bytes, "UTF-8");
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## decodeFilename() - failed " + e.getMessage());
+        }
+
+        return encodedFilename;
     }
 }

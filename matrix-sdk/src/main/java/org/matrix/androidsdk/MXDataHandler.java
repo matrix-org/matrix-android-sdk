@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +19,11 @@ package org.matrix.androidsdk;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.text.TextUtils;
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCrypto;
+import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXMemoryStore;
@@ -31,7 +33,6 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
-import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -94,7 +95,7 @@ public class MXDataHandler implements IMXEventListener {
 
     private final IMXStore mStore;
     private final Credentials mCredentials;
-    private volatile boolean mInitialSyncComplete = false;
+    private volatile String mInitialSyncToToken = null;
     private DataRetriever mDataRetriever;
     private BingRulesManager mBingRulesManager;
     private MXCallsManager mCallsManager;
@@ -137,15 +138,8 @@ public class MXDataHandler implements IMXEventListener {
     // e2e decoder
     private MXCrypto mCrypto;
 
-    private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
-        @Override
-        public void onNetworkConnectionUpdate(boolean isConnected) {
-            if (isConnected && (null != getCrypto()) && !getCrypto().isIsStarted()) {
-                Log.d(LOG_TAG, "Start MXCrypto because a network connection has been retrieved ");
-                getCrypto().start(null);
-            }
-        }
-    };
+    // the crypto is only started when the sync did not retrieve new device
+    private boolean mIsStartingCryptoWithInitialSync = false;
 
     /**
      * Default constructor.
@@ -205,6 +199,10 @@ public class MXDataHandler implements IMXEventListener {
 
     public void setNetworkConnectivityReceiver(NetworkConnectivityReceiver networkConnectivityReceiver) {
         mNetworkConnectivityReceiver = networkConnectivityReceiver;
+
+        if (null != getCrypto()) {
+            getCrypto().setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
+        }
     }
 
     public MXCrypto getCrypto() {
@@ -319,7 +317,7 @@ public class MXDataHandler implements IMXEventListener {
      */
     public boolean isInitialSyncComplete() {
         checkIfAlive();
-        return mInitialSyncComplete;
+        return (null != mInitialSyncToToken);
     }
 
     /**
@@ -425,8 +423,8 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
-     * Set the crypto events listrner
-     * @param listener
+     * Set the crypto events listener
+     * @param listener the listener
      */
     public void setCryptoEventsListener(IMXEventListener listener) {
         mCryptoEventsListener = listener;
@@ -445,8 +443,8 @@ public class MXDataHandler implements IMXEventListener {
                 }
             }
 
-            if (mInitialSyncComplete) {
-                listener.onInitialSyncComplete();
+            if (null != mInitialSyncToToken) {
+                listener.onInitialSyncComplete(mInitialSyncToToken);
             }
         }
     }
@@ -602,7 +600,7 @@ public class MXDataHandler implements IMXEventListener {
      * @return the corresponding room
      */
     public Room getRoom(String roomId, boolean create) {
-        return getRoom(roomId, false, create);
+        return getRoom(mStore, roomId, create);
     }
 
     /**
@@ -654,6 +652,7 @@ public class MXDataHandler implements IMXEventListener {
         synchronized (this) {
             room = store.getRoom(roomId);
             if ((room == null) && create) {
+                Log.d(LOG_TAG, "## getRoom() : create the room " + roomId);
                 room = new Room();
                 room.init(store, roomId, this);
                 store.storeRoom(room);
@@ -838,7 +837,7 @@ public class MXDataHandler implements IMXEventListener {
                 }
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "manageAccountData failed " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "manageAccountData failed " + e.getMessage());
         }
     }
 
@@ -853,7 +852,7 @@ public class MXDataHandler implements IMXEventListener {
             if (TextUtils.equals(type, "m.push_rules")) {
                 if (event.containsKey("content")) {
                     Gson gson = new GsonBuilder()
-                            .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+                            .setFieldNamingStrategy(new JsonUtils.MatrixFieldNamingStrategy())
                             .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
                             .registerTypeAdapter(Condition.class, new ConditionDeserializer())
                             .create();
@@ -1009,15 +1008,16 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Manage a syncResponse.
      * @param syncResponse the syncResponse to manage.
-     * @param isInitialSync  true if the sync response if an initial sync one.
+     * @param fromToken the start sync token
+     * @param isCatchingUp true when there is a pending catch-up
      */
-    public void onSyncResponse(final SyncResponse syncResponse, final boolean isInitialSync) {
+    public void onSyncResponse(final SyncResponse syncResponse, final String fromToken, final boolean isCatchingUp) {
         // perform the sync in background
         // to avoid UI thread lags.
         mSyncHandler.post(new Runnable() {
             @Override
             public void run() {
-               manageResponse(syncResponse, isInitialSync);
+               manageResponse(syncResponse, fromToken, isCatchingUp);
             }
         });
     }
@@ -1071,14 +1071,16 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Manage the sync response in the UI thread.
      * @param syncResponse the syncResponse to manage.
-     * @param isInitialSync  true if the sync response if an initial sync one.
+     * @param fromToken the start sync token
+     * @param isCatchingUp true when there is a pending catch-up
      */
-    private void manageResponse(final SyncResponse syncResponse, final boolean isInitialSync) {
+    private void manageResponse(final SyncResponse syncResponse, final String fromToken, final boolean isCatchingUp) {
         if (!isAlive()) {
             Log.e(LOG_TAG, "manageResponse : ignored because the session has been closed");
             return;
         }
 
+        boolean isInitialSync = (null == fromToken);
         boolean isEmptyResponse = true;
 
         // sanity check
@@ -1087,7 +1089,11 @@ public class MXDataHandler implements IMXEventListener {
 
             // Handle the to device events before the room ones
             // to ensure to decrypt them properly
-            if ((null != syncResponse.toDevice) && (null != syncResponse.toDevice.events)) {
+            if ((null != syncResponse.toDevice) &&
+                    (null != syncResponse.toDevice.events) &&
+                    (syncResponse.toDevice.events.size() > 0)) {
+                Log.d(LOG_TAG, "manageResponse : receives " + syncResponse.toDevice.events.size() + " toDevice events");
+
                 for (Event toDeviceEvent : syncResponse.toDevice.events) {
                     handleToDeviceEvent(toDeviceEvent);
                 }
@@ -1095,30 +1101,6 @@ public class MXDataHandler implements IMXEventListener {
 
             // sanity check
             if (null != syncResponse.rooms) {
-
-                // left room management
-                // it should be done at the end but it seems there is a server issue
-                // when inviting after leaving a room, the room is defined in the both leave & invite rooms list.
-                if ((null != syncResponse.rooms.leave) && (syncResponse.rooms.leave.size() > 0)) {
-                    Log.d(LOG_TAG, "Received " + syncResponse.rooms.leave.size() + " left rooms");
-
-                    Set<String> roomIds = syncResponse.rooms.leave.keySet();
-
-                    for (String roomId : roomIds) {
-                        // delete the room
-                        deleteRoom(roomId);
-                        // warn the listeners
-                        onLeaveRoom(roomId);
-
-                        if (mAreLeftRoomsSynced) {
-                            Room leftRoom = getRoom(mLeftRoomsStore, roomId, true);
-                            leftRoom.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), isInitialSync);
-                        }
-
-                        isEmptyResponse = false;
-                    }
-                }
-
                 // joined rooms events
                 if ((null != syncResponse.rooms.join) && (syncResponse.rooms.join.size() > 0)) {
                     Log.d(LOG_TAG, "Received " + syncResponse.rooms.join.size() + " joined rooms");
@@ -1133,20 +1115,8 @@ public class MXDataHandler implements IMXEventListener {
                             mLeftRoomsStore.deleteRoom(roomId);
                         }
 
-                        Room room = getRoom(roomId);
-
-                        // sanity check
-                        if (null != room) {
-                            room.handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
-
-                            // issue reported by richvdh
-                            // the member is not defined in the members list
-                            // it seems being a server issue.
-                            if (isInitialSync && (null == room.getLiveState().getMember(getMyUser().user_id))) {
-                             	this.getStore().deleteRoom(roomId);
-                            }
-                        }
-                    }
+                        getRoom(roomId).handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
+                   }
 
                     isEmptyResponse = false;
                 }
@@ -1158,6 +1128,7 @@ public class MXDataHandler implements IMXEventListener {
                     Set<String> roomIds = syncResponse.rooms.invite.keySet();
 
                     for (String roomId : roomIds) {
+                        Log.d(LOG_TAG, "## manageResponse() : the user has been invited to " + roomId);
 
                         if (null != mLeftRoomsStore.getRoom(roomId)) {
                             Log.d(LOG_TAG, "the room " + roomId + " moves from left to the invited ones");
@@ -1169,10 +1140,50 @@ public class MXDataHandler implements IMXEventListener {
 
                     isEmptyResponse = false;
                 }
+
+                // left room management
+                // it should be done at the end but it seems there is a server issue
+                // when inviting after leaving a room, the room is defined in the both leave & invite rooms list.
+                if ((null != syncResponse.rooms.leave) && (syncResponse.rooms.leave.size() > 0)) {
+                    Log.d(LOG_TAG, "Received " + syncResponse.rooms.leave.size() + " left rooms");
+
+                    Set<String> roomIds = syncResponse.rooms.leave.keySet();
+
+                    for (String roomId : roomIds) {
+                        // RoomSync leftRoomSync = syncResponse.rooms.leave.get(roomId);
+
+                        // Presently we remove the existing room from the rooms list.
+                        // FIXME SYNC V2 Archive/Display the left rooms!
+                        // For that create 'handleArchivedRoomSync' method
+
+                        Room room = this.getStore().getRoom(roomId);
+                        // Retrieve existing room
+                        // check if the room still exists.
+                        if (null != room) {
+                            // use 'handleJoinedRoomSync' to pass the last events to the room before leaving it.
+                            // The room will then able to notify its listeners.
+                            room.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), isInitialSync);
+
+                            Log.d(LOG_TAG, "## manageResponse() : leave the room " + roomId);
+                            this.getStore().deleteRoom(roomId);
+                            onLeaveRoom(roomId);
+                        } else {
+                            Log.d(LOG_TAG, "## manageResponse() : Try to leave an unknown room " + roomId);
+                        }
+
+                        if (mAreLeftRoomsSynced) {
+                            Room leftRoom = getRoom(mLeftRoomsStore, roomId, true);
+                            leftRoom.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), isInitialSync);
+                        }
+                    }
+
+                    isEmptyResponse = false;
+                }
             }
 
             // Handle presence of other users
             if ((null != syncResponse.presence) && (null != syncResponse.presence.events)) {
+                Log.d(LOG_TAG, "Received " + syncResponse.presence.events.size() + " presence events");
                 for (Event presenceEvent : syncResponse.presence.events) {
                     handlePresenceEvent(presenceEvent);
                 }
@@ -1180,29 +1191,49 @@ public class MXDataHandler implements IMXEventListener {
 
             // account data
             if (null != syncResponse.accountData) {
+                Log.d(LOG_TAG, "Received " + syncResponse.accountData.size() + " accountData events");
                 manageAccountData(syncResponse.accountData, isInitialSync);
             }
 
-            if (!isEmptyResponse && (null !=  getStore())) {
-                getStore().setEventStreamToken(syncResponse.nextBatch);
-                getStore().commit();
+            if (null != mCrypto) {
+                mCrypto.onSyncCompleted(syncResponse, fromToken, isCatchingUp);
+            }
+
+            IMXStore store = getStore();
+
+            if (!isEmptyResponse && (null != store)) {
+                store.setEventStreamToken(syncResponse.nextBatch);
+                store.commit();
             }
         }
 
         if (isInitialSync) {
-            onInitialSyncComplete();
+            if (!isCatchingUp) {
+                startCrypto(true);
+            } else {
+                // the events thread sends a dummy initial sync event
+                // when the application is restarted.
+                mIsStartingCryptoWithInitialSync = !isEmptyResponse;
+            }
+
+            onInitialSyncComplete((null != syncResponse) ? syncResponse.nextBatch : null);
         } else {
+
+            if (!isCatchingUp) {
+                startCrypto(mIsStartingCryptoWithInitialSync);
+            }
+
             try {
-                onLiveEventsChunkProcessed();
+                onLiveEventsChunkProcessed(fromToken, (null != syncResponse) ? syncResponse.nextBatch : fromToken);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "onLiveEventsChunkProcessed failed " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "onLiveEventsChunkProcessed failed " + e.getMessage());
             }
 
             try {
                 // check if an incoming call has been received
                 mCallsManager.checkPendingIncomingCalls();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "checkPendingIncomingCalls failed " + e + " " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "checkPendingIncomingCalls failed " + e + " " + e.getMessage());
             }
         }
     }
@@ -1211,16 +1242,20 @@ public class MXDataHandler implements IMXEventListener {
      * Refresh the unread summary counters of the updated rooms.
      */
     private void refreshUnreadCounters() {
+        ArrayList<String> roomIdsList;
+
+        synchronized (mUpdatedRoomIdList) {
+            roomIdsList = new ArrayList<>(mUpdatedRoomIdList);
+            mUpdatedRoomIdList.clear();
+        }
         // refresh the unread counter
-        for(String roomId : mUpdatedRoomIdList) {
+        for (String roomId : roomIdsList) {
             Room room = mStore.getRoom(roomId);
 
             if (null != room) {
                 room.refreshUnreadCounter();
             }
         }
-
-        mUpdatedRoomIdList.clear();
     }
 
     /**
@@ -1353,16 +1388,41 @@ public class MXDataHandler implements IMXEventListener {
      */
     private void handleToDeviceEvent(Event event) {
         // Decrypt event if necessary
-        if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
-            if (null != getCrypto()) {
-                event.setClearEvent(getCrypto().decryptEvent(event));
-            }
-        }
+        decryptEvent(event, null);
 
         if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && (null != event.getContent()) && TextUtils.equals(JsonUtils.getMessageMsgType(event.getContent()), "m.bad.encrypted")) {
             Log.e(LOG_TAG, "## handleToDeviceEvent() : Warning: Unable to decrypt to-device event : " + event.getContent());
         } else {
             onToDeviceEvent(event);
+        }
+    }
+
+    /**
+     * Decrypt an encrypted event
+     * @param event the event to decrypt
+     * @param timelineId the timeline identifier
+     * @return true if the event has been decrypted
+     */
+    public boolean decryptEvent(Event event, String timelineId) {
+        if ((null != event) && TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
+            if (null != getCrypto()) {
+                return getCrypto().decryptEvent(event, timelineId);
+            } else {
+                event.setClearEvent(null);
+                event.setCryptoError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLED_ERROR_CODE, MXCryptoError.ENCRYPTING_NOT_ENABLED_REASON, null));
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Reset replay attack data for the given timeline.
+     * @param timelineId the timeline id
+     */
+    public void resetReplayAttackCheckInTimeline(String timelineId) {
+        if ((null != timelineId) && (null != mCrypto) && (null != mCrypto.getOlmDevice())) {
+            mCrypto.resetReplayAttackCheckInTimeline(timelineId);
         }
     }
 
@@ -1400,7 +1460,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onStoreReady();
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onStoreReady " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onStoreReady " + e.getMessage());
                     }
                 }
             }
@@ -1422,7 +1482,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onAccountInfoUpdate(myUser);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onAccountInfoUpdate " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onAccountInfoUpdate " + e.getMessage());
                     }
                 }
             }
@@ -1444,7 +1504,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onPresenceUpdate(event, user);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onPresenceUpdate " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onPresenceUpdate " + e.getMessage());
                     }
                 }
             }
@@ -1479,8 +1539,10 @@ public class MXDataHandler implements IMXEventListener {
         String type = event.getType();
 
         if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type) && !TextUtils.equals(Event.EVENT_TYPE_RECEIPT, type) && !TextUtils.equals(Event.EVENT_TYPE_TYPING, type)) {
-            if (mUpdatedRoomIdList.indexOf(roomState.roomId) < 0) {
-                mUpdatedRoomIdList.add(roomState.roomId);
+            synchronized (mUpdatedRoomIdList) {
+                if (mUpdatedRoomIdList.indexOf(roomState.roomId) < 0) {
+                    mUpdatedRoomIdList.add(roomState.roomId);
+                }
             }
         }
 
@@ -1497,7 +1559,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onLiveEvent(event, roomState);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onLiveEvent " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onLiveEvent " + e.getMessage());
                     }
                 }
             }
@@ -1505,11 +1567,11 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     @Override
-    public void onLiveEventsChunkProcessed() {
+    public void onLiveEventsChunkProcessed(final String startToken, final String toToken) {
         refreshUnreadCounters();
 
         if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onLiveEventsChunkProcessed();
+            mCryptoEventsListener.onLiveEventsChunkProcessed(startToken, toToken);
         }
 
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
@@ -1519,9 +1581,9 @@ public class MXDataHandler implements IMXEventListener {
             public void run() {
                 for (IMXEventListener listener : eventListeners) {
                     try {
-                        listener.onLiveEventsChunkProcessed();
+                        listener.onLiveEventsChunkProcessed(startToken, toToken);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onLiveEventsChunkProcessed " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onLiveEventsChunkProcessed " + e.getMessage());
                     }
                 }
             }
@@ -1547,7 +1609,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onBingEvent(event, roomState, bingRule);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onBingEvent " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onBingEvent " + e.getMessage());
                     }
                 }
             }
@@ -1569,7 +1631,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onEventEncrypted(event);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onEventEncrypted " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onEventEncrypted " + e.getMessage());
                     }
                 }
             }
@@ -1595,7 +1657,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onSentEvent(event);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onSentEvent " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onSentEvent " + e.getMessage());
                     }
                 }
             }
@@ -1621,7 +1683,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onFailedSendingEvent(event);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onFailedSendingEvent " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onFailedSendingEvent " + e.getMessage());
                     }
                 }
             }
@@ -1643,7 +1705,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onBingRulesUpdate();
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onBingRulesUpdate " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onBingRulesUpdate " + e.getMessage());
                     }
                 }
             }
@@ -1653,13 +1715,13 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Dispatch the onInitialSyncComplete event.
      */
-    private void dispatchOnInitialSyncComplete() {
-        mInitialSyncComplete = true;
+    private void dispatchOnInitialSyncComplete(final String toToken) {
+        mInitialSyncToToken = toToken;
 
         refreshUnreadCounters();
 
         if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onInitialSyncComplete();
+            mCryptoEventsListener.onInitialSyncComplete(toToken);
         }
 
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
@@ -1669,33 +1731,53 @@ public class MXDataHandler implements IMXEventListener {
             public void run() {
                 for (IMXEventListener listener : eventListeners) {
                     try {
-                        listener.onInitialSyncComplete();
+                        listener.onInitialSyncComplete(mInitialSyncToToken);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onInitialSyncComplete " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onInitialSyncComplete " + e.getMessage());
                     }
                 }
             }
         });
     }
 
-    @Override
-    public void onInitialSyncComplete() {
-        if ((null != getCrypto()) && !getCrypto().isIsStarted()) {
-            getCrypto().start(new ApiCallback<Void>() {
+    /**
+     * Dispatch the OnCryptoSyncComplete event.
+     */
+    private void dispatchOnCryptoSyncComplete() {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onCryptoSyncComplete();
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "OnCryptoSyncComplete " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Start the crypto
+     */
+    private void startCrypto(final boolean isInitialSync) {
+        if ((null != getCrypto()) && !getCrypto().isStarted() && !getCrypto().isStarting()) {
+            getCrypto().setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
+            getCrypto().start(isInitialSync, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
-                    dispatchOnInitialSyncComplete();
+                    dispatchOnCryptoSyncComplete();
                 }
 
                 private void onError(String errorMessage) {
                     Log.e(LOG_TAG, "## onInitialSyncComplete() : getCrypto().start fails " + errorMessage);
-                    dispatchOnInitialSyncComplete();
                 }
 
                 @Override
                 public void onNetworkError(Exception e) {
-                    // wait that a valid network connection is retrieved
-                    mNetworkConnectivityReceiver.addEventListener(mNetworkListener);
                     onError(e.getMessage());
                 }
 
@@ -1709,9 +1791,17 @@ public class MXDataHandler implements IMXEventListener {
                     onError(e.getMessage());
                 }
             });
-        } else {
-            dispatchOnInitialSyncComplete();
         }
+    }
+
+
+    @Override
+    public void onInitialSyncComplete(String toToken) {
+        dispatchOnInitialSyncComplete(toToken);
+    }
+
+    @Override
+    public void onCryptoSyncComplete() {
     }
 
     @Override
@@ -1733,7 +1823,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onNewRoom(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onNewRoom " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onNewRoom " + e.getMessage());
                     }
                 }
             }
@@ -1759,7 +1849,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onJoinRoom(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onJoinRoom " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onJoinRoom " + e.getMessage());
                     }
                 }
             }
@@ -1785,7 +1875,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onRoomInitialSyncComplete(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomInitialSyncComplete " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onRoomInitialSyncComplete " + e.getMessage());
                     }
                 }
             }
@@ -1811,7 +1901,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onRoomInternalUpdate(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomInternalUpdate " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onRoomInternalUpdate " + e.getMessage());
                     }
                 }
             }
@@ -1837,7 +1927,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onLeaveRoom(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onLeaveRoom " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onLeaveRoom " + e.getMessage());
                     }
                 }
             }
@@ -1846,9 +1936,11 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onReceiptEvent(final String roomId, final List<String> senderIds) {
-        // refresh the unread countries at the end of the process chunk
-        if (mUpdatedRoomIdList.indexOf(roomId) < 0) {
-            mUpdatedRoomIdList.add(roomId);
+        synchronized (mUpdatedRoomIdList) {
+            // refresh the unread countries at the end of the process chunk
+            if (mUpdatedRoomIdList.indexOf(roomId) < 0) {
+                mUpdatedRoomIdList.add(roomId);
+            }
         }
 
         if (null != mCryptoEventsListener) {
@@ -1868,7 +1960,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onReceiptEvent(roomId, senderIds);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onReceiptEvent " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onReceiptEvent " + e.getMessage());
                     }
                 }
             }
@@ -1894,7 +1986,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onRoomTagEvent(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomTagEvent " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onRoomTagEvent " + e.getMessage());
                     }
                 }
             }
@@ -1920,7 +2012,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onRoomFlush(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomFlush " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onRoomFlush " + e.getMessage());
                     }
                 }
             }
@@ -1942,13 +2034,12 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onIgnoredUsersListUpdate();
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onIgnoredUsersListUpdate " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "onIgnoredUsersListUpdate " + e.getMessage());
                     }
                 }
             }
         });
     }
-
 
     @Override
     public void onToDeviceEvent(final Event event) {
@@ -1969,13 +2060,13 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onToDeviceEvent(event);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "OnToDeviceEvent " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "OnToDeviceEvent " + e.getMessage());
                     }
                 }
             }
         });
     }
-    
+
     @Override
     public void onDirectMessageChatRoomsListUpdate() {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
@@ -1993,4 +2084,23 @@ public class MXDataHandler implements IMXEventListener {
             }
         });
     }
+
+    @Override
+    public void onEventDecrypted(final Event event) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onEventDecrypted(event);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onDecryptedEvent " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
 }

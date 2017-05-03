@@ -15,7 +15,6 @@
  */
 package org.matrix.androidsdk.rest.api;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import retrofit.Callback;

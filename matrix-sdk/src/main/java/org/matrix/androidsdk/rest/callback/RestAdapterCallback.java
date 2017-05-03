@@ -15,7 +15,7 @@
  */
 package org.matrix.androidsdk.rest.callback;
 
-import android.util.Log;
+import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.util.UnsentEventsManager;
@@ -137,13 +137,13 @@ public class RestAdapterCallback<T> implements Callback<T> {
     @Override
     public void failure(RetrofitError error) {
         if (null != mEventDescription) {
-            Log.d(LOG_TAG, "## failure(): [" + mEventDescription + "]");
+            Log.d(LOG_TAG, "## failure(): [" + mEventDescription + "]" + " with error " + error.getMessage());
         }
 
         boolean retry = true;
 
         if (null != error.getResponse()) {
-            retry = (error.getResponse().getStatus() < 400) || (error.getResponse().getStatus() >= 500);
+            retry = (error.getResponse().getStatus() < 400) || (error.getResponse().getStatus() > 500);
         }
 
         if (retry && (null != mUnsentEventsManager)) {

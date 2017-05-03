@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,10 +20,9 @@ package org.matrix.androidsdk.crypto.algorithms;
 import com.google.gson.JsonElement;
 
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.RoomMember;
+
+import java.util.List;
 
 /**
  * An interface for encrypting data
@@ -31,39 +31,19 @@ public interface IMXEncrypting {
 
     /**
      * Init
+     *
      * @param matrixSession the related 'MXSession'.
-     * @param roomId the id of the room we will be sending to.
+     * @param roomId        the id of the room we will be sending to.
      */
     void initWithMatrixSession(MXSession matrixSession, String roomId);
 
     /**
      * Encrypt an event content according to the configuration of the room.
+     *
      * @param eventContent the content of the event.
-     * @param eventType the type of the event.
-     * @param room the room the event will be sent. //@TODO 'room' duplicates roomId in initWithMatrixSession, no?
-     * @param callback the asynchronous callback
+     * @param eventType    the type of the event.
+     * @param userIds      the room members the event will be sent to.
+     * @param callback     the asynchronous callback
      */
-    void encryptEventContent(JsonElement eventContent, String eventType, Room room, ApiCallback<JsonElement> callback);
-
-    /**
-     * Called when the membership of a member of the room changes.
-     * @param event the event causing the change.
-     * @param member the user whose membership changed.
-     * @param oldMembership the previous membership.
-     */
-     void onRoomMembership(Event event, RoomMember member, String oldMembership);
-
-    /**
-     * Called when a new device announces itself in the room
-     * @param {string} userId    owner of the device
-     * @param {string} deviceId  deviceId of the device
-     */
-    void onNewDevice(String deviceId, String userId);
-
-    /**
-     * Called when the device verification status is updated
-     * @param deviceId owner of the device
-     * @param userId deviceId of the device
-     */
-    void onDeviceVerificationStatusUpdate(String userId, String deviceId);
+    void encryptEventContent(JsonElement eventContent, String eventType, List<String> userIds, ApiCallback<JsonElement> callback);
 }
