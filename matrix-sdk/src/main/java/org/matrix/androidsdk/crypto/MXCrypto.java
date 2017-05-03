@@ -768,21 +768,6 @@ public class MXCrypto {
             return;
         }
 
-        final ArrayList<String> userRoomIds = new ArrayList<>();
-
-        Collection<Room> rooms = mSession.getDataHandler().getStore().getRooms();
-
-        for (Room room : rooms) {
-            if (room.isEncrypted()) {
-                RoomMember roomMember = room.getMember(userId);
-
-                // test if the user joins the room
-                if ((null != roomMember) && TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_JOIN)) {
-                    userRoomIds.add(room.getRoomId());
-                }
-            }
-        }
-
         getEncryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
@@ -2360,20 +2345,6 @@ public class MXCrypto {
      */
     public void setGlobalBlacklistUnverifiedDevices(final boolean block, final ApiCallback<Void> callback) {
         final String userId = mSession.getMyUserId();
-        final ArrayList<String> userRoomIds = new ArrayList<>();
-
-        Collection<Room> rooms = mSession.getDataHandler().getStore().getRooms();
-
-        for (Room room : rooms) {
-            if (room.isEncrypted()) {
-                RoomMember roomMember = room.getMember(userId);
-
-                // test if the user joins the room
-                if ((null != roomMember) && TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_JOIN)) {
-                    userRoomIds.add(room.getRoomId());
-                }
-            }
-        }
 
         getEncryptingThreadHandler().post(new Runnable() {
             @Override

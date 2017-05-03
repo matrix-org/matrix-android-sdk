@@ -53,7 +53,7 @@ public class ConsoleHtmlTagHandler implements Html.TagHandler {
      * we can continue with correct index of outer list
      */
     Stack<Integer> olNextIndex = new Stack<>();
-    /**
+    /*
      * List indentation in pixels. Nested lists use multiple of this.
      */
     /**

@@ -29,6 +29,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Parcel;
 import android.provider.Browser;
+import android.support.annotation.NonNull;
 import android.text.Html;
 import android.text.Layout;
 import android.text.ParcelableSpan;
@@ -869,8 +870,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return getItemViewType(row.getEvent());
     }
 
+    @NonNull
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
+    public View getView(int position, View convertView, @NonNull ViewGroup parent) {
         // GA Crash : it seems that some invalid indexes are required
         if (position >= getCount()) {
             Log.e(LOG_TAG, "## getView() : invalid index " + position + " >= " + getCount());
