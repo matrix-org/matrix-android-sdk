@@ -1297,7 +1297,7 @@ public class MXDataHandler implements IMXEventListener {
                 mIsRetrievingLeftRooms = true;
 
                 // filter to retrieve
-                String inlineFilter = "{\"room\":{\"include_leave\":1}}";
+                String inlineFilter = "{\"room\":{\"include_leave\":true}}";
 
                 Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : requesting");
 
