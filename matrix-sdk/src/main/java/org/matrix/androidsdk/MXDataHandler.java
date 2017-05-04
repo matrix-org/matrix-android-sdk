@@ -83,6 +83,8 @@ import com.google.gson.JsonElement;
 public class MXDataHandler implements IMXEventListener {
     private static final String LOG_TAG = "MXData";
 
+    private static final String LEFT_ROOMS_FILTER = "{\"room\":{\"timeline\":{\"limit\":1},\"include_leave\":true}}";
+
     public interface InvalidTokenListener {
         /**
          * Call when the access token is corrupted
@@ -1163,6 +1165,7 @@ public class MXDataHandler implements IMXEventListener {
                         // FIXME SYNC V2 Archive/Display the left rooms!
                         // For that create 'handleArchivedRoomSync' method
 
+                        String membership = RoomMember.MEMBERSHIP_LEAVE;
                         Room room = this.getStore().getRoom(roomId);
                         // Retrieve existing room
                         // check if the room still exists.
@@ -1171,6 +1174,11 @@ public class MXDataHandler implements IMXEventListener {
                             // The room will then able to notify its listeners.
                             room.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), isInitialSync);
 
+                            RoomMember member = room.getMember(getUserId());
+                            if (null != member) {
+                                membership = member.membership;
+                            }
+
                             Log.d(LOG_TAG, "## manageResponse() : leave the room " + roomId);
                             this.getStore().deleteRoom(roomId);
                             onLeaveRoom(roomId);
@@ -1178,7 +1186,8 @@ public class MXDataHandler implements IMXEventListener {
                             Log.d(LOG_TAG, "## manageResponse() : Try to leave an unknown room " + roomId);
                         }
 
-                        if (mAreLeftRoomsSynced) {
+                        // don't add to the left rooms if the user has been kicked / banned
+                        if ((mAreLeftRoomsSynced) && TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE)) {
                             Room leftRoom = getRoom(mLeftRoomsStore, roomId, true);
                             leftRoom.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), isInitialSync);
                         }
@@ -1303,12 +1312,9 @@ public class MXDataHandler implements IMXEventListener {
             if (1 == count) {
                 mIsRetrievingLeftRooms = true;
 
-                // filter to retrieve
-                String inlineFilter = "{\"room\":{\"include_leave\":true}}";
-
                 Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : requesting");
 
-                mEventsRestClient.syncFromToken(null, 0, 30000, null, inlineFilter, new ApiCallback<SyncResponse>() {
+                mEventsRestClient.syncFromToken(null, 0, 30000, null, LEFT_ROOMS_FILTER, new ApiCallback<SyncResponse>() {
                     @Override
                     public void onSuccess(final SyncResponse syncResponse) {
 
@@ -1318,8 +1324,6 @@ public class MXDataHandler implements IMXEventListener {
                                 if (null != syncResponse.rooms.leave) {
                                     Set<String> roomIds = syncResponse.rooms.leave.keySet();
 
-                                    Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : " + roomIds.size() + " left rooms");
-
                                     // Handle first joined rooms
                                     for (String roomId : roomIds) {
                                         Room room = getRoom(mLeftRoomsStore, roomId, true);
@@ -1328,8 +1332,17 @@ public class MXDataHandler implements IMXEventListener {
                                         if (null != room) {
                                             room.setIsLeft(true);
                                             room.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), true);
+
+                                            RoomMember selfMember = room.getState().getMember(getUserId());
+
+                                            // keep only the left rooms (i.e not the banned / kicked ones)
+                                            if ((null == selfMember) || !TextUtils.equals(selfMember.membership, RoomMember.MEMBERSHIP_LEAVE)) {
+                                                mLeftRoomsStore.deleteRoom(roomId);
+                                            }
                                         }
                                     }
+
+                                    Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : " + mLeftRoomsStore.getRooms().size() + " left rooms");
                                 }
 
                                 mIsRetrievingLeftRooms = false;
