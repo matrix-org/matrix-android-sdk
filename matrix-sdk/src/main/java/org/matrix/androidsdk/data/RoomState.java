@@ -808,7 +808,13 @@ public class RoomState implements Externalizable {
                     member.setUserId(userId);
                     member.setOriginServerTs(event.getOriginServerTs());
                     member.setInviterId(event.getSender());
-                    ((MXDataHandler) mDataHandler).getStore().storeRoomStateEvent(roomId, event);
+
+                    MXDataHandler dataHandler = (MXDataHandler)mDataHandler;
+                    
+				    // mDataHandler is not set for a preview
+                    if ((null != dataHandler) && (null != dataHandler.getStore())) {
+                        dataHandler.getStore().storeRoomStateEvent(roomId, event);
+                    }
 
                     RoomMember currentMember = getMember(userId);
 
