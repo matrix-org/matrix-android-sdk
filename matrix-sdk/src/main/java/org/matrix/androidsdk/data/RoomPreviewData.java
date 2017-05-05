@@ -16,6 +16,7 @@
 
 package org.matrix.androidsdk.data;
 
+import android.os.AsyncTask;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXSession;
@@ -25,6 +26,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -177,21 +179,31 @@ public class RoomPreviewData {
     public void fetchPreviewData(final ApiCallback<Void> apiCallback) {
         mSession.getRoomsApiClient().initialSync(mRoomId, new ApiCallback<RoomResponse>() {
             @Override
-            public void onSuccess(RoomResponse roomResponse) {
-                // save the initial sync response
-                mRoomResponse = roomResponse;
+            public void onSuccess(final RoomResponse roomResponse) {
+                AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
+                    @Override
+                    protected Void doInBackground(Void... params) {
+                        // save the initial sync response
+                        mRoomResponse = roomResponse;
 
-                mRoomState = new RoomState();
-                mRoomState.roomId = mRoomId;
+                        mRoomState = new RoomState();
+                        mRoomState.roomId = mRoomId;
 
-                for(Event event : roomResponse.state) {
-                    mRoomState.applyState(event, EventTimeline.Direction.FORWARDS);
-                }
+                        for(Event event : roomResponse.state) {
+                            mRoomState.applyState(event, EventTimeline.Direction.FORWARDS);
+                        }
 
-                mRoomName = mRoomState.getDisplayName(mSession.getMyUserId());
-                mRoomAvatarUrl = mRoomState.getAvatarUrl();
+                        mRoomName = mRoomState.getDisplayName(mSession.getMyUserId());
+                        mRoomAvatarUrl = mRoomState.getAvatarUrl();
+                        return null;
+                    }
 
-                apiCallback.onSuccess(null);
+                    @Override
+                    protected void onPostExecute(Void args) {
+                        apiCallback.onSuccess(null);
+                    }
+                };
+                task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
             }
 
             @Override
