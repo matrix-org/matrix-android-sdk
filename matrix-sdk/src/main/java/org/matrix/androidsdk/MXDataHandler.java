@@ -26,6 +26,7 @@ import org.matrix.androidsdk.crypto.MXCrypto;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.store.IMXStore;
+import org.matrix.androidsdk.data.store.MXMemoryStore;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
@@ -36,6 +37,7 @@ import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.AccountDataRestClient;
+import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
@@ -43,6 +45,7 @@ import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.json.ConditionDeserializer;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
@@ -80,6 +83,8 @@ import com.google.gson.JsonElement;
 public class MXDataHandler implements IMXEventListener {
     private static final String LOG_TAG = "MXData";
 
+    private static final String LEFT_ROOMS_FILTER = "{\"room\":{\"timeline\":{\"limit\":1},\"include_leave\":true}}";
+
     public interface InvalidTokenListener {
         /**
          * Call when the access token is corrupted
@@ -102,6 +107,7 @@ public class MXDataHandler implements IMXEventListener {
     private PresenceRestClient mPresenceRestClient;
     private ThirdPidRestClient mThirdPidRestClient;
     private RoomsRestClient mRoomsRestClient;
+    private EventsRestClient mEventsRestClient;
 
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
 
@@ -119,6 +125,17 @@ public class MXDataHandler implements IMXEventListener {
     private boolean mIsAlive = true;
 
     private final InvalidTokenListener mInvalidTokenListener;
+
+    // the left rooms are managed
+    // by default, they are not supported
+    private boolean mAreLeftRoomsSynced;
+
+    //
+    private final ArrayList<ApiCallback<Void>> mLeftRoomsRefreshCallbacks = new ArrayList<>();
+    private boolean mIsRetrievingLeftRooms;
+
+    // the left rooms are saved in a dedicated store.
+    private MXMemoryStore mLeftRoomsStore;
 
     // e2e decoder
     private MXCrypto mCrypto;
@@ -141,6 +158,8 @@ public class MXDataHandler implements IMXEventListener {
         mSyncHandler = new MXOsHandler(mSyncHandlerThread.getLooper());
 
         mInvalidTokenListener = invalidTokenListener;
+
+        mLeftRoomsStore = new MXMemoryStore(credentials, store.getContext());
     }
 
     public Credentials getCredentials() {
@@ -174,6 +193,10 @@ public class MXDataHandler implements IMXEventListener {
 
     public void setRoomsRestClient(RoomsRestClient roomsRestClient) {
         mRoomsRestClient = roomsRestClient;
+    }
+
+    public void setEventsRestClient(EventsRestClient eventsRestClient) {
+        mEventsRestClient = eventsRestClient;
     }
 
     public void setNetworkConnectivityReceiver(NetworkConnectivityReceiver networkConnectivityReceiver) {
@@ -489,7 +512,7 @@ public class MXDataHandler implements IMXEventListener {
             Collection<Room> rooms =  mStore.getRooms();
 
             for(Room room : rooms) {
-                room.init(room.getRoomId(), this);
+                room.init(mStore, room.getRoomId(), this);
             }
 
             Collection<RoomSummary> summaries = mStore.getSummaries();
@@ -507,6 +530,27 @@ public class MXDataHandler implements IMXEventListener {
     public IMXStore getStore() {
         if (isAlive()) {
             return mStore;
+        } else {
+            Log.e(LOG_TAG, "getStore : the session is not anymore active");
+            return null;
+        }
+    }
+
+    /**
+     * Provides the store in which the room is stored
+     * @return the used store
+     */
+    public IMXStore getStore(String roomId) {
+        if (isAlive()) {
+            if (null == roomId) {
+                return mStore;
+            } else {
+                if (null != mLeftRoomsStore.getRoom(roomId)) {
+                    return mLeftRoomsStore;
+                } else {
+                    return mStore;
+                }
+            }
         } else {
             Log.e(LOG_TAG, "getStore : the session is not anymore active");
             return null;
@@ -542,6 +586,13 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
+     * @return the left rooms
+     */
+    public Collection<Room> getLeftRooms() {
+        return new ArrayList<>(mLeftRoomsStore.getRooms());
+    }
+
+    /**
      * Get the room object for the corresponding room id. Creates and initializes the object if there is none.
      * @param roomId the room id
      * @return the corresponding room
@@ -552,6 +603,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Get the room object for the corresponding room id.
+     * The left rooms are not included.
      * @param roomId the room id
      * @param create create the room it does not exist.
      * @return the corresponding room
@@ -562,6 +614,32 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Get the room object for the corresponding room id.
+     * By default, the left rooms are not included.
+     * @param roomId the room id
+     * @param testLeftRooms true to test if the room is a left room
+     * @param create create the room it does not exist.
+     * @return the corresponding room
+     */
+    public Room getRoom(String roomId, boolean testLeftRooms, boolean create) {
+        Room room = null;
+
+        if (null != roomId) {
+            room = mStore.getRoom(roomId);
+
+            if ((null == room) && testLeftRooms) {
+                room = mLeftRoomsStore.getRoom(roomId);
+            }
+
+            if ((null == room) && create) {
+                room = getRoom(mStore, roomId, create);
+            }
+        }
+
+        return room;
+    }
+
+    /**
+     * Get the room object from the corresponding room id.
      * @param store the dedicated store
      * @param roomId the room id
      * @param create create the room it does not exist.
@@ -585,13 +663,13 @@ public class MXDataHandler implements IMXEventListener {
             if ((room == null) && create) {
                 Log.d(LOG_TAG, "## getRoom() : create the room " + roomId);
                 room = new Room();
-                room.init(roomId, this);
+                room.init(store, roomId, this);
                 store.storeRoom(room);
             } else if ((null != room) && (null == room.getDataHandler())) {
                 // GA reports that some rooms have no data handler
                 // so ensure that it is not properly set
                 Log.e(LOG_TAG, "getRoom " + roomId + " was not initialized");
-                room.init(roomId, this);
+                room.init(store, roomId, this);
                 store.storeRoom(room);
             }
         }
@@ -610,12 +688,29 @@ public class MXDataHandler implements IMXEventListener {
         if (null != room) {
             if (null == room.getDataHandler()) {
                 Log.e(LOG_TAG, "checkRoom : the room was not initialized");
-                room.init(room.getRoomId(), this);
+                room.init(mStore, room.getRoomId(), this);
             } else if ((null != room.getLiveTimeLine()) && (null == room.getLiveTimeLine().mDataHandler)) {
                 Log.e(LOG_TAG, "checkRoom : the timeline was not initialized");
-                room.init(room.getRoomId(), this);
+                room.init(mStore, room.getRoomId(), this);
             }
         }
+    }
+
+    /**
+     * Provides the room summaries list.
+     * @param withLeftOnes set to true to include the left rooms
+     * @return the room summaries
+     */
+    public Collection<RoomSummary> getSummaries(boolean withLeftOnes) {
+        ArrayList<RoomSummary> summaries = new ArrayList<>();
+
+        summaries.addAll(getStore().getSummaries());
+
+        if (withLeftOnes) {
+            summaries.addAll(mLeftRoomsStore.getSummaries());
+        }
+
+        return summaries;
     }
 
     /**
@@ -717,7 +812,13 @@ public class MXDataHandler implements IMXEventListener {
             Log.e(LOG_TAG, "getUser : the session is not anymore active");
             return null;
         } else {
-            return mStore.getUser(userId);
+            User user = mStore.getUser(userId);
+
+            if (null == user) {
+                user = mLeftRoomsStore.getUser(userId);
+            }
+
+            return user;
         }
     }
 
@@ -931,6 +1032,52 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
+     * Delete a room from its room id.
+     * The room data is copied into the left rooms store.
+     * @param roomId the room id
+     */
+    public void deleteRoom(String roomId) {
+        // copy the room from a store to another one
+        Room r = this.getStore().getRoom(roomId);
+
+        if (null != r) {
+            if (mAreLeftRoomsSynced) {
+                Room leftRoom = getRoom(mLeftRoomsStore, roomId, true);
+                leftRoom.setIsLeft(true);
+
+                // copy the summary
+                RoomSummary summary = getStore().getSummary(roomId);
+                if (null != summary) {
+                    mLeftRoomsStore.storeSummary(roomId, summary.getLatestReceivedEvent(), summary.getLatestRoomState(), getUserId());
+                }
+
+                // copy events and receiptData
+                // it is not required but it is better, it could be useful later
+                // the room summary should be enough to be displayed in the recents pages
+                ArrayList<ReceiptData> receipts = new ArrayList<>();
+                Collection<Event> events = getStore().getRoomMessages(roomId);
+
+                if (null != events) {
+                    for (Event e : events) {
+                        receipts.addAll(getStore().getEventReceipts(roomId, e.eventId, false, false));
+                        mLeftRoomsStore.storeLiveRoomEvent(e);
+                    }
+
+                    for (ReceiptData receipt : receipts) {
+                        mLeftRoomsStore.storeReceipt(receipt, roomId);
+                    }
+                }
+
+                // copy the state
+                leftRoom.getLiveTimeLine().setState(r.getLiveTimeLine().getState());
+            }
+
+            // remove the previous definition
+            getStore().deleteRoom(roomId);
+        }
+    }
+
+    /**
      * Manage the sync response in the UI thread.
      * @param syncResponse the syncResponse to manage.
      * @param fromToken the start sync token
@@ -971,8 +1118,14 @@ public class MXDataHandler implements IMXEventListener {
 
                     // Handle first joined rooms
                     for (String roomId : roomIds) {
+
+                        if (null != mLeftRoomsStore.getRoom(roomId)) {
+                            Log.d(LOG_TAG, "the room " + roomId + " moves from left to the joined ones");
+                            mLeftRoomsStore.deleteRoom(roomId);
+                        }
+
                         getRoom(roomId).handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
-                    }
+                   }
 
                     isEmptyResponse = false;
                 }
@@ -985,6 +1138,12 @@ public class MXDataHandler implements IMXEventListener {
 
                     for (String roomId : roomIds) {
                         Log.d(LOG_TAG, "## manageResponse() : the user has been invited to " + roomId);
+
+                        if (null != mLeftRoomsStore.getRoom(roomId)) {
+                            Log.d(LOG_TAG, "the room " + roomId + " moves from left to the invited ones");
+                            mLeftRoomsStore.deleteRoom(roomId);
+                        }
+
                         getRoom(roomId).handleInvitedRoomSync(syncResponse.rooms.invite.get(roomId));
                     }
 
@@ -1006,6 +1165,7 @@ public class MXDataHandler implements IMXEventListener {
                         // FIXME SYNC V2 Archive/Display the left rooms!
                         // For that create 'handleArchivedRoomSync' method
 
+                        String membership = RoomMember.MEMBERSHIP_LEAVE;
                         Room room = this.getStore().getRoom(roomId);
                         // Retrieve existing room
                         // check if the room still exists.
@@ -1014,11 +1174,22 @@ public class MXDataHandler implements IMXEventListener {
                             // The room will then able to notify its listeners.
                             room.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), isInitialSync);
 
+                            RoomMember member = room.getMember(getUserId());
+                            if (null != member) {
+                                membership = member.membership;
+                            }
+
                             Log.d(LOG_TAG, "## manageResponse() : leave the room " + roomId);
                             this.getStore().deleteRoom(roomId);
                             onLeaveRoom(roomId);
                         } else {
                             Log.d(LOG_TAG, "## manageResponse() : Try to leave an unknown room " + roomId);
+                        }
+
+                        // don't add to the left rooms if the user has been kicked / banned
+                        if ((mAreLeftRoomsSynced) && TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE)) {
+                            Room leftRoom = getRoom(mLeftRoomsStore, roomId, true);
+                            leftRoom.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), isInitialSync);
                         }
                     }
 
@@ -1104,6 +1275,134 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
+     * @return true if the historical rooms loaded
+     */
+    public boolean areLeftRoomsSynced() {
+        return mAreLeftRoomsSynced;
+    }
+
+    /**
+     * @return true if the left rooms are retrieving
+     */
+    public boolean isRetrievingLeftRooms() {
+        return mIsRetrievingLeftRooms;
+    }
+
+    /**
+     * Retrieve the historical rooms
+     * @param callback the asynchronous callback.
+     */
+    public void retrieveLeftRooms(ApiCallback<Void> callback) {
+        // already loaded
+        if (mAreLeftRoomsSynced) {
+            if (null != callback) {
+                callback.onSuccess(null);
+            }
+        } else {
+            int count;
+
+            synchronized (mLeftRoomsRefreshCallbacks) {
+                if (null != callback) {
+                    mLeftRoomsRefreshCallbacks.add(callback);
+                }
+                count = mLeftRoomsRefreshCallbacks.size();
+            }
+
+            // start the request only for the first listener
+            if (1 == count) {
+                mIsRetrievingLeftRooms = true;
+
+                Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : requesting");
+
+                mEventsRestClient.syncFromToken(null, 0, 30000, null, LEFT_ROOMS_FILTER, new ApiCallback<SyncResponse>() {
+                    @Override
+                    public void onSuccess(final SyncResponse syncResponse) {
+
+                        Runnable r = new Runnable() {
+                            @Override
+                            public void run() {
+                                if (null != syncResponse.rooms.leave) {
+                                    Set<String> roomIds = syncResponse.rooms.leave.keySet();
+
+                                    // Handle first joined rooms
+                                    for (String roomId : roomIds) {
+                                        Room room = getRoom(mLeftRoomsStore, roomId, true);
+
+                                        // sanity check
+                                        if (null != room) {
+                                            room.setIsLeft(true);
+                                            room.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), true);
+
+                                            RoomMember selfMember = room.getState().getMember(getUserId());
+
+                                            // keep only the left rooms (i.e not the banned / kicked ones)
+                                            if ((null == selfMember) || !TextUtils.equals(selfMember.membership, RoomMember.MEMBERSHIP_LEAVE)) {
+                                                mLeftRoomsStore.deleteRoom(roomId);
+                                            }
+                                        }
+                                    }
+
+                                    Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : " + mLeftRoomsStore.getRooms().size() + " left rooms");
+                                }
+
+                                mIsRetrievingLeftRooms = false;
+                                mAreLeftRoomsSynced = true;
+
+                                synchronized (mLeftRoomsRefreshCallbacks) {
+                                    for (ApiCallback<Void> c : mLeftRoomsRefreshCallbacks) {
+                                        c.onSuccess(null);
+                                    }
+                                    mLeftRoomsRefreshCallbacks.clear();
+                                }
+                            }
+                        };
+
+                        Thread t = new Thread(r);
+                        t.setPriority(Thread.MIN_PRIORITY);
+                        t.start();
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        synchronized (mLeftRoomsRefreshCallbacks) {
+                            Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getMessage());
+
+                            for (ApiCallback<Void> c : mLeftRoomsRefreshCallbacks) {
+                                c.onNetworkError(e);
+                            }
+                            mLeftRoomsRefreshCallbacks.clear();
+                        }
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        synchronized (mLeftRoomsRefreshCallbacks) {
+                            Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getLocalizedMessage());
+
+                            for (ApiCallback<Void> c : mLeftRoomsRefreshCallbacks) {
+                                c.onMatrixError(e);
+                            }
+                            mLeftRoomsRefreshCallbacks.clear();
+                        }
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        synchronized (mLeftRoomsRefreshCallbacks) {
+                            Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getMessage());
+
+                            for (ApiCallback<Void> c : mLeftRoomsRefreshCallbacks) {
+                                c.onUnexpectedError(e);
+                            }
+                            mLeftRoomsRefreshCallbacks.clear();
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    /*         
      * Handle a 'toDevice' event
      * @param event the event
      */
@@ -1238,8 +1537,25 @@ public class MXDataHandler implements IMXEventListener {
      */
     private final ArrayList<String> mUpdatedRoomIdList = new ArrayList<>();
 
+    /**
+     * Tell if a room Id event should be ignored
+     * @param roomId the room id
+     * @return true to do not dispatch the event.
+     */
+    private boolean ignoreEvent(String roomId) {
+        if (mIsRetrievingLeftRooms && !TextUtils.isEmpty(roomId)) {
+            return null != mLeftRoomsStore.getRoom(roomId);
+        } else {
+            return false;
+        }
+    }
+
     @Override
     public void onLiveEvent(final Event event, final RoomState roomState) {
+        if (ignoreEvent(event.roomId)) {
+            return;
+        }
+        
         String type = event.getType();
 
         if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type) && !TextUtils.equals(Event.EVENT_TYPE_RECEIPT, type) && !TextUtils.equals(Event.EVENT_TYPE_TYPING, type)) {
@@ -1300,6 +1616,10 @@ public class MXDataHandler implements IMXEventListener {
             mCryptoEventsListener.onBingEvent(event,roomState, bingRule);
         }
 
+        if (ignoreEvent(event.roomId)) {
+            return;
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1318,6 +1638,10 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onEventEncrypted(final Event event) {
+        if (ignoreEvent(event.roomId)) {
+            return;
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1340,6 +1664,10 @@ public class MXDataHandler implements IMXEventListener {
             mCryptoEventsListener.onSentEvent(event);
         }
 
+        if (ignoreEvent(event.roomId)) {
+            return;
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1360,6 +1688,10 @@ public class MXDataHandler implements IMXEventListener {
     public void onFailedSendingEvent(final Event event) {
         if (null != mCryptoEventsListener) {
             mCryptoEventsListener.onFailedSendingEvent(event);
+        }
+
+        if (ignoreEvent(event.roomId)) {
+            return;
         }
 
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
@@ -1494,9 +1826,12 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onNewRoom(final String roomId) {
-
         if (null != mCryptoEventsListener) {
             mCryptoEventsListener.onNewRoom(roomId);
+        }
+
+        if (ignoreEvent(roomId)) {
+            return;
         }
 
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
@@ -1521,6 +1856,10 @@ public class MXDataHandler implements IMXEventListener {
             mCryptoEventsListener.onJoinRoom(roomId);
         }
 
+        if (ignoreEvent(roomId)) {
+            return;
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1541,6 +1880,10 @@ public class MXDataHandler implements IMXEventListener {
     public void onRoomInitialSyncComplete(final String roomId) {
         if (null != mCryptoEventsListener) {
             mCryptoEventsListener.onRoomInitialSyncComplete(roomId);
+        }
+
+        if (ignoreEvent(roomId)) {
+            return;
         }
 
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
@@ -1565,6 +1908,10 @@ public class MXDataHandler implements IMXEventListener {
             mCryptoEventsListener.onRoomInternalUpdate(roomId);
         }
 
+        if (ignoreEvent(roomId)) {
+            return;
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1585,6 +1932,10 @@ public class MXDataHandler implements IMXEventListener {
     public void onLeaveRoom(final String roomId) {
         if (null != mCryptoEventsListener) {
             mCryptoEventsListener.onLeaveRoom(roomId);
+        }
+
+        if (ignoreEvent(roomId)) {
+            return;
         }
 
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
@@ -1616,6 +1967,10 @@ public class MXDataHandler implements IMXEventListener {
             mCryptoEventsListener.onReceiptEvent(roomId, senderIds);
         }
 
+        if (ignoreEvent(roomId)) {
+            return;
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1638,6 +1993,10 @@ public class MXDataHandler implements IMXEventListener {
             mCryptoEventsListener.onRoomTagEvent(roomId);
         }
 
+        if (ignoreEvent(roomId)) {
+            return;
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -1658,6 +2017,10 @@ public class MXDataHandler implements IMXEventListener {
     public void onRoomFlush(final String roomId) {
         if (null != mCryptoEventsListener) {
             mCryptoEventsListener.onRoomFlush(roomId);
+        }
+
+        if (ignoreEvent(roomId)) {
+            return;
         }
 
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
@@ -1702,6 +2065,10 @@ public class MXDataHandler implements IMXEventListener {
     public void onToDeviceEvent(final Event event) {
         if (null != mCryptoEventsListener) {
             mCryptoEventsListener.onToDeviceEvent(event);
+        }
+
+        if (ignoreEvent(event.roomId)) {
+            return;
         }
 
         final List<IMXEventListener> eventListeners = getListenersSnapshot();

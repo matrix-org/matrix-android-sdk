@@ -1172,7 +1172,7 @@ public class MXFileStore extends MXMemoryStore {
         if (null != events) {
             // create the room object
             Room room = new Room();
-            room.init(roomId, null);
+            room.init(this, roomId, null);
             // do not wait that the live state update
             room.setReadyState(true);
             storeRoom(room);

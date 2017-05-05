@@ -240,6 +240,7 @@ public class MXSession {
         mDataHandler.setPresenceRestClient(mPresenceRestClient);
         mDataHandler.setThirdPidRestClient(mThirdPidRestClient);
         mDataHandler.setRoomsRestClient(mRoomsRestClient);
+        mDataHandler.setEventsRestClient(mEventsRestClient);
 
         // application context
         mAppContent = appContext;
@@ -715,7 +716,7 @@ public class MXSession {
      */
     public int getSyncDelay() {
         if (null != mEventsThread) {
-            mEventsThread.getSyncDelay();
+            return mEventsThread.getSyncDelay();
         }
 
         return 0;

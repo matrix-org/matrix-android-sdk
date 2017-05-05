@@ -34,6 +34,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -363,9 +364,10 @@ public class MXCallsManager {
 
     /**
      * Manage the call events.
+     * @param store the dedicated store
      * @param event the call event.
      */
-    public void handleCallEvent(final Event event) {
+    public void handleCallEvent(final IMXStore store, final Event event) {
         if (event.isCallEvent() && isSupported()) {
             Log.d(LOG_TAG, "handleCallEvent " + event.getType());
 
@@ -375,7 +377,7 @@ public class MXCallsManager {
                 @Override
                 public void run() {
                     boolean isMyEvent = TextUtils.equals(event.getSender(), mSession.getMyUserId());
-                    Room room = mSession.getDataHandler().getRoom(event.roomId);
+                    Room room = mSession.getDataHandler().getRoom(store, event.roomId, true);
 
                     String callId = null;
                     JsonObject eventContent = null;

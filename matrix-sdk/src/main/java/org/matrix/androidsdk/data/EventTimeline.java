@@ -162,6 +162,9 @@ public class EventTimeline {
      */
     private String mBackwardTopToken = "not yet found";
 
+    // true when the current timeline is an historical one
+    private boolean mIsHistorical;
+
     /**
      * Unique identifier
      */
@@ -207,6 +210,14 @@ public class EventTimeline {
     }
 
     /**
+     * Defines that the current timeline is an historical one
+     * @param isHistorical true when the current timeline is an historical one
+     */
+    public void setIsHistorical(boolean isHistorical) {
+        mIsHistorical = isHistorical;
+    }
+
+    /*    
      * @return the unique identifier
      */
     public String getTimelineId() {
@@ -253,10 +264,11 @@ public class EventTimeline {
 
     /**
      * Set the data handler.
+     * @param store the store
      * @param dataHandler the data handler.
      */
-    public void setDataHandler(MXDataHandler dataHandler) {
-        mStore = dataHandler.getStore();
+    public void setDataHandler(IMXStore store,  MXDataHandler dataHandler) {
+        mStore = store;
         mDataHandler = dataHandler;
         mState.setDataHandler(dataHandler);
         mBackState.setDataHandler(dataHandler);
@@ -702,7 +714,7 @@ public class EventTimeline {
                 String membership = event.getContent().getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
 
                 if (RoomMember.MEMBERSHIP_LEAVE.equals(membership) || RoomMember.MEMBERSHIP_BAN.equals(membership)) {
-                    store = false;
+                    store = mIsHistorical;
                     // delete the room and warn the listener of the leave event only at the end of the events chunk processing
                 }
             }
@@ -778,7 +790,7 @@ public class EventTimeline {
 
         // dispatch the call events to the calls manager
         if (event.isCallEvent()) {
-            mDataHandler.getCallsManager().handleCallEvent(event);
+            mDataHandler.getCallsManager().handleCallEvent(mStore, event);
 
             storeLiveRoomEvent(event, false);
 

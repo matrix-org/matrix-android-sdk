@@ -187,6 +187,14 @@ public interface RoomsApi {
     void leave(@Path("roomId") String roomId, @Body JsonObject content, Callback<Void> callback);
 
     /**
+     * Forget the given room.
+     * @param roomId the room id
+     * @param callback the asynchronous callback called when finished
+     */
+    @POST("/rooms/{roomId}/forget")
+    void forget(@Path("roomId") String roomId, @Body JsonObject content, Callback<Void> callback);
+
+    /**
      * Ban a user from the given room.
      * @param roomId the room id
      * @param user the banned user object (userId and reason for ban)
