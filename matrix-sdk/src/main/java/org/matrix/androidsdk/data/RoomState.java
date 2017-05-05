@@ -838,7 +838,7 @@ public class RoomState implements Externalizable {
 
                     if ((direction == EventTimeline.Direction.FORWARDS)) {
                         if (null != mDataHandler) {
-                            ((MXDataHandler) mDataHandler).getStore().updateUserWithRoomMemberEvent(member);
+                            ((MXDataHandler)mDataHandler).getStore(roomId).updateUserWithRoomMemberEvent(member);
                         }
                     }
 

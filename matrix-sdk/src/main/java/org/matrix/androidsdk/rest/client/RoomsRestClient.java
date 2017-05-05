@@ -257,6 +257,26 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     }
 
     /**
+     * Forget a room.
+     * @param roomId the room id
+     * @param callback the async callback
+     */
+    public void forgetRoom(final String roomId, final ApiCallback<Void> callback) {
+        final String description = "forgetRoom : roomId " + roomId;
+
+        mApi.forget(roomId, new JsonObject(), new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    leaveRoom(roomId, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend forgetRoom : failed " + e.getLocalizedMessage());
+                }
+            }
+        }));
+    }
+
+    /**
      * Kick a user from a room.
      * @param roomId the room id
      * @param userId the user id
