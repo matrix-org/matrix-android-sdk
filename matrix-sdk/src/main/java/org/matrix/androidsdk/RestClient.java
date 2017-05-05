@@ -27,7 +27,7 @@ import com.google.gson.Gson;
 import com.squareup.okhttp.OkHttpClient;
 
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
-import org.matrix.androidsdk.rest.client.MXRestExecutor;
+import org.matrix.androidsdk.rest.client.MXRestExecutorService;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.ssl.CertUtil;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -142,7 +142,7 @@ public class RestClient<T> {
                 });
 
         if (mUseMXExececutor) {
-            builder.setExecutors(new MXRestExecutor(), new MXRestExecutor());
+            builder.setExecutors(new MXRestExecutorService(), new MXRestExecutorService());
         }
 
         RestAdapter restAdapter = builder.build();
