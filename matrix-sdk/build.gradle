@@ -2,8 +2,8 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 26
-    buildToolsVersion '26.0.2'
+    compileSdkVersion 25
+    buildToolsVersion '23.0.3'
 
     packagingOptions {
         exclude 'LICENSE.txt'
@@ -12,14 +12,14 @@ android {
         exclude 'META-INF/NOTICE'
     }
 
+
     defaultConfig {
-        minSdkVersion 16
-        targetSdkVersion 26
+        minSdkVersion 11
+        targetSdkVersion 25
         // use version to define a version code.
-        versionCode 903
-        version "0.9.3-dev"
-        versionName "0.9.3-dev"
-        resValue "string", "flavor_description", "SDKApp"
+        versionCode 711
+        version "0.7.11-dev"
+        versionName "0.7.11-dev"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
      }
 
@@ -35,26 +35,6 @@ android {
             storePassword project.hasProperty("RELEASE_STORE_PASSWORD") ? RELEASE_STORE_PASSWORD : "dummy password"
             keyAlias project.hasProperty("RELEASE_KEY_ALIAS") ? RELEASE_KEY_ALIAS : "dummy alias"
             keyPassword project.hasProperty("RELEASE_KEY_PASSWORD") ? RELEASE_KEY_PASSWORD : "dummy password"
-        }
-    }
-
-    android.libraryVariants.all { variant ->
-        task("${variant.name}Docs", type: Javadoc) {
-            source = variant.javaCompile.source
-            classpath = files(((Object) android.bootClasspath.join(File.pathSeparator)))
-            classpath += files(variant.javaCompile.classpath.files)
-
-            destinationDir = file("../docs/javadoc/")
-            delete "../docs/"
-
-            options.windowTitle("Matrix Android SDK")
-            options.docTitle("Matrix Android SDK")
-            options.header("<b>Matrix Android SDK</b>")
-            options.bottom("&copy; 2017 Vector Creations Ltd All rights reserved.")
-
-            exclude '**/BuildConfig.java'
-            exclude '**/R.java'
-            failOnError false
         }
     }
 
@@ -87,8 +67,6 @@ android {
 
     lintOptions {
         disable 'InvalidPackage'
-        disable 'MissingTranslation'
-        disable 'RestrictedApi'
     }
 
     repositories {
@@ -115,16 +93,17 @@ def gitRevisionDate() {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:26.+'
+    compile 'com.android.support:appcompat-v7:25.3.1'
     compile 'com.squareup.retrofit:retrofit:1.6.1'
     compile 'com.google.code.gson:gson:2.3'
     compile 'com.squareup.okhttp:okhttp-urlconnection:2.2.0'
     compile 'com.squareup.okhttp:okhttp:2.2.0'
+    compile 'com.squareup.retrofit2:retrofit:2.2.0'
+    compile 'com.squareup.retrofit2:converter-gson:2.2.0'
+    compile 'com.squareup.okhttp3:okhttp:3.7.0'
+    compile 'io.pristine:libjingle:9690@aar'
 
     compile 'org.matrix:olm-sdk:olm-sdk@aar'
-
-    // replace the compile 'io.pristine:libjingle:9690@aar'
-    compile(name: 'react-native-webrtc', ext: 'aar')
 
     // Robolectric
     testCompile 'com.android.support.test:runner:0.5'
