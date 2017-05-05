@@ -1,7 +1,7 @@
 /*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
- 
+
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -21,6 +21,7 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.text.TextUtils;
+import android.util.Pair;
 
 import com.google.gson.Gson;
 import com.squareup.okhttp.OkHttpClient;
@@ -39,6 +40,8 @@ import retrofit.RequestInterceptor;
 import retrofit.RestAdapter;
 import retrofit.client.OkClient;
 import retrofit.converter.GsonConverter;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.X509TrustManager;
 
 /**
  * Class for making Matrix API calls.
@@ -102,12 +105,8 @@ public class RestClient<T> {
         mOkHttpClient.setWriteTimeout(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
         try {
-            mOkHttpClient.setSslSocketFactory(CertUtil.newPinnedSSLSocketFactory(hsConfig));
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage());
-        }
-
-        try {
+            Pair<SSLSocketFactory, X509TrustManager> pair = CertUtil.newPinnedSSLSocketFactory(hsConfig);
+            mOkHttpClient.setSslSocketFactory(pair.first);
             mOkHttpClient.setHostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
         } catch (Exception e) {
             Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage());
