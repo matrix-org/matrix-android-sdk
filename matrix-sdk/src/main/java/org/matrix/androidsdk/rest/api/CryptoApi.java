@@ -23,6 +23,7 @@ import retrofit.http.POST;
 import retrofit.http.PUT;
 import retrofit.http.Path;
 import retrofit.http.Query;
+import retrofit2.http.HTTP;
 
 import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.sync.DevicesListResponse;
@@ -98,8 +99,13 @@ public interface CryptoApi {
      * @param params   the deletion parameters
      * @param callback the callback
      */
+<<<<<<< HEAD
     @RetrofitDeleteWithBody("/devices/{device_id}")
     void deleteDevice(@Path("device_id") String deviceId, @Body DeleteDeviceParams params, Callback<Void> callback);
+=======
+    @HTTP(path = "/devices/{device_id}", method = "DELETE", hasBody = true)
+    void deleteDevice(@Path("device_id")String deviceId, @Body DeleteDeviceParams params, Callback<Void> callback);
+>>>>>>> Rework DELETE with body
 
     /**
      * Update the device information.
