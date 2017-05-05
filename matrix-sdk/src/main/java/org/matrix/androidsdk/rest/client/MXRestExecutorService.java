@@ -17,19 +17,24 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.os.HandlerThread;
+import android.support.annotation.NonNull;
 
 import org.matrix.androidsdk.util.MXOsHandler;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * MXRestExecutor is a basic thread executor
  */
-public class MXRestExecutor implements Executor {
+public class MXRestExecutorService extends AbstractExecutorService {
     private HandlerThread mHandlerThread;
     private MXOsHandler mHandler;
 
-    public MXRestExecutor() {
+    public MXRestExecutorService() {
         mHandlerThread = new HandlerThread("MXRestExecutor" + this.hashCode(), Thread.MIN_PRIORITY);
         mHandlerThread.start();
         mHandler = new MXOsHandler(mHandlerThread.getLooper());
@@ -46,5 +51,26 @@ public class MXRestExecutor implements Executor {
         if (null != mHandlerThread) {
             mHandlerThread.quit();
         }
+    }
+
+    @Override public void shutdown() {
+
+    }
+
+    @NonNull @Override public List<Runnable> shutdownNow() {
+        return Collections.emptyList();
+    }
+
+    @Override public boolean isShutdown() {
+        return false;
+    }
+
+    @Override public boolean isTerminated() {
+        return false;
+    }
+
+    @Override
+    public boolean awaitTermination(long timeout, @NonNull TimeUnit unit) throws InterruptedException {
+        return false;
     }
 }
