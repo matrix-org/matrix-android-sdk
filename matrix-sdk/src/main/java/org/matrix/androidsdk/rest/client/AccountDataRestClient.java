@@ -58,6 +58,7 @@ public class AccountDataRestClient extends RestClient<AccountDataApi> {
         //final String description = "setAccountData userId : " + userId + " type " + type + " params " + params;
         final String description = "setAccountData userId : " + userId + " type " + type;
 
+<<<<<<< HEAD
         try {
             mApi.setAccountData(userId, type, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
@@ -91,5 +92,13 @@ public class AccountDataRestClient extends RestClient<AccountDataApi> {
         } catch (Throwable e) {
             callback.onUnexpectedError(new Exception(e));
         }
+=======
+        mApi.setAccountData(userId, type, params).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                setAccountData(userId, type, params, callback);
+            }
+        }));
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
     }
 }

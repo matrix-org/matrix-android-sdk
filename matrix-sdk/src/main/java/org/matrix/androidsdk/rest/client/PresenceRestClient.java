@@ -35,6 +35,30 @@ public class PresenceRestClient extends RestClient<PresenceApi> {
     }
 
     /**
+<<<<<<< HEAD
+=======
+     * Set this user's presence.
+     * @param presence the presence state
+     * @param statusMsg a status message
+     * @param callback on success callback
+     */
+    public void setPresence(final String presence, final String statusMsg, final ApiCallback<Void> callback) {
+        final String description = "setPresence presence : " + presence + " statusMsg " + statusMsg;
+
+        User userPresence = new User();
+        userPresence.presence = presence;
+        userPresence.statusMsg = statusMsg;
+
+        mApi.presenceStatus(mCredentials.userId, userPresence).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                setPresence(presence, statusMsg, callback);
+            }
+        }));
+    }
+
+    /**
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
      * Get a user's presence state.
      *
      * @param userId   the user id
@@ -43,6 +67,7 @@ public class PresenceRestClient extends RestClient<PresenceApi> {
     public void getPresence(final String userId, final ApiCallback<User> callback) {
         final String description = "getPresence userId : " + userId;
 
+<<<<<<< HEAD
         try {
             mApi.presenceStatus(userId, new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
@@ -53,5 +78,13 @@ public class PresenceRestClient extends RestClient<PresenceApi> {
         } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
+=======
+        mApi.presenceStatus(userId).enqueue(new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                getPresence(userId, callback);
+            }
+        }));
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
     }
 }

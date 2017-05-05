@@ -17,11 +17,17 @@ package org.matrix.androidsdk.rest.model;
 
 import android.text.TextUtils;
 
+<<<<<<< HEAD
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
 import retrofit.mime.TypedInput;
+=======
+import okhttp3.MediaType;
+import okhttp3.ResponseBody;
+
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
 
 /**
  * Represents a standard error response.
@@ -64,10 +70,15 @@ public class MatrixError implements java.io.Serializable {
 
     // extracted from the error response
     public Integer mStatus;
+<<<<<<< HEAD
     public String mReason;
     public TypedInput mErrorBody;
+=======
+    public String  mReason;
+    public ResponseBody mErrorBody;
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
     public String mErrorBodyAsString;
-    public String mErrorBodyMimeType;
+    public MediaType mErrorBodyMimeType;
 
     /**
      * Default creator

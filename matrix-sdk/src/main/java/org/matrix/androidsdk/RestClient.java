@@ -24,13 +24,15 @@ import android.text.TextUtils;
 import android.util.Pair;
 
 import com.google.gson.Gson;
-import com.squareup.okhttp.OkHttpClient;
 
+<<<<<<< HEAD
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 <<<<<<< HEAD
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.client.MXRestExecutor;
 =======
+=======
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
 import org.matrix.androidsdk.rest.client.MXRestExecutorService;
 >>>>>>> Rework MXRestExecutor as MXRestExecutorService
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -39,14 +41,21 @@ import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.UnsentEventsManager;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import retrofit.RequestInterceptor;
-import retrofit.RestAdapter;
-import retrofit.client.OkClient;
-import retrofit.converter.GsonConverter;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
+
+import okhttp3.Dispatcher;
+import okhttp3.HttpUrl;
+import okhttp3.Interceptor;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import retrofit2.Converter;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
  * Class for making Matrix API calls.
@@ -54,14 +63,21 @@ import javax.net.ssl.X509TrustManager;
 public class RestClient<T> {
     private static final String LOG_TAG = RestClient.class.getSimpleName();
 
+<<<<<<< HEAD
     public static final String URI_API_PREFIX_PATH_MEDIA_R0 = "/_matrix/media/r0";
     public static final String URI_API_PREFIX_PATH_R0 = "/_matrix/client/r0";
     public static final String URI_API_PREFIX_PATH_UNSTABLE = "/_matrix/client/unstable";
+=======
+    private static final String LOG_TAG = "RestClient";
+
+    public static final String URI_API_PREFIX_PATH_R0 = "/_matrix/client/r0/";
+    public static final String URI_API_PREFIX_PATH_UNSTABLE = "/_matrix/client/unstable/";
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
 
     /**
      * Prefix used in path of identity server API requests.
      */
-    public static final String URI_API_PREFIX_IDENTITY = "/_matrix/identity/api/v1";
+    public static final String URI_API_PREFIX_IDENTITY = "/_matrix/identity/api/v1/";
 
     private static final String PARAM_ACCESS_TOKEN = "access_token";
 
@@ -108,19 +124,63 @@ public class RestClient<T> {
         mHsConfig = hsConfig;
         mCredentials = hsConfig.getCredentials();
 
-        mOkHttpClient = new OkHttpClient();
+        Interceptor authentInterceptor = new Interceptor() {
 
-        mOkHttpClient.setConnectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        mOkHttpClient.setReadTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        mOkHttpClient.setWriteTimeout(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            @Override public Response intercept(Chain chain) throws IOException {
+                Request request = chain.request();
+                Request.Builder newRequestBuilder = request.newBuilder();
+                if (null != sUserAgent) {
+                    // set a custom user agent
+                    newRequestBuilder.addHeader("User-Agent", sUserAgent);
+                }
+
+                // Add the access token to all requests if it is set
+                if ((mCredentials != null) && (mCredentials.accessToken != null)) {
+                    HttpUrl url = request.url()
+                        .newBuilder()
+                        .addEncodedQueryParameter(PARAM_ACCESS_TOKEN, mCredentials.accessToken)
+                        .build();
+                    newRequestBuilder.url(url);
+                }
+
+                request = newRequestBuilder.build();
+
+                return chain.proceed(request);
+            }
+        };
+
+        Interceptor connectivityInterceptor = new Interceptor() {
+            @Override public Response intercept(Chain chain) throws IOException {
+                if (mUnsentEventsManager != null
+                    && mUnsentEventsManager.getNetworkConnectivityReceiver() != null
+                    && !mUnsentEventsManager.getNetworkConnectivityReceiver().isConnected()) {
+                    throw new IOException("Not connected");
+                }
+                return chain.proceed(chain.request());
+            }
+        };
+
+        OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient().newBuilder()
+            .connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .readTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .writeTimeout(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .addInterceptor(authentInterceptor)
+            .addInterceptor(connectivityInterceptor);
+
+
+        if (mUseMXExececutor) {
+            okHttpClientBuilder.dispatcher(new Dispatcher(new MXRestExecutorService()));
+        }
 
         try {
             Pair<SSLSocketFactory, X509TrustManager> pair = CertUtil.newPinnedSSLSocketFactory(hsConfig);
-            mOkHttpClient.setSslSocketFactory(pair.first);
-            mOkHttpClient.setHostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
+            okHttpClientBuilder.sslSocketFactory(pair.first, pair.second);
+            okHttpClientBuilder.hostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
         } catch (Exception e) {
             Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage());
         }
+
+        mOkHttpClient = okHttpClientBuilder.build();
 
         // remove any trailing http in the uri prefix
         if (uriPrefix.startsWith("http://")) {
@@ -129,9 +189,11 @@ public class RestClient<T> {
             uriPrefix = uriPrefix.substring("https://".length());
         }
 
+
         final String endPoint = (useIdentityServer ? hsConfig.getIdentityServerUri().toString() : hsConfig.getHomeserverUri().toString()) + uriPrefix;
 
         // Rest adapter for turning API interfaces into actual REST-calling objects
+<<<<<<< HEAD
         RestAdapter.Builder builder = new RestAdapter.Builder()
                 .setEndpoint(endPoint)
                 .setConverter(new GsonConverter(gson))
@@ -150,17 +212,19 @@ public class RestClient<T> {
                         }
                     }
                 });
+=======
+        Retrofit.Builder builder = new Retrofit.Builder()
+                .baseUrl(endPoint)
+                .addConverterFactory(GsonConverterFactory.create(gson))
+                .client(mOkHttpClient);
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
 
-        if (mUseMXExececutor) {
-            builder.setExecutors(new MXRestExecutorService(), new MXRestExecutorService());
-        }
-
-        RestAdapter restAdapter = builder.build();
+        Retrofit retrofit = builder.build();
 
         // debug only
-        //restAdapter.setLogLevel(RestAdapter.LogLevel.FULL);
+        //retrofit.setLogLevel(RestAdapter.LogLevel.FULL);
 
-        mApi = restAdapter.create(type);
+        mApi = retrofit.create(type);
     }
 
     /**
@@ -261,6 +325,7 @@ public class RestClient<T> {
      */
     public void setUnsentEventsManager(UnsentEventsManager unsentEventsManager) {
         mUnsentEventsManager = unsentEventsManager;
+<<<<<<< HEAD
 
         final NetworkConnectivityReceiver networkConnectivityReceiver = mUnsentEventsManager.getNetworkConnectivityReceiver();
         refreshConnectionTimeout(networkConnectivityReceiver);
@@ -272,6 +337,8 @@ public class RestClient<T> {
                 refreshConnectionTimeout(networkConnectivityReceiver);
             }
         });
+=======
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
     }
 
     /**

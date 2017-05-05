@@ -22,9 +22,9 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
 
-import retrofit.Callback;
-import retrofit.RetrofitError;
-import retrofit.client.Response;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class BingRulesRestClient extends RestClient<BingRulesApi> {
 
@@ -41,6 +41,7 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
      * @param callback the asynchronous callback.
      */
     public void getAllBingRules(final ApiCallback<BingRulesResponse> callback) {
+<<<<<<< HEAD
         try {
             mApi.getAllBingRules(new Callback<BingRulesResponse>() {
                 @Override
@@ -115,6 +116,31 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
         } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
+=======
+        mApi.getAllBingRules().enqueue(new Callback<BingRulesResponse>() {
+            @Override
+            public void onResponse(Call<BingRulesResponse> call, Response<BingRulesResponse> response) {
+                BingRulesResponse bingRulesResponse = response.body();
+                callback.onSuccess(bingRulesResponse);
+            }
+
+            @Override public void onFailure(Call<BingRulesResponse> call, Throwable t) {
+                callback.onUnexpectedError((Exception) t);
+            }
+        });
+    }
+
+    public void updateEnableRuleStatus(String Kind, String ruleId, boolean status, final ApiCallback<Void> callback) {
+        mApi.updateEnableRuleStatus(Kind, ruleId, status).enqueue(new Callback<Void> () {
+            @Override public void onResponse(Call<Void> call, Response<Void> response) {
+                callback.onSuccess(response.body());
+            }
+
+            @Override public void onFailure(Call<Void> call, Throwable t) {
+                callback.onUnexpectedError((Exception) t);
+            }
+        });
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
     }
 
     /**
@@ -125,6 +151,7 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
      * @param callback the asynchronous callback
      */
     public void deleteRule(String Kind, String ruleId, final ApiCallback<Void> callback) {
+<<<<<<< HEAD
         try {
             mApi.deleteRule(Kind, ruleId, new Callback<Void>() {
                 @Override
@@ -140,6 +167,17 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
         } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
+=======
+        mApi.deleteRule(Kind, ruleId).enqueue(new Callback<Void>() {
+            @Override public void onResponse(Call<Void> call, Response<Void> response) {
+                callback.onSuccess(response.body());
+            }
+
+            @Override public void onFailure(Call<Void> call, Throwable t) {
+                callback.onUnexpectedError((Exception) t);
+            }
+        });
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
     }
 
     /**
@@ -149,6 +187,7 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
      * @param callback the asynchronous callback
      */
     public void addRule(BingRule rule, final ApiCallback<Void> callback) {
+<<<<<<< HEAD
         try {
             mApi.addRule(rule.kind, rule.ruleId, rule.toJsonElement(), new Callback<Void>() {
                 @Override
@@ -164,5 +203,16 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
         } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
+=======
+        mApi.addRule(rule.kind, rule.ruleId, rule).enqueue(new Callback<Void>() {
+            @Override public void onResponse(Call<Void> call, Response<Void> response) {
+                callback.onSuccess(response.body());
+            }
+
+            @Override public void onFailure(Call<Void> call, Throwable t) {
+                callback.onUnexpectedError((Exception) t);
+            }
+        });
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
     }
 }

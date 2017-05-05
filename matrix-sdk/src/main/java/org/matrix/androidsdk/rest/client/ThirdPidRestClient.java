@@ -30,9 +30,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import retrofit.Callback;
-import retrofit.RetrofitError;
-import retrofit.client.Response;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
 
@@ -52,16 +52,73 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
      * @param callback the 3rd party callback
      */
     public void lookup3Pid(String address, String medium, final ApiCallback<String> callback) {
+<<<<<<< HEAD
         try {
             mApi.lookup3Pid(address, medium, new Callback<PidResponse>() {
                 @Override
                 public void success(PidResponse pidResponse, Response response) {
                     callback.onSuccess((null == pidResponse.mxid) ? "" : pidResponse.mxid);
+=======
+        mApi.lookup3Pid(address, medium).enqueue(new Callback<PidResponse>() {
+            @Override
+            public void onResponse(Call<PidResponse> call, Response<PidResponse> response) {
+                PidResponse pidResponse = response.body();
+                callback.onSuccess((null == pidResponse.mxid) ? "" : pidResponse.mxid);
+            }
+
+            @Override public void onFailure(Call<PidResponse> call, Throwable t) {
+                callback.onUnexpectedError((Exception) t);
+            }
+        });
+    }
+
+    /**
+     * Request an email validation token.
+     * @param address the email address
+     * @param clientSecret the client secret number
+     * @param attempt the attempt count
+     * @param nextLink the next link.
+     * @param callback the callback.
+     */
+    public void requestEmailValidationToken(final String address, final String clientSecret, final int attempt,
+                                            final String nextLink, final ApiCallback<RequestEmailValidationResponse> callback) {
+        final String description = "requestEmailValidationToken";
+
+        mApi.requestEmailValidation(clientSecret, address, attempt, nextLink).enqueue(new RestAdapterCallback<RequestEmailValidationResponse>(description, mUnsentEventsManager, callback,
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        requestEmailValidationToken(address, clientSecret, attempt, nextLink, callback);
+                    }
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                 }
 
+<<<<<<< HEAD
                 @Override
                 public void failure(RetrofitError error) {
                     callback.onUnexpectedError(error);
+=======
+    /**
+     * Request a phone number validation token.
+     * @param phoneNumber the phone number
+     * @param countryCode the country code of the phone number
+     * @param clientSecret the client secret number
+     * @param attempt the attempt count
+     * @param nextLink the next link.
+     * @param callback the callback.
+     */
+    public void requestPhoneNumberValidationToken(final String phoneNumber, final String countryCode,
+                                                  final String clientSecret, final int attempt, final String nextLink,
+                                                  final ApiCallback<RequestPhoneNumberValidationResponse> callback) {
+        final String description = "requestPhoneNUmberValidationToken";
+
+        mApi.requestPhoneNumberValidation(clientSecret, phoneNumber, countryCode, attempt, nextLink).enqueue(new RestAdapterCallback<RequestPhoneNumberValidationResponse>(description, mUnsentEventsManager, callback,
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        requestPhoneNumberValidationToken(phoneNumber, countryCode, clientSecret, attempt, nextLink, callback);
+                    }
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                 }
             });
         }  catch (Throwable t) {
@@ -79,6 +136,7 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
      * @param callback asynchronous callback response
      */
     public void submitValidationToken(final String medium, final String token, final String clientSecret, final String sid, final ApiCallback<Boolean> callback) {
+<<<<<<< HEAD
         try {
             mApi.requestOwnershipValidation(medium, token, clientSecret, sid, new Callback<Map<String, Object>>() {
                 @Override
@@ -88,8 +146,20 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
                     } else {
                         callback.onSuccess(false);
                     }
+=======
+
+        mApi.requestOwnershipValidation(medium, token, clientSecret, sid).enqueue(new Callback<Map<String,Object>> () {
+            @Override
+            public void onResponse(Call<Map<String, Object>> call, Response<Map<String, Object>> response) {
+                Map<String, Object> aDataRespMap = response.body();
+                if (aDataRespMap.containsKey(KEY_SUBMIT_TOKEN_SUCCESS)) {
+                    callback.onSuccess((Boolean) aDataRespMap.get(KEY_SUBMIT_TOKEN_SUCCESS));
+                } else {
+                    callback.onSuccess(false);
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                 }
 
+<<<<<<< HEAD
                 @Override
                 public void failure(RetrofitError error) {
                     callback.onUnexpectedError(error);
@@ -98,6 +168,12 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
         } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
+=======
+            @Override public void onFailure(Call<Map<String, Object>> call, Throwable t) {
+                callback.onUnexpectedError((Exception) t);
+            }
+        });
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
     }
 
     /**
@@ -129,6 +205,7 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
 
         threePidsParams.threepids = list;
 
+<<<<<<< HEAD
         try {
             mApi.bulkLookup(threePidsParams, new Callback<BulkLookupResponse>() {
                 @Override
@@ -143,6 +220,21 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
                             // [2] : matrix id
                             mxidByAddress.put(items.get(1), items.get(2));
                         }
+=======
+        mApi.bulkLookup(threePidsParams).enqueue(new Callback<BulkLookupResponse>() {
+            @Override
+            public void onResponse(Call<BulkLookupResponse> call, Response<BulkLookupResponse> response) {
+                BulkLookupResponse bulkLookupResponse = response.body();
+                HashMap<String, String> mxidByAddress = new HashMap<>();
+
+                if (null != bulkLookupResponse.threepids) {
+                    for (int i = 0; i < bulkLookupResponse.threepids.size(); i++) {
+                        List<String> items = bulkLookupResponse.threepids.get(i);
+                        // [0] : medium
+                        // [1] : address
+                        // [2] : matrix id
+                        mxidByAddress.put(items.get(1), items.get(2));
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     }
 
                     ArrayList<String> matrixIds = new ArrayList<>();
@@ -158,6 +250,7 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
                     callback.onSuccess(matrixIds);
                 }
 
+<<<<<<< HEAD
                 @Override
                 public void failure(RetrofitError error) {
                     callback.onUnexpectedError(error);
@@ -166,5 +259,11 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
         }  catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
+=======
+            @Override public void onFailure(Call<BulkLookupResponse> call, Throwable t) {
+                callback.onUnexpectedError((Exception) t);
+            }
+        });
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
     }
 }

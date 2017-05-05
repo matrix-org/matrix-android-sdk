@@ -1,13 +1,13 @@
-/* 
+/*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -44,7 +44,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+<<<<<<< HEAD
 import java.util.Set;
+=======
+
+import retrofit2.Response;
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
 
 /**
  * Class used to make requests to the events API.
@@ -168,6 +173,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
             publicRoomsParams.filter.generic_search_term = pattern;
         }
 
+<<<<<<< HEAD
         try {
             mApi.publicRooms(server, publicRoomsParams, new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
@@ -178,6 +184,14 @@ public class EventsRestClient extends RestClient<EventsApi> {
         } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
+=======
+        mApi.publicRooms(publicRoomsParams).enqueue(new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                loadPublicRooms(server, thirdPartyInstanceId, includeAllNetworks, pattern, since, limit, callback);
+            }
+        }));
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
     }
 
 
@@ -227,6 +241,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
         final String description = "syncFromToken";
 
+<<<<<<< HEAD
         try {
             // Disable retry because it interferes with clientTimeout
             // Let the client manage retries on events streams
@@ -239,6 +254,16 @@ public class EventsRestClient extends RestClient<EventsApi> {
         } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
+=======
+        // Disable retry because it interferes with clientTimeout
+        // Let the client manage retries on events streams
+        mApi.sync(params).enqueue(new RestAdapterCallback<SyncResponse>(description, null, false, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                syncFromToken(token, serverTimeout, clientTimeout, setPresence, filterId, callback);
+            }
+        }));
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
     }
 
     /**
@@ -274,6 +299,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
         final String description = "searchMessageText";
 
         final String uid = System.currentTimeMillis() + "";
+<<<<<<< HEAD
         mSearchEventsPatternIdentifier = uid + text;
 
         try {
@@ -288,6 +314,20 @@ public class EventsRestClient extends RestClient<EventsApi> {
                 private boolean isActiveRequest() {
                     return TextUtils.equals(mSearchEventsPatternIdentifier, uid + text);
                 }
+=======
+        mSearchPatternIdentifier = uid + text;
+
+        // don't retry to send the request
+        // if the search fails, stop it
+        mApi.search(searchParams, nextBatch).enqueue(new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
+            /**
+             * Tells if the current response for the latest request.
+             * @return true if it is the response of the latest request.
+             */
+            private boolean isActiveRequest() {
+                return TextUtils.equals(mSearchPatternIdentifier, uid + text);
+            }
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
 
                 @Override
                 public void onSuccess(SearchResponse response) {
@@ -392,6 +432,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
         final String description = "searchMediasByText";
 
+<<<<<<< HEAD
         try {
             // don't retry to send the request
             // if the search fails, stop it
@@ -405,6 +446,11 @@ public class EventsRestClient extends RestClient<EventsApi> {
                 private boolean isActiveRequest() {
                     return TextUtils.equals(mSearchEventsMediaNameIdentifier, uid + name);
                 }
+=======
+        // don't retry to send the request
+        // if the search fails, stop it
+        mApi.search(searchParams, nextBatch).enqueue(new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
 
                 @Override
                 public void onSuccess(SearchResponse newSearchResponse) {

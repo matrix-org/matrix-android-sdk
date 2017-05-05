@@ -15,17 +15,26 @@
  */
 package org.matrix.androidsdk.rest.callback;
 
-import org.matrix.androidsdk.util.Log;
-
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.UnsentEventsManager;
 
+<<<<<<< HEAD
 import retrofit.Callback;
 import retrofit.RetrofitError;
 import retrofit.client.Response;
 import retrofit.converter.ConversionException;
 import retrofit.mime.TypedByteArray;
 import retrofit.mime.TypedInput;
+=======
+import java.io.IOException;
+
+import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
 
 public class RestAdapterCallback<T> implements Callback<T> {
 
@@ -111,7 +120,19 @@ public class RestAdapterCallback<T> implements Callback<T> {
     }
 
     @Override
-    public void success(T t, Response response) {
+    public void onResponse(Call<T> call, Response<T> response) {
+        if (response.isSuccessful()) {
+            success(response.body(), response);
+        } else {
+            failure(response, null);
+        }
+    }
+
+    @Override public void onFailure(Call<T> call, Throwable t) {
+        failure(null, (Exception) t);
+    }
+
+    public void success(T t, Response<T> response) {
         if (null != mEventDescription) {
             Log.d(LOG_TAG, "## Succeed() : [" + mEventDescription + "]");
         }
@@ -133,21 +154,28 @@ public class RestAdapterCallback<T> implements Callback<T> {
         }
     }
 
+
     /**
      * Default failure implementation that calls the right error handler
+<<<<<<< HEAD
      *
      * @param error the retrofit error
+=======
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
      */
-    @Override
-    public void failure(RetrofitError error) {
+    public void failure(Response<T> response, Exception exception) {
         if (null != mEventDescription) {
-            Log.d(LOG_TAG, "## failure(): [" + mEventDescription + "]" + " with error " + error.getMessage());
+            String error = exception != null
+                ? exception.getMessage()
+                : (response != null ? response.message() : "unknown");
+
+            Log.d(LOG_TAG, "## failure(): [" + mEventDescription + "]" + " with error " + error);
         }
 
         boolean retry = true;
 
-        if (null != error.getResponse()) {
-            retry = (error.getResponse().getStatus() < 400) || (error.getResponse().getStatus() > 500);
+        if (null != response) {
+            retry = (response.code() < 400) || (response.code() > 500);
         }
 
         // do not retry if the response format is not the expected one.
@@ -155,15 +183,19 @@ public class RestAdapterCallback<T> implements Callback<T> {
 
         if (retry && (null != mUnsentEventsManager)) {
             Log.d(LOG_TAG, "Add it to the UnsentEventsManager");
-            mUnsentEventsManager.onEventSendingFailed(mEventDescription, mIgnoreEventTimeLifeInOffline, error, mApiCallback, mRequestRetryCallBack);
+            mUnsentEventsManager.onEventSendingFailed(mEventDescription, mIgnoreEventTimeLifeInOffline, response, exception, mApiCallback, mRequestRetryCallBack);
         } else {
-            if (error.isNetworkError()) {
+            if (exception != null && exception instanceof IOException) {
                 try {
                     if (null != mApiCallback) {
                         try {
-                            mApiCallback.onNetworkError(error);
+                            mApiCallback.onNetworkError(exception);
                         } catch (Exception e) {
+<<<<<<< HEAD
                             Log.e(LOG_TAG, "## failure(): onNetworkError " + error.getMessage());
+=======
+                            Log.e(LOG_TAG, "## failure(): onNetworkError " + exception.getLocalizedMessage());
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                         }
                     }
                 } catch (Exception e) {
@@ -175,16 +207,17 @@ public class RestAdapterCallback<T> implements Callback<T> {
                 // Try to convert this into a Matrix error
                 MatrixError mxError;
                 try {
-                    mxError = (MatrixError) error.getBodyAs(MatrixError.class);
+                    ResponseBody body = response.errorBody();
 
-                    mxError.mStatus = error.getResponse().getStatus();
-                    mxError.mReason = error.getResponse().getReason();
+                    mxError = JsonUtils.getGson(false).fromJson(response.errorBody().string(), MatrixError.class);
 
-                    TypedInput body = error.getResponse().getBody();
+                    mxError.mStatus = response.code();
+                    mxError.mReason = response.message();
 
                     if (null != body) {
-                        mxError.mErrorBodyMimeType = body.mimeType();
+                        mxError.mErrorBodyMimeType = body.contentType();
                         mxError.mErrorBody = body;
+<<<<<<< HEAD
 
                         try {
                             if (body instanceof TypedByteArray) {
@@ -195,15 +228,22 @@ public class RestAdapterCallback<T> implements Callback<T> {
                         } catch (Exception castException) {
                             Log.e(LOG_TAG, "## failure(): MatrixError cannot cast the response body" + castException.getMessage());
                         }
+=======
+                        mxError.mErrorBodyAsString = body.string();
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     }
                 } catch (Exception e) {
                     mxError = null;
                 }
                 if (mxError != null) {
                     if (MatrixError.LIMIT_EXCEEDED.equals(mxError.errcode) && (null != mUnsentEventsManager)) {
+<<<<<<< HEAD
                         mUnsentEventsManager.onEventSendingFailed(mEventDescription, mIgnoreEventTimeLifeInOffline, error, mApiCallback, mRequestRetryCallBack);
                     } else if (MatrixError.isConfigurationErrorCode(mxError.errcode) && (null != mUnsentEventsManager)) {
                         mUnsentEventsManager.onConfigurationErrorCode(mxError.errcode, mEventDescription);
+=======
+                        mUnsentEventsManager.onEventSendingFailed(mEventDescription, mIgnoreEventTimeLifeInOffline, response, exception, mApiCallback, mRequestRetryCallBack);
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     } else {
                         try {
                             if (null != mApiCallback) {
@@ -218,7 +258,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
                 } else {
                     try {
                         if (null != mApiCallback) {
-                            mApiCallback.onUnexpectedError(error);
+                            mApiCallback.onUnexpectedError(exception);
                         }
                     } catch (Exception e) {
                         // privacy

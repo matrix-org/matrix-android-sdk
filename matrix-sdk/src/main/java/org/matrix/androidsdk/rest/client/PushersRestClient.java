@@ -123,11 +123,21 @@ public class PushersRestClient extends RestClient<PushersApi> {
 
         final String description = "manageHttpPusher";
 
+<<<<<<< HEAD
         try {
             mApi.set(pusher, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
                     manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, append, withEventIdOnly, addPusher, callback);
+=======
+        mApi.set(pusher).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, append, callback, addPusher);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## manageHttpPusher() failed" + e.getMessage());
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                 }
             }));
         }  catch (Throwable t) {
@@ -143,10 +153,17 @@ public class PushersRestClient extends RestClient<PushersApi> {
     public void getPushers(final ApiCallback<PushersResponse> callback) {
         final String description = "getPushers";
 
+<<<<<<< HEAD
         try {
             mApi.get(new RestAdapterCallback<PushersResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.get().enqueue(new RestAdapterCallback<PushersResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     getPushers(callback);
                 }
             }));

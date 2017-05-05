@@ -82,11 +82,19 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         // final String description = "SendMessage : roomId " + roomId + " - message " + message.body;
         final String description = "SendMessage : roomId " + roomId;
 
+<<<<<<< HEAD
         try {
             // the messages have their dedicated method in MXSession to be resent if there is no available network
             mApi.sendMessage(transactionId, roomId, message, new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        // the messages have their dedicated method in MXSession to be resent if there is no available network
+        mApi.sendMessage(transactionId, roomId, message).enqueue(new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     sendMessage(transactionId, roomId, message, callback);
                 }
             }));
@@ -109,6 +117,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         //final String description = "sendEvent : roomId " + roomId + " - eventType " + eventType + " content " + content;
         final String description = "sendEvent : roomId " + roomId + " - eventType " + eventType;
 
+<<<<<<< HEAD
         try {
             // do not retry the call invite
             // it might trigger weird behaviour on flaggy networks
@@ -121,6 +130,16 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 }));
             } else {
                 mApi.send(transactionId, roomId, eventType, content, new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, null));
+=======
+        mApi.send(transactionId, roomId, eventType, content).enqueue(new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    sendEventToRoom(transactionId, roomId, eventType, content, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend sendEvent : failed " + e.getLocalizedMessage());
+                }
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
             }
         } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
@@ -139,10 +158,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void getRoomMessagesFrom(final String roomId, final String fromToken, final EventTimeline.Direction direction, final int limit, final ApiCallback<TokensChunkResponse<Event>> callback) {
         final String description = "messagesFrom : roomId " + roomId + " fromToken " + fromToken + "with direction " + direction + " with limit " + limit;
 
+<<<<<<< HEAD
         try {
             mApi.getRoomMessagesFrom(roomId, (direction == EventTimeline.Direction.BACKWARDS) ? "b" : "f", fromToken, limit, new RestAdapterCallback<TokensChunkResponse<Event>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.getRoomMessagesFrom(roomId, (direction == EventTimeline.Direction.BACKWARDS) ? "b" : "f", fromToken, limit).enqueue(new RestAdapterCallback<TokensChunkResponse<Event>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     getRoomMessagesFrom(roomId, fromToken, direction, limit, callback);
                 }
             }));
@@ -163,11 +189,18 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         User user = new User();
         user.user_id = userId;
+<<<<<<< HEAD
 
         try {
             mApi.invite(roomId, user, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.invite(roomId, user).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     inviteUserToRoom(roomId, userId, callback);
                 }
             }));
@@ -214,10 +247,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         parameters.put("medium", medium);
         parameters.put("address", address);
 
+<<<<<<< HEAD
         try {
             mApi.invite(roomId, parameters, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.invite(roomId, parameters).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     inviteThreePidToRoom(medium, address, roomId, callback);
                 }
             }));
@@ -246,10 +286,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void joinRoom(final String roomIdOrAlias, final HashMap<String, Object> params, final ApiCallback<RoomResponse> callback) {
         final String description = "joinRoom : roomId " + roomIdOrAlias;
 
+<<<<<<< HEAD
         try {
             mApi.joinRoomByAliasOrId(roomIdOrAlias, (null == params) ? new HashMap<String, Object>() : params, new RestAdapterCallback<RoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.joinRoomByAliasOrId(roomIdOrAlias, (null == params) ? new HashMap<String, Object>() : params).enqueue(new RestAdapterCallback<RoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     joinRoom(roomIdOrAlias, params, callback);
                 }
             }));
@@ -267,10 +314,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void leaveRoom(final String roomId, final ApiCallback<Void> callback) {
         final String description = "leaveRoom : roomId " + roomId;
 
+<<<<<<< HEAD
         try {
             mApi.leave(roomId, new JsonObject(), new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.leave(roomId, new JsonObject()).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     leaveRoom(roomId, callback);
                 }
             }));
@@ -314,10 +368,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         RoomMember member = new RoomMember();
         member.membership = RoomMember.MEMBERSHIP_LEAVE;
 
+<<<<<<< HEAD
         try {
             mApi.updateRoomMember(roomId, userId, member, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.updateRoomMember(roomId, userId, member).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     kickFromRoom(roomId, userId, callback);
                 }
             }));
@@ -336,10 +397,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void banFromRoom(final String roomId, final BannedUser user, final ApiCallback<Void> callback) {
         final String description = "banFromRoom : roomId " + roomId + " userId " + user.userId;
 
+<<<<<<< HEAD
         try {
             mApi.ban(roomId, user, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.ban(roomId, user).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     banFromRoom(roomId, user, callback);
                 }
             }));
@@ -358,10 +426,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void unbanFromRoom(final String roomId, final BannedUser user, final ApiCallback<Void> callback) {
         final String description = "Unban : roomId " + roomId + " userId " + user.userId;
 
+<<<<<<< HEAD
         try {
             mApi.unban(roomId, user, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.unban(roomId, user).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     unbanFromRoom(roomId, user, callback);
                 }
             }));
@@ -381,11 +456,32 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         //final String description = "createRoom : name " + name + " topic " + topic;
         final String description = "createRoom";
 
+<<<<<<< HEAD
         try {
             mApi.createRoom(params, new RestAdapterCallback<CreateRoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
                     createRoom(params, callback);
+=======
+        RoomState roomState = new RoomState();
+        // avoid empty strings
+        // The server does not always response when a string is empty
+        // replace them by null
+        roomState.name = TextUtils.isEmpty(name) ? null : name;
+        roomState.topic = TextUtils.isEmpty(topic) ? null : topic;
+        roomState.visibility = visibility;
+        roomState.roomAliasName = TextUtils.isEmpty(alias) ? null : alias;
+        roomState.guest_access = TextUtils.isEmpty(guestAccess) ? null : guestAccess;
+        roomState.history_visibility = TextUtils.isEmpty(historyVisibility) ? null : historyVisibility;
+
+        mApi.createRoom(roomState).enqueue(new RestAdapterCallback<CreateRoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    createRoom(name, topic, visibility, alias, guestAccess, historyVisibility, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend createRoom failed " + e.getLocalizedMessage());
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                 }
             }));
         } catch (Throwable t) {
@@ -402,11 +498,21 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void initialSync(final String roomId, final ApiCallback<RoomResponse> callback) {
         final String description = "initialSync : roomId " + roomId;
 
+<<<<<<< HEAD
         try {
             mApi.initialSync(roomId, DEFAULT_MESSAGES_PAGINATION_LIMIT, new RestAdapterCallback<RoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
                     initialSync(roomId, callback);
+=======
+        mApi.createRoom(parameters).enqueue(new RestAdapterCallback<CreateRoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    createRoom(parameters, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend createRoom failed " + e.getLocalizedMessage());
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                 }
             }));
         } catch (Throwable t) {
@@ -429,6 +535,10 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 callback.onSuccess(event);
             }
 
+<<<<<<< HEAD
+=======
+        mApi.initialSync(roomId, DEFAULT_MESSAGES_PAGINATION_LIMIT).enqueue(new RestAdapterCallback<RoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
             @Override
             public void onNetworkError(Exception e) {
                 callback.onNetworkError(e);
@@ -551,10 +661,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void getContextOfEvent(final String roomId, final String eventId, final int limit, final ApiCallback<EventContext> callback) {
         final String description = "getContextOfEvent : roomId " + roomId + " eventId " + eventId + " limit " + limit;
 
+<<<<<<< HEAD
         try {
             mApi.getContextOfEvent(roomId, eventId, limit, new RestAdapterCallback<EventContext>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.getContextOfEvent(roomId, eventId, limit).enqueue(new RestAdapterCallback<EventContext>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     getContextOfEvent(roomId, eventId, limit, callback);
                 }
             }));
@@ -576,10 +693,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         RoomState roomState = new RoomState();
         roomState.name = name;
 
+<<<<<<< HEAD
         try {
             mApi.setRoomName(roomId, roomState, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.setRoomName(roomId, roomState).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     updateRoomName(roomId, name, callback);
                 }
             }));
@@ -601,10 +725,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         RoomState roomState = new RoomState();
         roomState.alias = canonicalAlias;
 
+<<<<<<< HEAD
         try {
             mApi.setCanonicalAlias(roomId, roomState, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.setCanonicalAlias(roomId, roomState).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     updateCanonicalAlias(roomId, canonicalAlias, callback);
                 }
             }));
@@ -626,10 +757,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         RoomState roomState = new RoomState();
         roomState.history_visibility = aVisibility;
 
+<<<<<<< HEAD
         try {
             mApi.setHistoryVisibility(roomId, roomState, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.setHistoryVisibility(roomId, roomState).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     updateHistoryVisibility(roomId, aVisibility, callback);
                 }
             }));
@@ -651,10 +789,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         RoomState roomState = new RoomState();
         roomState.visibility = aDirectoryVisibility;
 
+<<<<<<< HEAD
         try {
             mApi.setRoomDirectoryVisibility(aRoomId, roomState, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.setRoomDirectoryVisibility(aRoomId, roomState).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     updateDirectoryVisibility(aRoomId, aDirectoryVisibility, callback);
                 }
             }));
@@ -673,6 +818,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void getDirectoryVisibility(final String aRoomId, final ApiCallback<RoomState> callback) {
         final String description = "getRoomDirectoryVisibility userId=" + aRoomId;
 
+<<<<<<< HEAD
         try {
             mApi.getRoomDirectoryVisibility(aRoomId, new RestAdapterCallback<RoomState>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
@@ -683,6 +829,14 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
+=======
+        mApi.getRoomDirectoryVisibility(aRoomId).enqueue(new RestAdapterCallback<RoomState>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                getDirectoryVisibility(aRoomId, callback);
+            }
+        }));
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
     }
 
     /**
@@ -698,10 +852,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         RoomState roomState = new RoomState();
         roomState.topic = topic;
 
+<<<<<<< HEAD
         try {
             mApi.setRoomTopic(roomId, roomState, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.setRoomTopic(roomId, roomState).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     updateTopic(roomId, topic, callback);
                 }
             }));
@@ -720,10 +881,19 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void redactEvent(final String roomId, final String eventId, final ApiCallback<Event> callback) {
         final String description = "redactEvent : roomId " + roomId + " eventId " + eventId;
 
+<<<<<<< HEAD
         try {
             mApi.redactEvent(roomId, eventId, new JsonObject(), new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.redactEvent(roomId, eventId, new JsonObject()).enqueue(new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                Log.e(LOG_TAG, "resend redactEvent " + roomId);
+
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     redactEvent(roomId, eventId, callback);
                 }
             }));
@@ -752,10 +922,18 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         content.score = scores;
         content.reason = reason;
 
+<<<<<<< HEAD
         try {
             mApi.reportEvent(roomId, eventId, content, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+
+        mApi.reportEvent(roomId, eventId, content).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     reportEvent(roomId, eventId, score, reason, callback);
                 }
             }));
@@ -774,10 +952,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void updatePowerLevels(final String roomId, final PowerLevels powerLevels, final ApiCallback<Void> callback) {
         final String description = "updatePowerLevels : roomId " + roomId + " powerLevels " + powerLevels;
 
+<<<<<<< HEAD
         try {
             mApi.setPowerLevels(roomId, powerLevels, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.setPowerLevels(roomId, powerLevels).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     updatePowerLevels(roomId, powerLevels, callback);
                 }
             }));
@@ -819,6 +1004,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         }
     }
 
+<<<<<<< HEAD
     /**
      * Looks up the contents of a state event in a room
      *
@@ -834,6 +1020,15 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 @Override
                 public void onRetry() {
                     getStateEvent(roomId, eventType, callback);
+=======
+        mApi.sendStateEvent(roomId, eventType, params).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    sendStateEvent(roomId, eventType, params, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend sendStateEvent failed " + e.getLocalizedMessage());
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                 }
             }));
         } catch (Throwable t) {
@@ -883,12 +1078,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
             typing.timeout = timeout;
         }
 
+<<<<<<< HEAD
         try {
             // never resend typing on network error
             mApi.setTypingNotification(roomId, userId, typing, new RestAdapterCallback<Void>(description, null, callback, null));
         } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
+=======
+        // never resend typing on network error
+        mApi.setTypingNotification(roomId, userId, typing).enqueue(new RestAdapterCallback<Void>(description, null, callback, null));
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
     }
 
     /**
@@ -904,10 +1104,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         HashMap<String, String> params = new HashMap<>();
         params.put("url", avatarUrl);
 
+<<<<<<< HEAD
         try {
             mApi.setRoomAvatarUrl(roomId, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.setRoomAvatarUrl(roomId, params).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     updateAvatarUrl(roomId, avatarUrl, callback);
                 }
             }));
@@ -932,6 +1139,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
             params.put(READ_MARKER_FULLY_READ, rmEventId);
         }
 
+<<<<<<< HEAD
         if (!TextUtils.isEmpty(rrEventId)) {
             params.put(READ_MARKER_READ, rrEventId);
         }
@@ -941,6 +1149,15 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 @Override
                 public void onRetry() {
                     sendReadMarker(roomId, rmEventId, rrEventId, callback);
+=======
+        mApi.sendReadReceipt(roomId, eventId, content).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, true, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    sendReadReceipt(roomId, eventId, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend sendReadReceipt : failed " + e.getLocalizedMessage());
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                 }
             }));
         } catch (Throwable t) {
@@ -963,10 +1180,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         HashMap<String, Object> hashMap = new HashMap<>();
         hashMap.put("order", order);
 
+<<<<<<< HEAD
         try {
             mApi.addTag(mCredentials.userId, roomId, tag, hashMap, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.addTag(mCredentials.userId, roomId, tag, hashMap).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     addTag(roomId, tag, order, callback);
                 }
             }));
@@ -985,10 +1209,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void removeTag(final String roomId, final String tag, final ApiCallback<Void> callback) {
         final String description = "removeTag : roomId " + roomId + " - tag " + tag;
 
+<<<<<<< HEAD
         try {
             mApi.removeTag(mCredentials.userId, roomId, tag, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.removeTag(mCredentials.userId, roomId, tag).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     removeTag(roomId, tag, callback);
                 }
             }));
@@ -1031,10 +1262,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void getRoomIdByAlias(final String roomAlias, final ApiCallback<RoomAliasDescription> callback) {
         final String description = "getRoomIdByAlias : " + roomAlias;
 
+<<<<<<< HEAD
         try {
             mApi.getRoomIdByAlias(roomAlias, new RestAdapterCallback<RoomAliasDescription>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.getRoomIdByAlias(roomAlias).enqueue(new RestAdapterCallback<RoomAliasDescription>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     getRoomIdByAlias(roomAlias, callback);
                 }
             }));
@@ -1056,10 +1294,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         RoomAliasDescription roomAliasDescription = new RoomAliasDescription();
         roomAliasDescription.room_id = roomId;
 
+<<<<<<< HEAD
         try {
             mApi.setRoomIdByAlias(roomAlias, roomAliasDescription, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.setRoomIdByAlias(roomAlias, roomAliasDescription).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     setRoomIdByAlias(roomId, roomAlias, callback);
                 }
             }));
@@ -1077,10 +1322,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void removeRoomAlias(final String roomAlias, final ApiCallback<Void> callback) {
         final String description = "removeRoomAlias : " + roomAlias;
 
+<<<<<<< HEAD
         try {
             mApi.removeRoomAlias(roomAlias, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.removeRoomAlias(roomAlias).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     removeRoomAlias(roomAlias, callback);
                 }
             }));
@@ -1104,10 +1356,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         RoomState roomStateParam = new RoomState();
         roomStateParam.join_rule = aJoinRule;
 
+<<<<<<< HEAD
         try {
             mApi.setJoinRules(aRoomId, roomStateParam, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.setJoinRules(aRoomId, roomStateParam).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     updateJoinRules(aRoomId, aJoinRule, callback);
                 }
             }));
@@ -1132,10 +1391,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         RoomState roomStateParam = new RoomState();
         roomStateParam.guest_access = aGuestAccessRule;
 
+<<<<<<< HEAD
         try {
             mApi.setGuestAccess(aRoomId, roomStateParam, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
+=======
+        mApi.setGuestAccess(aRoomId, roomStateParam).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     updateGuestAccess(aRoomId, aGuestAccessRule, callback);
                 }
             }));

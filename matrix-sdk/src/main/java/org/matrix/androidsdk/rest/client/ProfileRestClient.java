@@ -45,7 +45,7 @@ import org.matrix.androidsdk.util.Log;
 import java.util.List;
 import java.util.Map;
 
-import retrofit.client.Response;
+import retrofit2.Response;
 
 /**
  * Class used to make requests to the profile API.
@@ -68,6 +68,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     public void displayname(final String userId, final ApiCallback<String> callback) {
         final String description = "display name userId : " + userId;
 
+<<<<<<< HEAD
         try {
             mApi.displayname(userId, new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
@@ -84,6 +85,20 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
+=======
+        mApi.displayname(userId).enqueue(new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                displayname(userId, callback);
+            }
+        }) {
+            @Override
+            public void success(User user, Response<User> response) {
+                onEventSent();
+                callback.onSuccess(user.displayname);
+            }
+        });
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
     }
 
     /**
@@ -99,6 +114,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         User user = new User();
         user.displayname = newName;
 
+<<<<<<< HEAD
         try {
             // don't retry if the network comes back
             // let the user chooses what he want to do
@@ -111,6 +127,16 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
+=======
+        // don't retry if the network comes back
+        // let the user chooses what he want to do
+        mApi.displayname(mCredentials.userId, user).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                updateDisplayname(newName, callback);
+            }
+        }));
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
     }
 
     /**
@@ -121,6 +147,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     public void avatarUrl(final String userId, final ApiCallback<String> callback) {
         final String description = "avatarUrl userId : " + userId;
 
+<<<<<<< HEAD
         try {
             mApi.avatarUrl(userId, new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
@@ -137,6 +164,20 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
+=======
+        mApi.avatarUrl(userId).enqueue(new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                avatarUrl(userId, callback);
+            }
+        }) {
+            @Override
+            public void success(User user, Response response) {
+                onEventSent();
+                callback.onSuccess(user.getAvatarUrl());
+            }
+        });
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
     }
 
     /**
@@ -152,6 +193,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         User user = new User();
         user.setAvatarUrl(newUrl);
 
+<<<<<<< HEAD
         try {
             mApi.avatarUrl(mCredentials.userId, user, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
@@ -162,6 +204,14 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
+=======
+        mApi.avatarUrl(mCredentials.userId, user).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                updateAvatarUrl(newUrl, callback);
+            }
+        }));
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
     }
 
     /**
@@ -184,6 +234,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         passwordParams.auth.password = oldPassword;
         passwordParams.new_password = newPassword;
 
+<<<<<<< HEAD
         try {
             mApi.updatePassword(passwordParams, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
@@ -193,6 +244,15 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "## updatePassword() failed" + e.getMessage());
                     }
+=======
+        mApi.updatePassword(passwordParams).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    updatePassword(userId, oldPassword, newPassword, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## updatePassword() failed" + e.getMessage());
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                 }
             }));
         } catch (Throwable t) {
@@ -218,8 +278,12 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         passwordParams.auth.threepid_creds = threepid_creds;
         passwordParams.new_password = newPassword;
 
+<<<<<<< HEAD
         try {
             mApi.updatePassword(passwordParams, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+=======
+        mApi.updatePassword(passwordParams).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
             @Override
             public void onRetry() {
                 resetPassword(newPassword, threepid_creds, callback);
@@ -247,10 +311,17 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
             forgetPasswordParams.send_attempt = 1;
             forgetPasswordParams.id_server = mHsConfig.getIdentityServerUri().getHost();
 
+<<<<<<< HEAD
             try {
                 mApi.forgetPassword(forgetPasswordParams, new RestAdapterCallback<ForgetPasswordResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
+=======
+            mApi.forgetPassword(forgetPasswordParams).enqueue(new RestAdapterCallback<ForgetPasswordResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    try {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                         forgetPassword(email, callback);
                     }
                 }) {
@@ -278,6 +349,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         TokenRefreshParams params = new TokenRefreshParams();
         params.refresh_token = mCredentials.refreshToken;
 
+<<<<<<< HEAD
         try {
             mApi.tokenrefresh(params, new RestAdapterCallback<TokenRefreshResponse>(description, mUnsentEventsManager, callback, null) {
                 @Override
@@ -288,6 +360,16 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
                     if (null != callback) {
                         callback.onSuccess(mCredentials);
                     }
+=======
+        mApi.tokenrefresh(params).enqueue(new RestAdapterCallback<TokenRefreshResponse>(description, mUnsentEventsManager, callback, null) {
+            @Override
+            public void success(TokenRefreshResponse tokenreponse, Response response) {
+                onEventSent();
+                mCredentials.refreshToken = tokenreponse.refresh_token;
+                mCredentials.accessToken = tokenreponse.access_token;
+                if (null != callback) {
+                    callback.onSuccess(mCredentials);
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                 }
             });
         } catch (Throwable t) {
@@ -302,6 +384,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     public void threePIDs(final ApiCallback<List<ThirdPartyIdentifier>> callback) {
         final String description = "threePIDs";
 
+<<<<<<< HEAD
         try {
             mApi.threePIDs(new RestAdapterCallback<AccountThreePidsResponse>(description, mUnsentEventsManager, callback, null) {
                 @Override
@@ -349,6 +432,9 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
                     }
                 }
         ) {
+=======
+        mApi.threePIDs().enqueue(new RestAdapterCallback<AccountThreePidsResponse>(description, mUnsentEventsManager, callback, null) {
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
             @Override
             public void success(RequestEmailValidationResponse requestEmailValidationResponse, Response response) {
                 onEventSent();
@@ -449,6 +535,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
 
         params.bind = bind;
 
+<<<<<<< HEAD
         try {
             mApi.add3PID(params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback,
                     new RestAdapterCallback.RequestRetryCallBack() {
@@ -456,6 +543,13 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
                         public void onRetry() {
                             add3PID(pid, bind, callback);
                         }
+=======
+        mApi.add3PID(params).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback,
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        add3PID(pid, bind, callback);
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     }
             ));
         } catch (Throwable t) {
@@ -476,6 +570,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         params.medium = pid.medium;
         params.address = pid.address;
 
+<<<<<<< HEAD
         try {
             mApi.delete3PID(params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback,
                     new RestAdapterCallback.RequestRetryCallBack() {
@@ -488,5 +583,15 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
+=======
+        mApi.delete3PID(params).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback,
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        delete3PID(pid, callback);
+                    }
+                })
+        );
+>>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
     }
 }
