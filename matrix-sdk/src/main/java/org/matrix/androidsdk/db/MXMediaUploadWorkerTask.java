@@ -18,6 +18,10 @@ package org.matrix.androidsdk.db;
 
 import android.os.AsyncTask;
 import android.os.Looper;
+<<<<<<< HEAD
+=======
+import android.util.Pair;
+>>>>>>> CertUtil: return trust manager with the SSL Socket Factory
 
 import org.matrix.androidsdk.util.Log;
 
@@ -44,6 +48,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.X509TrustManager;
 
 /**
  * Private AsyncTask used to upload files.
@@ -288,7 +294,8 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
                 // Add SSL Socket factory.
                 HttpsURLConnection sslConn = (HttpsURLConnection) conn;
                 try {
-                    sslConn.setSSLSocketFactory(CertUtil.newPinnedSSLSocketFactory(mContentManager.getHsConfig()));
+                    Pair<SSLSocketFactory, X509TrustManager> pair = CertUtil.newPinnedSSLSocketFactory(mContentManager.getHsConfig());
+                    sslConn.setSSLSocketFactory(pair.first);
                     sslConn.setHostnameVerifier(CertUtil.newHostnameVerifier(mContentManager.getHsConfig()));
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "sslConn " + e.getMessage());

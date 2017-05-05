@@ -33,6 +33,10 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 
+<<<<<<< HEAD
+=======
+import android.util.Pair;
+>>>>>>> CertUtil: return trust manager with the SSL Socket Factory
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 
@@ -65,6 +69,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.X509TrustManager;
 
 /**
  * This class manages the media downloading in background.
@@ -699,7 +705,8 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                     // Add SSL Socket factory.
                     HttpsURLConnection sslConn = (HttpsURLConnection) connection;
                     try {
-                        sslConn.setSSLSocketFactory(CertUtil.newPinnedSSLSocketFactory(mHsConfig));
+                        Pair<SSLSocketFactory, X509TrustManager> pair = CertUtil.newPinnedSSLSocketFactory(mHsConfig);
+                        sslConn.setSSLSocketFactory(pair.first);
                         sslConn.setHostnameVerifier(CertUtil.newHostnameVerifier(mHsConfig));
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "doInBackground SSL exception " + e.getMessage());
