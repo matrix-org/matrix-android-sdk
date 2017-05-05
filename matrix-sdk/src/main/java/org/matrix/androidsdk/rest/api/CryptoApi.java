@@ -18,12 +18,12 @@ package org.matrix.androidsdk.rest.api;
 
 import retrofit.Callback;
 import retrofit.http.Body;
-import retrofit.http.DELETE;
 import retrofit.http.GET;
 import retrofit.http.POST;
 import retrofit.http.PUT;
 import retrofit.http.Path;
 import retrofit.http.Query;
+import retrofit2.http.HTTP;
 
 import org.matrix.androidsdk.rest.model.ChangePasswordParams;
 import org.matrix.androidsdk.rest.model.DeleteDeviceAuth;
@@ -94,7 +94,7 @@ public interface CryptoApi {
      * @param params the deletion parameters
      * @param callback the callback
      */
-    @RetrofitDeleteWithBody("/devices/{device_id}")
+    @HTTP(path = "/devices/{device_id}", method = "DELETE", hasBody = true)
     void deleteDevice(@Path("device_id")String deviceId, @Body DeleteDeviceParams params, Callback<Void> callback);
 
     /**
