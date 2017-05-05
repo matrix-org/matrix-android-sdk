@@ -36,7 +36,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import retrofit.client.Response;
+import retrofit2.Response;
 
 /**
  * Class used to make requests to the events API.
@@ -73,7 +73,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
         publicRoomsParams.limit = 0;
         publicRoomsParams.since = null;
 
-        mApi.publicRooms(publicRoomsParams, new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.publicRooms(publicRoomsParams).enqueue(new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 getPublicRoomsCount(callback);
@@ -110,7 +110,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
             publicRoomsParams.filter.generic_search_term = pattern;
         }
 
-        mApi.publicRooms(publicRoomsParams, new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.publicRooms(publicRoomsParams).enqueue(new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 loadPublicRooms(server, pattern, since, limit, callback);
@@ -164,7 +164,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
         // Disable retry because it interferes with clientTimeout
         // Let the client manage retries on events streams
-        mApi.sync(params, new RestAdapterCallback<SyncResponse>(description, null, false, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.sync(params).enqueue(new RestAdapterCallback<SyncResponse>(description, null, false, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 syncFromToken(token, serverTimeout, clientTimeout, setPresence, filterId, callback);
@@ -209,7 +209,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
         // don't retry to send the request
         // if the search fails, stop it
-        mApi.search(searchParams, nextBatch, new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
+        mApi.search(searchParams, nextBatch).enqueue(new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
             /**
              * Tells if the current response for the latest request.
              * @return true if it is the response of the latest request.
@@ -320,7 +320,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
         // don't retry to send the request
         // if the search fails, stop it
-        mApi.search(searchParams, nextBatch, new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
+        mApi.search(searchParams, nextBatch).enqueue(new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
 
             /**
              * Tells if the current response for the latest request.

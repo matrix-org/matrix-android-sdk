@@ -17,18 +17,18 @@ package org.matrix.androidsdk.rest.api;
 
 import java.util.Map;
 
-import retrofit.Callback;
-import retrofit.http.Body;
-import retrofit.http.PUT;
-import retrofit.http.Path;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.http.Body;
+import retrofit2.http.PUT;
+import retrofit2.http.Path;
 
 public interface AccountDataApi {
     /**
      * Set some account_data for the client.
      * @param userId the user id
      * @param params the put params.
-     * @param callback the asynchronous callback called when finished
      */
     @PUT("/user/{userId}/account_data/{type}")
-    void setAccountData(@Path("userId") String userId, @Path("type") String type, @Body Map<String, Object> params, Callback<Void> callback);
+    Call<Void> setAccountData(@Path("userId") String userId, @Path("type") String type, @Body Map<String, Object> params);
 }

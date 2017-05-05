@@ -33,9 +33,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import retrofit.Callback;
-import retrofit.RetrofitError;
-import retrofit.client.Response;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
 
@@ -55,15 +55,15 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
      * @param callback the 3rd party callback
      */
     public void lookup3Pid(String address, String medium, final ApiCallback<String> callback) {
-        mApi.lookup3Pid(address, medium, new Callback<PidResponse>() {
+        mApi.lookup3Pid(address, medium).enqueue(new Callback<PidResponse>() {
             @Override
-            public void success(PidResponse pidResponse, Response response) {
+            public void onResponse(Call<PidResponse> call, Response<PidResponse> response) {
+                PidResponse pidResponse = response.body();
                 callback.onSuccess((null == pidResponse.mxid) ? "" : pidResponse.mxid);
             }
 
-            @Override
-            public void failure(RetrofitError error) {
-                callback.onUnexpectedError(error);
+            @Override public void onFailure(Call<PidResponse> call, Throwable t) {
+                callback.onUnexpectedError((Exception) t);
             }
         });
     }
@@ -80,7 +80,7 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
                                             final String nextLink, final ApiCallback<RequestEmailValidationResponse> callback) {
         final String description = "requestEmailValidationToken";
 
-        mApi.requestEmailValidation(clientSecret, address, new Integer(attempt), nextLink, new RestAdapterCallback<RequestEmailValidationResponse>(description, mUnsentEventsManager, callback,
+        mApi.requestEmailValidation(clientSecret, address, attempt, nextLink).enqueue(new RestAdapterCallback<RequestEmailValidationResponse>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -114,7 +114,7 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
                                                   final ApiCallback<RequestPhoneNumberValidationResponse> callback) {
         final String description = "requestPhoneNUmberValidationToken";
 
-        mApi.requestPhoneNumberValidation(clientSecret, phoneNumber, countryCode, attempt, nextLink, new RestAdapterCallback<RequestPhoneNumberValidationResponse>(description, mUnsentEventsManager, callback,
+        mApi.requestPhoneNumberValidation(clientSecret, phoneNumber, countryCode, attempt, nextLink).enqueue(new RestAdapterCallback<RequestPhoneNumberValidationResponse>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -144,9 +144,10 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
      */
     public void submitValidationToken(final String medium, final String token, final String clientSecret, final String sid, final ApiCallback<Boolean> callback) {
 
-        mApi.requestOwnershipValidation(medium, token, clientSecret, sid, new Callback<Map<String,Object>> () {
+        mApi.requestOwnershipValidation(medium, token, clientSecret, sid).enqueue(new Callback<Map<String,Object>> () {
             @Override
-            public void success (Map<String,Object> aDataRespMap, Response response){
+            public void onResponse(Call<Map<String, Object>> call, Response<Map<String, Object>> response) {
+                Map<String, Object> aDataRespMap = response.body();
                 if (aDataRespMap.containsKey(KEY_SUBMIT_TOKEN_SUCCESS)) {
                     callback.onSuccess((Boolean) aDataRespMap.get(KEY_SUBMIT_TOKEN_SUCCESS));
                 } else {
@@ -154,9 +155,8 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
                 }
             }
 
-            @Override
-            public void failure (RetrofitError error){
-                callback.onUnexpectedError(error);
+            @Override public void onFailure(Call<Map<String, Object>> call, Throwable t) {
+                callback.onUnexpectedError((Exception) t);
             }
         });
     }
@@ -190,9 +190,10 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
 
         threePidsParams.threepids = list;
 
-        mApi.bulkLookup(threePidsParams, new Callback<BulkLookupResponse>() {
+        mApi.bulkLookup(threePidsParams).enqueue(new Callback<BulkLookupResponse>() {
             @Override
-            public void success(BulkLookupResponse bulkLookupResponse, Response response) {
+            public void onResponse(Call<BulkLookupResponse> call, Response<BulkLookupResponse> response) {
+                BulkLookupResponse bulkLookupResponse = response.body();
                 HashMap<String, String> mxidByAddress = new HashMap<>();
 
                 if (null != bulkLookupResponse.threepids) {
@@ -218,9 +219,8 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
                 callback.onSuccess(matrixIds);
             }
 
-            @Override
-            public void failure(RetrofitError error) {
-                callback.onUnexpectedError(error);
+            @Override public void onFailure(Call<BulkLookupResponse> call, Throwable t) {
+                callback.onUnexpectedError((Exception) t);
             }
         });
     }

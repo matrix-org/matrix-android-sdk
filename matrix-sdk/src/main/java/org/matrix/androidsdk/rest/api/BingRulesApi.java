@@ -18,49 +18,44 @@ package org.matrix.androidsdk.rest.api;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
 
-import retrofit.Callback;
-import retrofit.http.Body;
-import retrofit.http.DELETE;
-import retrofit.http.GET;
-import retrofit.http.PUT;
-import retrofit.http.Path;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.http.Body;
+import retrofit2.http.DELETE;
+import retrofit2.http.GET;
+import retrofit2.http.PUT;
+import retrofit2.http.Path;
 
 public interface BingRulesApi {
 
     @GET("/pushrules/")
-    void getAllBingRules(Callback<BingRulesResponse> callback);
-
-    @GET("/pushrules/")
-    BingRulesResponse getAllBingRules();
+    Call<BingRulesResponse> getAllBingRules();
 
     /**
      * Update the ruleID enable status
      * @param kind the notification kind (sender, room...)
      * @param ruleId the ruleId
      * @param enable the new enable status
-     * @param callback the callback
      */
     @PUT("/pushrules/global/{kind}/{ruleId}/enabled")
-    void updateEnableRuleStatus(@Path("kind") String kind, @Path("ruleId") String ruleId, @Body Boolean enable, Callback<Void> callback);
+    Call<Void> updateEnableRuleStatus(@Path("kind") String kind, @Path("ruleId") String ruleId, @Body Boolean enable);
 
     /**
      * Update the ruleID enable status
      * @param kind the notification kind (sender, room...)
      * @param ruleId the ruleId
-     * @param callback the callback
      */
     @DELETE("/pushrules/global/{kind}/{ruleId}")
-    void deleteRule(@Path("kind") String kind, @Path("ruleId") String ruleId, Callback<Void> callback);
+    Call<Void> deleteRule(@Path("kind") String kind, @Path("ruleId") String ruleId);
 
     /**
      * Add the ruleID enable status
      * @param kind the notification kind (sender, room...)
      * @param ruleId the ruleId.
      * @param rule the rule to add.
-     * @param callback the callback.
      */
     @PUT("/pushrules/global/{kind}/{ruleId}")
-    void addRule(@Path("kind") String kind, @Path("ruleId") String ruleId, @Body BingRule rule, Callback<Void> callback);
+    Call<Void> addRule(@Path("kind") String kind, @Path("ruleId") String ruleId, @Body BingRule rule);
 
 
 

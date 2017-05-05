@@ -22,9 +22,9 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
 
-import retrofit.Callback;
-import retrofit.RetrofitError;
-import retrofit.client.Response;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class BingRulesRestClient extends RestClient<BingRulesApi> {
 
@@ -36,61 +36,51 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
     }
 
     public void getAllBingRules(final ApiCallback<BingRulesResponse> callback) {
-        mApi.getAllBingRules(new Callback<BingRulesResponse>() {
+        mApi.getAllBingRules().enqueue(new Callback<BingRulesResponse>() {
             @Override
-            public void success(BingRulesResponse bingRulesResponse, Response response) {
+            public void onResponse(Call<BingRulesResponse> call, Response<BingRulesResponse> response) {
+                BingRulesResponse bingRulesResponse = response.body();
                 callback.onSuccess(bingRulesResponse);
             }
 
-            @Override
-            public void failure(RetrofitError error) {
-                callback.onUnexpectedError(error);
+            @Override public void onFailure(Call<BingRulesResponse> call, Throwable t) {
+                callback.onUnexpectedError((Exception) t);
             }
         });
     }
 
-    public BingRulesResponse getAllBingRules() {
-        return mApi.getAllBingRules();
-    }
-
     public void updateEnableRuleStatus(String Kind, String ruleId, boolean status, final ApiCallback<Void> callback) {
-        mApi.updateEnableRuleStatus(Kind, ruleId, status, new Callback<Void> () {
-            @Override
-            public void success (Void voidObject, Response response){
-                callback.onSuccess(voidObject);
+        mApi.updateEnableRuleStatus(Kind, ruleId, status).enqueue(new Callback<Void> () {
+            @Override public void onResponse(Call<Void> call, Response<Void> response) {
+                callback.onSuccess(response.body());
             }
 
-            @Override
-            public void failure (RetrofitError error){
-                callback.onUnexpectedError(error);
+            @Override public void onFailure(Call<Void> call, Throwable t) {
+                callback.onUnexpectedError((Exception) t);
             }
         });
     }
 
     public void deleteRule(String Kind, String ruleId, final ApiCallback<Void> callback) {
-        mApi.deleteRule(Kind, ruleId, new Callback<Void>() {
-            @Override
-            public void success(Void voidObject, Response response) {
-                callback.onSuccess(voidObject);
+        mApi.deleteRule(Kind, ruleId).enqueue(new Callback<Void>() {
+            @Override public void onResponse(Call<Void> call, Response<Void> response) {
+                callback.onSuccess(response.body());
             }
 
-            @Override
-            public void failure(RetrofitError error) {
-                callback.onUnexpectedError(error);
+            @Override public void onFailure(Call<Void> call, Throwable t) {
+                callback.onUnexpectedError((Exception) t);
             }
         });
     }
 
     public void addRule(BingRule rule, final ApiCallback<Void> callback) {
-        mApi.addRule(rule.kind, rule.ruleId, rule, new Callback<Void>() {
-            @Override
-            public void success(Void voidObject, Response response) {
-                callback.onSuccess(voidObject);
+        mApi.addRule(rule.kind, rule.ruleId, rule).enqueue(new Callback<Void>() {
+            @Override public void onResponse(Call<Void> call, Response<Void> response) {
+                callback.onSuccess(response.body());
             }
 
-            @Override
-            public void failure(RetrofitError error) {
-                callback.onUnexpectedError(error);
+            @Override public void onFailure(Call<Void> call, Throwable t) {
+                callback.onUnexpectedError((Exception) t);
             }
         });
     }

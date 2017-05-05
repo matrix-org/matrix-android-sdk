@@ -20,16 +20,12 @@ import org.matrix.androidsdk.rest.api.EventsApi;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.test.JSONUtils;
-import org.matrix.androidsdk.test.RetrofitUtils;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 
 import java.util.List;
-
-import retrofit.Callback;
-import retrofit.client.Response;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
