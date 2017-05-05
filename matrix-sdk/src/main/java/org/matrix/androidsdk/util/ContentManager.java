@@ -31,7 +31,7 @@ public class ContentManager {
     public static final String METHOD_CROP = "crop";
     public static final String METHOD_SCALE = "scale";
 
-    public static final String URI_PREFIX_CONTENT_API = "/_matrix/media/v1";
+    public static final String URI_PREFIX_CONTENT_API = "/_matrix/media/v1/";
 
     // HS config
     private HomeserverConnectionConfig mHsConfig;

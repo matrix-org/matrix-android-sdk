@@ -17,11 +17,11 @@ package org.matrix.androidsdk.rest.api;
 
 import org.matrix.androidsdk.rest.model.User;
 
-import retrofit.Callback;
-import retrofit.http.Body;
-import retrofit.http.GET;
-import retrofit.http.PUT;
-import retrofit.http.Path;
+import retrofit2.Call;
+import retrofit2.http.Body;
+import retrofit2.http.GET;
+import retrofit2.http.PUT;
+import retrofit2.http.Path;
 
 /**
  * The presence REST API.
@@ -32,16 +32,14 @@ public interface PresenceApi {
      * Set this user's presence state.
      * @param userId the user id
      * @param userPresence a User object with possibly the presence and statusMsg fields
-     * @param callback the asynchronous callback called when finished
      */
-    @PUT("/presence/{userId}/status")
-    void presenceStatus(@Path("userId") String userId, @Body User userPresence, Callback<Void> callback);
+    @PUT("presence/{userId}/status")
+    Call<Void> presenceStatus(@Path("userId") String userId, @Body User userPresence);
 
     /**
      * Get a user's presence state.
      * @param userId the user id
-     * @param callback the asynchronous callback called with the response
      */
-    @GET("/presence/{userId}/status")
-    void presenceStatus(@Path("userId") String userId, Callback<User> callback);
+    @GET("presence/{userId}/status")
+    Call<User> presenceStatus(@Path("userId") String userId);
 }
