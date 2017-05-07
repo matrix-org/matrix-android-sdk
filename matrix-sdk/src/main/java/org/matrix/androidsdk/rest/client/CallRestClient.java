@@ -22,9 +22,9 @@ import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.CallRulesApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 
-import retrofit.Callback;
-import retrofit.RetrofitError;
-import retrofit.client.Response;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class CallRestClient extends RestClient<CallRulesApi> {
 
@@ -36,15 +36,17 @@ public class CallRestClient extends RestClient<CallRulesApi> {
     }
 
     public void getTurnServer(final ApiCallback<JsonObject> callback) {
-        mApi.getTurnServer(new Callback<JsonObject>() {
-            @Override
-            public void success(JsonObject turnServer, Response response) {
-                callback.onSuccess(turnServer);
+        mApi.getTurnServer().enqueue(new Callback<JsonObject>() {
+            @Override public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
+                if (response.isSuccessful()) {
+                    callback.onSuccess(response.body());
+                } else {
+                    callback.onUnexpectedError(null);
+                }
             }
 
-            @Override
-            public void failure(RetrofitError error) {
-                callback.onUnexpectedError(error);
+            @Override public void onFailure(Call<JsonObject> call, Throwable t) {
+                callback.onUnexpectedError((Exception) t);
             }
         });
     }

@@ -82,6 +82,7 @@ import org.matrix.androidsdk.util.JsonUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -92,7 +93,6 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import retrofit.RetrofitError;
 
 /**
  * UI Fragment containing matrix messages for a given room.
@@ -973,7 +973,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             public void run() {
                                 // display the error message only if the message cannot be resent
                                 if ((null != event.unsentException) && (event.isUndeliverable())) {
-                                    if ((event.unsentException instanceof RetrofitError) && ((RetrofitError) event.unsentException).isNetworkError()) {
+                                    if (event.unsentException instanceof IOException) {
                                         Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + getActivity().getString(R.string.network_error), Toast.LENGTH_LONG).show();
                                     } else {
                                         Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
@@ -1480,7 +1480,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * Or, it could have been called to resend an image.
      *
      * @param thumbnailUrl  the thumbnail Url
-     * @param imageUrl      the image Uri
+     * @param anImageUrl      the image Uri
      * @param mediaFilename the mediaFilename
      * @param imageMimeType the image mine type
      */

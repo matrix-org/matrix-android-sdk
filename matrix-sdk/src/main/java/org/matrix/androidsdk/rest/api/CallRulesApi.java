@@ -17,10 +17,10 @@ package org.matrix.androidsdk.rest.api;
 
 import com.google.gson.JsonObject;
 
-import retrofit.Callback;
-import retrofit.http.GET;
+import retrofit2.Call;
+import retrofit2.http.GET;
 
 public interface CallRulesApi {
     @GET("/voip/turnServer")
-    void getTurnServer(Callback<JsonObject> callback);
+    Call<JsonObject> getTurnServer();
 }

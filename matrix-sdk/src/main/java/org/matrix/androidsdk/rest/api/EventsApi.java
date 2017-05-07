@@ -23,12 +23,12 @@ import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 
 import java.util.Map;
 
-import retrofit.Callback;
-import retrofit.http.Body;
-import retrofit.http.GET;
-import retrofit.http.POST;
-import retrofit.http.Query;
-import retrofit.http.QueryMap;
+import retrofit2.Call;
+import retrofit2.http.Body;
+import retrofit2.http.GET;
+import retrofit2.http.POST;
+import retrofit2.http.Query;
+import retrofit2.http.QueryMap;
 
 /**
  * The events API.
@@ -37,24 +37,21 @@ public interface EventsApi {
     /**
      * Perform the initial sync to find the rooms that concern the user, the participants' presence, etc.
      * @param params the GET params.
-     * @param callback The asynchronous callback to call when finished
      */
     @GET("/sync")
-    void sync(@QueryMap Map<String, Object> params, Callback<SyncResponse> callback);
+    Call<SyncResponse> sync(@QueryMap Map<String, Object> params);
 
     /**
      * Get the list of public rooms.
      * @param publicRoomsParams the request params
-     * @param callback The asynchronous callback to call when finished
      */
     @POST("/publicRooms")
-    void publicRooms(@Body PublicRoomsParams publicRoomsParams, Callback<PublicRoomsResponse> callback);
+    Call<PublicRoomsResponse> publicRooms(@Body PublicRoomsParams publicRoomsParams);
 
     /**
      * Perform a search.
      * @param searchParams the search params.
-     * @param callback The search result.
      */
     @POST("/search")
-    void search(@Body SearchParams searchParams, @Query("next_batch") String nextBatch, Callback<SearchResponse> callback);
+    Call<SearchResponse> search(@Body SearchParams searchParams, @Query("next_batch") String nextBatch);
 }

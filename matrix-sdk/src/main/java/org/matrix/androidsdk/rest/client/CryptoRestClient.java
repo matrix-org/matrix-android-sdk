@@ -41,11 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import retrofit.Callback;
-import retrofit.client.Response;
-import retrofit.http.Body;
-import retrofit.http.PUT;
-import retrofit.http.Path;
+import retrofit2.Response;
 
 public class CryptoRestClient extends RestClient<CryptoApi> {
 
@@ -80,7 +76,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
         }
 
         if (!TextUtils.isEmpty(encodedDeviceId)) {
-            mApi.uploadKeys(encodedDeviceId, params, new RestAdapterCallback<KeysUploadResponse>(description, null, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            mApi.uploadKeys(encodedDeviceId, params).enqueue(new RestAdapterCallback<KeysUploadResponse>(description, null, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
                     try {
@@ -91,7 +87,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
                 }
             }));
         } else {
-            mApi.uploadKeys(params, new RestAdapterCallback<KeysUploadResponse>(description, null, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            mApi.uploadKeys(params).enqueue(new RestAdapterCallback<KeysUploadResponse>(description, null, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
                     try {
@@ -128,7 +124,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
             parameters.put("token", token);
         }
 
-        mApi.downloadKeysForUsers(parameters, new RestAdapterCallback<KeysQueryResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.downloadKeysForUsers(parameters).enqueue(new RestAdapterCallback<KeysQueryResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
@@ -151,7 +147,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
         HashMap<String, Object> params = new HashMap<>();
         params.put("one_time_keys", usersDevicesKeyTypesMap.getMap());
 
-        mApi.claimOneTimeKeysForUsersDevices(params, new RestAdapterCallback<KeysClaimResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.claimOneTimeKeysForUsersDevices(params).enqueue(new RestAdapterCallback<KeysClaimResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
@@ -206,7 +202,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
 
         Random rand = new Random();
 
-        mApi.sendToDevice(eventType, rand.nextInt(Integer.MAX_VALUE), content, new RestAdapterCallback<Void>(description, null, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.sendToDevice(eventType, rand.nextInt(Integer.MAX_VALUE), content).enqueue(new RestAdapterCallback<Void>(description, null, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 sendToDevice(eventType, contentMap, callback);
@@ -221,7 +217,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
     public void getDevices(final ApiCallback<DevicesListResponse> callback) {
         final String description = "getDevicesListInfo";
 
-        mApi.getDevices(new RestAdapterCallback<DevicesListResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.getDevices().enqueue(new RestAdapterCallback<DevicesListResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
@@ -242,7 +238,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
     public void deleteDevice(final String deviceId, final DeleteDeviceParams params, final ApiCallback<Void> callback) {
         final String description = "deleteDevice";
 
-        mApi.deleteDevice(deviceId, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.deleteDevice(deviceId, params).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
@@ -266,7 +262,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
         HashMap<String, String> params = new HashMap<>();
         params.put("display_name", TextUtils.isEmpty(deviceName) ? "" : deviceName);
 
-        mApi.updateDeviceInfo(deviceId, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.updateDeviceInfo(deviceId, params).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
@@ -287,7 +283,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
     public void getKeyChanges(final String from, final String to, final ApiCallback<KeyChangesResponse> callback) {
         final String description = "getKeyChanges";
 
-        mApi.getKeyChanges(from, to, new RestAdapterCallback<KeyChangesResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.getKeyChanges(from, to).enqueue(new RestAdapterCallback<KeyChangesResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
