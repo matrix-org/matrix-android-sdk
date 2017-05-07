@@ -94,8 +94,6 @@ dependencies {
     compile 'com.google.code.gson:gson:2.7'
     compile 'com.squareup.okhttp:okhttp-urlconnection:2.2.0'
     compile 'com.squareup.okhttp:okhttp:2.2.0'
-    compile 'io.pristine:libjingle:9690@aar'
-
     compile(name: 'olm-sdk', ext: 'aar')
 
     // Robolectric
