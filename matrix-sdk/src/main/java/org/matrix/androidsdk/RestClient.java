@@ -187,11 +187,12 @@ public class RestClient<T> {
 
         // if there is no user agent or cannot parse it
         if ((null == sUserAgent) || (sUserAgent.lastIndexOf(")") == -1) || (sUserAgent.indexOf("(") == -1))  {
-            sUserAgent = appName + "/" + appVersion + " (MatrixAndroidSDK " + BuildConfig.VERSION_NAME + ")";
+            sUserAgent = appName + "/" + appVersion + " ( Flavour " +  appContext.getString(R.string.flavor_description) + "; MatrixAndroidSDK " + BuildConfig.VERSION_NAME + ")";
         } else {
             // update
             sUserAgent = appName + "/" + appVersion + " " +
                     sUserAgent.substring(sUserAgent.indexOf("("), sUserAgent.lastIndexOf(")") - 1) +
+                            "; Flavour " + appContext.getString(R.string.flavor_description) +
                             "; MatrixAndroidSDK " +  BuildConfig.VERSION_NAME + ")";
         }
     }
