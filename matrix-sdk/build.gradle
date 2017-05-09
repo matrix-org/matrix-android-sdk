@@ -20,6 +20,7 @@ android {
         versionCode 711
         version "0.7.11-dev"
         versionName "0.7.11-dev"
+        resValue "string", "flavor_description", "SDKApp"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
      }
 
