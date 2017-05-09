@@ -380,7 +380,7 @@ public class MXOlmDevice {
         if (null != olmSession) {
             try {
                 Log.d(LOG_TAG, "## encryptMessage() : olmSession.sessionIdentifier: " + olmSession.sessionIdentifier());
-                Log.d(LOG_TAG, "## encryptMessage() : payloadString: " + payloadString);
+                //Log.d(LOG_TAG, "## encryptMessage() : payloadString: " + payloadString);
 
                 olmMessage = olmSession.encryptMessage(payloadString);
                 mStore.storeSession(olmSession, theirDeviceIdentityKey);
