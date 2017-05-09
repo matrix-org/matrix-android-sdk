@@ -324,7 +324,7 @@ public interface RoomsApi {
      * @param markers the read markers
      * @param callback the asynchronous callback called with the response
      */
-    @POST("/rooms/{roomId}/receipt/read_markers")
+    @POST("/rooms/{roomId}/read_markers")
     void sendReadMarker(@Path("roomId") String roomId, @Body Map<String, String> markers, Callback<Void> callback);
 
     /**

@@ -1595,6 +1595,8 @@ public class Room {
                 if (accountDataEvent.getType().equals(Event.EVENT_TYPE_TAGS)) {
                     mDataHandler.onRoomTagEvent(getRoomId());
                 }
+                // TODO manage EVENT_TYPE_READ_MARKER events
+                // to store them
             }
 
             mStore.storeAccountData(getRoomId(), mAccountData);

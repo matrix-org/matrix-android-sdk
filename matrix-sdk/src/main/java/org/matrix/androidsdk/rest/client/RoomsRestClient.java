@@ -51,9 +51,13 @@ import java.util.Map;
  * Class used to make requests to the rooms API.
  */
 public class RoomsRestClient extends RestClient<RoomsApi> {
-
     private static final String LOG_TAG = "RoomsRestClient";
+
     public static final int DEFAULT_MESSAGES_PAGINATION_LIMIT = 30;
+
+    // read marker field names
+    private static final String READ_MARKER_FULLY_READ = "m.fully_read";
+    private static final String READ_MARKER_READ = "m.read";
 
     /**
      * {@inheritDoc}
@@ -732,21 +736,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param callback the callback containing the created event if successful
      */
     public void sendReadReceipt(final String roomId, final String eventId, final ApiCallback<Void> callback) {
-        final String description = "sendReadReceipt : roomId " + roomId + " - eventId " + eventId;
-
-        // empty body by now
-        JsonObject content = new JsonObject();
-
-        mApi.sendReadReceipt(roomId, eventId, content, new RestAdapterCallback<Void>(description, mUnsentEventsManager, true, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                try {
-                    sendReadReceipt(roomId, eventId, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend sendReadReceipt : failed " + e.getLocalizedMessage());
-                }
-            }
-        }));
+        sendReadMarker(roomId, eventId, eventId, callback);
     }
 
     /**
@@ -757,15 +747,15 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param callback the callback containing the created event if successful
      */
     public void sendReadMarker(final String roomId, final String rmEventId, final String rrEventId, final ApiCallback<Void> callback) {
-        final String description = "sendReadmarker : roomId " + roomId + " - rmEventId " + rmEventId + " -- rrEventId "  + rrEventId;
+        final String description = "sendReadMarker : roomId " + roomId + " - rmEventId " + rmEventId + " -- rrEventId "  + rrEventId;
         Map<String, String> params = new HashMap<>();
 
         if (!TextUtils.isEmpty(rmEventId)) {
-            params.put(Event.EVENT_TYPE_READ_MARKER, rmEventId);
+            params.put(READ_MARKER_FULLY_READ, rmEventId);
         }
 
         if (!TextUtils.isEmpty(rrEventId)) {
-            params.put(Event.EVENT_TYPE_RECEIPT, rrEventId);
+            params.put(READ_MARKER_READ, rrEventId);
         }
 
         mApi.sendReadMarker(roomId, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, true, callback, new RestAdapterCallback.RequestRetryCallBack() {
