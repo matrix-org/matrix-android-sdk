@@ -750,6 +750,37 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     }
 
     /**
+     * Send a read markers.
+     * @param roomId the room id
+     * @param rmEventId the read marker event Id
+     * @param rrEventId the read receipt event Id
+     * @param callback the callback containing the created event if successful
+     */
+    public void sendReadMarker(final String roomId, final String rmEventId, final String rrEventId, final ApiCallback<Void> callback) {
+        final String description = "sendReadmarker : roomId " + roomId + " - rmEventId " + rmEventId + " -- rrEventId "  + rrEventId;
+        Map<String, String> params = new HashMap<>();
+
+        if (!TextUtils.isEmpty(rmEventId)) {
+            params.put(Event.EVENT_TYPE_READ_MARKER, rmEventId);
+        }
+
+        if (!TextUtils.isEmpty(rrEventId)) {
+            params.put(Event.EVENT_TYPE_RECEIPT, rrEventId);
+        }
+
+        mApi.sendReadMarker(roomId, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, true, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    sendReadMarker(roomId, rmEventId, rrEventId, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend sendReadmarker : failed " + e.getLocalizedMessage());
+                }
+            }
+        }));
+    }
+
+    /**
      * Add a tag to a room.
      * Use this method to update the order of an existing tag.
      *

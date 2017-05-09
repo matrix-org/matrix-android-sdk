@@ -317,6 +317,16 @@ public interface RoomsApi {
     @POST("/rooms/{roomId}/receipt/m.read/{eventId}")
     void sendReadReceipt(@Path("roomId") String roomId, @Path("eventId") String EventId, @Body JsonObject content,
                          Callback<Void> callback);
+
+    /**
+     * Send a read receipt.
+     * @param roomId the room id
+     * @param markers the read markers
+     * @param callback the asynchronous callback called with the response
+     */
+    @POST("/rooms/{roomId}/receipt/read_markers")
+    void sendReadMarker(@Path("roomId") String roomId, @Body Map<String, String> markers, Callback<Void> callback);
+
     /**
      * Add a tag to a room
      * @param userId the userId
