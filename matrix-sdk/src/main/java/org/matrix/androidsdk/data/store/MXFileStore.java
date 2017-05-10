@@ -83,6 +83,9 @@ public class MXFileStore extends MXMemoryStore {
     // the data is read from the file system
     private boolean mIsReady = false;
 
+    // the read receipts are ready
+    private boolean mAreReceiptsReady = false;
+
     // the store is currently opening
     private boolean mIsOpening = false;
 
@@ -247,6 +250,7 @@ public class MXFileStore extends MXMemoryStore {
             mIsOpening = false;
             // nothing to load so ready to work
             mIsReady = true;
+            mAreReceiptsReady = true;
         }
     }
 
@@ -515,6 +519,22 @@ public class MXFileStore extends MXMemoryStore {
                 t.start();
             }
         }
+    }
+
+    /**
+     * Check if the read receipts are ready to be used.
+     *
+     * @return true if they are ready.
+     */
+    @Override
+    public boolean areReceiptsReady() {
+        boolean res;
+
+        synchronized (this) {
+            res = mAreReceiptsReady;
+        }
+
+        return res;
     }
 
     /**
@@ -2038,6 +2058,10 @@ public class MXFileStore extends MXMemoryStore {
             long delta = (System.currentTimeMillis() - start);
             Log.d(LOG_TAG, "loadReceipts " + count + " rooms in " + delta + " ms");
             mStoreStats.put("loadReceipts", delta);
+
+            synchronized (this) {
+                mAreReceiptsReady = true;
+            }
         } catch (Exception e) {
             succeed = false;
             //Toast.makeText(mContext, "loadReceipts failed" + e, Toast.LENGTH_LONG).show();
