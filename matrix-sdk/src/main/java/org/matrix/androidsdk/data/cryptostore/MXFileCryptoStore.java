@@ -66,8 +66,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private static final String MXFILE_CRYPTO_STORE_DEVICES_FILE = "devices";
     private static final String MXFILE_CRYPTO_STORE_DEVICES_FILE_TMP = "devices.tmp";
 
+    private static final String MXFILE_CRYPTO_STORE_TRACKING_STATUSES_FILE = "trackingStatuses";
+    private static final String MXFILE_CRYPTO_STORE_TRACKING_STATUSES_FILE_TMP = "trackingStatuses.tmp";
+
     private static final String MXFILE_CRYPTO_STORE_ALGORITHMS_FILE = "roomsAlgorithms";
-    private static final String MXFILE_CRYPTO_STORE_ALGORITHMS_FILE_TMP = "roomsAlgorithms";
+    private static final String MXFILE_CRYPTO_STORE_ALGORITHMS_FILE_TMP = "roomsAlgorithms.tmp";
 
     private static final String MXFILE_CRYPTO_STORE_OLM_SESSIONS_FILE = "sessions";
     private static final String MXFILE_CRYPTO_STORE_OLM_SESSIONS_FILE_TMP = "sessions.tmp";
@@ -92,6 +95,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     // The algorithms used in rooms
     private HashMap<String, String> mRoomsAlgorithms;
+
+    // the tracking statuses
+    private HashMap<String, Integer> mTrackingStatuses;
 
     // The olm sessions (<device identity key> -> (<olm session id> -> <olm session>)
     private HashMap<String /*deviceKey*/,
@@ -119,6 +125,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     private File mAlgorithmsFile;
     private File mAlgorithmsFileTmp;
+
+    private File mTrackingStatusesFile;
+    private File mTrackingStatusesFileTmp;
 
     private File mOlmSessionsFile;
     private File mOlmSessionsFileTmp;
@@ -153,6 +162,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         mAlgorithmsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_ALGORITHMS_FILE);
         mAlgorithmsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_ALGORITHMS_FILE_TMP);
 
+        mTrackingStatusesFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_TRACKING_STATUSES_FILE);
+        mTrackingStatusesFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_TRACKING_STATUSES_FILE_TMP);
+
         // backward compatibility : the sessions used to be stored in an unique file
         mOlmSessionsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_OLM_SESSIONS_FILE);
         mOlmSessionsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_OLM_SESSIONS_FILE_TMP);
@@ -173,6 +185,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
         mUsersDevicesInfoMap = new MXUsersDevicesMap<>();
         mRoomsAlgorithms = new HashMap<>();
+        mTrackingStatuses = new HashMap<>();
         mOlmSessions = new HashMap<>();
         mInboundGroupSessions = new HashMap<>();
     }
@@ -502,6 +515,53 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         }
 
         return null;
+    }
+
+    @Override
+    public void updateDeviceTrackingStatus(String userId, Integer trackingStatus) {
+        if (null != userId) {
+            if (null == trackingStatus) {
+                mTrackingStatuses.remove(userId);
+            } else {
+                mTrackingStatuses.put(userId, trackingStatus);
+            }
+
+            saveDeviceTrackingStatuses();
+        }
+    }
+
+    @Override
+    public int getDeviceTrackingStatus(String userId, int defaultValue) {
+        if ((null != userId) && mTrackingStatuses.containsKey(userId)) {
+            return mTrackingStatuses.get(userId);
+        } else {
+            return defaultValue;
+        }
+    }
+
+    @Override
+    public Map<String, Integer> getDeviceTrackingStatuses() {
+        return mTrackingStatuses;
+    }
+
+    @Override
+    public void saveDeviceTrackingStatuses() {
+        // delete the previous tmp
+        if (mTrackingStatusesFileTmp.exists()) {
+            mTrackingStatusesFileTmp.delete();
+        }
+
+        // copy the existing file
+        if (mTrackingStatusesFile.exists()) {
+            mTrackingStatusesFile.renameTo(mTrackingStatusesFileTmp);
+        }
+
+        storeObject(mTrackingStatuses, mTrackingStatusesFile, "saveDeviceTrackingStatus - in background");
+
+        // remove the tmp file
+        if (mTrackingStatusesFileTmp.exists()) {
+            mTrackingStatusesFileTmp.delete();
+        }
     }
 
     @Override
@@ -884,7 +944,6 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             algorithmsAsVoid = loadObject(mAlgorithmsFile, "preloadCryptoData - mRoomsAlgorithms");
         }
 
-
         if (null != algorithmsAsVoid) {
             try {
                 Map<String, String> algorithmsMap = (Map<String, String>) algorithmsAsVoid;
@@ -897,6 +956,21 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         }
         Log.d(LOG_TAG, "## preloadCryptoData() : load mRoomsAlgorithms ("+ algoSize + " algos) in " + (System.currentTimeMillis() - t2) + " ms");
 
+        Object trackingStatusesAsVoid;
+
+        if (mTrackingStatusesFileTmp.exists()) {
+            trackingStatusesAsVoid = loadObject(mTrackingStatusesFileTmp, "preloadCryptoData - mTrackingStatuses - tmp");
+        } else {
+            trackingStatusesAsVoid = loadObject(mTrackingStatusesFile, "preloadCryptoData - mTrackingStatuses");
+        }
+
+        if (null != trackingStatusesAsVoid) {
+            try {
+                mTrackingStatuses = new HashMap<>((Map<String, Integer>) trackingStatusesAsVoid);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## preloadCryptoData() - invalid mTrackingStatuses " + e.getMessage());
+            }
+        }
 
         if (mOlmSessionsFolder.exists()) {
             long t3 = System.currentTimeMillis();
