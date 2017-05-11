@@ -1008,9 +1008,12 @@ public class Room {
             // it requires to update the summary to display valid information.
             if (isUpdated && TextUtils.equals(mMyUserId, receiptData.userId)) {
                 RoomSummary summary = mStore.getSummary(getRoomId());
+
                 if (null != summary) {
-                    summary.setLatestReadEventId(receiptData.eventId);
+                    summary.setReadReceiptEventId(receiptData.eventId);
+                    mStore.flushSummary(summary);
                 }
+
                 refreshUnreadCounter();
             }
 
@@ -1127,6 +1130,62 @@ public class Room {
     }
 
     /**
+     * @return the read marker event id
+     */
+    public String getReadMarkerEventId() {
+        RoomSummary summary = mStore.getSummary(getRoomId());
+
+        if (null != summary) {
+            return (null != summary.getReadMarkerEventId()) ? summary.getReadMarkerEventId() : summary.getReadReceiptEventId();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Update the read marker event Id
+     * @param readMarkerEventId the read marker even id
+     */
+    public void setReadMakerEventId(final String readMarkerEventId) {
+        String readReceiptEventId = readMarkerEventId;
+
+        Event lastEvent = mStore.getLatestEvent(getRoomId());
+        if (null != lastEvent) {
+            readReceiptEventId = lastEvent.eventId;
+        }
+
+        //  update the store
+        RoomSummary summary = mStore.getSummary(getRoomId());
+        if (null != summary) {
+            summary.setReadMarkerEventId(readMarkerEventId);
+            mStore.flushSummary(summary);
+        }
+
+        // trigger the remote request
+        mDataHandler.getDataRetriever().getRoomsRestClient().sendReadMarker(getRoomId(), readMarkerEventId, readReceiptEventId, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                Log.d(LOG_TAG, "## setReadMakerEventId(): succeeds - readMarkerEventId " + readMarkerEventId);
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                Log.e(LOG_TAG, "## setReadMakerEventId(): failed - readMarkerEventId " + readMarkerEventId + " " + e.getMessage());
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                Log.e(LOG_TAG, "## setReadMakerEventId(): failed - readMarkerEventId " + readMarkerEventId + " " + e.getMessage());
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                Log.e(LOG_TAG, "## setReadMakerEventId(): failed - readMarkerEventId " + readMarkerEventId + " " + e.getMessage());
+            }
+        });
+    }
+
+    /**
      * Send the read receipt to a dedicated event.
      *
      * @param anEvent       the event to acknowledge
@@ -1174,7 +1233,7 @@ public class Room {
             Log.d(LOG_TAG, "## sendReadReceipt(): send the read receipt");
 
             isSendReadReceiptSent = true;
-            mDataHandler.getDataRetriever().getRoomsRestClient().sendReadReceipt(getRoomId(), fEvent.eventId, new ApiCallback<Void>() {
+            mDataHandler.getDataRetriever().getRoomsRestClient().sendReadMarker(getRoomId(), getReadMarkerEventId(), fEvent.eventId, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
                     Log.d(LOG_TAG, "## sendReadReceipt(): succeeds - eventId " + fEvent.eventId);
@@ -1267,7 +1326,7 @@ public class Room {
 
             if (null != summary) {
                 int prevValue = summary.getUnreadEventsCount();
-                int newValue = mStore.eventsCountAfter(getRoomId(), summary.getLatestReadEventId());
+                int newValue = mStore.eventsCountAfter(getRoomId(), summary.getReadReceiptEventId());
 
                 if (prevValue != newValue) {
                     summary.setUnreadEventsCount(newValue);
@@ -1595,8 +1654,10 @@ public class Room {
                 if (accountDataEvent.getType().equals(Event.EVENT_TYPE_TAGS)) {
                     mDataHandler.onRoomTagEvent(getRoomId());
                 }
-                // TODO manage EVENT_TYPE_READ_MARKER events
-                // to store them
+
+                if (accountDataEvent.getType().equals(Event.EVENT_TYPE_READ_MARKER)) {
+
+                }
             }
 
             mStore.storeAccountData(getRoomId(), mAccountData);

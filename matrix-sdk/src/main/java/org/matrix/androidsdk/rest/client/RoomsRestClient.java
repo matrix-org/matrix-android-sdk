@@ -730,16 +730,6 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     }
 
     /**
-     * Send a read receipt.
-     * @param roomId the room id
-     * @param eventId the latest event Id
-     * @param callback the callback containing the created event if successful
-     */
-    public void sendReadReceipt(final String roomId, final String eventId, final ApiCallback<Void> callback) {
-        sendReadMarker(roomId, eventId, eventId, callback);
-    }
-
-    /**
      * Send a read markers.
      * @param roomId the room id
      * @param rmEventId the read marker event Id
