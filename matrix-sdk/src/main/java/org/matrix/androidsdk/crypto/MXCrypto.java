@@ -148,6 +148,8 @@ public class MXCrypto {
         public void onLiveEvent(Event event, RoomState roomState) {
             if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTION)) {
                 onCryptoEvent(event);
+            } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
+                onRoomMembership(event);
             }
         }
     };
@@ -1234,7 +1236,7 @@ public class MXCrypto {
                     String algorithm = room.getLiveState().encryptionAlgorithm();
 
                     if (null != algorithm) {
-                        if (setEncryptionInRoom(room.getRoomId(), algorithm, true)) {
+                        if (setEncryptionInRoom(room.getRoomId(), algorithm, false)) {
                             synchronized (mRoomEncryptors) {
                                 alg = mRoomEncryptors.get(room.getRoomId());
                             }
@@ -1725,6 +1727,42 @@ public class MXCrypto {
                 setEncryptionInRoom(event.roomId, eventContent.algorithm, true);
             }
         });
+    }
+
+    /**
+     * Handle a change in the membership state of a member of a room.
+     *
+     * @param event the membership event causing the change
+     */
+    private void onRoomMembership(final Event event) {
+        final IMXEncrypting alg;
+
+        synchronized (mRoomEncryptors) {
+            alg = mRoomEncryptors.get(event.roomId);
+        }
+
+        if (null == alg) {
+            // No encrypting in this room
+            return;
+        }
+
+        final String userId = event.stateKey;
+
+        RoomMember roomMember = mSession.getDataHandler().getRoom(event.roomId).getLiveState().getMember(userId);
+
+        if (null != roomMember) {
+            final String membership = roomMember.membership;
+
+            getEncryptingThreadHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_JOIN)) {
+                        // make sure we are tracking the deviceList for this user
+                        getDeviceList().startTrackingDeviceList(Arrays.asList(userId));
+                    }
+                }
+            });
+        }
     }
 
     /**

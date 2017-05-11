@@ -107,7 +107,7 @@ public class MXDeviceList {
         }
 
         if (isUpdated) {
-            mCryptoStore.saveDeviceTrackingStatuses();
+            mCryptoStore.saveDeviceTrackingStatuses(deviceTrackingStatuses);
         }
     }
 
@@ -120,7 +120,6 @@ public class MXDeviceList {
     private boolean isKeysDownloading(String userId) {
         if (null != userId) {
             Integer status = mCryptoStore.getDeviceTrackingStatus(userId, TRACKING_STATUS_UNDEFINED);
-
             return mUserKeyDownloadsInProgress.contains(userId) || (TRACKING_STATUS_DOWNLOAD_IN_PROGRESS == status);
         }
 
@@ -194,8 +193,8 @@ public class MXDeviceList {
             boolean isUpdated = false;
             Map<String, Integer> deviceTrackingStatuses = mCryptoStore.getDeviceTrackingStatuses();
 
-            for(String userId : userIds) {
-                if(!deviceTrackingStatuses.containsKey(userId)) {
+            for (String userId : userIds) {
+                if (!deviceTrackingStatuses.containsKey(userId)) {
                     Log.d(LOG_TAG, "## startTrackingDeviceList() : Now tracking device list for " + userId);
                     deviceTrackingStatuses.put(userId, TRACKING_STATUS_PENDING_DOWNLOAD);
                     isUpdated = true;
@@ -203,7 +202,7 @@ public class MXDeviceList {
             }
 
             if (isUpdated) {
-                mCryptoStore.saveDeviceTrackingStatuses();
+                mCryptoStore.saveDeviceTrackingStatuses(deviceTrackingStatuses);
             }
         }
     }
@@ -220,7 +219,7 @@ public class MXDeviceList {
                 Map<String, Integer> deviceTrackingStatuses = mCryptoStore.getDeviceTrackingStatuses();
 
                 for(String userId : userIds) {
-                    if(!deviceTrackingStatuses.containsKey(userId)) {
+                    if(deviceTrackingStatuses.containsKey(userId)) {
                         Log.d(LOG_TAG, "## invalidateUserDeviceList() : Marking device list outdated for " + userId);
                         deviceTrackingStatuses.put(userId, TRACKING_STATUS_PENDING_DOWNLOAD);
                         isUpdated = true;
@@ -228,7 +227,7 @@ public class MXDeviceList {
                 }
 
                 if (isUpdated) {
-                    mCryptoStore.saveDeviceTrackingStatuses();
+                    mCryptoStore.saveDeviceTrackingStatuses(deviceTrackingStatuses);
                 }
             }
             clearUnavailableServersList();
@@ -258,7 +257,7 @@ public class MXDeviceList {
                     deviceTrackingStatuses.put(userId, TRACKING_STATUS_PENDING_DOWNLOAD);
                 }
 
-                mCryptoStore.saveDeviceTrackingStatuses();
+                mCryptoStore.saveDeviceTrackingStatuses(deviceTrackingStatuses);
             }
         }
 
@@ -344,7 +343,6 @@ public class MXDeviceList {
                 mDownloadKeysQueues.removeAll(promisesToRemove);
             }
 
-
             for(String userId : userIds) {
                 mUserKeyDownloadsInProgress.remove(userId);
 
@@ -356,7 +354,8 @@ public class MXDeviceList {
                     Log.d(LOG_TAG, "Device list for " + userId + " now up to date");
                 }
             }
-            mCryptoStore.saveDeviceTrackingStatuses();
+
+            mCryptoStore.saveDeviceTrackingStatuses(deviceTrackingStatuses);
         }
 
         mIsDownloadingKeys = false;
@@ -380,22 +379,15 @@ public class MXDeviceList {
         // List of user ids we need to download keys for
         final ArrayList<String> downloadUsers = new ArrayList<>();
 
-        if (forceDownload) {
-            if (null != userIds) {
-                for(String userId : userIds) {
+        if (null != userIds) {
+            for (String userId : userIds) {
+                if (forceDownload) {
                     Integer trackingStatus = mCryptoStore.getDeviceTrackingStatus(userId, TRACKING_STATUS_UNDEFINED);
                     if (TRACKING_STATUS_UP_TO_DATE != trackingStatus) {
                         downloadUsers.add(userId);
                     }
-                }
-            }
-        } else {
-            if (null != userIds) {
-                IMXCryptoStore store = mxCrypto.getCryptoStore();
-
-                for (String userId : userIds) {
-
-                    Map<String, MXDeviceInfo> devices = store.getUserDevices(userId);
+                } else {
+                    Map<String, MXDeviceInfo> devices = mCryptoStore.getUserDevices(userId);
 
                     if (null == devices) {
                         downloadUsers.add(userId);
@@ -729,7 +721,7 @@ public class MXDeviceList {
             }
         }
 
-        mCryptoStore.saveDeviceTrackingStatuses();
+        mCryptoStore.saveDeviceTrackingStatuses(deviceTrackingStatuses);
 
         doKeyDownloadForUsers(users, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
             @Override

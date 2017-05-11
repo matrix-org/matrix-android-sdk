@@ -215,7 +215,7 @@ public interface IMXCryptoStore {
     /**
      * Save the device statuses
      */
-    void saveDeviceTrackingStatuses();
+    void saveDeviceTrackingStatuses(Map<String, Integer> deviceTrackingStatuses);
 
     /**
      * Get the tracking status of a specified userId devices.
@@ -224,12 +224,4 @@ public interface IMXCryptoStore {
      * @return the tracking status
      */
     int getDeviceTrackingStatus(String userId, int defaultValue);
-
-    /**
-     * Update the tracking status of a specified userid devices.
-     * @param userId the user id
-     * @param trackingStatus the new tracking status
-     */
-    void updateDeviceTrackingStatus(String userId, Integer trackingStatus);
-
 }

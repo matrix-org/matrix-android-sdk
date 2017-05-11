@@ -518,19 +518,6 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public void updateDeviceTrackingStatus(String userId, Integer trackingStatus) {
-        if (null != userId) {
-            if (null == trackingStatus) {
-                mTrackingStatuses.remove(userId);
-            } else {
-                mTrackingStatuses.put(userId, trackingStatus);
-            }
-
-            saveDeviceTrackingStatuses();
-        }
-    }
-
-    @Override
     public int getDeviceTrackingStatus(String userId, int defaultValue) {
         if ((null != userId) && mTrackingStatuses.containsKey(userId)) {
             return mTrackingStatuses.get(userId);
@@ -541,11 +528,13 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public Map<String, Integer> getDeviceTrackingStatuses() {
-        return mTrackingStatuses;
+        return new HashMap<>(mTrackingStatuses);
     }
 
-    @Override
-    public void saveDeviceTrackingStatuses() {
+    /**
+     * Save the tracking statuses map
+     */
+    private void saveDeviceTrackingStatuses() {
         // delete the previous tmp
         if (mTrackingStatusesFileTmp.exists()) {
             mTrackingStatusesFileTmp.delete();
@@ -562,6 +551,13 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         if (mTrackingStatusesFileTmp.exists()) {
             mTrackingStatusesFileTmp.delete();
         }
+    }
+
+    @Override
+    public void saveDeviceTrackingStatuses(Map<String, Integer> deviceTrackingStatuses) {
+        mTrackingStatuses.clear();
+        mTrackingStatuses.putAll(deviceTrackingStatuses);
+        saveDeviceTrackingStatuses();
     }
 
     @Override
