@@ -83,6 +83,9 @@ public class MXFileStore extends MXMemoryStore {
     // the data is read from the file system
     private boolean mIsReady = false;
 
+    // tell if the post processing has been done
+    private boolean mIsPostProcessingDone = false;
+
     // the read receipts are ready
     private boolean mAreReceiptsReady = false;
 
@@ -471,8 +474,9 @@ public class MXFileStore extends MXMemoryStore {
                                 mIsOpening = false;
 
                                 // post processing
-                                Log.e(LOG_TAG, "Management post processing.");
+                                Log.e(LOG_TAG, "## open() : post processing.");
                                 dispatchPostProcess(mCredentials.userId);
+                                mIsPostProcessingDone = true;
 
                                 if (!succeed && !mIsNewStorage) {
                                     Log.e(LOG_TAG, "The store is corrupted.");
@@ -484,7 +488,6 @@ public class MXFileStore extends MXMemoryStore {
 
                                     Log.e(LOG_TAG, "The store is opened.");
                                     dispatchOnStoreReady(mCredentials.userId);
-
 
                                     // load the following items with delay
                                     // theses items are not required to be ready
@@ -506,8 +509,13 @@ public class MXFileStore extends MXMemoryStore {
                 Runnable r = new Runnable() {
                     @Override
                     public void run() {
-                        Log.e(LOG_TAG, "Management post processing.");
-                        dispatchPostProcess(mCredentials.userId);
+                        if (!mIsPostProcessingDone) {
+                            Log.e(LOG_TAG, "## open() : is ready but the post processing was not yet done.");
+                            dispatchPostProcess(mCredentials.userId);
+                            mIsPostProcessingDone = true;
+                        } else {
+                            Log.e(LOG_TAG, "## open() when ready : the post processing is already done.");
+                        }
                         Log.e(LOG_TAG, "The store is opened.");
                         dispatchOnStoreReady(mCredentials.userId);
 
