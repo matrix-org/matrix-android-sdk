@@ -140,6 +140,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     // tell if the store is corrupted
     private boolean mIsCorrupted = false;
 
+    // tell if the store is ready
+    private boolean mIsReady = false;
+
     public MXFileCryptoStore() {
     }
 
@@ -225,52 +228,68 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public void open() {
-        mMetaData = null;
+        if (mIsReady) {
+            Log.e(LOG_TAG, "## open() : the store is already opened");
+        } else {
+            mMetaData = null;
 
-        loadMetaData();
+            loadMetaData();
 
-        // Check if
-        if (null == mMetaData) {
-            resetData();
-        }
-        // Check store version
-        else if (MXFILE_CRYPTO_VERSION != mMetaData.mVersion) {
-            Log.e(LOG_TAG, "## open() : New MXFileCryptoStore version detected");
-            resetData();
-        }
-        // Check credentials
-        // The device id may not have been provided in credentials.
-        // Check it only if provided, else trust the stored one.
-        else if (!TextUtils.equals(mMetaData.mUserId, mCredentials.userId) ||
-                ((null != mCredentials.deviceId) && !TextUtils.equals(mCredentials.deviceId, mMetaData.mDeviceId))
-                ) {
-            Log.e(LOG_TAG, "## open() : Credentials do not match");
-            resetData();
-        }
+            // Check if
+            if (null == mMetaData) {
+                resetData();
+            }
+            // Check store version
+            else if (MXFILE_CRYPTO_VERSION != mMetaData.mVersion) {
+                Log.e(LOG_TAG, "## open() : New MXFileCryptoStore version detected");
+                resetData();
+            }
+            // Check credentials
+            // The device id may not have been provided in credentials.
+            // Check it only if provided, else trust the stored one.
+            else if (!TextUtils.equals(mMetaData.mUserId, mCredentials.userId) ||
+                    ((null != mCredentials.deviceId) && !TextUtils.equals(mCredentials.deviceId, mMetaData.mDeviceId))
+                    ) {
+                Log.e(LOG_TAG, "## open() : Credentials do not match");
+                resetData();
+            }
 
-        // If metaData is still defined, we can load rooms data
-        if (null != mMetaData) {
-            preloadCryptoData();
-        }
+            // If metaData is still defined, we can load rooms data
+            if (null != mMetaData) {
+                preloadCryptoData();
+            }
 
-        // Else, if credentials is valid, create and store it
-        if ((null == mMetaData)
-                && (null != mCredentials.homeServer)
-                && (null != mCredentials.userId)
-                && (null != mCredentials.accessToken)) {
-            mMetaData = new MXFileCryptoStoreMetaData2(mCredentials.userId, mCredentials.deviceId, MXFILE_CRYPTO_VERSION);
-            saveMetaData();
+            // Else, if credentials is valid, create and store it
+            if ((null == mMetaData)
+                    && (null != mCredentials.homeServer)
+                    && (null != mCredentials.userId)
+                    && (null != mCredentials.accessToken)) {
+                mMetaData = new MXFileCryptoStoreMetaData2(mCredentials.userId, mCredentials.deviceId, MXFILE_CRYPTO_VERSION);
+                saveMetaData();
+            }
+
+            mIsReady = true;
         }
     }
 
     @Override
     public void storeDeviceId(String deviceId) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## storeDeviceId() : the store is not ready");
+            return;
+        }
+
         mMetaData.mDeviceId = deviceId;
         saveMetaData();
     }
 
     @Override
     public String getDeviceId() {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## getDeviceId() : the store is not ready");
+            return null;
+        }
+
         return mMetaData.mDeviceId;
     }
 
@@ -283,6 +302,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
      * @param description the object description
      */
     private void storeObject(Object object, File folder, String filename, String description) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## storeObject() : the store is not ready");
+            return;
+        }
+
         // ensure that the folder exists
         // it should always exist but it happened
         if (!folder.exists()) {
@@ -302,6 +326,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
      * @param description the object description
      */
     private void storeObject(Object object, File file, String description) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## storeObject() : the store is not ready");
+            return;
+        }
+
         if (Thread.currentThread() == Looper.getMainLooper().getThread()) {
             Log.e(LOG_TAG, "## storeObject() : should not be called in the UI thread " + description);
         }
@@ -351,6 +380,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public void storeAccount(OlmAccount account) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## storeAccount() : the store is not ready");
+            return;
+        }
+
         mOlmAccount = account;
 
         if (mAccountFileTmp.exists()) {
@@ -370,23 +404,39 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public OlmAccount getAccount() {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## getAccount() : the store is not ready");
+            return null;
+        }
+
         return mOlmAccount;
     }
 
     @Override
     public void storeDeviceAnnounced() {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## storeDeviceAnnounced() : the store is not ready");
+            return;
+        }
+
         mMetaData.mDeviceAnnounced = true;
         saveMetaData();
     }
 
     @Override
     public boolean deviceAnnounced() {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## deviceAnnounced() : the store is not ready");
+            return false;
+        }
+
         return mMetaData.mDeviceAnnounced;
     }
 
     /**
      * Load the user devices from the filesystem
      * if it is not yet done.
+     *
      * @param userId the user id.
      */
     private void loadUserDevices(String userId) {
@@ -433,6 +483,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public void storeUserDevice(String userId, MXDeviceInfo device) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## storeUserDevice() : the store is not ready");
+            return;
+        }
+
         final HashMap<String, MXDeviceInfo> devicesMap;
 
         loadUserDevices(userId);
@@ -447,6 +502,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public MXDeviceInfo getUserDevice(String deviceId, String userId) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## getUserDevice() : the store is not ready");
+            return null;
+        }
+
         MXDeviceInfo deviceInfo;
 
         loadUserDevices(userId);
@@ -460,6 +520,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public void storeUserDevices(String userId, Map<String, MXDeviceInfo> devices) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## storeUserDevices() : the store is not ready");
+            return;
+        }
+
         synchronized (mUsersDevicesInfoMapLock) {
             mUsersDevicesInfoMap.setObjects(devices, userId);
         }
@@ -469,6 +534,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public Map<String, MXDeviceInfo> getUserDevices(String userId) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## getUserDevices() : the store is not ready");
+            return null;
+        }
+
         if (null != userId) {
             Map<String, MXDeviceInfo> devicesMap;
 
@@ -486,6 +556,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public void storeRoomAlgorithm(String roomId, String algorithm) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## storeRoomAlgorithm() : the store is not ready");
+            return;
+        }
+
         if ((null != roomId) && (null != algorithm)) {
             mRoomsAlgorithms.put(roomId, algorithm);
 
@@ -510,6 +585,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public String getRoomAlgorithm(String roomId) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## getRoomAlgorithm() : the store is not ready");
+            return null;
+        }
+
         if (null != roomId) {
             return mRoomsAlgorithms.get(roomId);
         }
@@ -519,6 +599,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public int getDeviceTrackingStatus(String userId, int defaultValue) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## getDeviceTrackingStatus() : the store is not ready");
+            return defaultValue;
+        }
+
         if ((null != userId) && mTrackingStatuses.containsKey(userId)) {
             return mTrackingStatuses.get(userId);
         } else {
@@ -528,6 +613,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public Map<String, Integer> getDeviceTrackingStatuses() {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## getDeviceTrackingStatuses() : the store is not ready");
+            return null;
+        }
+
         return new HashMap<>(mTrackingStatuses);
     }
 
@@ -555,6 +645,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public void saveDeviceTrackingStatuses(Map<String, Integer> deviceTrackingStatuses) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## saveDeviceTrackingStatuses() : the store is not ready");
+            return;
+        }
+
         mTrackingStatuses.clear();
         mTrackingStatuses.putAll(deviceTrackingStatuses);
         saveDeviceTrackingStatuses();
@@ -562,6 +657,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public void storeSession(final OlmSession olmSession, final String deviceKey) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## storeSession() : the store is not ready");
+            return;
+        }
+
         String sessionIdentifier = null;
 
         if (null != olmSession) {
@@ -601,6 +701,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public Map<String, OlmSession> getDeviceSessions(String deviceKey) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## storeSession() : the store is not ready");
+            return null;
+        }
+
         if (null != deviceKey) {
             Map<String, OlmSession> map;
 
@@ -616,6 +721,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public void removeInboundGroupSession(String sessionId, String senderKey) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## removeInboundGroupSession() : the store is not ready");
+            return;
+        }
+
         if ((null != sessionId) && (null != senderKey)) {
             synchronized (mInboundGroupSessionsLock) {
                 if (mInboundGroupSessions.containsKey(senderKey)) {
@@ -644,6 +754,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public void storeInboundGroupSession(final MXOlmInboundGroupSession2 session) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## storeInboundGroupSession() : the store is not ready");
+            return;
+        }
+
         String sessionIdentifier = null;
 
         if ((null != session) && (null != session.mSenderKey) && (null != session.mSession)) {
@@ -686,6 +801,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public MXOlmInboundGroupSession2 getInboundGroupSession(String sessionId, String senderKey) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## getInboundGroupSession() : the store is not ready");
+            return null;
+        }
+
         if ((null != sessionId) && (null != senderKey) && mInboundGroupSessions.containsKey(senderKey)) {
             MXOlmInboundGroupSession2 session;
 
@@ -700,6 +820,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public List<MXOlmInboundGroupSession2> getInboundGroupSessions() {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## getInboundGroupSessions() : the store is not ready");
+            return null;
+        }
+
         ArrayList<MXOlmInboundGroupSession2> inboundGroupSessions = new ArrayList<>();
 
         synchronized (mInboundGroupSessionsLock) {
@@ -743,23 +868,43 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Override
     public void setGlobalBlacklistUnverifiedDevices(boolean block) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## setGlobalBlacklistUnverifiedDevices() : the store is not ready");
+            return;
+        }
+
         mMetaData.mGlobalBlacklistUnverifiedDevices = block;
         saveMetaData();
     }
 
     @Override
     public boolean getGlobalBlacklistUnverifiedDevices() {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## getGlobalBlacklistUnverifiedDevices() : the store is not ready");
+            return false;
+        }
+
         return mMetaData.mGlobalBlacklistUnverifiedDevices;
     }
 
     @Override
     public void setRoomsListBlacklistUnverifiedDevices(List<String> roomIds) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## setRoomsListBlacklistUnverifiedDevices() : the store is not ready");
+            return;
+        }
+
         mMetaData.mBlacklistUnverifiedDevicesRoomIdsList = roomIds;
         saveMetaData();
     }
 
     @Override
     public List<String> getRoomsListBlacklistUnverifiedDevices() {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## getRoomsListBlacklistUnverifiedDevices() : the store is not ready");
+            return null;
+        }
+
         if (null == mMetaData.mBlacklistUnverifiedDevicesRoomIdsList) {
             return new ArrayList<>();
         } else {
@@ -852,7 +997,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 if (metadataAsVoid instanceof MXFileCryptoStoreMetaData2) {
                     mMetaData = (MXFileCryptoStoreMetaData2) metadataAsVoid;
                 } else {
-                    mMetaData = new MXFileCryptoStoreMetaData2((MXFileCryptoStoreMetaData)metadataAsVoid);
+                    mMetaData = new MXFileCryptoStoreMetaData2((MXFileCryptoStoreMetaData) metadataAsVoid);
                 }
             } catch (Exception e) {
                 mIsCorrupted = true;
@@ -950,7 +1095,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 Log.e(LOG_TAG, "## preloadCryptoData() - invalid mAlgorithmsFile " + e.getMessage());
             }
         }
-        Log.d(LOG_TAG, "## preloadCryptoData() : load mRoomsAlgorithms ("+ algoSize + " algos) in " + (System.currentTimeMillis() - t2) + " ms");
+        Log.d(LOG_TAG, "## preloadCryptoData() : load mRoomsAlgorithms (" + algoSize + " algos) in " + (System.currentTimeMillis() - t2) + " ms");
 
         Object trackingStatusesAsVoid;
 
@@ -1090,7 +1235,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 }
             }
 
-            Log.d(LOG_TAG, "## preloadCryptoData() : load " + count +  " inboundGroupSessions in " + (System.currentTimeMillis() - t4) + " ms");
+            Log.d(LOG_TAG, "## preloadCryptoData() : load " + count + " inboundGroupSessions in " + (System.currentTimeMillis() - t4) + " ms");
         } else {
             Object inboundGroupSessionsAsVoid;
 
@@ -1152,7 +1297,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
      * @param filename the filename to encode
      * @return the encoded filename
      */
-    public static String encodeFilename(String filename) {
+    private static String encodeFilename(String filename) {
         if (null == filename) {
             return null;
         }
@@ -1180,7 +1325,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
      * @param encodedFilename the encoded filename
      * @return the decodec filename
      */
-    public static String decodeFilename(String encodedFilename) {
+    private static String decodeFilename(String encodedFilename) {
         if (null == encodedFilename) {
             return null;
         }
