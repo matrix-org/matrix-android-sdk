@@ -85,6 +85,13 @@ public interface IMXStore {
     boolean isReady();
 
     /**
+     * Check if the read receipts are ready to be used.
+     *
+     * @return true if they are ready.
+     */
+    boolean areReceiptsReady();
+
+    /**
      * @return true if the store is corrupted.
      */
     boolean isCorrupted();

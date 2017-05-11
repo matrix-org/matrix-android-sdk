@@ -204,6 +204,16 @@ public class MXMemoryStore implements IMXStore {
     }
 
     /**
+     * Check if the read receipts are ready to be used.
+     *
+     * @return true if they are ready.
+     */
+    @Override
+    public boolean areReceiptsReady() {
+        return true;
+    }
+
+    /**
      * @return true if the store is corrupted.
      */
     @Override

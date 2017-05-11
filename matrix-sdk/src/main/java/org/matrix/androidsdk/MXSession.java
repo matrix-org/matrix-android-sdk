@@ -203,19 +203,24 @@ public class MXSession {
         mDataHandler.getStore().addMXStoreListener(new MXStoreListener() {
             @Override
             public void postProcess(String accountId) {
-                MXFileCryptoStore store = new MXFileCryptoStore();
-                store.initWithCredentials(mAppContent, mCredentials);
+                // test if the crypto instance has already been created
+                if (null == mCrypto) {
+                    MXFileCryptoStore store = new MXFileCryptoStore();
+                    store.initWithCredentials(mAppContent, mCredentials);
 
-                if (store.hasData() || mEnableCryptoWhenStartingMXSession) {
-                    // open the store
-                    store.open();
+                    if (store.hasData() || mEnableCryptoWhenStartingMXSession) {
+                        // open the store
+                        store.open();
 
-                    // enable
-                    mCrypto = new MXCrypto(MXSession.this, store);
-                    mDataHandler.setCrypto(mCrypto);
+                        // enable
+                        mCrypto = new MXCrypto(MXSession.this, store);
+                        mDataHandler.setCrypto(mCrypto);
 
-                    // the room summaries are not stored with decrypted content
-                    decryptRoomSummaries();
+                        // the room summaries are not stored with decrypted content
+                        decryptRoomSummaries();
+                    }
+                } else {
+                    Log.e(LOG_TAG, "## postProcess() : mCrypto is already created");
                 }
             }
 

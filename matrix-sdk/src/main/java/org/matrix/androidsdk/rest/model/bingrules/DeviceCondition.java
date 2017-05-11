@@ -21,4 +21,9 @@ public class DeviceCondition extends Condition {
     public DeviceCondition() {
         kind = Condition.KIND_DEVICE;
     }
+
+    @Override
+    public String toString() {
+        return "DeviceCondition{" + "profileTag='" + profileTag + "'}'";
+    }
 }
