@@ -27,6 +27,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.text.TextUtils;
 
+import org.matrix.androidsdk.rest.model.RoomTags;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.Gson;
@@ -1649,14 +1650,25 @@ public class Room {
         if ((null != accountDataEvents) && (accountDataEvents.size() > 0)) {
             // manage the account events
             for (Event accountDataEvent : accountDataEvents) {
-                mAccountData.handleEvent(accountDataEvent);
+                String eventType = accountDataEvent.getType();
 
-                if (accountDataEvent.getType().equals(Event.EVENT_TYPE_TAGS)) {
-                    mDataHandler.onRoomTagEvent(getRoomId());
-                }
+                if (eventType.equals(Event.EVENT_TYPE_READ_MARKER)) {
+                    RoomSummary summary = mStore.getSummary(getRoomId());
 
-                if (accountDataEvent.getType().equals(Event.EVENT_TYPE_READ_MARKER)) {
+                    if (null != summary) {
+                        Event event = JsonUtils.toEvent(accountDataEvent.getContent());
 
+                        if (null != event) {
+                            summary.setReadMarkerEventId(event.eventId);
+                            mStore.flushSummary(summary);
+                        }
+                    }
+                } else {
+                    mAccountData.handleTagEvent(accountDataEvent);
+
+                    if (eventType.equals(Event.EVENT_TYPE_TAGS)) {
+                        mDataHandler.onRoomTagEvent(getRoomId());
+                    }
                 }
             }
 

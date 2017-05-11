@@ -17,9 +17,7 @@
 package org.matrix.androidsdk.data.store;
 
 import android.content.Context;
-import android.os.Handler;
 import android.os.HandlerThread;
-import android.os.Looper;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -46,7 +44,6 @@ import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -63,7 +60,7 @@ public class MXFileStore extends MXMemoryStore {
     private static final String LOG_TAG = "MXFileStore";
 
     // some constant values
-    private static final int MXFILE_VERSION = 8;
+    private static final int MXFILE_VERSION = 9;
 
     // ensure that there is enough messages to fill a tablet screen
     private static final int MAX_STORED_MESSAGES_COUNT = 50;
@@ -94,12 +91,12 @@ public class MXFileStore extends MXMemoryStore {
 
     // List of rooms to save on [MXStore commit]
     // filled with roomId
-    private ArrayList<String> mRoomsToCommitForMessages;
-    private ArrayList<String> mRoomsToCommitForStates;
-    private ArrayList<String> mRoomsToCommitForSummaries;
-    private ArrayList<String> mRoomsToCommitForAccountData;
-    private ArrayList<String> mRoomsToCommitForReceipts;
-    private ArrayList<String> mUserIdsToCommit;
+    private List<String> mRoomsToCommitForMessages;
+    private List<String> mRoomsToCommitForStates;
+    private List<String> mRoomsToCommitForSummaries;
+    private List<String> mRoomsToCommitForAccountData;
+    private List<String> mRoomsToCommitForReceipts;
+    private List<String> mUserIdsToCommit;
 
     // Flag to indicate metaData needs to be store
     private boolean mMetaDataHasChanged = false;
@@ -915,7 +912,7 @@ public class MXFileStore extends MXMemoryStore {
         // some updated rooms ?
         if ((mUserIdsToCommit.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
-            final ArrayList<String> fUserIds = mUserIdsToCommit;
+            final List<String> fUserIds = mUserIdsToCommit;
             mUserIdsToCommit = new ArrayList<>();
 
             try {
@@ -1112,7 +1109,7 @@ public class MXFileStore extends MXMemoryStore {
         // some updated rooms ?
         if ((mRoomsToCommitForMessages.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
-            final ArrayList<String> fRoomsToCommitForMessages = mRoomsToCommitForMessages;
+            final List<String> fRoomsToCommitForMessages = mRoomsToCommitForMessages;
             mRoomsToCommitForMessages = new ArrayList<>();
 
             Runnable r = new Runnable() {
@@ -1475,7 +1472,7 @@ public class MXFileStore extends MXMemoryStore {
     private void saveRoomStates() {
         if ((mRoomsToCommitForStates.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
-            final ArrayList<String> fRoomsToCommitForStates = mRoomsToCommitForStates;
+            final List<String> fRoomsToCommitForStates = mRoomsToCommitForStates;
             mRoomsToCommitForStates = new ArrayList<>();
 
             Runnable r = new Runnable() {
@@ -1613,7 +1610,7 @@ public class MXFileStore extends MXMemoryStore {
     private void saveRoomsAccountData() {
         if ((mRoomsToCommitForAccountData.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
-            final ArrayList<String> fRoomsToCommitForAccountData = mRoomsToCommitForAccountData;
+            final List<String> fRoomsToCommitForAccountData = mRoomsToCommitForAccountData;
             mRoomsToCommitForAccountData = new ArrayList<>();
 
             Runnable r = new Runnable() {
@@ -1759,7 +1756,7 @@ public class MXFileStore extends MXMemoryStore {
     private void saveSummaries() {
         if ((mRoomsToCommitForSummaries.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
-            final ArrayList<String> fRoomsToCommitForSummaries = mRoomsToCommitForSummaries;
+            final List<String> fRoomsToCommitForSummaries = mRoomsToCommitForSummaries;
             mRoomsToCommitForSummaries = new ArrayList<>();
 
             Runnable r = new Runnable() {
@@ -2131,7 +2128,7 @@ public class MXFileStore extends MXMemoryStore {
      */
     private void saveReceipts() {
         synchronized (this) {
-            ArrayList<String> roomsToCommit = mRoomsToCommitForReceipts;
+            List<String> roomsToCommit = mRoomsToCommitForReceipts;
 
             for (String roomId : roomsToCommit) {
                 saveReceipts(roomId);
