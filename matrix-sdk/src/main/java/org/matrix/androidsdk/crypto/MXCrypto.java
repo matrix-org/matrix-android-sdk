@@ -329,6 +329,16 @@ public class MXCrypto {
     }
 
     /**
+     * Provides the tracking status
+     *
+     * @param userId the user id
+     * @return the tracking status
+     */
+    public int getDeviceTrackingStatus(String userId) {
+        return mCryptoStore.getDeviceTrackingStatus(userId, MXDeviceList.TRACKING_STATUS_UNDEFINED);
+    }
+
+    /**
      * Tell if the MXCrypto is started
      *
      * @return true if the crypto is started
