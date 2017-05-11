@@ -35,6 +35,7 @@ import org.junit.runners.MethodSorters;
 import org.matrix.androidsdk.crypto.MXCrypto;
 import org.matrix.androidsdk.crypto.MXCryptoAlgorithms;
 import org.matrix.androidsdk.crypto.MXCryptoError;
+import org.matrix.androidsdk.crypto.MXDeviceList;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
@@ -1045,6 +1046,12 @@ public class CryptoTest {
         lock3.await(2000, TimeUnit.DAYS.MILLISECONDS);
         assertTrue(results.containsKey("onToDeviceEvent"));
         assertTrue(results.containsKey("onLiveEvent"));
+
+        assertTrue(mBobSession.getCrypto().getDeviceTrackingStatus(mBobSession.getMyUserId()) == MXDeviceList.TRACKING_STATUS_UP_TO_DATE);
+        assertTrue(mBobSession.getCrypto().getDeviceTrackingStatus(mAliceSession.getMyUserId()) == MXDeviceList.TRACKING_STATUS_UP_TO_DATE);
+
+        assertTrue(mAliceSession.getCrypto().getDeviceTrackingStatus(mBobSession.getMyUserId()) == MXDeviceList.TRACKING_STATUS_UP_TO_DATE);
+        assertTrue(mAliceSession.getCrypto().getDeviceTrackingStatus(mAliceSession.getMyUserId()) == MXDeviceList.TRACKING_STATUS_UP_TO_DATE);
 
         mBobSession.clear(context);
     }
