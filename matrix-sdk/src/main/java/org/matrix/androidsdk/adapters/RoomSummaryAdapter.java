@@ -392,7 +392,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
             Room room = roomFromRoomSummary(roomSummary);
             if (null != room) {
-                room.sendReadReceipt(null);
+                room.sendReadReceipt();
             }
 
             res |= roomSummary.setHighlighted(false);
@@ -414,7 +414,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
         for(RoomSummary summary : summaries) {
             Room room = roomFromRoomSummary(summary);
             if (null != room) {
-                room.sendReadReceipt(null);
+                room.sendReadReceipt();
             }
 
             res |= summary.setHighlighted(false);
