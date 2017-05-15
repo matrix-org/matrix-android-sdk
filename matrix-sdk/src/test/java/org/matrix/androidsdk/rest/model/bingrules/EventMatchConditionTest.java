@@ -15,7 +15,6 @@
  */
 package org.matrix.androidsdk.rest.model.bingrules;
 
-import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import org.junit.Before;
@@ -24,7 +23,8 @@ import org.junit.runner.RunWith;
 import org.matrix.androidsdk.rest.model.Event;
 import org.robolectric.RobolectricTestRunner;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(RobolectricTestRunner.class)
 public class EventMatchConditionTest {
@@ -41,7 +41,7 @@ public class EventMatchConditionTest {
         event.roomId = TEST_ROOM_ID;
         event.userId = TEST_USER_ID;
         String contentJson = "{'msgtype': 'm.text', 'body': 'Nice body!', 'other_field': 'other_value'}";
-        event.content = (JsonObject) new JsonParser().parse(contentJson);
+        event.content = new JsonParser().parse(contentJson);
     }
 
     @Test

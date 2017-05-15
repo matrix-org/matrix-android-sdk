@@ -367,7 +367,7 @@ public class MyUser extends User {
                         public void run() {
                             refreshUserAvatarUrl();
                         }
-                    }, 1 * 1000);
+                    }, 1000);
                 }
             }
 
@@ -419,7 +419,7 @@ public class MyUser extends User {
                         public void run() {
                             refreshUserDisplayname();
                         }
-                    }, 1 * 1000);
+                    }, 1000);
                 }
             }
 
@@ -471,7 +471,7 @@ public class MyUser extends User {
                         public void run() {
                             refreshThirdPartyIdentifiers();
                         }
-                    }, 1 * 1000);
+                    }, 1000);
                 }
             }
 

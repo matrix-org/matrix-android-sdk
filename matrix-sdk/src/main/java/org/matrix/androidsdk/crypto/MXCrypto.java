@@ -22,11 +22,6 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
-import org.matrix.androidsdk.util.Log;
-
 import com.google.gson.JsonElement;
 import com.google.gson.reflect.TypeToken;
 
@@ -36,11 +31,12 @@ import org.matrix.androidsdk.crypto.algorithms.IMXEncrypting;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
 import org.matrix.androidsdk.crypto.data.MXKey;
+import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
-import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
@@ -51,8 +47,10 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.NewDeviceContent;
 import org.matrix.androidsdk.rest.model.RoomKeyContent;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
@@ -768,21 +766,6 @@ public class MXCrypto {
     public void setDeviceVerification(final int verificationStatus, final String deviceId, final String userId, final ApiCallback<Void> callback) {
         if (hasBeenReleased()) {
             return;
-        }
-
-        final ArrayList<String> userRoomIds = new ArrayList<>();
-
-        Collection<Room> rooms = mSession.getDataHandler().getStore().getRooms();
-
-        for (Room room : rooms) {
-            if (room.isEncrypted()) {
-                RoomMember roomMember = room.getMember(userId);
-
-                // test if the user joins the room
-                if ((null != roomMember) && TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_JOIN)) {
-                    userRoomIds.add(room.getRoomId());
-                }
-            }
         }
 
         getEncryptingThreadHandler().post(new Runnable() {
@@ -2362,20 +2345,6 @@ public class MXCrypto {
      */
     public void setGlobalBlacklistUnverifiedDevices(final boolean block, final ApiCallback<Void> callback) {
         final String userId = mSession.getMyUserId();
-        final ArrayList<String> userRoomIds = new ArrayList<>();
-
-        Collection<Room> rooms = mSession.getDataHandler().getStore().getRooms();
-
-        for (Room room : rooms) {
-            if (room.isEncrypted()) {
-                RoomMember roomMember = room.getMember(userId);
-
-                // test if the user joins the room
-                if ((null != roomMember) && TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_JOIN)) {
-                    userRoomIds.add(room.getRoomId());
-                }
-            }
-        }
 
         getEncryptingThreadHandler().post(new Runnable() {
             @Override

@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.os.HandlerThread;
+import android.support.annotation.NonNull;
 
 import org.matrix.androidsdk.util.MXOsHandler;
 
@@ -36,7 +37,7 @@ public class MXRestExecutor implements Executor {
     }
 
     @Override
-    public void execute(final Runnable r) {
+    public void execute(@NonNull final Runnable r) {
         mHandler.post(r);
     }
     /**

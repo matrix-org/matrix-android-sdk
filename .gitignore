@@ -1,6 +1,7 @@
 #IDEs
 /.idea
 *.iml
+.idea
 
 #OS
 .DS_Store

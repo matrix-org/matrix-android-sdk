@@ -1,48 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
     <TextView
+        android:id="@+id/messagesAdapter_timestamp"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:textSize="9sp"
-        android:textColor="@color/chat_gray_text"
         android:text="1970/01/01 00:00:00"
-        android:id="@+id/messagesAdapter_timestamp"/>
+        android:textColor="@color/chat_gray_text"
+        android:textSize="9sp"/>
 
     <LinearLayout
+        android:id="@+id/messagesAdapter_receivers_list"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/messagesAdapter_receivers_list"
         android:orientation="horizontal">
 
         <TextView
+            android:id="@+id/messagesAdapter_more_than_three_left"
             android:layout_width="20dp"
             android:layout_height="match_parent"
             android:gravity="center"
-            android:textSize="8sp"
-            android:id="@+id/messagesAdapter_more_than_three_left"
-            android:text="..." />
+            android:text="..."
+            android:textSize="8sp"/>
 
-        <include layout="@layout/receipt_round_avatar"
-            android:id="@+id/messagesAdapter_avatar1"/>
+        <include
+            android:id="@+id/messagesAdapter_avatar1"
+            layout="@layout/receipt_round_avatar"/>
 
-        <include layout="@layout/receipt_round_avatar"
-            android:id="@+id/messagesAdapter_avatar2"/>
+        <include
+            android:id="@+id/messagesAdapter_avatar2"
+            layout="@layout/receipt_round_avatar"/>
 
-        <include layout="@layout/receipt_round_avatar"
-            android:id="@+id/messagesAdapter_avatar3"/>
+        <include
+            android:id="@+id/messagesAdapter_avatar3"
+            layout="@layout/receipt_round_avatar"/>
 
         <TextView
+            android:id="@+id/messagesAdapter_more_than_three_right"
             android:layout_width="20dp"
-            android:textSize="8sp"
             android:layout_height="match_parent"
             android:gravity="center"
-            android:id="@+id/messagesAdapter_more_than_three_right"
-            android:text="..." />
+            android:text="..."
+            android:textSize="8sp"/>
 
     </LinearLayout>
 </LinearLayout>

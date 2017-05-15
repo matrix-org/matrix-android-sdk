@@ -19,7 +19,6 @@ package org.matrix.androidsdk.call;
 import android.view.View;
 
 import com.google.gson.JsonObject;
-import com.google.gson.annotations.SerializedName;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;

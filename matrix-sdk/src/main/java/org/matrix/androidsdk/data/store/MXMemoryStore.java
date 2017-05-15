@@ -1020,8 +1020,6 @@ public class MXMemoryStore implements IMXStore {
 
                     if (event.mSentState == Event.SentState.WAITING_RETRY) {
                         unsentRoomEvents.add(event);
-                    } else {
-                        //break;
                     }
                 }
 

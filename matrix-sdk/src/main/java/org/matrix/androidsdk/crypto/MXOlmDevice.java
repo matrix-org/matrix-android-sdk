@@ -17,7 +17,6 @@
 package org.matrix.androidsdk.crypto;
 
 import android.text.TextUtils;
-import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonParser;
 
@@ -25,8 +24,8 @@ import org.matrix.androidsdk.crypto.algorithms.MXDecryptionResult;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 import org.matrix.olm.OlmAccount;
-import org.matrix.olm.OlmException;
 import org.matrix.olm.OlmInboundGroupSession;
 import org.matrix.olm.OlmMessage;
 import org.matrix.olm.OlmOutboundGroupSession;

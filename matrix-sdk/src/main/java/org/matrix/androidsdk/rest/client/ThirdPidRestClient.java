@@ -80,7 +80,7 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
                                             final String nextLink, final ApiCallback<RequestEmailValidationResponse> callback) {
         final String description = "requestEmailValidationToken";
 
-        mApi.requestEmailValidation(clientSecret, address, new Integer(attempt), nextLink, new RestAdapterCallback<RequestEmailValidationResponse>(description, mUnsentEventsManager, callback,
+        mApi.requestEmailValidation(clientSecret, address, attempt, nextLink, new RestAdapterCallback<RequestEmailValidationResponse>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {

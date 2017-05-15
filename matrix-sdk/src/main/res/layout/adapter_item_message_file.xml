@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
     <!-- custom header -->
-    <include layout="@layout/message_header"
-        android:visibility="gone" />
+    <include
+        layout="@layout/message_header"
+        android:visibility="gone"/>
 
     <!-- the message layout -->
     <LinearLayout
@@ -14,16 +17,18 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
-        <include layout="@layout/round_avatar"
-            android:id="@+id/messagesAdapter_roundAvatar_left"/>
+        <include
+            android:id="@+id/messagesAdapter_roundAvatar_left"
+            layout="@layout/round_avatar"/>
 
         <LinearLayout
-            android:orientation="vertical"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:layout_gravity="center_vertical"
             android:layout_marginLeft="0dp"
+            android:layout_marginStart="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
             android:paddingBottom="5dp">
 
             <include layout="@layout/message_sender"/>
@@ -33,24 +38,25 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal">
 
-                <include layout="@layout/message_timestamp"
-                    android:id="@+id/message_timestamp_layout_left"/>
+                <include
+                    android:id="@+id/message_timestamp_layout_left"
+                    layout="@layout/message_timestamp"/>
 
                 <!-- the body is aligned left or right according to the sender -->
                 <FrameLayout
+                    android:id="@+id/messagesAdapter_body_layout"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:paddingLeft="4dp"
-                    android:paddingRight="4dp"
-                    android:id="@+id/messagesAdapter_body_layout">
+                    android:paddingRight="4dp">
 
                     <!-- the body is here -->
                     <RelativeLayout
-                        android:layout_gravity="right"
                         android:id="@+id/messagesAdapter_file_layout"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content">
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end">
 
                         <LinearLayout
                             android:layout_width="wrap_content"
@@ -59,19 +65,20 @@
 
                             <!-- the media type -->
                             <ImageView
+                                android:id="@+id/messagesAdapter_image_type"
                                 android:layout_width="@dimen/chat_avatar_size"
                                 android:layout_height="@dimen/chat_avatar_size"
-                                android:id="@+id/messagesAdapter_image_type"
-                                android:src="@drawable/filetype_image"/>
+                                android:src="@drawable/filetype_image"
+                                tools:ignore="ContentDescription"/>
 
                             <!-- the media -->
                             <TextView
-                                android:layout_height="wrap_content"
+                                android:id="@+id/messagesAdapter_filename"
                                 android:layout_width="0dp"
+                                android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text= "A filename here"
                                 android:autoLink="none"
-                                android:id="@+id/messagesAdapter_filename"/>
+                                android:text="A filename here"/>
 
                             <!-- the upload / download information -->
                             <!-- download progress -->
@@ -91,9 +98,10 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_gravity="center_vertical"
-                                    android:textSize="7sp"
                                     android:layout_marginLeft="5dp"
-                                    android:text = "estimation / total \n bitrate \n remaining time" />
+                                    android:layout_marginStart="5dp"
+                                    android:text="estimation / total \n bitrate \n remaining time"
+                                    android:textSize="7sp"/>
 
                             </LinearLayout>
 
@@ -114,9 +122,10 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_gravity="center_vertical"
-                                    android:textSize="7sp"
                                     android:layout_marginLeft="5dp"
-                                    android:text = "estimation / total \n bitrate \n remaining time" />
+                                    android:layout_marginStart="5dp"
+                                    android:text="estimation / total \n bitrate \n remaining time"
+                                    android:textSize="7sp"/>
 
                             </LinearLayout>
                         </LinearLayout>
@@ -124,24 +133,26 @@
                         <!-- the thumbnail has been uploaded : sending the message -->
                         <ProgressBar
                             android:id="@+id/upload_event_spinner"
-                            android:layout_centerInParent="true"
                             android:layout_width="@dimen/chat_avatar_size"
-                            android:layout_height="@dimen/chat_avatar_size"/>
+                            android:layout_height="@dimen/chat_avatar_size"
+                            android:layout_centerInParent="true"/>
 
                     </RelativeLayout>
                     <!-- end of body layout -->
                 </FrameLayout>
 
 
-                <include layout="@layout/message_timestamp"
-                    android:id="@+id/message_timestamp_layout_right"/>
+                <include
+                    android:id="@+id/message_timestamp_layout_right"
+                    layout="@layout/message_timestamp"/>
 
             </LinearLayout>
 
         </LinearLayout>
 
-        <include layout="@layout/round_avatar"
-            android:id="@+id/messagesAdapter_roundAvatar_right"/>
+        <include
+            android:id="@+id/messagesAdapter_roundAvatar_right"
+            layout="@layout/round_avatar"/>
 
     </LinearLayout>
 

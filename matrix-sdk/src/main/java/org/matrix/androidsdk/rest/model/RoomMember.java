@@ -18,13 +18,10 @@ package org.matrix.androidsdk.rest.model;
 
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.util.Log;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.security.acl.LastOwnerException;
 import java.util.Comparator;
 /**
  * Class representing a room member: a user with membership information.

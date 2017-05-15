@@ -29,6 +29,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Parcel;
 import android.provider.Browser;
+import android.support.annotation.NonNull;
 import android.text.Html;
 import android.text.Layout;
 import android.text.ParcelableSpan;
@@ -46,10 +47,6 @@ import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.text.style.URLSpan;
-
-import org.matrix.androidsdk.rest.model.AudioMessage;
-import org.matrix.androidsdk.util.Log;
-
 import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -72,8 +69,8 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
-import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
 import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
@@ -96,6 +93,7 @@ import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.view.ConsoleHtmlTagHandler;
 import org.matrix.androidsdk.view.PieFractionView;
 
@@ -104,8 +102,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -857,7 +853,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         if (null != eventId) {
-            mEventType.put(eventId, new Integer(viewType));
+            mEventType.put(eventId, viewType);
         }
 
         return viewType;
@@ -874,8 +870,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         return getItemViewType(row.getEvent());
     }
 
+    @NonNull
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
+    public View getView(int position, View convertView, @NonNull ViewGroup parent) {
         // GA Crash : it seems that some invalid indexes are required
         if (position >= getCount()) {
             Log.e(LOG_TAG, "## getView() : invalid index " + position + " >= " + getCount());
@@ -1277,7 +1274,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 tsTextView.setVisibility(View.VISIBLE);
                 tsTextView.setText(timeStamp);
 
-                tsTextView.setGravity(isAvatarOnRightSide ? Gravity.LEFT : Gravity.RIGHT);
+                tsTextView.setGravity(isAvatarOnRightSide ? Gravity.START : Gravity.END);
             }
 
             if (row.getEvent().isUndeliverable() || row.getEvent().isUnkownDevice()) {
@@ -1423,7 +1420,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         ViewGroup.LayoutParams avatarLayout = view.getLayoutParams();
 
         if (!isAvatarOnRightSide) {
-            subViewLinearLayout.gravity = Gravity.LEFT | Gravity.CENTER_VERTICAL;
+            subViewLinearLayout.gravity = Gravity.START | Gravity.CENTER_VERTICAL;
 
             if (isMergedView) {
                 bodyLayout.setMargins(avatarLayout.width, bodyLayout.topMargin, 4, bodyLayout.bottomMargin);
@@ -1433,7 +1430,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             }
             subView.setLayoutParams(bodyLayout);
         } else {
-            subViewLinearLayout.gravity = Gravity.RIGHT | Gravity.CENTER_VERTICAL;
+            subViewLinearLayout.gravity = Gravity.END | Gravity.CENTER_VERTICAL;
 
             if (isMergedView) {
                 bodyLayout.setMargins(4, bodyLayout.topMargin, avatarLayout.width, bodyLayout.bottomMargin);
@@ -2699,7 +2696,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * !!!!!! WARNING !!!!!!
      * IT IS NOT REMOTELY A COMPREHENSIVE SANITIZER AND SHOULD NOT BE TRUSTED FOR SECURITY PURPOSES.
      * WE ARE EFFECTIVELY RELYING ON THE LIMITED CAPABILITIES OF THE HTML RENDERER UI TO AVOID SECURITY ISSUES LEAKING UP.
-
+     *
      * @param html the html to sanitize
      * @return the sanitised HTML
      */

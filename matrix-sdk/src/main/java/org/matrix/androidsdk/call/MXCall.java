@@ -235,7 +235,7 @@ public class MXCall implements IMXCall {
         return mCallSignalingRoom;
     }
 
-    /**
+    /*
      * Set the linked room
      * @param room the room
      */

@@ -21,7 +21,6 @@ import org.matrix.androidsdk.rest.api.AccountDataApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public class AccountDataRestClient extends RestClient<AccountDataApi> {

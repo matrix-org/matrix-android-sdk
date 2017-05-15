@@ -58,7 +58,7 @@ public class AutoScrollDownListView extends ListView {
     }
 
     /**
-     * The listview selection is locked even if the view position is updated.
+     * The list view selection is locked even if the view position is updated.
      */
     public void lockSelectionOnResize() {
         mLockSelectionOnResize = true;

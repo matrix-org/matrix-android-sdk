@@ -1,17 +1,19 @@
-
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="fill_parent"
-    android:paddingBottom="10dp"
-    android:paddingTop="10dp"
     android:layout_height="50dp"
-    android:orientation="horizontal" >
+    android:orientation="horizontal"
+    android:paddingBottom="10dp"
+    android:paddingTop="10dp">
 
     <TextView
         android:id="@+id/heading"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:gravity="center_vertical"
-        android:text = "A text here"
+        android:text="A text here"
         android:textAppearance="?android:attr/textAppearanceLarge"
         android:textStyle="bold"/>
 
@@ -19,7 +21,8 @@
         android:id="@+id/heading_image"
         android:layout_width="30dp"
         android:layout_height="match_parent"
+        android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
-        />
+        tools:ignore="ContentDescription"/>
 
 </RelativeLayout>

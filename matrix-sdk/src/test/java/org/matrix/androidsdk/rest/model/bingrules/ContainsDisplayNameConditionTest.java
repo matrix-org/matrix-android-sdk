@@ -15,7 +15,6 @@
  */
 package org.matrix.androidsdk.rest.model.bingrules;
 
-import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import org.junit.Before;
@@ -24,7 +23,8 @@ import org.junit.runner.RunWith;
 import org.matrix.androidsdk.rest.model.Event;
 import org.robolectric.RobolectricTestRunner;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(RobolectricTestRunner.class)
 public class ContainsDisplayNameConditionTest {
@@ -42,7 +42,7 @@ public class ContainsDisplayNameConditionTest {
 
     private void setEventMessage(String type, String rest) {
         String contentJson = "{'msgtype': '" + type + "', " + rest + "}";
-        event.content = (JsonObject) new JsonParser().parse(contentJson);
+        event.content = new JsonParser().parse(contentJson);
     }
 
     private void setEventTextMessageBody(String body) {
