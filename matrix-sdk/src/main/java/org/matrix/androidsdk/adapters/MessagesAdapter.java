@@ -29,6 +29,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Parcel;
 import android.provider.Browser;
+import android.support.v4.content.ContextCompat;
 import android.text.Html;
 import android.text.Layout;
 import android.text.ParcelableSpan;
@@ -46,10 +47,6 @@ import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.text.style.URLSpan;
-
-import org.matrix.androidsdk.rest.model.AudioMessage;
-import org.matrix.androidsdk.util.Log;
-
 import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -57,6 +54,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -72,8 +71,8 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
-import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
 import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
@@ -96,6 +95,7 @@ import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.view.ConsoleHtmlTagHandler;
 import org.matrix.androidsdk.view.PieFractionView;
 
@@ -104,8 +104,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -269,6 +267,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     private static final String LOG_TAG = "MessagesAdapter";
 
+    private static final String READ_MARKER_TAG = "readMarkerTag";
+
     private List<String> mTypingUsers = new ArrayList<>();
 
     protected final Context mContext;
@@ -308,6 +308,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     protected boolean mIsPreviewMode = false;
     private String mPattern = null;
     private ArrayList<MessageRow> mLiveMessagesRowList = null;
+
+    private String mFirstUnreadEventId; // the first unread event
 
     private MatrixLinkMovementMethod mLinkMovementMethod;
 
@@ -624,6 +626,15 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
+     * Specify the first unread message
+     *
+     * @param firstUnreadEventId
+     */
+    public void setUnreadEvent(final String firstUnreadEventId) {
+        mFirstUnreadEventId = firstUnreadEventId;
+    }
+
+    /**
      * Add an event to the top of the events list.
      *
      * @param event     the event to add
@@ -896,21 +907,65 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             return convertView;
         }
 
+        final View inflatedView;
         switch (getItemViewType(position)) {
             case ROW_TYPE_TEXT:
-                return getTextView(position, convertView, parent);
+                inflatedView = getTextView(position, convertView, parent);
+                break;
             case ROW_TYPE_IMAGE:
             case ROW_TYPE_VIDEO:
-                return getImageVideoView(getItemViewType(position), position, convertView, parent);
+                inflatedView = getImageVideoView(getItemViewType(position), position, convertView, parent);
+                break;
             case ROW_TYPE_NOTICE:
-                return getNoticeView(position, convertView, parent);
+                inflatedView = getNoticeView(position, convertView, parent);
+                break;
             case ROW_TYPE_EMOTE:
-                return getEmoteView(position, convertView, parent);
+                inflatedView = getEmoteView(position, convertView, parent);
+                break;
             case ROW_TYPE_FILE:
-                return getFileView(position, convertView, parent);
+                inflatedView = getFileView(position, convertView, parent);
+                break;
             default:
                 throw new RuntimeException("Unknown item view type for position " + position);
         }
+
+        MessageRow row = getItem(position);
+        Event event = row != null ? row.getEvent() : null;
+
+        View readMarkerLine = inflatedView.findViewWithTag(READ_MARKER_TAG);
+        if (mFirstUnreadEventId != null && event != null && event.eventId.equals(mFirstUnreadEventId)) {
+            if (readMarkerLine == null) {
+                readMarkerLine = new View(getContext());
+                readMarkerLine.setTag(READ_MARKER_TAG);
+                readMarkerLine.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 10));
+                readMarkerLine.setBackgroundColor(ContextCompat.getColor(mContext, R.color.unread_marker_line));
+                ((ViewGroup) inflatedView).addView(readMarkerLine, 0);
+            } else {
+                readMarkerLine.setVisibility(View.VISIBLE);
+            }
+
+            final View finalReadMarkerLine = readMarkerLine;
+            Animation animation = AnimationUtils.loadAnimation(getContext(), R.anim.unread_marker_anim);
+            animation.setAnimationListener(new Animation.AnimationListener() {
+                @Override
+                public void onAnimationStart(Animation animation) {
+
+                }
+
+                @Override
+                public void onAnimationEnd(Animation animation) {
+                    finalReadMarkerLine.setVisibility(View.GONE);
+                }
+
+                @Override
+                public void onAnimationRepeat(Animation animation) {
+                }
+            });
+            finalReadMarkerLine.startAnimation(animation);
+        } else if (readMarkerLine != null) {
+            ((ViewGroup) inflatedView).removeView(readMarkerLine);
+        }
+        return inflatedView;
     }
 
     /**
