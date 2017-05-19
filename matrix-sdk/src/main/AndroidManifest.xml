@@ -18,9 +18,6 @@
     <!--uses-sdk tools:overrideLibrary="io.pristine.libjingle"/-->
 
     <application
-        tools:replace="label"
-        android:label="@string/matrix_sdk_app_name">
-
         <receiver android:name="org.matrix.androidsdk.sync.EventsThread$SyncDelayReceiver" />
     </application>
 </manifest>
