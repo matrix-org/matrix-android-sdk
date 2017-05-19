@@ -39,6 +39,7 @@ import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.ssl.CertUtil;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
+import org.matrix.androidsdk.util.PolymorphicRequestBodyConverter;
 import org.matrix.androidsdk.util.UnsentEventsManager;
 
 import java.io.IOException;
@@ -215,6 +216,7 @@ public class RestClient<T> {
 =======
         Retrofit.Builder builder = new Retrofit.Builder()
                 .baseUrl(endPoint)
+                .addConverterFactory(PolymorphicRequestBodyConverter.FACTORY)
                 .addConverterFactory(GsonConverterFactory.create(gson))
                 .client(mOkHttpClient);
 >>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
