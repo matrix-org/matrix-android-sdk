@@ -100,7 +100,7 @@ dependencies {
     compile 'com.squareup.okhttp:okhttp:2.2.0'
     compile 'io.pristine:libjingle:9690@aar'
 
-    compile(name: 'olm-sdk', ext: 'aar')
+    compile 'org.matrix:olm-sdk:olm-sdk@aar'
 
     // Robolectric
     testCompile 'com.android.support.test:runner:0.3'
