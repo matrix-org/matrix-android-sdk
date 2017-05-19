@@ -175,6 +175,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     // default preview mode
     public static final String PREVIEW_MODE_READ_ONLY = "PREVIEW_MODE_READ_ONLY";
+    public static final String PREVIEW_MODE_UNREAD_MESSAGE = "PREVIEW_MODE_UNREAD_MESSAGE";
 
     private static final String LOG_TAG = "MatrixMsgsListFrag";
 
@@ -479,13 +480,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         if (null == mEventTimeLine) {
             mEventId = args.getString(ARG_EVENT_ID);
 
+            final String previewMode = args.getString(ARG_PREVIEW_MODE_ID);
             // the fragment displays the history around a message
             if (!TextUtils.isEmpty(mEventId)) {
                 mEventTimeLine = new EventTimeline(mSession.getDataHandler(), roomId, mEventId);
                 mRoom = mEventTimeLine.getRoom();
+                if (PREVIEW_MODE_UNREAD_MESSAGE.equals(previewMode)){
+                    mAdapter.setIsUnreadViewMode(true);
+                }
             }
             // display a room preview
-            else if (null != args.getString(ARG_PREVIEW_MODE_ID)) {
+            else if (PREVIEW_MODE_READ_ONLY.equals(previewMode)) {
                 mAdapter.setIsPreviewMode(true);
                 mEventTimeLine = new EventTimeline(mSession.getDataHandler(), roomId);
                 mRoom = mEventTimeLine.getRoom();

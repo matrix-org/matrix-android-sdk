@@ -71,6 +71,7 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
+import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.db.MXMediasCache;
@@ -78,6 +79,7 @@ import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
 import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
 import org.matrix.androidsdk.listeners.MXMediaDownloadListener;
 import org.matrix.androidsdk.listeners.MXMediaUploadListener;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.EncryptedFileInfo;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
@@ -306,6 +308,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     protected boolean mIsSearchMode = false;
     protected boolean mIsPreviewMode = false;
+    protected boolean mIsUnreadViewMode = false;
     private String mPattern = null;
     private ArrayList<MessageRow> mLiveMessagesRowList = null;
 
@@ -581,6 +584,23 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      */
     public void setIsPreviewMode(boolean isPreviewMode) {
         mIsPreviewMode = isPreviewMode;
+    }
+
+    /**
+     * Set whether we are ine preview mode to show unread messages
+     * @param isUnreadViewMode
+     */
+    public void setIsUnreadViewMode(boolean isUnreadViewMode) {
+        mIsUnreadViewMode = isUnreadViewMode;
+    }
+
+    /**
+     * Get whether we are in preview mode to show unread messages
+     *
+     * @return true if preview to show unread messages
+     */
+    public boolean isUnreadViewMode() {
+        return mIsUnreadViewMode;
     }
 
     @Override
@@ -930,10 +950,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         }
 
         MessageRow row = getItem(position);
-        Event event = row != null ? row.getEvent() : null;
+        final Event event = row != null ? row.getEvent() : null;
 
         View readMarkerLine = inflatedView.findViewWithTag(READ_MARKER_TAG);
-        if (mFirstUnreadEventId != null && event != null && event.eventId.equals(mFirstUnreadEventId)) {
+        if (readMarkerLine != null) {
+            readMarkerLine.clearAnimation();
+            readMarkerLine.setVisibility(View.GONE);
+        }
+        if (!mIsUnreadViewMode && !mIsPreviewMode && !mIsSearchMode && mFirstUnreadEventId != null && event != null && event.eventId.equals(mFirstUnreadEventId)) {
             if (readMarkerLine == null) {
                 readMarkerLine = new View(getContext());
                 readMarkerLine.setTag(READ_MARKER_TAG);
@@ -955,6 +979,31 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 @Override
                 public void onAnimationEnd(Animation animation) {
                     finalReadMarkerLine.setVisibility(View.GONE);
+                    // User scrolled up to first unread message
+                    final Room room = mSession.getDataHandler().getRoom(event.roomId);
+                    if (room != null) {
+                        room.markAllAsRead(new ApiCallback<Void>() {
+                            @Override
+                            public void onSuccess(Void info) {
+                                mFirstUnreadEventId = null;
+                            }
+
+                            @Override
+                            public void onNetworkError(Exception e) {
+
+                            }
+
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+
+                            }
+
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+
+                            }
+                        });
+                    }
                 }
 
                 @Override
@@ -962,8 +1011,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 }
             });
             finalReadMarkerLine.startAnimation(animation);
-        } else if (readMarkerLine != null) {
-            ((ViewGroup) inflatedView).removeView(readMarkerLine);
         }
         return inflatedView;
     }
