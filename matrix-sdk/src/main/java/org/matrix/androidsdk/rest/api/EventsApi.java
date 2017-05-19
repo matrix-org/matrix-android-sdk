@@ -45,7 +45,7 @@ public interface EventsApi {
      * Perform the initial sync to find the rooms that concern the user, the participants' presence, etc.
      * @param params the GET params.
      */
-    @GET("sync")
+    @GET(RestClient.URI_API_PREFIX_PATH_R0 + "sync")
     Call<SyncResponse> sync(@QueryMap Map<String, Object> params);
 
 
@@ -54,7 +54,7 @@ public interface EventsApi {
      *
      * @param callback The asynchronous callback to call when finished
      */
-    @GET(RestClient.URI_API_PREFIX_PATH_UNSTABLE + "/thirdparty/protocols")
+    @GET(RestClient.URI_API_PREFIX_PATH_UNSTABLE + "thirdparty/protocols")
     void thirdpartyProtocols(Callback<Map<String, ThirdPartyProtocol>> callback);
 
     /**
@@ -63,7 +63,7 @@ public interface EventsApi {
      * @param server            the server (might be null)
      * @param publicRoomsParams the request params
      */
-    @POST("publicRooms")
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "publicRooms")
     Call<PublicRoomsResponse> publicRooms(@Body PublicRoomsParams publicRoomsParams);
 
     /**
@@ -97,7 +97,7 @@ public interface EventsApi {
     void getURLPreview(@Query("url") String url, @Query("ts") long ts, Callback<Map<String, Object>> callback);
 =======
      */
-    @POST("search")
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "search")
     Call<SearchResponse> search(@Body SearchParams searchParams, @Query("next_batch") String nextBatch);
 >>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
 }

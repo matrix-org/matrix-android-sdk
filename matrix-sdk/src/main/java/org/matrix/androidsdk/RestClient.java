@@ -20,6 +20,7 @@ import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.util.Pair;
 
@@ -71,14 +72,19 @@ public class RestClient<T> {
 =======
     private static final String LOG_TAG = "RestClient";
 
+<<<<<<< HEAD
     public static final String URI_API_PREFIX_PATH_R0 = "/_matrix/client/r0/";
     public static final String URI_API_PREFIX_PATH_UNSTABLE = "/_matrix/client/unstable/";
 >>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
+=======
+    public static final String URI_API_PREFIX_PATH_R0 = "_matrix/client/r0/";
+    public static final String URI_API_PREFIX_PATH_UNSTABLE = "_matrix/client/unstable/";
+>>>>>>> Fix event API urls and sanitize urls
 
     /**
      * Prefix used in path of identity server API requests.
      */
-    public static final String URI_API_PREFIX_IDENTITY = "/_matrix/identity/api/v1/";
+    public static final String URI_API_PREFIX_IDENTITY = "_matrix/identity/api/v1/";
 
     private static final String PARAM_ACCESS_TOKEN = "access_token";
 
@@ -182,16 +188,7 @@ public class RestClient<T> {
         }
 
         mOkHttpClient = okHttpClientBuilder.build();
-
-        // remove any trailing http in the uri prefix
-        if (uriPrefix.startsWith("http://")) {
-            uriPrefix = uriPrefix.substring("http://".length());
-        } else if (uriPrefix.startsWith("https://")) {
-            uriPrefix = uriPrefix.substring("https://".length());
-        }
-
-
-        final String endPoint = (useIdentityServer ? hsConfig.getIdentityServerUri().toString() : hsConfig.getHomeserverUri().toString()) + uriPrefix;
+        final String endPoint = makeEndpoint(hsConfig, uriPrefix, useIdentityServer);
 
         // Rest adapter for turning API interfaces into actual REST-calling objects
 <<<<<<< HEAD
@@ -227,6 +224,36 @@ public class RestClient<T> {
         //retrofit.setLogLevel(RestAdapter.LogLevel.FULL);
 
         mApi = retrofit.create(type);
+    }
+
+    @NonNull private String makeEndpoint(
+        HomeserverConnectionConfig hsConfig,
+        String uriPrefix,
+        boolean useIdentityServer
+    ) {
+        String baseUrl = useIdentityServer
+            ? hsConfig.getIdentityServerUri().toString()
+            : hsConfig.getHomeserverUri().toString();
+        baseUrl = sanitizeBaseUrl(baseUrl);
+        String dynamicPath = sanitizeDynamicPath(uriPrefix);
+        return useIdentityServer ? baseUrl : baseUrl + dynamicPath;
+    }
+
+    private String sanitizeBaseUrl(String baseUrl) {
+        if (baseUrl.endsWith("/")) {
+            return baseUrl;
+        }
+        return baseUrl + "/";
+    }
+
+    private String sanitizeDynamicPath(String dynamicPath) {
+        // remove any trailing http in the uri prefix
+        if (dynamicPath.startsWith("http://")) {
+            dynamicPath = dynamicPath.substring("http://".length());
+        } else if (dynamicPath.startsWith("https://")) {
+            dynamicPath = dynamicPath.substring("https://".length());
+        }
+        return dynamicPath;
     }
 
     /**
