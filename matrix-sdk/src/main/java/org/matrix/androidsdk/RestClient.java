@@ -30,6 +30,7 @@ import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.ssl.CertUtil;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
+import org.matrix.androidsdk.util.PolymorphicRequestBodyConverter;
 import org.matrix.androidsdk.util.UnsentEventsManager;
 
 import java.io.IOException;
@@ -174,6 +175,7 @@ public class RestClient<T> {
         // Rest adapter for turning API interfaces into actual REST-calling objects
         Retrofit.Builder builder = new Retrofit.Builder()
                 .baseUrl(endPoint)
+                .addConverterFactory(PolymorphicRequestBodyConverter.FACTORY)
                 .addConverterFactory(GsonConverterFactory.create(gson))
                 .client(mOkHttpClient);
 
