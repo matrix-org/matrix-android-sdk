@@ -121,7 +121,7 @@ dependencies {
     compile 'com.squareup.okhttp:okhttp-urlconnection:2.2.0'
     compile 'com.squareup.okhttp:okhttp:2.2.0'
 
-    compile(name: 'olm-sdk', ext: 'aar')
+    compile 'org.matrix:olm-sdk:olm-sdk@aar'
 
     // replace the compile 'io.pristine:libjingle:9690@aar'
     compile(name: 'react-native-webrtc', ext: 'aar')
