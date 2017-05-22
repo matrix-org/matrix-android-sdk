@@ -1,12 +1,12 @@
-/* 
+/*
  * Copyright 2014 OpenMarket Ltd
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,12 +19,9 @@ import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.BingRulesApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.DefaultRetrofit2CallbackWrapper;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
-
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 public class BingRulesRestClient extends RestClient<BingRulesApi> {
 
@@ -41,6 +38,7 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
      * @param callback the asynchronous callback.
      */
     public void getAllBingRules(final ApiCallback<BingRulesResponse> callback) {
+<<<<<<< HEAD
 <<<<<<< HEAD
         try {
             mApi.getAllBingRules(new Callback<BingRulesResponse>() {
@@ -141,6 +139,19 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
             }
         });
 >>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
+=======
+        mApi
+            .getAllBingRules()
+            .enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
+    }
+
+    public void updateEnableRuleStatus(
+        String Kind, String ruleId, boolean status, final ApiCallback<Void> callback
+    ) {
+        mApi
+            .updateEnableRuleStatus(Kind, ruleId, status)
+            .enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
+>>>>>>> Handle correctly response from retrofit 2
     }
 
     /**
@@ -151,6 +162,7 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
      * @param callback the asynchronous callback
      */
     public void deleteRule(String Kind, String ruleId, final ApiCallback<Void> callback) {
+<<<<<<< HEAD
 <<<<<<< HEAD
         try {
             mApi.deleteRule(Kind, ruleId, new Callback<Void>() {
@@ -178,6 +190,9 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
             }
         });
 >>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
+=======
+        mApi.deleteRule(Kind, ruleId).enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
+>>>>>>> Handle correctly response from retrofit 2
     }
 
     /**
@@ -187,6 +202,7 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
      * @param callback the asynchronous callback
      */
     public void addRule(BingRule rule, final ApiCallback<Void> callback) {
+<<<<<<< HEAD
 <<<<<<< HEAD
         try {
             mApi.addRule(rule.kind, rule.ruleId, rule.toJsonElement(), new Callback<Void>() {
@@ -214,5 +230,8 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
             }
         });
 >>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
+=======
+        mApi.addRule(rule.kind, rule.ruleId, rule).enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
+>>>>>>> Handle correctly response from retrofit 2
     }
 }

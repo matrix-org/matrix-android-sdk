@@ -1,13 +1,13 @@
-/* 
+/*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,10 +20,23 @@ import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.ThirdPidApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
+<<<<<<< HEAD
 import org.matrix.androidsdk.rest.model.BulkLookupParams;
 import org.matrix.androidsdk.rest.model.BulkLookupResponse;
 import org.matrix.androidsdk.rest.model.pid.PidResponse;
+=======
+import org.matrix.androidsdk.rest.callback.DefaultRetrofit2ResponseHandler;
+import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.model.BulkLookupParams;
+import org.matrix.androidsdk.rest.model.BulkLookupResponse;
+import org.matrix.androidsdk.rest.model.HttpError;
+import org.matrix.androidsdk.rest.model.HttpException;
+import org.matrix.androidsdk.rest.model.PidResponse;
+import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
+import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationResponse;
+>>>>>>> Handle correctly response from retrofit 2
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -62,14 +75,36 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
         mApi.lookup3Pid(address, medium).enqueue(new Callback<PidResponse>() {
             @Override
             public void onResponse(Call<PidResponse> call, Response<PidResponse> response) {
-                PidResponse pidResponse = response.body();
-                callback.onSuccess((null == pidResponse.mxid) ? "" : pidResponse.mxid);
+                try {
+                    handleLookup3PidResponse(response, callback);
+                } catch (IOException e) {
+                    onFailure(call, e);
+                }
             }
 
             @Override public void onFailure(Call<PidResponse> call, Throwable t) {
                 callback.onUnexpectedError((Exception) t);
             }
         });
+    }
+
+    private void handleLookup3PidResponse(
+        Response<PidResponse> response,
+        final ApiCallback<String> callback
+    ) throws IOException {
+        DefaultRetrofit2ResponseHandler.handleResponse(
+            response,
+            new DefaultRetrofit2ResponseHandler.Listener<PidResponse>() {
+                @Override public void onSuccess(Response<PidResponse> response) {
+                    PidResponse pidResponse = response.body();
+                    callback.onSuccess((null == pidResponse.mxid) ? "" : pidResponse.mxid);
+                }
+
+                @Override public void onHttpError(HttpError httpError) {
+                    callback.onNetworkError(new HttpException(httpError));
+                }
+            }
+        );
     }
 
     /**
@@ -137,6 +172,7 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
      */
     public void submitValidationToken(final String medium, final String token, final String clientSecret, final String sid, final ApiCallback<Boolean> callback) {
 <<<<<<< HEAD
+<<<<<<< HEAD
         try {
             mApi.requestOwnershipValidation(medium, token, clientSecret, sid, new Callback<Map<String, Object>>() {
                 @Override
@@ -157,6 +193,15 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
                 } else {
                     callback.onSuccess(false);
 >>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
+=======
+        mApi.requestOwnershipValidation(medium, token, clientSecret, sid).enqueue(new Callback<Map<String,Object>> () {
+            @Override
+            public void onResponse(Call<Map<String, Object>> call, Response<Map<String, Object>> response) {
+                try {
+                    handleSubmitValidationTokenResponse(response, callback);
+                } catch (IOException e) {
+                    callback.onUnexpectedError(e);
+>>>>>>> Handle correctly response from retrofit 2
                 }
 
 <<<<<<< HEAD
@@ -174,6 +219,29 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
             }
         });
 >>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
+    }
+
+    private void handleSubmitValidationTokenResponse(
+        Response<Map<String, Object>> response,
+        final ApiCallback<Boolean> callback
+    ) throws IOException {
+        DefaultRetrofit2ResponseHandler.handleResponse(
+            response,
+            new DefaultRetrofit2ResponseHandler.Listener<Map<String, Object>>() {
+                @Override public void onSuccess(Response<Map<String, Object>> response) {
+                    Map<String, Object> aDataRespMap = response.body();
+                    if (aDataRespMap.containsKey(KEY_SUBMIT_TOKEN_SUCCESS)) {
+                        callback.onSuccess((Boolean) aDataRespMap.get(KEY_SUBMIT_TOKEN_SUCCESS));
+                    } else {
+                        callback.onSuccess(false);
+                    }
+                }
+
+                @Override public void onHttpError(HttpError httpError) {
+                    callback.onNetworkError(new HttpException(httpError));
+                }
+            }
+        );
     }
 
     /**
@@ -224,6 +292,7 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
         mApi.bulkLookup(threePidsParams).enqueue(new Callback<BulkLookupResponse>() {
             @Override
             public void onResponse(Call<BulkLookupResponse> call, Response<BulkLookupResponse> response) {
+<<<<<<< HEAD
                 BulkLookupResponse bulkLookupResponse = response.body();
                 HashMap<String, String> mxidByAddress = new HashMap<>();
 
@@ -265,5 +334,68 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
             }
         });
 >>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
+=======
+                try {
+                    handleBulkLookupResponse(response, addresses, callback);
+                } catch (IOException e) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+
+            @Override public void onFailure(Call<BulkLookupResponse> call, Throwable t) {
+                callback.onUnexpectedError((Exception) t);
+            }
+        });
+    }
+
+    private void handleBulkLookupResponse(
+        Response<BulkLookupResponse> response,
+        final List<String> addresses,
+        final ApiCallback<List<String>> callback
+    ) throws IOException {
+        DefaultRetrofit2ResponseHandler.handleResponse(
+            response,
+            new DefaultRetrofit2ResponseHandler.Listener<BulkLookupResponse>() {
+                @Override public void onSuccess(Response<BulkLookupResponse> response) {
+                    handleBulkLookupSuccess(response, addresses, callback);
+                }
+
+                @Override public void onHttpError(HttpError httpError) {
+                    callback.onNetworkError(new HttpException(httpError));
+                }
+            }
+        );
+    }
+
+    private void handleBulkLookupSuccess(
+        Response<BulkLookupResponse> response,
+        List<String> addresses,
+        ApiCallback<List<String>> callback
+    ) {
+        BulkLookupResponse bulkLookupResponse = response.body();
+        HashMap<String, String> mxidByAddress = new HashMap<>();
+
+        if (null != bulkLookupResponse.threepids) {
+            for (int i = 0; i < bulkLookupResponse.threepids.size(); i++) {
+                List<String> items = bulkLookupResponse.threepids.get(i);
+                // [0] : medium
+                // [1] : address
+                // [2] : matrix id
+                mxidByAddress.put(items.get(1), items.get(2));
+            }
+        }
+
+        ArrayList<String> matrixIds = new ArrayList<>();
+
+        for(String address : addresses) {
+            if (mxidByAddress.containsKey(address)) {
+                matrixIds.add(mxidByAddress.get(address));
+            } else {
+                matrixIds.add("");
+            }
+        }
+
+        callback.onSuccess(matrixIds);
+>>>>>>> Handle correctly response from retrofit 2
     }
 }

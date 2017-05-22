@@ -1,12 +1,12 @@
-/* 
+/*
  * Copyright 2015 OpenMarket Ltd
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,10 +21,7 @@ import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.CallRulesApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
-
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import org.matrix.androidsdk.rest.callback.DefaultRetrofit2CallbackWrapper;
 
 public class CallRestClient extends RestClient<CallRulesApi> {
 
@@ -36,6 +33,7 @@ public class CallRestClient extends RestClient<CallRulesApi> {
     }
 
     public void getTurnServer(final ApiCallback<JsonObject> callback) {
+<<<<<<< HEAD
 <<<<<<< HEAD
         try {
             mApi.getTurnServer(new Callback<JsonObject>() {
@@ -67,5 +65,8 @@ public class CallRestClient extends RestClient<CallRulesApi> {
             }
         });
 >>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
+=======
+        mApi.getTurnServer().enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
+>>>>>>> Handle correctly response from retrofit 2
     }
 }
