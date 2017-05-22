@@ -4,7 +4,7 @@ public class HttpException extends Exception {
 
     private final HttpError httpError;
 
-    private HttpException(HttpError httpError) {
+    public HttpException(HttpError httpError) {
         this.httpError = httpError;
     }
 

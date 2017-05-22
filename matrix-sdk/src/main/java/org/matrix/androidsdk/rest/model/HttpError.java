@@ -4,7 +4,7 @@ public final class HttpError {
     private final String errorBody;
     private final int httpCode;
 
-    private HttpError(String errorBody, int httpCode) {
+    public HttpError(String errorBody, int httpCode) {
         this.errorBody = errorBody;
         this.httpCode = httpCode;
     }
