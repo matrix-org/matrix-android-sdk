@@ -120,9 +120,9 @@ public class RestAdapterCallback<T> implements Callback<T> {
     }
 
     private void handleResponse(final Response<T> response) throws IOException {
-        DefaultRetrofitResponseHandler.handleResponse(
+        DefaultRetrofit2ResponseHandler.handleResponse(
             response,
-            new DefaultRetrofitResponseHandler.Listener<T>() {
+            new DefaultRetrofit2ResponseHandler.Listener<T>() {
                 @Override public void onSuccess(Response<T> response) {
                     success(response.body(), response);
                 }

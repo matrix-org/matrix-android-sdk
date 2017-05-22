@@ -6,7 +6,7 @@ import java.io.IOException;
 
 import retrofit2.Response;
 
-public class DefaultRetrofitResponseHandler {
+public class DefaultRetrofit2ResponseHandler {
     public static <T> void handleResponse(Response<T> response, Listener<T> listener)
         throws IOException {
         if (response.isSuccessful()) {
