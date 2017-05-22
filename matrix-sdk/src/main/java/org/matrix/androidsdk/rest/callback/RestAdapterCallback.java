@@ -1,12 +1,12 @@
-/* 
+/*
  * Copyright 2014 OpenMarket Ltd
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.rest.callback;
 
+import org.matrix.androidsdk.rest.model.HttpError;
+import org.matrix.androidsdk.rest.model.HttpException;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
@@ -109,12 +111,27 @@ public class RestAdapterCallback<T> implements Callback<T> {
     }
 
     @Override
-    public void onResponse(Call<T> call, Response<T> response) {
-        if (response.isSuccessful()) {
-            success(response.body(), response);
-        } else {
-            failure(response, null);
+    public void onResponse(Call<T> call, final Response<T> response) {
+        try {
+            handleResponse(response);
+        } catch (IOException e) {
+            onFailure(call, e);
         }
+    }
+
+    private void handleResponse(final Response<T> response) throws IOException {
+        DefaultRetrofitResponseHandler.handleResponse(
+            response,
+            new DefaultRetrofitResponseHandler.Listener<T>() {
+                @Override public void onSuccess(Response<T> response) {
+                    success(response.body(), response);
+                }
+
+                @Override public void onHttpError(HttpError httpError) {
+                    failure(response, new HttpException(httpError));
+                }
+            }
+        );
     }
 
     @Override public void onFailure(Call<T> call, Throwable t) {
