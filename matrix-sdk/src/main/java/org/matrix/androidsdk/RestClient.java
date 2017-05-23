@@ -24,6 +24,7 @@ import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.util.Pair;
 
+import com.facebook.stetho.okhttp3.StethoInterceptor;
 import com.google.gson.Gson;
 
 import org.matrix.androidsdk.rest.client.MXRestExecutorService;
@@ -146,7 +147,8 @@ public class RestClient<T> {
             .readTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)
             .writeTimeout(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
             .addInterceptor(authentInterceptor)
-            .addInterceptor(connectivityInterceptor);
+            .addInterceptor(connectivityInterceptor)
+            .addNetworkInterceptor(new StethoInterceptor());
 
 
         if (mUseMXExececutor) {
