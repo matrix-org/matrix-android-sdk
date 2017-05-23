@@ -224,12 +224,15 @@ public class RestAdapterCallback<T> implements Callback<T> {
                 // Try to convert this into a Matrix error
                 MatrixError mxError;
                 try {
-                    ResponseBody body = response.errorBody();
+                    HttpError error = ((HttpException) exception).getHttpError();
+                    ResponseBody errorBody = response.errorBody();
 
-                    mxError = JsonUtils.getGson(false).fromJson(response.errorBody().string(), MatrixError.class);
+                    String bodyAsString = error.getErrorBody();
+                    mxError = JsonUtils.getGson(false).fromJson(bodyAsString, MatrixError.class);
 
                     mxError.mStatus = response.code();
                     mxError.mReason = response.message();
+<<<<<<< HEAD
 
                     if (null != body) {
                         mxError.mErrorBodyMimeType = body.contentType();
@@ -250,6 +253,13 @@ public class RestAdapterCallback<T> implements Callback<T> {
 >>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     }
                 } catch (Exception e) {
+=======
+                    mxError.mErrorBodyMimeType = errorBody.contentType();
+                    mxError.mErrorBody = errorBody;
+                    mxError.mErrorBodyAsString = bodyAsString;
+                }
+                catch (Exception e) {
+>>>>>>> Fix matrix error handling
                     mxError = null;
                 }
                 if (mxError != null) {
