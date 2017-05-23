@@ -202,18 +202,17 @@ public class RestAdapterCallback<T> implements Callback<T> {
                 // Try to convert this into a Matrix error
                 MatrixError mxError;
                 try {
-                    ResponseBody body = response.errorBody();
+                    HttpError error = ((HttpException) exception).getHttpError();
+                    ResponseBody errorBody = response.errorBody();
 
-                    mxError = JsonUtils.getGson(false).fromJson(response.errorBody().string(), MatrixError.class);
+                    String bodyAsString = error.getErrorBody();
+                    mxError = JsonUtils.getGson(false).fromJson(bodyAsString, MatrixError.class);
 
                     mxError.mStatus = response.code();
                     mxError.mReason = response.message();
-
-                    if (null != body) {
-                        mxError.mErrorBodyMimeType = body.contentType();
-                        mxError.mErrorBody = body;
-                        mxError.mErrorBodyAsString = body.string();
-                    }
+                    mxError.mErrorBodyMimeType = errorBody.contentType();
+                    mxError.mErrorBody = errorBody;
+                    mxError.mErrorBodyAsString = bodyAsString;
                 }
                 catch (Exception e) {
                     mxError = null;
