@@ -264,7 +264,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
         byte[] buffer;
 
         String serverResponse = null;
-        String urlString = mContentManager.getHsConfig().getHomeserverUri().toString() + ContentManager.URI_PREFIX_CONTENT_API + "/upload?access_token=" + mContentManager.getHsConfig().getCredentials().accessToken;
+        String urlString = mContentManager.getHsConfig().getHomeserverUri().toString() + ContentManager.URI_PREFIX_CONTENT_API + "upload?access_token=" + mContentManager.getHsConfig().getCredentials().accessToken;
 
         if (null != mFilename) {
             try {
