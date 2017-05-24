@@ -79,7 +79,6 @@ import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
 import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
 import org.matrix.androidsdk.listeners.MXMediaDownloadListener;
 import org.matrix.androidsdk.listeners.MXMediaUploadListener;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.EncryptedFileInfo;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
@@ -312,7 +311,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private String mPattern = null;
     private ArrayList<MessageRow> mLiveMessagesRowList = null;
 
-    private String mFirstUnreadEventId; // the first unread event
+    // id of the read markers event
+    private String mLastReadEventId;
+    private String mReadReceiptEventId;
 
     private MatrixLinkMovementMethod mLinkMovementMethod;
 
@@ -646,15 +647,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
-     * Specify the first unread message
-     *
-     * @param firstUnreadEventId
-     */
-    public void setUnreadEvent(final String firstUnreadEventId) {
-        mFirstUnreadEventId = firstUnreadEventId;
-    }
-
-    /**
      * Add an event to the top of the events list.
      *
      * @param event     the event to add
@@ -719,6 +711,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param refresh tru to refresh the display.
      */
     public void add(MessageRow row, boolean refresh) {
+        Log.e(LOG_TAG, "add row  " + row.getEvent().eventId);
         // ensure that notifyDataSetChanged is not called
         // it seems that setNotifyOnChange is reinitialized to true;
         setNotifyOnChange(false);
@@ -952,67 +945,68 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         MessageRow row = getItem(position);
         final Event event = row != null ? row.getEvent() : null;
 
-        View readMarkerLine = inflatedView.findViewWithTag(READ_MARKER_TAG);
-        if (readMarkerLine != null) {
-            readMarkerLine.clearAnimation();
-            readMarkerLine.setVisibility(View.GONE);
-        }
-        if (!mIsUnreadViewMode && !mIsPreviewMode && !mIsSearchMode && mFirstUnreadEventId != null && event != null && event.eventId.equals(mFirstUnreadEventId)) {
-            if (readMarkerLine == null) {
-                readMarkerLine = new View(getContext());
-                readMarkerLine.setTag(READ_MARKER_TAG);
-                readMarkerLine.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 10));
-                readMarkerLine.setBackgroundColor(ContextCompat.getColor(mContext, R.color.unread_marker_line));
-                ((ViewGroup) inflatedView).addView(readMarkerLine, 0);
-            } else {
-                readMarkerLine.setVisibility(View.VISIBLE);
+//        View readMarkerLine = inflatedView.findViewWithTag(READ_MARKER_TAG);
+//        if (readMarkerLine != null) {
+//            readMarkerLine.clearAnimation();
+//            readMarkerLine.setVisibility(View.GONE);
+//        }
+
+        /**
+         * Display the green line after the last read message if :
+         *  - there is at least one unread message
+         *  - the send receipt is not on that message
+         */
+        if (!mIsUnreadViewMode && !mIsPreviewMode && !mIsSearchMode && event != null
+                && mLastReadEventId != null && event.eventId.equals(mLastReadEventId)) {
+            // Check if the read marker != read receipt
+            if (!mLastReadEventId.equals(mReadReceiptEventId)) {
+                // There is at least one unread message
+                View readMarkerLineView = inflatedView.findViewWithTag(READ_MARKER_TAG);
+                if (readMarkerLineView == null) {
+                    final View readMarkerLine = new View(getContext());
+                    readMarkerLine.setTag(READ_MARKER_TAG);
+                    readMarkerLine.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 10));
+                    readMarkerLine.setBackgroundColor(ContextCompat.getColor(mContext, R.color.unread_marker_line));
+                    ((ViewGroup) inflatedView).addView(readMarkerLine);
+
+                    final Animation animation = AnimationUtils.loadAnimation(getContext(), R.anim.unread_marker_anim);
+                    animation.setStartOffset(1000);
+                    animation.setAnimationListener(new Animation.AnimationListener() {
+                        @Override
+                        public void onAnimationStart(Animation animation) {
+
+                        }
+
+                        @Override
+                        public void onAnimationEnd(Animation animation) {
+                            // User scrolled up to first unread message
+                            mLastReadEventId = null;
+                            ((ViewGroup) inflatedView).removeView(readMarkerLine);
+                            final Room room = mSession.getDataHandler().getRoom(event.roomId);
+                            if (room != null) {
+                                room.markAllAsRead(null);
+                            }
+                        }
+
+                        @Override
+                        public void onAnimationRepeat(Animation animation) {
+                        }
+                    });
+                    readMarkerLine.startAnimation(animation);
+                }
             }
-
-            final View finalReadMarkerLine = readMarkerLine;
-            Animation animation = AnimationUtils.loadAnimation(getContext(), R.anim.unread_marker_anim);
-            animation.setAnimationListener(new Animation.AnimationListener() {
-                @Override
-                public void onAnimationStart(Animation animation) {
-
-                }
-
-                @Override
-                public void onAnimationEnd(Animation animation) {
-                    finalReadMarkerLine.setVisibility(View.GONE);
-                    // User scrolled up to first unread message
-                    final Room room = mSession.getDataHandler().getRoom(event.roomId);
-                    if (room != null) {
-                        room.markAllAsRead(new ApiCallback<Void>() {
-                            @Override
-                            public void onSuccess(Void info) {
-                                mFirstUnreadEventId = null;
-                            }
-
-                            @Override
-                            public void onNetworkError(Exception e) {
-
-                            }
-
-                            @Override
-                            public void onMatrixError(MatrixError e) {
-
-                            }
-
-                            @Override
-                            public void onUnexpectedError(Exception e) {
-
-                            }
-                        });
-                    }
-                }
-
-                @Override
-                public void onAnimationRepeat(Animation animation) {
-                }
-            });
-            finalReadMarkerLine.startAnimation(animation);
         }
         return inflatedView;
+    }
+
+    /**
+     * Specify the last read message (to display read marker line)
+     *
+     * @param lastReadEventId
+     */
+    public void updateReadMarker(final String lastReadEventId, final String readReceiptEventId) {
+        mLastReadEventId = lastReadEventId;
+        mReadReceiptEventId = readReceiptEventId;
     }
 
     /**

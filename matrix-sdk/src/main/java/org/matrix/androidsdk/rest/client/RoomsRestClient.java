@@ -18,7 +18,6 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.text.TextUtils;
-import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonObject;
 
@@ -42,6 +41,7 @@ import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -734,7 +734,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param roomId the room id
      * @param rmEventId the read marker event Id
      * @param rrEventId the read receipt event Id
-     * @param callback the callback containing the created event if successful
+     * @param callback the callback
      */
     public void sendReadMarker(final String roomId, final String rmEventId, final String rrEventId, final ApiCallback<Void> callback) {
         final String description = "sendReadMarker : roomId " + roomId + " - rmEventId " + rmEventId + " -- rrEventId "  + rrEventId;

@@ -319,7 +319,7 @@ public interface RoomsApi {
                          Callback<Void> callback);
 
     /**
-     * Send a read receipt.
+     * Send read markers.
      * @param roomId the room id
      * @param markers the read markers
      * @param callback the asynchronous callback called with the response

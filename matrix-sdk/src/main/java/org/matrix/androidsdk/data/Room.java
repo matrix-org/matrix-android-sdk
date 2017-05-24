@@ -27,8 +27,6 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.util.Log;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
@@ -58,8 +56,8 @@ import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
-import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
+import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.ThumbnailInfo;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
@@ -67,9 +65,9 @@ import org.matrix.androidsdk.rest.model.VideoInfo;
 import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.util.ImageUtils;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 
 import java.io.File;
-
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1158,7 +1156,10 @@ public class Room {
      */
     public void setReadMakerEventId(final String readMarkerEventId) {
         RoomSummary summary = mStore.getSummary(getRoomId());
-        sendReadMarkers(readMarkerEventId, (null != summary) ? summary.getReadReceiptEventId() : null, null);
+        if (!readMarkerEventId.equals(summary.getReadMarkerEventId())) {
+            sendReadMarkers(readMarkerEventId, (null != summary) ? summary.getReadReceiptEventId() : null, null);
+            Log.e(LOG_TAG, "## sendReadMarkers(): "+readMarkerEventId);
+        }
     }
 
     /**
@@ -1187,8 +1188,9 @@ public class Room {
      * @param aRespCallback asynchronous response callback
      * @return true if the request is sent, false otherwise
      */
-    private boolean sendReadMarkers(final String aReadMarkerEventId, final String aReadReceiptEventId, final ApiCallback<Void> aRespCallback) {
+    public boolean sendReadMarkers(final String aReadMarkerEventId, final String aReadReceiptEventId, final ApiCallback<Void> aRespCallback) {
         final Event lastEvent = mStore.getLatestEvent(getRoomId());
+        Log.e(LOG_TAG, "## sendReadMarkers(): new marker id "+aReadMarkerEventId);
 
         // reported by GA
         if (null == lastEvent) {

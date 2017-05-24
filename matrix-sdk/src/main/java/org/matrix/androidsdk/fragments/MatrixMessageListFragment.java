@@ -19,6 +19,7 @@ package org.matrix.androidsdk.fragments;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -32,11 +33,6 @@ import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
-
-import org.matrix.androidsdk.crypto.MXCryptoError;
-import org.matrix.androidsdk.rest.model.AudioMessage;
-import org.matrix.androidsdk.util.Log;
-
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -52,19 +48,21 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.adapters.MessageRow;
 import org.matrix.androidsdk.adapters.MessagesAdapter;
+import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.data.EventTimeline;
-import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomPreviewData;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.listeners.MXMediaUploadListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.model.AudioMessage;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageMessage;
@@ -79,13 +77,13 @@ import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -487,6 +485,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 mRoom = mEventTimeLine.getRoom();
                 if (PREVIEW_MODE_UNREAD_MESSAGE.equals(previewMode)){
                     mAdapter.setIsUnreadViewMode(true);
+                    final View footerView = ((LayoutInflater) getActivity().getSystemService(Context.LAYOUT_INFLATER_SERVICE))
+                            .inflate(R.layout.unread_messages_footer, null, false);
+                    mMessageListView.addFooterView(footerView);
                 }
             }
             // display a room preview
@@ -784,14 +785,28 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             Event event = new Event(message, mSession.getCredentials().userId, mRoom.getRoomId());
             mRoom.storeOutgoingEvent(event);
 
-            MessageRow messageRow = new MessageRow(event, mRoom.getState());
-            mAdapter.add(messageRow);
+            // Move read marker if necessary
+            final String currentReadMarkerEventId = mRoom.getReadMarkerEventId();
+            MessageRow currentReadMarkerRow = mAdapter.getMessageRow(currentReadMarkerEventId);
+
+            MessageRow newMessageRow = new MessageRow(event, mRoom.getState());
+            mAdapter.add(newMessageRow);
+
+            if (currentReadMarkerRow != null &&
+                    mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
+                    && event.getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs) {
+                // Previous message was the last read
+                if (mMessageListView.getChildAt(mMessageListView.getChildCount() - 1).getTop() >= 0) {
+                    // New message is fully visible, move marker
+                    mRoom.setReadMakerEventId(event.eventId);
+                }
+            }
 
             scrollToBottom();
 
             Log.d(LOG_TAG, "AddMessage Row : commit");
             getSession().getDataHandler().getStore().commit();
-            return messageRow;
+            return newMessageRow;
         } else {
             return null;
         }
