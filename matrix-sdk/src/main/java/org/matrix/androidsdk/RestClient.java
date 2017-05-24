@@ -47,7 +47,6 @@ import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import retrofit2.Converter;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
@@ -175,9 +174,6 @@ public class RestClient<T> {
 
         Retrofit retrofit = builder.build();
 
-        // debug only
-        //retrofit.setLogLevel(RestAdapter.LogLevel.FULL);
-
         mApi = retrofit.create(type);
     }
 
@@ -191,7 +187,7 @@ public class RestClient<T> {
             : hsConfig.getHomeserverUri().toString();
         baseUrl = sanitizeBaseUrl(baseUrl);
         String dynamicPath = sanitizeDynamicPath(uriPrefix);
-        return useIdentityServer ? baseUrl : baseUrl + dynamicPath;
+        return baseUrl + dynamicPath;
     }
 
     private String sanitizeBaseUrl(String baseUrl) {
