@@ -243,6 +243,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     // listen when the events list is scrolled.
     protected IOnScrollListener mActivityOnScrollListener;
 
+    // the history filling is suspended when the fragment is not active
+    // because there is no way to detect if enough data were retrieved
+    private boolean mFillHistoryOnResume;
+
     public MXMediasCache getMXMediasCache() {
         return null;
     }
@@ -651,6 +655,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             } else {
                 Log.e(LOG_TAG, "the room " + mRoom.getRoomId() + " does not exist anymore");
             }
+        }
+
+        // a room history filling was suspended because the fragment was not active
+        if (mFillHistoryOnResume) {
+            mFillHistoryOnResume = false;
+            backPaginate(true);
         }
     }
 
@@ -2129,6 +2139,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         if (!mMatrixMessagesFragment.canBackPaginate()) {
             Log.d(LOG_TAG, "backPaginate : cannot back paginating again");
             setMessageListViewScrollListener();
+            return;
+        }
+
+        if (!isResumed()) {
+            Log.d(LOG_TAG, "backPaginate : the fragement is not anymore active");
+            mFillHistoryOnResume = true;
             return;
         }
 
