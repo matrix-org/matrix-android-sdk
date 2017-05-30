@@ -1,3 +1,31 @@
+Changes to Matrix Android SDK in 0.7.10 (2017-05-30)
+=======================================================
+
+Features:
+* Add the new public rooms API.
+* Add some languages support.
+* Add Room.forget API.
+
+Improvements: 
+* Add a dedicated method to mark all messages as read.
+* Ignore invalid avatarURL.
+* Add plaftform flavor in the request user agent.
+* Set the log timestamp to UTC.
+* Move the room preview management in a dedicated thread to avoid UI thread lags.
+* Improve the network connection detection.
+
+Bugfixes:
+* Issues reported by GA.
+* Fix some registration issues.
+* #1080 : The message sent with QuickReply is not added to the room history if the dedicated room activity is opened.
+* #1093 : Cannot decrypt attachments on Android 4.2.X.
+* #1129 : App-Name changed from "Riot" to "Matrix Android SDK"
+* #1148 : Cannot login when the device language is set to turkish
+* #1186 : Infinite back pagination whereas the app is in background
+* #1210 : Please don't log encryption payloads in rageshakes.
+* Fix double cryptostore  creation.
+* Fix some crypto issues.
+
 Changes to Matrix Android SDK in 0.7.10 (2017-03-15)
 =======================================================
 

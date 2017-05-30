@@ -25,6 +25,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 import java.util.logging.Formatter;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
@@ -36,7 +37,7 @@ import java.util.logging.Logger;
  */
 public class Log {
     private static final String LINE_SEPARATOR = System.getProperty("line.separator");
-    private static final int LOG_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+    private static final int LOG_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
     
     // relatively large rotation count because closing > opening the app rotates the log (!)
     private static final int LOG_ROTATION_COUNT = 5;
@@ -199,10 +200,16 @@ public class Log {
     }
     
     public static final class LogFormatter extends Formatter {
-        private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("MM-dd HH:mm:ss.SSS ", Locale.US);
+        private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.US);
+        private static boolean mIsTimeZoneSet = false;
         
         @Override
         public String format(LogRecord r) {
+            if (!mIsTimeZoneSet) {
+                DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
+                mIsTimeZoneSet = true;
+            }
+
             Throwable thrown = r.getThrown();
             if (thrown != null) {
                 StringWriter sw = new StringWriter();
@@ -216,6 +223,7 @@ public class Log {
                 StringBuilder b = new StringBuilder();
                 String date = DATE_FORMAT.format(new Date(r.getMillis()));
                 b.append(date);
+                b.append("Z ");
                 b.append(r.getMessage());
                 b.append(LINE_SEPARATOR);
                 return b.toString();

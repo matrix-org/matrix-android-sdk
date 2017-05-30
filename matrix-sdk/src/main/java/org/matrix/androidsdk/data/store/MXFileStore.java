@@ -83,6 +83,12 @@ public class MXFileStore extends MXMemoryStore {
     // the data is read from the file system
     private boolean mIsReady = false;
 
+    // tell if the post processing has been done
+    private boolean mIsPostProcessingDone = false;
+
+    // the read receipts are ready
+    private boolean mAreReceiptsReady = false;
+
     // the store is currently opening
     private boolean mIsOpening = false;
 
@@ -247,6 +253,7 @@ public class MXFileStore extends MXMemoryStore {
             mIsOpening = false;
             // nothing to load so ready to work
             mIsReady = true;
+            mAreReceiptsReady = true;
         }
     }
 
@@ -467,8 +474,9 @@ public class MXFileStore extends MXMemoryStore {
                                 mIsOpening = false;
 
                                 // post processing
-                                Log.e(LOG_TAG, "Management post processing.");
+                                Log.e(LOG_TAG, "## open() : post processing.");
                                 dispatchPostProcess(mCredentials.userId);
+                                mIsPostProcessingDone = true;
 
                                 if (!succeed && !mIsNewStorage) {
                                     Log.e(LOG_TAG, "The store is corrupted.");
@@ -480,7 +488,6 @@ public class MXFileStore extends MXMemoryStore {
 
                                     Log.e(LOG_TAG, "The store is opened.");
                                     dispatchOnStoreReady(mCredentials.userId);
-
 
                                     // load the following items with delay
                                     // theses items are not required to be ready
@@ -502,8 +509,13 @@ public class MXFileStore extends MXMemoryStore {
                 Runnable r = new Runnable() {
                     @Override
                     public void run() {
-                        Log.e(LOG_TAG, "Management post processing.");
-                        dispatchPostProcess(mCredentials.userId);
+                        if (!mIsPostProcessingDone) {
+                            Log.e(LOG_TAG, "## open() : is ready but the post processing was not yet done.");
+                            dispatchPostProcess(mCredentials.userId);
+                            mIsPostProcessingDone = true;
+                        } else {
+                            Log.e(LOG_TAG, "## open() when ready : the post processing is already done.");
+                        }
                         Log.e(LOG_TAG, "The store is opened.");
                         dispatchOnStoreReady(mCredentials.userId);
 
@@ -515,6 +527,22 @@ public class MXFileStore extends MXMemoryStore {
                 t.start();
             }
         }
+    }
+
+    /**
+     * Check if the read receipts are ready to be used.
+     *
+     * @return true if they are ready.
+     */
+    @Override
+    public boolean areReceiptsReady() {
+        boolean res;
+
+        synchronized (this) {
+            res = mAreReceiptsReady;
+        }
+
+        return res;
     }
 
     /**
@@ -1172,7 +1200,7 @@ public class MXFileStore extends MXMemoryStore {
         if (null != events) {
             // create the room object
             Room room = new Room();
-            room.init(roomId, null);
+            room.init(this, roomId, null);
             // do not wait that the live state update
             room.setReadyState(true);
             storeRoom(room);
@@ -1376,7 +1404,7 @@ public class MXFileStore extends MXMemoryStore {
      *
      * @param roomId the room id.
      */
-    private void saveRoomState(String roomId) {
+    private void saveRoomState(final String roomId) {
         Log.d(LOG_TAG, "++ saveRoomsState " + roomId);
 
         File roomStateFile = new File(mGzStoreRoomsStateFolderFile, roomId);
@@ -1387,35 +1415,52 @@ public class MXFileStore extends MXMemoryStore {
             writeObject("saveRoomsState " + roomId, roomStateFile, room.getState());
             Log.d(LOG_TAG, "saveRoomsState " + room.getState().getMembers().size() + " members : " + (System.currentTimeMillis() - start1) + " ms");
 
-            List<Event> stateEvents;
+            // the state events are with low priority
+            // because they are only used in redact cases
+            Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    mFileStoreHandler.post(new Runnable() {
+                        public void run() {
+                            if (!isKilled()) {
+                                List<Event> stateEvents;
 
-            synchronized (mRoomStateEventsByRoomId) {
-                if (mRoomStateEventsByRoomId.containsKey(roomId)) {
-                    stateEvents = mRoomStateEventsByRoomId.get(roomId);
-                    mRoomStateEventsByRoomId.remove(roomId);
-                } else {
-                    stateEvents = null;
+                                synchronized (mRoomStateEventsByRoomId) {
+                                    if (mRoomStateEventsByRoomId.containsKey(roomId)) {
+                                        stateEvents = mRoomStateEventsByRoomId.get(roomId);
+                                        mRoomStateEventsByRoomId.remove(roomId);
+                                    } else {
+                                        stateEvents = null;
+                                    }
+                                }
+
+                                if (null != stateEvents) {
+                                    File roomStateEventsFile = new File(mGzStoreRoomsStateEventsFolderFile, roomId);
+
+                                    if (!roomStateEventsFile.exists()) {
+                                        roomStateEventsFile.mkdirs();
+                                    }
+
+                                    long start2 = System.currentTimeMillis();
+
+                                    for (Event event : stateEvents) {
+                                        File roomStateEventFile = new File(roomStateEventsFile, event.eventId);
+                                        writeObject("saveRoomsState : save state events " + roomId + " " + event.eventId, roomStateEventFile, event);
+                                    }
+
+                                    Log.d(LOG_TAG, "saveRoomsState : save " + stateEvents.size() + " stateEvents in " + (System.currentTimeMillis() - start2) + " ms in " + roomId);
+                                } else {
+                                    Log.d(LOG_TAG, "saveRoomsState : no state events to save");
+                                }
+                            }
+                        }
+                    });
                 }
-            }
+            };
 
-            if (null != stateEvents) {
-                File roomStateEventsFile = new File(mGzStoreRoomsStateEventsFolderFile, roomId);
-
-                if (!roomStateEventsFile.exists()) {
-                    roomStateEventsFile.mkdirs();
-                }
-
-                long start2 = System.currentTimeMillis();
-
-                for (Event event : stateEvents) {
-                    File roomStateEventFile = new File(roomStateEventsFile, event.eventId);
-                    writeObject("saveRoomsState : save state events " + roomId + " " + event.eventId, roomStateEventFile, event);
-                }
-
-                Log.d(LOG_TAG, "saveRoomsState : save " + stateEvents.size() + " stateEvents in " + (System.currentTimeMillis() - start2) + " ms");
-            } else {
-                Log.d(LOG_TAG, "saveRoomsState : no state events to save");
-            }
+            Thread t = new Thread(r);
+            t.setPriority(Thread.MIN_PRIORITY);
+            t.start();
         } else {
             Log.d(LOG_TAG, "saveRoomsState : delete the room state");
             deleteRoomStateFile(roomId);
@@ -2021,6 +2066,10 @@ public class MXFileStore extends MXMemoryStore {
             long delta = (System.currentTimeMillis() - start);
             Log.d(LOG_TAG, "loadReceipts " + count + " rooms in " + delta + " ms");
             mStoreStats.put("loadReceipts", delta);
+
+            synchronized (this) {
+                mAreReceiptsReady = true;
+            }
         } catch (Exception e) {
             succeed = false;
             //Toast.makeText(mContext, "loadReceipts failed" + e, Toast.LENGTH_LONG).show();

@@ -40,7 +40,11 @@ import org.matrix.androidsdk.rest.model.bingrules.EventMatchCondition;
 import org.matrix.androidsdk.rest.model.bingrules.RoomMemberCountCondition;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -65,6 +69,16 @@ public class BingRulesManager {
         void onBingRuleUpdateFailure(String errorMessage);
     }
 
+    /**
+     * Bing rules update
+     */
+    public interface onBingRulesUpdateListener  {
+        /**
+         * Warn that some bing rules have been updated
+         */
+        void onBingRulesUpdate();
+    }
+
     // general members
     private BingRulesRestClient mApiClient;
     private MXSession mSession;
@@ -83,10 +97,16 @@ public class BingRulesManager {
     // tell if the bing rules set is initialized
     private boolean mIsInitialized = false;
 
+    // map to check if a room is "mention only"
+    private Map<String, Boolean> mIsMentionOnlyMap = new HashMap<>();
+
     // network management
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
     private IMXNetworkEventListener mNetworkListener;
     private ApiCallback<Void> mLoadRulesCallback;
+
+    //  listener
+    private Set<onBingRulesUpdateListener> mBingRulesUpdateListeners = new HashSet<>();
 
     /**
      * Constructor
@@ -130,6 +150,39 @@ public class BingRulesManager {
             mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
             mNetworkConnectivityReceiver = null;
             mNetworkListener = null;
+        }
+    }
+
+    /**
+     * Add a listener
+     * @param listener the listener
+     */
+    public void addBingRulesUpdateListener(onBingRulesUpdateListener listener) {
+        if (null != listener) {
+            mBingRulesUpdateListeners.add(listener);
+        }
+    }
+
+    /**
+     * remove a listener
+     * @param listener the listener
+     */
+    public void removeBingRulesUpdateListener(onBingRulesUpdateListener listener) {
+        if (null != listener) {
+            mBingRulesUpdateListeners.remove(listener);
+        }
+    }
+
+    /**
+     * Some rules have been updated.
+     */
+    private void onBingRulesUpdate() {
+        for(onBingRulesUpdateListener listener : mBingRulesUpdateListeners) {
+            try {
+                listener.onBingRulesUpdate();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## onBingRulesUpdate() : onBingRulesUpdate failed " + e.getMessage());
+            }
         }
     }
 
@@ -340,6 +393,7 @@ public class BingRulesManager {
     public void buildRules(BingRulesResponse bingRulesResponse) {
         if (null != bingRulesResponse) {
             updateRules(bingRulesResponse.global);
+            onBingRulesUpdate();
         }
     }
 
@@ -389,6 +443,7 @@ public class BingRulesManager {
                 ruleSet.content = new ArrayList<>();
             }
 
+            mIsMentionOnlyMap.clear();
             if (ruleSet.room != null) {
                 ruleSet.room = new ArrayList<>(ruleSet.room);
 
@@ -496,6 +551,7 @@ public class BingRulesManager {
                 public void onSuccess(Void info) {
                     rule.isEnabled = !rule.isEnabled;
                     updateRules(mRulesSet);
+                    onBingRulesUpdate();
                     if (listener != null) {
                         try {
                             listener.onBingRuleUpdateSuccess();
@@ -571,6 +627,7 @@ public class BingRulesManager {
                 if (null != mRulesSet) {
                     mRulesSet.remove(rule);
                     updateRules(mRulesSet);
+                    onBingRulesUpdate();
                 }
                 if (listener != null) {
                     try {
@@ -638,6 +695,7 @@ public class BingRulesManager {
     private void deleteRules(final List<BingRule> rules, final int index, final onBingRuleUpdateListener listener) {
         // sanity checks
         if ((null == rules) || (index >= rules.size())) {
+            onBingRulesUpdate();
             if (null != listener) {
                 try {
                     listener.onBingRuleUpdateSuccess();
@@ -693,6 +751,7 @@ public class BingRulesManager {
                 if (null != mRulesSet) {
                     mRulesSet.addAtTop(rule);
                     updateRules(mRulesSet);
+                    onBingRulesUpdate();
                 }
 
                 if (listener != null) {
@@ -777,6 +836,41 @@ public class BingRulesManager {
         }
 
         return rules;
+    }
+
+    /**
+     * Tell whether the regular notifications are disabled for the room.
+     * @param room the room
+     * @return true if the regular notifications are disabled (mention only)
+     */
+    public boolean isRoomMentionOnly(Room room) {
+        // sanity check
+        if ((null != room) && (null != room.getRoomId())) {
+            if (mIsMentionOnlyMap.containsKey(room.getRoomId())) {
+                return mIsMentionOnlyMap.get(room.getRoomId());
+            }
+
+            if (null != mRulesSet.room) {
+                for (BingRule roomRule : mRulesSet.room) {
+                    if (TextUtils.equals(roomRule.ruleId, room.getRoomId())) {
+                        List<BingRule> roomRules = getPushRulesForRoom(room);
+
+                        if (0 != roomRules.size()) {
+                            for (BingRule rule : roomRules) {
+                                if (rule.shouldNotNotify()) {
+                                    mIsMentionOnlyMap.put(room.getRoomId(), rule.isEnabled);
+                                    return rule.isEnabled;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            mIsMentionOnlyMap.put(room.getRoomId(), false);
+        }
+
+        return false;
     }
 
     /**

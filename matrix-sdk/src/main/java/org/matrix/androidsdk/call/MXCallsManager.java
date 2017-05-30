@@ -34,6 +34,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -363,9 +364,10 @@ public class MXCallsManager {
 
     /**
      * Manage the call events.
+     * @param store the dedicated store
      * @param event the call event.
      */
-    public void handleCallEvent(final Event event) {
+    public void handleCallEvent(final IMXStore store, final Event event) {
         if (event.isCallEvent() && isSupported()) {
             Log.d(LOG_TAG, "handleCallEvent " + event.getType());
 
@@ -375,7 +377,7 @@ public class MXCallsManager {
                 @Override
                 public void run() {
                     boolean isMyEvent = TextUtils.equals(event.getSender(), mSession.getMyUserId());
-                    Room room = mSession.getDataHandler().getRoom(event.roomId);
+                    Room room = mSession.getDataHandler().getRoom(store, event.roomId, true);
 
                     String callId = null;
                     JsonObject eventContent = null;
@@ -839,7 +841,7 @@ public class MXCallsManager {
             return;
         }
 
-        Log.d(LOG_TAG, "refreshTurnServer");
+        Log.d(LOG_TAG, "## refreshTurnServer () starts");
 
         mUIThreadHandler.post(new Runnable() {
             @Override
@@ -854,7 +856,6 @@ public class MXCallsManager {
                         mTurnServerTimer.schedule(new TimerTask() {
                             @Override
                             public void run() {
-                                Log.d(LOG_TAG, "refreshTurnServer cancelled");
                                 mTurnServerTimer.cancel();
                                 mTurnServerTimer = null;
 
@@ -866,7 +867,7 @@ public class MXCallsManager {
                     @Override
                     public void onSuccess(JsonObject info) {
                         // privacy
-                        Log.d(LOG_TAG, "onSuccess ");
+                        Log.d(LOG_TAG, "## refreshTurnServer () : onSuccess");
                         //Log.d(LOG_TAG, "onSuccess " + info);
 
                         if (null != info) {
@@ -887,6 +888,7 @@ public class MXCallsManager {
                                     Log.e(LOG_TAG, "Fail to retrieve ttl " + e.getMessage());
                                 }
 
+                                Log.d(LOG_TAG, "## refreshTurnServer () : onSuccess : retry after " + ttl + "ms");
                                 restartAfter(ttl);
                             }
                         }
@@ -894,13 +896,17 @@ public class MXCallsManager {
 
                     @Override
                     public void onNetworkError(Exception e) {
+                        Log.e(LOG_TAG, "## refreshTurnServer () : onNetworkError " + e);
                         restartAfter(60000);
                     }
 
                     @Override
                     public void onMatrixError(MatrixError e) {
-                        if (TextUtils.equals(e.errcode, MatrixError.LIMIT_EXCEEDED)) {
-                            restartAfter(60000);
+                        Log.e(LOG_TAG, "## refreshTurnServer () : onMatrixError() : " + e.errcode );
+
+                        if (TextUtils.equals(e.errcode, MatrixError.LIMIT_EXCEEDED) && (null != e.retry_after_ms)) {
+                            Log.e(LOG_TAG, "## refreshTurnServer () : onMatrixError() : retry after " + e.retry_after_ms + " ms");
+                            restartAfter(e.retry_after_ms);
                         }
                     }
 

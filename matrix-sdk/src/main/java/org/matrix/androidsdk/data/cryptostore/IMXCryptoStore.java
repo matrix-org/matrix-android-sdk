@@ -206,4 +206,22 @@ public interface IMXCryptoStore {
      * @return the room Ids list
      */
     List<String> getRoomsListBlacklistUnverifiedDevices();
+
+    /**
+     * @return the devices statuses map
+     */
+    Map<String, Integer> getDeviceTrackingStatuses();
+
+    /**
+     * Save the device statuses
+     */
+    void saveDeviceTrackingStatuses(Map<String, Integer> deviceTrackingStatuses);
+
+    /**
+     * Get the tracking status of a specified userId devices.
+     * @param userId the user id
+     * @param defaultValue the default avlue
+     * @return the tracking status
+     */
+    int getDeviceTrackingStatus(String userId, int defaultValue);
 }

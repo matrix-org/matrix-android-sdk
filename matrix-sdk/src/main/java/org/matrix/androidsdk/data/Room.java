@@ -72,8 +72,10 @@ import java.io.File;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.RejectedExecutionException;
@@ -124,6 +126,9 @@ public class Room {
     // call conference user id
     private String mCallConferenceUserId;
 
+    // true when the current room is a left one
+    private boolean mIsLeft;
+
     /**
      * Default room creator
      */
@@ -133,18 +138,18 @@ public class Room {
 
     /**
      * Init the room fields.
-     *
-     * @param roomId      the room id
+     * @param store the store.
+     * @param roomId the room id
      * @param dataHandler the data handler
      */
-    public void init(String roomId, MXDataHandler dataHandler) {
+    public void init(IMXStore store, String roomId, MXDataHandler dataHandler) {
         mLiveTimeline.setRoomId(roomId);
         mDataHandler = dataHandler;
+        mStore = store;
 
         if (null != mDataHandler) {
-            mStore = mDataHandler.getStore();
             mMyUserId = mDataHandler.getUserId();
-            mLiveTimeline.setDataHandler(dataHandler);
+            mLiveTimeline.setDataHandler(mStore, dataHandler);
         }
     }
 
@@ -182,6 +187,22 @@ public class Room {
     public boolean isOngoingConferenceCall() {
         RoomMember conferenceUser = getLiveState().getMember(MXCallsManager.getConferenceUserId(getRoomId()));
         return (null != conferenceUser) && TextUtils.equals(conferenceUser.membership, RoomMember.MEMBERSHIP_JOIN);
+    }
+
+    /**
+     * Defines that the current room is a left one
+     * @param isLeft true when the current room is a left one
+     */
+    public void setIsLeft(boolean isLeft) {
+        mIsLeft = isLeft;
+        mLiveTimeline.setIsHistorical(isLeft);
+    }
+
+    /**
+     * @return true if the current room is an left one
+     */
+    public boolean isLeft() {
+        return mIsLeft;
     }
 
     //================================================================================
@@ -789,12 +810,12 @@ public class Room {
             List<RoomMember> members = new ArrayList<>(getState().getMembers());
 
             if (members.size() == 1) {
-                res = members.get(0).avatarUrl;
+                res = members.get(0).getAvatarUrl();
             } else if (members.size() == 2) {
                 RoomMember m1 = members.get(0);
                 RoomMember m2 = members.get(1);
 
-                res = TextUtils.equals(m1.getUserId(), mMyUserId) ? m2.avatarUrl : m1.avatarUrl;
+                res = TextUtils.equals(m1.getUserId(), mMyUserId) ? m2.getAvatarUrl() : m1.getAvatarUrl();
             }
         }
 
@@ -816,9 +837,9 @@ public class Room {
         if (2 == joinedMembers.size()) {
             // use other member avatar.
             if (TextUtils.equals(mMyUserId, joinedMembers.get(0).getUserId())) {
-                avatarURL = joinedMembers.get(1).avatarUrl;
+                avatarURL = joinedMembers.get(1).getAvatarUrl();
             } else {
-                avatarURL = joinedMembers.get(0).avatarUrl;
+                avatarURL = joinedMembers.get(0).getAvatarUrl();
             }
         } else {
             //
@@ -1083,9 +1104,13 @@ public class Room {
         if (!res) {
             RoomSummary summary = mDataHandler.getStore().getSummary(getRoomId());
 
-            if ((null != summary) && (0 != summary.getUnreadEventsCount())) {
-                Log.e(LOG_TAG, "## sendReadReceipt() : the unread message count for " + getRoomId() + " should have been cleared");
-                summary.setUnreadEventsCount(0);
+            if (null != summary) {
+                if (0 != summary.getUnreadEventsCount()) {
+                    Log.e(LOG_TAG, "## sendReadReceipt() : the unread message count for " + getRoomId() + " should have been cleared");
+                    summary.setUnreadEventsCount(0);
+                }
+
+                summary.setHighlighted(false);
             }
 
             if ((0 != getLiveState().getNotificationCount()) || (0 != getLiveState().getHighlightCount())) {
@@ -1111,6 +1136,12 @@ public class Room {
     public boolean sendReadReceipt(Event anEvent, final ApiCallback<Void> aRespCallback) {
         final Event lastEvent = mStore.getLatestEvent(getRoomId());
         final Event fEvent;
+
+        // reported by GA
+        if (null == lastEvent) {
+            Log.e(LOG_TAG, "## sendReadReceipt(): no last event");
+            return false;
+        }
 
         // the event is provided
         if (null != anEvent) {
@@ -2156,7 +2187,9 @@ public class Room {
      * @param callback the callback for when done
      */
     public void invite(String userId, ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().inviteUserToRoom(getRoomId(), userId, callback);
+        if (null != userId) {
+            invite(Arrays.asList(userId), callback);
+        }
     }
 
     /**
@@ -2166,74 +2199,74 @@ public class Room {
      * @param callback the callback for when done
      */
     public void inviteByEmail(String email, ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().inviteByEmailToRoom(getRoomId(), email, callback);
+        if (null != email) {
+            invite(Arrays.asList(email), callback);
+        }
     }
 
+    /**
+     * Invite users to this room.
+     * The identifiers are either ini Id or email address.
+     *
+     * @param identifiers  the identifiers list
+     * @param callback the callback for when done
+     */
+    public void invite(List<String> identifiers, ApiCallback<Void> callback) {
+        if (null != identifiers) {
+            invite(identifiers.iterator(), callback);
+        }
+    }
 
     /**
      * Invite some users to this room.
      *
-     * @param userIds  the user ids
+     * @param identifiers  the identifiers iterator
      * @param callback the callback for when done
      */
-    public void invite(List<String> userIds, ApiCallback<Void> callback) {
-        invite(userIds, 0, callback);
-    }
-
-    /**
-     * Invite an indexed user to this room.
-     *
-     * @param userIds  the user ids list
-     * @param index    the user id index
-     * @param callback the callback for when done
-     */
-    private void invite(final List<String> userIds, final int index, final ApiCallback<Void> callback) {
-        // add sanity checks
-        if ((null == userIds) || (index >= userIds.size())) {
+    private void invite(final Iterator<String> identifiers, final ApiCallback<Void> callback) {
+        if (!identifiers.hasNext()) {
+            callback.onSuccess(null);
             return;
         }
-        mDataHandler.getDataRetriever().getRoomsRestClient().inviteUserToRoom(getRoomId(), userIds.get(index), new ApiCallback<Void>() {
+
+        final ApiCallback<Void> localCallback = new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                // invite the last user
-                if ((index + 1) == userIds.size()) {
-                    try {
-                        callback.onSuccess(info);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "invite exception " + e.getMessage());
-                    }
-                } else {
-                    invite(userIds, index + 1, callback);
-                }
+                invite(identifiers, callback);
             }
 
             @Override
             public void onNetworkError(Exception e) {
-                try {
+                Log.e(LOG_TAG, "## invite failed " + e.getMessage());
+                if (null != callback) {
                     callback.onNetworkError(e);
-                } catch (Exception anException) {
-                    Log.e(LOG_TAG, "invite exception " + anException.getMessage());
                 }
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                try {
+                Log.e(LOG_TAG, "## invite failed " + e.getMessage());
+                if (null != callback) {
                     callback.onMatrixError(e);
-                } catch (Exception anException) {
-                    Log.e(LOG_TAG, "invite exception " + anException.getMessage());
                 }
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                try {
+                Log.e(LOG_TAG, "## invite failed " + e.getMessage());
+                if (null != callback) {
                     callback.onUnexpectedError(e);
-                } catch (Exception anException) {
-                    Log.e(LOG_TAG, "invite exception " + anException.getMessage());
                 }
             }
-        });
+        };
+
+        String identifier = identifiers.next();
+
+        if (android.util.Patterns.EMAIL_ADDRESS.matcher(identifier).matches()) {
+            mDataHandler.getDataRetriever().getRoomsRestClient().inviteByEmailToRoom(getRoomId(), identifier, localCallback);
+        } else {
+            mDataHandler.getDataRetriever().getRoomsRestClient().inviteUserToRoom(getRoomId(), identifier, localCallback);
+        }
     }
 
     /**
@@ -2252,7 +2285,7 @@ public class Room {
                     Room.this.mIsLeaving = false;
 
                     // delete references to the room
-                    mStore.deleteRoom(getRoomId());
+                    mDataHandler.deleteRoom(getRoomId());
                     Log.d(LOG_TAG, "leave : commit");
                     mStore.commit();
 
@@ -2306,6 +2339,62 @@ public class Room {
             }
         });
     }
+
+    /**
+     * Forget the room.
+     *
+     * @param callback the callback for when done
+     */
+    public void forget(final ApiCallback<Void> callback) {
+        mDataHandler.getDataRetriever().getRoomsRestClient().forgetRoom(getRoomId(), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                if (mDataHandler.isAlive()) {
+                    // don't call onSuccess.deleteRoom because it moves an existing room to historical store
+                    IMXStore store = mDataHandler.getStore(getRoomId());
+
+                    if (null != store) {
+                        store.deleteRoom(getRoomId());
+                        mStore.commit();
+                    }
+
+                    try {
+                        callback.onSuccess(info);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "forget exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                try {
+                    callback.onNetworkError(e);
+                } catch (Exception anException) {
+                    Log.e(LOG_TAG, "forget exception " + anException.getMessage());
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                try {
+                    callback.onMatrixError(e);
+                } catch (Exception anException) {
+                    Log.e(LOG_TAG, "forget exception " + anException.getMessage());
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                try {
+                    callback.onUnexpectedError(e);
+                } catch (Exception anException) {
+                    Log.e(LOG_TAG, "forget exception " + anException.getMessage());
+                }
+            }
+        });
+    }
+
 
     /**
      * Kick a user from the room.

@@ -808,7 +808,13 @@ public class RoomState implements Externalizable {
                     member.setUserId(userId);
                     member.setOriginServerTs(event.getOriginServerTs());
                     member.setInviterId(event.getSender());
-                    ((MXDataHandler) mDataHandler).getStore().storeRoomStateEvent(roomId, event);
+
+                    MXDataHandler dataHandler = (MXDataHandler)mDataHandler;
+                    
+				    // mDataHandler is not set for a preview
+                    if ((null != dataHandler) && (null != dataHandler.getStore())) {
+                        dataHandler.getStore().storeRoomStateEvent(roomId, event);
+                    }
 
                     RoomMember currentMember = getMember(userId);
 
@@ -821,8 +827,8 @@ public class RoomState implements Externalizable {
                     // when a member leaves a room, his avatar / display name is not anymore provided
                     if (null != currentMember) {
                         if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN)) {
-                            if (null == member.avatarUrl) {
-                                member.avatarUrl = currentMember.avatarUrl;
+                            if (null == member.getAvatarUrl()) {
+                                member.setAvatarUrl(currentMember.getAvatarUrl());
                             }
 
                             if (null == member.displayname) {
@@ -838,7 +844,7 @@ public class RoomState implements Externalizable {
 
                     if ((direction == EventTimeline.Direction.FORWARDS)) {
                         if (null != mDataHandler) {
-                            ((MXDataHandler) mDataHandler).getStore().updateUserWithRoomMemberEvent(member);
+                            ((MXDataHandler)mDataHandler).getStore(roomId).updateUserWithRoomMemberEvent(member);
                         }
                     }
 

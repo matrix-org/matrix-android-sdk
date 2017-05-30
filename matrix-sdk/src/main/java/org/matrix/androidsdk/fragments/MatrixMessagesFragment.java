@@ -89,6 +89,8 @@ public class MatrixMessagesFragment extends Fragment {
     public interface MatrixMessagesListener {
         void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState);
 
+        void onSentEvent(Event event);
+
         void onLiveEventsChunkProcessed();
 
         void onReceiptEvent(List<String> senderIds);
@@ -144,6 +146,13 @@ public class MatrixMessagesFragment extends Fragment {
                     // fill the screen
                     requestInitialHistory();
                 }
+            }
+        }
+
+        @Override
+        public void onSentEvent(Event event) {
+            if (null != mMatrixMessagesListener) {
+                mMatrixMessagesListener.onSentEvent(event);
             }
         }
     };

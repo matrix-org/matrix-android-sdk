@@ -84,6 +84,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -137,7 +138,7 @@ public class MXSession {
 
     // the application is launched from a notification
     // so, mEventsThread.start might be not ready
-    private boolean mIsCatchupPending = false;
+    private boolean mIsBgCatchupPending = false;
 
     // load the crypto libs.
     public static OlmManager mOlmManager = new OlmManager();
@@ -202,19 +203,24 @@ public class MXSession {
         mDataHandler.getStore().addMXStoreListener(new MXStoreListener() {
             @Override
             public void postProcess(String accountId) {
-                MXFileCryptoStore store = new MXFileCryptoStore();
-                store.initWithCredentials(mAppContent, mCredentials);
+                // test if the crypto instance has already been created
+                if (null == mCrypto) {
+                    MXFileCryptoStore store = new MXFileCryptoStore();
+                    store.initWithCredentials(mAppContent, mCredentials);
 
-                if (store.hasData() || mEnableCryptoWhenStartingMXSession) {
-                    // open the store
-                    store.open();
+                    if (store.hasData() || mEnableCryptoWhenStartingMXSession) {
+                        // open the store
+                        store.open();
 
-                    // enable
-                    mCrypto = new MXCrypto(MXSession.this, store);
-                    mDataHandler.setCrypto(mCrypto);
+                        // enable
+                        mCrypto = new MXCrypto(MXSession.this, store);
+                        mDataHandler.setCrypto(mCrypto);
 
-                    // the room summaries are not stored with decrypted content
-                    decryptRoomSummaries();
+                        // the room summaries are not stored with decrypted content
+                        decryptRoomSummaries();
+                    }
+                } else {
+                    Log.e(LOG_TAG, "## postProcess() : mCrypto is already created");
                 }
             }
 
@@ -239,6 +245,7 @@ public class MXSession {
         mDataHandler.setPresenceRestClient(mPresenceRestClient);
         mDataHandler.setThirdPidRestClient(mThirdPidRestClient);
         mDataHandler.setRoomsRestClient(mRoomsRestClient);
+        mDataHandler.setEventsRestClient(mEventsRestClient);
 
         // application context
         mAppContent = appContext;
@@ -612,7 +619,6 @@ public class MXSession {
         }
 
         if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
-
             // GA issue
             try {
                 mEventsThread.start();
@@ -620,18 +626,11 @@ public class MXSession {
                 Log.e(LOG_TAG, "## startEventStream() :  mEventsThread.start failed " + e.getMessage());
             }
 
-            if (mIsCatchupPending) {
-                Log.d(LOG_TAG, "startEventStream : there was a pending catchup : the catchup will be triggered in 5 seconds");
-
-                mIsCatchupPending = false;
-                Handler handler = new Handler(Looper.getMainLooper());
-                handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        Log.d(LOG_TAG, "startEventStream : pause the stream");
-                        pauseEventStream();
-                    }
-                }, 5000);
+            if (mIsBgCatchupPending) {
+                Log.d(LOG_TAG, "startEventStream : start a catchup");
+                mIsBgCatchupPending = false;
+                // catchup retrieve any available messages before stop the sync
+                mEventsThread.catchup();
             }
         }
     }
@@ -722,7 +721,7 @@ public class MXSession {
      */
     public int getSyncDelay() {
         if (null != mEventsThread) {
-            mEventsThread.getSyncDelay();
+            return mEventsThread.getSyncDelay();
         }
 
         return 0;
@@ -776,6 +775,18 @@ public class MXSession {
     }
 
     /**
+     * Refresh the network connection information.
+     * On android >= 6.0, the doze mode might have killed the network connection.
+     */
+    public void refreshNetworkConnection() {
+        if (null != mNetworkConnectivityReceiver) {
+            // mNetworkConnectivityReceiver is a broadcastReceiver
+            // but some users reported that the network updates were not dispatched
+            mNetworkConnectivityReceiver.checkNetworkConnection(mAppContent);
+        }
+    }
+
+    /**
      * Resume the event stream
      */
     public void resumeEventStream() {
@@ -783,7 +794,7 @@ public class MXSession {
 
         if (null != mNetworkConnectivityReceiver) {
             // mNetworkConnectivityReceiver is a broadcastReceiver
-            // but some users reported that the network updates wre not broadcasted.
+            // but some users reported that the network updates were not dispatched
             mNetworkConnectivityReceiver.checkNetworkConnection(mAppContent);
         }
 
@@ -792,10 +803,15 @@ public class MXSession {
         }
 
         if (null != mEventsThread) {
-            Log.d(LOG_TAG, "unpause");
+            Log.d(LOG_TAG, "## resumeEventStream() : unpause");
             mEventsThread.unpause();
         } else {
             Log.e(LOG_TAG, "resumeEventStream : mEventsThread is null");
+        }
+
+        if (mIsBgCatchupPending) {
+            mIsBgCatchupPending = false;
+            Log.d(LOG_TAG, "## resumeEventStream() : cancel bg sync");
         }
     }
 
@@ -810,7 +826,7 @@ public class MXSession {
             mEventsThread.catchup();
         } else {
             Log.e(LOG_TAG, "catchupEventStream : mEventsThread is null so catchup when the thread will be created");
-            mIsCatchupPending = true;
+            mIsBgCatchupPending = true;
         }
     }
 
@@ -1085,6 +1101,86 @@ public class MXSession {
                     }
                 }
             });
+        }
+    }
+
+    /**
+     * Send the read receipts to the latest room messages.
+     * @param rooms the rooms list
+     * @param callback the asynchronous callback
+     */
+    public void markRoomsAsRead(final Collection<Room> rooms, final ApiCallback<Void> callback) {
+        if ((null == rooms) || (0 == rooms.size())) {
+            if (null != callback) {
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onSuccess(null);
+                    }
+                });
+            }
+            return;
+        }
+
+        markRoomsAsRead(rooms.iterator(), callback);
+    }
+
+    /**
+     * Send the read receipts to the latest room messages.
+     * @param roomsIterator the rooms list iterator
+     * @param callback the asynchronous callback
+     */
+    private void markRoomsAsRead(final Iterator roomsIterator, final ApiCallback<Void> callback) {
+        if (roomsIterator.hasNext()) {
+            Room room = (Room) roomsIterator.next();
+            boolean isRequestSent = false;
+
+            if (mNetworkConnectivityReceiver.isConnected()) {
+                isRequestSent = room.sendReadReceipt(new ApiCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void anything) {
+                        markRoomsAsRead(roomsIterator, callback);
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        if (null != callback) {
+                            callback.onNetworkError(e);
+                        }
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        if (null != callback) {
+                            callback.onMatrixError(e);
+                        }
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        if (null != callback) {
+                            callback.onUnexpectedError(e);
+                        }
+                    }
+                });
+            } else {
+                // update the local data
+                room.sendReadReceipt(null);
+            }
+
+            if (!isRequestSent) {
+                markRoomsAsRead(roomsIterator, callback);
+            }
+
+        } else {
+            if (null != callback) {
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onSuccess(null);
+                    }
+                });
+            }
         }
     }
 
@@ -1866,6 +1962,43 @@ public class MXSession {
 
         for(RoomSummary summary :summaries) {
             mDataHandler.decryptEvent(summary.getLatestReceivedEvent(), null);
+        }
+    }
+
+    /**
+     * Check if the crypto engine is properly initialized.
+     * Launch it it is was not yet done.
+     */
+    public void checkCrypto() {
+        MXFileCryptoStore fileCryptoStore = new MXFileCryptoStore();
+        fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
+
+        if (fileCryptoStore.hasData() && (null == mCrypto)) {
+            Log.e(LOG_TAG, "## checkCrypto() : there are some crypto data but the engine was not launched");
+
+            enableCrypto(true, new ApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    Log.e(LOG_TAG, "## checkCrypto() : restarted");
+                    mDataHandler.setCrypto(mCrypto);
+                    decryptRoomSummaries();
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    Log.e(LOG_TAG, "## checkCrypto() : failed " + e.getMessage());
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    Log.e(LOG_TAG, "## checkCrypto() : failed " + e.getMessage());
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    Log.e(LOG_TAG, "## checkCrypto() : failed " + e.getMessage());
+                }
+            });
         }
     }
 

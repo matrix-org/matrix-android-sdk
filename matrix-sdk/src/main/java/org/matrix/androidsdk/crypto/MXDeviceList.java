@@ -30,6 +30,7 @@ import org.matrix.androidsdk.util.Log;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,14 +38,20 @@ import java.util.Set;
 public class MXDeviceList {
     private static final String LOG_TAG = "MXDeviceList";
 
+    public static final int TRACKING_STATUS_UNDEFINED = -1;
+    public static final int TRACKING_STATUS_PENDING_DOWNLOAD = 1;
+    public static final int TRACKING_STATUS_DOWNLOAD_IN_PROGRESS = 2;
+    public static final int TRACKING_STATUS_UP_TO_DATE = 3;
+    public static final int TRACKING_STATUS_UNREACHABLE_SERVER = 4;
+
     // keys in progress
     private final HashSet<String> mUserKeyDownloadsInProgress = new HashSet<>();
 
-    // pending request
-    private final HashSet<String> mPendingUsersWithNewDevices = new HashSet<>();
-
     // HS not ready for retry
     private final HashSet<String> mNotReadyToRetryHS = new HashSet<>();
+
+    // indexed by UserId
+    private HashMap<String, String> mPendingDownloadKeysRequestToken = new HashMap<>();
 
     // download keys queue
     class DownloadKeysPromise {
@@ -77,6 +84,8 @@ public class MXDeviceList {
 
     private final MXSession mxSession;
 
+    private final IMXCryptoStore mCryptoStore;
+
     // tells if there is a download keys request in progress
     private boolean mIsDownloadingKeys = false;
 
@@ -88,50 +97,24 @@ public class MXDeviceList {
     public MXDeviceList(MXSession session, MXCrypto crypto) {
         mxSession = session;
         mxCrypto = crypto;
-    }
+        mCryptoStore = crypto.getCryptoStore();
 
-    /**
-     * Tells if the keys downloads for an user id is either in progress or pending
-     *
-     * @param userId the user id
-     * @return true if teh keys download is either in progress or pending
-     */
-    private boolean isKeysDownloading(String userId) {
-        if (null != userId) {
-            return mUserKeyDownloadsInProgress.contains(userId) || mPendingUsersWithNewDevices.contains(userId);
+        boolean isUpdated = false;
+
+        Map<String, Integer> deviceTrackingStatuses = mCryptoStore.getDeviceTrackingStatuses();
+        for(String userId : deviceTrackingStatuses.keySet()) {
+            int status = deviceTrackingStatuses.get(userId);
+
+            if ((TRACKING_STATUS_DOWNLOAD_IN_PROGRESS == status) || (TRACKING_STATUS_UNREACHABLE_SERVER == status))  {
+                // if a download was in progress when we got shut down, it isn't any more.
+                deviceTrackingStatuses.put(userId, TRACKING_STATUS_PENDING_DOWNLOAD);
+                isUpdated = true;
+            }
         }
 
-        return false;
-    }
-
-    /**
-     * Add new pending users with new devices
-     *
-     * @param userIds the user ids list
-     */
-    public void addPendingUsersWithNewDevices(List<String> userIds) {
-        synchronized (mPendingUsersWithNewDevices) {
-            mPendingUsersWithNewDevices.addAll(userIds);
+        if (isUpdated) {
+            mCryptoStore.saveDeviceTrackingStatuses(deviceTrackingStatuses);
         }
-    }
-
-    /**
-     * Provides new pending users with new devices
-     *
-     * @return the the user ids list
-     */
-    private List<String> getPendingUsersWithNewDevices() {
-        final List<String> users;
-
-        synchronized (mPendingUsersWithNewDevices) {
-            users = new ArrayList<>(mPendingUsersWithNewDevices);
-
-            // We've kicked off requests to these users: remove their
-            // pending flag for now.
-            mPendingUsersWithNewDevices.clear();
-        }
-
-        return users;
     }
 
     /**
@@ -172,10 +155,6 @@ public class MXDeviceList {
                 mUserKeyDownloadsInProgress.addAll(userIds);
             }
 
-            synchronized (mPendingUsersWithNewDevices) {
-                mPendingUsersWithNewDevices.removeAll(userIds);
-            }
-
             mDownloadKeysQueues.add(new DownloadKeysPromise(userIds, callback));
 
             return filteredUserIds;
@@ -194,17 +173,62 @@ public class MXDeviceList {
     }
 
     /**
+     * Mark the cached device list for the given user outdated
+     * flag the given user for device-list tracking, if they are not already.
+     *
+     * @param userIds the user ids list
+     */
+    public void startTrackingDeviceList(List<String> userIds) {
+        if (null != userIds) {
+            boolean isUpdated = false;
+            Map<String, Integer> deviceTrackingStatuses = mCryptoStore.getDeviceTrackingStatuses();
+
+            for (String userId : userIds) {
+                if (!deviceTrackingStatuses.containsKey(userId)) {
+                    Log.d(LOG_TAG, "## startTrackingDeviceList() : Now tracking device list for " + userId);
+                    deviceTrackingStatuses.put(userId, TRACKING_STATUS_PENDING_DOWNLOAD);
+                    isUpdated = true;
+                }
+            }
+
+            if (isUpdated) {
+                mCryptoStore.saveDeviceTrackingStatuses(deviceTrackingStatuses);
+            }
+        }
+    }
+
+    /**
      * Invalidate the user device list
      *
      * @param userIds the user ids list
      */
-    public void invalidateUserDeviceList(List<String> userIds) {
+    public void invalidateUserDeviceList(final List<String> userIds) {
         if ((null != userIds) && (0 != userIds.size())) {
-            Log.d(LOG_TAG, "## invalidateUserDeviceList() : " + userIds);
-
-            addPendingUsersWithNewDevices(userIds);
             clearUnavailableServersList();
+
+            boolean isUpdated = false;
+            Map<String, Integer> deviceTrackingStatuses = mCryptoStore.getDeviceTrackingStatuses();
+
+            for (String userId : userIds) {
+                if (deviceTrackingStatuses.containsKey(userId)) {
+                    Log.d(LOG_TAG, "## invalidateUserDeviceList() : Marking device list outdated for " + userId);
+                    deviceTrackingStatuses.put(userId, TRACKING_STATUS_PENDING_DOWNLOAD);
+                    isUpdated = true;
+                }
+            }
+
+            if (isUpdated) {
+                mCryptoStore.saveDeviceTrackingStatuses(deviceTrackingStatuses);
+            }
         }
+    }
+
+    /**
+     * This will flag each user whose devices we are tracking as in need of an
+     + update
+     */
+    public void invalidateAllDeviceLists() {
+        invalidateUserDeviceList(new ArrayList<>(mCryptoStore.getDeviceTrackingStatuses().keySet()));
     }
 
     /**
@@ -215,11 +239,14 @@ public class MXDeviceList {
     private void onKeysDownloadFailed(final List<String> userIds) {
         if (null != userIds) {
             synchronized (mUserKeyDownloadsInProgress) {
-                mUserKeyDownloadsInProgress.removeAll(userIds);
-            }
+                Map<String, Integer> deviceTrackingStatuses = mCryptoStore.getDeviceTrackingStatuses();
 
-            synchronized (mPendingUsersWithNewDevices) {
-                mPendingUsersWithNewDevices.addAll(userIds);
+                for(String userId : userIds) {
+                    mUserKeyDownloadsInProgress.remove(userId);
+                    deviceTrackingStatuses.put(userId, TRACKING_STATUS_PENDING_DOWNLOAD);
+                }
+
+                mCryptoStore.saveDeviceTrackingStatuses(deviceTrackingStatuses);
             }
         }
 
@@ -258,6 +285,8 @@ public class MXDeviceList {
             }
         }
 
+        Map<String, Integer> deviceTrackingStatuses = mCryptoStore.getDeviceTrackingStatuses();
+
         if (null != userIds) {
             if (mDownloadKeysQueues.size() > 0) {
                 ArrayList<DownloadKeysPromise> promisesToRemove = new ArrayList<>();
@@ -270,18 +299,27 @@ public class MXDeviceList {
                         final MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = new MXUsersDevicesMap<>();
 
                         for (String userId : promise.mUserIdsList) {
-                            Map<String, MXDeviceInfo> devices = mxCrypto.getCryptoStore().getUserDevices(userId);
-
+                            Map<String, MXDeviceInfo> devices = mCryptoStore.getUserDevices(userId);
                             if (null == devices) {
-                                synchronized (mPendingUsersWithNewDevices) {
-                                    if (canRetryKeysDownload(userId)) {
-                                        mPendingUsersWithNewDevices.add(userId);
-                                        Log.e(LOG_TAG, "failed to retry the devices of " + userId + " : retry later");
-                                    } else {
+                                if (canRetryKeysDownload(userId)) {
+                                    deviceTrackingStatuses.put(userId, TRACKING_STATUS_PENDING_DOWNLOAD);
+                                    Log.e(LOG_TAG, "failed to retry the devices of " + userId + " : retry later");
+                                } else {
+                                    if (deviceTrackingStatuses.containsKey(userId) &&
+                                            (TRACKING_STATUS_DOWNLOAD_IN_PROGRESS == deviceTrackingStatuses.get(userId))) {
+                                        deviceTrackingStatuses.put(userId, TRACKING_STATUS_UNREACHABLE_SERVER);
                                         Log.e(LOG_TAG, "failed to retry the devices of " + userId + " : the HS is not available");
                                     }
                                 }
                             } else {
+                                if (deviceTrackingStatuses.containsKey(userId) &&
+                                        (TRACKING_STATUS_DOWNLOAD_IN_PROGRESS == deviceTrackingStatuses.get(userId))) {
+                                    // we didn't get any new invalidations since this download started:
+                                    //  this user's device list is now up to date.
+                                    deviceTrackingStatuses.put(userId, TRACKING_STATUS_UP_TO_DATE);
+                                    Log.d(LOG_TAG, "Device list for " + userId + " now up to date");
+                                }
+
                                 // And the response result
                                 usersDevicesInfoMap.setObjects(devices, userId);
                             }
@@ -305,7 +343,11 @@ public class MXDeviceList {
                 mDownloadKeysQueues.removeAll(promisesToRemove);
             }
 
-            mUserKeyDownloadsInProgress.removeAll(userIds);
+            for(String userId : userIds) {
+                mUserKeyDownloadsInProgress.remove(userId);
+            }
+
+            mCryptoStore.saveDeviceTrackingStatuses(deviceTrackingStatuses);
         }
 
         mIsDownloadingKeys = false;
@@ -327,29 +369,29 @@ public class MXDeviceList {
         final MXUsersDevicesMap<MXDeviceInfo> stored = new MXUsersDevicesMap<>();
 
         // List of user ids we need to download keys for
-        final ArrayList<String> downloadUsers;
+        final List<String> downloadUsers = new ArrayList<>();
 
-        if (forceDownload) {
-            downloadUsers = (null == userIds) ? new ArrayList<String>() : new ArrayList<>(userIds);
-        } else {
-            downloadUsers = new ArrayList<>();
-
-            if (null != userIds) {
-                IMXCryptoStore store = mxCrypto.getCryptoStore();
-
+        if (null != userIds) {
+            if (forceDownload) {
+                downloadUsers.addAll(userIds);
+            } else {
                 for (String userId : userIds) {
+                    Integer status = mCryptoStore.getDeviceTrackingStatus(userId, TRACKING_STATUS_UNDEFINED);
 
-                    Map<String, MXDeviceInfo> devices = store.getUserDevices(userId);
-
-                    if (null == devices) {
+                    // downloading keys ->the keys download won't be triggered twice but the callback requires the dedicated keys
+                    // not yet retrieved
+                    if (mUserKeyDownloadsInProgress.contains(userId) ||
+                            ((TRACKING_STATUS_UP_TO_DATE != status) && (TRACKING_STATUS_UNREACHABLE_SERVER != status))
+                            ) {
                         downloadUsers.add(userId);
                     } else {
-                        // the keys download won't be triggered twice
-                        // but the callback requires the dedicated keys
-                        if (isKeysDownloading(userId)) {
-                            downloadUsers.add(userId);
-                        } else {
+                        Map<String, MXDeviceInfo> devices = mCryptoStore.getUserDevices(userId);
+
+                        // should always be true
+                        if (null != devices) {
                             stored.setObjects(devices, userId);
+                        } else {
+                            downloadUsers.add(userId);
                         }
                     }
                 }
@@ -436,63 +478,82 @@ public class MXDeviceList {
 
         mIsDownloadingKeys = true;
 
+        // track the race condition while sending requests
+        // we defines a tag for each request
+        // and test if the response is the latest request one
+        final String downloadToken = filteredUsers.hashCode() + " " + System.currentTimeMillis();
+        
+        for(String userId : filteredUsers) {
+            mPendingDownloadKeysRequestToken.put(userId, downloadToken);
+        }
+
         mxSession.getCryptoRestClient().downloadKeysForUsers(filteredUsers, mxSession.getDataHandler().getStore().getEventStreamToken(), new ApiCallback<KeysQueryResponse>() {
             @Override
             public void onSuccess(final KeysQueryResponse keysQueryResponse) {
                 mxCrypto.getEncryptingThreadHandler().post(new Runnable() {
                     @Override
                     public void run() {
-
                         Log.d(LOG_TAG, "## doKeyDownloadForUsers() : Got keys for " + filteredUsers.size() + " users");
                         MXDeviceInfo myDevice = mxCrypto.getMyDevice();
                         IMXCryptoStore cryptoStore = mxCrypto.getCryptoStore();
 
-                        for (String userId : filteredUsers) {
-                            Map<String, MXDeviceInfo> devices = keysQueryResponse.deviceKeys.get(userId);
+                        List<String> userIdsList = new ArrayList<>(filteredUsers);
 
-                            Log.d(LOG_TAG, "## doKeyDownloadForUsers() : Got keys for " + userId + " : " + devices);
+                        for (String userId : userIdsList) {
+                            // test if the response is the latest request one
+                            if (!TextUtils.equals(mPendingDownloadKeysRequestToken.get(userId), downloadToken)) {
+                                Log.e(LOG_TAG, "## doKeyDownloadForUsers() : Another update in the queue for " +  userId + " not marking up-to-date");
+                                filteredUsers.remove(userId);
+                            } else {
+                                Map<String, MXDeviceInfo> devices = keysQueryResponse.deviceKeys.get(userId);
 
-                            if (null != devices) {
-                                HashMap<String, MXDeviceInfo> mutableDevices = new HashMap<>(devices);
-                                ArrayList<String> deviceIds = new ArrayList<>(mutableDevices.keySet());
+                                Log.d(LOG_TAG, "## doKeyDownloadForUsers() : Got keys for " + userId + " : " + devices);
 
-                                for (String deviceId : deviceIds) {
-                                    // the user has been logged out
-                                    if (null == cryptoStore) {
-                                        break;
-                                    }
+                                if (null != devices) {
+                                    HashMap<String, MXDeviceInfo> mutableDevices = new HashMap<>(devices);
+                                    ArrayList<String> deviceIds = new ArrayList<>(mutableDevices.keySet());
 
-                                    // Get the potential previously store device keys for this device
-                                    MXDeviceInfo previouslyStoredDeviceKeys = cryptoStore.getUserDevice(deviceId, userId);
-                                    MXDeviceInfo deviceInfo = mutableDevices.get(deviceId);
-
-                                    // in some race conditions (like unit tests)
-                                    // the self device must be seen as verified
-                                    if (TextUtils.equals(deviceInfo.deviceId, myDevice.deviceId) &&
-                                            TextUtils.equals(userId, myDevice.userId)) {
-                                        deviceInfo.mVerified = MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED;
-                                    }
-
-                                    // Validate received keys
-                                    if (!validateDeviceKeys(deviceInfo, userId, deviceId, previouslyStoredDeviceKeys)) {
-                                        // New device keys are not valid. Do not store them
-                                        mutableDevices.remove(deviceId);
-
-                                        if (null != previouslyStoredDeviceKeys) {
-                                            // But keep old validated ones if any
-                                            mutableDevices.put(deviceId, previouslyStoredDeviceKeys);
+                                    for (String deviceId : deviceIds) {
+                                        // the user has been logged out
+                                        if (null == cryptoStore) {
+                                            break;
                                         }
-                                    } else if (null != previouslyStoredDeviceKeys) {
-                                        // The verified status is not sync'ed with hs.
-                                        // This is a client side information, valid only for this client.
-                                        // So, transfer its previous value
-                                        mutableDevices.get(deviceId).mVerified = previouslyStoredDeviceKeys.mVerified;
+
+                                        // Get the potential previously store device keys for this device
+                                        MXDeviceInfo previouslyStoredDeviceKeys = cryptoStore.getUserDevice(deviceId, userId);
+                                        MXDeviceInfo deviceInfo = mutableDevices.get(deviceId);
+
+                                        // in some race conditions (like unit tests)
+                                        // the self device must be seen as verified
+                                        if (TextUtils.equals(deviceInfo.deviceId, myDevice.deviceId) &&
+                                                TextUtils.equals(userId, myDevice.userId)) {
+                                            deviceInfo.mVerified = MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED;
+                                        }
+
+                                        // Validate received keys
+                                        if (!validateDeviceKeys(deviceInfo, userId, deviceId, previouslyStoredDeviceKeys)) {
+                                            // New device keys are not valid. Do not store them
+                                            mutableDevices.remove(deviceId);
+
+                                            if (null != previouslyStoredDeviceKeys) {
+                                                // But keep old validated ones if any
+                                                mutableDevices.put(deviceId, previouslyStoredDeviceKeys);
+                                            }
+                                        } else if (null != previouslyStoredDeviceKeys) {
+                                            // The verified status is not sync'ed with hs.
+                                            // This is a client side information, valid only for this client.
+                                            // So, transfer its previous value
+                                            mutableDevices.get(deviceId).mVerified = previouslyStoredDeviceKeys.mVerified;
+                                        }
                                     }
+
+                                    // Update the store
+                                    // Note that devices which aren't in the response will be removed from the stores
+                                    cryptoStore.storeUserDevices(userId, mutableDevices);
                                 }
 
-                                // Update the store
-                                // Note that devices which aren't in the response will be removed from the stores
-                                cryptoStore.storeUserDevices(userId, mutableDevices);
+                                // the response is the latest request one
+                                mPendingDownloadKeysRequestToken.remove(userId);
                             }
                         }
 
@@ -501,16 +562,34 @@ public class MXDeviceList {
                 });
             }
 
-            @Override
-            public void onNetworkError(Exception e) {
+            private void onFailed() {
                 mxCrypto.getEncryptingThreadHandler().post(new Runnable() {
                     @Override
                     public void run() {
+                        List<String> userIdsList = new ArrayList<>(filteredUsers);
+
+                         // test if the response is the latest request one
+                        for (String userId : userIdsList) {
+                            if (!TextUtils.equals(mPendingDownloadKeysRequestToken.get(userId), downloadToken)) {
+                                Log.e(LOG_TAG, "## doKeyDownloadForUsers() : Another update in the queue for " + userId + " not marking up-to-date");
+                                filteredUsers.remove(userId);
+                            } else {
+                                // the response is the latest request one
+                                mPendingDownloadKeysRequestToken.remove(userId);
+                            }
+                        }
+
                         onKeysDownloadFailed(filteredUsers);
                     }
                 });
+            }
 
+            @Override
+            public void onNetworkError(Exception e) {
                 Log.e(LOG_TAG, "##doKeyDownloadForUsers() : onNetworkError " + e.getMessage());
+
+                onFailed();
+
                 if (null != callback) {
                     callback.onNetworkError(e);
                 }
@@ -520,12 +599,7 @@ public class MXDeviceList {
             public void onMatrixError(MatrixError e) {
                 Log.e(LOG_TAG, "##doKeyDownloadForUsers() : onMatrixError " + e.getMessage());
 
-                mxCrypto.getEncryptingThreadHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        onKeysDownloadFailed(filteredUsers);
-                    }
-                });
+                onFailed();
 
                 if (null != callback) {
                     callback.onMatrixError(e);
@@ -536,12 +610,7 @@ public class MXDeviceList {
             public void onUnexpectedError(Exception e) {
                 Log.e(LOG_TAG, "##doKeyDownloadForUsers() : onUnexpectedError " + e.getMessage());
 
-                mxCrypto.getEncryptingThreadHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        onKeysDownloadFailed(filteredUsers);
-                    }
-                });
+                onFailed();
 
                 if (null != callback) {
                     callback.onUnexpectedError(e);
@@ -643,7 +712,15 @@ public class MXDeviceList {
      * This method must be called on getEncryptingThreadHandler() thread.
      */
     public void refreshOutdatedDeviceLists() {
-        final List<String> users = getPendingUsersWithNewDevices();
+        final List<String> users = new ArrayList<>();
+
+        Map<String, Integer> deviceTrackingStatuses = mCryptoStore.getDeviceTrackingStatuses();
+
+        for(String userId : deviceTrackingStatuses.keySet()) {
+            if (TRACKING_STATUS_PENDING_DOWNLOAD == deviceTrackingStatuses.get(userId)) {
+                users.add(userId);
+            }
+        }
 
         if (users.size() == 0) {
             return;
@@ -655,6 +732,17 @@ public class MXDeviceList {
             // device lists when the current request completes).
             return;
         }
+
+        // update the statuses
+        for(String userId : users) {
+            Integer status = deviceTrackingStatuses.get(userId);
+
+            if ((null != status) && (TRACKING_STATUS_PENDING_DOWNLOAD == status)) {
+                deviceTrackingStatuses.put(userId, TRACKING_STATUS_DOWNLOAD_IN_PROGRESS);
+            }
+        }
+
+        mCryptoStore.saveDeviceTrackingStatuses(deviceTrackingStatuses);
 
         doKeyDownloadForUsers(users, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
             @Override
