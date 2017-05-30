@@ -204,6 +204,16 @@ public class MXMemoryStore implements IMXStore {
     }
 
     /**
+     * Check if the read receipts are ready to be used.
+     *
+     * @return true if they are ready.
+     */
+    @Override
+    public boolean areReceiptsReady() {
+        return true;
+    }
+
+    /**
      * @return true if the store is corrupted.
      */
     @Override
@@ -457,7 +467,7 @@ public class MXMemoryStore implements IMXStore {
                 // update the display name and the avatar url.
                 // the leave and ban events have no displayname and no avatar url.
                 if (TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_JOIN)) {
-                    boolean hasUpdates = !TextUtils.equals(user.displayname, roomMember.displayname) || !TextUtils.equals(user.getAvatarUrl(), roomMember.avatarUrl);
+                    boolean hasUpdates = !TextUtils.equals(user.displayname, roomMember.displayname) || !TextUtils.equals(user.getAvatarUrl(), roomMember.getAvatarUrl());
 
                     if (hasUpdates) {
                         // invite event does not imply that the user uses the application.
@@ -465,7 +475,7 @@ public class MXMemoryStore implements IMXStore {
                         if (user.getLatestPresenceTs() < roomMember.getOriginServerTs()) {
                             // if the user joined the room, it implies that he used the application
                             user.displayname = roomMember.displayname;
-                            user.setAvatarUrl(roomMember.avatarUrl);
+                            user.setAvatarUrl(roomMember.getAvatarUrl());
                             user.setLatestPresenceTs(roomMember.getOriginServerTs());
                             user.setRetrievedFromRoomMember();
                         }
@@ -992,12 +1002,38 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public Collection<RoomSummary> getSummaries() {
-        return mRoomSummaries.values();
+        List<RoomSummary> summaries = new ArrayList<>();
+
+        for(String roomId : mRoomSummaries.keySet()) {
+            Room room = mRooms.get(roomId);
+            if (null != room) {
+                if (null == room.getMember(mCredentials.userId)) {
+                    Log.e(LOG_TAG, "## getSummaries() : a summary exists for the roomId " + roomId + " but the user is not anymore a member");
+                } else {
+                    summaries.add(mRoomSummaries.get(roomId));
+                }
+            } else {
+                Log.e(LOG_TAG, "## getSummaries() : a summary exists for the roomId " + roomId + " but it does not exist in the room list");
+            }
+        }
+
+        return summaries;
     }
 
     @Override
     public RoomSummary getSummary(String roomId) {
-        return mRoomSummaries.get(roomId);
+        Room room = mRooms.get(roomId);
+        if (null != room) {
+            if (null == room.getMember(mCredentials.userId)) {
+                Log.e(LOG_TAG, "## getSummary() : a summary exists for the roomId " + roomId + " but the user is not anymore a member");
+            } else {
+                return mRoomSummaries.get(roomId);
+            }
+        } else {
+            Log.e(LOG_TAG, "## getSummary() : a summary exists for the roomId " + roomId + " but it does not exist in the room list");
+        }
+
+        return null;
     }
 
     @Override

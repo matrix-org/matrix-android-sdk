@@ -43,10 +43,6 @@ public class RestClientTest {
     private static final String BASE_URL = "http://localhost:8008/_matrix/client/api/v1";
     private static final String PATH = "/publicRooms";
 
-    private Gson mGson = new GsonBuilder()
-            .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-            .create();
-
     /**
      * Tests: MXApiService.loadPublicRooms(LoadPublicRoomsCallback)
      * Summary: Mocks up a single public room in the response and asserts that the callback contains

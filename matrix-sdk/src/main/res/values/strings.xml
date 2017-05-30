@@ -1,11 +1,7 @@
 <resources>
-    <string name="app_name">Matrix Android SDK</string>
-
-    <string name="downloading">Downloading</string>
+    <string name="matrix_sdk_app_name">Matrix Android SDK</string>
 
     <string name="summary_message">%1$s: %2$s</string>
-    <string name="summary_invitation">Room Invitation</string>
-    <string name="summary_user_invitation">%s\'s invitation</string>
     <string name="summary_user_sent_image">%1$s sent an image.</string>
 
     <string name="notice_room_invite_no_invitee">%s\'s invitation</string>
@@ -22,11 +18,8 @@
     <string name="notice_display_name_set">%1$s set their display name to %2$s</string>
     <string name="notice_display_name_changed_from">%1$s changed their display name from %2$s to %3$s</string>
     <string name="notice_display_name_removed">%1$s removed their display name (%2$s)</string>
-    <string name="notice_display_name_changed">%1$s changed their display name to %2$s</string>
     <string name="notice_topic_changed">%1$s changed the topic to: %2$s</string>
     <string name="notice_room_name_changed">%1$s changed the room name to: %2$s</string>
-    <string name="notice_outgoing_call">Outgoing Call</string>
-    <string name="notice_incoming_call">Incoming Call</string>
     <string name="notice_placed_video_call">%s placed a video call.</string>
     <string name="notice_placed_voice_call">%s placed a voice call.</string>
     <string name="notice_answered_call">%s answered the call.</string>
@@ -50,24 +43,6 @@
     <string name="notice_event_redacted_by"> by %1$s</string>
     <string name="notice_event_redacted_reason">  [reason: %1$s]</string>
     <string name="notice_profile_change_redacted">%1$s updated their profile %2$s</string>
-    <string name="notice_room_created">%1$s created the room</string>
-    <string name="notice_room_join_rule">The join rule is: %1$s</string>
-    <string name="notice_room_power_level_intro">The power level of room members are:</string>
-    <string name="notice_room_power_level_acting_requirement">The minimum power levels that a user must have before acting are:</string>
-    <string name="notice_room_power_level_event_requirement">The minimum power levels related to events are:</string>
-    <string name="notice_room_aliases">The room aliases are: %1$s</string>
-    <string name="notice_image_attachment">image attachment</string>
-    <string name="notice_audio_attachment">audio attachment</string>
-    <string name="notice_video_attachment">video attachment</string>
-    <string name="notice_location_attachment">location attachment</string>
-    <string name="notice_file_attachment">file attachment</string>
-    <string name="notice_invalid_attachment">invalid attachment</string>
-    <string name="notice_unsupported_attachment">Unsupported attachment: %1$s</string>
-    <string name="notice_feedback">Feedback event (id: %1$s): %2$s</string>
-    <string name="notice_redaction">%1$s redacted an event (id: %2$s)</string>
-    <string name="notice_error_unsupported_event">Unsupported event</string>
-    <string name="notice_error_unexpected_event">Unexpected event</string>
-    <string name="notice_error_unknown_event_type">Unknown event type</string>
     <string name="notice_room_third_party_invite">%1$s sent an invitation to %2$s to join the room</string>
     <string name="notice_room_third_party_registered_invite">%1$s accepted the invitation for %2$s</string>
 
@@ -77,16 +52,12 @@
     <!-- Room Screen -->
     <string name="could_not_redact">Could not redact</string>
     <string name="unable_to_send_message">Unable to send message</string>
-    <string name="downloading_dot">Downloading ...</string>
-    <string name="uploading_dot">Uploading ...</string>
 
-    <string name="message_uploading">Uploading&#8230;</string>
     <string name="message_failed_to_upload">Failed to upload image</string>
 
     <!-- general errors -->
     <string name="network_error">Network error</string>
     <string name="matrix_error">Matrix error</string>
-    <string name="unexpected_error">Unexpected error</string>
 
     <!-- Home Screen -->
     <string name="users"> users</string>
@@ -99,11 +70,6 @@
     <string name="last_seen_days">%dd</string>
 
     <!-- call events -->
-    <string name="call_invitation">Call invitation.</string>
-    <string name="call_hungup">Call hung up.</string>
-    <string name="call_answered">Call answered.</string>
-    <string name="call_error_user_media_failed">Camera initialization error.</string>
-    <string name="call_error_ice_failed">Connection failed..</string>
 
     <!-- room error messages -->
     <string name="room_error_join_failed_empty_room">It is not currently possible to re-join an empty room.</string>

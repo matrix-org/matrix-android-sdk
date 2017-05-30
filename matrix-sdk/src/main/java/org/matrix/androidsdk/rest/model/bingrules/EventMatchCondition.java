@@ -36,6 +36,11 @@ public class EventMatchCondition extends Condition {
         kind = Condition.KIND_EVENT_MATCH;
     }
 
+    @Override
+    public String toString() {
+        return "EventMatchCondition{" + "key='" + key + ", pattern=" + pattern + '}';
+    }
+
     /**
      * Returns whether the given event satisfies the condition.
      * @param event the event
@@ -44,7 +49,7 @@ public class EventMatchCondition extends Condition {
     public boolean isSatisfied(Event event) {
         String fieldVal = null;
 
-        // some informations are in the decrypted event (like type)
+        // some information are in the decrypted event (like type)
         if (event.isEncrypted() && (null != event.getClearEvent())) {
             JsonObject eventJson = JsonUtils.toJson(event.getClearEvent());
             fieldVal = extractField(eventJson, key);

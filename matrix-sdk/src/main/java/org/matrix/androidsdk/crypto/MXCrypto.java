@@ -148,6 +148,8 @@ public class MXCrypto {
         public void onLiveEvent(Event event, RoomState roomState) {
             if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTION)) {
                 onCryptoEvent(event);
+            } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
+                onRoomMembership(event);
             }
         }
     };
@@ -240,7 +242,7 @@ public class MXCrypto {
         if (refreshDevicesList) {
             // ensure to have the up-to-date devices list
             // got some issues when upgrading from Riot < 0.6.4
-            mDevicesList.addPendingUsersWithNewDevices(Arrays.asList(mSession.getMyUserId()));
+            mDevicesList.invalidateUserDeviceList(Arrays.asList(mSession.getMyUserId()));
         }
     }
 
@@ -295,7 +297,7 @@ public class MXCrypto {
      * @return true if some saved data is corrupted
      */
     public boolean isCorrupted() {
-        return mCryptoStore.isCorrupted();
+        return (null != mCryptoStore) && mCryptoStore.isCorrupted();
     }
 
     /**
@@ -324,6 +326,16 @@ public class MXCrypto {
      */
     public MXDeviceList getDeviceList() {
         return mDevicesList;
+    }
+
+    /**
+     * Provides the tracking status
+     *
+     * @param userId the user id
+     * @return the tracking status
+     */
+    public int getDeviceTrackingStatus(String userId) {
+        return mCryptoStore.getDeviceTrackingStatus(userId, MXDeviceList.TRACKING_STATUS_UNDEFINED);
     }
 
     /**
@@ -434,7 +446,7 @@ public class MXCrypto {
                                                                             @Override
                                                                             public void run() {
                                                                                 // refresh the devices list for each known room members
-                                                                                getDeviceList().invalidateUserDeviceList(getE2eRoomMembers());
+                                                                                getDeviceList().invalidateAllDeviceLists();
                                                                                 mDevicesList.refreshOutdatedDeviceLists();
                                                                             }
                                                                         });
@@ -734,7 +746,7 @@ public class MXCrypto {
 
                             // assume if the device is either verified or blocked
                             // it means that the device is known
-                            if (device.isUnknown()) {
+                            if ((null != device) && device.isUnknown()) {
                                 device.mVerified = MXDeviceInfo.DEVICE_VERIFICATION_UNVERIFIED;
                                 isUpdated = true;
                             }
@@ -827,9 +839,11 @@ public class MXCrypto {
      *
      * @param roomId    the room id to enable encryption in.
      * @param algorithm the encryption config for the room.
+     * @param inhibitDeviceQuery true to suppress device list query for users in the room (for now)
+     *
      * @return true if the operation succeeds.
      */
-    private boolean setEncryptionInRoom(String roomId, String algorithm) {
+    private boolean setEncryptionInRoom(String roomId, String algorithm, boolean inhibitDeviceQuery) {
         if (hasBeenReleased()) {
             return false;
         }
@@ -885,9 +899,11 @@ public class MXCrypto {
                     userIds.add(m.getUserId());
                 }
 
-                getDeviceList().invalidateUserDeviceList(userIds);
-                // the actual refresh happens once we've finished processing the sync,
-                // in _onSyncCompleted.
+                getDeviceList().startTrackingDeviceList(userIds);
+
+                if (!inhibitDeviceQuery) {
+                    getDeviceList().refreshOutdatedDeviceLists();
+                }
             }
         }
 
@@ -1230,7 +1246,7 @@ public class MXCrypto {
                     String algorithm = room.getLiveState().encryptionAlgorithm();
 
                     if (null != algorithm) {
-                        if (setEncryptionInRoom(room.getRoomId(), algorithm)) {
+                        if (setEncryptionInRoom(room.getRoomId(), algorithm, false)) {
                             synchronized (mRoomEncryptors) {
                                 alg = mRoomEncryptors.get(room.getRoomId());
                             }
@@ -1517,7 +1533,7 @@ public class MXCrypto {
 
         // Catch up on any m.new_device events which arrived during the initial sync.
         // And force download all devices keys  the user already has.
-        mDevicesList.addPendingUsersWithNewDevices(Arrays.asList(mMyDevice.userId));
+        mDevicesList.invalidateUserDeviceList(Arrays.asList(mMyDevice.userId));
         mDevicesList.refreshOutdatedDeviceLists();
 
         // We need to tell all the devices in all the rooms we are members of that
@@ -1704,7 +1720,7 @@ public class MXCrypto {
             return;
         }
 
-        mDevicesList.addPendingUsersWithNewDevices(Arrays.asList(userId));
+        mDevicesList.invalidateUserDeviceList(Arrays.asList(userId));
     }
 
     /**
@@ -1718,9 +1734,45 @@ public class MXCrypto {
         getEncryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
-                setEncryptionInRoom(event.roomId, eventContent.algorithm);
+                setEncryptionInRoom(event.roomId, eventContent.algorithm, true);
             }
         });
+    }
+
+    /**
+     * Handle a change in the membership state of a member of a room.
+     *
+     * @param event the membership event causing the change
+     */
+    private void onRoomMembership(final Event event) {
+        final IMXEncrypting alg;
+
+        synchronized (mRoomEncryptors) {
+            alg = mRoomEncryptors.get(event.roomId);
+        }
+
+        if (null == alg) {
+            // No encrypting in this room
+            return;
+        }
+
+        final String userId = event.stateKey;
+
+        RoomMember roomMember = mSession.getDataHandler().getRoom(event.roomId).getLiveState().getMember(userId);
+
+        if (null != roomMember) {
+            final String membership = roomMember.membership;
+
+            getEncryptingThreadHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_JOIN)) {
+                        // make sure we are tracking the deviceList for this user
+                        getDeviceList().startTrackingDeviceList(Arrays.asList(userId));
+                    }
+                }
+            });
+        }
     }
 
     /**

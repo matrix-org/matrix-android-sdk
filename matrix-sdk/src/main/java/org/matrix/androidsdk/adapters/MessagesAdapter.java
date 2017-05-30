@@ -704,7 +704,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
             if ((!mIsSearchMode) && refresh) {
                 this.notifyDataSetChanged();
+            } else {
+                setNotifyOnChange(true);
             }
+        } else {
+            setNotifyOnChange(true);
         }
     }
 
@@ -947,7 +951,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      */
     protected void loadMemberAvatar(ImageView avatarView, RoomMember member, String userId, String displayName, String url) {
         if ((member != null) && (null == url)) {
-            url = member.avatarUrl;
+            url = member.getAvatarUrl();
         }
 
         if (TextUtils.isEmpty(url) && (null != userId)) {
@@ -1031,8 +1035,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 imageView.setImageResource(R.drawable.ic_contact_picture_holo_light);
 
                 // the member might be null if he left the room
-                if ((null != member) && (null != member.avatarUrl)) {
-                    loadSmallAvatar(imageView, member.avatarUrl);
+                if ((null != member) && (null != member.getAvatarUrl())) {
+                    loadSmallAvatar(imageView, member.getAvatarUrl());
                 }
 
                 final String userId = r.userId;
@@ -1392,7 +1396,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                         url = null;
 
                         if (null != sender) {
-                            url = sender.avatarUrl;
+                            url = sender.getAvatarUrl();
                         }
                     }
 

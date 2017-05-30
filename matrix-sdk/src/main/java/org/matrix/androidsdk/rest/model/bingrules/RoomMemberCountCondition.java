@@ -35,6 +35,11 @@ public class RoomMemberCountCondition extends Condition {
         kind = Condition.KIND_ROOM_MEMBER_COUNT;
     }
 
+    @Override
+    public String toString() {
+        return "RoomMemberCountCondition{" + "is='" + is + "'}'";
+    }
+
     public boolean isSatisfied(Room room) {
         // sanity check
         if (room == null) return false;
