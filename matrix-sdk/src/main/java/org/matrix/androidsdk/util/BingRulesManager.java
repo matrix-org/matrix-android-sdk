@@ -283,6 +283,17 @@ public class BingRulesManager {
             return null;
         }
 
+        String eventType = event.getType();
+
+        // some types are not bingable
+        if (TextUtils.equals(eventType, Event.EVENT_TYPE_PRESENCE)
+                || TextUtils.equals(eventType, Event.EVENT_TYPE_TYPING)
+                || TextUtils.equals(eventType, Event.EVENT_TYPE_REDACTION)
+                || TextUtils.equals(eventType, Event.EVENT_TYPE_RECEIPT)
+                || TextUtils.equals(eventType, Event.EVENT_TYPE_TAGS)) {
+            return null;
+        }
+
         if (mRules != null) {
             // GA issue
             final ArrayList<BingRule> rules;
