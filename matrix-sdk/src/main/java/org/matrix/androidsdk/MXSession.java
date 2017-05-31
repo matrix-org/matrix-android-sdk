@@ -1958,10 +1958,12 @@ public class MXSession {
      * to display the right messages.
      */
     private void decryptRoomSummaries() {
-        Collection<RoomSummary> summaries = getDataHandler().getStore().getSummaries();
+        if (null != getDataHandler().getStore()) {
+            Collection<RoomSummary> summaries = getDataHandler().getStore().getSummaries();
 
-        for(RoomSummary summary :summaries) {
-            mDataHandler.decryptEvent(summary.getLatestReceivedEvent(), null);
+            for (RoomSummary summary : summaries) {
+                mDataHandler.decryptEvent(summary.getLatestReceivedEvent(), null);
+            }
         }
     }
 
