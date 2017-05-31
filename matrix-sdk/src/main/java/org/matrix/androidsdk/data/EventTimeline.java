@@ -766,8 +766,6 @@ public class EventTimeline {
 
         BingRulesManager bingRulesManager = mDataHandler.getBingRulesManager();
 
-        String eventType = event.getType();
-
         // If the bing rules apply, bing
         if (!outOfTimeEvent
                 && (bingRulesManager != null)
