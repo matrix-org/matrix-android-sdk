@@ -53,6 +53,7 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
@@ -268,8 +269,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     private static final String LOG_TAG = "MessagesAdapter";
 
-    private static final String READ_MARKER_TAG = "readMarkerTag";
-
     private List<String> mTypingUsers = new ArrayList<>();
 
     protected final Context mContext;
@@ -312,8 +311,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private ArrayList<MessageRow> mLiveMessagesRowList = null;
 
     // id of the read markers event
-    private String mLastReadEventId;
+    private String mReadMarkerEventId;
     private String mReadReceiptEventId;
+    private View mReadMarkerView;
 
     private MatrixLinkMovementMethod mLinkMovementMethod;
 
@@ -711,7 +711,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param refresh tru to refresh the display.
      */
     public void add(MessageRow row, boolean refresh) {
-        Log.e(LOG_TAG, "add row  " + row.getEvent().eventId);
         // ensure that notifyDataSetChanged is not called
         // it seems that setNotifyOnChange is reinitialized to true;
         setNotifyOnChange(false);
@@ -942,71 +941,102 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 throw new RuntimeException("Unknown item view type for position " + position);
         }
 
-        MessageRow row = getItem(position);
+        handleReadMarker(inflatedView, position);
+
+        return inflatedView;
+    }
+
+    /**
+     * Prepare the read marker view
+     */
+    private void initReadMarkerView(){
+        if (mReadMarkerView == null) {
+            mReadMarkerView = new View(mContext);
+            final int readMarkerHeight = (int) (mContext.getResources().getDisplayMetrics().density * 2);
+            LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, readMarkerHeight);
+            layoutParams.bottomMargin = readMarkerHeight;
+            mReadMarkerView.setLayoutParams(layoutParams);
+            mReadMarkerView.setBackgroundColor(ContextCompat.getColor(mContext, R.color.unread_marker_line));
+        }
+
+        if (mReadMarkerView.getAnimation() == null) {
+            final Animation animation = AnimationUtils.loadAnimation(getContext(), R.anim.unread_marker_anim);
+            animation.setStartOffset(1000);
+            animation.setAnimationListener(new Animation.AnimationListener() {
+                @Override
+                public void onAnimationStart(Animation animation) {
+                }
+
+                @Override
+                public void onAnimationEnd(Animation animation) {
+                    if (mReadMarkerView != null) {
+                        // Remove read marker view from its parent
+                        final ViewParent parent = mReadMarkerView.getParent();
+                        if (parent != null && parent instanceof ViewGroup) {
+                            ((ViewGroup) parent).removeView(mReadMarkerView);
+                        }
+                    }
+                }
+
+                @Override
+                public void onAnimationRepeat(Animation animation) {
+                }
+            });
+            mReadMarkerView.setAnimation(animation);
+        }
+    }
+
+    /**
+     * Check whether the read marker view should be displayed for the given row
+     *
+     * @param inflatedView row view
+     * @param position     position in adapter
+     */
+    private void handleReadMarker(final View inflatedView, final int position) {
+        final MessageRow row = getItem(position);
         final Event event = row != null ? row.getEvent() : null;
 
-//        View readMarkerLine = inflatedView.findViewWithTag(READ_MARKER_TAG);
-//        if (readMarkerLine != null) {
-//            readMarkerLine.clearAnimation();
-//            readMarkerLine.setVisibility(View.GONE);
-//        }
-
-        /**
-         * Display the green line after the last read message if :
-         *  - there is at least one unread message
-         *  - the send receipt is not on that message
-         */
         if (!mIsUnreadViewMode && !mIsPreviewMode && !mIsSearchMode && event != null
-                && mLastReadEventId != null && event.eventId.equals(mLastReadEventId)) {
-            // Check if the read marker != read receipt
-            if (!mLastReadEventId.equals(mReadReceiptEventId)) {
-                // There is at least one unread message
-                View readMarkerLineView = inflatedView.findViewWithTag(READ_MARKER_TAG);
-                if (readMarkerLineView == null) {
-                    final View readMarkerLine = new View(getContext());
-                    readMarkerLine.setTag(READ_MARKER_TAG);
-                    readMarkerLine.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 10));
-                    readMarkerLine.setBackgroundColor(ContextCompat.getColor(mContext, R.color.unread_marker_line));
-                    ((ViewGroup) inflatedView).addView(readMarkerLine);
+                && mReadMarkerEventId != null && event.eventId.equals(mReadMarkerEventId) && !event.isDummyEvent()
+                && !mReadMarkerEventId.equals(mReadReceiptEventId)) {
+            if (mReadMarkerView == null || mReadMarkerView.getAnimation() == null) {
+                initReadMarkerView();
+            }
+            // User scrolled up to the last read message so mark all as read
+            final Room room = mSession.getDataHandler().getRoom(event.roomId);
+            if (room != null) {
+                mReadMarkerEventId = null;
+                room.markAllAsRead(null);
 
-                    final Animation animation = AnimationUtils.loadAnimation(getContext(), R.anim.unread_marker_anim);
-                    animation.setStartOffset(1000);
-                    animation.setAnimationListener(new Animation.AnimationListener() {
-                        @Override
-                        public void onAnimationStart(Animation animation) {
+                resetReadMarker();
 
-                        }
-
-                        @Override
-                        public void onAnimationEnd(Animation animation) {
-                            // User scrolled up to first unread message
-                            mLastReadEventId = null;
-                            ((ViewGroup) inflatedView).removeView(readMarkerLine);
-                            final Room room = mSession.getDataHandler().getRoom(event.roomId);
-                            if (room != null) {
-                                room.markAllAsRead(null);
-                            }
-                        }
-
-                        @Override
-                        public void onAnimationRepeat(Animation animation) {
-                        }
-                    });
-                    readMarkerLine.startAnimation(animation);
+                // Show read marker view
+                if (!mReadMarkerView.getAnimation().hasStarted() || mReadMarkerView.getAnimation().hasEnded()) {
+                    if (mReadMarkerView.getParent() != null) {
+                        ((ViewGroup) mReadMarkerView.getParent()).removeView(mReadMarkerView);
+                    }
+                    ((ViewGroup) inflatedView).addView(mReadMarkerView);
+                    mReadMarkerView.getAnimation().start();
                 }
             }
         }
-        return inflatedView;
     }
 
     /**
      * Specify the last read message (to display read marker line)
      *
-     * @param lastReadEventId
+     * @param readMarkerEventId
      */
-    public void updateReadMarker(final String lastReadEventId, final String readReceiptEventId) {
-        mLastReadEventId = lastReadEventId;
+    public void updateReadMarker(final String readMarkerEventId, final String readReceiptEventId) {
+        mReadMarkerEventId = readMarkerEventId;
         mReadReceiptEventId = readReceiptEventId;
+    }
+
+    /**
+     * Reset the read marker event so read marker view will not be displayed again on same event
+     */
+    public void resetReadMarker() {
+        mReadMarkerEventId = null;
     }
 
     /**

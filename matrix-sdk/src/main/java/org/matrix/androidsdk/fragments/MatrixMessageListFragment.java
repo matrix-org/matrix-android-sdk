@@ -233,6 +233,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     // y pos of the first visible row
     private int mFirstVisibleRowY = UNDEFINED_VIEW_Y_POS;
 
+    // Id of the dummy event that should become the read marker when server returns the real ID
+    private String mFutureReadMarkerEvent;
+
     // used to retrieve the preview data
     protected IRoomPreviewDataListener mRoomPreviewDataListener;
 
@@ -797,8 +800,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     && event.getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs) {
                 // Previous message was the last read
                 if (mMessageListView.getChildAt(mMessageListView.getChildCount() - 1).getTop() >= 0) {
-                    // New message is fully visible, move marker
-                    mRoom.setReadMakerEventId(event.eventId);
+                    // New message is fully visible, keep reference to move the read marker once server echo is received
+                    mFutureReadMarkerEvent = event.eventId;
+                    mAdapter.resetReadMarker();
                 }
             }
 
@@ -975,6 +979,18 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         @Override
                         public void run() {
                             onMessageSendingSucceeded(event);
+
+                            if (mFutureReadMarkerEvent != null && prevEventId.equals(mFutureReadMarkerEvent)) {
+                                mFutureReadMarkerEvent = null;
+                                // Move read marker to the newly sent message
+                                mRoom.setReadMakerEventId(event.eventId);
+                                RoomSummary summary = mRoom.getDataHandler().getStore().getSummary(mRoom.getRoomId());
+                                if (summary != null) {
+                                    String readReceiptEventId = summary.getReadReceiptEventId();
+                                    // Inform adapter of the new read marker position
+                                    mAdapter.updateReadMarker(event.eventId, readReceiptEventId);
+                                }
+                            }
                             mAdapter.updateEventById(event, prevEventId);
 
                             // pending resending ?
@@ -1499,8 +1515,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * It might be triggered from a media selection : imageUri is used to compute thumbnails.
      * Or, it could have been called to resend an image.
      *
+     * @param imageMessage  the image message
+     * @param aImageRow     the image row
      * @param thumbnailUrl  the thumbnail Url
-     * @param imageUrl      the image Uri
+     * @param anImageUrl    the image Uri
      * @param mediaFilename the mediaFilename
      * @param imageMimeType the image mine type
      */
@@ -2332,7 +2350,22 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     } else {
                         if (canAddEvent(event)) {
                             // refresh the listView only when it is a live timeline or a search
-                            mAdapter.add(new MessageRow(event, roomState), (null == mEventTimeLine) || mEventTimeLine.isLiveTimeline());
+                            MessageRow newMessageRow = new MessageRow(event, roomState);
+                            mAdapter.add(newMessageRow, (null == mEventTimeLine) || mEventTimeLine.isLiveTimeline());
+
+                            // Move read marker if necessary
+                            final String currentReadMarkerEventId = mRoom.getReadMarkerEventId();
+                            MessageRow currentReadMarkerRow = mAdapter.getMessageRow(currentReadMarkerEventId);
+                            if (currentReadMarkerRow != null &&
+                                    mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
+                                    && event.getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs) {
+                                // Previous message was the last read
+                                if (mMessageListView.getChildAt(mMessageListView.getChildCount() - 1).getTop() >= 0) {
+                                    // Move read marker to the newly sent message
+                                    mRoom.setReadMakerEventId(event.eventId);
+                                    mAdapter.resetReadMarker();
+                                }
+                            }
                         }
                     }
                 }
@@ -2347,8 +2380,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     @Override
     public void onSentEvent(Event event) {
         // detect if a message was sent but not yet added to the adapter
-        // For example, the quick reply does not use the fragement to send messages
-        // Thus, the messages are not added to the adapater.
+        // For example, the quick reply does not use the fragment to send messages
+        // Thus, the messages are not added to the adapter.
         // onEvent is not called because the server event echo manages an event sent by itself
         if ((null == mAdapter.getMessageRow(event.eventId)) && canAddEvent(event)) {
             // refresh the listView only when it is a live timeline or a search
