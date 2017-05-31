@@ -44,14 +44,20 @@ public class EventUtils {
             return false;
         }
 
+        boolean res = false;
+
         // search if the event fulfills a rule
         BingRule rule = session.fulfillRule(event);
 
         if (null != rule) {
-            return rule.shouldHighlight();
+            res = rule.shouldHighlight();
+
+            if (res) {
+                Log.d(LOG_TAG, "## shouldHighlight() : the event " + event.roomId + "/" + event.eventId + " is higlighted by " + rule);
+            }
         }
 
-        return false;
+        return res;
     }
 
     /**
