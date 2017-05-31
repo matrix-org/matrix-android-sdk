@@ -25,7 +25,9 @@ import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Looper;
 import android.text.TextUtils;
+import android.os.Handler;
 
 import org.matrix.androidsdk.util.Log;
 
@@ -138,8 +140,9 @@ public class Room {
 
     /**
      * Init the room fields.
-     * @param store the store.
-     * @param roomId the room id
+     *
+     * @param store       the store.
+     * @param roomId      the room id
      * @param dataHandler the data handler
      */
     public void init(IMXStore store, String roomId, MXDataHandler dataHandler) {
@@ -191,6 +194,7 @@ public class Room {
 
     /**
      * Defines that the current room is a left one
+     *
      * @param isLeft true when the current room is a left one
      */
     public void setIsLeft(boolean isLeft) {
@@ -270,13 +274,20 @@ public class Room {
         // the user joined the room
         // With V2 sync, the server sends the events to init the room.
         if (null != mOnInitialSyncCallback) {
-            try {
-                Log.d(LOG_TAG, "handleJoinedRoomSync " + getRoomId() + " :  the initial sync is done");
+            Log.d(LOG_TAG, "handleJoinedRoomSync " + getRoomId() + " :  the initial sync is done");
+            final ApiCallback<Void> fOnInitialSyncCallback = mOnInitialSyncCallback;
 
-                mOnInitialSyncCallback.onSuccess(null);
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "handleJoinedRoomSync : onSuccess failed" + e.getLocalizedMessage());
-            }
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        fOnInitialSyncCallback.onSuccess(null);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "handleJoinedRoomSync : onSuccess failed" + e.getLocalizedMessage());
+                    }
+                }
+            });
+
             mOnInitialSyncCallback = null;
         }
 
@@ -2208,8 +2219,8 @@ public class Room {
      * Invite users to this room.
      * The identifiers are either ini Id or email address.
      *
-     * @param identifiers  the identifiers list
-     * @param callback the callback for when done
+     * @param identifiers the identifiers list
+     * @param callback    the callback for when done
      */
     public void invite(List<String> identifiers, ApiCallback<Void> callback) {
         if (null != identifiers) {
@@ -2220,8 +2231,8 @@ public class Room {
     /**
      * Invite some users to this room.
      *
-     * @param identifiers  the identifiers iterator
-     * @param callback the callback for when done
+     * @param identifiers the identifiers iterator
+     * @param callback    the callback for when done
      */
     private void invite(final Iterator<String> identifiers, final ApiCallback<Void> callback) {
         if (!identifiers.hasNext()) {
