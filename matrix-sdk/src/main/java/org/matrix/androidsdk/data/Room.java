@@ -25,7 +25,10 @@ import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
+
 
 import org.matrix.androidsdk.util.Log;
 
@@ -270,13 +273,19 @@ public class Room {
         // the user joined the room
         // With V2 sync, the server sends the events to init the room.
         if (null != mOnInitialSyncCallback) {
-            try {
-                Log.d(LOG_TAG, "handleJoinedRoomSync " + getRoomId() + " :  the initial sync is done");
+            Log.d(LOG_TAG, "handleJoinedRoomSync " + getRoomId() + " :  the initial sync is done");
+            final ApiCallback<Void> fOnInitialSyncCallback = mOnInitialSyncCallback;
 
-                mOnInitialSyncCallback.onSuccess(null);
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "handleJoinedRoomSync : onSuccess failed" + e.getLocalizedMessage());
-            }
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        fOnInitialSyncCallback.onSuccess(null);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "handleJoinedRoomSync : onSuccess failed" + e.getLocalizedMessage());
+                    }
+                }
+            });
             mOnInitialSyncCallback = null;
         }
 
