@@ -394,30 +394,6 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
             if (null != room) {
                 room.sendReadReceipt(null);
             }
-
-            res |= roomSummary.setHighlighted(false);
-        }
-
-        return res;
-    }
-
-    /**
-     * Reset the unread message counters in a section.
-     * @param section the section.
-     * @return true if something has been updated.
-     */
-    public boolean resetUnreadCounts(int section) {
-        boolean res = false;
-
-        Collection<RoomSummary> summaries = mSummaryMapsBySection.get(section).values();
-
-        for(RoomSummary summary : summaries) {
-            Room room = roomFromRoomSummary(summary);
-            if (null != room) {
-                room.sendReadReceipt(null);
-            }
-
-            res |= summary.setHighlighted(false);
         }
 
         return res;
@@ -513,7 +489,7 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
                 String timestamp = null;
 
                 // background color
-                if (summary.isHighlighted()) {
+                if (summary.getHighlightCount() != 0) {
                     convertView.setBackgroundColor(mHighlightColor);
                     textColor = mHighlightTextColor;
                 } else if ((unreadCount == null) || (unreadCount == 0)) {

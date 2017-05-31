@@ -50,38 +50,24 @@ public class RoomSummary implements java.io.Serializable {
     // defines the late
     private String mLatestReadEventId;
 
+    // counters
     private int mUnreadEventsCount;
+    private int mNotificationCount;
+    private int mHighlightsCount;
 
     // invitation status
     // retrieved at initial sync
     // the roomstate is not always known
     private String mInviterUserId = null;
+
     // retrieved from the roomState
     private boolean mIsInvited = false;
     private String mInviterName = null;
 
     private String mMatrixId = null;
 
-    private boolean mIsHighlighted = false;
 
     public RoomSummary() {
-    }
-
-    /**
-     * Create a room summary
-     *
-     * @param roomId the room id
-     * @param name   the room display name
-     * @param topic  the topic
-     * @param event  the latest received event
-     */
-    public RoomSummary(String roomId, String name, String topic, Event event) {
-        mLatestReceivedEvent = event;
-        mRoomId = roomId;
-        mName = name;
-        mTopic = topic;
-
-        mLatestReadEventId = null;
     }
 
     /**
@@ -347,38 +333,6 @@ public class RoomSummary implements java.io.Serializable {
     }
 
     /**
-     * @return true if the room summay must be highlighted
-     */
-    public boolean isHighlighted() {
-        return mIsHighlighted || isInvited();
-    }
-
-    /**
-     * Set the highlight status.
-     *
-     * @param isHighlighted the new highlight status.
-     * @return true if there is an update
-     */
-    public boolean setHighlighted(boolean isHighlighted) {
-        boolean isUpdated = (mIsHighlighted != isHighlighted);
-
-        mIsHighlighted = isHighlighted;
-
-        return isUpdated;
-    }
-
-    /**
-     * Set the user ID of the person who invited the user to this room.
-     *
-     * @param inviterUserId The user ID of the inviter
-     * @return This summary for chaining calls.
-     */
-    public RoomSummary setInviterUserId(String inviterUserId) {
-        mInviterUserId = inviterUserId;
-        return this;
-    }
-
-    /**
      * Update the latest read event Id
      *
      * @param eventId the event id.
@@ -401,10 +355,6 @@ public class RoomSummary implements java.io.Serializable {
      */
     public void setUnreadEventsCount(int count) {
         mUnreadEventsCount = count;
-
-        if (0 == mUnreadEventsCount) {
-            setHighlighted(false);
-        }
     }
 
     /**
@@ -412,5 +362,37 @@ public class RoomSummary implements java.io.Serializable {
      */
     public int getUnreadEventsCount() {
         return mUnreadEventsCount;
+    }
+
+    /**
+     * Update the notification counter
+     *
+     * @param count the notification counter
+     */
+    public void setNotificationCount(int count) {
+        mNotificationCount = count;
+    }
+
+    /**
+     * @return the notification count
+     */
+    public int getNotificationCount() {
+        return mNotificationCount;
+    }
+
+    /**
+     * Update the highlight counter
+     *
+     * @param count the highlight counter
+     */
+    public void setHighlightCount(int count) {
+        mHighlightsCount = count;
+    }
+
+    /**
+     * @return the highlight count
+     */
+    public int getHighlightCount() {
+        return mHighlightsCount;
     }
 }

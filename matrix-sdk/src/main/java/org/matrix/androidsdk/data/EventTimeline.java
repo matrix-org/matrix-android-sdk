@@ -600,6 +600,14 @@ public class EventTimeline {
                     mState.setNotificationCount(notifCount);
                     mState.setHighlightCount(highlightCount);
                     mStore.storeLiveStateForRoom(mRoomId);
+
+                    RoomSummary summary = mStore.getSummary(mRoomId);
+
+                    if (null != summary) {
+                        summary.setNotificationCount(notifCount);
+                        summary.setHighlightCount(highlightCount);
+                        mStore.flushSummary(summary);
+                    }
                 }
             }
         }

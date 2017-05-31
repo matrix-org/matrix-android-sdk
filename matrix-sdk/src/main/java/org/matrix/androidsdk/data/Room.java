@@ -1096,6 +1096,8 @@ public class Room {
         // flush the summary
         if (null != summary) {
             summary.setUnreadEventsCount(0);
+            summary.setHighlightCount(0);
+            summary.setNotificationCount(0);
             mStore.flushSummary(summary);
         }
 
@@ -1119,9 +1121,10 @@ public class Room {
                 if (0 != summary.getUnreadEventsCount()) {
                     Log.e(LOG_TAG, "## sendReadReceipt() : the unread message count for " + getRoomId() + " should have been cleared");
                     summary.setUnreadEventsCount(0);
+                    summary.setHighlightCount(0);
+                    summary.setNotificationCount(0);
+                    mDataHandler.getStore().flushSummary(summary);
                 }
-
-                summary.setHighlighted(false);
             }
 
             if ((0 != getLiveState().getNotificationCount()) || (0 != getLiveState().getHighlightCount())) {
