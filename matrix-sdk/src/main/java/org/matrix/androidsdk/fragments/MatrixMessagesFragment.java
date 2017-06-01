@@ -166,12 +166,23 @@ public class MatrixMessagesFragment extends Fragment {
         }
     };
 
+    // the context
     private Context mContext;
+
+    // the session
     private MXSession mSession;
+
+    // the room
     private Room mRoom;
+
+    // true to keep the room history
     public boolean mKeepRoomHistory;
 
+    // the timeline
     private EventTimeline mEventTimeline;
+
+    // the initial sync is in progress
+    private boolean mHasPendingInitialHistory;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -275,7 +286,7 @@ public class MatrixMessagesFragment extends Fragment {
                 } else {
                     // the room is already joined
                     // fill the messages list
-                    requestInitialHistory();
+                    mHasPendingInitialHistory = true;
                 }
             } else {
                 sendInitialMessagesLoaded();
@@ -295,6 +306,19 @@ public class MatrixMessagesFragment extends Fragment {
             }
 
             mEventTimeline.removeEventTimelineListener(mEventTimelineListener);
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // request the initial history until it is done.
+        // https://github.com/vector-im/riot-android/issues/1264
+        // in some weird conditions, the RoomActivity is launched
+        // but RoomActivity.onResume is called followed by RoomActivity.onPause and RoomActivity.onResume
+        // within a 100ms interval
+        if (mHasPendingInitialHistory) {
+            requestInitialHistory();
         }
     }
 
@@ -342,7 +366,7 @@ public class MatrixMessagesFragment extends Fragment {
                     mEventTimeline.handleJoinedRoomSync(roomSync, true);
 
                     Log.d(LOG_TAG, "The room preview is done -> fill the room history");
-                    requestInitialHistory();
+                    mHasPendingInitialHistory = true;
                 } else {
                     Log.d(LOG_TAG, "A preview data is provided with no sync response : assume that it is not possible to get a room preview");
 
@@ -480,7 +504,6 @@ public class MatrixMessagesFragment extends Fragment {
      * Request messages in this room upon entering.
      */
     protected void requestInitialHistory() {
-
         Log.d(LOG_TAG, "requestInitialHistory " + mRoom.getRoomId());
 
         // the initial sync will be retrieved when a network connection will be found
@@ -488,6 +511,7 @@ public class MatrixMessagesFragment extends Fragment {
             @Override
             public void onSuccess(Integer info) {
                 Log.d(LOG_TAG, "requestInitialHistory onSuccess");
+                mHasPendingInitialHistory = false;
 
                 if (null != getActivity()) {
                     if (null != mMatrixMessagesListener) {
@@ -500,6 +524,8 @@ public class MatrixMessagesFragment extends Fragment {
 
             private void onError(String errorMessage) {
                 Log.e(LOG_TAG, "requestInitialHistory failed" + errorMessage);
+                mHasPendingInitialHistory = false;
+
                 if (null != getActivity()) {
                     Toast.makeText(mContext, errorMessage, Toast.LENGTH_LONG).show();
 
