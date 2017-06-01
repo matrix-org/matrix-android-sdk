@@ -47,13 +47,13 @@ public class RoomSummary implements java.io.Serializable {
     // 2- the members display name
     private transient RoomState mLatestRoomState = null;
 
-    // defines the late
-    private String mLatestReadEventId;
+    // defines the latest read event id
+    public String mLatestReadEventId;
 
     // counters
-    private int mUnreadEventsCount;
-    private int mNotificationCount;
-    private int mHighlightsCount;
+    public int mUnreadEventsCount;
+    public int mNotificationCount;
+    public int mHighlightsCount;
 
     // invitation status
     // retrieved at initial sync

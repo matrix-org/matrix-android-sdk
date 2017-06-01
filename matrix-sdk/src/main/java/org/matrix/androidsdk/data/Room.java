@@ -1120,6 +1120,16 @@ public class Room {
             if (null != summary) {
                 if (0 != summary.getUnreadEventsCount()) {
                     Log.e(LOG_TAG, "## sendReadReceipt() : the unread message count for " + getRoomId() + " should have been cleared");
+
+                    Event latestEvent = mDataHandler.getStore().getLatestEvent(getRoomId());
+                    summary.setLatestReceivedEvent(latestEvent);
+
+                    if (null != latestEvent) {
+                        summary.setLatestReadEventId(latestEvent.eventId);
+                    } else {
+                        summary.setLatestReadEventId(null);
+                    }
+
                     summary.setUnreadEventsCount(0);
                     summary.setHighlightCount(0);
                     summary.setNotificationCount(0);

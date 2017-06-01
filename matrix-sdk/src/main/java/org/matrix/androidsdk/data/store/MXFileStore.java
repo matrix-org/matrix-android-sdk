@@ -46,7 +46,6 @@ import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -63,7 +62,7 @@ public class MXFileStore extends MXMemoryStore {
     private static final String LOG_TAG = "MXFileStore";
 
     // some constant values
-    private static final int MXFILE_VERSION = 9;
+    private static final int MXFILE_VERSION = 10;
 
     // ensure that there is enough messages to fill a tablet screen
     private static final int MAX_STORED_MESSAGES_COUNT = 50;
