@@ -1225,8 +1225,8 @@ public class Room {
                     // Make sure the new read marker event is newer than the current one
                     final Event newReadMarkerEvent = mStore.getEvent(readMarkerEventId, getRoomId());
                     final Event currentReadMarkerEvent = mStore.getEvent(summary.getReadMarkerEventId(), getRoomId());
-                    if (newReadMarkerEvent == null || (currentReadMarkerEvent != null
-                            && newReadMarkerEvent.getOriginServerTs() > currentReadMarkerEvent.getOriginServerTs())) {
+                    if (newReadMarkerEvent == null || currentReadMarkerEvent == null
+                            || newReadMarkerEvent.getOriginServerTs() > currentReadMarkerEvent.getOriginServerTs()) {
                         // Event is not in store (assume it is in the past), or is older than current one
                         Log.d(LOG_TAG, "## sendReadMarkers(): set new read marker event id " + readMarkerEventId);
                         summary.setReadMarkerEventId(readMarkerEventId);
