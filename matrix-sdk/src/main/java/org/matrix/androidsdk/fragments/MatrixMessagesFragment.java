@@ -301,10 +301,7 @@ public class MatrixMessagesFragment extends Fragment {
         super.onDestroy();
 
         if ((null != mRoom) && (null != mEventTimeline)) {
-            if (mEventTimeline.isLiveTimeline()) {
-                mRoom.removeEventListener(mEventListener);
-            }
-
+            mRoom.removeEventListener(mEventListener);
             mEventTimeline.removeEventTimelineListener(mEventTimelineListener);
         }
     }
