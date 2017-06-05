@@ -2596,10 +2596,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     public void setMessagesAdapterEventsListener(MessagesAdapterEventsListener listener) {
         mMessagesAdapterEventsListener = listener;
 
-        if (null != listener) {
+        if (null != mLinkMovementMethod) {
+            mLinkMovementMethod.updateListener(listener);
+        } else if (null != listener) {
             mLinkMovementMethod = new MatrixLinkMovementMethod(listener);
-        } else {
-            mLinkMovementMethod = null;
         }
     }
 
@@ -2640,6 +2640,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         MessagesAdapterEventsListener mListener = null;
 
         public MatrixLinkMovementMethod(MessagesAdapterEventsListener listener) {
+            mListener = listener;
+        }
+
+        public void updateListener(MessagesAdapterEventsListener listener) {
             mListener = listener;
         }
 

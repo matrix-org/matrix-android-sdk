@@ -19,6 +19,7 @@ package org.matrix.androidsdk.data;
 
 import android.text.TextUtils;
 
+import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
@@ -742,7 +743,7 @@ public class RoomState implements Externalizable {
      * @param direction how the event should affect the state: Forwards for applying, backwards for un-applying (applying the previous state)
      * @return true if the event is managed
      */
-    public boolean applyState(Event event, EventTimeline.Direction direction) {
+    public boolean applyState(IMXStore store, Event event, EventTimeline.Direction direction) {
         if (event.stateKey == null) {
             return false;
         }
@@ -809,11 +810,8 @@ public class RoomState implements Externalizable {
                     member.setOriginServerTs(event.getOriginServerTs());
                     member.setInviterId(event.getSender());
 
-                    MXDataHandler dataHandler = (MXDataHandler)mDataHandler;
-                    
-				    // mDataHandler is not set for a preview
-                    if ((null != dataHandler) && (null != dataHandler.getStore())) {
-                        dataHandler.getStore().storeRoomStateEvent(roomId, event);
+                    if ((null != store) && (direction == EventTimeline.Direction.FORWARDS)) {
+                        store.storeRoomStateEvent(roomId, event);
                     }
 
                     RoomMember currentMember = getMember(userId);
@@ -842,10 +840,8 @@ public class RoomState implements Externalizable {
                         }
                     }
 
-                    if ((direction == EventTimeline.Direction.FORWARDS)) {
-                        if (null != mDataHandler) {
-                            ((MXDataHandler)mDataHandler).getStore(roomId).updateUserWithRoomMemberEvent(member);
-                        }
+                    if ((direction == EventTimeline.Direction.FORWARDS) && (null != store)) {
+                        store.updateUserWithRoomMemberEvent(member);
                     }
 
                     // Cache room member event that is successor of a third party invite event
@@ -861,7 +857,10 @@ public class RoomState implements Externalizable {
                 RoomThirdPartyInvite thirdPartyInvite = JsonUtils.toRoomThirdPartyInvite(contentToConsider);
 
                 thirdPartyInvite.token = event.stateKey;
-                ((MXDataHandler) mDataHandler).getStore().storeRoomStateEvent(roomId, event);
+
+                if ((direction == EventTimeline.Direction.FORWARDS) && (null != store)) {
+                    store.storeRoomStateEvent(roomId, event);
+                }
 
                 if (!TextUtils.isEmpty(thirdPartyInvite.token)) {
                     mThirdPartyInvites.put(thirdPartyInvite.token, thirdPartyInvite);

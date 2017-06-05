@@ -190,7 +190,7 @@ public class RoomPreviewData {
                         mRoomState.roomId = mRoomId;
 
                         for(Event event : roomResponse.state) {
-                            mRoomState.applyState(event, EventTimeline.Direction.FORWARDS);
+                            mRoomState.applyState(null, event, EventTimeline.Direction.FORWARDS);
                         }
 
                         mRoomName = mRoomState.getDisplayName(mSession.getMyUserId());

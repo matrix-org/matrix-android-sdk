@@ -361,7 +361,7 @@ public class EventTimeline {
      */
     private boolean processStateEvent(Event event, Direction direction) {
         RoomState affectedState = (direction ==  Direction.FORWARDS) ? mState : mBackState;
-        boolean isProcessed = affectedState.applyState(event, direction);
+        boolean isProcessed = affectedState.applyState(mStore, event, direction);
 
         if ((isProcessed) && (direction == Direction.FORWARDS)) {
             mStore.storeLiveStateForRoom(mRoomId);
