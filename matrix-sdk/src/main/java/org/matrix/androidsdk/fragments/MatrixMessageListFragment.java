@@ -527,8 +527,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
         });
 
-        mAdapter.setMessagesAdapterEventsListener(this);
-
         mDisplayAllEvents = isDisplayAllEvents();
 
         return v;
@@ -598,9 +596,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         if (null != mMatrixMessagesFragment) {
             mMatrixMessagesFragment.setMatrixMessagesListener(null);
         }
-        if (null != mAdapter) {
-            mAdapter.setMessagesAdapterEventsListener(null);
-        }
     }
 
     @Override
@@ -631,12 +626,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void onPause() {
         super.onPause();
 
-        //
+        // clear maps
         mBingRulesByEventId.clear();
 
         // check if the session has not been logged out
-        if (mSession.isAlive() && (null != mRoom) && mIsLive) {
+        if (null != mRoom) {
             mRoom.removeEventListener(mEventsListener);
+        }
+
+        if (null != mAdapter) {
+            mAdapter.setMessagesAdapterEventsListener(null);
         }
 
         cancelCatchingRequests();
@@ -647,7 +646,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         super.onResume();
 
         // sanity check
-        if ((null != mRoom) && mIsLive) {
+        if ((null != mRoom) && mEventTimeLine.isLiveTimeline()) {
             Room room = mSession.getDataHandler().getRoom(mRoom.getRoomId(), false);
 
             if (null != room) {
@@ -655,6 +654,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             } else {
                 Log.e(LOG_TAG, "the room " + mRoom.getRoomId() + " does not exist anymore");
             }
+        }
+
+        if (null != mAdapter) {
+            mAdapter.setMessagesAdapterEventsListener(this);
         }
 
         // a room history filling was suspended because the fragment was not active
