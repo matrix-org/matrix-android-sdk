@@ -20,9 +20,7 @@ package org.matrix.androidsdk.data;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.data.store.IMXStore;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonObject;
@@ -248,21 +246,23 @@ public class RoomState implements Externalizable {
     /**
      * Provides the latest state events used to create this room state.
      * It includes the room member creation events (they are not loaded in memory by default).
-     * @return the latest state events list
+     *
+     * @param store the store in which the state events must be retrieved
+     * @param callback the asynchronous callback.
      */
-    public void getStateEvents(final SimpleApiCallback<List<Event>> callback) {
-        final ArrayList<Event> stateEvents = new ArrayList<>();
+    public void getStateEvents(IMXStore store, final SimpleApiCallback<List<Event>> callback) {
+        if (null != store) {
+            final List<Event> stateEvents = new ArrayList<>(mStateEvents.values());
 
-        stateEvents.addAll(mStateEvents.values());
-
-        // retrieve the roomMember creation events
-        ((MXDataHandler) mDataHandler).getStore().getRoomStateEvents(roomId, new SimpleApiCallback<List<Event>>() {
-            @Override
-            public void onSuccess(List<Event> events) {
-                stateEvents.addAll(events);
-                callback.onSuccess(stateEvents);
-            }
-        });
+            // retrieve the roomMember creation events
+            store.getRoomStateEvents(roomId, new SimpleApiCallback<List<Event>>() {
+                @Override
+                public void onSuccess(List<Event> events) {
+                    stateEvents.addAll(events);
+                    callback.onSuccess(stateEvents);
+                }
+            });
+        }
     }
 
     /**

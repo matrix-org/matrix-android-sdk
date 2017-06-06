@@ -1402,7 +1402,7 @@ public class EventTimeline {
 
             // check if the state events is locally known
             // to avoid triggering a room initial sync
-            mState.getStateEvents(new SimpleApiCallback<List<Event>>() {
+            mState.getStateEvents(mStore, new SimpleApiCallback<List<Event>>() {
                 @Override
                 public void onSuccess(List<Event> stateEvents) {
                     boolean isFound = false;
