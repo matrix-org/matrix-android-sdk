@@ -854,16 +854,18 @@ public class RoomState implements Externalizable {
             } else if (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(eventType)) {
                 powerLevels = JsonUtils.toPowerLevels(contentToConsider);
             } else if (Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.getType())) {
-                RoomThirdPartyInvite thirdPartyInvite = JsonUtils.toRoomThirdPartyInvite(contentToConsider);
+                if (null != contentToConsider) {
+                    RoomThirdPartyInvite thirdPartyInvite = JsonUtils.toRoomThirdPartyInvite(contentToConsider);
 
-                thirdPartyInvite.token = event.stateKey;
+                    thirdPartyInvite.token = event.stateKey;
 
-                if ((direction == EventTimeline.Direction.FORWARDS) && (null != store)) {
-                    store.storeRoomStateEvent(roomId, event);
-                }
+                    if ((direction == EventTimeline.Direction.FORWARDS) && (null != store)) {
+                        store.storeRoomStateEvent(roomId, event);
+                    }
 
-                if (!TextUtils.isEmpty(thirdPartyInvite.token)) {
-                    mThirdPartyInvites.put(thirdPartyInvite.token, thirdPartyInvite);
+                    if (!TextUtils.isEmpty(thirdPartyInvite.token)) {
+                        mThirdPartyInvites.put(thirdPartyInvite.token, thirdPartyInvite);
+                    }
                 }
             }
 
