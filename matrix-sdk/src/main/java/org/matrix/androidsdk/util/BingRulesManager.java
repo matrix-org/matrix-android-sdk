@@ -193,9 +193,12 @@ public class BingRulesManager {
     public void loadRules(final ApiCallback<Void> callback) {
         mLoadRulesCallback = null;
 
+        Log.d(LOG_TAG, "## loadRules() : refresh the bing rules");
         mApiClient.getAllBingRules(new ApiCallback<BingRulesResponse>() {
             @Override
             public void onSuccess(BingRulesResponse info) {
+                Log.d(LOG_TAG, "## loadRules() : succeeds");
+
                 buildRules(info);
                 mIsInitialized = true;
 
@@ -206,24 +209,25 @@ public class BingRulesManager {
                 removeNetworkListener();
             }
 
-            private void onError() {
+            private void onError(String errorMessage) {
+                Log.e(LOG_TAG, "## loadRules() : failed " + errorMessage);
                 // the callback will be called when the request will succeed
                 mLoadRulesCallback = callback;
             }
 
             @Override
             public void onNetworkError(Exception e) {
-                onError();
+                onError(e.getMessage());
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                onError();
+                onError(e.getMessage());
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                onError();
+                onError(e.getMessage());
             }
         });
     }
@@ -271,10 +275,17 @@ public class BingRulesManager {
     public BingRule fulfilledBingRule(Event event) {
         // sanity check
         if (null == event) {
+            Log.e(LOG_TAG, "## fulfilledBingRule() : null event");
             return null;
         }
 
         if (!mIsInitialized) {
+            Log.e(LOG_TAG, "## fulfilledBingRule() : not initialized");
+            return null;
+        }
+
+        if (0 == mRules.size()) {
+            Log.e(LOG_TAG, "## fulfilledBingRule() : no rules");
             return null;
         }
 
@@ -294,61 +305,56 @@ public class BingRulesManager {
             return null;
         }
 
-        if (mRules != null) {
-            // GA issue
-            final ArrayList<BingRule> rules;
+        // GA issue
+        final ArrayList<BingRule> rules;
 
-            synchronized (this) {
-                rules = new ArrayList<>(mRules);
-            }
+        synchronized (this) {
+            rules = new ArrayList<>(mRules);
+        }
 
-            // Go down the rule list until we find a match
-            for (BingRule bingRule : rules) {
-                if (bingRule.isEnabled) {
-                    boolean isFullfilled = false;
+        // Go down the rule list until we find a match
+        for (BingRule bingRule : rules) {
+            if (bingRule.isEnabled) {
+                boolean isFullfilled = false;
 
-                    // some rules have no condition
-                    // so their ruleId defines the method
-                    if (BingRule.RULE_ID_CONTAIN_USER_NAME.equals(bingRule.ruleId) || BingRule.RULE_ID_CONTAIN_DISPLAY_NAME.equals(bingRule.ruleId)) {
-                        if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
-                            Message message = JsonUtils.toMessage(event.getContent());
-                            MyUser myUser =  mSession.getMyUser();
-                            String pattern = myUser.displayname;
+                // some rules have no condition
+                // so their ruleId defines the method
+                if (BingRule.RULE_ID_CONTAIN_USER_NAME.equals(bingRule.ruleId) || BingRule.RULE_ID_CONTAIN_DISPLAY_NAME.equals(bingRule.ruleId)) {
+                    if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
+                        Message message = JsonUtils.toMessage(event.getContent());
+                        MyUser myUser =  mSession.getMyUser();
+                        String pattern = myUser.displayname;
 
-                            if (BingRule.RULE_ID_CONTAIN_USER_NAME.equals(bingRule.ruleId)) {
-                                if (mMyUserId.indexOf(":") >= 0) {
-                                    pattern = mMyUserId.substring(1, mMyUserId.indexOf(":"));
-                                } else {
-                                    pattern = mMyUserId;
-                                }
-                            }
-
-                            if (!TextUtils.isEmpty(pattern)) {
-                                isFullfilled = caseInsensitiveFind(pattern, message.body);
+                        if (BingRule.RULE_ID_CONTAIN_USER_NAME.equals(bingRule.ruleId)) {
+                            if (mMyUserId.indexOf(":") >= 0) {
+                                pattern = mMyUserId.substring(1, mMyUserId.indexOf(":"));
+                            } else {
+                                pattern = mMyUserId;
                             }
                         }
-                    }  else if (BingRule.RULE_ID_FALLBACK.equals(bingRule.ruleId)) {
-                        isFullfilled = true;
-                    } else {
-                        // some default rules define conditions
-                        // so use them instead of doing a custom treatment
-                        // RULE_ID_ONE_TO_ONE_ROOM
-                        // RULE_ID_SUPPRESS_BOTS_NOTIFICATIONS
-                        isFullfilled = eventMatchesConditions(event, bingRule.conditions);
-                    }
 
-                    if (isFullfilled) {
-                        return bingRule;
+                        if (!TextUtils.isEmpty(pattern)) {
+                            isFullfilled = caseInsensitiveFind(pattern, message.body);
+                        }
                     }
+                }  else if (BingRule.RULE_ID_FALLBACK.equals(bingRule.ruleId)) {
+                    isFullfilled = true;
+                } else {
+                    // some default rules define conditions
+                    // so use them instead of doing a custom treatment
+                    // RULE_ID_ONE_TO_ONE_ROOM
+                    // RULE_ID_SUPPRESS_BOTS_NOTIFICATIONS
+                    isFullfilled = eventMatchesConditions(event, bingRule.conditions);
+                }
+
+                if (isFullfilled) {
+                    return bingRule;
                 }
             }
-
-            // no rules are fulfilled
-            return null;
-        } else {
-            // The default is to bing
-            return mDefaultBingRule;
         }
+
+        // no rules are fulfilled
+        return null;
     }
 
     /**
@@ -488,6 +494,8 @@ public class BingRulesManager {
             }
 
             mRulesSet = ruleSet;
+
+            Log.d(LOG_TAG, "## updateRules() : has " + mRules.size() + " rules");
         }
     }
 

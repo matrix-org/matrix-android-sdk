@@ -773,6 +773,8 @@ public class EventTimeline {
                 && bingRule.shouldNotify()) {
             Log.d(LOG_TAG, "handleLiveEvent : onBingEvent");
             mDataHandler.onBingEvent(event, mState, bingRule);
+        } else if (outOfTimeEvent) {
+            Log.e(LOG_TAG, "handleLiveEvent : outOfTimeEvent for " + event.eventId + " in " + event.roomId);
         }
     }
 
