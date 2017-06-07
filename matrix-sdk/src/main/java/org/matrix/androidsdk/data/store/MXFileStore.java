@@ -1927,9 +1927,15 @@ public class MXFileStore extends MXMemoryStore {
                     mFileStoreHandler.post(new Runnable() {
                         public void run() {
                             if (!mIsKilled) {
-                                long start = System.currentTimeMillis();
-                                writeObject("saveMetaData", new File(mStoreFolderFile, MXFILE_STORE_METADATA_FILE_NAME), fMetadata);
-                                Log.d(LOG_TAG, "saveMetaData : " + (System.currentTimeMillis() - start) + " ms");
+                                // save the metadata only when there is a current valid stream token
+                                // avoid saving the metadata if the store has been cleared
+                                if (null != mMetadata.mEventStreamToken) {
+                                    long start = System.currentTimeMillis();
+                                    writeObject("saveMetaData", new File(mStoreFolderFile, MXFILE_STORE_METADATA_FILE_NAME), fMetadata);
+                                    Log.d(LOG_TAG, "saveMetaData : " + (System.currentTimeMillis() - start) + " ms");
+                                } else {
+                                    Log.e(LOG_TAG, "## saveMetaData() : cancelled because mEventStreamToken is null");
+                                }
                             }
                         }
                     });
