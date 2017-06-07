@@ -769,10 +769,14 @@ public class EventTimeline {
         // If the bing rules apply, bing
         if (!outOfTimeEvent
                 && (bingRulesManager != null)
-                && (null != (bingRule = bingRulesManager.fulfilledBingRule(event)))
-                && bingRule.shouldNotify()) {
-            Log.d(LOG_TAG, "handleLiveEvent : onBingEvent");
-            mDataHandler.onBingEvent(event, mState, bingRule);
+                && (null != (bingRule = bingRulesManager.fulfilledBingRule(event)))) {
+
+            if (bingRule.shouldNotify()) {
+                Log.d(LOG_TAG, "handleLiveEvent : onBingEvent " + event.eventId + " in " + event.roomId);
+                mDataHandler.onBingEvent(event, mState, bingRule);
+            } else {
+                Log.d(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " has a mute notify rule");
+            }
         } else if (outOfTimeEvent) {
             Log.e(LOG_TAG, "handleLiveEvent : outOfTimeEvent for " + event.eventId + " in " + event.roomId);
         }
