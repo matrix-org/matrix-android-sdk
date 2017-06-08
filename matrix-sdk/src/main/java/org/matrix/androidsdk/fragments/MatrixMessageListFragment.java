@@ -234,7 +234,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private int mFirstVisibleRowY = UNDEFINED_VIEW_Y_POS;
 
     // Id of the dummy event that should become the read marker when server returns the real ID
-    private String mFutureReadMarkerEvent;
+    private String mFutureReadMarkerEventId;
 
     // used to retrieve the preview data
     protected IRoomPreviewDataListener mRoomPreviewDataListener;
@@ -636,6 +636,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void onPause() {
         super.onPause();
 
+        if (mAdapter != null) {
+            mAdapter.setIsInBackground(true);
+        }
+
         //
         mBingRulesByEventId.clear();
 
@@ -650,6 +654,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     @Override
     public void onResume() {
         super.onResume();
+
+        if (mAdapter != null) {
+            mAdapter.setIsInBackground(false);
+        }
 
         // sanity check
         if ((null != mRoom) && mIsLive) {
@@ -801,7 +809,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 // Previous message was the last read
                 if (mMessageListView.getChildAt(mMessageListView.getChildCount() - 1).getTop() >= 0) {
                     // New message is fully visible, keep reference to move the read marker once server echo is received
-                    mFutureReadMarkerEvent = event.eventId;
+                    mFutureReadMarkerEventId = event.eventId;
                     mAdapter.resetReadMarker();
                 }
             }
@@ -980,8 +988,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         public void run() {
                             onMessageSendingSucceeded(event);
 
-                            if (mFutureReadMarkerEvent != null && prevEventId.equals(mFutureReadMarkerEvent)) {
-                                mFutureReadMarkerEvent = null;
+                            if (mFutureReadMarkerEventId != null && prevEventId.equals(mFutureReadMarkerEventId)) {
+                                mFutureReadMarkerEventId = null;
                                 // Move read marker to the newly sent message
                                 mRoom.setReadMakerEventId(event.eventId);
                                 RoomSummary summary = mRoom.getDataHandler().getStore().getSummary(mRoom.getRoomId());
@@ -2354,16 +2362,18 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             mAdapter.add(newMessageRow, (null == mEventTimeLine) || mEventTimeLine.isLiveTimeline());
 
                             // Move read marker if necessary
-                            final String currentReadMarkerEventId = mRoom.getReadMarkerEventId();
-                            MessageRow currentReadMarkerRow = mAdapter.getMessageRow(currentReadMarkerEventId);
-                            if (currentReadMarkerRow != null &&
-                                    mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
-                                    && event.getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs) {
-                                // Previous message was the last read
-                                if (mMessageListView.getChildAt(mMessageListView.getChildCount() - 1).getTop() >= 0) {
-                                    // Move read marker to the newly sent message
-                                    mRoom.setReadMakerEventId(event.eventId);
-                                    mAdapter.resetReadMarker();
+                            if (!mAdapter.isInBackground()) {
+                                final String currentReadMarkerEventId = mRoom.getReadMarkerEventId();
+                                MessageRow currentReadMarkerRow = mAdapter.getMessageRow(currentReadMarkerEventId);
+                                if (currentReadMarkerRow != null &&
+                                        mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
+                                        && event.getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs) {
+                                    // Previous message was the last read
+                                    if (mMessageListView.getChildAt(mMessageListView.getChildCount() - 1).getTop() >= 0) {
+                                        // Move read marker to the newly sent message
+                                        mRoom.setReadMakerEventId(event.eventId);
+                                        mAdapter.resetReadMarker();
+                                    }
                                 }
                             }
                         }

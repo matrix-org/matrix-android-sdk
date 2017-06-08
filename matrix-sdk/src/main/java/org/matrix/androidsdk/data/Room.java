@@ -33,6 +33,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
@@ -1215,8 +1216,8 @@ public class Room {
 
         String readMarkerEventId = aReadMarkerEventId;
         if (!TextUtils.isEmpty(aReadMarkerEventId)) {
-            if (aReadMarkerEventId.startsWith(getRoomId())) {
-                // Read marker cannot be set to room id, ignore the given read marker
+            if (!MXSession.isMessageId(aReadMarkerEventId)) {
+                // Read marker is invalid, ignore it
                 readMarkerEventId = null;
             } else {
                 // Check if the read marker is updated
