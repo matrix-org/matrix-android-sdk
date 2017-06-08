@@ -1,11 +1,11 @@
-Changes to Matrix Android SDK in 0.7.11 (2017-06-08)
+Changes to Matrix Android SDK in 0.7.12 (2017-06-08)
 =======================================================
 
 Bugfixes:
 * #1291 : don't receive anymore notifications after updating to the 0.6.10 version
 * #1292 : No more room after updating the application on 0.6.10 and killing it during the loading
 
-Changes to Matrix Android SDK in 0.7.10 (2017-05-30)
+Changes to Matrix Android SDK in 0.7.11 (2017-05-30)
 =======================================================
 
 Features:
