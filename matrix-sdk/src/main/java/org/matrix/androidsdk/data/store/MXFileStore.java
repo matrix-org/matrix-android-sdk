@@ -2072,14 +2072,14 @@ public class MXFileStore extends MXMemoryStore {
             long delta = (System.currentTimeMillis() - start);
             Log.d(LOG_TAG, "loadReceipts " + count + " rooms in " + delta + " ms");
             mStoreStats.put("loadReceipts", delta);
-
-            synchronized (this) {
-                mAreReceiptsReady = true;
-            }
         } catch (Exception e) {
             succeed = false;
             //Toast.makeText(mContext, "loadReceipts failed" + e, Toast.LENGTH_LONG).show();
             Log.e(LOG_TAG, "loadReceipts failed : " + e.getLocalizedMessage());
+        }
+
+        synchronized (this) {
+            mAreReceiptsReady = true;
         }
 
         return succeed;
