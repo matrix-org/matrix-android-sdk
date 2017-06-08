@@ -418,7 +418,6 @@ public class MXFileStore extends MXMemoryStore {
                                 // do not expect having empty list
                                 // assume that something is corrupted
                                 if (!succeed) {
-
                                     Log.e(LOG_TAG, "Fail to open the store in background");
 
                                     // delete all data set mMetadata to null
@@ -450,6 +449,7 @@ public class MXFileStore extends MXMemoryStore {
 
                                     //  the event stream token is put to zero to ensure ta
                                     mEventStreamToken = null;
+                                    mAreReceiptsReady = true;
                                 } else {
                                     Log.d(LOG_TAG, "++ store stats");
                                     Set<String> roomIds = mRoomEvents.keySet();
