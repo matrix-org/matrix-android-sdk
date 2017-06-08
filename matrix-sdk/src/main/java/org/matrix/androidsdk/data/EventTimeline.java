@@ -756,10 +756,14 @@ public class EventTimeline {
     private void triggerPush(Event event) {
         BingRule bingRule;
         boolean outOfTimeEvent = false;
+        long maxlifetime = 0;
+        long eventLifeTime = 0;
+
         JsonObject eventContent = event.getContentAsJsonObject();
+
         if (eventContent.has("lifetime")) {
-            long maxlifetime = eventContent.get("lifetime").getAsLong();
-            long eventLifeTime = System.currentTimeMillis() - event.getOriginServerTs();
+            maxlifetime = eventContent.get("lifetime").getAsLong();
+            eventLifeTime = System.currentTimeMillis() - event.getOriginServerTs();
 
             outOfTimeEvent = eventLifeTime > maxlifetime;
         }
@@ -779,6 +783,7 @@ public class EventTimeline {
             }
         } else if (outOfTimeEvent) {
             Log.e(LOG_TAG, "handleLiveEvent : outOfTimeEvent for " + event.eventId + " in " + event.roomId);
+            Log.e(LOG_TAG, "handleLiveEvent : outOfTimeEvent maxlifetime " + maxlifetime + " eventLifeTime " + eventLifeTime);
         }
     }
 
