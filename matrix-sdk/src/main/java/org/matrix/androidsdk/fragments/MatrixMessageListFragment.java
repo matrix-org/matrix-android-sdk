@@ -532,42 +532,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         return v;
     }
 
-    /**
-     * Called when a fragment is first attached to its activity.
-     * {@link #onCreate(Bundle)} will be called after this.
-     *
-     * @param aHostActivity parent activity
-     */
-    @Override
-    public void onAttach(Activity aHostActivity) {
-        super.onAttach(aHostActivity);
-
-        try {
-            mEventSendingListener = (IEventSendingListener) aHostActivity;
-        } catch (ClassCastException e) {
-            // if host activity does not provide the implementation, just ignore it
-            Log.w(LOG_TAG, "## onAttach(): host activity does not implement IEventSendingListener " + aHostActivity);
-        }
-
-        try {
-            mActivityOnScrollListener = (IOnScrollListener) aHostActivity;
-        } catch (ClassCastException e) {
-            // if host activity does not provide the implementation, just ignore it
-            Log.w(LOG_TAG, "## onAttach(): host activity does not implement IOnScrollListener " + aHostActivity);
-        }
-    }
-
-    /**
-     * Called when the fragment is no longer attached to its activity.  This
-     * is called after {@link #onDestroy()}.
-     */
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        mEventSendingListener = null;
-        mActivityOnScrollListener = null;
-    }
-
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -626,6 +590,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void onPause() {
         super.onPause();
 
+        mEventSendingListener = null;
+        mActivityOnScrollListener = null;
+
         // clear maps
         mBingRulesByEventId.clear();
 
@@ -644,6 +611,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     @Override
     public void onResume() {
         super.onResume();
+
+        Activity activity = getActivity();
+
+        if (activity instanceof IEventSendingListener) {
+            mEventSendingListener = (IEventSendingListener)activity;
+        }
+
+        if (activity instanceof IOnScrollListener) {
+            mActivityOnScrollListener = (IOnScrollListener)activity;
+        }
 
         // sanity check
         if ((null != mRoom) && mEventTimeLine.isLiveTimeline()) {
