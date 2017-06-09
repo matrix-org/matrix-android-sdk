@@ -383,7 +383,7 @@ public class MXFileStore extends MXMemoryStore {
 
                                 if (succeed) {
                                     succeed &= loadSummaries();
-
+                                    
                                     if (!succeed) {
                                         errorDescription = "loadSummaries fails";
                                         Log.e(LOG_TAG, errorDescription);
@@ -395,10 +395,19 @@ public class MXFileStore extends MXMemoryStore {
                                         // some of them are hidden.
                                         // For example, the conference calls create a dummy room to manage
                                         // the call events.
-                                        succeed = mRooms.keySet().containsAll(mRoomSummaries.keySet());
+                                        // check also if the user is a member of the room
+                                        // https://github.com/vector-im/riot-android/issues/1302
 
-                                        if (!succeed) {
-                                            Log.e(LOG_TAG, "loadSummaries : some summaries don't match to rooms, assume that the store is corrupted");
+                                        for(String roomId : mRoomSummaries.keySet()) {
+                                            Room room = getRoom(roomId);
+
+                                            if (null == room) {
+                                                succeed = false;
+                                                Log.e(LOG_TAG, "loadSummaries : the room " + roomId + " does not exist");
+                                            } else if (null == room.getMember(mCredentials.userId)) {
+                                                succeed = false;
+                                                Log.e(LOG_TAG, "loadSummaries) : a summary exists for the roomId " + roomId + " but the user is not anymore a member");
+                                            }
                                         }
                                     }
                                 }
