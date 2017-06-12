@@ -1024,11 +1024,7 @@ public class MXMemoryStore implements IMXStore {
     public RoomSummary getSummary(String roomId) {
         Room room = mRooms.get(roomId);
         if (null != room) {
-            if (null == room.getMember(mCredentials.userId)) {
-                Log.e(LOG_TAG, "## getSummary() : a summary exists for the roomId " + roomId + " but the user is not anymore a member");
-            } else {
-                return mRoomSummaries.get(roomId);
-            }
+            return mRoomSummaries.get(roomId);
         } else {
             Log.e(LOG_TAG, "## getSummary() : a summary exists for the roomId " + roomId + " but it does not exist in the room list");
         }
