@@ -361,7 +361,7 @@ public class EventTimeline {
      */
     private boolean processStateEvent(Event event, Direction direction) {
         RoomState affectedState = (direction ==  Direction.FORWARDS) ? mState : mBackState;
-        boolean isProcessed = affectedState.applyState(mStore, event, direction);
+        boolean isProcessed = affectedState.applyState(getStore(), event, direction);
 
         if ((isProcessed) && (direction == Direction.FORWARDS)) {
             mStore.storeLiveStateForRoom(mRoomId);
@@ -424,8 +424,9 @@ public class EventTimeline {
         }
 
         if ((null != roomSync.state) && (null != roomSync.state.events) && (roomSync.state.events.size() > 0)) {
-            // Build/Update first the room state corresponding to the 'start' of the timeline.
-            // Note: We consider it is not required to clone the existing room state here, because no notification is posted for these events.
+            if (isRoomInitialSync) {
+                Log.d(LOG_TAG, "## handleJoinedRoomSync() : " + roomSync.state.events.size() + " events for room " + mRoomId + " in store " + getStore());
+            }
 
             // Build/Update first the room state corresponding to the 'start' of the timeline.
             // Note: We consider it is not required to clone the existing room state here, because no notification is posted for these events.
@@ -434,16 +435,19 @@ public class EventTimeline {
                     try {
                         processStateEvent(event, Direction.FORWARDS);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "processStateEvent failed " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "processStateEvent failed " + e.getMessage());
                     }
                 }
 
                 mRoom.setReadyState(true);
+            } else {
+                Log.e(LOG_TAG, "## handleJoinedRoomSync() : mDataHandler.isAlive() is false");
             }
 
             // if it is an initial sync, the live state is initialized here
             // so the back state must also be initialized
             if (isRoomInitialSync) {
+                Log.d(LOG_TAG, "## handleJoinedRoomSync() : retrieve " + this.mState.getMembers().size() + " members for room " + mRoomId);
                 this.mBackState = this.mState.deepCopy();
             }
         }
@@ -1413,7 +1417,7 @@ public class EventTimeline {
 
             // check if the state events is locally known
             // to avoid triggering a room initial sync
-            mState.getStateEvents(mStore, new SimpleApiCallback<List<Event>>() {
+            mState.getStateEvents(getStore(), new SimpleApiCallback<List<Event>>() {
                 @Override
                 public void onSuccess(List<Event> stateEvents) {
                     boolean isFound = false;

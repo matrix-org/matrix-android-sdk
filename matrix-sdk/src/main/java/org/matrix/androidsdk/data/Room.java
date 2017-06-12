@@ -266,7 +266,11 @@ public class Room {
             }
 
             // Handle account data events (if any)
-            if (null != roomSync.accountData) {
+            if ((null != roomSync.accountData) && (null != roomSync.accountData.events) && (roomSync.accountData.events.size() > 0)) {
+                if (isInitialSync) {
+                    Log.d(LOG_TAG, "## handleJoinedRoomSync : received " + roomSync.accountData.events.size() + " account data events");
+                }
+
                 handleAccountDataEvents(roomSync.accountData.events);
             }
         }
@@ -1614,10 +1618,14 @@ public class Room {
         if ((null != accountDataEvents) && (accountDataEvents.size() > 0)) {
             // manage the account events
             for (Event accountDataEvent : accountDataEvents) {
-                mAccountData.handleEvent(accountDataEvent);
+                try {
+                    mAccountData.handleEvent(accountDataEvent);
 
-                if (accountDataEvent.getType().equals(Event.EVENT_TYPE_TAGS)) {
-                    mDataHandler.onRoomTagEvent(getRoomId());
+                    if (accountDataEvent.getType().equals(Event.EVENT_TYPE_TAGS)) {
+                        mDataHandler.onRoomTagEvent(getRoomId());
+                    }
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## handleAccountDataEvents() : room " + getRoomId() + " failed " + e.getMessage());
                 }
             }
 

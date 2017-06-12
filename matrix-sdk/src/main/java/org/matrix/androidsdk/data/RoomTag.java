@@ -78,7 +78,7 @@ public class RoomTag implements java.io.Serializable {
                 }
             }
         } catch (Exception e) {
-            Log.d(LOG_TAG, "roomTagsWithTagEvent fails " + e.getLocalizedMessage());
+            Log.d(LOG_TAG, "roomTagsWithTagEvent fails " + e.getMessage());
         }
 
         return tags;

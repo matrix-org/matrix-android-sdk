@@ -799,54 +799,63 @@ public class RoomState implements Externalizable {
             } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
                 RoomMember member = JsonUtils.toRoomMember(contentToConsider);
                 String userId = event.stateKey;
-                if (member == null) {
+
+                if (null == userId) {
+                    Log.e(LOG_TAG, "## applyState() : null stateKey in " + roomId);
+                } else if (null == member) {
                     // the member has already been removed
                     if (null == getMember(userId)) {
+                        Log.e(LOG_TAG, "## applyState() : the user " + userId + " is not anymore a member of " + roomId);
                         return false;
                     }
                     removeMember(userId);
                 } else {
-                    member.setUserId(userId);
-                    member.setOriginServerTs(event.getOriginServerTs());
-                    member.setInviterId(event.getSender());
+                    try {
+                        member.setUserId(userId);
+                        member.setOriginServerTs(event.getOriginServerTs());
+                        member.setInviterId(event.getSender());
 
-                    if ((null != store) && (direction == EventTimeline.Direction.FORWARDS)) {
-                        store.storeRoomStateEvent(roomId, event);
-                    }
+                        if ((null != store) && (direction == EventTimeline.Direction.FORWARDS)) {
+                            store.storeRoomStateEvent(roomId, event);
+                        }
 
-                    RoomMember currentMember = getMember(userId);
+                        RoomMember currentMember = getMember(userId);
 
-                    // check if the member is the same
-                    // duplicated message ?
-                    if (member.equals(currentMember)) {
-                        return false;
-                    }
+                        // check if the member is the same
+                        // duplicated message ?
+                        if (member.equals(currentMember)) {
+                            Log.e(LOG_TAG, "## applyState() : seems being a duplicated event for " + userId + " in room " + roomId);
+                            return false;
+                        }
 
-                    // when a member leaves a room, his avatar / display name is not anymore provided
-                    if (null != currentMember) {
-                        if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN)) {
-                            if (null == member.getAvatarUrl()) {
-                                member.setAvatarUrl(currentMember.getAvatarUrl());
-                            }
+                        // when a member leaves a room, his avatar / display name is not anymore provided
+                        if (null != currentMember) {
+                            if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN)) {
+                                if (null == member.getAvatarUrl()) {
+                                    member.setAvatarUrl(currentMember.getAvatarUrl());
+                                }
 
-                            if (null == member.displayname) {
-                                member.displayname = currentMember.displayname;
-                            }
+                                if (null == member.displayname) {
+                                    member.displayname = currentMember.displayname;
+                                }
 
-                            // remove the cached display name
-                            if (null != mMemberDisplayNameByUserId) {
-                                mMemberDisplayNameByUserId.remove(userId);
+                                // remove the cached display name
+                                if (null != mMemberDisplayNameByUserId) {
+                                    mMemberDisplayNameByUserId.remove(userId);
+                                }
                             }
                         }
-                    }
 
-                    if ((direction == EventTimeline.Direction.FORWARDS) && (null != store)) {
-                        store.updateUserWithRoomMemberEvent(member);
-                    }
+                        if ((direction == EventTimeline.Direction.FORWARDS) && (null != store)) {
+                            store.updateUserWithRoomMemberEvent(member);
+                        }
 
-                    // Cache room member event that is successor of a third party invite event
-                    if (!TextUtils.isEmpty(member.getThirdPartyInviteToken())) {
-                        mMembersWithThirdPartyInviteTokenCache.put(member.getThirdPartyInviteToken(), member);
+                        // Cache room member event that is successor of a third party invite event
+                        if (!TextUtils.isEmpty(member.getThirdPartyInviteToken())) {
+                            mMembersWithThirdPartyInviteTokenCache.put(member.getThirdPartyInviteToken(), member);
+                        }
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## applyState() - EVENT_TYPE_STATE_ROOM_MEMBER failed " + e.getMessage());
                     }
 
                     setMember(userId, member);

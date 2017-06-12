@@ -1,7 +1,15 @@
+Changes to Matrix Android SDK in 0.7.13 (2017-06-12)
+=======================================================
+
+Bugfixes:
+
+* #1302 : No room / few rooms are displayed an application update / first launch
+
 Changes to Matrix Android SDK in 0.7.12 (2017-06-08)
 =======================================================
 
 Bugfixes:
+
 * #1291 : don't receive anymore notifications after updating to the 0.6.10 version
 * #1292 : No more room after updating the application on 0.6.10 and killing it during the loading
 
