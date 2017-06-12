@@ -21,7 +21,8 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
-import android.util.Log;
+
+import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.Room;
@@ -482,8 +483,11 @@ public class MXMemoryStore implements IMXStore {
                     }
                 }
             }
-        } catch (OutOfMemoryError e) {
-            dispatchOOM(e);
+        } catch (OutOfMemoryError oom) {
+            dispatchOOM(oom);
+            Log.e(LOG_TAG, "## updateUserWithRoomMemberEvent() failed " + oom.getMessage());
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## updateUserWithRoomMemberEvent() failed " + e.getMessage());
         }
     }
 
@@ -1024,11 +1028,7 @@ public class MXMemoryStore implements IMXStore {
     public RoomSummary getSummary(String roomId) {
         Room room = mRooms.get(roomId);
         if (null != room) {
-            if (null == room.getMember(mCredentials.userId)) {
-                Log.e(LOG_TAG, "## getSummary() : a summary exists for the roomId " + roomId + " but the user is not anymore a member");
-            } else {
-                return mRoomSummaries.get(roomId);
-            }
+            return mRoomSummaries.get(roomId);
         } else {
             Log.e(LOG_TAG, "## getSummary() : a summary exists for the roomId " + roomId + " but it does not exist in the room list");
         }

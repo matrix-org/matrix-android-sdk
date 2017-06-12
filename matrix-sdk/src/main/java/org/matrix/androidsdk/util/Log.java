@@ -40,7 +40,7 @@ public class Log {
     private static final int LOG_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
     
     // relatively large rotation count because closing > opening the app rotates the log (!)
-    private static final int LOG_ROTATION_COUNT = 5;
+    private static final int LOG_ROTATION_COUNT = 15;
     
     private static final Logger sLogger = Logger.getLogger("org.matrix.androidsdk");
     private static FileHandler sFileHandler = null;
