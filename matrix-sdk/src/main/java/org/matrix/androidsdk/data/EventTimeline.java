@@ -253,6 +253,15 @@ public class EventTimeline {
     }
 
     /**
+     * Get whether we are at the end of the message stream
+     *
+     * @return true if end has been reached
+     */
+    public boolean hasReachedHomeServerForwardsPaginationEnd() {
+        return mHasReachedHomeServerForwardsPaginationEnd;
+    }
+
+    /**
      * Set the room Id
      * @param roomId the new room id.
      */

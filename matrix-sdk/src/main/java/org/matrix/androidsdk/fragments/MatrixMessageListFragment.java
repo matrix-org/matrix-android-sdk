@@ -19,7 +19,6 @@ package org.matrix.androidsdk.fragments;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -159,6 +158,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
          * @param isDisplayed true if the latest event is fully displayed
          */
         void onLatestEventDisplay(boolean isDisplayed);
+
+
+        /**
+         * See {@link AbsListView.OnScrollListener#onScrollStateChanged(AbsListView, int)}
+         *
+         * @param scrollState
+         */
+        void onScrollStateChanged(int scrollState);
     }
 
     protected static final String TAG_FRAGMENT_MESSAGE_OPTIONS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_OPTIONS";
@@ -209,6 +216,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     // by default the
     protected EventTimeline mEventTimeLine;
     protected String mEventId;
+    // TS of the even id we want to scroll to
+    // Used when the event will not be in adapter because event is not displayed
+    protected long mEventOriginServerTs;
 
     // pagination statuses
     protected boolean mIsInitialSyncing = true;
@@ -359,6 +369,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     backPaginate(false);
                 }
             }
+
+            if (null != mActivityOnScrollListener) {
+                try {
+                    mActivityOnScrollListener.onScrollStateChanged(scrollState);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## manageScrollListener : onScrollStateChanged failed " + e.getMessage());
+                }
+            }
         }
 
         /**
@@ -488,9 +506,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 mRoom = mEventTimeLine.getRoom();
                 if (PREVIEW_MODE_UNREAD_MESSAGE.equals(previewMode)){
                     mAdapter.setIsUnreadViewMode(true);
-                    final View footerView = ((LayoutInflater) getActivity().getSystemService(Context.LAYOUT_INFLATER_SERVICE))
-                            .inflate(R.layout.unread_messages_footer, null, false);
-                    mMessageListView.addFooterView(footerView);
                 }
             }
             // display a room preview
@@ -2312,12 +2327,38 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         hideLoadingForwardProgress();
     }
 
+    /**
+     * Scroll to the given row
+     *
+     * @param messageRow
+     */
+    public void scrollToRow(final MessageRow messageRow) {
+        final int distanceFromTop = (int) (getResources().getDisplayMetrics().density * 100);
+        final int lastReadRowIndex = mAdapter.getPosition(messageRow);
+        // Scroll to the first unread row if possible, last read otherwise
+        final int targetRow = lastReadRowIndex < mMessageListView.getCount() - 1
+                ? lastReadRowIndex + 1 : lastReadRowIndex;
+        Log.e(LOG_TAG, "scrollToAdapterEvent setSelection " + lastReadRowIndex);
+        // Scroll to the last read so we can see the beginning of the first unread (in majority of cases)
+        mMessageListView.post(new Runnable() {
+            @Override
+            public void run() {
+                mMessageListView.setSelectionFromTop(targetRow, distanceFromTop);
+            }
+        });
+    }
+
     //==============================================================================================================
     // MatrixMessagesFragment methods
     //==============================================================================================================
 
     @Override
     public void onEvent(final Event event, final EventTimeline.Direction direction, final RoomState roomState) {
+        if (event.eventId.equals(mEventId)) {
+            // Save timestamp in case this event will not be added in adapter
+            mEventOriginServerTs = event.getOriginServerTs();
+        }
+
         if (direction == EventTimeline.Direction.FORWARDS) {
             getUiHandler().post(new Runnable() {
                 @Override
@@ -2362,7 +2403,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             mAdapter.add(newMessageRow, (null == mEventTimeLine) || mEventTimeLine.isLiveTimeline());
 
                             // Move read marker if necessary
-                            if (!mAdapter.isInBackground()) {
+                            if (!mAdapter.isInBackground() && mEventTimeLine != null && mEventTimeLine.isLiveTimeline()) {
                                 final String currentReadMarkerEventId = mRoom.getReadMarkerEventId();
                                 MessageRow currentReadMarkerRow = mAdapter.getMessageRow(currentReadMarkerEventId);
                                 if (currentReadMarkerRow != null &&
@@ -2547,20 +2588,42 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 // search the event pos in the adapter
                 // some events are not displayed so the added events count cannot be used.
                 int eventPos = 0;
-                for (; eventPos < mAdapter.getCount(); eventPos++) {
-                    if (TextUtils.equals(mAdapter.getItem(eventPos).getEvent().eventId, mEventId)) {
-                        break;
+
+                if (mAdapter.isUnreadViewMode() && mAdapter.getMessageRow(mEventId) == null) {
+                    // Event is not in adapter, try to find the closest one
+                    final MessageRow closestRowAfter = mAdapter.getClosestRowFromTs(mEventId, mEventOriginServerTs);
+                    final int closestRowAfterPos = mAdapter.getPosition(closestRowAfter);
+
+                    MessageRow closestRowBefore = closestRowAfter;
+                    if (closestRowAfterPos > 0) {
+                        closestRowBefore = mAdapter.getItem(closestRowAfterPos - 1);
                     }
+
+                    if (closestRowBefore != null) {
+                        mAdapter.updateReadMarker(closestRowBefore.getEvent().eventId, null);
+                    }
+                    mAdapter.notifyDataSetChanged();
+                    mMessageListView.setAdapter(mAdapter);
+
+                    if (closestRowBefore != null) {
+                        scrollToRow(closestRowBefore);
+                    }
+                } else {
+                    for (; eventPos < mAdapter.getCount(); eventPos++) {
+                        if (TextUtils.equals(mAdapter.getItem(eventPos).getEvent().eventId, mEventId)) {
+                            break;
+                        }
+                    }
+
+                    View parentView = (View) mMessageListView.getParent();
+
+                    mAdapter.notifyDataSetChanged();
+
+                    mMessageListView.setAdapter(mAdapter);
+
+                    // center the message in the
+                    mMessageListView.setSelectionFromTop(eventPos, parentView.getHeight() / 2);
                 }
-
-                View parentView = (View) mMessageListView.getParent();
-
-                mAdapter.notifyDataSetChanged();
-
-                mMessageListView.setAdapter(mAdapter);
-
-                // center the message in the
-                mMessageListView.setSelectionFromTop(eventPos, parentView.getHeight() / 2);
             }
         });
     }

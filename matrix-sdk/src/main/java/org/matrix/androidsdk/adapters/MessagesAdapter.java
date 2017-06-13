@@ -72,9 +72,7 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
-import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
-import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
@@ -313,8 +311,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     // id of the read markers event
     private String mReadMarkerEventId;
+    private boolean mCanShowReadMarker;
     private String mReadReceiptEventId;
     private boolean mIsInBackground;
+
+    private ReadMarkerListener mReadMarkerListener;
 
     private MatrixLinkMovementMethod mLinkMovementMethod;
 
@@ -825,6 +826,50 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
+     * Get the closest row after the given event
+     * Used when we need to jump to an event that is not displayed
+     *
+     * @param event
+     * @return closest row
+     */
+    public MessageRow getClosestRow(Event event) {
+        if (event == null) {
+            return null;
+        } else {
+            return getClosestRowFromTs(event.eventId, event.getOriginServerTs());
+        }
+    }
+
+    /**
+     * Get the closest row after the given event id/ts
+     * Used when we need to jump to an event that is not displayed
+     *
+     * @param eventId
+     * @param eventTs
+     * @return closest row
+     */
+    public MessageRow getClosestRowFromTs(final String eventId, final long eventTs) {
+        MessageRow messageRow = getMessageRow(eventId);
+        if (messageRow != null) {
+            return messageRow;
+        } else {
+            ArrayList<MessageRow> rows = new ArrayList<>(mEventRowMap.values());
+            for (MessageRow row : rows) {
+                if (row.getEvent().getOriginServerTs() > eventTs) {
+                    if (messageRow == null) {
+                        messageRow = row;
+                    } else if (row.getEvent().getOriginServerTs() - eventTs <
+                            messageRow.getEvent().getOriginServerTs() - eventTs) {
+                        messageRow = row;
+                        Log.d(LOG_TAG, "getClosestRow " + row.getEvent().eventId);
+                    }
+                }
+            }
+        }
+        return messageRow;
+    }
+
+    /**
      * Convert Event to view type.
      *
      * @param event the event to convert
@@ -942,7 +987,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 throw new RuntimeException("Unknown item view type for position " + position);
         }
 
-        handleReadMarker(inflatedView, position);
+        if (mReadMarkerListener != null) {
+            handleReadMarker(inflatedView, position);
+        }
 
         return inflatedView;
     }
@@ -950,7 +997,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     /**
      * Animate a read marker view
      */
-    protected void animateReadMarkerView(final View readMarkerView) {
+    protected void animateReadMarkerView(final Event event, final View readMarkerView) {
         if (readMarkerView != null) {
             Log.e(LOG_TAG, "animateReadMarkerView");
             if (readMarkerView.getAnimation() == null) {
@@ -960,11 +1007,15 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 animation.setAnimationListener(new Animation.AnimationListener() {
                     @Override
                     public void onAnimationStart(Animation animation) {
+                        mCanShowReadMarker = false;
                     }
 
                     @Override
                     public void onAnimationEnd(Animation animation) {
                         readMarkerView.setVisibility(View.GONE);
+                        if (mReadMarkerListener != null) {
+                            mReadMarkerListener.onReadMarkerDisplayed(event, readMarkerView);
+                        }
                     }
 
                     @Override
@@ -976,7 +1027,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             new Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override
                 public void run() {
-                    if (readMarkerView != null) {
+                    if (readMarkerView != null && readMarkerView.getAnimation() != null) {
                         readMarkerView.setVisibility(View.VISIBLE);
                         readMarkerView.getAnimation().start();
                     }
@@ -997,21 +1048,21 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         final View readMarkerView = inflatedView.findViewById(R.id.message_read_marker);
         if (readMarkerView != null) {
-            if (event != null && !event.isDummyEvent() && mReadMarkerEventId != null
+            if(event.eventId.equals(mReadMarkerEventId)){
+                Log.v(LOG_TAG, "handleReadMarker event == mReadMarkerEventId " +mReadMarkerEventId);
+                Log.v(LOG_TAG, "handleReadMarker event == mIsPreviewMode " +mIsPreviewMode);
+                Log.v(LOG_TAG, "handleReadMarker event == mCanShowReadMarker " +mCanShowReadMarker);
+                Log.v(LOG_TAG, "handleReadMarker event == (!mReadMarkerEventId.equals(mReadReceiptEventId) " +(!mReadMarkerEventId.equals(mReadReceiptEventId)));
+                Log.v(LOG_TAG, "handleReadMarker event == position < getCount() - 1 " +(position < getCount() - 1));
+            }
+            if (event != null && !event.isDummyEvent() && mReadMarkerEventId != null && mCanShowReadMarker
                     && event.eventId.equals(mReadMarkerEventId) && !mIsPreviewMode && !mIsSearchMode
                     && (!mReadMarkerEventId.equals(mReadReceiptEventId) || position < getCount() - 1)) {
                 Log.e(LOG_TAG, " Display read marker " + event.eventId + " mReadMarkerEventId" + mReadMarkerEventId);
-                final Room room = mSession.getDataHandler().getRoom(event.roomId);
-                if (room != null) {
-                    room.markAllAsRead(null);
-
-                    resetReadMarker();
-
-                    // Show the read marker
-                    animateReadMarkerView(readMarkerView);
-                }
+                // Show the read marker
+                animateReadMarkerView(event, readMarkerView);
             } else {
-                Log.e(LOG_TAG,"hide read marker ");
+                Log.v(LOG_TAG,"hide read marker ");
                 readMarkerView.setVisibility(View.GONE);
             }
         }
@@ -1025,6 +1076,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     public void updateReadMarker(final String readMarkerEventId, final String readReceiptEventId) {
         if(readMarkerEventId != null && !readMarkerEventId.equals(mReadMarkerEventId)){
             Log.e(LOG_TAG,"updateReadMarker "+readMarkerEventId+" readReceiptEventId "+readReceiptEventId);
+            mCanShowReadMarker = true;
+            notifyDataSetChanged();
         }
         mReadMarkerEventId = readMarkerEventId;
         mReadReceiptEventId = readReceiptEventId;
@@ -1046,6 +1099,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     public void resetReadMarker() {
         Log.e(LOG_TAG,"resetReadMarker "+mReadMarkerEventId);
         mReadMarkerEventId = null;
+    }
+
+    public String getReadMarkerEventId() {
+        return mReadMarkerEventId;
     }
 
     /**
@@ -3073,5 +3130,24 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 uploadProgressLayout.setVisibility(View.GONE);
             }
         }
+    }
+
+    /**
+     * Specify a listener for read marker
+     *
+     * @param listener
+     */
+    public void setReadMarkerListener(final ReadMarkerListener listener) {
+        mReadMarkerListener = listener;
+    }
+
+    /*
+     * *********************************************************************************************
+     * Inner classes
+     * *********************************************************************************************
+     */
+
+    public interface ReadMarkerListener {
+        void onReadMarkerDisplayed(Event event, View view);
     }
 }

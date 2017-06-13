@@ -52,7 +52,7 @@
     <!-- Room Screen -->
     <string name="could_not_redact">Could not redact</string>
     <string name="unable_to_send_message">Unable to send message</string>
-    <string name="unread_messages_footer">"-\nYou've caught up"</string>
+    <string name="unread_messages_footer">"You've caught up"</string>
 
     <string name="message_failed_to_upload">Failed to upload image</string>
 
