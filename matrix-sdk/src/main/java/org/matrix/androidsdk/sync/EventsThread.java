@@ -78,6 +78,9 @@ public class EventsThread extends Thread {
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
     private boolean mbIsConnected = true;
 
+    // a thread handler
+    private Handler mThreadHandler;
+
     private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
         @Override
         public void onNetworkConnectionUpdate(boolean isConnected) {
@@ -137,18 +140,7 @@ public class EventsThread extends Thread {
 
         Log.d(LOG_TAG, "setSyncDelay : " + mRequestDelayMs);
 
-        Handler handler = null;
-
-        try {
-            handler = new Handler();
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## setSyncDelay failed " + e.getMessage());
-        }
-
-        // use a default one
-        if (null == handler) {
-            handler = new Handler(Looper.getMainLooper());
-        }
+        Handler handler = (null != mThreadHandler) ? mThreadHandler : new Handler(Looper.getMainLooper());
 
         // call mSyncDelayTimer on the same thread
         handler.post(new Runnable() {
@@ -299,6 +291,7 @@ public class EventsThread extends Thread {
     public void run() {
         try {
             Looper.prepare();
+            mThreadHandler = new Handler();
         } catch (Exception e) {
             Log.e(LOG_TAG, "## run() : prepare failed " + e.getMessage());
         }
