@@ -19,6 +19,7 @@ package org.matrix.androidsdk;
 import android.content.Context;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
+import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
@@ -511,20 +512,11 @@ public class MXSession {
         return mMediasCache;
     }
 
+
     /**
-     * Clear the session data
+     * Clear the application cache
      */
-    public void clear(Context context) {
-        checkIfAlive();
-
-        synchronized (this) {
-            mIsAliveSession = false;
-        }
-
-        // stop events stream
-        stopEventStream();
-
-        // cancel any listener
+    private void clearApplicationCaches(Context context) {
         mDataHandler.clear();
 
         // network event will not be listened anymore
@@ -539,6 +531,54 @@ public class MXSession {
 
         if (null != mCrypto) {
             mCrypto.close();
+        }
+    }
+
+    /**
+     * Clear the session data synchronously.
+     *
+     * @param context the context
+     */
+    public void clear(final Context context) {
+        clear(context, null);
+    }
+
+    /**
+     * Clear the session data.
+     * if the callback is null, the clear is synchronous.
+     *
+     * @param context the context
+     * @param callback the asynchronous callback
+     */
+    public void clear(final Context context, final ApiCallback<Void> callback) {
+        checkIfAlive();
+
+        synchronized (this) {
+            mIsAliveSession = false;
+        }
+
+        // stop events stream
+        stopEventStream();
+
+        if (null == callback) {
+            clearApplicationCaches(context);
+        } else {
+            // clear the caches in a background thread to avoid blocking the UI thread
+            AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
+                @Override
+                protected Void doInBackground(Void... params) {
+                    clearApplicationCaches(context);
+                    return null;
+                }
+
+                @Override
+                protected void onPostExecute(Void args) {
+                    if (null != callback) {
+                        callback.onSuccess(null);
+                    }
+                }
+            };
+            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         }
     }
 
@@ -1885,15 +1925,30 @@ public class MXSession {
         mLoginRestClient.logout(new ApiCallback<JsonObject>() {
             @Override
             public void onSuccess(JsonObject info) {
-                clear(context);
-                if (null != callback) {
-                    callback.onSuccess(null);
-                }
+                Log.e(LOG_TAG, "## logout() : succeed -> clearing the application data ");
+                clear(context, new SimpleApiCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void info) {
+                        if (null != callback) {
+                            callback.onSuccess(null);
+                        }
+                    }
+                });
+            }
+
+            private void onError(String errorMessage) {
+                Log.e(LOG_TAG, "## logout() : failed " + errorMessage);
+                clear(context, new SimpleApiCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void info) {
+                        Log.e(LOG_TAG, "## logout() : failed and the caches are cleared");
+                    }
+                });
             }
 
             @Override
             public void onNetworkError(Exception e) {
-                clear(context);
+                onError(e.getMessage());
                 if (null != callback) {
                     callback.onNetworkError(e);
                 }
@@ -1901,7 +1956,7 @@ public class MXSession {
 
             @Override
             public void onMatrixError(MatrixError e) {
-                clear(context);
+                onError(e.getMessage());
                 if (null != callback) {
                     callback.onMatrixError(e);
                 }
@@ -1909,7 +1964,7 @@ public class MXSession {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                clear(context);
+                onError(e.getMessage());
                 if (null != callback) {
                     callback.onUnexpectedError(e);
                 }
