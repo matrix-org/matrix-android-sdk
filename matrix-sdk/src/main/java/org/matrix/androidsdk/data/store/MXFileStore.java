@@ -63,7 +63,7 @@ public class MXFileStore extends MXMemoryStore {
     private static final String LOG_TAG = "MXFileStore";
 
     // some constant values
-    private static final int MXFILE_VERSION = 10;
+    private static final int MXFILE_VERSION = 11;
 
     // ensure that there is enough messages to fill a tablet screen
     private static final int MAX_STORED_MESSAGES_COUNT = 50;
@@ -225,10 +225,7 @@ public class MXFileStore extends MXMemoryStore {
         // check if the metadata file exists and if it is valid
         loadMetaData();
 
-        if ((null == mMetadata) ||
-                (mMetadata.mVersion != MXFILE_VERSION) ||
-                !TextUtils.equals(mMetadata.mUserId, mCredentials.userId) ||
-                !TextUtils.equals(mMetadata.mAccessToken, mCredentials.accessToken)) {
+        if (null == mMetadata) {
             deleteAllData(true);
         }
 
@@ -339,10 +336,12 @@ public class MXFileStore extends MXMemoryStore {
                                 Log.e(LOG_TAG, "Open the store in the background thread.");
 
                                 String errorDescription = null;
-                                boolean succeed = true;
+                                boolean succeed = (mMetadata.mVersion == MXFILE_VERSION) &&
+                                        TextUtils.equals(mMetadata.mUserId, mCredentials.userId) &&
+                                        TextUtils.equals(mMetadata.mAccessToken, mCredentials.accessToken);
 
                                 if (!succeed) {
-                                    errorDescription = "The latest save did not work properly";
+                                    errorDescription = "The store content is not anymore valid";
                                     Log.e(LOG_TAG, errorDescription);
                                 }
 
