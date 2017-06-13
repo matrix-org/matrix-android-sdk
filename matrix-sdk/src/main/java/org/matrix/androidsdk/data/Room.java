@@ -1122,8 +1122,10 @@ public class Room {
             RoomSummary summary = mDataHandler.getStore().getSummary(getRoomId());
 
             if (null != summary) {
-                if (0 != summary.getUnreadEventsCount()) {
-                    Log.e(LOG_TAG, "## sendReadReceipt() : the unread message count for " + getRoomId() + " should have been cleared");
+                if ((0 != summary.getUnreadEventsCount()) ||
+                        (0 != summary.getHighlightCount()) ||
+                        (0 != summary.getNotificationCount())) {
+                    Log.e(LOG_TAG, "## sendReadReceipt() : the summary events counters should be cleared for " + getRoomId() + " should have been cleared");
 
                     Event latestEvent = mDataHandler.getStore().getLatestEvent(getRoomId());
                     summary.setLatestReceivedEvent(latestEvent);
@@ -1139,6 +1141,8 @@ public class Room {
                     summary.setNotificationCount(0);
                     mDataHandler.getStore().flushSummary(summary);
                 }
+            } else {
+                Log.e(LOG_TAG, "## sendReadReceipt() : no summary for " + getRoomId());
             }
 
             if ((0 != getLiveState().getNotificationCount()) || (0 != getLiveState().getHighlightCount())) {
