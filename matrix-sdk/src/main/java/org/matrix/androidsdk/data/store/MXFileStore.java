@@ -18,9 +18,7 @@
 package org.matrix.androidsdk.data.store;
 
 import android.content.Context;
-import android.os.Handler;
 import android.os.HandlerThread;
-import android.os.Looper;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -225,10 +223,7 @@ public class MXFileStore extends MXMemoryStore {
         // check if the metadata file exists and if it is valid
         loadMetaData();
 
-        if ((null == mMetadata) ||
-                (mMetadata.mVersion != MXFILE_VERSION) ||
-                !TextUtils.equals(mMetadata.mUserId, mCredentials.userId) ||
-                !TextUtils.equals(mMetadata.mAccessToken, mCredentials.accessToken)) {
+        if (null == mMetadata)  {
             deleteAllData(true);
         }
 
@@ -339,10 +334,12 @@ public class MXFileStore extends MXMemoryStore {
                                 Log.e(LOG_TAG, "Open the store in the background thread.");
 
                                 String errorDescription = null;
-                                boolean succeed = true;
+                                boolean succeed = (mMetadata.mVersion == MXFILE_VERSION) &&
+                                        TextUtils.equals(mMetadata.mUserId, mCredentials.userId) &&
+                                        TextUtils.equals(mMetadata.mAccessToken, mCredentials.accessToken);
 
                                 if (!succeed) {
-                                    errorDescription = "The latest save did not work properly";
+                                    errorDescription = "Invalid store content";
                                     Log.e(LOG_TAG, errorDescription);
                                 }
 
@@ -450,11 +447,11 @@ public class MXFileStore extends MXMemoryStore {
                                         mMetadata = new MXFileStoreMetaData();
                                         mMetadata.mUserId = mCredentials.userId;
                                         mMetadata.mAccessToken = mCredentials.accessToken;
-                                        mMetadata.mVersion = MXFILE_VERSION;
                                         mMetaDataHasChanged = true;
                                     } else {
                                         mMetadata.mEventStreamToken = null;
                                     }
+                                    mMetadata.mVersion = MXFILE_VERSION;
 
                                     //  the event stream token is put to zero to ensure ta
                                     mEventStreamToken = null;
