@@ -449,11 +449,11 @@ public class MXFileStore extends MXMemoryStore {
                                         mMetadata = new MXFileStoreMetaData();
                                         mMetadata.mUserId = mCredentials.userId;
                                         mMetadata.mAccessToken = mCredentials.accessToken;
-                                        mMetadata.mVersion = MXFILE_VERSION;
                                         mMetaDataHasChanged = true;
                                     } else {
                                         mMetadata.mEventStreamToken = null;
                                     }
+                                    mMetadata.mVersion = MXFILE_VERSION;
 
                                     //  the event stream token is put to zero to ensure ta
                                     mEventStreamToken = null;
