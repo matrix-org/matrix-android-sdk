@@ -311,7 +311,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     // id of the read markers event
     private String mReadMarkerEventId;
-    private boolean mCanShowReadMarker;
+    private boolean mCanShowReadMarker = true;
     private String mReadReceiptEventId;
     private boolean mIsInBackground;
 
@@ -998,8 +998,8 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * Animate a read marker view
      */
     protected void animateReadMarkerView(final Event event, final View readMarkerView) {
-        if (readMarkerView != null) {
-            Log.e(LOG_TAG, "animateReadMarkerView");
+        if (readMarkerView != null && mCanShowReadMarker) {
+            mCanShowReadMarker = false;
             if (readMarkerView.getAnimation() == null) {
                 final Animation animation = AnimationUtils.loadAnimation(getContext(), R.anim.unread_marker_anim);
                 animation.setStartOffset(1000);
@@ -1007,7 +1007,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 animation.setAnimationListener(new Animation.AnimationListener() {
                     @Override
                     public void onAnimationStart(Animation animation) {
-                        mCanShowReadMarker = false;
                     }
 
                     @Override
@@ -1045,20 +1044,12 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private void handleReadMarker(final View inflatedView, final int position) {
         final MessageRow row = getItem(position);
         final Event event = row != null ? row.getEvent() : null;
-
         final View readMarkerView = inflatedView.findViewById(R.id.message_read_marker);
         if (readMarkerView != null) {
-            if(event.eventId.equals(mReadMarkerEventId)){
-                Log.v(LOG_TAG, "handleReadMarker event == mReadMarkerEventId " +mReadMarkerEventId);
-                Log.v(LOG_TAG, "handleReadMarker event == mIsPreviewMode " +mIsPreviewMode);
-                Log.v(LOG_TAG, "handleReadMarker event == mCanShowReadMarker " +mCanShowReadMarker);
-                Log.v(LOG_TAG, "handleReadMarker event == (!mReadMarkerEventId.equals(mReadReceiptEventId) " +(!mReadMarkerEventId.equals(mReadReceiptEventId)));
-                Log.v(LOG_TAG, "handleReadMarker event == position < getCount() - 1 " +(position < getCount() - 1));
-            }
             if (event != null && !event.isDummyEvent() && mReadMarkerEventId != null && mCanShowReadMarker
                     && event.eventId.equals(mReadMarkerEventId) && !mIsPreviewMode && !mIsSearchMode
                     && (!mReadMarkerEventId.equals(mReadReceiptEventId) || position < getCount() - 1)) {
-                Log.e(LOG_TAG, " Display read marker " + event.eventId + " mReadMarkerEventId" + mReadMarkerEventId);
+                Log.d(LOG_TAG, " Display read marker " + event.eventId + " mReadMarkerEventId" + mReadMarkerEventId);
                 // Show the read marker
                 animateReadMarkerView(event, readMarkerView);
             } else {
