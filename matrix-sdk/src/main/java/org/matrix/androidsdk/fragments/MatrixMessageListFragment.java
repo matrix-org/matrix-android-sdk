@@ -2331,14 +2331,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * Scroll to the given row
      *
      * @param messageRow
+     * @param isLastRead
      */
-    public void scrollToRow(final MessageRow messageRow) {
+    public void scrollToRow(final MessageRow messageRow, boolean isLastRead) {
         final int distanceFromTop = (int) (getResources().getDisplayMetrics().density * 100);
         final int lastReadRowIndex = mAdapter.getPosition(messageRow);
         // Scroll to the first unread row if possible, last read otherwise
-        final int targetRow = lastReadRowIndex < mMessageListView.getCount() - 1
+        final int targetRow = isLastRead && lastReadRowIndex < mMessageListView.getCount() - 1
                 ? lastReadRowIndex + 1 : lastReadRowIndex;
-        Log.e(LOG_TAG, "scrollToAdapterEvent setSelection " + lastReadRowIndex);
+        Log.d(LOG_TAG, "scrollToRow setSelection " + lastReadRowIndex);
         // Scroll to the last read so we can see the beginning of the first unread (in majority of cases)
         mMessageListView.post(new Runnable() {
             @Override
@@ -2606,7 +2607,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     mMessageListView.setAdapter(mAdapter);
 
                     if (closestRowBefore != null) {
-                        scrollToRow(closestRowBefore);
+                        scrollToRow(closestRowBefore, true);
                     }
                 } else {
                     for (; eventPos < mAdapter.getCount(); eventPos++) {
