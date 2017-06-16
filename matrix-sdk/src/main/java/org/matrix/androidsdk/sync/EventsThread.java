@@ -66,6 +66,7 @@ public class EventsThread extends Thread {
     // add a delay between two sync requests
     private int mRequestDelayMs = 0;
     private Timer mSyncDelayTimer = null;
+    private final Object mSyncDelayTimerLock = new Object();
 
     // avoid sync on "this" because it might differ if there is a timer.
     private final Object mSyncObject = new Object();
@@ -78,8 +79,6 @@ public class EventsThread extends Thread {
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
     private boolean mbIsConnected = true;
 
-    // a thread handler
-    private Handler mThreadHandler;
 
     private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
         @Override
@@ -140,24 +139,22 @@ public class EventsThread extends Thread {
 
         Log.d(LOG_TAG, "setSyncDelay : " + mRequestDelayMs);
 
-        Handler handler = (null != mThreadHandler) ? mThreadHandler : new Handler(Looper.getMainLooper());
+        Timer syncDelayTimer;
 
-        // call mSyncDelayTimer on the same thread
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                // cancel any pending delay timer
-                if (null != mSyncDelayTimer) {
-                    Log.d(LOG_TAG, "setSyncDelay : cancel the delay timer");
+        synchronized (mSyncDelayTimerLock) {
+            syncDelayTimer = mSyncDelayTimer;
+            mSyncDelayTimer = null;
+        }
 
-                    mSyncDelayTimer.cancel();
-                    // and sync asap
-                    synchronized (mSyncObject) {
-                        mSyncObject.notify();
-                    }
-                }
+        if (null != syncDelayTimer) {
+            Log.d(LOG_TAG, "setSyncDelay : cancel the delay timer");
+
+            syncDelayTimer.cancel();
+            // and sync asap
+            synchronized (mSyncObject) {
+                mSyncObject.notify();
             }
-        });
+        }
     }
 
     /**
@@ -303,7 +300,6 @@ public class EventsThread extends Thread {
     public void run() {
         try {
             Looper.prepare();
-            mThreadHandler = new Handler();
         } catch (Exception e) {
             Log.e(LOG_TAG, "## run() : prepare failed " + e.getMessage());
         }
@@ -428,7 +424,9 @@ public class EventsThread extends Thread {
 
             // test if a delay between two syncs
             if ((!mPaused && !mIsNetworkSuspended) && (0 != mRequestDelayMs)) {
-                mSyncDelayTimer = new Timer();
+                synchronized (mSyncDelayTimerLock) {
+                    mSyncDelayTimer = new Timer();
+                }
 
                 Log.d(LOG_TAG, "startSync : start a delay timer");
 
@@ -444,8 +442,14 @@ public class EventsThread extends Thread {
                 }, mRequestDelayMs);
             }
 
-            if (mPaused || mIsNetworkSuspended || (null != mSyncDelayTimer)) {
-                if (null != mSyncDelayTimer) {
+            Timer syncDelayTimer;
+
+            synchronized (mSyncDelayTimerLock) {
+                syncDelayTimer = mSyncDelayTimer;
+            }
+
+            if (mPaused || mIsNetworkSuspended || (null != syncDelayTimer)) {
+                if (null != syncDelayTimer) {
                     Log.d(LOG_TAG, "Event stream is paused because there is a timer delay.");
                 } else if (mIsNetworkSuspended) {
                     Log.d(LOG_TAG, "Event stream is paused because there is no available network.");
@@ -460,9 +464,11 @@ public class EventsThread extends Thread {
                         mSyncObject.wait();
                     }
 
-                    if (null != mSyncDelayTimer) {
-                        mSyncDelayTimer.cancel();
-                        mSyncDelayTimer = null;
+                    synchronized (mSyncDelayTimerLock) {
+                        if (null != mSyncDelayTimer) {
+                            mSyncDelayTimer.cancel();
+                            mSyncDelayTimer = null;
+                        }
                     }
 
                     Log.d(LOG_TAG, "Event stream woken from pause.");
