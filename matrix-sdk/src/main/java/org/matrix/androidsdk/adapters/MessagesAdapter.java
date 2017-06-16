@@ -1049,7 +1049,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             if (event != null && !event.isDummyEvent() && mReadMarkerEventId != null && mCanShowReadMarker
                     && event.eventId.equals(mReadMarkerEventId) && !mIsPreviewMode && !mIsSearchMode
                     && (!mReadMarkerEventId.equals(mReadReceiptEventId) || position < getCount() - 1)) {
-                Log.d(LOG_TAG, " Display read marker " + event.eventId + " mReadMarkerEventId" + mReadMarkerEventId);
+                Log.e(LOG_TAG, " Display read marker " + event.eventId + " mReadMarkerEventId" + mReadMarkerEventId);
                 // Show the read marker
                 animateReadMarkerView(event, readMarkerView);
             } else {
@@ -1065,13 +1065,14 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param readMarkerEventId
      */
     public void updateReadMarker(final String readMarkerEventId, final String readReceiptEventId) {
-        if(readMarkerEventId != null && !readMarkerEventId.equals(mReadMarkerEventId)){
-            Log.e(LOG_TAG,"updateReadMarker "+readMarkerEventId+" readReceiptEventId "+readReceiptEventId);
+        Log.e(LOG_TAG, "updateReadMarker " + readMarkerEventId + " readReceiptEventId " + readReceiptEventId);
+        mReadMarkerEventId = readMarkerEventId;
+        mReadReceiptEventId = readReceiptEventId;
+        if (readMarkerEventId != null && !readMarkerEventId.equals(mReadMarkerEventId)) {
+            Log.e(LOG_TAG, "updateReadMarker read marker id has changed");
             mCanShowReadMarker = true;
             notifyDataSetChanged();
         }
-        mReadMarkerEventId = readMarkerEventId;
-        mReadReceiptEventId = readReceiptEventId;
     }
 
     /**
