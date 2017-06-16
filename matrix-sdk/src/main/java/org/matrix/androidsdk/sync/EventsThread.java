@@ -278,6 +278,18 @@ public class EventsThread extends Thread {
     }
 
     /**
+     * Cancel the killing process
+     */
+    public void cancelKill() {
+        if (mKilling) {
+            Log.d(LOG_TAG, "## cancelKill() : Cancel the pending kill");
+            mKilling = false;
+        } else {
+            Log.d(LOG_TAG, "## cancelKill() : Nothing to d");
+        }
+    }
+
+    /**
      * Update the online status
      *
      * @param isOnline true if the client must be seen as online

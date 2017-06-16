@@ -638,8 +638,15 @@ public class MXSession {
         checkIfAlive();
 
         if (mEventsThread != null) {
-            Log.e(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
-            return;
+            if (!mEventsThread.isAlive()) {
+                mEventsThread = null;
+                Log.e(LOG_TAG, "startEventStream() : create a new EventsThread");
+            } else {
+                // https://github.com/vector-im/riot-android/issues/1331
+                mEventsThread.cancelKill();
+                Log.e(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
+                return;
+            }
         }
 
         if (mDataHandler == null) {
