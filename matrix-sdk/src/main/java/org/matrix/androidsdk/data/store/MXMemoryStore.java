@@ -1364,20 +1364,22 @@ public class MXMemoryStore implements IMXStore {
         // sanity check
         if ((null != roomId) && (null != userId)) {
             synchronized (mReceiptsByRoomIdLock) {
-                if (mReceiptsByRoomId.containsKey(roomId) && mRoomEvents.containsKey(roomId)) {
-                    Map<String, ReceiptData> receiptsByUserId = mReceiptsByRoomId.get(roomId);
-                    LinkedHashMap<String, Event> eventsMap = mRoomEvents.get(roomId);
+                synchronized (mRoomEventsLock) {
+                    if (mReceiptsByRoomId.containsKey(roomId) && mRoomEvents.containsKey(roomId)) {
+                        Map<String, ReceiptData> receiptsByUserId = mReceiptsByRoomId.get(roomId);
+                        LinkedHashMap<String, Event> eventsMap = mRoomEvents.get(roomId);
 
-                    // check if the event is known
-                    if (eventsMap.containsKey(eventIdTotest) && receiptsByUserId.containsKey(userId)) {
-                        ReceiptData data = receiptsByUserId.get(userId);
-                        ArrayList<String> eventIds = new ArrayList<>(eventsMap.keySet());
+                        // check if the event is known
+                        if (eventsMap.containsKey(eventIdTotest) && receiptsByUserId.containsKey(userId)) {
+                            ReceiptData data = receiptsByUserId.get(userId);
+                            ArrayList<String> eventIds = new ArrayList<>(eventsMap.keySet());
 
-                        // the message has been read if it was sent before the latest read one
-                        res = eventIds.indexOf(eventIdTotest) <= eventIds.indexOf(data.eventId);
-                    } else if (receiptsByUserId.containsKey(userId)) {
-                        // the event is not known so assume it is has been flushed
-                        res = true;
+                            // the message has been read if it was sent before the latest read one
+                            res = eventIds.indexOf(eventIdTotest) <= eventIds.indexOf(data.eventId);
+                        } else if (receiptsByUserId.containsKey(userId)) {
+                            // the event is not known so assume it is has been flushed
+                            res = true;
+                        }
                     }
                 }
             }
