@@ -424,22 +424,22 @@ public class EventsThread extends Thread {
 
             // test if a delay between two syncs
             if ((!mPaused && !mIsNetworkSuspended) && (0 != mRequestDelayMs)) {
-                synchronized (mSyncDelayTimerLock) {
-                    mSyncDelayTimer = new Timer();
-                }
-
                 Log.d(LOG_TAG, "startSync : start a delay timer");
 
-                mSyncDelayTimer.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        Log.d(LOG_TAG, "start a sync after " + mRequestDelayMs + " ms");
+                synchronized (mSyncDelayTimerLock) {
+                    mSyncDelayTimer = new Timer();
 
-                        synchronized (mSyncObject) {
-                            mSyncObject.notify();
+                    mSyncDelayTimer.schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            Log.d(LOG_TAG, "start a sync after " + mRequestDelayMs + " ms");
+
+                            synchronized (mSyncObject) {
+                                mSyncObject.notify();
+                            }
                         }
-                    }
-                }, mRequestDelayMs);
+                    }, mRequestDelayMs);
+                }
             }
 
             Timer syncDelayTimer;
