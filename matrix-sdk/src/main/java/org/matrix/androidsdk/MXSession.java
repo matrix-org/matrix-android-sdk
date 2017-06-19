@@ -551,9 +551,12 @@ public class MXSession {
      * @param callback the asynchronous callback
      */
     public void clear(final Context context, final ApiCallback<Void> callback) {
-        checkIfAlive();
-
         synchronized (this) {
+            if (!mIsAliveSession) {
+                Log.e(LOG_TAG, "## clear() was already called");
+                return;
+            }
+
             mIsAliveSession = false;
         }
 
@@ -1924,15 +1927,26 @@ public class MXSession {
      * @param callback the callback success and failure callback
      */
     public void logout(final Context context, final ApiCallback<Void> callback) {
+        synchronized (this) {
+            if (!mIsAliveSession) {
+                Log.e(LOG_TAG, "## logout() was already called");
+                return;
+            }
+
+            mIsAliveSession = false;
+        }
+
         // Clear crypto data
         // For security and because it will be no more useful as we will get a new device id
         // on the next log in
         enableCrypto(false, null);
 
         mLoginRestClient.logout(new ApiCallback<JsonObject>() {
-            @Override
-            public void onSuccess(JsonObject info) {
-                Log.e(LOG_TAG, "## logout() : succeed -> clearing the application data ");
+
+            private void clearData() {
+                // required else the clear won't be done
+                mIsAliveSession = true;
+
                 clear(context, new SimpleApiCallback<Void>() {
                     @Override
                     public void onSuccess(Void info) {
@@ -1943,41 +1957,30 @@ public class MXSession {
                 });
             }
 
+            @Override
+            public void onSuccess(JsonObject info) {
+                Log.e(LOG_TAG, "## logout() : succeed -> clearing the application data ");
+                clearData();
+            }
+
             private void onError(String errorMessage) {
                 Log.e(LOG_TAG, "## logout() : failed " + errorMessage);
-                clear(context, new SimpleApiCallback<Void>() {
-                    @Override
-                    public void onSuccess(Void info) {
-                        Log.e(LOG_TAG, "## logout() : failed and the caches are cleared");
-                        if (null != callback) {
-                            callback.onSuccess(null);
-                        }
-                    }
-                });
+                clearData();
             }
 
             @Override
             public void onNetworkError(Exception e) {
                 onError(e.getMessage());
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
                 onError(e.getMessage());
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
                 onError(e.getMessage());
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
             }
         });
     }
