@@ -16,21 +16,25 @@
  */
 package org.matrix.androidsdk;
 
+import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.text.TextUtils;
-import org.matrix.androidsdk.util.Log;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCrypto;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.data.DataRetriever;
-import org.matrix.androidsdk.data.store.IMXStore;
-import org.matrix.androidsdk.data.store.MXMemoryStore;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.data.store.IMXStore;
+import org.matrix.androidsdk.data.store.MXMemoryStore;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
@@ -57,6 +61,7 @@ import org.matrix.androidsdk.rest.model.bingrules.Condition;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.MXOsHandler;
 
 import java.lang.reflect.Modifier;
@@ -65,12 +70,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import android.os.Handler;
-
-import com.google.gson.FieldNamingPolicy;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
 
 /**
  * The data handler provides a layer to help manage matrix input and output.
@@ -2007,6 +2006,32 @@ public class MXDataHandler implements IMXEventListener {
                         listener.onRoomTagEvent(roomId);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onRoomTagEvent " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onReadMarkerEvent(final String roomId) {
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onReadMarkerEvent(roomId);
+        }
+
+        if (ignoreEvent(roomId)) {
+            return;
+        }
+
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onReadMarkerEvent(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onReadMarkerEvent " + e.getMessage());
                     }
                 }
             }

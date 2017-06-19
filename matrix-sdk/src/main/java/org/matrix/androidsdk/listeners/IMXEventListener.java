@@ -187,6 +187,13 @@ public interface IMXEventListener {
     void onRoomTagEvent(String roomId);
 
     /**
+     * A read marker has been updated
+     *
+     * @param roomId
+     */
+    void onReadMarkerEvent(String roomId);
+
+    /**
      * An event was sent to the current device.
      *
      * @param event the event

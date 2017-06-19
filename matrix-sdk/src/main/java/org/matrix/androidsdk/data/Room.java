@@ -1676,6 +1676,7 @@ public class Room {
                         if (null != event) {
                             summary.setReadMarkerEventId(event.eventId);
                             mStore.flushSummary(summary);
+                            mDataHandler.onReadMarkerEvent(getRoomId());
                         }
                     }
                 } else {
@@ -1968,6 +1969,18 @@ public class Room {
                         eventListener.onRoomTagEvent(roomId);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onRoomTagEvent exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onReadMarkerEvent(String roomId) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), roomId)) {
+                    try {
+                        eventListener.onReadMarkerEvent(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onReadMarkerEvent exception " + e.getMessage());
                     }
                 }
             }
