@@ -1949,6 +1949,9 @@ public class MXSession {
                     @Override
                     public void onSuccess(Void info) {
                         Log.e(LOG_TAG, "## logout() : failed and the caches are cleared");
+                        if (null != callback) {
+                            callback.onSuccess(null);
+                        }
                     }
                 });
             }
