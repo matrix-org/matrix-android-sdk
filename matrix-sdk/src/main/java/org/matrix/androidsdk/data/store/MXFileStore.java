@@ -582,7 +582,9 @@ public class MXFileStore extends MXMemoryStore {
 
         super.close();
         setIsKilled(true);
-        mHandlerThread.quit();
+        if (null != mHandlerThread) {
+            mHandlerThread.quit();
+        }
         mHandlerThread = null;
     }
 
