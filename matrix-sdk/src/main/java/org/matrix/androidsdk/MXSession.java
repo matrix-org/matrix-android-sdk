@@ -1370,6 +1370,11 @@ public class MXSession {
     public List<Room> roomsWithTag(final String tag) {
         ArrayList<Room> taggedRooms = new ArrayList<>();
 
+        // sanity check
+        if (null == mDataHandler.getStore()) {
+            return taggedRooms;
+        }
+
         if (!TextUtils.equals(tag, RoomTag.ROOM_TAG_NO_TAG)) {
             Collection<Room> rooms = mDataHandler.getStore().getRooms();
 
