@@ -1002,7 +1002,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             mCanShowReadMarker = false;
             if (readMarkerView.getAnimation() == null) {
                 final Animation animation = AnimationUtils.loadAnimation(getContext(), R.anim.unread_marker_anim);
-                animation.setStartOffset(1000);
+                animation.setStartOffset(500);
                 animation.setRepeatMode(Animation.INFINITE);
                 animation.setAnimationListener(new Animation.AnimationListener() {
                     @Override
