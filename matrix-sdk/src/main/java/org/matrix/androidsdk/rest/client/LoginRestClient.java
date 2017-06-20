@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.os.Build;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
@@ -131,10 +132,15 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param callback the callback success and failure callback
      */
     public void loginWithUser(final String user, final String password, final ApiCallback<Credentials> callback) {
+        loginWithUser(user, password, callback, null);
+    }
+
+    public void loginWithUser(final String user, final String password, final ApiCallback<Credentials> callback, @Nullable final String deviceId) {
         final String description = "loginWithUser : " + user;
 
         PasswordLoginParams params = new PasswordLoginParams();
         params.setUserIdentifier(user, password);
+        params.setDeviceId(deviceId);
 
         login(params, callback, description);
     }
@@ -148,10 +154,15 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param callback the callback success and failure callback
      */
     public void loginWith3Pid(final String medium, final String address, final String password, final ApiCallback<Credentials> callback) {
+        loginWith3Pid(medium, address, password, callback, null);
+    }
+
+    public void loginWith3Pid(final String medium, final String address, final String password, final ApiCallback<Credentials> callback, @Nullable final String deviceId) {
         final String description = "loginWith3pid : " + address;
 
         PasswordLoginParams params = new PasswordLoginParams();
         params.setThirdPartyIdentifier(medium, address, password);
+        params.setDeviceId(deviceId);
 
         login(params, callback, description);
     }
@@ -165,10 +176,15 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param callback    the callback success and failure callback
      */
     public void loginWithPhoneNumber(final String phoneNumber, final String countryCode, final String password, final ApiCallback<Credentials> callback) {
+        loginWithPhoneNumber(phoneNumber, countryCode, password, callback, null);
+    }
+
+    public void loginWithPhoneNumber(final String phoneNumber, final String countryCode, final String password, final ApiCallback<Credentials> callback, @Nullable final String deviceId) {
         final String description = "loginWithPhoneNumber : " + phoneNumber;
 
         PasswordLoginParams params = new PasswordLoginParams();
         params.setPhoneIdentifier(phoneNumber, countryCode, password);
+        params.setDeviceId(deviceId);
 
         login(params, callback, description);
     }
