@@ -1,18 +1,67 @@
+Changes to Matrix Android SDK in 0.7.13 (2017-06-12)
+=======================================================
+
+Bugfixes:
+
+* #1302 : No room / few rooms are displayed an application update / first launch
+
+Changes to Matrix Android SDK in 0.7.12 (2017-06-08)
+=======================================================
+
+Bugfixes:
+
+* #1291 : don't receive anymore notifications after updating to the 0.6.10 version
+* #1292 : No more room after updating the application on 0.6.10 and killing it during the loading
+
+Changes to Matrix Android SDK in 0.7.11 (2017-05-30)
+=======================================================
+
+Features:
+
+* Add the new public rooms API.
+* Add some languages support.
+* Add Room.forget API.
+
+Improvements: 
+
+* Add a dedicated method to mark all messages as read.
+* Ignore invalid avatarURL.
+* Add plaftform flavor in the request user agent.
+* Set the log timestamp to UTC.
+* Move the room preview management in a dedicated thread to avoid UI thread lags.
+* Improve the network connection detection.
+
+Bugfixes:
+
+* Issues reported by GA.
+* Fix some registration issues.
+* #1080 : The message sent with QuickReply is not added to the room history if the dedicated room activity is opened.
+* #1093 : Cannot decrypt attachments on Android 4.2.X.
+* #1129 : App-Name changed from "Riot" to "Matrix Android SDK"
+* #1148 : Cannot login when the device language is set to turkish
+* #1186 : Infinite back pagination whereas the app is in background
+* #1210 : Please don't log encryption payloads in rageshakes.
+* Fix double cryptostore  creation.
+* Fix some crypto issues.
+
 Changes to Matrix Android SDK in 0.7.10 (2017-03-15)
 =======================================================
 
 Features:
+
 * Add the MSDISN support for the registration and the authentification (3Pid).
 * Add the e2e keys import/export.
 * Add some settings to send encrypted messages to veryfied devices only (for a dedicated room or any room).
 
 Improvements: 
+
 * Improve the session loading time.
 * Add a callback to prevent sending messages to unknown devices.
 * Add a custom user agent with the application / SDK version.
 * Improve the audio attachments support
 
 Bugfixes:
+
 * Fix many cryptography issues.
 * Fix many issues reported by GA.
 * #929 : Retry schedule is too aggressive for arbitrary endpoints
@@ -23,9 +72,11 @@ Changes to Matrix Android SDK in 0.7.9 (2017-01-27)
 =======================================================
 
 Improvements: 
+
 * Use the new contacts lookup request.
 
 Bugfixes:
+
 * #894 : matrix user id regex does not allow underscore in the name
 * Fix backward compatibility issue.
 
@@ -33,21 +84,25 @@ Changes to Matrix Android SDK in 0.7.8 (2017-01-23)
 =======================================================
 
 Improvements: 
+
 * Update the olm library.
 * Improve the email bunch lookup method
 
 Bugfixes:
+
 * The users were not saved after the login. They were only saved after restarting the application.
 
 Changes to Matrix Android SDK in 0.7.7 (2017-01-17)
 =======================================================
 
 Improvements: 
+
 * Video call : The local preview is moveable.
 * e2e : The e2e data is now saved synchronously to avoid not being able to read our own messages if the application crashes.
 * Use a dedicated logger to avoid having truncated logs.
 
 Bugfixes:
+
 * Fix many crashes reported by Google Analytics.
 * Update the olm library (fix the random string generation issue, invalid emoji support...).
 * #816 : Custom server URL bug.
@@ -58,20 +113,24 @@ Changes to Matrix Android SDK in 0.7.5 (2016-12-19)
 =======================================================
 
 Improvements: 
+
 * The e2e keys are sent by 100 devices chunk
 
 Bugfixes:
+
 * Several issues reported by GA.
 * In some edge cases, the read all function does not clear the unread messages counters.
 
 Changes to Matrix Android SDK in 0.7.4 (2016-12-13)
 =======================================================
 
-Improvements: 
+Improvements:
+
 * Many e2e improvements
 * Reduce the stores launching times.
 
 Bugfixes:
+
 * Several issues reported by GA.
 * #374 : Check if Event.unsigned.age can be used to detect if the event is still valid. 
 * #687 : User adress instead of display name in call event
@@ -81,25 +140,30 @@ Changes to Matrix Android SDK in 0.7.3 (2016-11-24)
 =======================================================
 
 Improvements: 
+
 * reduce the memory use to avoid having out of memory error.
 
 Bugfixes:
+
 * The rest clients did not with http v2 servers.
 
 Changes to Matrix Android SDK in 0.7.2 (2016-11-23)
 =======================================================
 
 Features:
+
 * Add room.isDirectChatInvitation method
 * Send thumbnail for the image messages
 * Update to the attachment encryptions V2
 
 Improvements: 
+
 * Improve the cryptostore management to avoid working on UI thread.
 * Improve the crypto store to avoid application logout when the files are corrupted
 * Update the olm lib.
 
 Bugfixes:
+
 * #680 : Unsupported TLS protocol version
 * #731 : Crypto : Some device informations are not displayed whereas the messages can be decrypted.
 * #739 : [e2e] Ringtone from call is different according to the encryption state of the room
@@ -109,20 +173,24 @@ Changes to Matrix Android SDK in 0.7.1 (2016-11-21)
 =======================================================
 
 Improvements: 
+
 * Improve the cryptostore management to avoid working on UI thread.
 
 Bugfixes:
+
 * Add try / catch block in JSonUtils methods (GA issues)
 
 Changes to Matrix Android SDK in 0.7.0 (2016-11-18)
 =======================================================
 
 Features:
+
 * Encryption
 * DirectChat management
 * Devices list management
 
 Bugfixes:
+
 * GA issues
 * #529 : the unread notified messages are not properly cleared when the network connection is lost / unstable
 * #540 : All the store data is lost if there is an OOM error while saving it.
@@ -139,6 +207,7 @@ Changes to Matrix Android SDK in 0.6.2 (2016-09-19)
 =======================================================
 
 Bugfixes:
+
 * Ensure that ended calls are no more seen as active call.	
 * #490 : Start a call conference and stop it asap don't stop it
 * #501 : [VoIP] crash in caller side when a started video call is stopped asap.
@@ -148,11 +217,13 @@ Changes to Matrix Android SDK in 0.6.1 (2016-09-13)
 =======================================================
 
 Features:
+
 * #406 : Chat screen: New message(s) notification
 * #465 : Chat screen: disable auto scroll to bottom on keyboard presentation 
 
 
 Bugfixes:
+
 * #386 : Sender picture missing in notification
 * #396 : Displayed name should be consistent for all events 
 * #397 : Generated avatar should be consistent for all events 
@@ -168,13 +239,16 @@ Changes to Matrix Android SDK in 0.6.0 (2016-08-11)
 =======================================================
 
 Improvements:
+
 * #351 : VoIP Checklist (add the end of call reason, receive a call while already in call).
 
 Features:
+
 * Add the attachment upload/download detailled information (progress, mean bitrate, estimated remaining time...)
 * Add the conference call management.
 
 Bugfixes:
+
 * #290 : Redacting membership events should immediately reset the displayname & avatar of room members
 * #320 : Sanitise the logs to remove private data
 * #330 : some medias are not downloadable
@@ -187,9 +261,11 @@ Changes to Matrix Android SDK in 0.5.9 (2016-07-19)
 =======================================================
 
 Features:
+
 * The room ids, the room aliases, the event ids are now clickable.
 
 Bugfixes:
+
 * Update the background color of the markdown code.
 * #297 : Redact avatar / name update event should remove them from the room history.
 * #318 : Some member avatars are wrong.
@@ -198,14 +274,17 @@ Changes to Matrix Android SDK in 0.5.8 (2016-07-11)
 =======================================================
 
 Improvements:
+
 * Improve file extension retrieving.
 * Update to gradle 1.5.0
 * Image message in the recents page: display the filename when it is known instead of XX sent an image.
 
 Features:
+
 * Add the requests to add/remove aliases to/from a room aliases.
 
 Bugfixes:
+
 * #262 : The app should not display <img> from HTML formatted_body
 * #263 : redactions shouldn't hide auth events (eg bans) from the timeline. they should only hide the human readable bits of content
 * #265 : vector-android seems to use display names for join/part when in a room, but not in the latest message display in the rooms list.
@@ -215,16 +294,19 @@ Changes to Matrix Android SDK in 0.5.7 (2016-06-21)
 =======================================================
 
 Improvements:
+
 * The room visibility messages are displayed in the room history.
 * Do not refresh the turn servers if the HS does not support it.
 * RoomState : The events_default and users_default default values are now 0.
 
 Features:
+
 * Add some new room settings management (list in Directory, room access, room history)
 * The background sync timeout is now configurable.
 * A sleep can be defined between two sync requests.
 
 Bugfixes:
+
 * #206 : There is no space between some avatars (unexpected avatar).
 * GA issue : EventTimeLine.mDataHandler is empty whereas it should be.
 * onInvalidToken should not be triggered when MatrixError.FORBIDDEN is received.
@@ -237,16 +319,19 @@ Changes to Matrix Android SDK in 0.5.7 (2016-06-21)
 =======================================================
 
 Improvements:
+
 * The room visibility messages are displayed in the room history.
 * Do not refresh the turn servers if the HS does not support it.
 * RoomState : The events_default and users_default default values are now 0.
 
 Features:
+
 * Add some new room settings management (list in Directory, room access, room history)
 * The background sync timeout is now configurable.
 * A sleep can be defined between two sync requests.
 
 Bugfixes:
+
 * #206 : There is no space between some avatars (unexpected avatar).
 * GA issue : EventTimeLine.mDataHandler is empty whereas it should be.
 * onInvalidToken should not be triggered when MatrixError.FORBIDDEN is received.
@@ -259,6 +344,7 @@ Changes to Matrix Android SDK in 0.5.6 (2016-06-07)
 =======================================================
 
 Bugfixes:
+
 * issue #176 Update the notification text when invited to a chat 
 * issue #194 Public room preview : some public rooms have no display name
 * issue #180 Some invited emails are stuck (invitation from a non matrix user)
@@ -269,16 +355,19 @@ Changes to Matrix Android SDK in 0.5.5 (2016-06-03)
 =======================================================
 
 Improvements:
+
 * The "table" markdown were badly displayed : use the default Html render
 * Remove useless roomSummary error traces (not supported event type)
 * Add missing fields in PublicRoom
 
 Features:
+
 * Add ignore users feature.
 * Add an API to retrieve the pusher
 * Add the room preview management
 
 Bugfixes:
+
 * Fixes several crashes reported by GA.
 * Incoming call did not trigger any pushes.
 
@@ -286,6 +375,7 @@ Changes to Matrix Android SDK in 0.5.4 (2016-05-11)
 =======================================================
 
 Improvements:
+
 * Add a method to retrieve the SDK version programmatically.
 * Add an error callback in the media downloader.
 * Improve the room history back pagination management.
@@ -305,6 +395,7 @@ Improvements:
 * Increase the image thumbnail.
 
 Features:
+
 * Add the currently_active field to User.
 * The messages search is now done on server side.
 * Add the email login support.
@@ -316,6 +407,7 @@ Features:
 * Add reset password
 
 Bugfixes:
+
 * The bing rules were sometines not initialized after the application launch.
 * SYAND-90 The very first pagination jumps the scroll bar.
 * The room spinner was sometime stuck.
@@ -336,6 +428,7 @@ Changes to Matrix Android SDK in 0.5.3 (2016-02-16)
 =======================================================
 
 Improvements:
+
  * The read receipts are displayed for outgoing and incoming messages.
  * The room members search methods have been improved.
  * The user account data is updated at application launch and resume to speed up account update.
@@ -344,12 +437,14 @@ Improvements:
  * Reduce the number of room backpagination requests when reaching the room history top.
 
 Features:
+
  * Add new server synchronisation.
  * Add room tags support.
  * Add the mute room notifications methods.
  * Add the remote text search method. 
 
 Bugfixes:
+
  * Some member avatars were not properly retrieved.
  * The read receipts were not properly saved.
  * The room loading spinner was sometimes stuck when joining a room.
@@ -364,6 +459,7 @@ Changes to Matrix Android SDK in 0.5.2 (2015-11-20)
 ===================================================
 
 Improvements:
+
  * Now supports setting a default alias for rooms
  * Rooms can now clear or set ACLs for scrollback 
  * Better SSL support for older devices
@@ -371,10 +467,12 @@ Improvements:
  * Improved scrolling and update after screen rotation
 
 Features:
+
  * Read receipts!
  * Added refresh_token support
 
 Bug fixes:
+
  * Fixed a case where the user got randomly logged out
  * Fixed echo during Android<->Android VOIP calls 
 
@@ -382,6 +480,7 @@ Changes in Matrix Android SDK in 0.5.1 (2015-09-30)
 ===================================================
 
 Improvements:
+
  * Add support of file:// in mediaCacheFile.
  * Many UI classes are more customisable (click management, UI fields…).
  * The catchup time should be shorter.
@@ -390,11 +489,13 @@ Improvements:
  * MXFileStore : Saving thread is now a low priority thread.
 
 Features:
+
  * Add video and location messages support
  * Add self signed cert support.
 
 
 Bug fixes:
+
  * The event lifetime parameter was not checked.
  * The application used to crash while starting a voice/video with a device with no camera or no front camera.
  * Many crashes while logging out.
@@ -403,6 +504,7 @@ Changes in Matrix Android SDK in 0.4.4 (2015-09-07)
 ===================================================
 
 Improvements:
+
  * Add assert to avoid using released session
  * The RespAdapter callbacks are called in try/catch block to avoid crashing the application.
  * Get thumbnail bitmap file from URL.
@@ -420,9 +522,11 @@ Improvements:
  * Improve the storage events management.
 
 Features:
+
  * Voice/Video call management.
 
 Bug fixes:
+
  * The displayname was not initialized if the settings page was not opened once.
  * Add mFileStoreHandler sanity check (GA issues).
  * Highlight messages with displayname / userID in room instead of using the push rules.
@@ -443,10 +547,12 @@ Changes in Matrix Android SDK in 0.4.3 (2015-07-07)
 ===================================================
 
 Improvements:
+
  * Display the members presence in the chat activity.
 
 
 Bug fixes:
+
  * The 0.4.2 update used to display an empty history.
 
 
@@ -454,6 +560,7 @@ Changes in Matrix Android SDK in 0.4.2 (2015-07-06)
 ===================================================
 
 Improvements:
+
  * Improve the room members listing (it used to be very slow on huge rooms like Matrix HQ).
  * Display the server error messages when available.
  * Multi servers management.
@@ -462,9 +569,11 @@ Improvements:
 
 
 Features:
+
  * Bing rules can now be updated on the client.
 
 Bug fixes:
+
  * Some rooms were not joined because the roomIds were URL encoded.
  * SYAND-91 : server is not federating - endless load of public room list.
  * Back pagination was sometimes broken with “Invalid token” error. The client should clear the application cache (settings page).
@@ -475,9 +584,11 @@ Changes in Matrix Android SDK in 0.4.1 (2015-06-22)
 ===================================================
 
 Improvements:
+
  * Automatically resend failed medias.
 
 Bug fixes:
+
  * The matrixMessagesFragment was not properly restarted after have been killed by a low memory.
  * The emotes were not properly displayed.
  * The dataHandler field was not set for "myUser" so displayName update was not properly managed.
@@ -494,6 +605,7 @@ Thus, it would be easier to implement a new application.
 
 
 Improvements:
+
  * Move AutoScrollDownListView from console to the SDK.
  * Image resizing : use inSampleSize instead of decompressing the image in memory.
  * The image cache should not stored large and very large images.
@@ -508,12 +620,14 @@ Improvements:
  * IconAndTextAdapter customization. 
 
 Features:
+
  * Add MXFileStore : The data is now saved in a filesystem cache. It improves the application launching time.
                      The sent messages are also stored when the device is offline.
  * Add GCM registration to a third party server.
 
 
 Bug fixes:
+
  * The media download could be stuck on bad/slow network connection.
  * On kitkat or above, the image thumbnails were not properly retrieved.
  * SYAND-80 : image uploading pie chart lies.
@@ -526,15 +640,18 @@ Changes in Matrix Android SDK in 0.3.1 (2015-04-24)
  SDK
 -----
 Improvements:
+
  * Move RoomSummaryAdapter from the application  to the SDK.
  * Move RoomMembersAdapters from the application to the SDK..
  * Large file upload did not warn the user that the media was too large.
  * Do not restart the events listener each 10s if there is no available network. Wait that a network connection is retrieved.
 
 Features:
+
  * Add multi-accounts management.
 
 Bug fixes:
+
  * Some unsent messages were not properly automatically resent.
  * The content provider did not provide the mimetype.
  * The application used to randomly crashed on application when there was some network issues.
@@ -546,12 +663,14 @@ Bug fixes:
  Matrix Console
 -----------------
 Improvements:
+
  * Re-order the room actions : move from a sliding menu to a standard menu.
  * Do not refresh the room when the application is in background to reduce battery draining.
  * The notice messages are merged as any other messages.
  * Re-order the members list (join first, invite, leave & ban).
 
 Features:
+
  * Applications can share medias with Matrix Console with the "<" button.
  * Matrix console can share medias with third party applications like emails.
  * A message can be forwarded to an existing room or to a third party application.
@@ -560,6 +679,7 @@ Features:
  * Some push notifications were not triggered when the application was in background.
 
 Bug fixes:
+
  * A selected GIF image was transformed into a JPG one.
  * The room name was sometimes invalid when the user was invited.
  * SYAND-68 : No hint on display name in settings
@@ -578,6 +698,7 @@ Changes in Matrix Android SDK in 0.3.0 (2015-04-10)
  SDK
 -----
 Improvements:
+
  * Any request is automatically resent until it succeeds (with a 3 minutes timeline).
  * Remove the dataHandler listeners when logging out to avoid getting unexpected callback call.
 
@@ -585,6 +706,7 @@ Improvements:
  Matrix Console
 -----------------
 Improvements:
+
  * Add the image watermarks
  * Display the members count in the members list.
  * Can invite several users from the known members list or from their user ids.
@@ -608,6 +730,7 @@ Improvements:
  * Remove some tags in the logs to avoid displaying the accesstoken.
 
 Features:
+
  * Supoort Android Lollipop. 
  * Use the material design support.
  * Add the contacts support.
@@ -615,6 +738,7 @@ Features:
  * Factors the message adapter and fragments to be able to create some new ones without copying too many code.
 
 Bug fixes:
+
  * SYAND-46 : Crash on launch on my S4 running Android 4.
  * SYAND-51 : New room subscription did not occur in android app.
  * SYAND-54 : Images should be available in gallery apps.
@@ -647,6 +771,7 @@ Changes in Matrix Android SDK in 0.2.3 (2015-03-10)
  Matrix Console
 -----------------
 Improvements:
+
  * Avoid refreshing the home page when it is not displayed.
  * Display a piechart while uploading a media.
  * Refresh the display when some messages are automatically resent (after retrieving a data network connection for example).
@@ -659,6 +784,7 @@ Improvements:
  * The animated GIFs are now supported.
 
 Features:
+
  * Add the rate limits error management. The server could request to delay the messages sending because they were too many messages sent in a short time (to avoid spam).
  * Can take a photo to send it.
  * A chat room page is automatically paginated to fill. It used to get only the ten latest messages : it displayed half filled page on tablet.
@@ -668,6 +794,7 @@ Features:
  * Add various accessibility tweaks.
 
 Bug fixes:
+
  * The media downloads/uploads were sometimes stuck.
  * The private room creation was broken.
  * SYAND-33 : number of unread messages disappears when entering another room.
@@ -689,17 +816,20 @@ Changes in Matrix Android SDK in 0.2.2 (2015-02-27)
  Matrix Console
 -----------------
 Improvements:
+
  * Exif management : the uploaded image is rotated according to the exif metadata (if the device has enough free memory).
  * Add a piechart while downloading an image 
  * Add JSON representation of a message (tap on its row, “Message details”
  * The public rooms list is now sorted according to the number of members.
 
 Features:
+
  * Add configuration and skeleton classes for receiving GCM messages
  * Add REST client for pushers API with add method for HTTP pushers.
  * Add the account creation.
 
 Bug fixes:
+
  * Reset the image thumbnail when a row is reused.
  * SYAND-30 Notification should be away when entering a room.
  * Some images thumbnails were downloaded several times.
@@ -720,6 +850,7 @@ Changes in Matrix Android SDK in 0.2.1 (2015-02-20)
 -----
 
 Features:
+
  * Add a network connection listener.
  * Unsent messages are automatically resent when a network connection is retrieved.
 
@@ -727,6 +858,7 @@ Features:
  Matrix Console
 -----------------
 Improvements:
+
  * There is no more alert dialog when receiving a new message. They are always displayed in the notifications list.
  * Tap on a member thumbnail opens a dedicated.
  * The message timestamps are always displayed. They used to be displayed/hidden when tapping on the other avatar side.
@@ -741,11 +873,13 @@ Improvements:
  * Replace the notification icon by a matrix one.
 
 Features:
+
  * Add the command lines support (see the settings page to have the available command list).
  * Add the typing notifications management.
  * SYAND-24 Respond to IMs directly from push.	
 
 Bug fixes:
+
  * The image upload failed when using G+-Photos app.
  * Correctly set Content-Length when uploading resource in ContentManager.
  * The user profile was never refreshed when opening the settings activity.
@@ -773,6 +907,7 @@ Changes in Matrix Android SDK in 0.2.0 (2015-02-09)
 -----
 
 Features:
+
  * Added basic support for redacted messages.
  * Added bing rules support.
 
@@ -780,6 +915,7 @@ Features:
  Matrix Console
 -----------------
 Improvements:
+
  * Room messages are merged
  * The oneself messages are displayed at screen right side
  * The images are cached to improve UX.
@@ -789,8 +925,10 @@ Improvements:
  * The unread messages count are displayed.
 
 Features:
+
  * Add rageshake to submit a bug report
 
  Bug fixes:
+ 
  * SYAND-17 Crash on login on master
  

@@ -1288,6 +1288,16 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
+     * Release the left rooms store
+     */
+    public void releaseLeftRooms() {
+        if (mAreLeftRoomsSynced) {
+            mLeftRoomsStore.clear();
+            mAreLeftRoomsSynced = false;
+        }
+    }
+
+    /**
      * Retrieve the historical rooms
      * @param callback the asynchronous callback.
      */

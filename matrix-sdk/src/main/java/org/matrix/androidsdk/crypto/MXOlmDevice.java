@@ -266,7 +266,7 @@ public class MXOlmDevice {
      */
     public Map<String, String> createInboundSession(String theirDeviceIdentityKey, int messageType, String ciphertext) {
 
-        Log.d(LOG_TAG, "## createInboundSession() : " + theirDeviceIdentityKey);
+        Log.d(LOG_TAG, "## createInboundSession() : theirIdentityKey: " + theirDeviceIdentityKey);
 
         OlmSession olmSession = null;
 
@@ -279,7 +279,7 @@ public class MXOlmDevice {
                 return null;
             }
 
-            Log.d(LOG_TAG, "## createInboundSession() : " + olmSession.sessionIdentifier());
+            Log.d(LOG_TAG, "## createInboundSession() : sessionId: " + olmSession.sessionIdentifier());
 
             try {
                 mOlmAccount.removeOneTimeKeys(olmSession);

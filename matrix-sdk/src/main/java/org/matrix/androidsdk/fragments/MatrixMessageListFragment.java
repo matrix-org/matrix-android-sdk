@@ -255,6 +255,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     // listen when the events list is scrolled.
     protected IOnScrollListener mActivityOnScrollListener;
 
+    // the history filling is suspended when the fragment is not active
+    // because there is no way to detect if enough data were retrieved
+    private boolean mFillHistoryOnResume;
+
     public MXMediasCache getMXMediasCache() {
         return null;
     }
@@ -547,47 +551,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
         });
 
-        mAdapter.setMessagesAdapterEventsListener(this);
-
         mDisplayAllEvents = isDisplayAllEvents();
 
         return v;
-    }
-
-    /**
-     * Called when a fragment is first attached to its activity.
-     * {@link #onCreate(Bundle)} will be called after this.
-     *
-     * @param aHostActivity parent activity
-     */
-    @Override
-    public void onAttach(Activity aHostActivity) {
-        super.onAttach(aHostActivity);
-
-        try {
-            mEventSendingListener = (IEventSendingListener) aHostActivity;
-        } catch (ClassCastException e) {
-            // if host activity does not provide the implementation, just ignore it
-            Log.w(LOG_TAG, "## onAttach(): host activity does not implement IEventSendingListener " + aHostActivity);
-        }
-
-        try {
-            mActivityOnScrollListener = (IOnScrollListener) aHostActivity;
-        } catch (ClassCastException e) {
-            // if host activity does not provide the implementation, just ignore it
-            Log.w(LOG_TAG, "## onAttach(): host activity does not implement IOnScrollListener " + aHostActivity);
-        }
-    }
-
-    /**
-     * Called when the fragment is no longer attached to its activity.  This
-     * is called after {@link #onDestroy()}.
-     */
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        mEventSendingListener = null;
-        mActivityOnScrollListener = null;
     }
 
     @Override
@@ -617,9 +583,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         // remove listeners to prevent memory leak
         if (null != mMatrixMessagesFragment) {
             mMatrixMessagesFragment.setMatrixMessagesListener(null);
-        }
-        if (null != mAdapter) {
-            mAdapter.setMessagesAdapterEventsListener(null);
         }
     }
 
@@ -651,16 +614,24 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void onPause() {
         super.onPause();
 
-        if (mAdapter != null) {
-            mAdapter.setIsInBackground(true);
-        }
+        mEventSendingListener = null;
+        mActivityOnScrollListener = null;
 
-        //
+        // clear maps
+        mEventSendingListener = null;
+        mActivityOnScrollListener = null;
+
+        // clear maps
         mBingRulesByEventId.clear();
 
         // check if the session has not been logged out
-        if (mSession.isAlive() && (null != mRoom) && mIsLive) {
+        if (null != mRoom) {
             mRoom.removeEventListener(mEventsListener);
+        }
+
+        if (null != mAdapter) {
+            mAdapter.setMessagesAdapterEventsListener(null);
+            mAdapter.setIsInBackground(true);
         }
 
         cancelCatchingRequests();
@@ -670,12 +641,18 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     public void onResume() {
         super.onResume();
 
-        if (mAdapter != null) {
-            mAdapter.setIsInBackground(false);
+        Activity activity = getActivity();
+
+        if (activity instanceof IEventSendingListener) {
+            mEventSendingListener = (IEventSendingListener)activity;
+        }
+
+        if (activity instanceof IOnScrollListener) {
+            mActivityOnScrollListener = (IOnScrollListener)activity;
         }
 
         // sanity check
-        if ((null != mRoom) && mIsLive) {
+        if ((null != mRoom) && mEventTimeLine.isLiveTimeline()) {
             Room room = mSession.getDataHandler().getRoom(mRoom.getRoomId(), false);
 
             if (null != room) {
@@ -683,6 +660,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             } else {
                 Log.e(LOG_TAG, "the room " + mRoom.getRoomId() + " does not exist anymore");
             }
+        }
+
+        if (null != mAdapter) {
+            mAdapter.setMessagesAdapterEventsListener(this);
+            mAdapter.setIsInBackground(false);
+        }
+
+        // a room history filling was suspended because the fragment was not active
+        if (mFillHistoryOnResume) {
+            mFillHistoryOnResume = false;
+            backPaginate(true);
         }
     }
 
@@ -2193,6 +2181,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             return;
         }
 
+        if (!isResumed()) {
+            Log.d(LOG_TAG, "backPaginate : the fragement is not anymore active");
+            mFillHistoryOnResume = true;
+            return;
+        }
+
         final int countBeforeUpdate = mAdapter.getCount();
 
         mIsBackPaginating = mMatrixMessagesFragment.backPaginate(new SimpleApiCallback<Integer>(getActivity()) {
@@ -2339,7 +2333,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         // Scroll to the first unread row if possible, last read otherwise
         final int targetRow = isLastRead && lastReadRowIndex < mMessageListView.getCount() - 1
                 ? lastReadRowIndex + 1 : lastReadRowIndex;
-        Log.d(LOG_TAG, "scrollToRow setSelection " + lastReadRowIndex);
         // Scroll to the last read so we can see the beginning of the first unread (in majority of cases)
         mMessageListView.post(new Runnable() {
             @Override

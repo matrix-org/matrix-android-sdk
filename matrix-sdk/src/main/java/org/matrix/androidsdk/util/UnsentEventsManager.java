@@ -326,6 +326,15 @@ public class UnsentEventsManager {
     }
 
     /**
+     * A request fails with an unknown matrix token error code.
+     * @param eventDescription the event description
+     */
+    public void onUnknownMatrixToken(final String eventDescription) {
+        Log.e(LOG_TAG, eventDescription + " failed because of an unknown matrix token");
+        mDataHandler.onInvalidToken();
+    }
+
+    /**
      * warns that an event failed to be sent.
      * @param eventDescription the event description
      * @param ignoreEventTimeLifeInOffline tell if the event timelife is ignored in offline mode

@@ -21,7 +21,8 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
-import android.util.Log;
+
+import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.Room;
@@ -482,8 +483,11 @@ public class MXMemoryStore implements IMXStore {
                     }
                 }
             }
-        } catch (OutOfMemoryError e) {
-            dispatchOOM(e);
+        } catch (OutOfMemoryError oom) {
+            dispatchOOM(oom);
+            Log.e(LOG_TAG, "## updateUserWithRoomMemberEvent() failed " + oom.getMessage());
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## updateUserWithRoomMemberEvent() failed " + e.getMessage());
         }
     }
 
@@ -1024,11 +1028,7 @@ public class MXMemoryStore implements IMXStore {
     public RoomSummary getSummary(String roomId) {
         Room room = mRooms.get(roomId);
         if (null != room) {
-            if (null == room.getMember(mCredentials.userId)) {
-                Log.e(LOG_TAG, "## getSummary() : a summary exists for the roomId " + roomId + " but the user is not anymore a member");
-            } else {
-                return mRoomSummaries.get(roomId);
-            }
+            return mRoomSummaries.get(roomId);
         } else {
             Log.e(LOG_TAG, "## getSummary() : a summary exists for the roomId " + roomId + " but it does not exist in the room list");
         }
@@ -1364,20 +1364,22 @@ public class MXMemoryStore implements IMXStore {
         // sanity check
         if ((null != roomId) && (null != userId)) {
             synchronized (mReceiptsByRoomIdLock) {
-                if (mReceiptsByRoomId.containsKey(roomId) && mRoomEvents.containsKey(roomId)) {
-                    Map<String, ReceiptData> receiptsByUserId = mReceiptsByRoomId.get(roomId);
-                    LinkedHashMap<String, Event> eventsMap = mRoomEvents.get(roomId);
+                synchronized (mRoomEventsLock) {
+                    if (mReceiptsByRoomId.containsKey(roomId) && mRoomEvents.containsKey(roomId)) {
+                        Map<String, ReceiptData> receiptsByUserId = mReceiptsByRoomId.get(roomId);
+                        LinkedHashMap<String, Event> eventsMap = mRoomEvents.get(roomId);
 
-                    // check if the event is known
-                    if (eventsMap.containsKey(eventIdTotest) && receiptsByUserId.containsKey(userId)) {
-                        ReceiptData data = receiptsByUserId.get(userId);
-                        ArrayList<String> eventIds = new ArrayList<>(eventsMap.keySet());
+                        // check if the event is known
+                        if (eventsMap.containsKey(eventIdTotest) && receiptsByUserId.containsKey(userId)) {
+                            ReceiptData data = receiptsByUserId.get(userId);
+                            ArrayList<String> eventIds = new ArrayList<>(eventsMap.keySet());
 
-                        // the message has been read if it was sent before the latest read one
-                        res = eventIds.indexOf(eventIdTotest) <= eventIds.indexOf(data.eventId);
-                    } else if (receiptsByUserId.containsKey(userId)) {
-                        // the event is not known so assume it is has been flushed
-                        res = true;
+                            // the message has been read if it was sent before the latest read one
+                            res = eventIds.indexOf(eventIdTotest) <= eventIds.indexOf(data.eventId);
+                        } else if (receiptsByUserId.containsKey(userId)) {
+                            // the event is not known so assume it is has been flushed
+                            res = true;
+                        }
                     }
                 }
             }

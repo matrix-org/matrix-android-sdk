@@ -275,7 +275,7 @@ public class MXOlmDecryption implements IMXDecrypting {
         Map<String, String> res = mOlmDevice.createInboundSession(theirDeviceIdentityKey, messageType, messageBody);
 
         if (null == res) {
-            Log.e(LOG_TAG, "## decryptMessage() :  Error decrypting non-prekey message with existing sessions");
+            Log.e(LOG_TAG, "## decryptMessage(): Error decrypting prekey message with new session");
             return null;
         }
 

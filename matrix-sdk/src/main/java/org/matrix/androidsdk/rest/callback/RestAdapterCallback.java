@@ -197,6 +197,8 @@ public class RestAdapterCallback<T> implements Callback<T> {
                 if (mxError != null) {
                     if (MatrixError.LIMIT_EXCEEDED.equals(mxError.errcode) && (null != mUnsentEventsManager)) {
                         mUnsentEventsManager.onEventSendingFailed(mEventDescription, mIgnoreEventTimeLifeInOffline, error, mApiCallback, mRequestRetryCallBack);
+                    } else if (MatrixError.UNKNOWN_TOKEN.equals(mxError.errcode) && (null != mUnsentEventsManager)) {
+                        mUnsentEventsManager.onUnknownMatrixToken(mEventDescription);
                     } else {
                         try {
                             if (null != mApiCallback) {

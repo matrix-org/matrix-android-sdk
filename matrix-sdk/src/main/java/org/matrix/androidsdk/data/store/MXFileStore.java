@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,7 +61,7 @@ public class MXFileStore extends MXMemoryStore {
     private static final String LOG_TAG = "MXFileStore";
 
     // some constant values
-    private static final int MXFILE_VERSION = 9;
+    private static final int MXFILE_VERSION = 11;
 
     // ensure that there is enough messages to fill a tablet screen
     private static final int MAX_STORED_MESSAGES_COUNT = 50;
@@ -222,10 +223,7 @@ public class MXFileStore extends MXMemoryStore {
         // check if the metadata file exists and if it is valid
         loadMetaData();
 
-        if ((null == mMetadata) ||
-                (mMetadata.mVersion != MXFILE_VERSION) ||
-                !TextUtils.equals(mMetadata.mUserId, mCredentials.userId) ||
-                !TextUtils.equals(mMetadata.mAccessToken, mCredentials.accessToken)) {
+        if (null == mMetadata) {
             deleteAllData(true);
         }
 
@@ -336,10 +334,12 @@ public class MXFileStore extends MXMemoryStore {
                                 Log.e(LOG_TAG, "Open the store in the background thread.");
 
                                 String errorDescription = null;
-                                boolean succeed = true;
+                                boolean succeed = (mMetadata.mVersion == MXFILE_VERSION) &&
+                                        TextUtils.equals(mMetadata.mUserId, mCredentials.userId) &&
+                                        TextUtils.equals(mMetadata.mAccessToken, mCredentials.accessToken);
 
                                 if (!succeed) {
-                                    errorDescription = "The latest save did not work properly";
+                                    errorDescription = "The store content is not anymore valid";
                                     Log.e(LOG_TAG, errorDescription);
                                 }
 
@@ -393,10 +393,19 @@ public class MXFileStore extends MXMemoryStore {
                                         // some of them are hidden.
                                         // For example, the conference calls create a dummy room to manage
                                         // the call events.
-                                        succeed = mRooms.keySet().containsAll(mRoomSummaries.keySet());
+                                        // check also if the user is a member of the room
+                                        // https://github.com/vector-im/riot-android/issues/1302
 
-                                        if (!succeed) {
-                                            Log.e(LOG_TAG, "loadSummaries : some summaries don't match to rooms, assume that the store is corrupted");
+                                        for(String roomId : mRoomSummaries.keySet()) {
+                                            Room room = getRoom(roomId);
+
+                                            if (null == room) {
+                                                succeed = false;
+                                                Log.e(LOG_TAG, "loadSummaries : the room " + roomId + " does not exist");
+                                            } else if (null == room.getMember(mCredentials.userId)) {
+                                                succeed = false;
+                                                Log.e(LOG_TAG, "loadSummaries) : a summary exists for the roomId " + roomId + " but the user is not anymore a member");
+                                            }
                                         }
                                     }
                                 }
@@ -415,7 +424,6 @@ public class MXFileStore extends MXMemoryStore {
                                 // do not expect having empty list
                                 // assume that something is corrupted
                                 if (!succeed) {
-
                                     Log.e(LOG_TAG, "Fail to open the store in background");
 
                                     // delete all data set mMetadata to null
@@ -439,14 +447,15 @@ public class MXFileStore extends MXMemoryStore {
                                         mMetadata = new MXFileStoreMetaData();
                                         mMetadata.mUserId = mCredentials.userId;
                                         mMetadata.mAccessToken = mCredentials.accessToken;
-                                        mMetadata.mVersion = MXFILE_VERSION;
                                         mMetaDataHasChanged = true;
                                     } else {
                                         mMetadata.mEventStreamToken = null;
                                     }
+                                    mMetadata.mVersion = MXFILE_VERSION;
 
                                     //  the event stream token is put to zero to ensure ta
                                     mEventStreamToken = null;
+                                    mAreReceiptsReady = true;
                                 } else {
                                     Log.d(LOG_TAG, "++ store stats");
                                     Set<String> roomIds = mRoomEvents.keySet();
@@ -571,7 +580,9 @@ public class MXFileStore extends MXMemoryStore {
 
         super.close();
         setIsKilled(true);
-        mHandlerThread.quit();
+        if (null != mHandlerThread) {
+            mHandlerThread.quit();
+        }
         mHandlerThread = null;
     }
 
@@ -1925,9 +1936,15 @@ public class MXFileStore extends MXMemoryStore {
                     mFileStoreHandler.post(new Runnable() {
                         public void run() {
                             if (!mIsKilled) {
-                                long start = System.currentTimeMillis();
-                                writeObject("saveMetaData", new File(mStoreFolderFile, MXFILE_STORE_METADATA_FILE_NAME), fMetadata);
-                                Log.d(LOG_TAG, "saveMetaData : " + (System.currentTimeMillis() - start) + " ms");
+                                // save the metadata only when there is a current valid stream token
+                                // avoid saving the metadata if the store has been cleared
+                                if (null != mMetadata.mEventStreamToken) {
+                                    long start = System.currentTimeMillis();
+                                    writeObject("saveMetaData", new File(mStoreFolderFile, MXFILE_STORE_METADATA_FILE_NAME), fMetadata);
+                                    Log.d(LOG_TAG, "saveMetaData : " + (System.currentTimeMillis() - start) + " ms");
+                                } else {
+                                    Log.e(LOG_TAG, "## saveMetaData() : cancelled because mEventStreamToken is null");
+                                }
                             }
                         }
                     });
@@ -2063,14 +2080,14 @@ public class MXFileStore extends MXMemoryStore {
             long delta = (System.currentTimeMillis() - start);
             Log.d(LOG_TAG, "loadReceipts " + count + " rooms in " + delta + " ms");
             mStoreStats.put("loadReceipts", delta);
-
-            synchronized (this) {
-                mAreReceiptsReady = true;
-            }
         } catch (Exception e) {
             succeed = false;
             //Toast.makeText(mContext, "loadReceipts failed" + e, Toast.LENGTH_LONG).show();
             Log.e(LOG_TAG, "loadReceipts failed : " + e.getLocalizedMessage());
+        }
+
+        synchronized (this) {
+            mAreReceiptsReady = true;
         }
 
         return succeed;

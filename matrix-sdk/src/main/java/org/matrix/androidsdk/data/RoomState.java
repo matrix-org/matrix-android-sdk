@@ -19,9 +19,8 @@ package org.matrix.androidsdk.data;
 
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonObject;
@@ -247,21 +246,23 @@ public class RoomState implements Externalizable {
     /**
      * Provides the latest state events used to create this room state.
      * It includes the room member creation events (they are not loaded in memory by default).
-     * @return the latest state events list
+     *
+     * @param store the store in which the state events must be retrieved
+     * @param callback the asynchronous callback.
      */
-    public void getStateEvents(final SimpleApiCallback<List<Event>> callback) {
-        final ArrayList<Event> stateEvents = new ArrayList<>();
+    public void getStateEvents(IMXStore store, final SimpleApiCallback<List<Event>> callback) {
+        if (null != store) {
+            final List<Event> stateEvents = new ArrayList<>(mStateEvents.values());
 
-        stateEvents.addAll(mStateEvents.values());
-
-        // retrieve the roomMember creation events
-        ((MXDataHandler) mDataHandler).getStore().getRoomStateEvents(roomId, new SimpleApiCallback<List<Event>>() {
-            @Override
-            public void onSuccess(List<Event> events) {
-                stateEvents.addAll(events);
-                callback.onSuccess(stateEvents);
-            }
-        });
+            // retrieve the roomMember creation events
+            store.getRoomStateEvents(roomId, new SimpleApiCallback<List<Event>>() {
+                @Override
+                public void onSuccess(List<Event> events) {
+                    stateEvents.addAll(events);
+                    callback.onSuccess(stateEvents);
+                }
+            });
+        }
     }
 
     /**
@@ -742,7 +743,7 @@ public class RoomState implements Externalizable {
      * @param direction how the event should affect the state: Forwards for applying, backwards for un-applying (applying the previous state)
      * @return true if the event is managed
      */
-    public boolean applyState(Event event, EventTimeline.Direction direction) {
+    public boolean applyState(IMXStore store, Event event, EventTimeline.Direction direction) {
         if (event.stateKey == null) {
             return false;
         }
@@ -798,59 +799,63 @@ public class RoomState implements Externalizable {
             } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
                 RoomMember member = JsonUtils.toRoomMember(contentToConsider);
                 String userId = event.stateKey;
-                if (member == null) {
+
+                if (null == userId) {
+                    Log.e(LOG_TAG, "## applyState() : null stateKey in " + roomId);
+                } else if (null == member) {
                     // the member has already been removed
                     if (null == getMember(userId)) {
+                        Log.e(LOG_TAG, "## applyState() : the user " + userId + " is not anymore a member of " + roomId);
                         return false;
                     }
                     removeMember(userId);
                 } else {
-                    member.setUserId(userId);
-                    member.setOriginServerTs(event.getOriginServerTs());
-                    member.setInviterId(event.getSender());
+                    try {
+                        member.setUserId(userId);
+                        member.setOriginServerTs(event.getOriginServerTs());
+                        member.setInviterId(event.getSender());
 
-                    MXDataHandler dataHandler = (MXDataHandler)mDataHandler;
-                    
-				    // mDataHandler is not set for a preview
-                    if ((null != dataHandler) && (null != dataHandler.getStore())) {
-                        dataHandler.getStore().storeRoomStateEvent(roomId, event);
-                    }
+                        if ((null != store) && (direction == EventTimeline.Direction.FORWARDS)) {
+                            store.storeRoomStateEvent(roomId, event);
+                        }
 
-                    RoomMember currentMember = getMember(userId);
+                        RoomMember currentMember = getMember(userId);
 
-                    // check if the member is the same
-                    // duplicated message ?
-                    if (member.equals(currentMember)) {
-                        return false;
-                    }
+                        // check if the member is the same
+                        // duplicated message ?
+                        if (member.equals(currentMember)) {
+                            Log.e(LOG_TAG, "## applyState() : seems being a duplicated event for " + userId + " in room " + roomId);
+                            return false;
+                        }
 
-                    // when a member leaves a room, his avatar / display name is not anymore provided
-                    if (null != currentMember) {
-                        if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN)) {
-                            if (null == member.getAvatarUrl()) {
-                                member.setAvatarUrl(currentMember.getAvatarUrl());
-                            }
+                        // when a member leaves a room, his avatar / display name is not anymore provided
+                        if (null != currentMember) {
+                            if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN)) {
+                                if (null == member.getAvatarUrl()) {
+                                    member.setAvatarUrl(currentMember.getAvatarUrl());
+                                }
 
-                            if (null == member.displayname) {
-                                member.displayname = currentMember.displayname;
-                            }
+                                if (null == member.displayname) {
+                                    member.displayname = currentMember.displayname;
+                                }
 
-                            // remove the cached display name
-                            if (null != mMemberDisplayNameByUserId) {
-                                mMemberDisplayNameByUserId.remove(userId);
+                                // remove the cached display name
+                                if (null != mMemberDisplayNameByUserId) {
+                                    mMemberDisplayNameByUserId.remove(userId);
+                                }
                             }
                         }
-                    }
 
-                    if ((direction == EventTimeline.Direction.FORWARDS)) {
-                        if (null != mDataHandler) {
-                            ((MXDataHandler)mDataHandler).getStore(roomId).updateUserWithRoomMemberEvent(member);
+                        if ((direction == EventTimeline.Direction.FORWARDS) && (null != store)) {
+                            store.updateUserWithRoomMemberEvent(member);
                         }
-                    }
 
-                    // Cache room member event that is successor of a third party invite event
-                    if (!TextUtils.isEmpty(member.getThirdPartyInviteToken())) {
-                        mMembersWithThirdPartyInviteTokenCache.put(member.getThirdPartyInviteToken(), member);
+                        // Cache room member event that is successor of a third party invite event
+                        if (!TextUtils.isEmpty(member.getThirdPartyInviteToken())) {
+                            mMembersWithThirdPartyInviteTokenCache.put(member.getThirdPartyInviteToken(), member);
+                        }
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## applyState() - EVENT_TYPE_STATE_ROOM_MEMBER failed " + e.getMessage());
                     }
 
                     setMember(userId, member);
@@ -858,13 +863,18 @@ public class RoomState implements Externalizable {
             } else if (Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS.equals(eventType)) {
                 powerLevels = JsonUtils.toPowerLevels(contentToConsider);
             } else if (Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(event.getType())) {
-                RoomThirdPartyInvite thirdPartyInvite = JsonUtils.toRoomThirdPartyInvite(contentToConsider);
+                if (null != contentToConsider) {
+                    RoomThirdPartyInvite thirdPartyInvite = JsonUtils.toRoomThirdPartyInvite(contentToConsider);
 
-                thirdPartyInvite.token = event.stateKey;
-                ((MXDataHandler) mDataHandler).getStore().storeRoomStateEvent(roomId, event);
+                    thirdPartyInvite.token = event.stateKey;
 
-                if (!TextUtils.isEmpty(thirdPartyInvite.token)) {
-                    mThirdPartyInvites.put(thirdPartyInvite.token, thirdPartyInvite);
+                    if ((direction == EventTimeline.Direction.FORWARDS) && (null != store)) {
+                        store.storeRoomStateEvent(roomId, event);
+                    }
+
+                    if (!TextUtils.isEmpty(thirdPartyInvite.token)) {
+                        mThirdPartyInvites.put(thirdPartyInvite.token, thirdPartyInvite);
+                    }
                 }
             }
 

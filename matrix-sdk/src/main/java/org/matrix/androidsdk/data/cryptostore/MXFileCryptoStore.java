@@ -307,6 +307,12 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             return;
         }
 
+        // sanity checks
+        if ((null == object) || (null == folder) || (null == filename)) {
+            Log.e(LOG_TAG, "## storeObject() : invalid parameters");
+            return;
+        }
+
         // ensure that the folder exists
         // it should always exist but it happened
         if (!folder.exists()) {

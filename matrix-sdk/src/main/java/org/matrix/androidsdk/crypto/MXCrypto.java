@@ -391,9 +391,12 @@ public class MXCrypto {
                         getUIHandler().postDelayed(new Runnable() {
                             @Override
                             public void run() {
-                                start(isInitialSync, null);
+                                if( !isStarted()) {
+                                    mIsStarting = false;
+                                    start(isInitialSync, null);
+                                }
                             }
-                        }, 5);
+                        }, 1000);
                     }
 
                     @Override

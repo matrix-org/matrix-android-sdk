@@ -370,7 +370,7 @@ public class EventTimeline {
      */
     private boolean processStateEvent(Event event, Direction direction) {
         RoomState affectedState = (direction ==  Direction.FORWARDS) ? mState : mBackState;
-        boolean isProcessed = affectedState.applyState(event, direction);
+        boolean isProcessed = affectedState.applyState(getStore(), event, direction);
 
         if ((isProcessed) && (direction == Direction.FORWARDS)) {
             mStore.storeLiveStateForRoom(mRoomId);
@@ -433,8 +433,9 @@ public class EventTimeline {
         }
 
         if ((null != roomSync.state) && (null != roomSync.state.events) && (roomSync.state.events.size() > 0)) {
-            // Build/Update first the room state corresponding to the 'start' of the timeline.
-            // Note: We consider it is not required to clone the existing room state here, because no notification is posted for these events.
+            if (isRoomInitialSync) {
+                Log.d(LOG_TAG, "## handleJoinedRoomSync() : " + roomSync.state.events.size() + " events for room " + mRoomId + " in store " + getStore());
+            }
 
             // Build/Update first the room state corresponding to the 'start' of the timeline.
             // Note: We consider it is not required to clone the existing room state here, because no notification is posted for these events.
@@ -443,16 +444,19 @@ public class EventTimeline {
                     try {
                         processStateEvent(event, Direction.FORWARDS);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "processStateEvent failed " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "processStateEvent failed " + e.getMessage());
                     }
                 }
 
                 mRoom.setReadyState(true);
+            } else {
+                Log.e(LOG_TAG, "## handleJoinedRoomSync() : mDataHandler.isAlive() is false");
             }
 
             // if it is an initial sync, the live state is initialized here
             // so the back state must also be initialized
             if (isRoomInitialSync) {
+                Log.d(LOG_TAG, "## handleJoinedRoomSync() : retrieve " + this.mState.getMembers().size() + " members for room " + mRoomId);
                 this.mBackState = this.mState.deepCopy();
             }
         }
@@ -609,6 +613,14 @@ public class EventTimeline {
                     mState.setNotificationCount(notifCount);
                     mState.setHighlightCount(highlightCount);
                     mStore.storeLiveStateForRoom(mRoomId);
+
+                    RoomSummary summary = mStore.getSummary(mRoomId);
+
+                    if (null != summary) {
+                        summary.setNotificationCount(notifCount);
+                        summary.setHighlightCount(highlightCount);
+                        mStore.flushSummary(summary);
+                    }
                 }
             }
         }
@@ -757,31 +769,34 @@ public class EventTimeline {
     private void triggerPush(Event event) {
         BingRule bingRule;
         boolean outOfTimeEvent = false;
+        long maxlifetime = 0;
+        long eventLifeTime = 0;
+
         JsonObject eventContent = event.getContentAsJsonObject();
+
         if (eventContent.has("lifetime")) {
-            long maxlifetime = eventContent.get("lifetime").getAsLong();
-            long eventLifeTime = System.currentTimeMillis() - event.getOriginServerTs();
+            maxlifetime = eventContent.get("lifetime").getAsLong();
+            eventLifeTime = System.currentTimeMillis() - event.getOriginServerTs();
 
             outOfTimeEvent = eventLifeTime > maxlifetime;
         }
 
         BingRulesManager bingRulesManager = mDataHandler.getBingRulesManager();
 
-        String eventType = event.getType();
-
         // If the bing rules apply, bing
         if (!outOfTimeEvent
-                // some events are not bingable
-                && !TextUtils.equals(eventType, Event.EVENT_TYPE_PRESENCE)
-                && !TextUtils.equals(eventType, Event.EVENT_TYPE_TYPING)
-                && !TextUtils.equals(eventType, Event.EVENT_TYPE_REDACTION)
-                && !TextUtils.equals(eventType, Event.EVENT_TYPE_RECEIPT)
-                && !TextUtils.equals(eventType, Event.EVENT_TYPE_TAGS)
                 && (bingRulesManager != null)
-                && (null != (bingRule = bingRulesManager.fulfilledBingRule(event)))
-                && bingRule.shouldNotify()) {
-            Log.d(LOG_TAG, "handleLiveEvent : onBingEvent");
-            mDataHandler.onBingEvent(event, mState, bingRule);
+                && (null != (bingRule = bingRulesManager.fulfilledBingRule(event)))) {
+
+            if (bingRule.shouldNotify()) {
+                Log.d(LOG_TAG, "handleLiveEvent : onBingEvent " + event.eventId + " in " + event.roomId);
+                mDataHandler.onBingEvent(event, mState, bingRule);
+            } else {
+                Log.d(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " has a mute notify rule");
+            }
+        } else if (outOfTimeEvent) {
+            Log.e(LOG_TAG, "handleLiveEvent : outOfTimeEvent for " + event.eventId + " in " + event.roomId);
+            Log.e(LOG_TAG, "handleLiveEvent : outOfTimeEvent maxlifetime " + maxlifetime + " eventLifeTime " + eventLifeTime);
         }
     }
 
@@ -1420,7 +1435,7 @@ public class EventTimeline {
 
             // check if the state events is locally known
             // to avoid triggering a room initial sync
-            mState.getStateEvents(new SimpleApiCallback<List<Event>>() {
+            mState.getStateEvents(getStore(), new SimpleApiCallback<List<Event>>() {
                 @Override
                 public void onSuccess(List<Event> stateEvents) {
                     boolean isFound = false;

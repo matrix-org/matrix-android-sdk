@@ -19,8 +19,6 @@ package org.matrix.androidsdk.data;
 
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.util.Log;
-
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -28,6 +26,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.util.Log;
 
 /**
  * Stores summarised information about the room.
@@ -53,19 +52,22 @@ public class RoomSummary implements java.io.Serializable {
     // the read marker event id
     private String mReadMarkerEventId;
 
-    private int mUnreadEventsCount;
+    // counters
+    public int mUnreadEventsCount;
+    public int mNotificationCount;
+    public int mHighlightsCount;
 
     // invitation status
     // retrieved at initial sync
     // the roomstate is not always known
     private String mInviterUserId = null;
+
     // retrieved from the roomState
     private boolean mIsInvited = false;
     private String mInviterName = null;
 
     private String mMatrixId = null;
 
-    private boolean mIsHighlighted = false;
 
     public RoomSummary() {
     }
@@ -348,38 +350,6 @@ public class RoomSummary implements java.io.Serializable {
     }
 
     /**
-     * @return true if the room summay must be highlighted
-     */
-    public boolean isHighlighted() {
-        return mIsHighlighted || isInvited();
-    }
-
-    /**
-     * Set the highlight status.
-     *
-     * @param isHighlighted the new highlight status.
-     * @return true if there is an update
-     */
-    public boolean setHighlighted(boolean isHighlighted) {
-        boolean isUpdated = (mIsHighlighted != isHighlighted);
-
-        mIsHighlighted = isHighlighted;
-
-        return isUpdated;
-    }
-
-    /**
-     * Set the user ID of the person who invited the user to this room.
-     *
-     * @param inviterUserId The user ID of the inviter
-     * @return This summary for chaining calls.
-     */
-    public RoomSummary setInviterUserId(String inviterUserId) {
-        mInviterUserId = inviterUserId;
-        return this;
-    }
-
-    /**
      * Set the read receipt event Id
      *
      * @param eventId the read receipt event id.
@@ -418,10 +388,6 @@ public class RoomSummary implements java.io.Serializable {
      */
     public void setUnreadEventsCount(int count) {
         mUnreadEventsCount = count;
-
-        if (0 == mUnreadEventsCount) {
-            setHighlighted(false);
-        }
     }
 
     /**
@@ -429,5 +395,37 @@ public class RoomSummary implements java.io.Serializable {
      */
     public int getUnreadEventsCount() {
         return mUnreadEventsCount;
+    }
+
+    /**
+     * Update the notification counter
+     *
+     * @param count the notification counter
+     */
+    public void setNotificationCount(int count) {
+        mNotificationCount = count;
+    }
+
+    /**
+     * @return the notification count
+     */
+    public int getNotificationCount() {
+        return mNotificationCount;
+    }
+
+    /**
+     * Update the highlight counter
+     *
+     * @param count the highlight counter
+     */
+    public void setHighlightCount(int count) {
+        mHighlightsCount = count;
+    }
+
+    /**
+     * @return the highlight count
+     */
+    public int getHighlightCount() {
+        return mHighlightsCount;
     }
 }

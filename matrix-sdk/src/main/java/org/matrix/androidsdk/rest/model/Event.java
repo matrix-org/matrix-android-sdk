@@ -341,6 +341,14 @@ public class Event implements Externalizable {
     }
 
     /**
+     * @return a Json representation of the event
+     */
+    public JsonObject toJsonObject() {
+        finalizeDeserialization();
+        return JsonUtils.toJson(this);
+    }
+
+    /**
      * @return the content casted as JsonObject.
      */
     public JsonObject getContentAsJsonObject() {

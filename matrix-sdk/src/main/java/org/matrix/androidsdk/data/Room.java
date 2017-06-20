@@ -25,7 +25,9 @@ import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Looper;
 import android.text.TextUtils;
+import android.os.Handler;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -262,7 +264,11 @@ public class Room {
             }
 
             // Handle account data events (if any)
-            if (null != roomSync.accountData) {
+            if ((null != roomSync.accountData) && (null != roomSync.accountData.events) && (roomSync.accountData.events.size() > 0)) {
+                if (isInitialSync) {
+                    Log.d(LOG_TAG, "## handleJoinedRoomSync : received " + roomSync.accountData.events.size() + " account data events");
+                }
+
                 handleAccountDataEvents(roomSync.accountData.events);
             }
         }
@@ -270,13 +276,20 @@ public class Room {
         // the user joined the room
         // With V2 sync, the server sends the events to init the room.
         if (null != mOnInitialSyncCallback) {
-            try {
-                Log.d(LOG_TAG, "handleJoinedRoomSync " + getRoomId() + " :  the initial sync is done");
+            Log.d(LOG_TAG, "handleJoinedRoomSync " + getRoomId() + " :  the initial sync is done");
+            final ApiCallback<Void> fOnInitialSyncCallback = mOnInitialSyncCallback;
 
-                mOnInitialSyncCallback.onSuccess(null);
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "handleJoinedRoomSync : onSuccess failed" + e.getLocalizedMessage());
-            }
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        fOnInitialSyncCallback.onSuccess(null);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "handleJoinedRoomSync : onSuccess failed" + e.getLocalizedMessage());
+                    }
+                }
+            });
+
             mOnInitialSyncCallback = null;
         }
 
@@ -1086,6 +1099,8 @@ public class Room {
         // flush the summary
         if (null != summary) {
             summary.setUnreadEventsCount(0);
+            summary.setHighlightCount(0);
+            summary.setNotificationCount(0);
             mStore.flushSummary(summary);
         }
 
@@ -1130,12 +1145,27 @@ public class Room {
             RoomSummary summary = mDataHandler.getStore().getSummary(getRoomId());
 
             if (null != summary) {
-                if (0 != summary.getUnreadEventsCount()) {
-                    Log.e(LOG_TAG, "## markAllAsRead() : the unread message count for " + getRoomId() + " should have been cleared");
-                    summary.setUnreadEventsCount(0);
-                }
+                if ((0 != summary.getUnreadEventsCount()) ||
+                        (0 != summary.getHighlightCount()) ||
+                        (0 != summary.getNotificationCount())) {
+                    Log.e(LOG_TAG, "## markAllAsRead() : the summary events counters should be cleared for " + getRoomId() + " should have been cleared");
 
-                summary.setHighlighted(false);
+                    Event latestEvent = mDataHandler.getStore().getLatestEvent(getRoomId());
+                    summary.setLatestReceivedEvent(latestEvent);
+
+                    if (null != latestEvent) {
+                        summary.setReadReceiptEventId(latestEvent.eventId);
+                    } else {
+                        summary.setReadReceiptEventId(null);
+                    }
+
+                    summary.setUnreadEventsCount(0);
+                    summary.setHighlightCount(0);
+                    summary.setNotificationCount(0);
+                    mDataHandler.getStore().flushSummary(summary);
+                }
+            } else {
+                Log.e(LOG_TAG, "## sendReadReceipt() : no summary for " + getRoomId());
             }
 
             if ((0 != getLiveState().getNotificationCount()) || (0 != getLiveState().getHighlightCount())) {
@@ -1423,7 +1453,7 @@ public class Room {
                     thumbInfo.h = Integer.parseInt(sHeight);
                 }
 
-                thumbInfo.size = thumbnailFile.length();
+                thumbInfo.size = Long.valueOf(thumbnailFile.length());
                 thumbInfo.mimetype = thumbMimeType;
                 locationMessage.thumbnail_info = thumbInfo;
             } catch (Exception e) {
@@ -1458,7 +1488,7 @@ public class Room {
             try {
                 MediaPlayer mp = MediaPlayer.create(context, fileUri);
                 if (null != mp) {
-                    videoInfo.duration = (long)mp.getDuration();
+                    videoInfo.duration = Long.valueOf(mp.getDuration());
                     mp.release();
                 }
             } catch (Exception e) {
@@ -1485,7 +1515,7 @@ public class Room {
                     thumbInfo.h = Integer.parseInt(sHeight);
                 }
 
-                thumbInfo.size = thumbnailFile.length();
+                thumbInfo.size = Long.valueOf(thumbnailFile.length());
                 thumbInfo.mimetype = thumbMimeType;
                 videoInfo.thumbnail_info = thumbInfo;
             }
@@ -1680,10 +1710,14 @@ public class Room {
                         }
                     }
                 } else {
-                    mAccountData.handleTagEvent(accountDataEvent);
+                    try {
+                        mAccountData.handleTagEvent(accountDataEvent);
 
-                    if (eventType.equals(Event.EVENT_TYPE_TAGS)) {
-                        mDataHandler.onRoomTagEvent(getRoomId());
+                        if (accountDataEvent.getType().equals(Event.EVENT_TYPE_TAGS)) {
+                            mDataHandler.onRoomTagEvent(getRoomId());
+                        }
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## handleAccountDataEvents() : room " + getRoomId() + " failed " + e.getMessage());
                     }
                 }
             }

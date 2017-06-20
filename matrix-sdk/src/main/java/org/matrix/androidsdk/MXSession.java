@@ -19,6 +19,7 @@ package org.matrix.androidsdk;
 import android.content.Context;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
+import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
@@ -511,20 +512,11 @@ public class MXSession {
         return mMediasCache;
     }
 
+
     /**
-     * Clear the session data
+     * Clear the application cache
      */
-    public void clear(Context context) {
-        checkIfAlive();
-
-        synchronized (this) {
-            mIsAliveSession = false;
-        }
-
-        // stop events stream
-        stopEventStream();
-
-        // cancel any listener
+    private void clearApplicationCaches(Context context) {
         mDataHandler.clear();
 
         // network event will not be listened anymore
@@ -539,6 +531,57 @@ public class MXSession {
 
         if (null != mCrypto) {
             mCrypto.close();
+        }
+    }
+
+    /**
+     * Clear the session data synchronously.
+     *
+     * @param context the context
+     */
+    public void clear(final Context context) {
+        clear(context, null);
+    }
+
+    /**
+     * Clear the session data.
+     * if the callback is null, the clear is synchronous.
+     *
+     * @param context the context
+     * @param callback the asynchronous callback
+     */
+    public void clear(final Context context, final ApiCallback<Void> callback) {
+        synchronized (this) {
+            if (!mIsAliveSession) {
+                Log.e(LOG_TAG, "## clear() was already called");
+                return;
+            }
+
+            mIsAliveSession = false;
+        }
+
+        // stop events stream
+        stopEventStream();
+
+        if (null == callback) {
+            clearApplicationCaches(context);
+        } else {
+            // clear the caches in a background thread to avoid blocking the UI thread
+            AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
+                @Override
+                protected Void doInBackground(Void... params) {
+                    clearApplicationCaches(context);
+                    return null;
+                }
+
+                @Override
+                protected void onPostExecute(Void args) {
+                    if (null != callback) {
+                        callback.onSuccess(null);
+                    }
+                }
+            };
+            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         }
     }
 
@@ -598,8 +641,15 @@ public class MXSession {
         checkIfAlive();
 
         if (mEventsThread != null) {
-            Log.e(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
-            return;
+            if (!mEventsThread.isAlive()) {
+                mEventsThread = null;
+                Log.e(LOG_TAG, "startEventStream() : create a new EventsThread");
+            } else {
+                // https://github.com/vector-im/riot-android/issues/1331
+                mEventsThread.cancelKill();
+                Log.e(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
+                return;
+            }
         }
 
         if (mDataHandler == null) {
@@ -1320,6 +1370,11 @@ public class MXSession {
     public List<Room> roomsWithTag(final String tag) {
         ArrayList<Room> taggedRooms = new ArrayList<>();
 
+        // sanity check
+        if (null == mDataHandler.getStore()) {
+            return taggedRooms;
+        }
+
         if (!TextUtils.equals(tag, RoomTag.ROOM_TAG_NO_TAG)) {
             Collection<Room> rooms = mDataHandler.getStore().getRooms();
 
@@ -1877,42 +1932,60 @@ public class MXSession {
      * @param callback the callback success and failure callback
      */
     public void logout(final Context context, final ApiCallback<Void> callback) {
+        synchronized (this) {
+            if (!mIsAliveSession) {
+                Log.e(LOG_TAG, "## logout() was already called");
+                return;
+            }
+
+            mIsAliveSession = false;
+        }
+
         // Clear crypto data
         // For security and because it will be no more useful as we will get a new device id
         // on the next log in
         enableCrypto(false, null);
 
         mLoginRestClient.logout(new ApiCallback<JsonObject>() {
+
+            private void clearData() {
+                // required else the clear won't be done
+                mIsAliveSession = true;
+
+                clear(context, new SimpleApiCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void info) {
+                        if (null != callback) {
+                            callback.onSuccess(null);
+                        }
+                    }
+                });
+            }
+
             @Override
             public void onSuccess(JsonObject info) {
-                clear(context);
-                if (null != callback) {
-                    callback.onSuccess(null);
-                }
+                Log.e(LOG_TAG, "## logout() : succeed -> clearing the application data ");
+                clearData();
+            }
+
+            private void onError(String errorMessage) {
+                Log.e(LOG_TAG, "## logout() : failed " + errorMessage);
+                clearData();
             }
 
             @Override
             public void onNetworkError(Exception e) {
-                clear(context);
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
+                onError(e.getMessage());
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                clear(context);
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
+                onError(e.getMessage());
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                clear(context);
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                onError(e.getMessage());
             }
         });
     }
@@ -1958,10 +2031,12 @@ public class MXSession {
      * to display the right messages.
      */
     private void decryptRoomSummaries() {
-        Collection<RoomSummary> summaries = getDataHandler().getStore().getSummaries();
+        if (null != getDataHandler().getStore()) {
+            Collection<RoomSummary> summaries = getDataHandler().getStore().getSummaries();
 
-        for(RoomSummary summary :summaries) {
-            mDataHandler.decryptEvent(summary.getLatestReceivedEvent(), null);
+            for (RoomSummary summary : summaries) {
+                mDataHandler.decryptEvent(summary.getLatestReceivedEvent(), null);
+            }
         }
     }
 
