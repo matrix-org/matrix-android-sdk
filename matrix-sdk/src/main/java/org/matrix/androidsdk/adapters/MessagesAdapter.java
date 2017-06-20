@@ -1065,11 +1065,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param readMarkerEventId
      */
     public void updateReadMarker(final String readMarkerEventId, final String readReceiptEventId) {
-        Log.e(LOG_TAG, "updateReadMarker " + readMarkerEventId + " readReceiptEventId " + readReceiptEventId);
+        Log.d(LOG_TAG, "updateReadMarker " + readMarkerEventId + " readReceiptEventId " + readReceiptEventId);
         mReadMarkerEventId = readMarkerEventId;
         mReadReceiptEventId = readReceiptEventId;
         if (readMarkerEventId != null && !readMarkerEventId.equals(mReadMarkerEventId)) {
-            Log.e(LOG_TAG, "updateReadMarker read marker id has changed");
+            Log.d(LOG_TAG, "updateReadMarker read marker id has changed");
             mCanShowReadMarker = true;
             notifyDataSetChanged();
         }
@@ -1081,7 +1081,6 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param readReceiptEventId
      */
     public void updateReadReceipt(final String readReceiptEventId) {
-        Log.e(LOG_TAG,"updateReadReceipt "+readReceiptEventId);
         mReadReceiptEventId = readReceiptEventId;
     }
 
@@ -1089,7 +1088,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * Reset the read marker event so read marker view will not be displayed again on same event
      */
     public void resetReadMarker() {
-        Log.e(LOG_TAG,"resetReadMarker "+mReadMarkerEventId);
+        Log.d(LOG_TAG,"resetReadMarker");
         mReadMarkerEventId = null;
     }
 
