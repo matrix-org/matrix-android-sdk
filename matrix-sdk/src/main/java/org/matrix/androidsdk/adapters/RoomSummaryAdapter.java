@@ -20,7 +20,6 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.text.TextUtils;
-import org.matrix.androidsdk.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -35,6 +34,7 @@ import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PublicRoom;
 import org.matrix.androidsdk.util.EventDisplay;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -392,7 +392,27 @@ public abstract class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
             Room room = roomFromRoomSummary(roomSummary);
             if (null != room) {
-                room.sendReadReceipt(null);
+                room.sendReadReceipt();
+            }
+        }
+
+        return res;
+    }
+
+    /**
+     * Reset the unread message counters in a section.
+     * @param section the section.
+     * @return true if something has been updated.
+     */
+    public boolean resetUnreadCounts(int section) {
+        boolean res = false;
+
+        Collection<RoomSummary> summaries = mSummaryMapsBySection.get(section).values();
+
+        for(RoomSummary summary : summaries) {
+            Room room = roomFromRoomSummary(summary);
+            if (null != room) {
+                room.sendReadReceipt();
             }
         }
 

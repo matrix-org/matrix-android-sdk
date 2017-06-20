@@ -29,14 +29,13 @@ import android.os.Looper;
 import android.text.TextUtils;
 import android.os.Handler;
 
-import org.matrix.androidsdk.util.Log;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
@@ -60,8 +59,8 @@ import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
-import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
+import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.ThumbnailInfo;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
@@ -69,18 +68,17 @@ import org.matrix.androidsdk.rest.model.VideoInfo;
 import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.util.ImageUtils;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 
 import java.io.File;
-
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.RejectedExecutionException;
 
 /**
  * Class representing a room and the interactions we have with it.
@@ -542,10 +540,8 @@ public class Room {
             // avoid crash if there are too many running task
             try {
                 task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, url);
-            } catch (RejectedExecutionException rejectedExecutionException) {
-                Log.e(LOG_TAG, "joinWithThirdPartySigned : task.executeOnExecutor failed" + rejectedExecutionException.getLocalizedMessage());
             } catch (Exception e) {
-                Log.e(LOG_TAG, "joinWithThirdPartySigned : task.executeOnExecutor failed" + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "joinWithThirdPartySigned : task.executeOnExecutor failed" + e.getMessage());
             }
         }
     }
@@ -1023,9 +1019,12 @@ public class Room {
             // it requires to update the summary to display valid information.
             if (isUpdated && TextUtils.equals(mMyUserId, receiptData.userId)) {
                 RoomSummary summary = mStore.getSummary(getRoomId());
+
                 if (null != summary) {
-                    summary.setLatestReadEventId(receiptData.eventId);
+                    summary.setReadReceiptEventId(receiptData.eventId);
+                    mStore.flushSummary(summary);
                 }
+
                 refreshUnreadCounter();
             }
 
@@ -1109,31 +1108,55 @@ public class Room {
     }
 
     /**
-     * Send the read receipt to the latest room message id.
-     *
-     * @param aRespCallback asynchronous response callback
-     * @return true if the read receipt has been sent, false otherwise
+     * @return the read marker event id
      */
-    public boolean sendReadReceipt(final ApiCallback<Void> aRespCallback) {
-        boolean res = sendReadReceipt(null, aRespCallback);
+    public String getReadMarkerEventId() {
+        RoomSummary summary = mStore.getSummary(getRoomId());
 
-        // if the request is not sent, ensure that the counters are cleared
-        if (!res) {
+        if (null != summary) {
+            return (null != summary.getReadMarkerEventId()) ? summary.getReadMarkerEventId() : summary.getReadReceiptEventId();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Mark all the messages as read.
+     * It also move the read marker to the latest known messages
+     *
+     * @param aRespCallback the asynchronous callback
+     */
+    public boolean markAllAsRead(final ApiCallback<Void> aRespCallback) {
+        return markAllAsRead(true, aRespCallback);
+    }
+
+    /**
+     * Mark all the messages as read.
+     * It also move the read marker to the latest known messages if updateReadMarker is set to true
+     *
+     * @param updateReadMarker true to move the read marker to the latest known event
+     * @param aRespCallback the asynchronous callback
+     */
+    private boolean markAllAsRead(boolean updateReadMarker, final ApiCallback<Void> aRespCallback) {
+        final Event lastEvent = mStore.getLatestEvent(getRoomId());
+        boolean res = sendReadMarkers(updateReadMarker ? lastEvent.eventId : getReadMarkerEventId(), null, aRespCallback);
+
+        if (res) {
             RoomSummary summary = mDataHandler.getStore().getSummary(getRoomId());
 
             if (null != summary) {
                 if ((0 != summary.getUnreadEventsCount()) ||
                         (0 != summary.getHighlightCount()) ||
                         (0 != summary.getNotificationCount())) {
-                    Log.e(LOG_TAG, "## sendReadReceipt() : the summary events counters should be cleared for " + getRoomId() + " should have been cleared");
+                    Log.e(LOG_TAG, "## markAllAsRead() : the summary events counters should be cleared for " + getRoomId() + " should have been cleared");
 
                     Event latestEvent = mDataHandler.getStore().getLatestEvent(getRoomId());
                     summary.setLatestReceivedEvent(latestEvent);
 
                     if (null != latestEvent) {
-                        summary.setLatestReadEventId(latestEvent.eventId);
+                        summary.setReadReceiptEventId(latestEvent.eventId);
                     } else {
-                        summary.setLatestReadEventId(null);
+                        summary.setReadReceiptEventId(null);
                     }
 
                     summary.setUnreadEventsCount(0);
@@ -1146,7 +1169,7 @@ public class Room {
             }
 
             if ((0 != getLiveState().getNotificationCount()) || (0 != getLiveState().getHighlightCount())) {
-                Log.e(LOG_TAG, "## sendReadReceipt() : the notification messages count for " + getRoomId() + " should have been cleared");
+                Log.e(LOG_TAG, "## markAllAsRead() : the notification messages count for " + getRoomId() + " should have been cleared");
 
                 getLiveState().setNotificationCount(0);
                 getLiveState().setHighlightCount(0);
@@ -1159,106 +1182,156 @@ public class Room {
     }
 
     /**
-     * Send the read receipt to a dedicated event.
+     * Update the read marker event Id
      *
-     * @param anEvent       the event to acknowledge
-     * @param aRespCallback asynchronous response callback
-     * @return true if the read receipt request is sent, false otherwise
+     * @param readMarkerEventId the read marker even id
      */
-    public boolean sendReadReceipt(Event anEvent, final ApiCallback<Void> aRespCallback) {
+    public void setReadMakerEventId(final String readMarkerEventId) {
+        RoomSummary summary = mStore.getSummary(getRoomId());
+        if (summary!= null && !readMarkerEventId.equals(summary.getReadMarkerEventId())) {
+            sendReadMarkers(readMarkerEventId, summary.getReadReceiptEventId(), null);
+        }
+    }
+
+    /**
+     * Send a read receipt to the latest known event
+     */
+    public void sendReadReceipt() {
+        markAllAsRead(false, null);
+    }
+
+    /**
+     * Send the read receipt to the latest room message id.
+     *
+     * @param event send a read receipt to a provided event
+     * @param aRespCallback asynchronous response callback
+     * @return true if the read receipt has been sent, false otherwise
+     */
+    public boolean sendReadReceipt(Event event, final ApiCallback<Void> aRespCallback) {
+        return sendReadMarkers(null, (null != event) ? event.eventId : null, aRespCallback);
+    }
+
+    /**
+     * Forget the current read marker
+     * This will update the read marker to match the read receipt
+     *
+     * @param callback
+     */
+    public void forgetReadMarker(final ApiCallback<Void> callback) {
+        final RoomSummary summary = mStore.getSummary(getRoomId());
+        final String currentReadReceipt = summary.getReadReceiptEventId();
+        summary.setReadMarkerEventId(currentReadReceipt);
+        mStore.flushSummary(summary);
+        setReadMarkers(currentReadReceipt, currentReadReceipt, callback);
+    }
+
+    /**
+     * Send the read markers
+     *
+     * @param aReadMarkerEventId the new read marker event id (if null use the latest known event id)
+     * @param aReadReceiptEventId the new read receipt event id (if null use the latest known event id)
+     * @param aRespCallback asynchronous response callback
+     * @return true if the request is sent, false otherwise
+     */
+    public boolean sendReadMarkers(final String aReadMarkerEventId, final String aReadReceiptEventId, final ApiCallback<Void> aRespCallback) {
         final Event lastEvent = mStore.getLatestEvent(getRoomId());
-        final Event fEvent;
 
         // reported by GA
         if (null == lastEvent) {
-            Log.e(LOG_TAG, "## sendReadReceipt(): no last event");
+            Log.e(LOG_TAG, "## sendReadMarkers(): no last event");
             return false;
         }
 
-        // the event is provided
-        if (null != anEvent) {
-            Log.d(LOG_TAG, "## sendReadReceipt(): roomId=" + getRoomId() + " to " + anEvent.eventId);
+        boolean hasUpdate = false;
 
-            // test if the message has already be read
-            if (getDataHandler().getStore().isEventRead(getRoomId(), getDataHandler().getUserId(), anEvent.eventId)) {
-                Log.d(LOG_TAG, "## sendReadReceipt(): the message was already read");
-                return false;
+        String readMarkerEventId = aReadMarkerEventId;
+        if (!TextUtils.isEmpty(aReadMarkerEventId)) {
+            if (!MXSession.isMessageId(aReadMarkerEventId)) {
+                // Read marker is invalid, ignore it
+                readMarkerEventId = null;
             } else {
-                fEvent = anEvent;
+                // Check if the read marker is updated
+                RoomSummary summary = mStore.getSummary(getRoomId());
+                if ((null != summary) && !TextUtils.equals(readMarkerEventId, summary.getReadMarkerEventId())) {
+                    // Make sure the new read marker event is newer than the current one
+                    final Event newReadMarkerEvent = mStore.getEvent(readMarkerEventId, getRoomId());
+                    final Event currentReadMarkerEvent = mStore.getEvent(summary.getReadMarkerEventId(), getRoomId());
+                    if (newReadMarkerEvent == null || currentReadMarkerEvent == null
+                            || newReadMarkerEvent.getOriginServerTs() > currentReadMarkerEvent.getOriginServerTs()) {
+                        // Event is not in store (assume it is in the past), or is older than current one
+                        Log.d(LOG_TAG, "## sendReadMarkers(): set new read marker event id " + readMarkerEventId);
+                        summary.setReadMarkerEventId(readMarkerEventId);
+                        mStore.flushSummary(summary);
+                        hasUpdate = true;
+                    }
+                }
             }
-        } else {
-            Log.d(LOG_TAG, "## sendReadReceipt(): roomId=" + getRoomId() + " to the latest event");
-            fEvent = lastEvent;
         }
 
-        if (null == fEvent) {
-            Log.e(LOG_TAG, "## sendReadReceipt(): there is no latest message");
-            return false;
-        }
-
-        boolean isSendReadReceiptSent = false;
-
-        // save the up to date status
-        // don't wait that the operation is done
-        // because it could display invalid unread messages counters
-        // while sending it.
-        if (handleReceiptData(new ReceiptData(mMyUserId, fEvent.eventId, System.currentTimeMillis()))) {
-            Log.d(LOG_TAG, "## sendReadReceipt(): send the read receipt");
-
-            isSendReadReceiptSent = true;
-            mDataHandler.getDataRetriever().getRoomsRestClient().sendReadReceipt(getRoomId(), fEvent.eventId, new ApiCallback<Void>() {
-                @Override
-                public void onSuccess(Void info) {
-                    Log.d(LOG_TAG, "## sendReadReceipt(): succeeds - eventId " + fEvent.eventId);
-
-                    if (null != aRespCallback) {
-                        aRespCallback.onSuccess(info);
-                    }
+        final String readReceiptEventId = (null == aReadReceiptEventId) ? lastEvent.eventId : aReadReceiptEventId;
+        // check if the read receipt event id is already read
+        if (!getDataHandler().getStore().isEventRead(getRoomId(), getDataHandler().getUserId(), readReceiptEventId)) {
+            // check if the event id update is allowed
+            if (handleReceiptData(new ReceiptData(mMyUserId, readReceiptEventId, System.currentTimeMillis()))) {
+                // Clear the unread counters if the latest message is displayed
+                // We don't try to compute the unread counters for oldest messages :
+                // ---> it would require too much time.
+                // The counters are cleared to avoid displaying invalid values
+                // when the device is offline.
+                // The read receipts will be sent later
+                // (asap there is a valid network connection)
+                if (TextUtils.equals(lastEvent.eventId, readReceiptEventId)) {
+                    clearUnreadCounters(mStore.getSummary(getRoomId()));
                 }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    Log.e(LOG_TAG, "sendReadReceipt  - eventId " + fEvent.eventId + " failed " + e.getLocalizedMessage());
-
-                    if (null != aRespCallback) {
-                        aRespCallback.onNetworkError(e);
-                    }
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    Log.e(LOG_TAG, "sendReadReceipt  - eventId " + fEvent.eventId + " failed " + e.getLocalizedMessage());
-
-                    if (null != aRespCallback) {
-                        aRespCallback.onMatrixError(e);
-                    }
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    Log.e(LOG_TAG, "sendReadReceipt  - eventId " + fEvent.eventId + " failed " + e.getLocalizedMessage());
-
-                    if (null != aRespCallback) {
-                        aRespCallback.onUnexpectedError(e);
-                    }
-                }
-            });
-
-            // Clear the unread counters if the latest message is displayed
-            // We don't try to compute the unread counters for oldest messages :
-            // ---> it would require too much time.
-            // The counters are cleared to avoid displaying invalid values
-            // when the device is offline.
-            // The read receipts will be sent later
-            // (asap there is a valid network connection)
-            if (TextUtils.equals(lastEvent.eventId, fEvent.eventId)) {
-                clearUnreadCounters(mStore.getSummary(getRoomId()));
+                hasUpdate = true;
             }
-        } else {
-            Log.d(LOG_TAG, "## sendReadReceipt(): don't send the read receipt");
         }
 
-        return isSendReadReceiptSent;
+        if (hasUpdate) {
+            setReadMarkers(readMarkerEventId, readReceiptEventId, aRespCallback);
+        }
+
+        return hasUpdate;
+    }
+
+    /**
+     * Send the request to update the read marker and read receipt
+     *
+     * @param readMarkerEventId
+     * @param readReceiptEventId
+     * @param callback
+     */
+    private void setReadMarkers(final String readMarkerEventId, final String readReceiptEventId, final ApiCallback<Void> callback) {
+        Log.d(LOG_TAG, "## setReadMarkers(): readMarkerEventId " + readMarkerEventId + " readReceiptEventId " + readReceiptEventId);
+        mDataHandler.getDataRetriever().getRoomsRestClient().sendReadMarker(getRoomId(), readMarkerEventId, readReceiptEventId, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                if (null != callback) {
+                    callback.onSuccess(info);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        });
     }
 
     /**
@@ -1299,7 +1372,7 @@ public class Room {
 
             if (null != summary) {
                 int prevValue = summary.getUnreadEventsCount();
-                int newValue = mStore.eventsCountAfter(getRoomId(), summary.getLatestReadEventId());
+                int newValue = mStore.eventsCountAfter(getRoomId(), summary.getReadReceiptEventId());
 
                 if (prevValue != newValue) {
                     summary.setUnreadEventsCount(newValue);
@@ -1572,7 +1645,7 @@ public class Room {
      *
      * @param context      Application context for the content resolver.
      * @param imageMessage The imageMessage to fill.
-     * @param imageUri     The full size image uri.
+     * @param thumbUri     The thumbnail uri
      * @param mimeType     The image mimeType
      */
     public static void fillThumbnailInfo(Context context, ImageMessage imageMessage, Uri thumbUri, String mimeType) {
@@ -1622,14 +1695,30 @@ public class Room {
         if ((null != accountDataEvents) && (accountDataEvents.size() > 0)) {
             // manage the account events
             for (Event accountDataEvent : accountDataEvents) {
-                try {
-                    mAccountData.handleEvent(accountDataEvent);
+                String eventType = accountDataEvent.getType();
 
-                    if (accountDataEvent.getType().equals(Event.EVENT_TYPE_TAGS)) {
-                        mDataHandler.onRoomTagEvent(getRoomId());
+                if (eventType.equals(Event.EVENT_TYPE_READ_MARKER)) {
+                    RoomSummary summary = mStore.getSummary(getRoomId());
+
+                    if (null != summary) {
+                        Event event = JsonUtils.toEvent(accountDataEvent.getContent());
+
+                        if (null != event) {
+                            summary.setReadMarkerEventId(event.eventId);
+                            mStore.flushSummary(summary);
+                            mDataHandler.onReadMarkerEvent(getRoomId());
+                        }
                     }
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## handleAccountDataEvents() : room " + getRoomId() + " failed " + e.getMessage());
+                } else {
+                    try {
+                        mAccountData.handleTagEvent(accountDataEvent);
+
+                        if (accountDataEvent.getType().equals(Event.EVENT_TYPE_TAGS)) {
+                            mDataHandler.onRoomTagEvent(getRoomId());
+                        }
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## handleAccountDataEvents() : room " + getRoomId() + " failed " + e.getMessage());
+                    }
                 }
             }
 
@@ -1919,6 +2008,18 @@ public class Room {
             }
 
             @Override
+            public void onReadMarkerEvent(String roomId) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), roomId)) {
+                    try {
+                        eventListener.onReadMarkerEvent(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onReadMarkerEvent exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
             public void onRoomFlush(String roomId) {
                 // Filter out events for other rooms
                 if (TextUtils.equals(getRoomId(), roomId)) {
@@ -2005,7 +2106,7 @@ public class Room {
                 }
 
                 // send the dedicated read receipt asap
-                sendReadReceipt(null);
+                sendReadReceipt();
 
                 mStore.commit();
                 mDataHandler.onSentEvent(event);
@@ -2224,7 +2325,7 @@ public class Room {
      */
     public void invite(String userId, ApiCallback<Void> callback) {
         if (null != userId) {
-            invite(Arrays.asList(userId), callback);
+            invite(Collections.singletonList(userId), callback);
         }
     }
 
@@ -2236,7 +2337,7 @@ public class Room {
      */
     public void inviteByEmail(String email, ApiCallback<Void> callback) {
         if (null != email) {
-            invite(Arrays.asList(email), callback);
+            invite(Collections.singletonList(email), callback);
         }
     }
 
@@ -2477,7 +2578,7 @@ public class Room {
 
     private ApiCallback<Void> mRoomEncryptionCallback;
 
-    private MXEventListener mEncryptionListener = new MXEventListener() {
+    private final MXEventListener mEncryptionListener = new MXEventListener() {
         @Override
         public void onLiveEvent(Event event, RoomState roomState) {
             if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTION)) {

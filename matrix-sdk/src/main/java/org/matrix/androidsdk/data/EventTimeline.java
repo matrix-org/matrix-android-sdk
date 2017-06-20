@@ -19,7 +19,6 @@ package org.matrix.androidsdk.data;
 
 import android.os.Looper;
 import android.text.TextUtils;
-import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonObject;
 
@@ -35,13 +34,14 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
-import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
+import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -250,6 +250,15 @@ public class EventTimeline {
      */
     public boolean isLiveTimeline() {
         return mIsLiveTimeline;
+    }
+
+    /**
+     * Get whether we are at the end of the message stream
+     *
+     * @return true if end has been reached
+     */
+    public boolean hasReachedHomeServerForwardsPaginationEnd() {
+        return mHasReachedHomeServerForwardsPaginationEnd;
     }
 
     /**
@@ -1073,11 +1082,20 @@ public class EventTimeline {
     }
 
     /**
-     * Request older messages. They will come down the onBackEvent callback.
-     * @param callback callback to implement to be informed that the pagination request has been completed. Can be null.
-     * @return true if request starts
+     * See {@link #backPaginate(int, ApiCallback)}
      */
     public boolean backPaginate(final ApiCallback<Integer> callback) {
+        return backPaginate(MAX_EVENT_COUNT_PER_PAGINATION, callback);
+    }
+
+    /**
+     * Request older messages. They will come down the onBackEvent callback.
+     *
+     * @param eventCount number of events we want to retrieve
+     * @param callback   callback to implement to be informed that the pagination request has been completed. Can be null.
+     * @return true if request starts
+     */
+    public boolean backPaginate(final int eventCount, final ApiCallback<Integer> callback) {
         final String myUserId = mDataHandler.getUserId();
 
         if (!canBackPaginate()) {
@@ -1097,13 +1115,13 @@ public class EventTimeline {
         mIsBackPaginating = true;
 
         // enough buffered data
-        if ((mSnapshotEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION) || TextUtils.equals(fromBackToken, mBackwardTopToken) || TextUtils.equals(fromBackToken, Event.PAGINATE_BACK_TOKEN_END)) {
+        if ((mSnapshotEvents.size() >= eventCount) || TextUtils.equals(fromBackToken, mBackwardTopToken) || TextUtils.equals(fromBackToken, Event.PAGINATE_BACK_TOKEN_END)) {
 
             mIsLastBackChunk = TextUtils.equals(fromBackToken, mBackwardTopToken) || TextUtils.equals(fromBackToken, Event.PAGINATE_BACK_TOKEN_END);
 
             final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
 
-            if ((mSnapshotEvents.size() >= MAX_EVENT_COUNT_PER_PAGINATION)) {
+            if ((mSnapshotEvents.size() >= eventCount)) {
                 Log.d(LOG_TAG, "backPaginate : the events are already loaded.");
             } else {
                 Log.d(LOG_TAG, "backPaginate : reach the history top");
@@ -1128,7 +1146,7 @@ public class EventTimeline {
             return true;
         }
 
-        mDataHandler.getDataRetriever().paginate(mStore, mRoomId, getBackState().getToken(), Direction.BACKWARDS, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+        mDataHandler.getDataRetriever().backPaginate(mStore, mRoomId, getBackState().getToken(), eventCount, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> response) {
                 if (mDataHandler.isAlive()) {

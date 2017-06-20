@@ -1186,7 +1186,7 @@ public class MXSession {
             boolean isRequestSent = false;
 
             if (mNetworkConnectivityReceiver.isConnected()) {
-                isRequestSent = room.sendReadReceipt(new ApiCallback<Void>() {
+                isRequestSent = room.markAllAsRead(new ApiCallback<Void>() {
                     @Override
                     public void onSuccess(Void anything) {
                         markRoomsAsRead(roomsIterator, callback);
@@ -1215,7 +1215,7 @@ public class MXSession {
                 });
             } else {
                 // update the local data
-                room.sendReadReceipt(null);
+                room.sendReadReceipt();
             }
 
             if (!isRequestSent) {

@@ -27,6 +27,8 @@ import android.graphics.Point;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Parcel;
 import android.provider.Browser;
 import android.text.Html;
@@ -46,10 +48,6 @@ import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.text.style.URLSpan;
-
-import org.matrix.androidsdk.rest.model.AudioMessage;
-import org.matrix.androidsdk.util.Log;
-
 import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -57,6 +55,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -72,8 +72,8 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
-import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
 import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
@@ -96,6 +96,7 @@ import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.EventUtils;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.view.ConsoleHtmlTagHandler;
 import org.matrix.androidsdk.view.PieFractionView;
 
@@ -104,8 +105,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -306,8 +305,17 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     protected boolean mIsSearchMode = false;
     protected boolean mIsPreviewMode = false;
+    protected boolean mIsUnreadViewMode = false;
     private String mPattern = null;
     private ArrayList<MessageRow> mLiveMessagesRowList = null;
+
+    // id of the read markers event
+    private String mReadMarkerEventId;
+    private boolean mCanShowReadMarker = true;
+    private String mReadReceiptEventId;
+    private boolean mIsInBackground;
+
+    private ReadMarkerListener mReadMarkerListener;
 
     private MatrixLinkMovementMethod mLinkMovementMethod;
 
@@ -581,6 +589,23 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         mIsPreviewMode = isPreviewMode;
     }
 
+    /**
+     * Set whether we are ine preview mode to show unread messages
+     * @param isUnreadViewMode
+     */
+    public void setIsUnreadViewMode(boolean isUnreadViewMode) {
+        mIsUnreadViewMode = isUnreadViewMode;
+    }
+
+    /**
+     * Get whether we are in preview mode to show unread messages
+     *
+     * @return true if preview to show unread messages
+     */
+    public boolean isUnreadViewMode() {
+        return mIsUnreadViewMode;
+    }
+
     @Override
     public int getViewTypeCount() {
         return NUM_ROW_TYPES;
@@ -801,6 +826,50 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     }
 
     /**
+     * Get the closest row after the given event
+     * Used when we need to jump to an event that is not displayed
+     *
+     * @param event
+     * @return closest row
+     */
+    public MessageRow getClosestRow(Event event) {
+        if (event == null) {
+            return null;
+        } else {
+            return getClosestRowFromTs(event.eventId, event.getOriginServerTs());
+        }
+    }
+
+    /**
+     * Get the closest row after the given event id/ts
+     * Used when we need to jump to an event that is not displayed
+     *
+     * @param eventId
+     * @param eventTs
+     * @return closest row
+     */
+    public MessageRow getClosestRowFromTs(final String eventId, final long eventTs) {
+        MessageRow messageRow = getMessageRow(eventId);
+        if (messageRow != null) {
+            return messageRow;
+        } else {
+            ArrayList<MessageRow> rows = new ArrayList<>(mEventRowMap.values());
+            for (MessageRow row : rows) {
+                if (row.getEvent().getOriginServerTs() > eventTs) {
+                    if (messageRow == null) {
+                        messageRow = row;
+                    } else if (row.getEvent().getOriginServerTs() - eventTs <
+                            messageRow.getEvent().getOriginServerTs() - eventTs) {
+                        messageRow = row;
+                        Log.d(LOG_TAG, "getClosestRow " + row.getEvent().eventId);
+                    }
+                }
+            }
+        }
+        return messageRow;
+    }
+
+    /**
      * Convert Event to view type.
      *
      * @param event the event to convert
@@ -896,21 +965,154 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             return convertView;
         }
 
+        final View inflatedView;
         switch (getItemViewType(position)) {
             case ROW_TYPE_TEXT:
-                return getTextView(position, convertView, parent);
+                inflatedView = getTextView(position, convertView, parent);
+                break;
             case ROW_TYPE_IMAGE:
             case ROW_TYPE_VIDEO:
-                return getImageVideoView(getItemViewType(position), position, convertView, parent);
+                inflatedView = getImageVideoView(getItemViewType(position), position, convertView, parent);
+                break;
             case ROW_TYPE_NOTICE:
-                return getNoticeView(position, convertView, parent);
+                inflatedView = getNoticeView(position, convertView, parent);
+                break;
             case ROW_TYPE_EMOTE:
-                return getEmoteView(position, convertView, parent);
+                inflatedView = getEmoteView(position, convertView, parent);
+                break;
             case ROW_TYPE_FILE:
-                return getFileView(position, convertView, parent);
+                inflatedView = getFileView(position, convertView, parent);
+                break;
             default:
                 throw new RuntimeException("Unknown item view type for position " + position);
         }
+
+        if (mReadMarkerListener != null) {
+            handleReadMarker(inflatedView, position);
+        }
+
+        return inflatedView;
+    }
+
+    /**
+     * Animate a read marker view
+     */
+    protected void animateReadMarkerView(final Event event, final View readMarkerView) {
+        if (readMarkerView != null && mCanShowReadMarker) {
+            mCanShowReadMarker = false;
+            if (readMarkerView.getAnimation() == null) {
+                final Animation animation = AnimationUtils.loadAnimation(getContext(), R.anim.unread_marker_anim);
+                animation.setStartOffset(500);
+                animation.setRepeatMode(Animation.INFINITE);
+                animation.setAnimationListener(new Animation.AnimationListener() {
+                    @Override
+                    public void onAnimationStart(Animation animation) {
+                    }
+
+                    @Override
+                    public void onAnimationEnd(Animation animation) {
+                        readMarkerView.setVisibility(View.GONE);
+                        if (mReadMarkerListener != null) {
+                            mReadMarkerListener.onReadMarkerDisplayed(event, readMarkerView);
+                        }
+                    }
+
+                    @Override
+                    public void onAnimationRepeat(Animation animation) {
+                    }
+                });
+                readMarkerView.setAnimation(animation);
+            }
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    if (readMarkerView != null && readMarkerView.getAnimation() != null) {
+                        readMarkerView.setVisibility(View.VISIBLE);
+                        readMarkerView.getAnimation().start();
+                    }
+                }
+            });
+        }
+    }
+
+    /**
+     * Check whether the read marker view should be displayed for the given row
+     *
+     * @param inflatedView row view
+     * @param position     position in adapter
+     */
+    private void handleReadMarker(final View inflatedView, final int position) {
+        final MessageRow row = getItem(position);
+        final Event event = row != null ? row.getEvent() : null;
+        final View readMarkerView = inflatedView.findViewById(R.id.message_read_marker);
+        if (readMarkerView != null) {
+            if (event != null && !event.isDummyEvent() && mReadMarkerEventId != null && mCanShowReadMarker
+                    && event.eventId.equals(mReadMarkerEventId) && !mIsPreviewMode && !mIsSearchMode
+                    && (!mReadMarkerEventId.equals(mReadReceiptEventId) || position < getCount() - 1)) {
+                Log.e(LOG_TAG, " Display read marker " + event.eventId + " mReadMarkerEventId" + mReadMarkerEventId);
+                // Show the read marker
+                animateReadMarkerView(event, readMarkerView);
+            } else {
+                Log.v(LOG_TAG,"hide read marker ");
+                readMarkerView.setVisibility(View.GONE);
+            }
+        }
+    }
+
+    /**
+     * Specify the last read message (to display read marker line)
+     *
+     * @param readMarkerEventId
+     */
+    public void updateReadMarker(final String readMarkerEventId, final String readReceiptEventId) {
+        Log.e(LOG_TAG, "updateReadMarker " + readMarkerEventId + " readReceiptEventId " + readReceiptEventId);
+        mReadMarkerEventId = readMarkerEventId;
+        mReadReceiptEventId = readReceiptEventId;
+        if (readMarkerEventId != null && !readMarkerEventId.equals(mReadMarkerEventId)) {
+            Log.e(LOG_TAG, "updateReadMarker read marker id has changed");
+            mCanShowReadMarker = true;
+            notifyDataSetChanged();
+        }
+    }
+
+    /**
+     * Specify the event corresponding to the read receipt
+     *
+     * @param readReceiptEventId
+     */
+    public void updateReadReceipt(final String readReceiptEventId) {
+        Log.e(LOG_TAG,"updateReadReceipt "+readReceiptEventId);
+        mReadReceiptEventId = readReceiptEventId;
+    }
+
+    /**
+     * Reset the read marker event so read marker view will not be displayed again on same event
+     */
+    public void resetReadMarker() {
+        Log.e(LOG_TAG,"resetReadMarker "+mReadMarkerEventId);
+        mReadMarkerEventId = null;
+    }
+
+    public String getReadMarkerEventId() {
+        return mReadMarkerEventId;
+    }
+
+    /**
+     * Flag to keep track of the app status (foreground/background)
+     *
+     * @param isInBackground
+     */
+    public void setIsInBackground(final boolean isInBackground) {
+        mIsInBackground = isInBackground;
+    }
+
+    /**
+     * Get the app status (foreground/background)
+     *
+     * @return true if app is in background
+     */
+    public boolean isInBackground() {
+        return mIsInBackground;
     }
 
     /**
@@ -2924,5 +3126,24 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 uploadProgressLayout.setVisibility(View.GONE);
             }
         }
+    }
+
+    /**
+     * Specify a listener for read marker
+     *
+     * @param listener
+     */
+    public void setReadMarkerListener(final ReadMarkerListener listener) {
+        mReadMarkerListener = listener;
+    }
+
+    /*
+     * *********************************************************************************************
+     * Inner classes
+     * *********************************************************************************************
+     */
+
+    public interface ReadMarkerListener {
+        void onReadMarkerDisplayed(Event event, View view);
     }
 }

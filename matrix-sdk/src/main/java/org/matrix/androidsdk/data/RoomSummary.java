@@ -19,8 +19,6 @@ package org.matrix.androidsdk.data;
 
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.util.Log;
-
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -28,6 +26,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.util.Log;
 
 /**
  * Stores summarised information about the room.
@@ -47,8 +46,11 @@ public class RoomSummary implements java.io.Serializable {
     // 2- the members display name
     private transient RoomState mLatestRoomState = null;
 
-    // defines the latest read event id
-    public String mLatestReadEventId;
+    // defines the latest read message
+    private String mReadReceiptEventId;
+
+    // the read marker event id
+    private String mReadMarkerEventId;
 
     // counters
     public int mUnreadEventsCount;
@@ -68,6 +70,21 @@ public class RoomSummary implements java.io.Serializable {
 
 
     public RoomSummary() {
+    }
+
+    /**
+     * Create a room summary
+     *
+     * @param roomId the room id
+     * @param name   the room display name
+     * @param topic  the topic
+     * @param event  the latest received event
+     */
+    public RoomSummary(String roomId, String name, String topic, Event event) {
+        mLatestReceivedEvent = event;
+        mRoomId = roomId;
+        mName = name;
+        mTopic = topic;
     }
 
     /**
@@ -333,19 +350,35 @@ public class RoomSummary implements java.io.Serializable {
     }
 
     /**
-     * Update the latest read event Id
+     * Set the read receipt event Id
      *
-     * @param eventId the event id.
+     * @param eventId the read receipt event id.
      */
-    public void setLatestReadEventId(String eventId) {
-        mLatestReadEventId = eventId;
+    public void setReadReceiptEventId(String eventId) {
+        mReadReceiptEventId = eventId;
     }
 
     /**
-     * @return the latest event id
+     * @return the read receipt event id
      */
-    public String getLatestReadEventId() {
-        return mLatestReadEventId;
+    public String getReadReceiptEventId() {
+        return mReadReceiptEventId;
+    }
+
+    /**
+     * Set the read marker event Id
+     *
+     * @param eventId the read marker event id.
+     */
+    public void setReadMarkerEventId(String eventId) {
+        mReadMarkerEventId = eventId;
+    }
+
+    /**
+     * @return the read receipt event id
+     */
+    public String getReadMarkerEventId() {
+        return mReadMarkerEventId;
     }
 
     /**
