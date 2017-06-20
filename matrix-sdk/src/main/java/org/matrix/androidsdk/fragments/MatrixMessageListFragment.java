@@ -2354,67 +2354,62 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
 
         if (direction == EventTimeline.Direction.FORWARDS) {
-            getUiHandler().post(new Runnable() {
-                @Override
-                public void run() {
-                    if (Event.EVENT_TYPE_REDACTION.equals(event.getType())) {
-                        MessageRow messageRow = mAdapter.getMessageRow(event.getRedacts());
+            if (Event.EVENT_TYPE_REDACTION.equals(event.getType())) {
+                MessageRow messageRow = mAdapter.getMessageRow(event.getRedacts());
 
-                        if (null != messageRow) {
-                            Event prunedEvent = mSession.getDataHandler().getStore().getEvent(event.getRedacts(), event.roomId);
+                if (null != messageRow) {
+                    Event prunedEvent = mSession.getDataHandler().getStore().getEvent(event.getRedacts(), event.roomId);
 
-                            if (null == prunedEvent) {
-                                mAdapter.removeEventById(event.getRedacts());
-                            } else {
-                                messageRow.updateEvent(prunedEvent);
-                                JsonObject content = messageRow.getEvent().getContentAsJsonObject();
-
-                                boolean hasToRemoved = (null == content) || (null == content.entrySet()) || (0 == content.entrySet().size());
-
-                                // test if the event is displayable
-                                // GA issue : the activity can be null
-                                if (!hasToRemoved && (null != getActivity())) {
-                                    EventDisplay eventDisplay = new EventDisplay(getActivity(), prunedEvent, roomState);
-                                    hasToRemoved = TextUtils.isEmpty(eventDisplay.getTextualDisplay());
-                                }
-
-                                // event is removed if it has no more content.
-                                if (hasToRemoved) {
-                                    mAdapter.removeEventById(prunedEvent.eventId);
-                                }
-                            }
-
-                            mAdapter.notifyDataSetChanged();
-                        }
-                    } else if (Event.EVENT_TYPE_TYPING.equals(event.getType())) {
-                        if (null != mRoom) {
-                            mAdapter.setTypingUsers(mRoom.getTypingUsers());
-                        }
+                    if (null == prunedEvent) {
+                        mAdapter.removeEventById(event.getRedacts());
                     } else {
-                        if (canAddEvent(event)) {
-                            // refresh the listView only when it is a live timeline or a search
-                            MessageRow newMessageRow = new MessageRow(event, roomState);
-                            mAdapter.add(newMessageRow, (null == mEventTimeLine) || mEventTimeLine.isLiveTimeline());
+                        messageRow.updateEvent(prunedEvent);
+                        JsonObject content = messageRow.getEvent().getContentAsJsonObject();
 
-                            // Move read marker if necessary
-                            if (!mAdapter.isInBackground() && mEventTimeLine != null && mEventTimeLine.isLiveTimeline()) {
-                                final String currentReadMarkerEventId = mRoom.getReadMarkerEventId();
-                                MessageRow currentReadMarkerRow = mAdapter.getMessageRow(currentReadMarkerEventId);
-                                if (currentReadMarkerRow != null &&
-                                        mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
-                                        && event.getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs) {
-                                    // Previous message was the last read
-                                    if (mMessageListView.getChildAt(mMessageListView.getChildCount() - 1).getTop() >= 0) {
-                                        // Move read marker to the newly sent message
-                                        mRoom.setReadMakerEventId(event.eventId);
-                                        mAdapter.resetReadMarker();
-                                    }
-                                }
+                        boolean hasToRemoved = (null == content) || (null == content.entrySet()) || (0 == content.entrySet().size());
+
+                        // test if the event is displayable
+                        // GA issue : the activity can be null
+                        if (!hasToRemoved && (null != getActivity())) {
+                            EventDisplay eventDisplay = new EventDisplay(getActivity(), prunedEvent, roomState);
+                            hasToRemoved = TextUtils.isEmpty(eventDisplay.getTextualDisplay());
+                        }
+
+                        // event is removed if it has no more content.
+                        if (hasToRemoved) {
+                            mAdapter.removeEventById(prunedEvent.eventId);
+                        }
+                    }
+
+                    mAdapter.notifyDataSetChanged();
+                }
+            } else if (Event.EVENT_TYPE_TYPING.equals(event.getType())) {
+                if (null != mRoom) {
+                    mAdapter.setTypingUsers(mRoom.getTypingUsers());
+                }
+            } else {
+                if (canAddEvent(event)) {
+                    // refresh the listView only when it is a live timeline or a search
+                    MessageRow newMessageRow = new MessageRow(event, roomState);
+                    mAdapter.add(newMessageRow, (null == mEventTimeLine) || mEventTimeLine.isLiveTimeline());
+
+                    // Move read marker if necessary
+                    if (!mAdapter.isInBackground() && mEventTimeLine != null && mEventTimeLine.isLiveTimeline()) {
+                        final String currentReadMarkerEventId = mRoom.getReadMarkerEventId();
+                        MessageRow currentReadMarkerRow = mAdapter.getMessageRow(currentReadMarkerEventId);
+                        if (currentReadMarkerRow != null &&
+                                mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
+                                && event.getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs) {
+                            // Previous message was the last read
+                            if (mMessageListView.getChildAt(mMessageListView.getChildCount() - 1).getTop() >= 0) {
+                                // Move read marker to the newly sent message
+                                mRoom.setReadMakerEventId(event.eventId);
+                                mAdapter.resetReadMarker();
                             }
                         }
                     }
                 }
-            });
+            }
         } else {
             if (canAddEvent(event)) {
                 mAdapter.addToFront(event, roomState);
