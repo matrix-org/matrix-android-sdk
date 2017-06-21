@@ -1050,7 +1050,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             if (event != null && !event.isDummyEvent() && mReadMarkerEventId != null && mCanShowReadMarker
                     && event.eventId.equals(mReadMarkerEventId) && !mIsPreviewMode && !mIsSearchMode
                     && (!mReadMarkerEventId.equals(mReadReceiptEventId) || position < getCount() - 1)) {
-                Log.e(LOG_TAG, " Display read marker " + event.eventId + " mReadMarkerEventId" + mReadMarkerEventId);
+                Log.d(LOG_TAG, " Display read marker " + event.eventId + " mReadMarkerEventId" + mReadMarkerEventId);
                 // Show the read marker
                 animateReadMarkerView(event, readMarkerView);
             } else {
