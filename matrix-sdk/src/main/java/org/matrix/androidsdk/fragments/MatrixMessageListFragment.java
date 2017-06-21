@@ -809,8 +809,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             if (currentReadMarkerRow != null &&
                     mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
                     && event.getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs) {
+
+                View childView = mMessageListView.getChildAt(mMessageListView.getChildCount() - 1);
+                
                 // Previous message was the last read
-                if (mMessageListView.getChildAt(mMessageListView.getChildCount() - 1).getTop() >= 0) {
+                if ((null != childView) && (childView.getTop() >= 0)) {
                     // New message is fully visible, keep reference to move the read marker once server echo is received
                     mFutureReadMarkerEventId = event.eventId;
                     mAdapter.resetReadMarker();
