@@ -811,7 +811,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     && event.getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs) {
 
                 View childView = mMessageListView.getChildAt(mMessageListView.getChildCount() - 1);
-                
+
                 // Previous message was the last read
                 if ((null != childView) && (childView.getTop() >= 0)) {
                     // New message is fully visible, keep reference to move the read marker once server echo is received
@@ -2336,6 +2336,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         // Scroll to the first unread row if possible, last read otherwise
         final int targetRow = isLastRead && lastReadRowIndex < mMessageListView.getCount() - 1
                 ? lastReadRowIndex + 1 : lastReadRowIndex;
+        // Scroll to the last read so we can see the beginning of the first unread (in majority of cases)
         mMessageListView.setSelectionFromTop(targetRow, distanceFromTop);
     }
 
