@@ -1703,7 +1703,7 @@ public class Room {
                     if (null != summary) {
                         Event event = JsonUtils.toEvent(accountDataEvent.getContent());
 
-                        if (null != event) {
+                        if (null != event && !TextUtils.equals(event.eventId, summary.getReadMarkerEventId())) {
                             summary.setReadMarkerEventId(event.eventId);
                             mStore.flushSummary(summary);
                             mDataHandler.onReadMarkerEvent(getRoomId());
