@@ -952,9 +952,10 @@ public class EventTimeline {
 
     /**
      * Send MAX_EVENT_COUNT_PER_PAGINATION events to the caller.
+     * @param maxEventCount the max event count
      * @param callback the callback.
      */
-    private void manageBackEvents(final ApiCallback<Integer> callback) {
+    private void manageBackEvents(int maxEventCount, final ApiCallback<Integer> callback) {
         // check if the SDK was not logged out
         if (!mDataHandler.isAlive()) {
             Log.d(LOG_TAG, "manageEvents : mDataHandler is not anymore active.");
@@ -962,7 +963,7 @@ public class EventTimeline {
             return;
         }
 
-        int count = Math.min(mSnapshotEvents.size(), MAX_EVENT_COUNT_PER_PAGINATION);
+        int count = Math.min(mSnapshotEvents.size(), maxEventCount);
 
         Event latestSupportedEvent = null;
 
@@ -1062,7 +1063,7 @@ public class EventTimeline {
         addPaginationEvents(events, direction);
 
         if (direction == Direction.BACKWARDS) {
-            manageBackEvents(callback);
+            manageBackEvents(MAX_EVENT_COUNT_PER_PAGINATION, callback);
         } else {
             if (null != callback) {
                 callback.onSuccess(events.size());
@@ -1096,6 +1097,18 @@ public class EventTimeline {
      * @return true if request starts
      */
     public boolean backPaginate(final int eventCount, final ApiCallback<Integer> callback) {
+        return backPaginate(eventCount, false, callback);
+    }
+
+    /**
+     * Request older messages. They will come down the onBackEvent callback.
+     *
+     * @param eventCount number of events we want to retrieve
+     * @param useCachedOnly to use the cached events list only (i.e no request will be triggered)
+     * @param callback   callback to implement to be informed that the pagination request has been completed. Can be null.
+     * @return true if request starts
+     */
+    public boolean backPaginate(final int eventCount, final boolean useCachedOnly, final ApiCallback<Integer> callback) {
         final String myUserId = mDataHandler.getUserId();
 
         if (!canBackPaginate()) {
@@ -1115,16 +1128,22 @@ public class EventTimeline {
         mIsBackPaginating = true;
 
         // enough buffered data
-        if ((mSnapshotEvents.size() >= eventCount) || TextUtils.equals(fromBackToken, mBackwardTopToken) || TextUtils.equals(fromBackToken, Event.PAGINATE_BACK_TOKEN_END)) {
+        if (useCachedOnly || (mSnapshotEvents.size() >= eventCount) || TextUtils.equals(fromBackToken, mBackwardTopToken) || TextUtils.equals(fromBackToken, Event.PAGINATE_BACK_TOKEN_END)) {
 
             mIsLastBackChunk = TextUtils.equals(fromBackToken, mBackwardTopToken) || TextUtils.equals(fromBackToken, Event.PAGINATE_BACK_TOKEN_END);
 
             final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
+            final int maxEventsCount;
 
-            if ((mSnapshotEvents.size() >= eventCount)) {
+            if (useCachedOnly) {
+                Log.d(LOG_TAG, "backPaginate : load " + mSnapshotEvents.size() + "cached events list");
+                maxEventsCount = Math.min(mSnapshotEvents.size(), eventCount);
+            } else if ((mSnapshotEvents.size() >= eventCount)) {
                 Log.d(LOG_TAG, "backPaginate : the events are already loaded.");
+                maxEventsCount = eventCount;
             } else {
                 Log.d(LOG_TAG, "backPaginate : reach the history top");
+                maxEventsCount = eventCount;
             }
 
             // call the callback with a delay
@@ -1134,7 +1153,7 @@ public class EventTimeline {
                 public void run() {
                     handler.postDelayed(new Runnable() {
                         public void run() {
-                            manageBackEvents(callback);
+                            manageBackEvents(maxEventsCount, callback);
                         }
                     }, 0);
                 }
@@ -1377,7 +1396,7 @@ public class EventTimeline {
                 mForwardsPaginationToken = eventContext.end;
 
                 // send the back events to complete pagination
-                manageBackEvents(new ApiCallback<Integer>() {
+                manageBackEvents(MAX_EVENT_COUNT_PER_PAGINATION, new ApiCallback<Integer>() {
                     @Override
                     public void onSuccess(Integer info) {
                         Log.d(LOG_TAG, "addPaginationEvents succeeds");
