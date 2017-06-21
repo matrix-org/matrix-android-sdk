@@ -591,6 +591,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
     /**
      * Set whether we are ine preview mode to show unread messages
+     *
      * @param isUnreadViewMode
      */
     public void setIsUnreadViewMode(boolean isUnreadViewMode) {
@@ -1049,11 +1050,11 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             if (event != null && !event.isDummyEvent() && mReadMarkerEventId != null && mCanShowReadMarker
                     && event.eventId.equals(mReadMarkerEventId) && !mIsPreviewMode && !mIsSearchMode
                     && (!mReadMarkerEventId.equals(mReadReceiptEventId) || position < getCount() - 1)) {
-                Log.e(LOG_TAG, " Display read marker " + event.eventId + " mReadMarkerEventId" + mReadMarkerEventId);
+                Log.d(LOG_TAG, " Display read marker " + event.eventId + " mReadMarkerEventId" + mReadMarkerEventId);
                 // Show the read marker
                 animateReadMarkerView(event, readMarkerView);
             } else {
-                Log.v(LOG_TAG,"hide read marker ");
+                Log.v(LOG_TAG, "hide read marker");
                 readMarkerView.setVisibility(View.GONE);
             }
         }
@@ -1065,11 +1066,10 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * @param readMarkerEventId
      */
     public void updateReadMarker(final String readMarkerEventId, final String readReceiptEventId) {
-        Log.d(LOG_TAG, "updateReadMarker " + readMarkerEventId + " readReceiptEventId " + readReceiptEventId);
         mReadMarkerEventId = readMarkerEventId;
         mReadReceiptEventId = readReceiptEventId;
         if (readMarkerEventId != null && !readMarkerEventId.equals(mReadMarkerEventId)) {
-            Log.d(LOG_TAG, "updateReadMarker read marker id has changed");
+            Log.d(LOG_TAG, "updateReadMarker read marker id has changed: " + readMarkerEventId);
             mCanShowReadMarker = true;
             notifyDataSetChanged();
         }
@@ -1088,7 +1088,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * Reset the read marker event so read marker view will not be displayed again on same event
      */
     public void resetReadMarker() {
-        Log.d(LOG_TAG,"resetReadMarker");
+        Log.d(LOG_TAG, "resetReadMarker");
         mReadMarkerEventId = null;
     }
 
@@ -2908,7 +2908,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      * !!!!!! WARNING !!!!!!
      * IT IS NOT REMOTELY A COMPREHENSIVE SANITIZER AND SHOULD NOT BE TRUSTED FOR SECURITY PURPOSES.
      * WE ARE EFFECTIVELY RELYING ON THE LIMITED CAPABILITIES OF THE HTML RENDERER UI TO AVOID SECURITY ISSUES LEAKING UP.
-
+     *
      * @param html the html to sanitize
      * @return the sanitised HTML
      */
