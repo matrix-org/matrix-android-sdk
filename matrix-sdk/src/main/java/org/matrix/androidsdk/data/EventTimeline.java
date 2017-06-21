@@ -1612,18 +1612,29 @@ public class EventTimeline {
      * @param direction the direction.
      * @param roomState the roomState.
      */
-    private void onEvent(Event event, Direction direction, RoomState roomState) {
-        ArrayList<EventTimelineListener> listeners;
+    private void onEvent(final Event event, final Direction direction, final RoomState roomState) {
+        // ensure that the listeners are called in the UI thread
+        if (Looper.getMainLooper().getThread() != Thread.currentThread()) {
+            final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    onEvent(event, direction, roomState);
+                }
+            });
+        } else {
+            ArrayList<EventTimelineListener> listeners;
 
-        synchronized (this) {
-            listeners = new ArrayList<>(mEventTimelineListeners);
-        }
+            synchronized (this) {
+                listeners = new ArrayList<>(mEventTimelineListeners);
+            }
 
-        for(EventTimelineListener listener : listeners) {
-            try {
-                listener.onEvent(event, direction, roomState);
-            } catch (Exception e) {
-                Log.e(LOG_TAG,"EventTimeline.onEvent " + listener + " crashes " + e.getLocalizedMessage());
+            for (EventTimelineListener listener : listeners) {
+                try {
+                    listener.onEvent(event, direction, roomState);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "EventTimeline.onEvent " + listener + " crashes " + e.getLocalizedMessage());
+                }
             }
         }
     }
