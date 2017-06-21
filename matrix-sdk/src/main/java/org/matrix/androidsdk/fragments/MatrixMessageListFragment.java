@@ -2336,13 +2336,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         // Scroll to the first unread row if possible, last read otherwise
         final int targetRow = isLastRead && lastReadRowIndex < mMessageListView.getCount() - 1
                 ? lastReadRowIndex + 1 : lastReadRowIndex;
-        // Scroll to the last read so we can see the beginning of the first unread (in majority of cases)
-        mMessageListView.post(new Runnable() {
-            @Override
-            public void run() {
-                mMessageListView.setSelectionFromTop(targetRow, distanceFromTop);
-            }
-        });
+        mMessageListView.setSelectionFromTop(targetRow, distanceFromTop);
     }
 
     //==============================================================================================================
