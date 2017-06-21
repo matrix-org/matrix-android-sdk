@@ -2351,6 +2351,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     @Override
     public void onEvent(final Event event, final EventTimeline.Direction direction, final RoomState roomState) {
+        if (null == event) {
+            Log.e(LOG_TAG, "## onEvent() : null event");
+            return;
+        }
+
         if (event.eventId.equals(mEventId)) {
             // Save timestamp in case this event will not be added in adapter
             mEventOriginServerTs = event.getOriginServerTs();
