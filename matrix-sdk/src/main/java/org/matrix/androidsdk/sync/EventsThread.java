@@ -56,6 +56,8 @@ public class EventsThread extends Thread {
     private boolean mIsNetworkSuspended = false;
     private boolean mIsCatchingUp = false;
     private boolean mGotFirstCatchupChunk = false;
+    // when a catchup is triggered,
+    private int mCatchupSyncRequestsCount;
     private boolean mIsOnline = true;
 
     private boolean mKilling = false;
@@ -528,14 +530,24 @@ public class EventsThread extends Thread {
 
                                     if (mGotFirstCatchupChunk) {
                                         Log.e(LOG_TAG, "Got first catchup chunk");
+                                        mCatchupSyncRequestsCount = 0;
                                     } else {
                                         Log.e(LOG_TAG, "Empty chunk : sync again");
                                     }
 
                                     mNextServerTimeoutms = mDefaultServerTimeoutms / 10;
                                 } else {
-                                    if (0 == eventCounts) {
-                                        Log.e(LOG_TAG, "Stop the catchup");
+                                    mCatchupSyncRequestsCount++;
+
+                                    // stop the catchup if no events have been retrieved
+                                    // or after 3 sync requests
+                                    if ((0 == eventCounts) || (mCatchupSyncRequestsCount > 3)) {
+                                        if (0 == eventCounts) {
+                                            Log.e(LOG_TAG, "Stop the catchup after " + mCatchupSyncRequestsCount + " sync requests");
+                                        } else {
+                                            Log.e(LOG_TAG, "Stop the catchup");
+                                        }
+
                                         // stop any catch up
                                         mIsCatchingUp = false;
                                         mPaused = true;
