@@ -1208,6 +1208,8 @@ public class Room {
      * @return true if the read receipt has been sent, false otherwise
      */
     public boolean sendReadReceipt(Event event, final ApiCallback<Void> aRespCallback) {
+        String eventId = (null != event) ? event.eventId : null;
+        Log.d(LOG_TAG, "## sendReadReceipt() : eventId " + eventId + " in room " + getRoomId());
         return sendReadMarkers(null, (null != event) ? event.eventId : null, aRespCallback);
     }
 
@@ -1244,11 +1246,14 @@ public class Room {
             return false;
         }
 
+        Log.d(LOG_TAG, "## sendReadMarkers(): readMarkerEventId " + aReadMarkerEventId + " readReceiptEventId " + aReadReceiptEventId);
+
         boolean hasUpdate = false;
 
         String readMarkerEventId = aReadMarkerEventId;
         if (!TextUtils.isEmpty(aReadMarkerEventId)) {
             if (!MXSession.isMessageId(aReadMarkerEventId)) {
+                Log.e(LOG_TAG, "## sendReadMarkers() : invalid event id " + readMarkerEventId);
                 // Read marker is invalid, ignore it
                 readMarkerEventId = null;
             } else {
