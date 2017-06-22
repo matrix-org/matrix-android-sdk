@@ -382,6 +382,11 @@ public class RoomSummary implements java.io.Serializable {
      * @return the read receipt event id
      */
     public String getReadMarkerEventId() {
+        if (TextUtils.isEmpty(mReadMarkerEventId)) {
+            Log.e(LOG_TAG, "## getReadMarkerEventId') : null mReadMarkerEventId, in " + getRoomId());
+            mReadMarkerEventId = getReadReceiptEventId();
+        }
+
         return mReadMarkerEventId;
     }
 
