@@ -1053,7 +1053,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
                 Log.d(LOG_TAG, " Display read marker " + event.eventId + " mReadMarkerEventId" + mReadMarkerEventId);
                 // Show the read marker
                 animateReadMarkerView(event, readMarkerView);
-            } else {
+            } else if (View.GONE != readMarkerView.getVisibility()){
                 Log.v(LOG_TAG, "hide read marker");
                 readMarkerView.setVisibility(View.GONE);
             }
