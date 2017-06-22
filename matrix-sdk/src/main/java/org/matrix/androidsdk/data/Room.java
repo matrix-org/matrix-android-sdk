@@ -1220,6 +1220,8 @@ public class Room {
     public void forgetReadMarker(final ApiCallback<Void> callback) {
         final RoomSummary summary = mStore.getSummary(getRoomId());
         final String currentReadReceipt = summary.getReadReceiptEventId();
+
+        Log.d(LOG_TAG, "## forgetReadMarker() : update the read marker to " + currentReadReceipt + " in room " + getRoomId());
         summary.setReadMarkerEventId(currentReadReceipt);
         mStore.flushSummary(summary);
         setReadMarkers(currentReadReceipt, currentReadReceipt, callback);
@@ -1259,7 +1261,7 @@ public class Room {
                     if (newReadMarkerEvent == null || currentReadMarkerEvent == null
                             || newReadMarkerEvent.getOriginServerTs() > currentReadMarkerEvent.getOriginServerTs()) {
                         // Event is not in store (assume it is in the past), or is older than current one
-                        Log.d(LOG_TAG, "## sendReadMarkers(): set new read marker event id " + readMarkerEventId);
+                        Log.d(LOG_TAG, "## sendReadMarkers(): set new read marker event id " + readMarkerEventId + " in room " + getRoomId());
                         summary.setReadMarkerEventId(readMarkerEventId);
                         mStore.flushSummary(summary);
                         hasUpdate = true;
@@ -1704,7 +1706,14 @@ public class Room {
                         Event event = JsonUtils.toEvent(accountDataEvent.getContent());
 
                         if (null != event && !TextUtils.equals(event.eventId, summary.getReadMarkerEventId())) {
+                            Log.d(LOG_TAG, "## handleAccountDataEvents() : update the read marker to " + event.eventId + " in room " + getRoomId());
+
+                            if (TextUtils.isEmpty(event.eventId)) {
+                                Log.e(LOG_TAG, "## handleAccountDataEvents() : null event id " + accountDataEvent.getContent());
+                            }
+                            
                             summary.setReadMarkerEventId(event.eventId);
+
                             mStore.flushSummary(summary);
                             mDataHandler.onReadMarkerEvent(getRoomId());
                         }
