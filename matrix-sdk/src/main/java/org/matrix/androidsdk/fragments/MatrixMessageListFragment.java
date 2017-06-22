@@ -2351,7 +2351,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             return;
         }
 
-        if (event.eventId.equals(mEventId)) {
+        if (TextUtils.equals(event.eventId, mEventId)) {
             // Save timestamp in case this event will not be added in adapter
             mEventOriginServerTs = event.getOriginServerTs();
         }
