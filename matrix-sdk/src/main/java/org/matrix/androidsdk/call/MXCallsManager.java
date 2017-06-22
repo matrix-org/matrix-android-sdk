@@ -888,8 +888,8 @@ public class MXCallsManager {
                                     Log.e(LOG_TAG, "Fail to retrieve ttl " + e.getMessage());
                                 }
 
-                                Log.d(LOG_TAG, "## refreshTurnServer () : onSuccess : retry after " + ttl + "ms");
-                                restartAfter(ttl);
+                                Log.d(LOG_TAG, "## refreshTurnServer () : onSuccess : retry after " + ttl + " seconds");
+                                restartAfter(ttl * 1000);
                             }
                         }
                     }
