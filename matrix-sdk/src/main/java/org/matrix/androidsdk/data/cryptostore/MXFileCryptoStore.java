@@ -981,7 +981,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 } catch (Exception subEx) {
                     // warn that some file loading fails
                     mIsCorrupted = true;
-                    Log.e(LOG_TAG, description + "failed : " + subEx.getMessage());
+                    Log.e(LOG_TAG, description + "failed : " + subEx.getMessage() + " step 2");
                 }
             }
         }
@@ -1010,7 +1010,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 }
             } catch (Exception e) {
                 mIsCorrupted = true;
-                Log.e(LOG_TAG, "## loadMetadata() : metadata has been corrupted");
+                Log.e(LOG_TAG, "## loadMetadata() : metadata has been corrupted " + e.getMessage());
             }
         }
     }
