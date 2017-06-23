@@ -816,32 +816,14 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public RoomSummary storeSummary(String roomId, Event event, RoomState roomState, String selfUserId) {
-        RoomSummary summary = null;
-
+    public void storeSummary(RoomSummary summary) {
         try {
-            if (null != roomId) {
-                Room room = mRooms.get(roomId);
-                if ((room != null) && (event != null)) { // Should always be true
-                    summary = mRoomSummaries.get(roomId);
-                    if (summary == null) {
-                        summary = new RoomSummary();
-                    }
-                    summary.setMatrixId(mCredentials.userId);
-                    summary.setLatestReceivedEvent(event);
-                    summary.setLatestRoomState(roomState);
-                    summary.setName(room.getName(selfUserId));
-                    summary.setRoomId(room.getRoomId());
-                    summary.setTopic(room.getTopic());
-
-                    mRoomSummaries.put(roomId, summary);
-                }
+            if ((null != summary) && (null != summary.getRoomId())) {
+                mRoomSummaries.put(summary.getRoomId(), summary);
             }
         } catch (OutOfMemoryError e) {
             dispatchOOM(e);
         }
-
-        return summary;
     }
 
     @Override
@@ -1026,6 +1008,11 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public RoomSummary getSummary(String roomId) {
+        // sanity check
+        if (null == roomId) {
+            return null;
+        }
+
         Room room = mRooms.get(roomId);
         if (null != room) {
             return mRoomSummaries.get(roomId);

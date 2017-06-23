@@ -317,7 +317,7 @@ public interface IMXStore {
     RoomSummary getSummary(String roomId);
 
     /**
-     * Flush a room summmary
+     * Flush a room summary
      *
      * @param summary the summary.
      */
@@ -329,15 +329,9 @@ public interface IMXStore {
     void flushSummaries();
 
     /**
-     * Store the summary for the given room id.
-     *
-     * @param roomId     the room id
-     * @param event      the latest event of the room
-     * @param roomState  the room state - used to display the event
-     * @param selfUserId our own user id - used to display the room name
-     * @return the new RoomSummary.
+     * store a new summary
      */
-    RoomSummary storeSummary(String roomId, Event event, RoomState roomState, String selfUserId);
+    void storeSummary(RoomSummary summary);
 
     /**
      * Store the room liveState.
