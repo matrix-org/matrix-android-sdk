@@ -467,6 +467,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                                 mUsersDevicesInfoMap.setObjects((Map<String, MXDeviceInfo>) devicesMapAsVoid, userId);
                             }
                         } catch (Exception e) {
+                            Log.e(LOG_TAG, "## loadUserDevices : mUsersDevicesInfoMap.setObjects failed " + e.getMessage());
                             mIsCorrupted = true;
                         }
                     }
@@ -968,6 +969,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 object = ois.readObject();
                 ois.close();
             } catch (Exception e) {
+                Log.e(LOG_TAG, description + "failed : " + e.getMessage() + " step 1");
+
                 // if the zip deflating fails, try to use the former file saving method
                 try {
                     FileInputStream fis2 = new FileInputStream(file);
@@ -1218,7 +1221,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                         for (int j = 0; j < sessionIds.length; j++) {
                             File inboundSessionFile = new File(keyFolder, sessionIds[j]);
                             try {
-                                Object inboundSessionAsVoid = loadObject(inboundSessionFile, "load inboundsession");
+                                Object inboundSessionAsVoid = loadObject(inboundSessionFile, "load inboundsession " + sessionIds[j]);
                                 MXOlmInboundGroupSession2 inboundSession;
 
                                 if ((null != inboundSessionAsVoid) && (inboundSessionAsVoid instanceof MXOlmInboundGroupSession)) {
