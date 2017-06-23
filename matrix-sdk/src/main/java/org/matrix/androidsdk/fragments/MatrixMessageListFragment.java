@@ -2607,14 +2607,18 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         }
                     }
 
-                    View parentView = (View) mMessageListView.getParent();
-
                     mAdapter.notifyDataSetChanged();
 
                     mMessageListView.setAdapter(mAdapter);
 
-                    // center the message in the
-                    mMessageListView.setSelectionFromTop(eventPos, parentView.getHeight() / 2);
+                    // center the message
+                    if (mAdapter.isUnreadViewMode() && eventPos + 1 < mAdapter.getCount()) {
+                        // In unread view mode, mEventId is the last read so set selection to the first unread
+                        scrollToRow(mAdapter.getMessageRow(mEventId), true);
+                    } else {
+                        View parentView = (View) mMessageListView.getParent();
+                        mMessageListView.setSelectionFromTop(eventPos, parentView.getHeight() / 2);
+                    }
                 }
             }
         });
