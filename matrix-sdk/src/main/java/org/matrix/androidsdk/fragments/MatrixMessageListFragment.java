@@ -2612,7 +2612,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     mMessageListView.setAdapter(mAdapter);
 
                     // center the message
-                    if (mAdapter.isUnreadViewMode() && eventPos + 1 < mAdapter.getCount()) {
+                    if (mAdapter.isUnreadViewMode()) {
                         // In unread view mode, mEventId is the last read so set selection to the first unread
                         scrollToRow(mAdapter.getMessageRow(mEventId), true);
                     } else {
