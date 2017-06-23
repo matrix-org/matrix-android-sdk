@@ -476,7 +476,12 @@ public class EventTimeline {
 
                     if (oldestEvent != null) {
                         if (RoomSummary.isSupportedEvent(oldestEvent)) {
-                            mStore.storeSummary(new RoomSummary(currentSummary, oldestEvent, mState, myUserId));
+                            if (null != currentSummary) {
+                                currentSummary.setLatestReceivedEvent(oldestEvent, mState);
+                                mStore.storeSummary(currentSummary);
+                            } else {
+                                mStore.storeSummary(new RoomSummary(null, oldestEvent, mState, myUserId));
+                            }
                         }
                     }
                 }
@@ -560,7 +565,8 @@ public class EventTimeline {
                     }
                     // use the latest known event
                     else if (null != currentSummary) {
-                        mStore.storeSummary(new RoomSummary(currentSummary, currentSummary.getLatestReceivedEvent(), mState, myUserId));
+                        currentSummary.setLatestReceivedEvent(currentSummary.getLatestReceivedEvent(), mState);
+                        mStore.storeSummary(currentSummary);
                         mStore.commit();
                     }
                     // try to build a summary from the state events
@@ -1026,7 +1032,6 @@ public class EventTimeline {
      * @param direction the direction
      */
     private void addPaginationEvents(List<Event> events, Direction direction) {
-        final String myUserId = mDataHandler.getUserId();
         RoomSummary summary = mStore.getSummary(mRoomId);
         boolean shouldCommitStore = false;
 
@@ -1050,7 +1055,7 @@ public class EventTimeline {
                         // update the summary is the event has been received after the oldest known event
                         // it might happen after a timeline update (hole in the chat history)
                         if ((null != summary) && (summary.getLatestReceivedEvent().originServerTs < event.originServerTs) && RoomSummary.isSupportedEvent(event)) {
-                            summary = new RoomSummary(summary, event, getState(), myUserId);
+                            summary.setLatestReceivedEvent(event, getState());
                             mStore.storeSummary(summary);
                             shouldCommitStore = true;
                         }

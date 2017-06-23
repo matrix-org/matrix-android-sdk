@@ -794,8 +794,23 @@ public class MXDataHandler implements IMXEventListener {
                 Event lastEvent = mStore.getLatestEvent(event.roomId);
                 RoomState beforeLiveRoomState = room.getState().deepCopy();
 
-                mStore.storeSummary(new RoomSummary(mStore.getSummary(event.roomId), lastEvent, beforeLiveRoomState, mCredentials.userId));
-            }
+                RoomSummary summary = mStore.getSummary(event.roomId);
+                if (null == summary) {
+                    summary = new RoomSummary(null, lastEvent, beforeLiveRoomState, mCredentials.userId);
+                } else {
+                    summary.setLatestReceivedEvent(lastEvent, beforeLiveRoomState);
+                }
+
+                if (TextUtils.equals(summary.getReadReceiptEventId(), event.eventId)) {
+                    summary.setReadReceiptEventId(lastEvent.eventId);
+                }
+
+                if (TextUtils.equals(summary.getReadMarkerEventId(), event.eventId)) {
+                    summary.setReadMarkerEventId(lastEvent.eventId);
+                }
+
+                mStore.storeSummary(summary);
+             }
         } else {
             Log.e(LOG_TAG, "deleteRoomEvent : the session is not anymore active");
         }
