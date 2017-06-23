@@ -75,16 +75,44 @@ public class RoomSummary implements java.io.Serializable {
     /**
      * Create a room summary
      *
-     * @param roomId the room id
-     * @param name   the room display name
-     * @param topic  the topic
-     * @param event  the latest received event
+     * @param fromSummary the summary source
+     * @param event       the latest event of the room
+     * @param roomState   the room state - used to display the event
+     * @param userId      our own user id - used to display the room name
      */
-    public RoomSummary(String roomId, String name, String topic, Event event) {
-        mLatestReceivedEvent = event;
-        mRoomId = roomId;
-        mName = name;
-        mTopic = topic;
+    public RoomSummary(RoomSummary fromSummary, Event event, RoomState roomState, String userId) {
+        setMatrixId(userId);
+
+        if (null != roomState) {
+            setRoomId(roomState.roomId);
+        }
+
+        if ((null == getRoomId()) && (null != event)) {
+            setRoomId(event.roomId);
+        }
+
+        setLatestReceivedEvent(event, roomState);
+
+        // if no summary is provided
+        if (null == fromSummary) {
+            // init with the room & event data
+            if (null != event) {
+                setReadMarkerEventId(event.eventId);
+                setReadReceiptEventId(event.eventId);
+            }
+            if (null != roomState) {
+                setHighlightCount(roomState.getHighlightCount());
+                setNotificationCount(roomState.getHighlightCount());
+            }
+            setUnreadEventsCount(Math.max(getHighlightCount(), getNotificationCount()));
+        } else {
+            // else use the provided summary data
+            setReadMarkerEventId(fromSummary.getReadMarkerEventId());
+            setReadReceiptEventId(fromSummary.getReadReceiptEventId());
+            setUnreadEventsCount(fromSummary.getUnreadEventsCount());
+            setHighlightCount(fromSummary.getHighlightCount());
+            setNotificationCount(fromSummary.getHighlightCount());
+        }
     }
 
     /**
@@ -302,6 +330,24 @@ public class RoomSummary implements java.io.Serializable {
      */
     public RoomSummary setRoomId(String roomId) {
         mRoomId = roomId;
+        return this;
+    }
+
+    /**
+     * Set the latest tracked event (e.g. the latest m.room.message)
+     *
+     * @param event The most-recent event.
+     * @param roomState The room state
+     * @return This summary for chaining calls.
+     */
+    public RoomSummary setLatestReceivedEvent(Event event, RoomState roomState) {
+        setLatestReceivedEvent(event);
+        setLatestRoomState(roomState);
+        
+        if (null != roomState) {
+            setName(roomState.getDisplayName(getMatrixId()));
+            setTopic(roomState.topic);
+        }
         return this;
     }
 

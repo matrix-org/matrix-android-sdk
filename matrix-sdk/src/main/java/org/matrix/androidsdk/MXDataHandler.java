@@ -794,7 +794,7 @@ public class MXDataHandler implements IMXEventListener {
                 Event lastEvent = mStore.getLatestEvent(event.roomId);
                 RoomState beforeLiveRoomState = room.getState().deepCopy();
 
-                mStore.storeSummary(event.roomId, lastEvent, beforeLiveRoomState, mCredentials.userId);
+                mStore.storeSummary(new RoomSummary(mStore.getSummary(event.roomId), lastEvent, beforeLiveRoomState, mCredentials.userId));
             }
         } else {
             Log.e(LOG_TAG, "deleteRoomEvent : the session is not anymore active");
@@ -1047,7 +1047,7 @@ public class MXDataHandler implements IMXEventListener {
                 // copy the summary
                 RoomSummary summary = getStore().getSummary(roomId);
                 if (null != summary) {
-                    mLeftRoomsStore.storeSummary(roomId, summary.getLatestReceivedEvent(), summary.getLatestRoomState(), getUserId());
+                    mLeftRoomsStore.storeSummary(new RoomSummary(summary, summary.getLatestReceivedEvent(), summary.getLatestRoomState(), getUserId()));
                 }
 
                 // copy events and receiptData

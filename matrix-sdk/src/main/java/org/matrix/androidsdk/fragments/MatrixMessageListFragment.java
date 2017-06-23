@@ -1830,7 +1830,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             // if there is an oldest event, use it to set a summary
             if (latestEvent != null) {
                 if (RoomSummary.isSupportedEvent(latestEvent)) {
-                    store.storeSummary(latestEvent.roomId, latestEvent, mRoom.getState(), mSession.getMyUserId());
+                    store.storeSummary(new RoomSummary(store.getSummary(mRoom.getRoomId()), latestEvent, mRoom.getState(), mSession.getMyUserId()));
                 }
             }
 

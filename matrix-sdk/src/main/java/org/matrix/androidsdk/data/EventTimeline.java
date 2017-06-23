@@ -476,7 +476,7 @@ public class EventTimeline {
 
                     if (oldestEvent != null) {
                         if (RoomSummary.isSupportedEvent(oldestEvent)) {
-                            mStore.storeSummary(oldestEvent.roomId, oldestEvent, mState, myUserId);
+                            mStore.storeSummary(new RoomSummary(currentSummary, oldestEvent, mState, myUserId));
                         }
                     }
                 }
@@ -549,7 +549,7 @@ public class EventTimeline {
                     // if there is an oldest event, use it to set a summary
                     if (oldestEvent != null) {
                         // always defined a room summary else the room won't be displayed in the recents
-                        mStore.storeSummary(oldestEvent.roomId, oldestEvent, mState, myUserId);
+                        mStore.storeSummary(new RoomSummary(null, oldestEvent, mState, myUserId));
                         mStore.commit();
 
                         // if the event is not displayable
@@ -560,7 +560,7 @@ public class EventTimeline {
                     }
                     // use the latest known event
                     else if (null != currentSummary) {
-                        mStore.storeSummary(mRoomId, currentSummary.getLatestReceivedEvent(), mState, myUserId);
+                        mStore.storeSummary(new RoomSummary(currentSummary, currentSummary.getLatestReceivedEvent(), mState, myUserId));
                         mStore.commit();
                     }
                     // try to build a summary from the state events
@@ -572,7 +572,12 @@ public class EventTimeline {
                         for (Event event : events) {
                             event.roomId = mRoomId;
                             if (RoomSummary.isSupportedEvent(event)) {
-                                summary = mStore.storeSummary(event.roomId, event, mState, myUserId);
+                                if (null == summary) {
+                                    summary = new RoomSummary(mStore.getSummary(mRoomId), event, mState, myUserId);
+                                } else {
+                                    summary.setLatestReceivedEvent(event, mState);
+                                }
+                                mStore.storeSummary(summary);
 
                                 String eventType = event.getType();
 
@@ -652,7 +657,16 @@ public class EventTimeline {
         mStore.storeLiveRoomEvent(event);
 
         if (RoomSummary.isSupportedEvent(event)) {
-            RoomSummary summary = mStore.storeSummary(event.roomId, event, mState, myUserId);
+            RoomSummary summary = mStore.getSummary(event.roomId);
+
+            if (null == summary) {
+                summary = new RoomSummary(summary, event, mState, myUserId);
+            } else {
+                summary.setLatestReceivedEvent(event, mState);
+            }
+
+            mStore.storeSummary(summary);
+
             String eventType = event.getType();
 
             // Watch for potential room name changes
@@ -985,7 +999,7 @@ public class EventTimeline {
         RoomSummary summary = mStore.getSummary(mRoomId);
 
         if ((null != latestSupportedEvent) && ((null == summary) || !RoomSummary.isSupportedEvent(summary.getLatestReceivedEvent()))) {
-            mStore.storeSummary(latestSupportedEvent.roomId, latestSupportedEvent, mState, mDataHandler.getUserId());
+            mStore.storeSummary(new RoomSummary(null, latestSupportedEvent, mState, mDataHandler.getUserId()));
         }
 
         Log.d(LOG_TAG, "manageEvents : commit");
@@ -1036,7 +1050,8 @@ public class EventTimeline {
                         // update the summary is the event has been received after the oldest known event
                         // it might happen after a timeline update (hole in the chat history)
                         if ((null != summary) && (summary.getLatestReceivedEvent().originServerTs < event.originServerTs) && RoomSummary.isSupportedEvent(event)) {
-                            summary = mStore.storeSummary(mRoomId, event, getState(), myUserId);
+                            summary = new RoomSummary(summary, event, getState(), myUserId);
+                            mStore.storeSummary(summary);
                             shouldCommitStore = true;
                         }
                     }
