@@ -68,7 +68,6 @@ public class EventsThread extends Thread {
     // add a delay between two sync requests
     private int mRequestDelayMs = 0;
     private Timer mSyncDelayTimer = null;
-    private final Object mSyncDelayTimerLock = new Object();
 
     // avoid sync on "this" because it might differ if there is a timer.
     private final Object mSyncObject = new Object();
@@ -139,19 +138,11 @@ public class EventsThread extends Thread {
     public void setSyncDelay(int ms) {
         mRequestDelayMs = Math.max(0, ms);
 
-        Log.d(LOG_TAG, "setSyncDelay : " + mRequestDelayMs);
+        Log.d(LOG_TAG, "## setSyncDelay() : " + mRequestDelayMs + " with state " + getState());
 
-        Timer syncDelayTimer;
+        if (State.WAITING == getState()) {
+            Log.d(LOG_TAG, "## setSyncDelay() : resume the application");
 
-        synchronized (mSyncDelayTimerLock) {
-            syncDelayTimer = mSyncDelayTimer;
-            mSyncDelayTimer = null;
-        }
-
-        if (null != syncDelayTimer) {
-            Log.d(LOG_TAG, "setSyncDelay : cancel the delay timer");
-
-            syncDelayTimer.cancel();
             // and sync asap
             synchronized (mSyncObject) {
                 mSyncObject.notify();
@@ -222,10 +213,10 @@ public class EventsThread extends Thread {
      * Unpause the thread if it had previously been paused. If not, this does nothing.
      */
     public void unpause() {
-        Log.d(LOG_TAG, "unpause()");
+        Log.d(LOG_TAG, "## unpause() : thread state " + getState());
 
-        if (mPaused) {
-            Log.d(LOG_TAG, "unpause : the thread was paused so resume it.");
+        if (State.WAITING == getState()) {
+            Log.d(LOG_TAG, "## unpause() : the thread was paused so resume it.");
 
             mPaused = false;
             synchronized (mSyncObject) {
@@ -241,10 +232,10 @@ public class EventsThread extends Thread {
      * Catchup until some events are retrieved.
      */
     public void catchup() {
-        Log.d(LOG_TAG, "catchup()");
+        Log.d(LOG_TAG, "## catchup() : thread state " + getState());
 
-        if (mPaused) {
-            Log.d(LOG_TAG, "unpause : the thread was paused so wake it up");
+        if (State.WAITING == getState()) {
+            Log.d(LOG_TAG, "## catchup() : the thread was paused so wake it up");
 
             mPaused = false;
             synchronized (mSyncObject) {
@@ -426,32 +417,24 @@ public class EventsThread extends Thread {
 
             // test if a delay between two syncs
             if ((!mPaused && !mIsNetworkSuspended) && (0 != mRequestDelayMs)) {
-                Log.d(LOG_TAG, "startSync : start a delay timer");
+                Log.d(LOG_TAG, "startSync : start a delay timer ");
 
-                synchronized (mSyncDelayTimerLock) {
-                    mSyncDelayTimer = new Timer();
+                mSyncDelayTimer = new Timer();
 
-                    mSyncDelayTimer.schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            Log.d(LOG_TAG, "start a sync after " + mRequestDelayMs + " ms");
+                mSyncDelayTimer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        Log.d(LOG_TAG, "start a sync after " + mRequestDelayMs + " ms");
 
-                            synchronized (mSyncObject) {
-                                mSyncObject.notify();
-                            }
+                        synchronized (mSyncObject) {
+                            mSyncObject.notify();
                         }
-                    }, mRequestDelayMs);
-                }
+                    }
+                }, mRequestDelayMs);
             }
 
-            Timer syncDelayTimer;
-
-            synchronized (mSyncDelayTimerLock) {
-                syncDelayTimer = mSyncDelayTimer;
-            }
-
-            if (mPaused || mIsNetworkSuspended || (null != syncDelayTimer)) {
-                if (null != syncDelayTimer) {
+            if (mPaused || mIsNetworkSuspended || (null != mSyncDelayTimer)) {
+                if (null != mSyncDelayTimer) {
                     Log.d(LOG_TAG, "Event stream is paused because there is a timer delay.");
                 } else if (mIsNetworkSuspended) {
                     Log.d(LOG_TAG, "Event stream is paused because there is no available network.");
@@ -466,11 +449,10 @@ public class EventsThread extends Thread {
                         mSyncObject.wait();
                     }
 
-                    synchronized (mSyncDelayTimerLock) {
-                        if (null != mSyncDelayTimer) {
-                            mSyncDelayTimer.cancel();
-                            mSyncDelayTimer = null;
-                        }
+                    if (null != mSyncDelayTimer) {
+                        Log.d(LOG_TAG, "startSync : cancel mSyncDelayTimer");
+                        mSyncDelayTimer.cancel();
+                        mSyncDelayTimer = null;
                     }
 
                     Log.d(LOG_TAG, "Event stream woken from pause.");
