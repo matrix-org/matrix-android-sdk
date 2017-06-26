@@ -459,6 +459,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 if (devicesFile.exists()) {
                     long t0 = System.currentTimeMillis();
 
+                    // clear the corrupted flag
+                    mIsCorrupted = false;
+
                     Object devicesMapAsVoid = loadObject(devicesFile, "load devices of " + userId);
 
                     if (null != devicesMapAsVoid) {
@@ -1221,7 +1224,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                         for (int j = 0; j < sessionIds.length; j++) {
                             File inboundSessionFile = new File(keyFolder, sessionIds[j]);
                             try {
-                                Object inboundSessionAsVoid = loadObject(inboundSessionFile, "load inboundsession " + sessionIds[j]);
+                                Object inboundSessionAsVoid = loadObject(inboundSessionFile, "load inboundsession " + sessionIds[j] + " ");
                                 MXOlmInboundGroupSession2 inboundSession;
 
                                 if ((null != inboundSessionAsVoid) && (inboundSessionAsVoid instanceof MXOlmInboundGroupSession)) {
@@ -1232,6 +1235,10 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
                                 if (null != inboundSession) {
                                     submap.put(decodeFilename(sessionIds[j]), inboundSession);
+                                } else {
+                                    Log.e(LOG_TAG, "## preloadCryptoData() : delete " + inboundSessionFile);
+                                    inboundSessionFile.delete();
+                                    mIsCorrupted = false;
                                 }
                                 count++;
                             } catch (Exception e) {
