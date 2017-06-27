@@ -95,11 +95,12 @@ public class RoomSummary implements java.io.Serializable {
 
         // if no summary is provided
         if (null == fromSummary) {
-            // init with the room & event data
-            if (null != event) {
-                setReadMarkerEventId(event.eventId);
-                setReadReceiptEventId(event.eventId);
-            }
+            // do not initialize the read receipt and marker
+            // let the sync manages it
+            // eg when an user creates a room
+            // the server sends a read receipt for each room creation event
+            // the read marker will be initialised to the latest read receipt
+
             if (null != roomState) {
                 setHighlightCount(roomState.getHighlightCount());
                 setNotificationCount(roomState.getHighlightCount());
