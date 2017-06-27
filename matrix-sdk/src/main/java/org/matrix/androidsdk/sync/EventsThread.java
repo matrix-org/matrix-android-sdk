@@ -143,6 +143,12 @@ public class EventsThread extends Thread {
         if (State.WAITING == getState()) {
             Log.d(LOG_TAG, "## setSyncDelay() : resume the application");
 
+            // reported on fdroid version
+            // ensure to wake up the sync
+            if (0 == mRequestDelayMs) {
+                mPaused = false;
+            }
+
             // and sync asap
             synchronized (mSyncObject) {
                 mSyncObject.notify();
@@ -532,7 +538,7 @@ public class EventsThread extends Thread {
 
                                         // stop any catch up
                                         mIsCatchingUp = false;
-                                        mPaused = true;
+                                        mPaused = (0 == mRequestDelayMs);
                                     } else {
                                         Log.e(LOG_TAG, "Catchup still in progress");
                                         mNextServerTimeoutms = mDefaultServerTimeoutms / 10;
