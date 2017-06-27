@@ -429,10 +429,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
             if ((firstVisibleItem < 2) && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
-                // Log.d(LOG_TAG, "onScroll - backPaginate");
+                if (!mLockBackPagination) {
+                    Log.d(LOG_TAG, "onScroll - backPaginate firstVisibleItem " + firstVisibleItem + " visibleItemCount " + visibleItemCount + " totalItemCount "+ totalItemCount);
+                }
                 backPaginate(false);
             } else if ((firstVisibleItem + visibleItemCount + 10) >= totalItemCount) {
-                // Log.d(LOG_TAG, "onScroll - forwardPaginate");
+                if (!mLockFwdPagination) {
+                    Log.d(LOG_TAG, "onScroll - forwardPaginate firstVisibleItem " + firstVisibleItem + " visibleItemCount " + visibleItemCount + " totalItemCount "+ totalItemCount);
+                }
                 forwardPaginate();
             }
 
@@ -2067,6 +2071,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             return;
         }
 
+        // reject any forward paginate if the fragment is not active
+        // it might happen in some race conditions
+        // eg the forward pagination response is managed just after putting the app in foreground
+        if (!isResumed()) {
+            Log.d(LOG_TAG, "ignore forward pagination because the fragment is not active");
+            return;
+        }
+
         showLoadingForwardProgress();
 
         final int countBeforeUpdate = mAdapter.getCount();
@@ -2092,7 +2104,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 // retrieve
                 if (0 != count) {
-
                     mAdapter.notifyDataSetChanged();
                     // trick to avoid that the list jump to the latest item.
                     mMessageListView.setAdapter(mMessageListView.getAdapter());
@@ -2193,7 +2204,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
 
         if (!isResumed()) {
-            Log.d(LOG_TAG, "backPaginate : the fragement is not anymore active");
+            Log.d(LOG_TAG, "backPaginate : the fragment is not anymore active");
             mFillHistoryOnResume = true;
             return;
         }
