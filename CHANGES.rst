@@ -7,7 +7,7 @@ Features:
 
 Bugfixes:
 
-* Fix manay crashes reported by GA.
+* Fix many crashes reported by GA.
 * #1297 : Event encrypting was stuck 
 * #1331 : The Events service is properly restarted in some race conditions
 * #1340 : sync is stuck after the application has been killed in background
