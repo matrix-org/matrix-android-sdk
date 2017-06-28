@@ -851,24 +851,59 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      */
     public MessageRow getClosestRowFromTs(final String eventId, final long eventTs) {
         MessageRow messageRow = getMessageRow(eventId);
-        if (messageRow != null) {
-            return messageRow;
-        } else {
-            ArrayList<MessageRow> rows = new ArrayList<>(mEventRowMap.values());
-            for (MessageRow row : rows) {
-                if (row.getEvent().getOriginServerTs() > eventTs) {
-                    if (messageRow == null) {
-                        messageRow = row;
-                    } else if (row.getEvent().getOriginServerTs() - eventTs <
-                            messageRow.getEvent().getOriginServerTs() - eventTs) {
-                        messageRow = row;
-                        Log.d(LOG_TAG, "getClosestRow " + row.getEvent().eventId);
-                    }
+
+        if (messageRow == null) {
+            messageRow = getClosestRow(new ArrayList<>(mEventRowMap.values()), eventTs);
+        }
+
+        return messageRow;
+    }
+
+    /**
+     * Get the closest row before the given event id/ts
+     *
+     * @param eventId
+     * @param eventTs
+     * @return closest row
+     */
+    public MessageRow getClosestRowBeforeTs(final String eventId, final long eventTs) {
+        MessageRow messageRow = getMessageRow(eventId);
+
+        if (messageRow == null) {
+            List<MessageRow> rows = new ArrayList<>(mEventRowMap.values());
+            Collections.reverse(rows);
+
+            messageRow = getClosestRow(rows, eventTs);
+        }
+
+        return messageRow;
+    }
+
+    /**
+     * Get the closest row from a TS
+     *
+     * @param eventTs
+     * @return closest row
+     */
+    private static MessageRow getClosestRow(List<MessageRow> rows, final long eventTs) {
+        MessageRow messageRow = null;
+
+        for (MessageRow row : rows) {
+            if (row.getEvent().getOriginServerTs() > eventTs) {
+                if (messageRow == null) {
+                    messageRow = row;
+                } else if (row.getEvent().getOriginServerTs() - eventTs <
+                        messageRow.getEvent().getOriginServerTs() - eventTs) {
+                    messageRow = row;
+                    Log.d(LOG_TAG, "getClosestRow " + row.getEvent().eventId);
                 }
             }
         }
+
         return messageRow;
     }
+
+
 
     /**
      * Convert Event to view type.
