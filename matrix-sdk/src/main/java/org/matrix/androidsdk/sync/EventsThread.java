@@ -140,14 +140,8 @@ public class EventsThread extends Thread {
 
         Log.d(LOG_TAG, "## setSyncDelay() : " + mRequestDelayMs + " with state " + getState());
 
-        if (State.WAITING == getState()) {
+        if (State.WAITING == getState() && !mPaused) {
             Log.d(LOG_TAG, "## setSyncDelay() : resume the application");
-
-            // reported on fdroid version
-            // ensure to wake up the sync
-            if (0 == mRequestDelayMs) {
-                mPaused = false;
-            }
 
             // and sync asap
             synchronized (mSyncObject) {
