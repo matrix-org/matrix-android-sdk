@@ -934,6 +934,12 @@ public class MXSession {
                     toggleDirectChatRoom(roomId, aParticipantUserId, new ApiCallback<Void>() {
                         @Override
                         public void onSuccess(Void info) {
+                            Room room = getDataHandler().getRoom(fRoomId);
+
+                            if (null != room) {
+                                room.markAllAsRead(null);
+                            }
+
                             if(null != aCreateRoomCallBack) {
                                 aCreateRoomCallBack.onSuccess(fRoomId);
                             }
