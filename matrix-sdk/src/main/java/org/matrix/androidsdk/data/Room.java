@@ -1246,7 +1246,7 @@ public class Room {
             return false;
         }
 
-        Log.d(LOG_TAG, "## sendReadMarkers(): readMarkerEventId " + aReadMarkerEventId + " readReceiptEventId " + aReadReceiptEventId);
+        Log.d(LOG_TAG, "## sendReadMarkers(): readMarkerEventId " + aReadMarkerEventId + " readReceiptEventId " + aReadReceiptEventId + " in room " + getRoomId());
 
         boolean hasUpdate = false;
 
