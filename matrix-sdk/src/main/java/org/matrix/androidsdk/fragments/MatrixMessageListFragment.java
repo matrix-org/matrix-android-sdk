@@ -810,11 +810,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             // the read marked event might be a non displayable event
             if ((null != readMarkedEvent) && !canAddEvent(readMarkedEvent)) {
                 // retrieve the previous displayed event
-                currentReadMarkerRow = mAdapter.getClosestRowBeforeTs(readMarkedEvent.eventId, readMarkedEvent.getOriginServerTs());
+                currentReadMarkerRow = mAdapter.getClosestRowFromTs(readMarkedEvent.eventId, readMarkedEvent.getOriginServerTs());
 
                 // use the next one
                 if (null == currentReadMarkerRow) {
-                    currentReadMarkerRow = mAdapter.getClosestRowFromTs(readMarkedEvent.eventId, readMarkedEvent.getOriginServerTs());
+                    currentReadMarkerRow = mAdapter.getClosestRowBeforeTs(readMarkedEvent.eventId, readMarkedEvent.getOriginServerTs());
                 }
             }
         }
@@ -2448,11 +2448,31 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         if (currentReadMarkerRow != null &&
                                 mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
                                 && event.getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs) {
-                            // Previous message was the last read
-                            if (mMessageListView.getChildAt(mMessageListView.getChildCount() - 1).getTop() >= 0) {
-                                // Move read marker to the newly sent message
-                                mRoom.setReadMakerEventId(event.eventId);
-                                mAdapter.resetReadMarker();
+
+                            if (0 == mMessageListView.getChildCount()) {
+                                mMessageListView.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        // check if the previous one was displayed
+                                        View childView = mMessageListView.getChildAt(mMessageListView.getChildCount() - 2);
+
+                                        // Previous message was the last read
+                                        if ((null != childView) && (childView.getTop() >= 0)) {
+                                            // Move read marker to the newly sent message
+                                            mRoom.setReadMakerEventId(event.eventId);
+                                            mAdapter.resetReadMarker();
+                                        }
+                                    }
+                                });
+                            } else {
+                                View childView = mMessageListView.getChildAt(mMessageListView.getChildCount() - 1);
+
+                                // Previous message was the last read
+                                if ((null != childView) && (childView.getTop() >= 0)) {
+                                    // Move read marker to the newly sent message
+                                    mRoom.setReadMakerEventId(event.eventId);
+                                    mAdapter.resetReadMarker();
+                                }
                             }
                         }
                     }
