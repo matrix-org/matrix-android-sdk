@@ -193,9 +193,12 @@ public class BingRulesManager {
     public void loadRules(final ApiCallback<Void> callback) {
         mLoadRulesCallback = null;
 
+        Log.d(LOG_TAG, "## loadRules() : refresh the bing rules");
         mApiClient.getAllBingRules(new ApiCallback<BingRulesResponse>() {
             @Override
             public void onSuccess(BingRulesResponse info) {
+                Log.d(LOG_TAG, "## loadRules() : succeeds");
+
                 buildRules(info);
                 mIsInitialized = true;
 
@@ -206,24 +209,25 @@ public class BingRulesManager {
                 removeNetworkListener();
             }
 
-            private void onError() {
+            private void onError(String errorMessage) {
+                Log.e(LOG_TAG, "## loadRules() : failed " + errorMessage);
                 // the callback will be called when the request will succeed
                 mLoadRulesCallback = callback;
             }
 
             @Override
             public void onNetworkError(Exception e) {
-                onError();
+                onError(e.getMessage());
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                onError();
+                onError(e.getMessage());
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                onError();
+                onError(e.getMessage());
             }
         });
     }
@@ -271,10 +275,17 @@ public class BingRulesManager {
     public BingRule fulfilledBingRule(Event event) {
         // sanity check
         if (null == event) {
+            Log.e(LOG_TAG, "## fulfilledBingRule() : null event");
             return null;
         }
 
         if (!mIsInitialized) {
+            Log.e(LOG_TAG, "## fulfilledBingRule() : not initialized");
+            return null;
+        }
+
+        if (0 == mRules.size()) {
+            Log.e(LOG_TAG, "## fulfilledBingRule() : no rules");
             return null;
         }
 
@@ -283,61 +294,67 @@ public class BingRulesManager {
             return null;
         }
 
-        if (mRules != null) {
-            // GA issue
-            final ArrayList<BingRule> rules;
+        String eventType = event.getType();
 
-            synchronized (this) {
-                rules = new ArrayList<>(mRules);
-            }
+        // some types are not bingable
+        if (TextUtils.equals(eventType, Event.EVENT_TYPE_PRESENCE)
+                || TextUtils.equals(eventType, Event.EVENT_TYPE_TYPING)
+                || TextUtils.equals(eventType, Event.EVENT_TYPE_REDACTION)
+                || TextUtils.equals(eventType, Event.EVENT_TYPE_RECEIPT)
+                || TextUtils.equals(eventType, Event.EVENT_TYPE_TAGS)) {
+            return null;
+        }
 
-            // Go down the rule list until we find a match
-            for (BingRule bingRule : rules) {
-                if (bingRule.isEnabled) {
-                    boolean isFullfilled = false;
+        // GA issue
+        final ArrayList<BingRule> rules;
 
-                    // some rules have no condition
-                    // so their ruleId defines the method
-                    if (BingRule.RULE_ID_CONTAIN_USER_NAME.equals(bingRule.ruleId) || BingRule.RULE_ID_CONTAIN_DISPLAY_NAME.equals(bingRule.ruleId)) {
-                        if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
-                            Message message = JsonUtils.toMessage(event.getContent());
-                            MyUser myUser =  mSession.getMyUser();
-                            String pattern = myUser.displayname;
+        synchronized (this) {
+            rules = new ArrayList<>(mRules);
+        }
 
-                            if (BingRule.RULE_ID_CONTAIN_USER_NAME.equals(bingRule.ruleId)) {
-                                if (mMyUserId.indexOf(":") >= 0) {
-                                    pattern = mMyUserId.substring(1, mMyUserId.indexOf(":"));
-                                } else {
-                                    pattern = mMyUserId;
-                                }
-                            }
+        // Go down the rule list until we find a match
+        for (BingRule bingRule : rules) {
+            if (bingRule.isEnabled) {
+                boolean isFullfilled = false;
 
-                            if (!TextUtils.isEmpty(pattern)) {
-                                isFullfilled = caseInsensitiveFind(pattern, message.body);
+                // some rules have no condition
+                // so their ruleId defines the method
+                if (BingRule.RULE_ID_CONTAIN_USER_NAME.equals(bingRule.ruleId) || BingRule.RULE_ID_CONTAIN_DISPLAY_NAME.equals(bingRule.ruleId)) {
+                    if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
+                        Message message = JsonUtils.toMessage(event.getContent());
+                        MyUser myUser =  mSession.getMyUser();
+                        String pattern = myUser.displayname;
+
+                        if (BingRule.RULE_ID_CONTAIN_USER_NAME.equals(bingRule.ruleId)) {
+                            if (mMyUserId.indexOf(":") >= 0) {
+                                pattern = mMyUserId.substring(1, mMyUserId.indexOf(":"));
+                            } else {
+                                pattern = mMyUserId;
                             }
                         }
-                    }  else if (BingRule.RULE_ID_FALLBACK.equals(bingRule.ruleId)) {
-                        isFullfilled = true;
-                    } else {
-                        // some default rules define conditions
-                        // so use them instead of doing a custom treatment
-                        // RULE_ID_ONE_TO_ONE_ROOM
-                        // RULE_ID_SUPPRESS_BOTS_NOTIFICATIONS
-                        isFullfilled = eventMatchesConditions(event, bingRule.conditions);
-                    }
 
-                    if (isFullfilled) {
-                        return bingRule;
+                        if (!TextUtils.isEmpty(pattern)) {
+                            isFullfilled = caseInsensitiveFind(pattern, message.body);
+                        }
                     }
+                }  else if (BingRule.RULE_ID_FALLBACK.equals(bingRule.ruleId)) {
+                    isFullfilled = true;
+                } else {
+                    // some default rules define conditions
+                    // so use them instead of doing a custom treatment
+                    // RULE_ID_ONE_TO_ONE_ROOM
+                    // RULE_ID_SUPPRESS_BOTS_NOTIFICATIONS
+                    isFullfilled = eventMatchesConditions(event, bingRule.conditions);
+                }
+
+                if (isFullfilled) {
+                    return bingRule;
                 }
             }
-
-            // no rules are fulfilled
-            return null;
-        } else {
-            // The default is to bing
-            return mDefaultBingRule;
         }
+
+        // no rules are fulfilled
+        return null;
     }
 
     /**
@@ -477,6 +494,8 @@ public class BingRulesManager {
             }
 
             mRulesSet = ruleSet;
+
+            Log.d(LOG_TAG, "## updateRules() : has " + mRules.size() + " rules");
         }
     }
 
@@ -803,15 +822,15 @@ public class BingRulesManager {
     }
 
     /**
-     * Search the pushrules for the room
-     * @param room the room
+     * Search the push rules for the room id
+     * @param roomId the room id
      * @return the room rules list
      */
-    public ArrayList<BingRule> getPushRulesForRoom(Room room) {
+    public List<BingRule> getPushRulesForRoomId(String roomId) {
         ArrayList<BingRule> rules = new ArrayList<>();
 
         // sanity checks
-        if ((null != room) && (null != mRulesSet)) {
+        if (!TextUtils.isEmpty(roomId) && (null != mRulesSet)) {
             // the webclient defines two ways to set a room rule
             // mention only : the user won't have any push for the room except if a content rule is fullfilled
             // mute : no notification for this room
@@ -819,7 +838,7 @@ public class BingRulesManager {
             // mute rules are defined in override groups
             if (null != mRulesSet.override) {
                 for (BingRule roomRule : mRulesSet.override) {
-                    if (TextUtils.equals(roomRule.ruleId, room.getRoomId())) {
+                    if (TextUtils.equals(roomRule.ruleId, roomId)) {
                         rules.add(roomRule);
                     }
                 }
@@ -828,7 +847,7 @@ public class BingRulesManager {
             // mention only are defined in room group
             if (null != mRulesSet.room) {
                 for (BingRule roomRule : mRulesSet.room) {
-                    if (TextUtils.equals(roomRule.ruleId, room.getRoomId())) {
+                    if (TextUtils.equals(roomRule.ruleId, roomId)) {
                         rules.add(roomRule);
                     }
                 }
@@ -840,25 +859,25 @@ public class BingRulesManager {
 
     /**
      * Tell whether the regular notifications are disabled for the room.
-     * @param room the room
+     * @param roomId the room id
      * @return true if the regular notifications are disabled (mention only)
      */
-    public boolean isRoomMentionOnly(Room room) {
+    public boolean isRoomMentionOnly(String roomId) {
         // sanity check
-        if ((null != room) && (null != room.getRoomId())) {
-            if (mIsMentionOnlyMap.containsKey(room.getRoomId())) {
-                return mIsMentionOnlyMap.get(room.getRoomId());
+        if (!TextUtils.isEmpty(roomId)) {
+            if (mIsMentionOnlyMap.containsKey(roomId)) {
+                return mIsMentionOnlyMap.get(roomId);
             }
 
             if (null != mRulesSet.room) {
                 for (BingRule roomRule : mRulesSet.room) {
-                    if (TextUtils.equals(roomRule.ruleId, room.getRoomId())) {
-                        List<BingRule> roomRules = getPushRulesForRoom(room);
+                    if (TextUtils.equals(roomRule.ruleId, roomId)) {
+                        List<BingRule> roomRules = getPushRulesForRoomId(roomId);
 
                         if (0 != roomRules.size()) {
                             for (BingRule rule : roomRules) {
                                 if (rule.shouldNotNotify()) {
-                                    mIsMentionOnlyMap.put(room.getRoomId(), rule.isEnabled);
+                                    mIsMentionOnlyMap.put(roomId, rule.isEnabled);
                                     return rule.isEnabled;
                                 }
                             }
@@ -867,7 +886,7 @@ public class BingRulesManager {
                 }
             }
 
-            mIsMentionOnlyMap.put(room.getRoomId(), false);
+            mIsMentionOnlyMap.put(roomId, false);
         }
 
         return false;
@@ -875,10 +894,11 @@ public class BingRulesManager {
 
     /**
      * Test if the room has a dedicated rule which disables notification.
+     * @param roomId the roomId
      * @return true if there is a rule to disable notifications.
      */
-    public boolean isRoomNotificationsDisabled(Room room) {
-        ArrayList<BingRule> roomRules = getPushRulesForRoom(room);
+    public boolean isRoomNotificationsDisabled(String roomId) {
+        List<BingRule> roomRules = getPushRulesForRoomId(roomId);
 
         if (0 != roomRules.size()) {
             for(BingRule rule : roomRules) {
@@ -895,12 +915,12 @@ public class BingRulesManager {
      * Mute / unmute the room notifications.
      * Only the room rules are checked.
      *
-     * @param room the room to mute / unmute.
+     * @param roomId the room id to mute / unmute.
      * @param isMuted set to true to mute the notification
      * @param listener the listener.
      */
-    public void muteRoomNotifications(final Room room, final boolean isMuted, final onBingRuleUpdateListener listener) {
-        ArrayList<BingRule> bingRules = getPushRulesForRoom(room);
+    public void muteRoomNotifications(final String roomId, final boolean isMuted, final onBingRuleUpdateListener listener) {
+        List<BingRule> bingRules = getPushRulesForRoomId(roomId);
 
         // the mobile client only supports to define a "mention only" rule i.e a rule defined in the room rules set.
         // delete the rule and create a new one
@@ -908,7 +928,7 @@ public class BingRulesManager {
             @Override
             public void onBingRuleUpdateSuccess() {
                 if (isMuted) {
-                    addRule(new BingRule(BingRule.KIND_ROOM, room.getRoomId(), false, false, false), listener);
+                    addRule(new BingRule(BingRule.KIND_ROOM, roomId, false, false, false), listener);
                 } else if (null != listener) {
                     try {
                         listener.onBingRuleUpdateSuccess();

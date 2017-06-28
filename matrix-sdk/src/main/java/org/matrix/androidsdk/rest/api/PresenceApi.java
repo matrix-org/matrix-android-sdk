@@ -27,16 +27,6 @@ import retrofit.http.Path;
  * The presence REST API.
  */
 public interface PresenceApi {
-
-    /**
-     * Set this user's presence state.
-     * @param userId the user id
-     * @param userPresence a User object with possibly the presence and statusMsg fields
-     * @param callback the asynchronous callback called when finished
-     */
-    @PUT("/presence/{userId}/status")
-    void presenceStatus(@Path("userId") String userId, @Body User userPresence, Callback<Void> callback);
-
     /**
      * Get a user's presence state.
      * @param userId the user id

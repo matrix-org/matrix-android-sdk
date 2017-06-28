@@ -18,7 +18,6 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.text.TextUtils;
-import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonObject;
 
@@ -42,6 +41,7 @@ import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,9 +51,13 @@ import java.util.Map;
  * Class used to make requests to the rooms API.
  */
 public class RoomsRestClient extends RestClient<RoomsApi> {
-
     private static final String LOG_TAG = "RoomsRestClient";
+
     public static final int DEFAULT_MESSAGES_PAGINATION_LIMIT = 30;
+
+    // read marker field names
+    private static final String READ_MARKER_FULLY_READ = "m.fully_read";
+    private static final String READ_MARKER_READ = "m.read";
 
     /**
      * {@inheritDoc}
@@ -726,24 +730,31 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     }
 
     /**
-     * Send a read receipt.
+     * Send a read markers.
      * @param roomId the room id
-     * @param eventId the latest event Id
-     * @param callback the callback containing the created event if successful
+     * @param rmEventId the read marker event Id
+     * @param rrEventId the read receipt event Id
+     * @param callback the callback
      */
-    public void sendReadReceipt(final String roomId, final String eventId, final ApiCallback<Void> callback) {
-        final String description = "sendReadReceipt : roomId " + roomId + " - eventId " + eventId;
+    public void sendReadMarker(final String roomId, final String rmEventId, final String rrEventId, final ApiCallback<Void> callback) {
+        final String description = "sendReadMarker : roomId " + roomId + " - rmEventId " + rmEventId + " -- rrEventId "  + rrEventId;
+        Map<String, String> params = new HashMap<>();
 
-        // empty body by now
-        JsonObject content = new JsonObject();
+        if (!TextUtils.isEmpty(rmEventId)) {
+            params.put(READ_MARKER_FULLY_READ, rmEventId);
+        }
 
-        mApi.sendReadReceipt(roomId, eventId, content, new RestAdapterCallback<Void>(description, mUnsentEventsManager, true, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        if (!TextUtils.isEmpty(rrEventId)) {
+            params.put(READ_MARKER_READ, rrEventId);
+        }
+
+        mApi.sendReadMarker(roomId, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, true, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
-                    sendReadReceipt(roomId, eventId, callback);
+                    sendReadMarker(roomId, rmEventId, rrEventId, callback);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend sendReadReceipt : failed " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "resend sendReadmarker : failed " + e.getLocalizedMessage());
                 }
             }
         }));

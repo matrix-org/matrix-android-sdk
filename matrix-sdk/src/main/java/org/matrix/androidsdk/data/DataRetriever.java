@@ -83,11 +83,14 @@ public class DataRetriever {
 
     /**
      * Trigger a back pagination for a dedicated room from Token.
-     * @param roomId the room Id
-     * @param token the start token.
-     * @param callback the callback
+     *
+     * @param roomId            the room Id
+     * @param token             the start token.
+     * @param limit             the maximum number of messages to retrieve
+     * @param callback          the callback
      */
-    private void backPaginate(final IMXStore store, final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
+    public void backPaginate(final IMXStore store, final String roomId, final String token,
+                              final int limit, final ApiCallback<TokensChunkResponse<Event>> callback) {
         // reach the marker end
         if (TextUtils.equals(token, Event.PAGINATE_BACK_TOKEN_END)) {
             // nothing more to provide
@@ -114,7 +117,7 @@ public class DataRetriever {
 
         Log.d(LOG_TAG, "## backPaginate() : starts for roomId " + roomId);
 
-        TokensChunkResponse<Event> storageResponse = store.getEarlierMessages(roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT);
+        TokensChunkResponse<Event> storageResponse = store.getEarlierMessages(roomId, token, limit);
 
         putPendingToken(mPendingBackwardRequestTokenByRoomId, roomId, token);
 
@@ -149,7 +152,7 @@ public class DataRetriever {
         }
         else {
             Log.d(LOG_TAG, "## backPaginate() : trigger a remote request");
-            mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.BACKWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+            mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.BACKWARDS, limit, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
                 @Override
                 public void onSuccess(TokensChunkResponse<Event> events) {
                     String expectedToken = getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
@@ -257,9 +260,10 @@ public class DataRetriever {
      * @param direction the pagination direction
      * @param callback the onComplete callback
      */
-    public void paginate(final IMXStore store, final String roomId, final String token, final EventTimeline.Direction direction, final ApiCallback<TokensChunkResponse<Event>> callback) {
+    public void paginate(final IMXStore store, final String roomId, final String token,
+                         final EventTimeline.Direction direction, final ApiCallback<TokensChunkResponse<Event>> callback) {
        if (direction == EventTimeline.Direction.BACKWARDS) {
-           backPaginate(store, roomId, token, callback);
+           backPaginate(store, roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, callback);
        } else {
            forwardPaginate(store, roomId, token, callback);
        }

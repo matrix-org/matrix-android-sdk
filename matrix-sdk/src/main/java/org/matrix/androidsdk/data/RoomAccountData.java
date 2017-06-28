@@ -38,7 +38,7 @@ public class RoomAccountData implements java.io.Serializable {
      *
      * @param event an event
      */
-    public void handleEvent(Event event) {
+    public void handleTagEvent(Event event) {
         if (event.getType().equals(Event.EVENT_TYPE_TAGS)) {
             tags = RoomTag.roomTagsWithTagEvent(event);
         }

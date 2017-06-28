@@ -56,6 +56,8 @@ public class EventsThread extends Thread {
     private boolean mIsNetworkSuspended = false;
     private boolean mIsCatchingUp = false;
     private boolean mGotFirstCatchupChunk = false;
+    // when a catchup is triggered,
+    private int mCatchupSyncRequestsCount;
     private boolean mIsOnline = true;
 
     private boolean mKilling = false;
@@ -77,6 +79,7 @@ public class EventsThread extends Thread {
     // wait that there is an available network.
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
     private boolean mbIsConnected = true;
+
 
     private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
         @Override
@@ -135,37 +138,16 @@ public class EventsThread extends Thread {
     public void setSyncDelay(int ms) {
         mRequestDelayMs = Math.max(0, ms);
 
-        Log.d(LOG_TAG, "setSyncDelay : " + mRequestDelayMs);
+        Log.d(LOG_TAG, "## setSyncDelay() : " + mRequestDelayMs + " with state " + getState());
 
-        Handler handler = null;
+        if (State.WAITING == getState() && !mPaused) {
+            Log.d(LOG_TAG, "## setSyncDelay() : resume the application");
 
-        try {
-            handler = new Handler();
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## setSyncDelay failed " + e.getMessage());
-        }
-
-        // use a default one
-        if (null == handler) {
-            handler = new Handler(Looper.getMainLooper());
-        }
-
-        // call mSyncDelayTimer on the same thread
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                // cancel any pending delay timer
-                if (null != mSyncDelayTimer) {
-                    Log.d(LOG_TAG, "setSyncDelay : cancel the delay timer");
-
-                    mSyncDelayTimer.cancel();
-                    // and sync asap
-                    synchronized (mSyncObject) {
-                        mSyncObject.notify();
-                    }
-                }
+            // and sync asap
+            synchronized (mSyncObject) {
+                mSyncObject.notify();
             }
-        });
+        }
     }
 
     /**
@@ -231,10 +213,10 @@ public class EventsThread extends Thread {
      * Unpause the thread if it had previously been paused. If not, this does nothing.
      */
     public void unpause() {
-        Log.d(LOG_TAG, "unpause()");
+        Log.d(LOG_TAG, "## unpause() : thread state " + getState());
 
-        if (mPaused) {
-            Log.d(LOG_TAG, "unpause : the thread was paused so resume it.");
+        if (State.WAITING == getState()) {
+            Log.d(LOG_TAG, "## unpause() : the thread was paused so resume it.");
 
             mPaused = false;
             synchronized (mSyncObject) {
@@ -250,10 +232,10 @@ public class EventsThread extends Thread {
      * Catchup until some events are retrieved.
      */
     public void catchup() {
-        Log.d(LOG_TAG, "catchup()");
+        Log.d(LOG_TAG, "## catchup() : thread state " + getState());
 
-        if (mPaused) {
-            Log.d(LOG_TAG, "unpause : the thread was paused so wake it up");
+        if (State.WAITING == getState()) {
+            Log.d(LOG_TAG, "## catchup() : the thread was paused so wake it up");
 
             mPaused = false;
             synchronized (mSyncObject) {
@@ -282,6 +264,18 @@ public class EventsThread extends Thread {
             }
 
             Log.d(LOG_TAG, "Resume the thread to kill it.");
+        }
+    }
+
+    /**
+     * Cancel the killing process
+     */
+    public void cancelKill() {
+        if (mKilling) {
+            Log.d(LOG_TAG, "## cancelKill() : Cancel the pending kill");
+            mKilling = false;
+        } else {
+            Log.d(LOG_TAG, "## cancelKill() : Nothing to d");
         }
     }
 
@@ -423,9 +417,9 @@ public class EventsThread extends Thread {
 
             // test if a delay between two syncs
             if ((!mPaused && !mIsNetworkSuspended) && (0 != mRequestDelayMs)) {
-                mSyncDelayTimer = new Timer();
+                Log.d(LOG_TAG, "startSync : start a delay timer ");
 
-                Log.d(LOG_TAG, "startSync : start a delay timer");
+                mSyncDelayTimer = new Timer();
 
                 mSyncDelayTimer.schedule(new TimerTask() {
                     @Override
@@ -456,6 +450,7 @@ public class EventsThread extends Thread {
                     }
 
                     if (null != mSyncDelayTimer) {
+                        Log.d(LOG_TAG, "startSync : cancel mSyncDelayTimer");
                         mSyncDelayTimer.cancel();
                         mSyncDelayTimer = null;
                     }
@@ -517,17 +512,27 @@ public class EventsThread extends Thread {
 
                                     if (mGotFirstCatchupChunk) {
                                         Log.e(LOG_TAG, "Got first catchup chunk");
+                                        mCatchupSyncRequestsCount = 0;
                                     } else {
                                         Log.e(LOG_TAG, "Empty chunk : sync again");
                                     }
 
                                     mNextServerTimeoutms = mDefaultServerTimeoutms / 10;
                                 } else {
-                                    if (0 == eventCounts) {
-                                        Log.e(LOG_TAG, "Stop the catchup");
+                                    mCatchupSyncRequestsCount++;
+
+                                    // stop the catchup if no events have been retrieved
+                                    // or after 3 sync requests
+                                    if ((0 == eventCounts) || (mCatchupSyncRequestsCount > 3)) {
+                                        if (0 == eventCounts) {
+                                            Log.e(LOG_TAG, "Stop the catchup after " + mCatchupSyncRequestsCount + " sync requests");
+                                        } else {
+                                            Log.e(LOG_TAG, "Stop the catchup");
+                                        }
+
                                         // stop any catch up
                                         mIsCatchingUp = false;
-                                        mPaused = true;
+                                        mPaused = (0 == mRequestDelayMs);
                                     } else {
                                         Log.e(LOG_TAG, "Catchup still in progress");
                                         mNextServerTimeoutms = mDefaultServerTimeoutms / 10;

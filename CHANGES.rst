@@ -1,3 +1,19 @@
+Changes to Matrix Android SDK in 0.7.14 (2017-07-03)
+=======================================================
+
+Features:
+
+* Add the read markers management 
+
+Bugfixes:
+
+* Fix manay crashes reported by GA.
+* #1297 : Event encrypting was stuck 
+* #1331 : The Events service is properly restarted in some race conditions
+* #1340 : sync is stuck after the application has been killed in background
+* #1347 : Sign out from stopped home server crashes after trying for ages 
+* #1371 : Endless trying to sync to the current state.
+
 Changes to Matrix Android SDK in 0.7.13 (2017-06-12)
 =======================================================
 

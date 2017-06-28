@@ -51,15 +51,15 @@ public class EventMatchCondition extends Condition {
 
         // some information are in the decrypted event (like type)
         if (event.isEncrypted() && (null != event.getClearEvent())) {
-            JsonObject eventJson = JsonUtils.toJson(event.getClearEvent());
+            JsonObject eventJson = event.getClearEvent().toJsonObject();
             fieldVal = extractField(eventJson, key);
         }
 
         if (TextUtils.isEmpty(fieldVal)) {
-            JsonObject eventJson = JsonUtils.toJson(event);
+            JsonObject eventJson = event.toJsonObject();
             fieldVal = extractField(eventJson, key);
         }
-
+        
         if (TextUtils.isEmpty(fieldVal)) {
             return false;
         }

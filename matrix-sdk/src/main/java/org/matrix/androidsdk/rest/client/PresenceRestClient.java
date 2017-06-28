@@ -35,27 +35,6 @@ public class PresenceRestClient extends RestClient<PresenceApi> {
     }
 
     /**
-     * Set this user's presence.
-     * @param presence the presence state
-     * @param statusMsg a status message
-     * @param callback on success callback
-     */
-    public void setPresence(final String presence, final String statusMsg, final ApiCallback<Void> callback) {
-        final String description = "setPresence presence : " + presence + " statusMsg " + statusMsg;
-
-        User userPresence = new User();
-        userPresence.presence = presence;
-        userPresence.statusMsg = statusMsg;
-
-        mApi.presenceStatus(mCredentials.userId, userPresence, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                setPresence(presence, statusMsg, callback);
-            }
-        }));
-    }
-
-    /**
      * Get a user's presence state.
      * @param userId the user id
      * @param callback on success callback containing a User object with populated presence and statusMsg fields

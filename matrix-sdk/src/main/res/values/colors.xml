@@ -17,4 +17,6 @@
 
     <color name="presence_unknown">#aaa</color>
 
+    <color name="unread_marker_line">#FF76cfa6</color>
+
 </resources>

@@ -112,6 +112,10 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
+    public void onReadMarkerEvent(String roomId) {
+    }
+
+    @Override
     public void onRoomFlush(String roomId) {
     }
 

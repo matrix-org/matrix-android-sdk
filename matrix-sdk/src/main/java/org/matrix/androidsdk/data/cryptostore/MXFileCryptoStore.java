@@ -307,6 +307,12 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             return;
         }
 
+        // sanity checks
+        if ((null == object) || (null == folder) || (null == filename)) {
+            Log.e(LOG_TAG, "## storeObject() : invalid parameters");
+            return;
+        }
+
         // ensure that the folder exists
         // it should always exist but it happened
         if (!folder.exists()) {
@@ -453,6 +459,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 if (devicesFile.exists()) {
                     long t0 = System.currentTimeMillis();
 
+                    // clear the corrupted flag
+                    mIsCorrupted = false;
+
                     Object devicesMapAsVoid = loadObject(devicesFile, "load devices of " + userId);
 
                     if (null != devicesMapAsVoid) {
@@ -461,6 +470,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                                 mUsersDevicesInfoMap.setObjects((Map<String, MXDeviceInfo>) devicesMapAsVoid, userId);
                             }
                         } catch (Exception e) {
+                            Log.e(LOG_TAG, "## loadUserDevices : mUsersDevicesInfoMap.setObjects failed " + e.getMessage());
                             mIsCorrupted = true;
                         }
                     }
@@ -962,6 +972,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 object = ois.readObject();
                 ois.close();
             } catch (Exception e) {
+                Log.e(LOG_TAG, description + "failed : " + e.getMessage() + " step 1");
+
                 // if the zip deflating fails, try to use the former file saving method
                 try {
                     FileInputStream fis2 = new FileInputStream(file);
@@ -972,7 +984,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 } catch (Exception subEx) {
                     // warn that some file loading fails
                     mIsCorrupted = true;
-                    Log.e(LOG_TAG, description + "failed : " + subEx.getMessage());
+                    Log.e(LOG_TAG, description + "failed : " + subEx.getMessage() + " step 2");
                 }
             }
         }
@@ -1001,7 +1013,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 }
             } catch (Exception e) {
                 mIsCorrupted = true;
-                Log.e(LOG_TAG, "## loadMetadata() : metadata has been corrupted");
+                Log.e(LOG_TAG, "## loadMetadata() : metadata has been corrupted " + e.getMessage());
             }
         }
     }
@@ -1212,7 +1224,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                         for (int j = 0; j < sessionIds.length; j++) {
                             File inboundSessionFile = new File(keyFolder, sessionIds[j]);
                             try {
-                                Object inboundSessionAsVoid = loadObject(inboundSessionFile, "load inboundsession");
+                                Object inboundSessionAsVoid = loadObject(inboundSessionFile, "load inboundsession " + sessionIds[j] + " ");
                                 MXOlmInboundGroupSession2 inboundSession;
 
                                 if ((null != inboundSessionAsVoid) && (inboundSessionAsVoid instanceof MXOlmInboundGroupSession)) {
@@ -1223,6 +1235,10 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
                                 if (null != inboundSession) {
                                     submap.put(decodeFilename(sessionIds[j]), inboundSession);
+                                } else {
+                                    Log.e(LOG_TAG, "## preloadCryptoData() : delete " + inboundSessionFile);
+                                    inboundSessionFile.delete();
+                                    mIsCorrupted = false;
                                 }
                                 count++;
                             } catch (Exception e) {

@@ -28,6 +28,7 @@ import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.call.MXCallsManager;
@@ -246,7 +247,8 @@ public class EventDisplay {
                 }
             }
             else if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType)) {
-                String roomName = jsonEventContent.getAsJsonPrimitive("name").getAsString();
+                JsonPrimitive nameAsJson = jsonEventContent.getAsJsonPrimitive("name");
+                String roomName = (null == nameAsJson) ? null  : nameAsJson.getAsString();
 
                 if (mEvent.isRedacted()) {
                     String redactedInfo = EventDisplay.getRedactionMessage(mContext, mEvent, mRoomState);

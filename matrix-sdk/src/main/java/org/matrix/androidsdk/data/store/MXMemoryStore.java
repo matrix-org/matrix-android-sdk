@@ -816,32 +816,14 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public RoomSummary storeSummary(String roomId, Event event, RoomState roomState, String selfUserId) {
-        RoomSummary summary = null;
-
+    public void storeSummary(RoomSummary summary) {
         try {
-            if (null != roomId) {
-                Room room = mRooms.get(roomId);
-                if ((room != null) && (event != null)) { // Should always be true
-                    summary = mRoomSummaries.get(roomId);
-                    if (summary == null) {
-                        summary = new RoomSummary();
-                    }
-                    summary.setMatrixId(mCredentials.userId);
-                    summary.setLatestReceivedEvent(event);
-                    summary.setLatestRoomState(roomState);
-                    summary.setName(room.getName(selfUserId));
-                    summary.setRoomId(room.getRoomId());
-                    summary.setTopic(room.getTopic());
-
-                    mRoomSummaries.put(roomId, summary);
-                }
+            if ((null != summary) && (null != summary.getRoomId())) {
+                mRoomSummaries.put(summary.getRoomId(), summary);
             }
         } catch (OutOfMemoryError e) {
             dispatchOOM(e);
         }
-
-        return summary;
     }
 
     @Override
@@ -1026,6 +1008,11 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public RoomSummary getSummary(String roomId) {
+        // sanity check
+        if (null == roomId) {
+            return null;
+        }
+
         Room room = mRooms.get(roomId);
         if (null != room) {
             return mRoomSummaries.get(roomId);
@@ -1330,22 +1317,7 @@ public class MXMemoryStore implements IMXStore {
                 }
             }
         }
-
-        // display the unread events
-        if (0 == events.size()) {
-            Log.d(LOG_TAG, "eventsAfter " + roomId + " - eventId " + eventId + " : no unread");
-        } else {
-            Log.d(LOG_TAG, "eventsAfter " + roomId + " - eventId " + eventId + " : " + events.size() + " unreads");
-
-            // too many traces
-            /*int index = 0;
-
-            for(Event event : events) {
-                Log.d(LOG_TAG, "- Event " + index + " : " + event.eventId);
-                index++;
-            }*/
-        }
-
+        
         return events;
     }
 
@@ -1364,20 +1336,22 @@ public class MXMemoryStore implements IMXStore {
         // sanity check
         if ((null != roomId) && (null != userId)) {
             synchronized (mReceiptsByRoomIdLock) {
-                if (mReceiptsByRoomId.containsKey(roomId) && mRoomEvents.containsKey(roomId)) {
-                    Map<String, ReceiptData> receiptsByUserId = mReceiptsByRoomId.get(roomId);
-                    LinkedHashMap<String, Event> eventsMap = mRoomEvents.get(roomId);
+                synchronized (mRoomEventsLock) {
+                    if (mReceiptsByRoomId.containsKey(roomId) && mRoomEvents.containsKey(roomId)) {
+                        Map<String, ReceiptData> receiptsByUserId = mReceiptsByRoomId.get(roomId);
+                        LinkedHashMap<String, Event> eventsMap = mRoomEvents.get(roomId);
 
-                    // check if the event is known
-                    if (eventsMap.containsKey(eventIdTotest) && receiptsByUserId.containsKey(userId)) {
-                        ReceiptData data = receiptsByUserId.get(userId);
-                        ArrayList<String> eventIds = new ArrayList<>(eventsMap.keySet());
+                        // check if the event is known
+                        if (eventsMap.containsKey(eventIdTotest) && receiptsByUserId.containsKey(userId)) {
+                            ReceiptData data = receiptsByUserId.get(userId);
+                            ArrayList<String> eventIds = new ArrayList<>(eventsMap.keySet());
 
-                        // the message has been read if it was sent before the latest read one
-                        res = eventIds.indexOf(eventIdTotest) <= eventIds.indexOf(data.eventId);
-                    } else if (receiptsByUserId.containsKey(userId)) {
-                        // the event is not known so assume it is has been flushed
-                        res = true;
+                            // the message has been read if it was sent before the latest read one
+                            res = eventIds.indexOf(eventIdTotest) <= eventIds.indexOf(data.eventId);
+                        } else if (receiptsByUserId.containsKey(userId)) {
+                            // the event is not known so assume it is has been flushed
+                            res = true;
+                        }
                     }
                 }
             }
