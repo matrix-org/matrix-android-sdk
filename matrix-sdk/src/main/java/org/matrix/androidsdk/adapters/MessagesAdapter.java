@@ -851,22 +851,64 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
      */
     public MessageRow getClosestRowFromTs(final String eventId, final long eventTs) {
         MessageRow messageRow = getMessageRow(eventId);
-        if (messageRow != null) {
-            return messageRow;
-        } else {
-            ArrayList<MessageRow> rows = new ArrayList<>(mEventRowMap.values());
+
+        if (messageRow == null) {
+            List<MessageRow> rows = new ArrayList<>(mEventRowMap.values());
+
+            // loop because the list is not sorted
             for (MessageRow row : rows) {
-                if (row.getEvent().getOriginServerTs() > eventTs) {
+                long rowTs = row.getEvent().getOriginServerTs();
+
+                // check if the row event has been received after eventTs (from)
+                if (rowTs > eventTs) {
+                    // not yet initialised
                     if (messageRow == null) {
                         messageRow = row;
-                    } else if (row.getEvent().getOriginServerTs() - eventTs <
-                            messageRow.getEvent().getOriginServerTs() - eventTs) {
+                    }
+                    // keep the closest row
+                    else if (rowTs < messageRow.getEvent().getOriginServerTs()) {
                         messageRow = row;
-                        Log.d(LOG_TAG, "getClosestRow " + row.getEvent().eventId);
+                        Log.d(LOG_TAG, "## getClosestRowFromTs() " + row.getEvent().eventId);
                     }
                 }
             }
         }
+
+        return messageRow;
+    }
+
+    /**
+     * Get the closest row before the given event id/ts
+     *
+     * @param eventId
+     * @param eventTs
+     * @return closest row
+     */
+    public MessageRow getClosestRowBeforeTs(final String eventId, final long eventTs) {
+        MessageRow messageRow = getMessageRow(eventId);
+
+        if (messageRow == null) {
+            List<MessageRow> rows = new ArrayList<>(mEventRowMap.values());
+
+            // loop because the list is not sorted
+            for (MessageRow row : rows) {
+                long rowTs = row.getEvent().getOriginServerTs();
+
+                // check if the row event has been received before eventTs (from)
+                if (rowTs < eventTs) {
+                    // not yet initialised
+                    if (messageRow == null) {
+                        messageRow = row;
+                    }
+                    // keep the closest row
+                    else if (rowTs > messageRow.getEvent().getOriginServerTs()) {
+                        messageRow = row;
+                        Log.d(LOG_TAG, "## getClosestRowBeforeTs() " + row.getEvent().eventId);
+                    }
+                }
+            }
+        }
+
         return messageRow;
     }
 

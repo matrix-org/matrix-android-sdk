@@ -1009,13 +1009,14 @@ public class MXSession {
             @Override
             public void onSuccess(CreateRoomResponse info) {
                 final String roomId = info.roomId;
-                Room createdRoom = mDataHandler.getRoom(roomId);
+                final Room createdRoom = mDataHandler.getRoom(roomId);
 
                 // the creation events are not be called during the creation
                 if (createdRoom.getState().getMember(mCredentials.userId) == null) {
                     createdRoom.setOnInitialSyncCallback(new ApiCallback<Void>() {
                         @Override
                         public void onSuccess(Void info) {
+                            createdRoom.markAllAsRead(null);
                             callback.onSuccess(roomId);
                         }
 
@@ -1035,6 +1036,7 @@ public class MXSession {
                         }
                     });
                 } else {
+                    createdRoom.markAllAsRead(null);
                     callback.onSuccess(roomId);
                 }
             }
@@ -1072,13 +1074,14 @@ public class MXSession {
             @Override
             public void onSuccess(CreateRoomResponse info) {
                 final String roomId = info.roomId;
-                Room createdRoom = mDataHandler.getRoom(roomId);
+                final Room createdRoom = mDataHandler.getRoom(roomId);
 
                 // the creation events are not be called during the creation
                 if (createdRoom.getState().getMember(mCredentials.userId) == null) {
                     createdRoom.setOnInitialSyncCallback(new ApiCallback<Void>() {
                         @Override
                         public void onSuccess(Void info) {
+                            createdRoom.markAllAsRead(null);
                             callback.onSuccess(roomId);
                         }
 
@@ -1098,6 +1101,7 @@ public class MXSession {
                         }
                     });
                 } else {
+                    createdRoom.markAllAsRead(null);
                     callback.onSuccess(roomId);
                 }
             }
