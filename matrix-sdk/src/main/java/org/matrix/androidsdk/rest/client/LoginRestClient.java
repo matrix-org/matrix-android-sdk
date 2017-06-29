@@ -36,7 +36,7 @@ import org.matrix.androidsdk.rest.model.login.TokenLoginParams;
 import java.util.List;
 import java.util.UUID;
 
-import retrofit.client.Response;
+import retrofit2.Response;
 
 /**
  * Class used to make requests to the login API.
@@ -68,7 +68,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
     public void getSupportedLoginFlows(final ApiCallback<List<LoginFlow>> callback) {
         final String description = "geLoginSupportedFlows";
 
-        mApi.login(new RestAdapterCallback<LoginFlowResponse>(description, mUnsentEventsManager, callback,
+        mApi.login().enqueue(new RestAdapterCallback<LoginFlowResponse>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -106,7 +106,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
             params.x_show_msisdn = true;
         }
 
-        mApi.register(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
+        mApi.register(params).enqueue(new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -181,7 +181,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param description
      */
     private void login(final PasswordLoginParams params, final ApiCallback<Credentials> callback, final String description) {
-        mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
+        mApi.login(params).enqueue(new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
 
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
@@ -228,7 +228,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
         params.txn_id = txn_id;
         params.initial_device_display_name = Build.MODEL.trim();
 
-        mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
+        mApi.login(params).enqueue(new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
 
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
@@ -255,7 +255,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
         // privacy
         final String description = "logout user";
 
-        mApi.logout(new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
+        mApi.logout().enqueue(new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
