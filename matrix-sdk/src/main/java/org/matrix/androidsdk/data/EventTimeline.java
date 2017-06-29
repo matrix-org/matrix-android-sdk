@@ -809,10 +809,10 @@ public class EventTimeline {
                 && (null != (bingRule = bingRulesManager.fulfilledBingRule(event)))) {
 
             if (bingRule.shouldNotify()) {
-                Log.d(LOG_TAG, "handleLiveEvent : onBingEvent " + event.eventId + " in " + event.roomId);
+                Log.d(LOG_TAG, "handleLiveEvent : onBingEvent rule id " + bingRule.ruleId + " event id " + event.eventId + " in " + event.roomId);
                 mDataHandler.onBingEvent(event, mState, bingRule);
             } else {
-                Log.d(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " has a mute notify rule");
+                Log.d(LOG_TAG, "handleLiveEvent :rule id " + bingRule.ruleId + " event id " + event.eventId + " in " + event.roomId + " has a mute notify rule");
             }
         } else if (outOfTimeEvent) {
             Log.e(LOG_TAG, "handleLiveEvent : outOfTimeEvent for " + event.eventId + " in " + event.roomId);
