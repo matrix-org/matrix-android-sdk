@@ -323,13 +323,26 @@ public class BingRulesManager {
                     if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
                         Message message = JsonUtils.toMessage(event.getContent());
                         MyUser myUser =  mSession.getMyUser();
-                        String pattern = myUser.displayname;
+                        String pattern;
 
                         if (BingRule.RULE_ID_CONTAIN_USER_NAME.equals(bingRule.ruleId)) {
                             if (mMyUserId.indexOf(":") >= 0) {
                                 pattern = mMyUserId.substring(1, mMyUserId.indexOf(":"));
                             } else {
                                 pattern = mMyUserId;
+                            }
+                        } else if (BingRule.RULE_ID_CONTAIN_DISPLAY_NAME.equals(bingRule.ruleId)) {
+                            pattern = myUser.displayname;
+                            if ((null != mSession.getDataHandler()) && (null != mSession.getDataHandler().getStore())) {
+                                Room room = mSession.getDataHandler().getStore().getRoom(event.roomId);
+
+                                if ((null != room) && (null != room.getLiveState())) {
+                                    String disambiguousedName = room.getLiveState().getMemberName(mMyUserId);
+
+                                    if (!TextUtils.equals(disambiguousedName, mMyUserId)) {
+                                        pattern = disambiguousedName;
+                                    }
+                                }
                             }
                         }
 
