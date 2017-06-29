@@ -13,9 +13,4 @@
     <!-- libjingle is designed for API >= 15 but the app should work from API >= 11 -->
     <uses-sdk tools:overrideLibrary="io.pristine.libjingle"/>
 
-    <application
-        tools:replace="label"
-        android:label="@string/matrix_sdk_app_name">
-    </application>
-
 </manifest>
