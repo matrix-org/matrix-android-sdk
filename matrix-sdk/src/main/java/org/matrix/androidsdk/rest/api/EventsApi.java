@@ -26,12 +26,13 @@ import org.matrix.androidsdk.rest.model.ThirdPartyProtocol;
 
 import java.util.Map;
 
-import retrofit.Callback;
-import retrofit.http.Body;
-import retrofit.http.GET;
-import retrofit.http.POST;
-import retrofit.http.Query;
-import retrofit.http.QueryMap;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.http.Body;
+import retrofit2.http.GET;
+import retrofit2.http.POST;
+import retrofit2.http.Query;
+import retrofit2.http.QueryMap;
 
 /**
  * The events API.
@@ -40,12 +41,10 @@ public interface EventsApi {
 
     /**
      * Perform the initial sync to find the rooms that concern the user, the participants' presence, etc.
-     *
-     * @param params   the GET params.
-     * @param callback The asynchronous callback to call when finished
+     * @param params the GET params.
      */
-    @GET(RestClient.URI_API_PREFIX_PATH_R0 + "/sync")
-    void sync(@QueryMap Map<String, Object> params, Callback<SyncResponse> callback);
+    @GET(RestClient.URI_API_PREFIX_PATH_R0 + "sync")
+    Call<SyncResponse> sync(@QueryMap Map<String, Object> params);
 
 
     /**
@@ -53,7 +52,7 @@ public interface EventsApi {
      *
      * @param callback The asynchronous callback to call when finished
      */
-    @GET(RestClient.URI_API_PREFIX_PATH_UNSTABLE + "/thirdparty/protocols")
+    @GET(RestClient.URI_API_PREFIX_PATH_UNSTABLE + "thirdparty/protocols")
     void thirdpartyProtocols(Callback<Map<String, ThirdPartyProtocol>> callback);
 
     /**
@@ -61,17 +60,15 @@ public interface EventsApi {
      *
      * @param server            the server (might be null)
      * @param publicRoomsParams the request params
-     * @param callback          The asynchronous callback to call when finished
      */
-    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/publicRooms")
-    void publicRooms(@Query("server") String server, @Body PublicRoomsParams publicRoomsParams, Callback<PublicRoomsResponse> callback);
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "publicRooms")
+    Call<PublicRoomsResponse> publicRooms(@Body PublicRoomsParams publicRoomsParams);
 
     /**
      * Perform a search.
      *
      * @param searchParams the search params.
-     * @param callback     The search result.
      */
-    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/search")
-    void search(@Body SearchParams searchParams, @Query("next_batch") String nextBatch, Callback<SearchResponse> callback);
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "search")
+    Call<SearchResponse> search(@Body SearchParams searchParams, @Query("next_batch") String nextBatch);
 }

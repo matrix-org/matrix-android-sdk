@@ -31,7 +31,7 @@ public class ContentManager {
     public static final String METHOD_CROP = "crop";
     public static final String METHOD_SCALE = "scale";
 
-    public static final String URI_PREFIX_CONTENT_API = "/_matrix/media/v1";
+    public static final String URI_PREFIX_CONTENT_API = "/_matrix/media/v1/";
 
     // HS config
     private HomeserverConnectionConfig mHsConfig;
@@ -92,7 +92,7 @@ public class ContentManager {
         if (contentUrl == null) return null;
         if (contentUrl.startsWith(MATRIX_CONTENT_URI_SCHEME)) {
             String mediaServerAndId = contentUrl.substring(MATRIX_CONTENT_URI_SCHEME.length());
-            return mHsConfig.getHomeserverUri().toString() + URI_PREFIX_CONTENT_API + "/download/" + mediaServerAndId;
+            return mHsConfig.getHomeserverUri().toString() + URI_PREFIX_CONTENT_API + "download/" + mediaServerAndId;
         }
         else {
             return contentUrl;
@@ -117,7 +117,7 @@ public class ContentManager {
                 mediaServerAndId = mediaServerAndId.substring(0, mediaServerAndId.length() - "#auto".length());
             }
 
-            String url = mHsConfig.getHomeserverUri().toString() + URI_PREFIX_CONTENT_API + "/";
+            String url = mHsConfig.getHomeserverUri().toString() + URI_PREFIX_CONTENT_API;
 
             // identicon server has no thumbnail path
             if (mediaServerAndId.indexOf("identicon") < 0) {

@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.os.Build;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
@@ -36,7 +37,7 @@ import org.matrix.androidsdk.rest.model.login.TokenLoginParams;
 import java.util.List;
 import java.util.UUID;
 
-import retrofit.client.Response;
+import retrofit2.Response;
 
 /**
  * Class used to make requests to the login API.
@@ -68,7 +69,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
     public void getSupportedLoginFlows(final ApiCallback<List<LoginFlow>> callback) {
         final String description = "geLoginSupportedFlows";
 
-        mApi.login(new RestAdapterCallback<LoginFlowResponse>(description, mUnsentEventsManager, callback,
+        mApi.login().enqueue(new RestAdapterCallback<LoginFlowResponse>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -106,7 +107,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
             params.x_show_msisdn = true;
         }
 
-        mApi.register(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
+        mApi.register(params).enqueue(new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -131,10 +132,15 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param callback the callback success and failure callback
      */
     public void loginWithUser(final String user, final String password, final ApiCallback<Credentials> callback) {
+        loginWithUser(user, password, callback, null);
+    }
+
+    public void loginWithUser(final String user, final String password, final ApiCallback<Credentials> callback, @Nullable final String deviceId) {
         final String description = "loginWithUser : " + user;
 
         PasswordLoginParams params = new PasswordLoginParams();
         params.setUserIdentifier(user, password);
+        params.setDeviceId(deviceId);
 
         login(params, callback, description);
     }
@@ -148,10 +154,15 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param callback the callback success and failure callback
      */
     public void loginWith3Pid(final String medium, final String address, final String password, final ApiCallback<Credentials> callback) {
+        loginWith3Pid(medium, address, password, callback, null);
+    }
+
+    public void loginWith3Pid(final String medium, final String address, final String password, final ApiCallback<Credentials> callback, @Nullable final String deviceId) {
         final String description = "loginWith3pid : " + address;
 
         PasswordLoginParams params = new PasswordLoginParams();
         params.setThirdPartyIdentifier(medium, address, password);
+        params.setDeviceId(deviceId);
 
         login(params, callback, description);
     }
@@ -165,10 +176,15 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param callback    the callback success and failure callback
      */
     public void loginWithPhoneNumber(final String phoneNumber, final String countryCode, final String password, final ApiCallback<Credentials> callback) {
+        loginWithPhoneNumber(phoneNumber, countryCode, password, callback, null);
+    }
+
+    public void loginWithPhoneNumber(final String phoneNumber, final String countryCode, final String password, final ApiCallback<Credentials> callback, @Nullable final String deviceId) {
         final String description = "loginWithPhoneNumber : " + phoneNumber;
 
         PasswordLoginParams params = new PasswordLoginParams();
         params.setPhoneIdentifier(phoneNumber, countryCode, password);
+        params.setDeviceId(deviceId);
 
         login(params, callback, description);
     }
@@ -181,7 +197,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param description
      */
     private void login(final PasswordLoginParams params, final ApiCallback<Credentials> callback, final String description) {
-        mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
+        mApi.login(params).enqueue(new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
 
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
@@ -228,7 +244,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
         params.txn_id = txn_id;
         params.initial_device_display_name = Build.MODEL.trim();
 
-        mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
+        mApi.login(params).enqueue(new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
 
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
@@ -255,7 +271,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
         // privacy
         final String description = "logout user";
 
-        mApi.logout(new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
+        mApi.logout().enqueue(new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {

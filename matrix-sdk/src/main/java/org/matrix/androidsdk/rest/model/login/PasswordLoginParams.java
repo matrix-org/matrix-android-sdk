@@ -54,6 +54,7 @@ public class PasswordLoginParams extends LoginParams {
 
     // A display name to assign to the newly-created device
     public String initial_device_display_name;
+    public String device_id;
 
     /**
      * Set login params for username/password
@@ -115,5 +116,9 @@ public class PasswordLoginParams extends LoginParams {
         this.password = password;
         this.type = LoginRestClient.LOGIN_FLOW_TYPE_PASSWORD;
         this.initial_device_display_name = Build.MODEL.trim();
+    }
+
+    public void setDeviceId(String deviceId) {
+        this.device_id = deviceId;
     }
 }

@@ -1,13 +1,13 @@
-/* 
+/*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,12 +24,12 @@ import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationResponse;
 
 import java.util.Map;
 
-import retrofit.Callback;
-import retrofit.http.Body;
-import retrofit.http.GET;
-import retrofit.http.POST;
-import retrofit.http.Path;
-import retrofit.http.Query;
+import retrofit2.Call;
+import retrofit2.http.Body;
+import retrofit2.http.GET;
+import retrofit2.http.POST;
+import retrofit2.http.Path;
+import retrofit2.http.Query;
 
 public interface ThirdPidApi {
 
@@ -38,20 +38,18 @@ public interface ThirdPidApi {
      *
      * @param address  the address.
      * @param medium   the medium.
-     * @param callback the asynchronous callback called with the response
      */
-    @GET("/lookup")
-    void lookup3Pid(@Query("address") String address,
-                    @Query("medium") String medium, Callback<PidResponse> callback);
+    @GET("lookup")
+    Call<PidResponse> lookup3Pid(@Query("address") String address,
+                                 @Query("medium") String medium);
 
     /**
      * Request a bunch of 3PIDs
      *
      * @param body     teh body request
-     * @param callback the asynchronous callback.
      */
-    @POST("/bulk_lookup")
-    void bulkLookup(@Body BulkLookupParams body, Callback<BulkLookupResponse> callback);
+    @POST("bulk_lookup")
+    Call<BulkLookupResponse> bulkLookup(@Body BulkLookupParams body);
 
     /**
      * Request an email validation
@@ -60,13 +58,12 @@ public interface ThirdPidApi {
      * @param email        the email address
      * @param sendAttempt  the attempt count
      * @param nextLink     the next link
-     * @param callback     the asynchronous callback called with the response
      */
-    @POST("/validate/email/requestToken")
-    void requestEmailValidation(@Query("client_secret") String clientSecret,
-                                @Query("email") String email,
-                                @Query("send_attempt") Integer sendAttempt,
-                                @Query("next_link") String nextLink, Callback<RequestEmailValidationResponse> callback);
+    @POST("validate/email/requestToken")
+    Call<RequestEmailValidationResponse> requestEmailValidation(@Query("client_secret") String clientSecret,
+                                                                @Query("email") String email,
+                                                                @Query("send_attempt") Integer sendAttempt,
+                                                                @Query("next_link") String nextLink);
 
     /**
      * Request a phone number validation
@@ -76,29 +73,26 @@ public interface ThirdPidApi {
      * @param country      the country
      * @param sendAttempt  the attempt count
      * @param nextLink     the next link
-     * @param callback     the asynchronous callback called with the response
      */
-    @POST("/validate/msisdn/requestToken")
-    void requestPhoneNumberValidation(@Query("client_secret") String clientSecret,
-                                      @Query("phone_number") String phoneNumber,
-                                      @Query("country") String country,
-                                      @Query("send_attempt") Integer sendAttempt,
-                                      @Query("next_link") String nextLink,
-                                      Callback<RequestPhoneNumberValidationResponse> callback);
+    @POST("validate/msisdn/requestToken")
+    Call<RequestPhoneNumberValidationResponse> requestPhoneNumberValidation(@Query("client_secret") String clientSecret,
+                                                                            @Query("phone_number") String phoneNumber,
+                                                                            @Query("country") String country,
+                                                                            @Query("send_attempt") Integer sendAttempt,
+                                                                            @Query("next_link") String nextLink);
 
     /**
      * Request the ownership validation of an email address or a phone number previously set
-     * by {@link #requestEmailValidation(String, String, Integer, String, Callback)}.
+     * by {@link #requestEmailValidation(String, String, Integer, String)}.
      *
      * @param medium       the medium of the 3pid
      * @param token        the token generated by the requestToken call
      * @param clientSecret the client secret which was supplied in the requestToken call
      * @param sid          the sid for the session
-     * @param callback     asynchronous callback response
      */
-    @POST("/validate/{medium}/submitToken")
-    void requestOwnershipValidation(@Path("medium") String medium,
-                                    @Query("token") String token,
-                                    @Query("client_secret") String clientSecret,
-                                    @Query("sid") String sid, Callback<Map<String, Object>> callback);
+    @POST("validate/{medium}/submitToken")
+    Call<Map<String, Object>> requestOwnershipValidation(@Path("medium") String medium,
+                                                         @Query("token") String token,
+                                                         @Query("client_secret") String clientSecret,
+                                                         @Query("sid") String sid);
 }

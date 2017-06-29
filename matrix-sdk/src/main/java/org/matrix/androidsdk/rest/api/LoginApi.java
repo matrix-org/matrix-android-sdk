@@ -21,10 +21,10 @@ import org.matrix.androidsdk.rest.model.login.LoginFlowResponse;
 import org.matrix.androidsdk.rest.model.login.LoginParams;
 import org.matrix.androidsdk.rest.model.login.RegistrationParams;
 
-import retrofit.Callback;
-import retrofit.http.Body;
-import retrofit.http.GET;
-import retrofit.http.POST;
+import retrofit2.Call;
+import retrofit2.http.Body;
+import retrofit2.http.GET;
+import retrofit2.http.POST;
 
 /**
  * The login REST API.
@@ -33,31 +33,27 @@ public interface LoginApi {
 
     /**
      * Get the different login flows supported by the server.
-     * @param callback the asynchronous callback called with the response
      */
-    @GET("/login")
-    void login(Callback<LoginFlowResponse> callback);
+    @GET("login")
+    Call<LoginFlowResponse> login();
 
 
     /**
      * Try to create an account
-     * @param callback the asynchronous callback called with the response
      */
-    @POST("/register")
-    void register(@Body RegistrationParams params, Callback<JsonObject> callback);
+    @POST("register")
+    Call<JsonObject> register(@Body RegistrationParams params);
 
     /**
      * Pass params to the server for the current login phase.
      * @param loginParams the login parameters
-     * @param callback the asynchronous callback called with the response
      */
-    @POST("/login")
-    void login(@Body LoginParams loginParams, Callback<JsonObject> callback);
+    @POST("login")
+    Call<JsonObject> login(@Body LoginParams loginParams);
 
     /**
      * Invalidate the access token, so that it can no longer be used for authorization.
-     * @param callback the asynchronous callback called with the response
      */
-    @POST("/logout")
-    void logout(Callback<JsonObject> callback);
+    @POST("logout")
+    Call<JsonObject> logout();
 }

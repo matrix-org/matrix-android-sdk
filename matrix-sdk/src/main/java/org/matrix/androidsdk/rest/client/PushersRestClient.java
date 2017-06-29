@@ -108,7 +108,7 @@ public class PushersRestClient extends RestClient<PushersApi> {
 
         final String description = "manageHttpPusher";
 
-        mApi.set(pusher, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.set(pusher).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {
@@ -127,7 +127,7 @@ public class PushersRestClient extends RestClient<PushersApi> {
     public void getPushers(final ApiCallback<PushersResponse> callback) {
         final String description = "getPushers";
 
-        mApi.get(new RestAdapterCallback<PushersResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.get().enqueue(new RestAdapterCallback<PushersResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 try {

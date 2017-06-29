@@ -1,7 +1,7 @@
 /*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
- 
+
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -20,25 +20,35 @@ import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.support.annotation.NonNull;
 import android.text.TextUtils;
+import android.util.Pair;
 
+import com.facebook.stetho.okhttp3.StethoInterceptor;
 import com.google.gson.Gson;
-import com.squareup.okhttp.OkHttpClient;
 
-import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
-import org.matrix.androidsdk.rest.client.MXRestExecutor;
+import org.matrix.androidsdk.rest.client.MXRestExecutorService;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.ssl.CertUtil;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
+import org.matrix.androidsdk.util.PolymorphicRequestBodyConverter;
 import org.matrix.androidsdk.util.UnsentEventsManager;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import retrofit.RequestInterceptor;
-import retrofit.RestAdapter;
-import retrofit.client.OkClient;
-import retrofit.converter.GsonConverter;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.X509TrustManager;
+
+import okhttp3.Dispatcher;
+import okhttp3.HttpUrl;
+import okhttp3.Interceptor;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
  * Class for making Matrix API calls.
@@ -47,13 +57,13 @@ public class RestClient<T> {
 
     private static final String LOG_TAG = "RestClient";
 
-    public static final String URI_API_PREFIX_PATH_R0 = "/_matrix/client/r0";
-    public static final String URI_API_PREFIX_PATH_UNSTABLE = "/_matrix/client/unstable";
+    public static final String URI_API_PREFIX_PATH_R0 = "_matrix/client/r0/";
+    public static final String URI_API_PREFIX_PATH_UNSTABLE = "_matrix/client/unstable/";
 
     /**
      * Prefix used in path of identity server API requests.
      */
-    public static final String URI_API_PREFIX_IDENTITY = "/_matrix/identity/api/v1";
+    public static final String URI_API_PREFIX_IDENTITY = "_matrix/identity/api/v1/";
 
     private static final String PARAM_ACCESS_TOKEN = "access_token";
 
@@ -95,63 +105,106 @@ public class RestClient<T> {
         mHsConfig = hsConfig;
         mCredentials = hsConfig.getCredentials();
 
-        mOkHttpClient = new OkHttpClient();
+        Interceptor authentInterceptor = new Interceptor() {
 
-        mOkHttpClient.setConnectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        mOkHttpClient.setReadTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        mOkHttpClient.setWriteTimeout(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            @Override public Response intercept(Chain chain) throws IOException {
+                Request request = chain.request();
+                Request.Builder newRequestBuilder = request.newBuilder();
+                if (null != sUserAgent) {
+                    // set a custom user agent
+                    newRequestBuilder.addHeader("User-Agent", sUserAgent);
+                }
 
-        try {
-            mOkHttpClient.setSslSocketFactory(CertUtil.newPinnedSSLSocketFactory(hsConfig));
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage());
-        }
+                // Add the access token to all requests if it is set
+                if ((mCredentials != null) && (mCredentials.accessToken != null)) {
+                    HttpUrl url = request.url()
+                        .newBuilder()
+                        .addEncodedQueryParameter(PARAM_ACCESS_TOKEN, mCredentials.accessToken)
+                        .build();
+                    newRequestBuilder.url(url);
+                }
 
-        try {
-            mOkHttpClient.setHostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage());
-        }
+                request = newRequestBuilder.build();
 
-        // remove any trailing http in the uri prefix
-        if (uriPrefix.startsWith("http://")) {
-            uriPrefix = uriPrefix.substring("http://".length());
-        } else if (uriPrefix.startsWith("https://")) {
-            uriPrefix = uriPrefix.substring("https://".length());
-        }
+                return chain.proceed(request);
+            }
+        };
 
-        final String endPoint = (useIdentityServer ? hsConfig.getIdentityServerUri().toString() : hsConfig.getHomeserverUri().toString()) + uriPrefix;
+        Interceptor connectivityInterceptor = new Interceptor() {
+            @Override public Response intercept(Chain chain) throws IOException {
+                if (mUnsentEventsManager != null
+                    && mUnsentEventsManager.getNetworkConnectivityReceiver() != null
+                    && !mUnsentEventsManager.getNetworkConnectivityReceiver().isConnected()) {
+                    throw new IOException("Not connected");
+                }
+                return chain.proceed(chain.request());
+            }
+        };
 
-        // Rest adapter for turning API interfaces into actual REST-calling objects
-        RestAdapter.Builder builder = new RestAdapter.Builder()
-                .setEndpoint(endPoint)
-                .setConverter(new GsonConverter(gson))
-                .setClient(new OkClient(mOkHttpClient))
-                .setRequestInterceptor(new RequestInterceptor() {
-                    @Override
-                    public void intercept(RequestInterceptor.RequestFacade request) {
-                        if (null != sUserAgent) {
-                            // set a custom user agent
-                            request.addHeader("User-Agent", sUserAgent);
-                        }
+        OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient().newBuilder()
+            .connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .readTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .writeTimeout(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .addInterceptor(authentInterceptor)
+            .addInterceptor(connectivityInterceptor)
+            .addNetworkInterceptor(new StethoInterceptor());
 
-                        // Add the access token to all requests if it is set
-                        if ((mCredentials != null) && (mCredentials.accessToken != null)) {
-                            request.addEncodedQueryParam(PARAM_ACCESS_TOKEN, mCredentials.accessToken);
-                        }
-                    }
-                });
 
         if (mUseMXExececutor) {
-            builder.setExecutors(new MXRestExecutor(), new MXRestExecutor());
+            okHttpClientBuilder.dispatcher(new Dispatcher(new MXRestExecutorService()));
         }
 
-        RestAdapter restAdapter = builder.build();
+        try {
+            Pair<SSLSocketFactory, X509TrustManager> pair = CertUtil.newPinnedSSLSocketFactory(hsConfig);
+            okHttpClientBuilder.sslSocketFactory(pair.first, pair.second);
+            okHttpClientBuilder.hostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage());
+        }
 
-        // debug only
-        //restAdapter.setLogLevel(RestAdapter.LogLevel.FULL);
+        mOkHttpClient = okHttpClientBuilder.build();
+        final String endPoint = makeEndpoint(hsConfig, uriPrefix, useIdentityServer);
 
-        mApi = restAdapter.create(type);
+        // Rest adapter for turning API interfaces into actual REST-calling objects
+        Retrofit.Builder builder = new Retrofit.Builder()
+                .baseUrl(endPoint)
+                .addConverterFactory(PolymorphicRequestBodyConverter.FACTORY)
+                .addConverterFactory(GsonConverterFactory.create(gson))
+                .client(mOkHttpClient);
+
+        Retrofit retrofit = builder.build();
+
+        mApi = retrofit.create(type);
+    }
+
+    @NonNull private String makeEndpoint(
+        HomeserverConnectionConfig hsConfig,
+        String uriPrefix,
+        boolean useIdentityServer
+    ) {
+        String baseUrl = useIdentityServer
+            ? hsConfig.getIdentityServerUri().toString()
+            : hsConfig.getHomeserverUri().toString();
+        baseUrl = sanitizeBaseUrl(baseUrl);
+        String dynamicPath = sanitizeDynamicPath(uriPrefix);
+        return baseUrl + dynamicPath;
+    }
+
+    private String sanitizeBaseUrl(String baseUrl) {
+        if (baseUrl.endsWith("/")) {
+            return baseUrl;
+        }
+        return baseUrl + "/";
+    }
+
+    private String sanitizeDynamicPath(String dynamicPath) {
+        // remove any trailing http in the uri prefix
+        if (dynamicPath.startsWith("http://")) {
+            dynamicPath = dynamicPath.substring("http://".length());
+        } else if (dynamicPath.startsWith("https://")) {
+            dynamicPath = dynamicPath.substring("https://".length());
+        }
+        return dynamicPath;
     }
 
     /**
@@ -203,14 +256,6 @@ public class RestClient<T> {
      */
     public void setUnsentEventsManager(UnsentEventsManager unsentEventsManager) {
         mUnsentEventsManager = unsentEventsManager;
-
-        mUnsentEventsManager.getNetworkConnectivityReceiver().addEventListener(new IMXNetworkEventListener() {
-            @Override
-            public void onNetworkConnectionUpdate(boolean isConnected) {
-                Log.e(LOG_TAG, "## setUnsentEventsManager()  : update the requests timeout to " + (isConnected ? CONNECTION_TIMEOUT_MS : 1) + " ms");
-                mOkHttpClient.setConnectTimeout(isConnected ? CONNECTION_TIMEOUT_MS : 1, TimeUnit.MILLISECONDS);
-            }
-        });
     }
 
     /**
