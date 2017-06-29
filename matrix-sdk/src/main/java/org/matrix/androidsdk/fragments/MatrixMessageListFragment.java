@@ -795,12 +795,24 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
+     * Test if the read marker must be updated with the new message
+     * @param newMessageRow the new message row
+     * @param currentReadMarkerRow the current read marker row
+     * @return true if the read marker can be updated
+     */
+    private boolean canUpdateReadMarker(MessageRow newMessageRow, MessageRow currentReadMarkerRow) {
+        return (currentReadMarkerRow != null &&
+            mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
+            && newMessageRow.getEvent().getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs);
+    }
+
+    /**
      * Provides the read "marked row".
      * The closest row is provided if it is not displayed
      *
      * @return the currentReadMarkerRow
      */
-    private MessageRow getReadMarkerMessageRow() {
+    private MessageRow getReadMarkerMessageRow(MessageRow newMessageRow) {
         final String currentReadMarkerEventId = mRoom.getReadMarkerEventId();
         MessageRow currentReadMarkerRow = mAdapter.getMessageRow(currentReadMarkerEventId);
 
@@ -811,6 +823,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             if ((null != readMarkedEvent) && !canAddEvent(readMarkedEvent)) {
                 // retrieve the previous displayed event
                 currentReadMarkerRow = mAdapter.getClosestRowFromTs(readMarkedEvent.eventId, readMarkedEvent.getOriginServerTs());
+
+                // the undisplayable event might be in the middle of two displayable events
+                // or it is the last known event
+                if ((null != currentReadMarkerRow) && !canUpdateReadMarker(newMessageRow, currentReadMarkerRow)) {
+                    currentReadMarkerRow = null;
+                }
 
                 // use the next one
                 if (null == currentReadMarkerRow) {
@@ -831,16 +849,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             Event event = new Event(message, mSession.getCredentials().userId, mRoom.getRoomId());
             mRoom.storeOutgoingEvent(event);
 
-            // Move read marker if necessary
-            MessageRow currentReadMarkerRow = getReadMarkerMessageRow();
-
             MessageRow newMessageRow = new MessageRow(event, mRoom.getState());
             mAdapter.add(newMessageRow);
 
-            if (currentReadMarkerRow != null &&
-                    mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
-                    && event.getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs) {
+            // Move read marker if necessary
+            MessageRow currentReadMarkerRow = getReadMarkerMessageRow(newMessageRow);
 
+            if (canUpdateReadMarker(newMessageRow, currentReadMarkerRow)) {
                 View childView = mMessageListView.getChildAt(mMessageListView.getChildCount() - 1);
 
                 // Previous message was the last read
@@ -2443,12 +2458,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                     // Move read marker if necessary
                     if (!mAdapter.isInBackground() && mEventTimeLine != null && mEventTimeLine.isLiveTimeline()) {
-                        MessageRow currentReadMarkerRow = getReadMarkerMessageRow();
+                        MessageRow currentReadMarkerRow = getReadMarkerMessageRow(newMessageRow);
 
-                        if (currentReadMarkerRow != null &&
-                                mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
-                                && event.getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs) {
-
+                        if (canUpdateReadMarker(newMessageRow, currentReadMarkerRow)) {
                             if (0 == mMessageListView.getChildCount()) {
                                 mMessageListView.post(new Runnable() {
                                     @Override
