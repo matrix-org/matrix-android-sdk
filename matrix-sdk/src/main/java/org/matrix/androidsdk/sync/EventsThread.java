@@ -522,8 +522,8 @@ public class EventsThread extends Thread {
                                     mCatchupSyncRequestsCount++;
 
                                     // stop the catchup if no events have been retrieved
-                                    // or after 3 sync requests
-                                    if ((0 == eventCounts) || (mCatchupSyncRequestsCount > 3)) {
+                                    // or after 1 sync requests
+                                    if ((0 == eventCounts) || (mCatchupSyncRequestsCount > 1)) {
                                         if (0 == eventCounts) {
                                             Log.e(LOG_TAG, "Stop the catchup after " + mCatchupSyncRequestsCount + " sync requests");
                                         } else {
@@ -534,7 +534,7 @@ public class EventsThread extends Thread {
                                         mIsCatchingUp = false;
                                         mPaused = (0 == mRequestDelayMs);
                                     } else {
-                                        Log.e(LOG_TAG, "Catchup still in progress");
+                                        Log.e(LOG_TAG, "Catchup still in progress " + mCatchupSyncRequestsCount + " loop");
                                         mNextServerTimeoutms = mDefaultServerTimeoutms / 10;
                                     }
                                 }
