@@ -289,7 +289,20 @@ public class MXSession {
     private void checkIfAlive() {
         synchronized (this) {
             if (!mIsAliveSession) {
-                Log.e(LOG_TAG, "Use of a release session");
+                try {
+                    StackTraceElement[] callstacks = Thread.currentThread().getStackTrace();
+
+                    StringBuilder sb = new StringBuilder();
+                    for (StackTraceElement element : callstacks) {
+                        sb.append(element.toString());
+                        sb.append("\n");
+                    }
+
+                    Log.e(LOG_TAG, "Use of a released session : \n" + sb.toString());
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "Use of a released session : \n");
+                }
+                
                 //throw new AssertionError("Should not used a cleared mxsession ");
             }
         }
