@@ -617,21 +617,25 @@ public class EventTimeline {
                 if (null != roomSync.unreadNotifications.notificationCount) {
                     notifCount = roomSync.unreadNotifications.notificationCount;
                 }
+                
+                if ((notifCount != mState.getNotificationCount()) || (mState.getHighlightCount() != highlightCount)) {
+                    Log.d(LOG_TAG, "## handleJoinedRoomSync() : update room state notifs count for room id " + getRoom().getRoomId() + ": highlightCount " + highlightCount + " - notifCount " + notifCount);
 
-                boolean isUpdated = (notifCount != mState.getNotificationCount()) || (mState.getHighlightCount() != highlightCount);
-
-                if (isUpdated) {
                     mState.setNotificationCount(notifCount);
                     mState.setHighlightCount(highlightCount);
                     mStore.storeLiveStateForRoom(mRoomId);
+                }
 
-                    RoomSummary summary = mStore.getSummary(mRoomId);
+                // some users reported that the summary notification counts were sometimes invalid
+                // so check roomstates and summaries separately
+                RoomSummary summary = mStore.getSummary(mRoomId);
 
-                    if (null != summary) {
-                        summary.setNotificationCount(notifCount);
-                        summary.setHighlightCount(highlightCount);
-                        mStore.flushSummary(summary);
-                    }
+                if ((null != summary) && ((notifCount != summary.getNotificationCount()) || (summary.getHighlightCount() != highlightCount))) {
+                    Log.d(LOG_TAG, "## handleJoinedRoomSync() : update room summary notifs count for room id " + getRoom().getRoomId() + ": highlightCount " + highlightCount + " - notifCount " + notifCount);
+
+                    summary.setNotificationCount(notifCount);
+                    summary.setHighlightCount(highlightCount);
+                    mStore.flushSummary(summary);
                 }
             }
         }
