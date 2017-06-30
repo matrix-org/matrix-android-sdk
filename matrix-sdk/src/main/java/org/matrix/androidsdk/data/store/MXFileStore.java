@@ -750,6 +750,16 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
+    public void flushRoomEvents(String roomId) {
+        super.flushRoomEvents(roomId);
+
+        if (mRoomsToCommitForMessages.indexOf(roomId) < 0) {
+            mRoomsToCommitForMessages.add(roomId);
+            commit();
+        }
+    }
+
+    @Override
     public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, EventTimeline.Direction direction) {
         boolean canStore = true;
 

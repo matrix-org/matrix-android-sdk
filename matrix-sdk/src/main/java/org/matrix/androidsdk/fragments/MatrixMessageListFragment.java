@@ -1318,6 +1318,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         // update the event content with the new message info
                         messageRow.getEvent().updateContent(JsonUtils.toJson(message));
 
+                        // force to save the room events list
+                        // https://github.com/vector-im/riot-android/issues/1390
+                        mSession.getDataHandler().getStore().flushRoomEvents(mRoom.getRoomId());
+
                         Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
                         send(messageRow);
@@ -1526,6 +1530,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             // update the event content with the new message info
                             videoRow.getEvent().updateContent(JsonUtils.toJson(fVideoMessage));
 
+                            // force to save the room events list
+                            // https://github.com/vector-im/riot-android/issues/1390
+                            mSession.getDataHandler().getStore().flushRoomEvents(mRoom.getRoomId());
+
                             Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
                             send(videoRow);
@@ -1542,6 +1550,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                             // update the event content with the new message info
                             videoRow.getEvent().updateContent(JsonUtils.toJson(fVideoMessage));
+
+                            // force to save the room events list
+                            // https://github.com/vector-im/riot-android/issues/1390
+                            mSession.getDataHandler().getStore().flushRoomEvents(mRoom.getRoomId());
 
                             // upload the video
                             uploadVideoContent(fVideoMessage, videoRow, thumbnailUrl, thumbnailMimeType, videoUrl, fVideoMessage.body, videoMimeType);
@@ -1704,6 +1716,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             // update the event content with the new message info
                             imageRow.getEvent().updateContent(JsonUtils.toJson(fImageMessage));
 
+                            // force to save the room events list
+                            // https://github.com/vector-im/riot-android/issues/1390
+                            mSession.getDataHandler().getStore().flushRoomEvents(mRoom.getRoomId());
+
                             // upload the high res picture
                             uploadImageContent(fImageMessage, imageRow, contentUri, anImageUrl, mediaFilename, fMimeType);
                         } else {
@@ -1720,6 +1736,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                             // update the event content with the new message info
                             imageRow.getEvent().updateContent(JsonUtils.toJson(fImageMessage));
+
+                            // force to save the room events list
+                            // https://github.com/vector-im/riot-android/issues/1390
+                            mSession.getDataHandler().getStore().flushRoomEvents(mRoom.getRoomId());
 
                             Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
