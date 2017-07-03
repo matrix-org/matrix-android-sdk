@@ -1062,26 +1062,29 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
 
                 private void commonFailure(final Event event) {
-                    if (null != MatrixMessageListFragment.this.getActivity()) {
-                        getUiHandler().post(new Runnable() {
-                            @Override
-                            public void run() {
+                    getUiHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Activity activity = getActivity();
+
+                            if (null != activity) {
                                 // display the error message only if the message cannot be resent
                                 if ((null != event.unsentException) && (event.isUndeliverable())) {
                                     if ((event.unsentException instanceof RetrofitError) && ((RetrofitError) event.unsentException).isNetworkError()) {
-                                        Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + getActivity().getString(R.string.network_error), Toast.LENGTH_LONG).show();
+                                        Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + getActivity().getString(R.string.network_error), Toast.LENGTH_LONG).show();
                                     } else {
-                                        Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                                        Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                                     }
                                 } else if (null != event.unsentMatrixError) {
-                                    Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.getLocalizedMessage() + ".", Toast.LENGTH_LONG).show();
+                                    Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.getLocalizedMessage() + ".", Toast.LENGTH_LONG).show();
                                 }
+
 
                                 mAdapter.notifyDataSetChanged();
                                 onMessageSendingFailed(event);
                             }
-                        });
-                    }
+                        }
+                    });
                 }
 
                 @Override
@@ -2095,15 +2098,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param error the error object.
      */
     private void onPaginateRequestError(final Object error) {
-        if (null != MatrixMessageListFragment.this.getActivity()) {
+        Activity activity = getActivity();
+
+        if (null != activity) {
             if (error instanceof Exception) {
                 Log.e(LOG_TAG, "Network error: " + ((Exception) error).getMessage());
-                Toast.makeText(MatrixMessageListFragment.this.getActivity(), getActivity().getString(R.string.network_error), Toast.LENGTH_SHORT).show();
+                Toast.makeText(activity, activity.getString(R.string.network_error), Toast.LENGTH_SHORT).show();
 
             } else if (error instanceof MatrixError) {
                 final MatrixError matrixError = (MatrixError) error;
                 Log.e(LOG_TAG, "Matrix error" + " : " + matrixError.errcode + " - " + matrixError.getLocalizedMessage());
-                Toast.makeText(MatrixMessageListFragment.this.getActivity(), getActivity().getString(R.string.matrix_error) + " : " + matrixError.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(activity, activity.getString(R.string.matrix_error) + " : " + matrixError.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
             }
 
             hideLoadingBackProgress();
