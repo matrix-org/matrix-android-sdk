@@ -52,6 +52,7 @@
     <!-- Room Screen -->
     <string name="could_not_redact">Konnte nicht verbergen</string>
     <string name="unable_to_send_message">Nachricht nicht sendbar</string>
+    <string name="unread_messages_footer">"You've caught up"</string>
 
     <string name="message_failed_to_upload">Hochladen fehlgeschlagen</string>
 
