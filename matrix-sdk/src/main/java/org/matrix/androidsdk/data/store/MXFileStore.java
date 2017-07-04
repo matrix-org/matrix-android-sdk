@@ -47,6 +47,7 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,12 +93,12 @@ public class MXFileStore extends MXMemoryStore {
 
     // List of rooms to save on [MXStore commit]
     // filled with roomId
-    private List<String> mRoomsToCommitForMessages;
-    private List<String> mRoomsToCommitForStates;
-    private List<String> mRoomsToCommitForSummaries;
-    private List<String> mRoomsToCommitForAccountData;
-    private List<String> mRoomsToCommitForReceipts;
-    private List<String> mUserIdsToCommit;
+    private HashSet<String> mRoomsToCommitForMessages;
+    private HashSet<String> mRoomsToCommitForStates;
+    private HashSet<String> mRoomsToCommitForSummaries;
+    private HashSet<String> mRoomsToCommitForAccountData;
+    private HashSet<String> mRoomsToCommitForReceipts;
+    private HashSet<String> mUserIdsToCommit;
 
     // Flag to indicate metaData needs to be store
     private boolean mMetaDataHasChanged = false;
@@ -213,12 +214,12 @@ public class MXFileStore extends MXMemoryStore {
         createDirTree(mCredentials.userId);
 
         // updated data
-        mRoomsToCommitForMessages = new ArrayList<>();
-        mRoomsToCommitForStates = new ArrayList<>();
-        mRoomsToCommitForSummaries = new ArrayList<>();
-        mRoomsToCommitForAccountData = new ArrayList<>();
-        mRoomsToCommitForReceipts = new ArrayList<>();
-        mUserIdsToCommit = new ArrayList<>();
+        mRoomsToCommitForMessages = new HashSet<>();
+        mRoomsToCommitForStates = new HashSet<>();
+        mRoomsToCommitForSummaries = new HashSet<>();
+        mRoomsToCommitForAccountData = new HashSet<>();
+        mRoomsToCommitForReceipts = new HashSet<>();
+        mUserIdsToCommit = new HashSet<>();
 
         // check if the metadata file exists and if it is valid
         loadMetaData();
@@ -433,10 +434,10 @@ public class MXFileStore extends MXMemoryStore {
 
                                     deleteAllData(true);
 
-                                    mRoomsToCommitForMessages = new ArrayList<>();
-                                    mRoomsToCommitForStates = new ArrayList<>();
-                                    mRoomsToCommitForSummaries = new ArrayList<>();
-                                    mRoomsToCommitForReceipts = new ArrayList<>();
+                                    mRoomsToCommitForMessages = new HashSet<>();
+                                    mRoomsToCommitForStates = new HashSet<>();
+                                    mRoomsToCommitForSummaries = new HashSet<>();
+                                    mRoomsToCommitForReceipts = new HashSet<>();
 
                                     mMetadata = tmpMetadata;
 
@@ -750,6 +751,14 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
+    public void flushRoomEvents(String roomId) {
+        super.flushRoomEvents(roomId);
+
+        mRoomsToCommitForMessages.add(roomId);
+        saveRoomsMessages();
+    }
+
+    @Override
     public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, EventTimeline.Direction direction) {
         boolean canStore = true;
 
@@ -769,7 +778,7 @@ public class MXFileStore extends MXMemoryStore {
 
         super.storeRoomEvents(roomId, eventsResponse, direction);
 
-        if (canStore && (mRoomsToCommitForMessages.indexOf(roomId) < 0)) {
+        if (canStore) {
             mRoomsToCommitForMessages.add(roomId);
         }
     }
@@ -782,19 +791,13 @@ public class MXFileStore extends MXMemoryStore {
     @Override
     public void storeLiveRoomEvent(Event event) {
         super.storeLiveRoomEvent(event);
-
-        if (mRoomsToCommitForMessages.indexOf(event.roomId) < 0) {
-            mRoomsToCommitForMessages.add(event.roomId);
-        }
+        mRoomsToCommitForMessages.add(event.roomId);
     }
 
     @Override
     public void deleteEvent(Event event) {
         super.deleteEvent(event);
-
-        if (mRoomsToCommitForMessages.indexOf(event.roomId) < 0) {
-            mRoomsToCommitForMessages.add(event.roomId);
-        }
+        mRoomsToCommitForMessages.add(event.roomId);
     }
 
     /**
@@ -848,22 +851,14 @@ public class MXFileStore extends MXMemoryStore {
 
         deleteRoomSummaryFile(roomId);
 
-        if (mRoomsToCommitForMessages.indexOf(roomId) < 0) {
-            mRoomsToCommitForMessages.add(roomId);
-        }
-
-        if (mRoomsToCommitForSummaries.indexOf(roomId) < 0) {
-            mRoomsToCommitForSummaries.add(roomId);
-        }
+        mRoomsToCommitForMessages.add(roomId);
+        mRoomsToCommitForSummaries.add(roomId);
     }
 
     @Override
     public void storeLiveStateForRoom(String roomId) {
         super.storeLiveStateForRoom(roomId);
-
-        if (mRoomsToCommitForStates.indexOf(roomId) < 0) {
-            mRoomsToCommitForStates.add(roomId);
-        }
+        mRoomsToCommitForStates.add(roomId);
     }
 
     //================================================================================
@@ -873,11 +868,8 @@ public class MXFileStore extends MXMemoryStore {
     @Override
     public void flushSummary(RoomSummary summary) {
         super.flushSummary(summary);
-
-        if (mRoomsToCommitForSummaries.indexOf(summary.getRoomId()) < 0) {
-            mRoomsToCommitForSummaries.add(summary.getRoomId());
-            saveSummaries();
-        }
+        mRoomsToCommitForSummaries.add(summary.getRoomId());
+        saveSummaries();
     }
 
     @Override
@@ -885,13 +877,7 @@ public class MXFileStore extends MXMemoryStore {
         super.flushSummaries();
 
         // add any existing roomid to the list to save all
-        Collection<String> roomIds = mRoomSummaries.keySet();
-
-        for (String roomId : roomIds) {
-            if (mRoomsToCommitForSummaries.indexOf(roomId) < 0) {
-                mRoomsToCommitForSummaries.add(roomId);
-            }
-        }
+        mRoomsToCommitForSummaries.addAll(mRoomSummaries.keySet());
 
         saveSummaries();
     }
@@ -921,14 +907,14 @@ public class MXFileStore extends MXMemoryStore {
         // some updated rooms ?
         if ((mUserIdsToCommit.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
-            final List<String> fUserIds = mUserIdsToCommit;
-            mUserIdsToCommit = new ArrayList<>();
+            final HashSet<String> fUserIds = mUserIdsToCommit;
+            mUserIdsToCommit = new HashSet<>();
 
             try {
-                final ArrayList<User> fUsers;
+                final HashSet<User> fUsers;
 
                 synchronized (mUsers) {
-                    fUsers = new ArrayList<>(mUsers.values());
+                    fUsers = new HashSet<>(mUsers.values());
                 }
 
                 Runnable r = new Runnable() {
@@ -1118,8 +1104,8 @@ public class MXFileStore extends MXMemoryStore {
         // some updated rooms ?
         if ((mRoomsToCommitForMessages.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
-            final List<String> fRoomsToCommitForMessages = mRoomsToCommitForMessages;
-            mRoomsToCommitForMessages = new ArrayList<>();
+            final HashSet<String> fRoomsToCommitForMessages = mRoomsToCommitForMessages;
+            mRoomsToCommitForMessages = new HashSet<>();
 
             Runnable r = new Runnable() {
                 @Override
@@ -1481,8 +1467,8 @@ public class MXFileStore extends MXMemoryStore {
     private void saveRoomStates() {
         if ((mRoomsToCommitForStates.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
-            final List<String> fRoomsToCommitForStates = mRoomsToCommitForStates;
-            mRoomsToCommitForStates = new ArrayList<>();
+            final HashSet<String> fRoomsToCommitForStates = mRoomsToCommitForStates;
+            mRoomsToCommitForStates = new HashSet<>();
 
             Runnable r = new Runnable() {
                 @Override
@@ -1619,8 +1605,8 @@ public class MXFileStore extends MXMemoryStore {
     private void saveRoomsAccountData() {
         if ((mRoomsToCommitForAccountData.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
-            final List<String> fRoomsToCommitForAccountData = mRoomsToCommitForAccountData;
-            mRoomsToCommitForAccountData = new ArrayList<>();
+            final HashSet<String> fRoomsToCommitForAccountData = mRoomsToCommitForAccountData;
+            mRoomsToCommitForAccountData = new HashSet<>();
 
             Runnable r = new Runnable() {
                 @Override
@@ -1729,9 +1715,7 @@ public class MXFileStore extends MXMemoryStore {
 
             // sanity checks
             if ((room != null) && (null != accountData)) {
-                if (mRoomsToCommitForAccountData.indexOf(roomId) < 0) {
-                    mRoomsToCommitForAccountData.add(roomId);
-                }
+                mRoomsToCommitForAccountData.add(roomId);
             }
         }
     }
@@ -1765,8 +1749,8 @@ public class MXFileStore extends MXMemoryStore {
     private void saveSummaries() {
         if ((mRoomsToCommitForSummaries.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
-            final List<String> fRoomsToCommitForSummaries = mRoomsToCommitForSummaries;
-            mRoomsToCommitForSummaries = new ArrayList<>();
+            final HashSet<String> fRoomsToCommitForSummaries = mRoomsToCommitForSummaries;
+            mRoomsToCommitForSummaries = new HashSet<>();
 
             Runnable r = new Runnable() {
                 @Override
@@ -1987,9 +1971,7 @@ public class MXFileStore extends MXMemoryStore {
 
         if (res) {
             synchronized (this) {
-                if (mRoomsToCommitForReceipts.indexOf(roomId) < 0) {
-                    mRoomsToCommitForReceipts.add(roomId);
-                }
+                mRoomsToCommitForReceipts.add(roomId);
             }
         }
 
@@ -2143,7 +2125,7 @@ public class MXFileStore extends MXMemoryStore {
      */
     private void saveReceipts() {
         synchronized (this) {
-            List<String> roomsToCommit = mRoomsToCommitForReceipts;
+            HashSet<String> roomsToCommit = mRoomsToCommitForReceipts;
 
             for (String roomId : roomsToCommit) {
                 saveReceipts(roomId);

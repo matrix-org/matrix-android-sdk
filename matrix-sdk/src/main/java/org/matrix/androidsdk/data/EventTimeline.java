@@ -617,21 +617,25 @@ public class EventTimeline {
                 if (null != roomSync.unreadNotifications.notificationCount) {
                     notifCount = roomSync.unreadNotifications.notificationCount;
                 }
+                
+                if ((notifCount != mState.getNotificationCount()) || (mState.getHighlightCount() != highlightCount)) {
+                    Log.d(LOG_TAG, "## handleJoinedRoomSync() : update room state notifs count for room id " + getRoom().getRoomId() + ": highlightCount " + highlightCount + " - notifCount " + notifCount);
 
-                boolean isUpdated = (notifCount != mState.getNotificationCount()) || (mState.getHighlightCount() != highlightCount);
-
-                if (isUpdated) {
                     mState.setNotificationCount(notifCount);
                     mState.setHighlightCount(highlightCount);
                     mStore.storeLiveStateForRoom(mRoomId);
+                }
 
-                    RoomSummary summary = mStore.getSummary(mRoomId);
+                // some users reported that the summary notification counts were sometimes invalid
+                // so check roomstates and summaries separately
+                RoomSummary summary = mStore.getSummary(mRoomId);
 
-                    if (null != summary) {
-                        summary.setNotificationCount(notifCount);
-                        summary.setHighlightCount(highlightCount);
-                        mStore.flushSummary(summary);
-                    }
+                if ((null != summary) && ((notifCount != summary.getNotificationCount()) || (summary.getHighlightCount() != highlightCount))) {
+                    Log.d(LOG_TAG, "## handleJoinedRoomSync() : update room summary notifs count for room id " + getRoom().getRoomId() + ": highlightCount " + highlightCount + " - notifCount " + notifCount);
+
+                    summary.setNotificationCount(notifCount);
+                    summary.setHighlightCount(highlightCount);
+                    mStore.flushSummary(summary);
                 }
             }
         }
@@ -809,10 +813,10 @@ public class EventTimeline {
                 && (null != (bingRule = bingRulesManager.fulfilledBingRule(event)))) {
 
             if (bingRule.shouldNotify()) {
-                Log.d(LOG_TAG, "handleLiveEvent : onBingEvent " + event.eventId + " in " + event.roomId);
+                Log.d(LOG_TAG, "handleLiveEvent : onBingEvent rule id " + bingRule.ruleId + " event id " + event.eventId + " in " + event.roomId);
                 mDataHandler.onBingEvent(event, mState, bingRule);
             } else {
-                Log.d(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " has a mute notify rule");
+                Log.d(LOG_TAG, "handleLiveEvent :rule id " + bingRule.ruleId + " event id " + event.eventId + " in " + event.roomId + " has a mute notify rule");
             }
         } else if (outOfTimeEvent) {
             Log.e(LOG_TAG, "handleLiveEvent : outOfTimeEvent for " + event.eventId + " in " + event.roomId);

@@ -1091,6 +1091,7 @@ public class Room {
      * @param summary the room summary
      */
     private void clearUnreadCounters(RoomSummary summary) {
+        Log.d(LOG_TAG, "## clearUnreadCounters " + summary.getRoomId());
         // reset the notification count
         getLiveState().setHighlightCount(0);
         getLiveState().setNotificationCount(0);
@@ -1246,7 +1247,7 @@ public class Room {
             return false;
         }
 
-        Log.d(LOG_TAG, "## sendReadMarkers(): readMarkerEventId " + aReadMarkerEventId + " readReceiptEventId " + aReadReceiptEventId);
+        Log.d(LOG_TAG, "## sendReadMarkers(): readMarkerEventId " + aReadMarkerEventId + " readReceiptEventId " + aReadReceiptEventId + " in room " + getRoomId());
 
         boolean hasUpdate = false;
 

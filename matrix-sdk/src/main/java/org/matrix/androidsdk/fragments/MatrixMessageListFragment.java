@@ -795,12 +795,24 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
+     * Test if the read marker must be updated with the new message
+     * @param newMessageRow the new message row
+     * @param currentReadMarkerRow the current read marker row
+     * @return true if the read marker can be updated
+     */
+    private boolean canUpdateReadMarker(MessageRow newMessageRow, MessageRow currentReadMarkerRow) {
+        return (currentReadMarkerRow != null &&
+            mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
+            && newMessageRow.getEvent().getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs);
+    }
+
+    /**
      * Provides the read "marked row".
      * The closest row is provided if it is not displayed
      *
      * @return the currentReadMarkerRow
      */
-    private MessageRow getReadMarkerMessageRow() {
+    private MessageRow getReadMarkerMessageRow(MessageRow newMessageRow) {
         final String currentReadMarkerEventId = mRoom.getReadMarkerEventId();
         MessageRow currentReadMarkerRow = mAdapter.getMessageRow(currentReadMarkerEventId);
 
@@ -811,6 +823,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             if ((null != readMarkedEvent) && !canAddEvent(readMarkedEvent)) {
                 // retrieve the previous displayed event
                 currentReadMarkerRow = mAdapter.getClosestRowFromTs(readMarkedEvent.eventId, readMarkedEvent.getOriginServerTs());
+
+                // the undisplayable event might be in the middle of two displayable events
+                // or it is the last known event
+                if ((null != currentReadMarkerRow) && !canUpdateReadMarker(newMessageRow, currentReadMarkerRow)) {
+                    currentReadMarkerRow = null;
+                }
 
                 // use the next one
                 if (null == currentReadMarkerRow) {
@@ -831,16 +849,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             Event event = new Event(message, mSession.getCredentials().userId, mRoom.getRoomId());
             mRoom.storeOutgoingEvent(event);
 
-            // Move read marker if necessary
-            MessageRow currentReadMarkerRow = getReadMarkerMessageRow();
-
             MessageRow newMessageRow = new MessageRow(event, mRoom.getState());
             mAdapter.add(newMessageRow);
 
-            if (currentReadMarkerRow != null &&
-                    mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
-                    && event.getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs) {
+            // Move read marker if necessary
+            MessageRow currentReadMarkerRow = getReadMarkerMessageRow(newMessageRow);
 
+            if (canUpdateReadMarker(newMessageRow, currentReadMarkerRow)) {
                 View childView = mMessageListView.getChildAt(mMessageListView.getChildCount() - 1);
 
                 // Previous message was the last read
@@ -1047,26 +1062,29 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
 
                 private void commonFailure(final Event event) {
-                    if (null != MatrixMessageListFragment.this.getActivity()) {
-                        getUiHandler().post(new Runnable() {
-                            @Override
-                            public void run() {
+                    getUiHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Activity activity = getActivity();
+
+                            if (null != activity) {
                                 // display the error message only if the message cannot be resent
                                 if ((null != event.unsentException) && (event.isUndeliverable())) {
                                     if ((event.unsentException instanceof RetrofitError) && ((RetrofitError) event.unsentException).isNetworkError()) {
-                                        Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + getActivity().getString(R.string.network_error), Toast.LENGTH_LONG).show();
+                                        Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + getActivity().getString(R.string.network_error), Toast.LENGTH_LONG).show();
                                     } else {
-                                        Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                                        Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                                     }
                                 } else if (null != event.unsentMatrixError) {
-                                    Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.getLocalizedMessage() + ".", Toast.LENGTH_LONG).show();
+                                    Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.getLocalizedMessage() + ".", Toast.LENGTH_LONG).show();
                                 }
+
 
                                 mAdapter.notifyDataSetChanged();
                                 onMessageSendingFailed(event);
                             }
-                        });
-                    }
+                        }
+                    });
                 }
 
                 @Override
@@ -1303,6 +1321,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         // update the event content with the new message info
                         messageRow.getEvent().updateContent(JsonUtils.toJson(message));
 
+                        // force to save the room events list
+                        // https://github.com/vector-im/riot-android/issues/1390
+                        mSession.getDataHandler().getStore().flushRoomEvents(mRoom.getRoomId());
+
                         Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
                         send(messageRow);
@@ -1511,6 +1533,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             // update the event content with the new message info
                             videoRow.getEvent().updateContent(JsonUtils.toJson(fVideoMessage));
 
+                            // force to save the room events list
+                            // https://github.com/vector-im/riot-android/issues/1390
+                            mSession.getDataHandler().getStore().flushRoomEvents(mRoom.getRoomId());
+
                             Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
                             send(videoRow);
@@ -1527,6 +1553,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                             // update the event content with the new message info
                             videoRow.getEvent().updateContent(JsonUtils.toJson(fVideoMessage));
+
+                            // force to save the room events list
+                            // https://github.com/vector-im/riot-android/issues/1390
+                            mSession.getDataHandler().getStore().flushRoomEvents(mRoom.getRoomId());
 
                             // upload the video
                             uploadVideoContent(fVideoMessage, videoRow, thumbnailUrl, thumbnailMimeType, videoUrl, fVideoMessage.body, videoMimeType);
@@ -1689,6 +1719,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             // update the event content with the new message info
                             imageRow.getEvent().updateContent(JsonUtils.toJson(fImageMessage));
 
+                            // force to save the room events list
+                            // https://github.com/vector-im/riot-android/issues/1390
+                            mSession.getDataHandler().getStore().flushRoomEvents(mRoom.getRoomId());
+
                             // upload the high res picture
                             uploadImageContent(fImageMessage, imageRow, contentUri, anImageUrl, mediaFilename, fMimeType);
                         } else {
@@ -1705,6 +1739,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                             // update the event content with the new message info
                             imageRow.getEvent().updateContent(JsonUtils.toJson(fImageMessage));
+
+                            // force to save the room events list
+                            // https://github.com/vector-im/riot-android/issues/1390
+                            mSession.getDataHandler().getStore().flushRoomEvents(mRoom.getRoomId());
 
                             Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
@@ -2060,15 +2098,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param error the error object.
      */
     private void onPaginateRequestError(final Object error) {
-        if (null != MatrixMessageListFragment.this.getActivity()) {
+        Activity activity = getActivity();
+
+        if (null != activity) {
             if (error instanceof Exception) {
                 Log.e(LOG_TAG, "Network error: " + ((Exception) error).getMessage());
-                Toast.makeText(MatrixMessageListFragment.this.getActivity(), getActivity().getString(R.string.network_error), Toast.LENGTH_SHORT).show();
+                Toast.makeText(activity, activity.getString(R.string.network_error), Toast.LENGTH_SHORT).show();
 
             } else if (error instanceof MatrixError) {
                 final MatrixError matrixError = (MatrixError) error;
                 Log.e(LOG_TAG, "Matrix error" + " : " + matrixError.errcode + " - " + matrixError.getLocalizedMessage());
-                Toast.makeText(MatrixMessageListFragment.this.getActivity(), getActivity().getString(R.string.matrix_error) + " : " + matrixError.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(activity, activity.getString(R.string.matrix_error) + " : " + matrixError.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
             }
 
             hideLoadingBackProgress();
@@ -2443,12 +2483,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                     // Move read marker if necessary
                     if (!mAdapter.isInBackground() && mEventTimeLine != null && mEventTimeLine.isLiveTimeline()) {
-                        MessageRow currentReadMarkerRow = getReadMarkerMessageRow();
+                        MessageRow currentReadMarkerRow = getReadMarkerMessageRow(newMessageRow);
 
-                        if (currentReadMarkerRow != null &&
-                                mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
-                                && event.getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs) {
-
+                        if (canUpdateReadMarker(newMessageRow, currentReadMarkerRow)) {
                             if (0 == mMessageListView.getChildCount()) {
                                 mMessageListView.post(new Runnable() {
                                     @Override

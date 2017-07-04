@@ -401,6 +401,7 @@ public class RoomSummary implements java.io.Serializable {
      * @param eventId the read receipt event id.
      */
     public void setReadReceiptEventId(String eventId) {
+        Log.d(LOG_TAG, "## setReadReceiptEventId() : " + eventId + " roomId " + getRoomId());
         mReadReceiptEventId = eventId;
     }
 
@@ -417,6 +418,8 @@ public class RoomSummary implements java.io.Serializable {
      * @param eventId the read marker event id.
      */
     public void setReadMarkerEventId(String eventId) {
+        Log.d(LOG_TAG, "## setReadMarkerEventId() : " + eventId + " roomId " + getRoomId());
+
         if (TextUtils.isEmpty(eventId)) {
             Log.e(LOG_TAG, "## setReadMarkerEventId') : null mReadMarkerEventId, in " + getRoomId());
         }
@@ -442,6 +445,7 @@ public class RoomSummary implements java.io.Serializable {
      * @param count the unread events count.
      */
     public void setUnreadEventsCount(int count) {
+        Log.d(LOG_TAG, "## setUnreadEventsCount() : " + count + " roomId " + getRoomId());
         mUnreadEventsCount = count;
     }
 
@@ -458,6 +462,7 @@ public class RoomSummary implements java.io.Serializable {
      * @param count the notification counter
      */
     public void setNotificationCount(int count) {
+        Log.d(LOG_TAG, "## setNotificationCount() : " + count + " roomId " + getRoomId());
         mNotificationCount = count;
     }
 
@@ -474,6 +479,7 @@ public class RoomSummary implements java.io.Serializable {
      * @param count the highlight counter
      */
     public void setHighlightCount(int count) {
+        Log.d(LOG_TAG, "## setHighlightCount() : " + count + " roomId " + getRoomId());
         mHighlightsCount = count;
     }
 

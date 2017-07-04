@@ -740,6 +740,11 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
+    public void flushRoomEvents(String roomId) {
+        // NOP
+    }
+
+    @Override
     public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, EventTimeline.Direction direction) {
         try {
             if (null != roomId) {
