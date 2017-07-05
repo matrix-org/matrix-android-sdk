@@ -1897,7 +1897,9 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
 
         ClickableSpan clickable = new ClickableSpan() {
             public void onClick(View view) {
-                mMessagesAdapterEventsListener.onURLClick(Uri.parse(span.getURL()));
+                if (null != mMessagesAdapterEventsListener) {
+                    mMessagesAdapterEventsListener.onURLClick(Uri.parse(span.getURL()));
+                }
             }
         };
         strBuilder.setSpan(clickable, start, end, flags);
