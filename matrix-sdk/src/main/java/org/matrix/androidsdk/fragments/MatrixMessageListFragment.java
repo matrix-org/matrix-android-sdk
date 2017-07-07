@@ -2674,6 +2674,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     @Override
     public void onTimelineInitialized() {
+        if (getActivity() == null || getActivity().isFinishing()) {
+            return;
+        }
+
         mMessageListView.post(new Runnable() {
             @Override
             public void run() {
