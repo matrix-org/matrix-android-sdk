@@ -29,7 +29,7 @@
     <string name="notice_room_visibility_invited">todos los miembros de la sala, desde su invitación.</string>
     <string name="notice_room_visibility_joined">todos los miembros de la sala, desde cuando entraron.</string>
     <string name="notice_room_visibility_shared">todos los miembros.</string>
-    <string name="notice_room_visibility_world_readable">todos.</string>
+    <string name="notice_room_visibility_world_readable">cualquiera.</string>
     <string name="notice_room_visibility_unknown">desconocido (%s).</string>
     <string name="notice_end_to_end">%1$s activó el cifrado de extremo a extremo (%2$s)</string>
 
