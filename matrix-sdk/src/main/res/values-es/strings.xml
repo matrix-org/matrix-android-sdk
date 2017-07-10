@@ -34,7 +34,7 @@
     <string name="notice_end_to_end">%1$s activó el cifrado de extremo a extremo (%2$s)</string>
 
     <string name="notice_requested_voip_conference">%1$s solicitó una conferencia VoIP</string>
-    <string name="notice_voip_started">conferencia VoIP comenzó</string>
+    <string name="notice_voip_started">conferencia VoIP iniciada</string>
     <string name="notice_voip_finished">conferencia VoIP finalizó</string>
 
     <string name="notice_avatar_changed_too">(foto de perfil tambien se cambió)</string>
