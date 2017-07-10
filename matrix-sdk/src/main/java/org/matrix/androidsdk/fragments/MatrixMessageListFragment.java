@@ -2681,6 +2681,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mMessageListView.post(new Runnable() {
             @Override
             public void run() {
+                // reported by a rageshake
+                if (null == getActivity()) {
+                    Log.e(LOG_TAG, "## onTimelineInitialized : the fragment is not anymore attached to an activity");
+                    return;
+                }
+
                 mLockFwdPagination = false;
                 mIsInitialSyncing = false;
                 // search the event pos in the adapter
