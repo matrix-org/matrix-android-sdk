@@ -11,7 +11,7 @@
     <string name="notice_room_join">%1$s entro</string>
     <string name="notice_room_leave">%1$s salió</string>
     <string name="notice_room_reject">%1$s rechazó la invitación</string>
-    <string name="notice_room_kick">%1$s quitó a %2$s</string>
+    <string name="notice_room_kick">%1$s echó a %2$s</string>
     <string name="notice_room_unban">%1$s desprohibió a %2$s</string>
     <string name="notice_room_ban">%1$s prohibió %2$s</string>
     <string name="notice_room_withdraw">%1$s retiró la invitación de %2$s</string>
@@ -35,7 +35,7 @@
 
     <string name="notice_requested_voip_conference">%1$s solicitó una conferencia VoIP</string>
     <string name="notice_voip_started">conferencia VoIP iniciada</string>
-    <string name="notice_voip_finished">conferencia VoIP finalizó</string>
+    <string name="notice_voip_finished">conferencia VoIP finalizada</string>
 
     <string name="notice_avatar_changed_too">(foto de perfil tambien se cambió)</string>
     <string name="notice_room_name_removed">%1$s retiró el nombre de la sala</string>
@@ -51,7 +51,7 @@
     <string name="notice_crypto_error_unkwown_inbound_session_id">El dispositivo del emisor no nos ha enviado las claves de este mensaje.</string>
 
     <!-- Room Screen -->
-    <string name="could_not_redact">No se pudo redactar</string>
+    <string name="could_not_redact">No se pudo retractar</string>
     <string name="unable_to_send_message">No se pudo enviar el mensaje</string>
 
     <string name="message_failed_to_upload">La subida de la imagen falló</string>
