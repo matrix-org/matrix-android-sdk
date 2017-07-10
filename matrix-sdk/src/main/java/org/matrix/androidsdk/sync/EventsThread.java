@@ -244,6 +244,7 @@ public class EventsThread extends Thread {
         }
 
         mGotFirstCatchupChunk = false;
+        mCatchupSyncRequestsCount = 0;
         mIsCatchingUp = true;
     }
 
@@ -507,10 +508,17 @@ public class EventsThread extends Thread {
 
                                 Log.d(LOG_TAG, "Got " + eventCounts + " useful events while catching up");
 
-                                if (!mGotFirstCatchupChunk) {
-                                    mGotFirstCatchupChunk = (0 != eventCounts);
+                                mCatchupSyncRequestsCount++;
 
-                                    if (mGotFirstCatchupChunk) {
+                                if (!mGotFirstCatchupChunk) {
+                                    mGotFirstCatchupChunk = (0 != eventCounts) || (mCatchupSyncRequestsCount > 1);
+
+                                    if (mCatchupSyncRequestsCount > 1) {
+                                        Log.e(LOG_TAG, "retry " + mCatchupSyncRequestsCount + " times but did not get valid catchup");
+                                        // stop any catch up
+                                        mIsCatchingUp = false;
+                                        mPaused = (0 == mRequestDelayMs);
+                                    } else if (mGotFirstCatchupChunk) {
                                         Log.e(LOG_TAG, "Got first catchup chunk");
                                         mCatchupSyncRequestsCount = 0;
                                     } else {
@@ -519,8 +527,6 @@ public class EventsThread extends Thread {
 
                                     mNextServerTimeoutms = mDefaultServerTimeoutms / 10;
                                 } else {
-                                    mCatchupSyncRequestsCount++;
-
                                     // stop the catchup if no events have been retrieved
                                     // or after 1 sync requests
                                     if ((0 == eventCounts) || (mCatchupSyncRequestsCount > 1)) {
