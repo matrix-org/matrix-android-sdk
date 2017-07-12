@@ -23,6 +23,10 @@ import org.matrix.androidsdk.rest.model.ChangePasswordParams;
 import org.matrix.androidsdk.rest.model.DeleteThreePidParams;
 import org.matrix.androidsdk.rest.model.ForgetPasswordParams;
 import org.matrix.androidsdk.rest.model.ForgetPasswordResponse;
+import org.matrix.androidsdk.rest.model.RequestEmailValidationParams;
+import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
+import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationParams;
+import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
@@ -129,4 +133,44 @@ public interface ProfileApi {
      */
     @POST(RestClient.URI_API_PREFIX_PATH_UNSTABLE + "/account/3pid/delete")
     void delete3PID(@Body DeleteThreePidParams params, Callback<Void> callback);
+
+    /**
+     * Request a validation token for an email
+     * Note: Proxies the identity server API validate/email/requestToken, but first checks that
+     * the given email address is not already associated with an account on this Home Server.
+     *
+     * @param callback
+     */
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/account/3pid/email/requestToken")
+    void requestEmailValidation(@Body RequestEmailValidationParams params, Callback<RequestEmailValidationResponse> callback);
+
+    /**
+     * Request a validation token for an email being added during registration process
+     * Note: Proxies the identity server API validate/email/requestToken, but first checks that
+     * the given email address is not already associated with an account on this Home Server.
+     *
+     * @param callback
+     */
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/register/email/requestToken")
+    void requestEmailValidationForRegistration(@Body RequestEmailValidationParams params, Callback<RequestEmailValidationResponse> callback);
+
+    /**
+     * Request a validation token for a phone number
+     * Note: Proxies the identity server API validate/msisdn/requestToken, but first checks that
+     * the given phone number is not already associated with an account on this Home Server.
+     *
+     * @param callback
+     */
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/account/3pid/msisdn/requestToken")
+    void requestPhoneNumberValidation(@Body RequestPhoneNumberValidationParams params, Callback<RequestPhoneNumberValidationResponse> callback);
+
+    /**
+     * Request a validation token for a phone number being added during registration process
+     * Note: Proxies the identity server API validate/msisdn/requestToken, but first checks that
+     * the given phone number is not already associated with an account on this Home Server.
+     *
+     * @param callback
+     */
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/register/msisdn/requestToken")
+    void requestPhoneNumberValidationForRegistration(@Body RequestPhoneNumberValidationParams params, Callback<RequestPhoneNumberValidationResponse> callback);
 }

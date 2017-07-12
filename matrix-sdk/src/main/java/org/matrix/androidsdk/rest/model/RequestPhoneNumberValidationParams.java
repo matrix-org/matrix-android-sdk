@@ -13,12 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.matrix.androidsdk.rest.model;
 
 /**
- *  Response to a request an phone number validation request
+ * Parameters to request a validation token for a phone number
  */
-public class RequestPhoneNumberValidationResponse {
+public class RequestPhoneNumberValidationParams {
+
+    // the country
+    public String country;
+
+    // the phone number
+    public String phone_number;
 
     // the client secret key
     public String clientSecret;
@@ -26,12 +33,6 @@ public class RequestPhoneNumberValidationResponse {
     // the attempt count
     public Integer sendAttempt;
 
-    // the sid
-    public String sid;
-
-    // the msisdn
-    public String msisdn;
-
-    // phone number international format
-    public String intl_fmt;
+    // the server id
+    public String id_server;
 }
