@@ -284,38 +284,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     private final IMXEventListener mEventsListener = new MXEventListener() {
         @Override
-        public void onPresenceUpdate(Event event, final User user) {
-            // Someone's presence has changed, reprocess the whole list
-            getUiHandler().post(new Runnable() {
-                @Override
-                public void run() {
-                    // check first if the userID has sent some messages in the room history
-                    boolean refresh = mAdapter.containsMessagesFrom(user.user_id);
-
-                    if (refresh) {
-                        // check, if the avatar is currently displayed
-
-                        // The Math.min is required because the adapter and mMessageListView could be unsynchronized.
-                        // ensure there is no IndexOfOutBound exception.
-                        int firstVisibleRow = Math.min(mMessageListView.getFirstVisiblePosition(), mAdapter.getCount());
-                        int lastVisibleRow = Math.min(mMessageListView.getLastVisiblePosition(), mAdapter.getCount());
-
-                        refresh = false;
-
-                        for (int i = firstVisibleRow; i <= lastVisibleRow; i++) {
-                            MessageRow row = mAdapter.getItem(i);
-                            refresh |= TextUtils.equals(user.user_id, row.getEvent().getSender());
-                        }
-                    }
-
-                    if (refresh) {
-                        mAdapter.notifyDataSetChanged();
-                    }
-                }
-            });
-        }
-
-        @Override
         public void onEventEncrypted(Event event) {
             getUiHandler().post(new Runnable() {
                 @Override
@@ -334,7 +302,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
             });
         }
-
     };
 
     /**

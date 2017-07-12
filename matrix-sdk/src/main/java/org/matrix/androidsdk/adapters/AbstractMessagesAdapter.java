@@ -177,11 +177,6 @@ public abstract class AbstractMessagesAdapter extends ArrayAdapter<MessageRow> {
      */
     public abstract int getMaxThumbnailHeight();
 
-    /*
-     * @return true if some messages have been sent from this user
-     */
-    public abstract boolean containsMessagesFrom(String userId);
-
     /**
      * Notify that some bing rules could have been updated.
      */
