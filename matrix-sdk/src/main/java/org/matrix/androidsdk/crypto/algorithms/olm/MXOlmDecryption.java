@@ -113,7 +113,9 @@ public class MXOlmDecryption implements IMXDecrypting {
                             return false;
                         }
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## decryptEvent() : " + e.getMessage());
+                        Log.e(LOG_TAG, "## decryptEvent() : failed to get recipient " + e.getMessage());
+                        event.setCryptoError(new MXCryptoError(MXCryptoError.FORWARDED_MESSAGE_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, e.getMessage()));
+                        return false;
                     }
                 }
 
@@ -131,7 +133,9 @@ public class MXOlmDecryption implements IMXDecrypting {
                             return false;
                         }
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## decryptEvent() : " + e.getMessage());
+                        Log.e(LOG_TAG, "## decryptEvent() : failed to get recipient_keys" + e.getMessage());
+                        event.setCryptoError(new MXCryptoError(MXCryptoError.FORWARDED_MESSAGE_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, e.getMessage()));
+                        return false;
                     }
                 }
 
@@ -150,7 +154,9 @@ public class MXOlmDecryption implements IMXDecrypting {
                         }
                     }
                     catch (Exception e) {
-                        Log.e(LOG_TAG, "## decryptEvent() : " + e.getMessage());
+                        Log.e(LOG_TAG, "## decryptEvent() : failed to get sender" + e.getMessage());
+                        event.setCryptoError(new MXCryptoError(MXCryptoError.FORWARDED_MESSAGE_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, e.getMessage()));
+                        return false;
                     }
                 }
 
@@ -161,7 +167,9 @@ public class MXOlmDecryption implements IMXDecrypting {
                         expectedRoomId = payloadAsJSon.get("room_id").getAsString();
                     }
                     catch (Exception e) {
-                        Log.e(LOG_TAG, "## decryptEvent() : " + e.getMessage());
+                        Log.e(LOG_TAG, "## decryptEvent() : failed to get room_id" + e.getMessage());
+                        event.setCryptoError(new MXCryptoError(MXCryptoError.FORWARDED_MESSAGE_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, e.getMessage()));
+                        return false;
                     }
                 }
 
@@ -186,6 +194,8 @@ public class MXOlmDecryption implements IMXDecrypting {
             event.setCryptoError(null);
         } catch (Exception e) {
             Log.e(LOG_TAG, "## decryptEvent failed " + e.getMessage());
+            event.setCryptoError(new MXCryptoError(MXCryptoError.BAD_ROOM_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, String.format(MXCryptoError.BAD_ROOM_REASON, expectedRoomId)));
+            return false;
         }
 
         return (null != event.getClearEvent());
