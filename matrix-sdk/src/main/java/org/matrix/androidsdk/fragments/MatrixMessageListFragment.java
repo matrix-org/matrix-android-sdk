@@ -2480,10 +2480,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             ArrayList<String> eventIds = new ArrayList<>();
 
             for (int index = firstPos; index <= lastPos; index++) {
-                MessageRow row = mAdapter.getItem(index);
+                Event event = mAdapter.getItem(index).getEvent();
 
-                senders.add(row.getEvent().getSender());
-                eventIds.add(row.getEvent().eventId);
+                if ((null != event.getSender()) && (null != event.eventId)) {
+                    senders.add(event.getSender());
+                    eventIds.add(event.eventId);
+                }
             }
 
             shouldRefresh = false;
