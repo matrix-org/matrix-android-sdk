@@ -1893,17 +1893,19 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
     private void makeLinkClickable(SpannableStringBuilder strBuilder, final URLSpan span) {
         int start = strBuilder.getSpanStart(span);
         int end = strBuilder.getSpanEnd(span);
-        int flags = strBuilder.getSpanFlags(span);
 
-        ClickableSpan clickable = new ClickableSpan() {
-            public void onClick(View view) {
-                if (null != mMessagesAdapterEventsListener) {
-                    mMessagesAdapterEventsListener.onURLClick(Uri.parse(span.getURL()));
+        if (start >= 0 && end >= 0) {
+            int flags = strBuilder.getSpanFlags(span);
+            ClickableSpan clickable = new ClickableSpan() {
+                public void onClick(View view) {
+                    if (null != mMessagesAdapterEventsListener) {
+                        mMessagesAdapterEventsListener.onURLClick(Uri.parse(span.getURL()));
+                    }
                 }
-            }
-        };
-        strBuilder.setSpan(clickable, start, end, flags);
-        strBuilder.removeSpan(span);
+            };
+            strBuilder.setSpan(clickable, start, end, flags);
+            strBuilder.removeSpan(span);
+        }
     }
 
     /**
