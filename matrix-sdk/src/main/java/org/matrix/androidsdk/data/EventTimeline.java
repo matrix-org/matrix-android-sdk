@@ -710,7 +710,11 @@ public class EventTimeline {
                     // remove expected keys
                     eventToPrune.prune(event);
 
+                    // store the prune event
                     storeEvent(eventToPrune);
+
+                    // store the redaction event too (for the read markers management)
+                    storeEvent(event);
 
                     // the redaction check must not be done during an initial sync
                     // or the redacted event is received with roomSync.timeline.limited
