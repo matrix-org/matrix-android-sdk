@@ -1159,13 +1159,6 @@ public class MXFileStore extends MXMemoryStore {
                     Log.d(LOG_TAG, "## loadRoomMessages() : the room " + roomId + " has " + events.size() + " stored events : we need to find a way to reduce it.");
                 }
 
-                ArrayList<String> eventIds = mRoomEventIds.get(roomId);
-
-                if (null == eventIds) {
-                    eventIds = new ArrayList<>();
-                    mRoomEventIds.put(roomId, eventIds);
-                }
-
                 long undeliverableTs = 1L << 50;
 
                 // finalizes the deserialization
@@ -1180,8 +1173,6 @@ public class MXFileStore extends MXMemoryStore {
                         event.originServerTs = undeliverableTs++;
                         shouldSave = true;
                     }
-
-                    eventIds.add(event.eventId);
                 }
             } else {
                 return false;
