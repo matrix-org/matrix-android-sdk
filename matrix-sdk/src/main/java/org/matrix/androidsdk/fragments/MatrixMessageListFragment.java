@@ -20,14 +20,12 @@ package org.matrix.androidsdk.fragments;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.provider.Browser;
 import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -37,7 +35,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
-import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -45,8 +42,8 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
+import org.matrix.androidsdk.adapters.AbstractMessagesAdapter;
 import org.matrix.androidsdk.adapters.MessageRow;
-import org.matrix.androidsdk.adapters.MessagesAdapter;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.data.EventTimeline;
@@ -73,7 +70,6 @@ import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResult;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoMessage;
-import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
@@ -95,7 +91,7 @@ import retrofit.RetrofitError;
  * UI Fragment containing matrix messages for a given room.
  * Contains {@link MatrixMessagesFragment} as a nested fragment to do the work.
  */
-public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener, MessagesAdapter.MessagesAdapterEventsListener {
+public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener{
 
     // search interface
     public interface OnSearchResultListener {
@@ -196,7 +192,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     private MatrixMessagesFragment mMatrixMessagesFragment;
-    protected MessagesAdapter mAdapter;
+    protected AbstractMessagesAdapter mAdapter;
     public ListView mMessageListView;
     protected Handler mUiHandler;
     protected MXSession mSession;
@@ -231,8 +227,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     protected ArrayList<Event> mResendingEventsList;
     private final HashMap<String, Timer> mPendingRelaunchTimersByEventId = new HashMap<>();
-
-    private final HashMap<String, Object> mBingRulesByEventId = new HashMap<>();
 
     // scroll to to the dedicated index when the device has been rotated
     private int mFirstVisibleRow = -1;
@@ -290,43 +284,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     private final IMXEventListener mEventsListener = new MXEventListener() {
         @Override
-        public void onPresenceUpdate(Event event, final User user) {
-            // Someone's presence has changed, reprocess the whole list
-            getUiHandler().post(new Runnable() {
-                @Override
-                public void run() {
-                    // check first if the userID has sent some messages in the room history
-                    boolean refresh = mAdapter.isDisplayedUser(user.user_id);
-
-                    if (refresh) {
-                        // check, if the avatar is currently displayed
-
-                        // The Math.min is required because the adapter and mMessageListView could be unsynchronized.
-                        // ensure there is no IndexOfOutBound exception.
-                        int firstVisibleRow = Math.min(mMessageListView.getFirstVisiblePosition(), mAdapter.getCount());
-                        int lastVisibleRow = Math.min(mMessageListView.getLastVisiblePosition(), mAdapter.getCount());
-
-                        refresh = false;
-
-                        for (int i = firstVisibleRow; i <= lastVisibleRow; i++) {
-                            MessageRow row = mAdapter.getItem(i);
-                            refresh |= TextUtils.equals(user.user_id, row.getEvent().getSender());
-                        }
-                    }
-
-                    if (refresh) {
-                        mAdapter.notifyDataSetChanged();
-                    }
-                }
-            });
-        }
-
-        @Override
-        public void onBingRulesUpdate() {
-            mBingRulesByEventId.clear();
-        }
-
-        @Override
         public void onEventEncrypted(Event event) {
             getUiHandler().post(new Runnable() {
                 @Override
@@ -345,7 +302,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
             });
         }
-
     };
 
     /**
@@ -535,18 +491,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         // so ensure that the room fields are properly initialized
         mSession.getDataHandler().checkRoom(mRoom);
 
-        // sanity check
-        if (null != mRoom) {
-            mAdapter.setTypingUsers(mRoom.getTypingUsers());
-        }
-
-        mMessageListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                MatrixMessageListFragment.this.onRowClick(position);
-            }
-        });
-
         mMessageListView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -625,17 +569,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mEventSendingListener = null;
         mActivityOnScrollListener = null;
 
-        // clear maps
-        mBingRulesByEventId.clear();
-
         // check if the session has not been logged out
         if (null != mRoom) {
             mRoom.removeEventListener(mEventsListener);
-        }
-
-        if (null != mAdapter) {
-            mAdapter.setMessagesAdapterEventsListener(null);
-            mAdapter.setIsInBackground(true);
         }
 
         cancelCatchingRequests();
@@ -664,11 +600,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             } else {
                 Log.e(LOG_TAG, "the room " + mRoom.getRoomId() + " does not exist anymore");
             }
-        }
-
-        if (null != mAdapter) {
-            mAdapter.setMessagesAdapterEventsListener(this);
-            mAdapter.setIsInBackground(false);
         }
 
         // a room history filling was suspended because the fragment was not active
@@ -706,7 +637,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      *
      * @return the messages adapter.
      */
-    public MessagesAdapter createMessagesAdapter() {
+    public AbstractMessagesAdapter createMessagesAdapter() {
         return null;
     }
 
@@ -751,7 +682,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
-     * Notify the fragment that some bing rules could have been updated.
+     * Notify the adapter that some bing rules could have been updated.
      */
     public void onBingRulesUpdate() {
         mAdapter.onBingRulesUpdate();
@@ -2471,10 +2402,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                     mAdapter.notifyDataSetChanged();
                 }
-            } else if (Event.EVENT_TYPE_TYPING.equals(event.getType())) {
-                if (null != mRoom) {
-                    mAdapter.setTypingUsers(mRoom.getTypingUsers());
-                }
             } else {
                 if (canAddEvent(event)) {
                     // refresh the listView only when it is a live timeline or a search
@@ -2482,7 +2409,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     mAdapter.add(newMessageRow, (null == mEventTimeLine) || mEventTimeLine.isLiveTimeline());
 
                     // Move read marker if necessary
-                    if (!mAdapter.isInBackground() && mEventTimeLine != null && mEventTimeLine.isLiveTimeline()) {
+                    if (isResumed() && mEventTimeLine != null && mEventTimeLine.isLiveTimeline()) {
                         MessageRow currentReadMarkerRow = getReadMarkerMessageRow(newMessageRow);
 
                         if (canUpdateReadMarker(newMessageRow, currentReadMarkerRow)) {
@@ -2517,7 +2444,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
         } else {
             if (canAddEvent(event)) {
-                mAdapter.addToFront(event, roomState);
+                mAdapter.addToFront(new MessageRow(event, roomState));
             }
         }
     }
@@ -2553,10 +2480,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             ArrayList<String> eventIds = new ArrayList<>();
 
             for (int index = firstPos; index <= lastPos; index++) {
-                MessageRow row = mAdapter.getItem(index);
+                Event event = mAdapter.getItem(index).getEvent();
 
-                senders.add(row.getEvent().getSender());
-                eventIds.add(row.getEvent().eventId);
+                if ((null != event.getSender()) && (null != event.eventId)) {
+                    senders.add(event.getSender());
+                    eventIds.add(event.eventId);
+                }
             }
 
             shouldRefresh = false;
@@ -2759,143 +2688,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     @Override
     public void onRoomFlush() {
         mAdapter.clear();
-    }
-
-    /***
-     * MessageAdapter listener
-     ***/
-    @Override
-    public void onRowClick(int position) {
-    }
-
-    @Override
-    public boolean onRowLongClick(int position) {
-        return false;
-    }
-
-    @Override
-    public void onContentClick(int position) {
-    }
-
-    @Override
-    public boolean onContentLongClick(int position) {
-        return false;
-    }
-
-    @Override
-    public void onAvatarClick(String userId) {
-    }
-
-    @Override
-    public boolean onAvatarLongClick(String userId) {
-        return false;
-    }
-
-    @Override
-    public void onSenderNameClick(String userId, String displayName) {
-    }
-
-    @Override
-    public void onMediaDownloaded(int position) {
-    }
-
-    @Override
-    public void onReadReceiptClick(String eventId, String userId, ReceiptData receipt) {
-    }
-
-    @Override
-    public boolean onReadReceiptLongClick(String eventId, String userId, ReceiptData receipt) {
-        return false;
-    }
-
-    @Override
-    public void onMoreReadReceiptClick(String eventId) {
-    }
-
-    @Override
-    public boolean onMoreReadReceiptLongClick(String eventId) {
-        return false;
-    }
-
-    @Override
-    public void onURLClick(Uri uri) {
-        if (null != uri) {
-            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-            intent.putExtra(Browser.EXTRA_APPLICATION_ID, getActivity().getPackageName());
-            getActivity().startActivity(intent);
-        }
-    }
-
-    @Override
-    public boolean shouldHighlightEvent(Event event) {
-        String eventId = event.eventId;
-
-        // cache the dedicated rule because it is slow to find them out
-        Object ruleAsVoid = mBingRulesByEventId.get(eventId);
-
-        if (null != ruleAsVoid) {
-            if (ruleAsVoid instanceof BingRule) {
-                return ((BingRule) ruleAsVoid).shouldHighlight();
-            }
-            return false;
-        }
-
-        boolean res = false;
-
-        BingRule rule = mSession.getDataHandler().getBingRulesManager().fulfilledBingRule(event);
-
-        if (null != rule) {
-            res = rule.shouldHighlight();
-            mBingRulesByEventId.put(eventId, rule);
-        } else {
-            mBingRulesByEventId.put(eventId, eventId);
-        }
-
-        return res;
-    }
-
-    @Override
-    public void onMatrixUserIdClick(String userId) {
-    }
-
-    @Override
-    public void onRoomAliasClick(String roomAlias) {
-    }
-
-    @Override
-    public void onRoomIdClick(String roomId) {
-    }
-
-    @Override
-    public void onMessageIdClick(String messageId) {
-    }
-
-    private int mInvalidIndexesCount = 0;
-
-    @Override
-    public void onInvalidIndexes() {
-        mInvalidIndexesCount++;
-
-        // it should happen once
-        // else we assume that the adapter is really corrupted
-        // It seems better to close the linked activity to avoid infinite refresh.
-        if (1 == mInvalidIndexesCount) {
-            mMessageListView.post(new Runnable() {
-                @Override
-                public void run() {
-                    mAdapter.notifyDataSetChanged();
-                }
-            });
-        } else {
-            mMessageListView.post(new Runnable() {
-                @Override
-                public void run() {
-                    if (null != getActivity()) {
-                        getActivity().finish();
-                    }
-                }
-            });
-        }
     }
 
     //==============================================================================================================
