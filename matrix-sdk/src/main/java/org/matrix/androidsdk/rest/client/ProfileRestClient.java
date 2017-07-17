@@ -17,27 +17,30 @@ package org.matrix.androidsdk.rest.client;
 
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.rest.model.DeleteThreePidParams;
-import org.matrix.androidsdk.util.Log;
-
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.ProfileApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.model.AccountThreePidsResponse;
 import org.matrix.androidsdk.rest.model.AddThreePidsParams;
 import org.matrix.androidsdk.rest.model.AuthParams;
 import org.matrix.androidsdk.rest.model.ChangePasswordParams;
+import org.matrix.androidsdk.rest.model.DeleteThreePidParams;
 import org.matrix.androidsdk.rest.model.ForgetPasswordParams;
 import org.matrix.androidsdk.rest.model.ForgetPasswordResponse;
+import org.matrix.androidsdk.rest.model.RequestEmailValidationParams;
+import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
+import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationParams;
+import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationResponse;
 import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.ThreePid;
 import org.matrix.androidsdk.rest.model.ThreePidCreds;
-import org.matrix.androidsdk.rest.model.AccountThreePidsResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.List;
 import java.util.Map;
@@ -286,6 +289,104 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         });
     }
 
+    /**
+     * Request an email validation token.
+     *
+     * @param address              the email address
+     * @param clientSecret         the client secret number
+     * @param attempt              the attempt count
+     * @param nextLink             the next link
+     * @param isDuringRegistration true if it occurs during a registration flow
+     * @param callback             the callback
+     */
+    public void requestEmailValidationToken(final String address, final String clientSecret, final int attempt,
+                                            final String nextLink, final boolean isDuringRegistration,
+                                            final ApiCallback<RequestEmailValidationResponse> callback) {
+        final String description = "requestEmailValidationToken";
+
+        RequestEmailValidationParams params = new RequestEmailValidationParams();
+        params.email = address;
+        params.clientSecret = clientSecret;
+        params.sendAttempt = attempt;
+        params.id_server = mHsConfig.getIdentityServerUri().getHost();
+        if (!TextUtils.isEmpty(nextLink)) {
+            params.next_link = nextLink;
+        }
+
+        final RestAdapterCallback<RequestEmailValidationResponse> adapterCallback = new RestAdapterCallback<RequestEmailValidationResponse>(description, mUnsentEventsManager, callback,
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        requestEmailValidationToken(address, clientSecret, attempt, nextLink, isDuringRegistration, callback);
+                    }
+                }
+        ) {
+            @Override
+            public void success(RequestEmailValidationResponse requestEmailValidationResponse, Response response) {
+                onEventSent();
+                requestEmailValidationResponse.email = address;
+                requestEmailValidationResponse.clientSecret = clientSecret;
+                requestEmailValidationResponse.sendAttempt = attempt;
+
+                callback.onSuccess(requestEmailValidationResponse);
+            }
+        };
+
+        if (isDuringRegistration) {
+            // URL differs in that case
+            mApi.requestEmailValidationForRegistration(params, adapterCallback);
+        } else {
+            mApi.requestEmailValidation(params, adapterCallback);
+        }
+    }
+
+    /**
+     * Request a phone number validation token.
+     *
+     * @param phoneNumber          the phone number
+     * @param countryCode          the country code of the phone number
+     * @param clientSecret         the client secret number
+     * @param attempt              the attempt count
+     * @param isDuringRegistration true if it occurs during a registration flow
+     * @param callback             the callback
+     */
+    public void requestPhoneNumberValidationToken(final String phoneNumber, final String countryCode,
+                                                  final String clientSecret, final int attempt,
+                                                  final boolean isDuringRegistration, final ApiCallback<RequestPhoneNumberValidationResponse> callback) {
+        final String description = "requestPhoneNumberValidationToken";
+
+        RequestPhoneNumberValidationParams params = new RequestPhoneNumberValidationParams();
+        params.phone_number = phoneNumber;
+        params.country = countryCode;
+        params.clientSecret = clientSecret;
+        params.sendAttempt = attempt;
+        params.id_server = mHsConfig.getIdentityServerUri().getHost();
+
+        final RestAdapterCallback<RequestPhoneNumberValidationResponse> adapterCallback = new RestAdapterCallback<RequestPhoneNumberValidationResponse>(description, mUnsentEventsManager, callback,
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        requestPhoneNumberValidationToken(phoneNumber, countryCode, clientSecret, attempt, isDuringRegistration, callback);
+                    }
+                }
+        ) {
+            @Override
+            public void success(RequestPhoneNumberValidationResponse requestPhoneNumberValidationResponse, Response response) {
+                onEventSent();
+                requestPhoneNumberValidationResponse.clientSecret = clientSecret;
+                requestPhoneNumberValidationResponse.sendAttempt = attempt;
+
+                callback.onSuccess(requestPhoneNumberValidationResponse);
+            }
+        };
+
+        if (isDuringRegistration) {
+            // URL differs in that case
+            mApi.requestPhoneNumberValidationForRegistration(params, adapterCallback);
+        } else {
+            mApi.requestPhoneNumberValidation(params, adapterCallback);
+        }
+    }
 
     /**
      * Add an 3Pids to an user

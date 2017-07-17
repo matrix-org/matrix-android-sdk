@@ -38,7 +38,6 @@ public interface LoginApi {
     @GET("/login")
     void login(Callback<LoginFlowResponse> callback);
 
-
     /**
      * Try to create an account
      * @param callback the asynchronous callback called with the response
