@@ -22,11 +22,6 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
-import org.matrix.androidsdk.util.Log;
-
 import com.google.gson.JsonElement;
 import com.google.gson.reflect.TypeToken;
 
@@ -36,11 +31,12 @@ import org.matrix.androidsdk.crypto.algorithms.IMXEncrypting;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
 import org.matrix.androidsdk.crypto.data.MXKey;
+import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
-import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
@@ -51,8 +47,10 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.NewDeviceContent;
 import org.matrix.androidsdk.rest.model.RoomKeyContent;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
@@ -1355,7 +1353,11 @@ public class MXCrypto {
                     result = alg.decryptEvent(event, timeline);
 
                     if (!result) {
-                        Log.e(LOG_TAG, "## decryptEvent() : failed " + event.getCryptoError().getDetailedErrorDescription());
+                        if (event.getCryptoError() != null) {
+                            Log.e(LOG_TAG, "## decryptEvent() : failed " + event.getCryptoError().getDetailedErrorDescription());
+                        } else {
+                            Log.e(LOG_TAG, "## decryptEvent() : failed, crypto error is null");
+                        }
                     }
                 }
                 results.add(result);
