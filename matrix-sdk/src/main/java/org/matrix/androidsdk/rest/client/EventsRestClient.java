@@ -31,8 +31,12 @@ import org.matrix.androidsdk.rest.model.PublicRoomsResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchParams;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchRoomEventCategoryParams;
+import org.matrix.androidsdk.rest.model.Search.SearchUsersParams;
+import org.matrix.androidsdk.rest.model.Search.SearchUsersRequestResponse;
+import org.matrix.androidsdk.rest.model.Search.SearchUsersResponse;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.ThirdPartyProtocol;
+import org.matrix.androidsdk.rest.model.User;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,8 +52,9 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
     private static final int EVENT_STREAM_TIMEOUT_MS = 30000;
 
-    private String mSearchPatternIdentifier = null;
-    private String mSearchMediaNameIdentifier = null;
+    private String mSearchEventsPatternIdentifier = null;
+    private String mSearchEventsMediaNameIdentifier = null;
+    private String mSearchUsersPatternIdentifier = null;
 
     /**
      * {@inheritDoc}
@@ -164,6 +169,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
         }));
     }
 
+
     /**
      * Synchronise the client's state and receive new messages. Based on server sync C-S v2 API.
      * <p>
@@ -251,17 +257,17 @@ public class EventsRestClient extends RestClient<EventsApi> {
         final String description = "searchMessageText";
 
         final String uid = System.currentTimeMillis() + "";
-        mSearchPatternIdentifier = uid + text;
+        mSearchEventsPatternIdentifier = uid + text;
 
         // don't retry to send the request
         // if the search fails, stop it
-        mApi.search(searchParams, nextBatch, new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
+        mApi.searchEvents(searchParams, nextBatch, new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
             /**
              * Tells if the current response for the latest request.
              * @return true if it is the response of the latest request.
              */
             private boolean isActiveRequest() {
-                return TextUtils.equals(mSearchPatternIdentifier, uid + text);
+                return TextUtils.equals(mSearchEventsPatternIdentifier, uid + text);
             }
 
             @Override
@@ -271,7 +277,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
                         callback.onSuccess(response);
                     }
 
-                    mSearchPatternIdentifier = null;
+                    mSearchEventsPatternIdentifier = null;
                 }
             }
 
@@ -282,7 +288,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
                         callback.onNetworkError(e);
                     }
 
-                    mSearchPatternIdentifier = null;
+                    mSearchEventsPatternIdentifier = null;
                 }
             }
 
@@ -293,7 +299,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
                         callback.onMatrixError(e);
                     }
 
-                    mSearchPatternIdentifier = null;
+                    mSearchEventsPatternIdentifier = null;
                 }
             }
 
@@ -304,7 +310,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
                         callback.onUnexpectedError(e);
                     }
 
-                    mSearchPatternIdentifier = null;
+                    mSearchEventsPatternIdentifier = null;
                 }
             }
 
@@ -360,27 +366,27 @@ public class EventsRestClient extends RestClient<EventsApi> {
         // not_senders
 
         final String uid = System.currentTimeMillis() + "";
-        mSearchMediaNameIdentifier = uid + name;
+        mSearchEventsMediaNameIdentifier = uid + name;
 
         final String description = "searchMediasByText";
 
         // don't retry to send the request
         // if the search fails, stop it
-        mApi.search(searchParams, nextBatch, new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
+        mApi.searchEvents(searchParams, nextBatch, new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
 
             /**
              * Tells if the current response for the latest request.
              * @return true if it is the response of the latest request.
              */
             private boolean isActiveRequest() {
-                return TextUtils.equals(mSearchMediaNameIdentifier, uid + name);
+                return TextUtils.equals(mSearchEventsMediaNameIdentifier, uid + name);
             }
 
             @Override
             public void onSuccess(SearchResponse newSearchResponse) {
                 if (isActiveRequest()) {
                     callback.onSuccess(newSearchResponse);
-                    mSearchMediaNameIdentifier = null;
+                    mSearchEventsMediaNameIdentifier = null;
                 }
             }
 
@@ -388,7 +394,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
             public void onNetworkError(Exception e) {
                 if (isActiveRequest()) {
                     callback.onNetworkError(e);
-                    mSearchMediaNameIdentifier = null;
+                    mSearchEventsMediaNameIdentifier = null;
                 }
             }
 
@@ -396,7 +402,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
             public void onMatrixError(MatrixError e) {
                 if (isActiveRequest()) {
                     callback.onMatrixError(e);
-                    mSearchMediaNameIdentifier = null;
+                    mSearchEventsMediaNameIdentifier = null;
                 }
             }
 
@@ -404,7 +410,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
             public void onUnexpectedError(Exception e) {
                 if (isActiveRequest()) {
                     callback.onUnexpectedError(e);
-                    mSearchMediaNameIdentifier = null;
+                    mSearchEventsMediaNameIdentifier = null;
                 }
             }
 
@@ -416,17 +422,108 @@ public class EventsRestClient extends RestClient<EventsApi> {
         }));
     }
 
+
+    /**
+     * Search users with a patter,
+     *
+     * @param text        the text to search for.
+     * @param limit       the maximum nbr of users in the response
+     * @param callback    the request callback
+     */
+    public void searchUsers(final String text, final Integer limit, final ApiCallback<SearchUsersResponse> callback) {
+        SearchUsersParams searchParams = new SearchUsersParams();
+
+        searchParams.search_term = text;
+        searchParams.limit = limit;
+
+        final String uid = mSearchUsersPatternIdentifier = System.currentTimeMillis() + " " + text + " " + limit;
+        final String description = "searchUsers";
+
+        // don't retry to send the request
+        // if the search fails, stop it
+        mApi.searchUsers(searchParams,  new RestAdapterCallback<SearchUsersRequestResponse>(description, null, new ApiCallback<SearchUsersRequestResponse>() {
+
+            /**
+             * Tells if the current response for the latest request.
+             * @return true if it is the response of the latest request.
+             */
+            private boolean isActiveRequest() {
+                return TextUtils.equals(mSearchUsersPatternIdentifier, uid);
+            }
+
+            @Override
+            public void onSuccess(SearchUsersRequestResponse aResponse) {
+                if (isActiveRequest()) {
+                    SearchUsersResponse response = new SearchUsersResponse();
+                    response.limited = aResponse.limited;
+                    response.results = new ArrayList<>();
+
+                    if (null != aResponse.results) {
+                        for (SearchUsersRequestResponse.User user : aResponse.results) {
+                            User addedUser = new User();
+                            addedUser.user_id = user.user_id;
+                            addedUser.avatar_url = user.avatar_url;
+                            addedUser.displayname = user.display_name;
+                            response.results.add(addedUser);
+                        }
+                    }
+
+                    callback.onSuccess(response);
+                    mSearchUsersPatternIdentifier = null;
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (isActiveRequest()) {
+                    callback.onNetworkError(e);
+                    mSearchUsersPatternIdentifier = null;
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (isActiveRequest()) {
+                    callback.onMatrixError(e);
+                    mSearchUsersPatternIdentifier = null;
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (isActiveRequest()) {
+                    callback.onUnexpectedError(e);
+                    mSearchUsersPatternIdentifier = null;
+                }
+            }
+
+        }, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                searchUsers(text, limit, callback);
+            }
+        }));
+    }
+
     /**
      * Cancel any pending file search request
      */
     public void cancelSearchMediasByText() {
-        mSearchMediaNameIdentifier = null;
+        mSearchEventsMediaNameIdentifier = null;
     }
 
     /**
      * Cancel any pending search request
      */
     public void cancelSearchMessagesByText() {
-        mSearchPatternIdentifier = null;
+        mSearchEventsPatternIdentifier = null;
     }
+
+    /**
+     * Cancel any pending search request
+     */
+    public void cancelUsersSearch() {
+        mSearchUsersPatternIdentifier = null;
+    }
+
 }

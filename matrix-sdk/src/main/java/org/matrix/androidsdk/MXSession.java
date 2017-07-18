@@ -65,6 +65,7 @@ import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
+import org.matrix.androidsdk.rest.model.Search.SearchUsersResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -1360,6 +1361,29 @@ public class MXSession {
         checkIfAlive();
         mEventsRestClient.cancelSearchMediasByText();
     }
+
+    /**
+     * Perform a remote users search by name / user id
+     *
+     * @param name         the text to search for.
+     * @param callback     the request callback
+     */
+    public void searchUsers(String name, Integer limit, final ApiCallback<SearchUsersResponse> callback) {
+        checkIfAlive();
+
+        if (null != callback) {
+            mEventsRestClient.searchUsers(name, limit, callback);
+        }
+    }
+
+    /**
+     * Cancel any pending user search
+     */
+    public void cancelUsersSearch() {
+        checkIfAlive();
+        mEventsRestClient.cancelUsersSearch();
+    }
+
 
     /**
      * Return the fulfilled active BingRule for the event.
