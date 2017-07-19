@@ -2127,6 +2127,9 @@ public class Room {
                 // remove the tmp event
                 mStore.deleteEvent(event);
 
+                // replace the tmp event id by the final one
+                boolean isReadMarkerUpdated = TextUtils.equals(getReadMarkerEventId(), event.eventId);
+
                 // update the event with the server response
                 event.mSentState = Event.SentState.SENT;
                 event.eventId = serverResponseEvent.eventId;
@@ -2138,7 +2141,7 @@ public class Room {
                 }
 
                 // send the dedicated read receipt asap
-                sendReadReceipt();
+                markAllAsRead(isReadMarkerUpdated, null);
 
                 mStore.commit();
                 mDataHandler.onSentEvent(event);
