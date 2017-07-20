@@ -21,6 +21,8 @@ import org.matrix.androidsdk.rest.model.PublicRoomsParams;
 import org.matrix.androidsdk.rest.model.PublicRoomsResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchParams;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
+import org.matrix.androidsdk.rest.model.Search.SearchUsersParams;
+import org.matrix.androidsdk.rest.model.Search.SearchUsersRequestResponse;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.ThirdPartyProtocol;
 
@@ -73,5 +75,15 @@ public interface EventsApi {
      * @param callback     The search result.
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/search")
-    void search(@Body SearchParams searchParams, @Query("next_batch") String nextBatch, Callback<SearchResponse> callback);
+    void searchEvents(@Body SearchParams searchParams, @Query("next_batch") String nextBatch, Callback<SearchResponse> callback);
+
+
+    /**
+     * Perform an users search.
+     *
+     * @param searchUsersParams the search params.
+     * @param callback     The search result.
+     */
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/user_directory/search")
+    void searchUsers(@Body SearchUsersParams searchUsersParams, Callback<SearchUsersRequestResponse> callback);
 }
