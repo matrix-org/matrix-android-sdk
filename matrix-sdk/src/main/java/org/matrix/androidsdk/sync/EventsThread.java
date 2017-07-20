@@ -140,8 +140,15 @@ public class EventsThread extends Thread {
 
         Log.d(LOG_TAG, "## setSyncDelay() : " + mRequestDelayMs + " with state " + getState());
 
-        if (State.WAITING == getState() && !mPaused) {
-            Log.d(LOG_TAG, "## setSyncDelay() : resume the application");
+        if (State.WAITING == getState() && (!mPaused || (0 == mRequestDelayMs) &&  mIsCatchingUp)) {
+            if (!mPaused) {
+                Log.d(LOG_TAG, "## setSyncDelay() : resume the application");
+            }
+
+            if ((0 == mRequestDelayMs) && mIsCatchingUp) {
+                Log.d(LOG_TAG, "## setSyncDelay() : cancel catchup");
+                mIsCatchingUp = false;
+            }
 
             // and sync asap
             synchronized (mSyncObject) {
