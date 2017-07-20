@@ -89,6 +89,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -1368,11 +1369,11 @@ public class MXSession {
      * @param name         the text to search for.
      * @param callback     the request callback
      */
-    public void searchUsers(String name, Integer limit, final ApiCallback<SearchUsersResponse> callback) {
+    public void searchUsers(String name, Integer limit, Set<String> userIdsFilter, final ApiCallback<SearchUsersResponse> callback) {
         checkIfAlive();
 
         if (null != callback) {
-            mEventsRestClient.searchUsers(name, limit, callback);
+            mEventsRestClient.searchUsers(name, limit, userIdsFilter, callback);
         }
     }
 

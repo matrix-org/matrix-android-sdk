@@ -40,8 +40,10 @@ import org.matrix.androidsdk.rest.model.User;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import retrofit.client.Response;
 
@@ -428,13 +430,14 @@ public class EventsRestClient extends RestClient<EventsApi> {
      *
      * @param text        the text to search for.
      * @param limit       the maximum nbr of users in the response
+     * @param userIdsfilter the userIds to exclude from the result
      * @param callback    the request callback
      */
-    public void searchUsers(final String text, final Integer limit, final ApiCallback<SearchUsersResponse> callback) {
+    public void searchUsers(final String text, final Integer limit, final Set<String> userIdsfilter, final ApiCallback<SearchUsersResponse> callback) {
         SearchUsersParams searchParams = new SearchUsersParams();
 
         searchParams.search_term = text;
-        searchParams.limit = limit;
+        searchParams.limit = limit + ((null != userIdsfilter) ? userIdsfilter.size() : 0);
 
         final String uid = mSearchUsersPatternIdentifier = System.currentTimeMillis() + " " + text + " " + limit;
         final String description = "searchUsers";
@@ -442,7 +445,6 @@ public class EventsRestClient extends RestClient<EventsApi> {
         // don't retry to send the request
         // if the search fails, stop it
         mApi.searchUsers(searchParams,  new RestAdapterCallback<SearchUsersRequestResponse>(description, null, new ApiCallback<SearchUsersRequestResponse>() {
-
             /**
              * Tells if the current response for the latest request.
              * @return true if it is the response of the latest request.
@@ -457,14 +459,17 @@ public class EventsRestClient extends RestClient<EventsApi> {
                     SearchUsersResponse response = new SearchUsersResponse();
                     response.limited = aResponse.limited;
                     response.results = new ArrayList<>();
+                    Set<String> filter = (null != userIdsfilter) ? userIdsfilter : new HashSet<String>();
 
                     if (null != aResponse.results) {
                         for (SearchUsersRequestResponse.User user : aResponse.results) {
-                            User addedUser = new User();
-                            addedUser.user_id = user.user_id;
-                            addedUser.avatar_url = user.avatar_url;
-                            addedUser.displayname = user.display_name;
-                            response.results.add(addedUser);
+                            if ((null != user.user_id) && !filter.contains(user.user_id)) {
+                                User addedUser = new User();
+                                addedUser.user_id = user.user_id;
+                                addedUser.avatar_url = user.avatar_url;
+                                addedUser.displayname = user.display_name;
+                                response.results.add(addedUser);
+                            }
                         }
                     }
 
@@ -500,7 +505,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
         }, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                searchUsers(text, limit, callback);
+                searchUsers(text, limit, userIdsfilter, callback);
             }
         }));
     }
