@@ -81,6 +81,6 @@
     <string name="medium_email">Адрес электронной почты</string>
     <string name="medium_phone_number">Номер телефона</string>
     
-<string name="unread_messages_footer">Вы всё прочитали</string>
+<string name="unread_messages_footer">Вы все прочитали</string>
 
     </resources>
