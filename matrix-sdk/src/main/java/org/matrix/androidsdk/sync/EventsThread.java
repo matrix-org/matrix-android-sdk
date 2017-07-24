@@ -55,9 +55,6 @@ public class EventsThread extends Thread {
     private boolean mPaused = true;
     private boolean mIsNetworkSuspended = false;
     private boolean mIsCatchingUp = false;
-    private boolean mGotFirstCatchupChunk = false;
-    // when a catchup is triggered,
-    private int mCatchupSyncRequestsCount;
     private boolean mIsOnline = true;
 
     private boolean mKilling = false;
@@ -250,8 +247,6 @@ public class EventsThread extends Thread {
             }
         }
 
-        mGotFirstCatchupChunk = false;
-        mCatchupSyncRequestsCount = 0;
         mIsCatchingUp = true;
     }
 
@@ -513,45 +508,12 @@ public class EventsThread extends Thread {
                                     }
                                 }
 
-                                Log.d(LOG_TAG, "Got " + eventCounts + " useful events while catching up");
-
-                                mCatchupSyncRequestsCount++;
-
-                                if (!mGotFirstCatchupChunk) {
-                                    mGotFirstCatchupChunk = (0 != eventCounts) || (mCatchupSyncRequestsCount > 1);
-
-                                    if (mCatchupSyncRequestsCount > 1) {
-                                        Log.e(LOG_TAG, "retry " + mCatchupSyncRequestsCount + " times but did not get valid catchup");
-                                        // stop any catch up
-                                        mIsCatchingUp = false;
-                                        mPaused = (0 == mRequestDelayMs);
-                                    } else if (mGotFirstCatchupChunk) {
-                                        Log.e(LOG_TAG, "Got first catchup chunk");
-                                        mCatchupSyncRequestsCount = 0;
-                                    } else {
-                                        Log.e(LOG_TAG, "Empty chunk : sync again");
-                                    }
-
-                                    mNextServerTimeoutms = mDefaultServerTimeoutms / 10;
-                                } else {
-                                    // stop the catchup if no events have been retrieved
-                                    // or after 1 sync requests
-                                    if ((0 == eventCounts) || (mCatchupSyncRequestsCount > 1)) {
-                                        if (0 == eventCounts) {
-                                            Log.e(LOG_TAG, "Stop the catchup after " + mCatchupSyncRequestsCount + " sync requests");
-                                        } else {
-                                            Log.e(LOG_TAG, "Stop the catchup");
-                                        }
-
-                                        // stop any catch up
-                                        mIsCatchingUp = false;
-                                        mPaused = (0 == mRequestDelayMs);
-                                    } else {
-                                        Log.e(LOG_TAG, "Catchup still in progress " + mCatchupSyncRequestsCount + " loop");
-                                        mNextServerTimeoutms = mDefaultServerTimeoutms / 10;
-                                    }
-                                }
+                                // stop any catch up
+                                mIsCatchingUp = false;
+                                mPaused = (0 == mRequestDelayMs);
+                                Log.d(LOG_TAG, "Got " + eventCounts + " useful events while catching up : mPaused is set to " + mPaused);
                             }
+
                             Log.d(LOG_TAG, "Got event response");
                             mListener.onSyncResponse(syncResponse, mCurrentToken, (0 == mNextServerTimeoutms));
                             mCurrentToken = syncResponse.nextBatch;
