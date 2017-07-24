@@ -363,8 +363,10 @@ public class MXCrypto {
      * @param aCallback the asynchronous callback
      */
     public void start(final boolean isInitialSync, final ApiCallback<Void> aCallback) {
-        if ((null != aCallback) && (mInitializationCallbacks.indexOf(aCallback) < 0)) {
-            mInitializationCallbacks.add(aCallback);
+        synchronized (mInitializationCallbacks) {
+            if ((null != aCallback) && (mInitializationCallbacks.indexOf(aCallback) < 0)) {
+                mInitializationCallbacks.add(aCallback);
+            }
         }
 
         if (mIsStarting) {
@@ -431,16 +433,18 @@ public class MXCrypto {
                                                                     mIsStarting = false;
                                                                     mIsStarted = true;
 
-                                                                    for (ApiCallback<Void> callback : mInitializationCallbacks) {
-                                                                        final ApiCallback<Void> fCallback = callback;
-                                                                        getUIHandler().post(new Runnable() {
-                                                                            @Override
-                                                                            public void run() {
-                                                                                fCallback.onSuccess(null);
-                                                                            }
-                                                                        });
+                                                                    synchronized (mInitializationCallbacks) {
+                                                                        for (ApiCallback<Void> callback : mInitializationCallbacks) {
+                                                                            final ApiCallback<Void> fCallback = callback;
+                                                                            getUIHandler().post(new Runnable() {
+                                                                                @Override
+                                                                                public void run() {
+                                                                                    fCallback.onSuccess(null);
+                                                                                }
+                                                                            });
+                                                                        }
+                                                                        mInitializationCallbacks.clear();
                                                                     }
-                                                                    mInitializationCallbacks.clear();
 
                                                                     if (isInitialSync) {
                                                                         getEncryptingThreadHandler().post(new Runnable() {
