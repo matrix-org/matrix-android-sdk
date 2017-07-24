@@ -324,7 +324,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 if ((lastVisibleRow + 10) >= count) {
                     Log.d(LOG_TAG, "onScrollStateChanged - forwardPaginate");
                     forwardPaginate();
-                } else if (firstVisibleRow < 2) {
+                } else if (firstVisibleRow < 10) {
                     Log.d(LOG_TAG, "onScrollStateChanged - request history");
                     backPaginate(false);
                 }
@@ -384,7 +384,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 mFirstVisibleRowY = v.getTop();
             }
 
-            if ((firstVisibleItem < 2) && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
+            if ((firstVisibleItem < 10) && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
                 if (!mLockBackPagination) {
                     Log.d(LOG_TAG, "onScroll - backPaginate firstVisibleItem " + firstVisibleItem + " visibleItemCount " + visibleItemCount + " totalItemCount "+ totalItemCount);
                 }
