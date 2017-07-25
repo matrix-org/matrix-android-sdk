@@ -1091,6 +1091,7 @@ public class Room {
      * @param summary the room summary
      */
     private void clearUnreadCounters(RoomSummary summary) {
+        Log.d(LOG_TAG, "## clearUnreadCounters " + summary.getRoomId());
         // reset the notification count
         getLiveState().setHighlightCount(0);
         getLiveState().setNotificationCount(0);
@@ -1141,7 +1142,7 @@ public class Room {
         final Event lastEvent = mStore.getLatestEvent(getRoomId());
         boolean res = sendReadMarkers(updateReadMarker ? lastEvent.eventId : getReadMarkerEventId(), null, aRespCallback);
 
-        if (res) {
+        if (!res) {
             RoomSummary summary = mDataHandler.getStore().getSummary(getRoomId());
 
             if (null != summary) {
@@ -1246,7 +1247,7 @@ public class Room {
             return false;
         }
 
-        Log.d(LOG_TAG, "## sendReadMarkers(): readMarkerEventId " + aReadMarkerEventId + " readReceiptEventId " + aReadReceiptEventId);
+        Log.d(LOG_TAG, "## sendReadMarkers(): readMarkerEventId " + aReadMarkerEventId + " readReceiptEventId " + aReadReceiptEventId + " in room " + getRoomId());
 
         boolean hasUpdate = false;
 
@@ -1304,41 +1305,58 @@ public class Room {
     /**
      * Send the request to update the read marker and read receipt
      *
-     * @param readMarkerEventId
-     * @param readReceiptEventId
+     * @param aReadMarkerEventId
+     * @param aReadReceiptEventId
      * @param callback
      */
-    private void setReadMarkers(final String readMarkerEventId, final String readReceiptEventId, final ApiCallback<Void> callback) {
-        Log.d(LOG_TAG, "## setReadMarkers(): readMarkerEventId " + readMarkerEventId + " readReceiptEventId " + readReceiptEventId);
-        mDataHandler.getDataRetriever().getRoomsRestClient().sendReadMarker(getRoomId(), readMarkerEventId, readReceiptEventId, new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                if (null != callback) {
-                    callback.onSuccess(info);
-                }
-            }
+    private void setReadMarkers(final String aReadMarkerEventId, final String aReadReceiptEventId, final ApiCallback<Void> callback) {
+        Log.d(LOG_TAG, "## setReadMarkers(): readMarkerEventId " + aReadMarkerEventId + " readReceiptEventId " + aReadMarkerEventId);
 
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
+        // check if the message ids are valid
+        final String readMarkerEventId = MXSession.isMessageId(aReadMarkerEventId) ? aReadMarkerEventId : null;
+        final String readReceiptEventId = MXSession.isMessageId(aReadReceiptEventId) ? aReadReceiptEventId : null;
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
+        // if there is nothing to do
+        if (TextUtils.isEmpty(readMarkerEventId) && TextUtils.isEmpty(readReceiptEventId)) {
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    if (null != callback) {
+                        callback.onSuccess(null);
+                    }
                 }
-            }
+            });
+        } else {
+            mDataHandler.getDataRetriever().getRoomsRestClient().sendReadMarker(getRoomId(), readMarkerEventId, readReceiptEventId, new ApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    if (null != callback) {
+                        callback.onSuccess(info);
+                    }
+                }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
+                @Override
+                public void onNetworkError(Exception e) {
+                    if (null != callback) {
+                        callback.onNetworkError(e);
+                    }
                 }
-            }
-        });
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    if (null != callback) {
+                        callback.onMatrixError(e);
+                    }
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    if (null != callback) {
+                        callback.onUnexpectedError(e);
+                    }
+                }
+            });
+        }
     }
 
     /**
@@ -2109,6 +2127,9 @@ public class Room {
                 // remove the tmp event
                 mStore.deleteEvent(event);
 
+                // replace the tmp event id by the final one
+                boolean isReadMarkerUpdated = TextUtils.equals(getReadMarkerEventId(), event.eventId);
+
                 // update the event with the server response
                 event.mSentState = Event.SentState.SENT;
                 event.eventId = serverResponseEvent.eventId;
@@ -2120,7 +2141,7 @@ public class Room {
                 }
 
                 // send the dedicated read receipt asap
-                sendReadReceipt();
+                markAllAsRead(isReadMarkerUpdated, null);
 
                 mStore.commit();
                 mDataHandler.onSentEvent(event);

@@ -53,6 +53,7 @@
     <!-- Room Screen -->
     <string name="could_not_redact">Não foi possível apagar</string>
     <string name="unable_to_send_message">Não foi possível enviar a mensagem</string>
+    <string name="unread_messages_footer">"You've caught up"</string>
 
     <string name="message_failed_to_upload">O envio da imagem falhou</string>
 

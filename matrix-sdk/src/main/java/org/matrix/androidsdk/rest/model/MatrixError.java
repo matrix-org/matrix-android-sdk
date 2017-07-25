@@ -37,6 +37,10 @@ public class MatrixError implements java.io.Serializable {
 
     public static final String LOGIN_EMAIL_URL_NOT_YET = "M_LOGIN_EMAIL_URL_NOT_YET";
     public static final String THREEPID_AUTH_FAILED = "M_THREEPID_AUTH_FAILED";
+    // Error code returned by the server when no account matches the given 3pid
+    public static final String THREEPID_NOT_FOUND = "M_THREEPID_NOT_FOUND";
+    public static final String THREEPID_IN_USE = "M_THREEPID_IN_USE";
+    public static final String SERVER_NOT_TRUSTED = "M_SERVER_NOT_TRUSTED";
     public static final String TOO_LARGE = "M_TOO_LARGE";
 
     // custom ones

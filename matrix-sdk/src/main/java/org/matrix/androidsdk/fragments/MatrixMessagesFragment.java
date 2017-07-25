@@ -23,9 +23,6 @@ import android.os.Looper;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
-
-import org.matrix.androidsdk.util.Log;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -47,6 +44,7 @@ import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Sync.RoomSync;
 import org.matrix.androidsdk.rest.model.Sync.RoomSyncState;
 import org.matrix.androidsdk.rest.model.Sync.RoomSyncTimeline;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.List;
 
@@ -457,7 +455,7 @@ public class MatrixMessagesFragment extends Fragment {
             public void onSuccess(Void info) {
                 Log.d(LOG_TAG, "initializeTimeline is done");
 
-                if (null != getActivity()) {
+                if (null != getActivity() && !getActivity().isFinishing()) {
                     if (null != mMatrixMessagesListener) {
                         mMatrixMessagesListener.hideInitLoading();
                         mMatrixMessagesListener.onTimelineInitialized();
@@ -469,7 +467,7 @@ public class MatrixMessagesFragment extends Fragment {
             private void onError() {
                 Log.d(LOG_TAG, "initializeTimeline fails");
 
-                if (null != getActivity()) {
+                if (null != getActivity() && !getActivity().isFinishing()) {
                     if (null != mMatrixMessagesListener) {
                         mMatrixMessagesListener.hideInitLoading();
                         mMatrixMessagesListener.onTimelineInitialized();

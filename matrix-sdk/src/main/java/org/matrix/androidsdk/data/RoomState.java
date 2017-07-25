@@ -441,6 +441,7 @@ public class RoomState implements Externalizable {
      * @param notificationCount the new notified messages count.
      */
     public void setNotificationCount(int notificationCount) {
+        Log.d(LOG_TAG, "## setNotificationCount() : " + notificationCount + " room id " + roomId);
         mNotificationCount = notificationCount;
     }
 
@@ -457,6 +458,7 @@ public class RoomState implements Externalizable {
      * @param highlightCount the new highlighted messages count.
      */
     public void setHighlightCount(int highlightCount) {
+        Log.d(LOG_TAG, "## setHighlightCount() : " + highlightCount + " room id " + roomId);
         mHighlightCount = highlightCount;
     }
 

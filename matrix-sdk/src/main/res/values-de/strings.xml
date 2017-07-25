@@ -81,6 +81,6 @@
     <string name="medium_email">E-Mail-Adresse</string>
     <string name="medium_phone_number">Telefonnummer</string>
 
-<string name="unread_messages_footer">Du hast alle Nachrichten gelesen</string>
+    <string name="unread_messages_footer">Du hast alle Nachrichten gelesen</string>
 
     </resources>

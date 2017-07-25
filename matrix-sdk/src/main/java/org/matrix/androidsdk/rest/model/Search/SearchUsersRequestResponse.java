@@ -13,25 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest.model;
+package org.matrix.androidsdk.rest.model.Search;
+
+import java.util.List;
 
 /**
- *  Response to a request an phone number validation request
+ * Class representing an users search response
  */
-public class RequestPhoneNumberValidationResponse {
+public class SearchUsersRequestResponse {
 
-    // the client secret key
-    public String clientSecret;
+    // cannot use org.matrix.androidsdk.rest.model.User
+    // because the display name does not have the same syntax
+    public class User {
+        public String user_id;
+        public String display_name;
+        public String avatar_url;
+    }
 
-    // the attempt count
-    public Integer sendAttempt;
+    // indicates if the result list has been truncated by the limit.
+    public Boolean limited;
 
-    // the sid
-    public String sid;
-
-    // the msisdn
-    public String msisdn;
-
-    // phone number international format
-    public String intl_fmt;
+    // set a limit to the request response
+    public List<User> results;
 }

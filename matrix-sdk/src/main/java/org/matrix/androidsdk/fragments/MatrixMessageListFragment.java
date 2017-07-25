@@ -20,14 +20,12 @@ package org.matrix.androidsdk.fragments;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.provider.Browser;
 import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -37,7 +35,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
-import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -45,8 +42,8 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
+import org.matrix.androidsdk.adapters.AbstractMessagesAdapter;
 import org.matrix.androidsdk.adapters.MessageRow;
-import org.matrix.androidsdk.adapters.MessagesAdapter;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.data.EventTimeline;
@@ -73,7 +70,6 @@ import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResult;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoMessage;
-import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
@@ -95,7 +91,7 @@ import retrofit.RetrofitError;
  * UI Fragment containing matrix messages for a given room.
  * Contains {@link MatrixMessagesFragment} as a nested fragment to do the work.
  */
-public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener, MessagesAdapter.MessagesAdapterEventsListener {
+public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener{
 
     // search interface
     public interface OnSearchResultListener {
@@ -196,7 +192,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     private MatrixMessagesFragment mMatrixMessagesFragment;
-    protected MessagesAdapter mAdapter;
+    protected AbstractMessagesAdapter mAdapter;
     public ListView mMessageListView;
     protected Handler mUiHandler;
     protected MXSession mSession;
@@ -231,8 +227,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     protected ArrayList<Event> mResendingEventsList;
     private final HashMap<String, Timer> mPendingRelaunchTimersByEventId = new HashMap<>();
-
-    private final HashMap<String, Object> mBingRulesByEventId = new HashMap<>();
 
     // scroll to to the dedicated index when the device has been rotated
     private int mFirstVisibleRow = -1;
@@ -290,43 +284,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     private final IMXEventListener mEventsListener = new MXEventListener() {
         @Override
-        public void onPresenceUpdate(Event event, final User user) {
-            // Someone's presence has changed, reprocess the whole list
-            getUiHandler().post(new Runnable() {
-                @Override
-                public void run() {
-                    // check first if the userID has sent some messages in the room history
-                    boolean refresh = mAdapter.isDisplayedUser(user.user_id);
-
-                    if (refresh) {
-                        // check, if the avatar is currently displayed
-
-                        // The Math.min is required because the adapter and mMessageListView could be unsynchronized.
-                        // ensure there is no IndexOfOutBound exception.
-                        int firstVisibleRow = Math.min(mMessageListView.getFirstVisiblePosition(), mAdapter.getCount());
-                        int lastVisibleRow = Math.min(mMessageListView.getLastVisiblePosition(), mAdapter.getCount());
-
-                        refresh = false;
-
-                        for (int i = firstVisibleRow; i <= lastVisibleRow; i++) {
-                            MessageRow row = mAdapter.getItem(i);
-                            refresh |= TextUtils.equals(user.user_id, row.getEvent().getSender());
-                        }
-                    }
-
-                    if (refresh) {
-                        mAdapter.notifyDataSetChanged();
-                    }
-                }
-            });
-        }
-
-        @Override
-        public void onBingRulesUpdate() {
-            mBingRulesByEventId.clear();
-        }
-
-        @Override
         public void onEventEncrypted(Event event) {
             getUiHandler().post(new Runnable() {
                 @Override
@@ -345,7 +302,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
             });
         }
-
     };
 
     /**
@@ -368,7 +324,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 if ((lastVisibleRow + 10) >= count) {
                     Log.d(LOG_TAG, "onScrollStateChanged - forwardPaginate");
                     forwardPaginate();
-                } else if (firstVisibleRow < 2) {
+                } else if (firstVisibleRow < 10) {
                     Log.d(LOG_TAG, "onScrollStateChanged - request history");
                     backPaginate(false);
                 }
@@ -428,11 +384,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 mFirstVisibleRowY = v.getTop();
             }
 
-            if ((firstVisibleItem < 2) && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
-                // Log.d(LOG_TAG, "onScroll - backPaginate");
+            if ((firstVisibleItem < 10) && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
+                if (!mLockBackPagination) {
+                    Log.d(LOG_TAG, "onScroll - backPaginate firstVisibleItem " + firstVisibleItem + " visibleItemCount " + visibleItemCount + " totalItemCount "+ totalItemCount);
+                }
                 backPaginate(false);
             } else if ((firstVisibleItem + visibleItemCount + 10) >= totalItemCount) {
-                // Log.d(LOG_TAG, "onScroll - forwardPaginate");
+                if (!mLockFwdPagination) {
+                    Log.d(LOG_TAG, "onScroll - forwardPaginate firstVisibleItem " + firstVisibleItem + " visibleItemCount " + visibleItemCount + " totalItemCount "+ totalItemCount);
+                }
                 forwardPaginate();
             }
 
@@ -531,18 +491,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         // so ensure that the room fields are properly initialized
         mSession.getDataHandler().checkRoom(mRoom);
 
-        // sanity check
-        if (null != mRoom) {
-            mAdapter.setTypingUsers(mRoom.getTypingUsers());
-        }
-
-        mMessageListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                MatrixMessageListFragment.this.onRowClick(position);
-            }
-        });
-
         mMessageListView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -621,17 +569,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         mEventSendingListener = null;
         mActivityOnScrollListener = null;
 
-        // clear maps
-        mBingRulesByEventId.clear();
-
         // check if the session has not been logged out
         if (null != mRoom) {
             mRoom.removeEventListener(mEventsListener);
-        }
-
-        if (null != mAdapter) {
-            mAdapter.setMessagesAdapterEventsListener(null);
-            mAdapter.setIsInBackground(true);
         }
 
         cancelCatchingRequests();
@@ -660,11 +600,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             } else {
                 Log.e(LOG_TAG, "the room " + mRoom.getRoomId() + " does not exist anymore");
             }
-        }
-
-        if (null != mAdapter) {
-            mAdapter.setMessagesAdapterEventsListener(this);
-            mAdapter.setIsInBackground(false);
         }
 
         // a room history filling was suspended because the fragment was not active
@@ -702,7 +637,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      *
      * @return the messages adapter.
      */
-    public MessagesAdapter createMessagesAdapter() {
+    public AbstractMessagesAdapter createMessagesAdapter() {
         return null;
     }
 
@@ -747,7 +682,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
-     * Notify the fragment that some bing rules could have been updated.
+     * Notify the adapter that some bing rules could have been updated.
      */
     public void onBingRulesUpdate() {
         mAdapter.onBingRulesUpdate();
@@ -790,6 +725,52 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         return event;
     }
 
+    /**
+     * Test if the read marker must be updated with the new message
+     * @param newMessageRow the new message row
+     * @param currentReadMarkerRow the current read marker row
+     * @return true if the read marker can be updated
+     */
+    private boolean canUpdateReadMarker(MessageRow newMessageRow, MessageRow currentReadMarkerRow) {
+        return (currentReadMarkerRow != null &&
+            mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
+            && newMessageRow.getEvent().getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs);
+    }
+
+    /**
+     * Provides the read "marked row".
+     * The closest row is provided if it is not displayed
+     *
+     * @return the currentReadMarkerRow
+     */
+    private MessageRow getReadMarkerMessageRow(MessageRow newMessageRow) {
+        final String currentReadMarkerEventId = mRoom.getReadMarkerEventId();
+        MessageRow currentReadMarkerRow = mAdapter.getMessageRow(currentReadMarkerEventId);
+
+        if (null == currentReadMarkerRow) {
+            Event readMarkedEvent = mSession.getDataHandler().getStore().getEvent(currentReadMarkerEventId, mRoom.getRoomId());
+
+            // the read marked event might be a non displayable event
+            if ((null != readMarkedEvent) && !canAddEvent(readMarkedEvent)) {
+                // retrieve the previous displayed event
+                currentReadMarkerRow = mAdapter.getClosestRowFromTs(readMarkedEvent.eventId, readMarkedEvent.getOriginServerTs());
+
+                // the undisplayable event might be in the middle of two displayable events
+                // or it is the last known event
+                if ((null != currentReadMarkerRow) && !canUpdateReadMarker(newMessageRow, currentReadMarkerRow)) {
+                    currentReadMarkerRow = null;
+                }
+
+                // use the next one
+                if (null == currentReadMarkerRow) {
+                    currentReadMarkerRow = mAdapter.getClosestRowBeforeTs(readMarkedEvent.eventId, readMarkedEvent.getOriginServerTs());
+                }
+            }
+        }
+
+        return currentReadMarkerRow;
+    }
+
     // create a dummy message row for the message
     // It is added to the Adapter
     // return the created Message
@@ -799,17 +780,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             Event event = new Event(message, mSession.getCredentials().userId, mRoom.getRoomId());
             mRoom.storeOutgoingEvent(event);
 
-            // Move read marker if necessary
-            final String currentReadMarkerEventId = mRoom.getReadMarkerEventId();
-            MessageRow currentReadMarkerRow = mAdapter.getMessageRow(currentReadMarkerEventId);
-
             MessageRow newMessageRow = new MessageRow(event, mRoom.getState());
             mAdapter.add(newMessageRow);
 
-            if (currentReadMarkerRow != null &&
-                    mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
-                    && event.getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs) {
+            // Move read marker if necessary
+            MessageRow currentReadMarkerRow = getReadMarkerMessageRow(newMessageRow);
 
+            if (canUpdateReadMarker(newMessageRow, currentReadMarkerRow)) {
                 View childView = mMessageListView.getChildAt(mMessageListView.getChildCount() - 1);
 
                 // Previous message was the last read
@@ -993,7 +970,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         @Override
                         public void run() {
                             onMessageSendingSucceeded(event);
-
                             if (mFutureReadMarkerEventId != null && prevEventId.equals(mFutureReadMarkerEventId)) {
                                 mFutureReadMarkerEventId = null;
                                 // Move read marker to the newly sent message
@@ -1017,26 +993,29 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
 
                 private void commonFailure(final Event event) {
-                    if (null != MatrixMessageListFragment.this.getActivity()) {
-                        getUiHandler().post(new Runnable() {
-                            @Override
-                            public void run() {
+                    getUiHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Activity activity = getActivity();
+
+                            if (null != activity) {
                                 // display the error message only if the message cannot be resent
                                 if ((null != event.unsentException) && (event.isUndeliverable())) {
                                     if ((event.unsentException instanceof RetrofitError) && ((RetrofitError) event.unsentException).isNetworkError()) {
-                                        Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + getActivity().getString(R.string.network_error), Toast.LENGTH_LONG).show();
+                                        Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + getActivity().getString(R.string.network_error), Toast.LENGTH_LONG).show();
                                     } else {
-                                        Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                                        Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                                     }
                                 } else if (null != event.unsentMatrixError) {
-                                    Toast.makeText(getActivity(), getActivity().getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.getLocalizedMessage() + ".", Toast.LENGTH_LONG).show();
+                                    Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.getLocalizedMessage() + ".", Toast.LENGTH_LONG).show();
                                 }
+
 
                                 mAdapter.notifyDataSetChanged();
                                 onMessageSendingFailed(event);
                             }
-                        });
-                    }
+                        }
+                    });
                 }
 
                 @Override
@@ -1273,6 +1252,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         // update the event content with the new message info
                         messageRow.getEvent().updateContent(JsonUtils.toJson(message));
 
+                        // force to save the room events list
+                        // https://github.com/vector-im/riot-android/issues/1390
+                        mSession.getDataHandler().getStore().flushRoomEvents(mRoom.getRoomId());
+
                         Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
                         send(messageRow);
@@ -1481,6 +1464,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             // update the event content with the new message info
                             videoRow.getEvent().updateContent(JsonUtils.toJson(fVideoMessage));
 
+                            // force to save the room events list
+                            // https://github.com/vector-im/riot-android/issues/1390
+                            mSession.getDataHandler().getStore().flushRoomEvents(mRoom.getRoomId());
+
                             Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
                             send(videoRow);
@@ -1497,6 +1484,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                             // update the event content with the new message info
                             videoRow.getEvent().updateContent(JsonUtils.toJson(fVideoMessage));
+
+                            // force to save the room events list
+                            // https://github.com/vector-im/riot-android/issues/1390
+                            mSession.getDataHandler().getStore().flushRoomEvents(mRoom.getRoomId());
 
                             // upload the video
                             uploadVideoContent(fVideoMessage, videoRow, thumbnailUrl, thumbnailMimeType, videoUrl, fVideoMessage.body, videoMimeType);
@@ -1659,6 +1650,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             // update the event content with the new message info
                             imageRow.getEvent().updateContent(JsonUtils.toJson(fImageMessage));
 
+                            // force to save the room events list
+                            // https://github.com/vector-im/riot-android/issues/1390
+                            mSession.getDataHandler().getStore().flushRoomEvents(mRoom.getRoomId());
+
                             // upload the high res picture
                             uploadImageContent(fImageMessage, imageRow, contentUri, anImageUrl, mediaFilename, fMimeType);
                         } else {
@@ -1675,6 +1670,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                             // update the event content with the new message info
                             imageRow.getEvent().updateContent(JsonUtils.toJson(fImageMessage));
+
+                            // force to save the room events list
+                            // https://github.com/vector-im/riot-android/issues/1390
+                            mSession.getDataHandler().getStore().flushRoomEvents(mRoom.getRoomId());
 
                             Log.d(LOG_TAG, "Uploaded to " + contentUri);
 
@@ -2030,15 +2029,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param error the error object.
      */
     private void onPaginateRequestError(final Object error) {
-        if (null != MatrixMessageListFragment.this.getActivity()) {
+        Activity activity = getActivity();
+
+        if (null != activity) {
             if (error instanceof Exception) {
                 Log.e(LOG_TAG, "Network error: " + ((Exception) error).getMessage());
-                Toast.makeText(MatrixMessageListFragment.this.getActivity(), getActivity().getString(R.string.network_error), Toast.LENGTH_SHORT).show();
+                Toast.makeText(activity, activity.getString(R.string.network_error), Toast.LENGTH_SHORT).show();
 
             } else if (error instanceof MatrixError) {
                 final MatrixError matrixError = (MatrixError) error;
                 Log.e(LOG_TAG, "Matrix error" + " : " + matrixError.errcode + " - " + matrixError.getLocalizedMessage());
-                Toast.makeText(MatrixMessageListFragment.this.getActivity(), getActivity().getString(R.string.matrix_error) + " : " + matrixError.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(activity, activity.getString(R.string.matrix_error) + " : " + matrixError.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
             }
 
             hideLoadingBackProgress();
@@ -2067,6 +2068,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             return;
         }
 
+        // reject any forward paginate if the fragment is not active
+        // it might happen in some race conditions
+        // eg the forward pagination response is managed just after putting the app in foreground
+        if (!isResumed()) {
+            Log.d(LOG_TAG, "ignore forward pagination because the fragment is not active");
+            return;
+        }
+
         showLoadingForwardProgress();
 
         final int countBeforeUpdate = mAdapter.getCount();
@@ -2092,7 +2101,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 // retrieve
                 if (0 != count) {
-
                     mAdapter.notifyDataSetChanged();
                     // trick to avoid that the list jump to the latest item.
                     mMessageListView.setAdapter(mMessageListView.getAdapter());
@@ -2193,7 +2201,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
 
         if (!isResumed()) {
-            Log.d(LOG_TAG, "backPaginate : the fragement is not anymore active");
+            Log.d(LOG_TAG, "backPaginate : the fragment is not anymore active");
             mFillHistoryOnResume = true;
             return;
         }
@@ -2394,10 +2402,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                     mAdapter.notifyDataSetChanged();
                 }
-            } else if (Event.EVENT_TYPE_TYPING.equals(event.getType())) {
-                if (null != mRoom) {
-                    mAdapter.setTypingUsers(mRoom.getTypingUsers());
-                }
             } else {
                 if (canAddEvent(event)) {
                     // refresh the listView only when it is a live timeline or a search
@@ -2405,17 +2409,34 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     mAdapter.add(newMessageRow, (null == mEventTimeLine) || mEventTimeLine.isLiveTimeline());
 
                     // Move read marker if necessary
-                    if (!mAdapter.isInBackground() && mEventTimeLine != null && mEventTimeLine.isLiveTimeline()) {
-                        final String currentReadMarkerEventId = mRoom.getReadMarkerEventId();
-                        MessageRow currentReadMarkerRow = mAdapter.getMessageRow(currentReadMarkerEventId);
-                        if (currentReadMarkerRow != null &&
-                                mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
-                                && event.getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs) {
-                            // Previous message was the last read
-                            if (mMessageListView.getChildAt(mMessageListView.getChildCount() - 1).getTop() >= 0) {
-                                // Move read marker to the newly sent message
-                                mRoom.setReadMakerEventId(event.eventId);
-                                mAdapter.resetReadMarker();
+                    if (isResumed() && mEventTimeLine != null && mEventTimeLine.isLiveTimeline()) {
+                        MessageRow currentReadMarkerRow = getReadMarkerMessageRow(newMessageRow);
+
+                        if (canUpdateReadMarker(newMessageRow, currentReadMarkerRow)) {
+                            if (0 == mMessageListView.getChildCount()) {
+                                mMessageListView.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        // check if the previous one was displayed
+                                        View childView = mMessageListView.getChildAt(mMessageListView.getChildCount() - 2);
+
+                                        // Previous message was the last read
+                                        if ((null != childView) && (childView.getTop() >= 0)) {
+                                            // Move read marker to the newly sent message
+                                            mRoom.setReadMakerEventId(event.eventId);
+                                            mAdapter.resetReadMarker();
+                                        }
+                                    }
+                                });
+                            } else {
+                                View childView = mMessageListView.getChildAt(mMessageListView.getChildCount() - 1);
+
+                                // Previous message was the last read
+                                if ((null != childView) && (childView.getTop() >= 0)) {
+                                    // Move read marker to the newly sent message
+                                    mRoom.setReadMakerEventId(event.eventId);
+                                    mAdapter.resetReadMarker();
+                                }
                             }
                         }
                     }
@@ -2423,7 +2444,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
         } else {
             if (canAddEvent(event)) {
-                mAdapter.addToFront(event, roomState);
+                mAdapter.addToFront(new MessageRow(event, roomState));
             }
         }
     }
@@ -2459,10 +2480,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             ArrayList<String> eventIds = new ArrayList<>();
 
             for (int index = firstPos; index <= lastPos; index++) {
-                MessageRow row = mAdapter.getItem(index);
+                Event event = mAdapter.getItem(index).getEvent();
 
-                senders.add(row.getEvent().getSender());
-                eventIds.add(row.getEvent().eventId);
+                if ((null != event.getSender()) && (null != event.eventId)) {
+                    senders.add(event.getSender());
+                    eventIds.add(event.eventId);
+                }
             }
 
             shouldRefresh = false;
@@ -2580,9 +2603,19 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     @Override
     public void onTimelineInitialized() {
+        if (getActivity() == null || getActivity().isFinishing()) {
+            return;
+        }
+
         mMessageListView.post(new Runnable() {
             @Override
             public void run() {
+                // reported by a rageshake
+                if (null == getActivity()) {
+                    Log.e(LOG_TAG, "## onTimelineInitialized : the fragment is not anymore attached to an activity");
+                    return;
+                }
+
                 mLockFwdPagination = false;
                 mIsInitialSyncing = false;
                 // search the event pos in the adapter
@@ -2655,143 +2688,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     @Override
     public void onRoomFlush() {
         mAdapter.clear();
-    }
-
-    /***
-     * MessageAdapter listener
-     ***/
-    @Override
-    public void onRowClick(int position) {
-    }
-
-    @Override
-    public boolean onRowLongClick(int position) {
-        return false;
-    }
-
-    @Override
-    public void onContentClick(int position) {
-    }
-
-    @Override
-    public boolean onContentLongClick(int position) {
-        return false;
-    }
-
-    @Override
-    public void onAvatarClick(String userId) {
-    }
-
-    @Override
-    public boolean onAvatarLongClick(String userId) {
-        return false;
-    }
-
-    @Override
-    public void onSenderNameClick(String userId, String displayName) {
-    }
-
-    @Override
-    public void onMediaDownloaded(int position) {
-    }
-
-    @Override
-    public void onReadReceiptClick(String eventId, String userId, ReceiptData receipt) {
-    }
-
-    @Override
-    public boolean onReadReceiptLongClick(String eventId, String userId, ReceiptData receipt) {
-        return false;
-    }
-
-    @Override
-    public void onMoreReadReceiptClick(String eventId) {
-    }
-
-    @Override
-    public boolean onMoreReadReceiptLongClick(String eventId) {
-        return false;
-    }
-
-    @Override
-    public void onURLClick(Uri uri) {
-        if (null != uri) {
-            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-            intent.putExtra(Browser.EXTRA_APPLICATION_ID, getActivity().getPackageName());
-            getActivity().startActivity(intent);
-        }
-    }
-
-    @Override
-    public boolean shouldHighlightEvent(Event event) {
-        String eventId = event.eventId;
-
-        // cache the dedicated rule because it is slow to find them out
-        Object ruleAsVoid = mBingRulesByEventId.get(eventId);
-
-        if (null != ruleAsVoid) {
-            if (ruleAsVoid instanceof BingRule) {
-                return ((BingRule) ruleAsVoid).shouldHighlight();
-            }
-            return false;
-        }
-
-        boolean res = false;
-
-        BingRule rule = mSession.getDataHandler().getBingRulesManager().fulfilledBingRule(event);
-
-        if (null != rule) {
-            res = rule.shouldHighlight();
-            mBingRulesByEventId.put(eventId, rule);
-        } else {
-            mBingRulesByEventId.put(eventId, eventId);
-        }
-
-        return res;
-    }
-
-    @Override
-    public void onMatrixUserIdClick(String userId) {
-    }
-
-    @Override
-    public void onRoomAliasClick(String roomAlias) {
-    }
-
-    @Override
-    public void onRoomIdClick(String roomId) {
-    }
-
-    @Override
-    public void onMessageIdClick(String messageId) {
-    }
-
-    private int mInvalidIndexesCount = 0;
-
-    @Override
-    public void onInvalidIndexes() {
-        mInvalidIndexesCount++;
-
-        // it should happen once
-        // else we assume that the adapter is really corrupted
-        // It seems better to close the linked activity to avoid infinite refresh.
-        if (1 == mInvalidIndexesCount) {
-            mMessageListView.post(new Runnable() {
-                @Override
-                public void run() {
-                    mAdapter.notifyDataSetChanged();
-                }
-            });
-        } else {
-            mMessageListView.post(new Runnable() {
-                @Override
-                public void run() {
-                    if (null != getActivity()) {
-                        getActivity().finish();
-                    }
-                }
-            });
-        }
     }
 
     //==============================================================================================================

@@ -968,6 +968,8 @@ public class MXDataHandler implements IMXEventListener {
                     if (event.containsKey("content")) {
                         Map<String, List<String>> contentDict = (Map<String, List<String>>) event.get("content");
 
+                        Log.d(LOG_TAG, "## manageDirectChatRooms() : update direct chats map" + contentDict);
+
                         mStore.setDirectChatRoomsDict(contentDict);
 
                         if (!isInitialSync) {

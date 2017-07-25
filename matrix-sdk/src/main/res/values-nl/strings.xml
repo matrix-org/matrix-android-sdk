@@ -52,6 +52,7 @@
     <!-- Room Screen -->
     <string name="could_not_redact">Kon niet verwijderd worden</string>
     <string name="unable_to_send_message">Niet in staat om het bericht te sturen</string>
+    <string name="unread_messages_footer">"You've caught up"</string>
 
     <string name="message_failed_to_upload">Uploaden van de afbeelding mislukt</string>
 

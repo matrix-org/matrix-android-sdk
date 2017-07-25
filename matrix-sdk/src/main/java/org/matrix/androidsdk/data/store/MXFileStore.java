@@ -47,6 +47,7 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,12 +93,12 @@ public class MXFileStore extends MXMemoryStore {
 
     // List of rooms to save on [MXStore commit]
     // filled with roomId
-    private List<String> mRoomsToCommitForMessages;
-    private List<String> mRoomsToCommitForStates;
-    private List<String> mRoomsToCommitForSummaries;
-    private List<String> mRoomsToCommitForAccountData;
-    private List<String> mRoomsToCommitForReceipts;
-    private List<String> mUserIdsToCommit;
+    private HashSet<String> mRoomsToCommitForMessages;
+    private HashSet<String> mRoomsToCommitForStates;
+    private HashSet<String> mRoomsToCommitForSummaries;
+    private HashSet<String> mRoomsToCommitForAccountData;
+    private HashSet<String> mRoomsToCommitForReceipts;
+    private HashSet<String> mUserIdsToCommit;
 
     // Flag to indicate metaData needs to be store
     private boolean mMetaDataHasChanged = false;
@@ -213,12 +214,12 @@ public class MXFileStore extends MXMemoryStore {
         createDirTree(mCredentials.userId);
 
         // updated data
-        mRoomsToCommitForMessages = new ArrayList<>();
-        mRoomsToCommitForStates = new ArrayList<>();
-        mRoomsToCommitForSummaries = new ArrayList<>();
-        mRoomsToCommitForAccountData = new ArrayList<>();
-        mRoomsToCommitForReceipts = new ArrayList<>();
-        mUserIdsToCommit = new ArrayList<>();
+        mRoomsToCommitForMessages = new HashSet<>();
+        mRoomsToCommitForStates = new HashSet<>();
+        mRoomsToCommitForSummaries = new HashSet<>();
+        mRoomsToCommitForAccountData = new HashSet<>();
+        mRoomsToCommitForReceipts = new HashSet<>();
+        mUserIdsToCommit = new HashSet<>();
 
         // check if the metadata file exists and if it is valid
         loadMetaData();
@@ -339,7 +340,7 @@ public class MXFileStore extends MXMemoryStore {
                                         TextUtils.equals(mMetadata.mAccessToken, mCredentials.accessToken);
 
                                 if (!succeed) {
-                                    errorDescription = "The store content is not anymore valid";
+                                    errorDescription = "Invalid store content";
                                     Log.e(LOG_TAG, errorDescription);
                                 }
 
@@ -433,10 +434,10 @@ public class MXFileStore extends MXMemoryStore {
 
                                     deleteAllData(true);
 
-                                    mRoomsToCommitForMessages = new ArrayList<>();
-                                    mRoomsToCommitForStates = new ArrayList<>();
-                                    mRoomsToCommitForSummaries = new ArrayList<>();
-                                    mRoomsToCommitForReceipts = new ArrayList<>();
+                                    mRoomsToCommitForMessages = new HashSet<>();
+                                    mRoomsToCommitForStates = new HashSet<>();
+                                    mRoomsToCommitForSummaries = new HashSet<>();
+                                    mRoomsToCommitForReceipts = new HashSet<>();
 
                                     mMetadata = tmpMetadata;
 
@@ -750,6 +751,14 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
+    public void flushRoomEvents(String roomId) {
+        super.flushRoomEvents(roomId);
+
+        mRoomsToCommitForMessages.add(roomId);
+        saveRoomsMessages();
+    }
+
+    @Override
     public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, EventTimeline.Direction direction) {
         boolean canStore = true;
 
@@ -769,7 +778,7 @@ public class MXFileStore extends MXMemoryStore {
 
         super.storeRoomEvents(roomId, eventsResponse, direction);
 
-        if (canStore && (mRoomsToCommitForMessages.indexOf(roomId) < 0)) {
+        if (canStore) {
             mRoomsToCommitForMessages.add(roomId);
         }
     }
@@ -782,19 +791,13 @@ public class MXFileStore extends MXMemoryStore {
     @Override
     public void storeLiveRoomEvent(Event event) {
         super.storeLiveRoomEvent(event);
-
-        if (mRoomsToCommitForMessages.indexOf(event.roomId) < 0) {
-            mRoomsToCommitForMessages.add(event.roomId);
-        }
+        mRoomsToCommitForMessages.add(event.roomId);
     }
 
     @Override
     public void deleteEvent(Event event) {
         super.deleteEvent(event);
-
-        if (mRoomsToCommitForMessages.indexOf(event.roomId) < 0) {
-            mRoomsToCommitForMessages.add(event.roomId);
-        }
+        mRoomsToCommitForMessages.add(event.roomId);
     }
 
     /**
@@ -848,22 +851,14 @@ public class MXFileStore extends MXMemoryStore {
 
         deleteRoomSummaryFile(roomId);
 
-        if (mRoomsToCommitForMessages.indexOf(roomId) < 0) {
-            mRoomsToCommitForMessages.add(roomId);
-        }
-
-        if (mRoomsToCommitForSummaries.indexOf(roomId) < 0) {
-            mRoomsToCommitForSummaries.add(roomId);
-        }
+        mRoomsToCommitForMessages.add(roomId);
+        mRoomsToCommitForSummaries.add(roomId);
     }
 
     @Override
     public void storeLiveStateForRoom(String roomId) {
         super.storeLiveStateForRoom(roomId);
-
-        if (mRoomsToCommitForStates.indexOf(roomId) < 0) {
-            mRoomsToCommitForStates.add(roomId);
-        }
+        mRoomsToCommitForStates.add(roomId);
     }
 
     //================================================================================
@@ -873,11 +868,8 @@ public class MXFileStore extends MXMemoryStore {
     @Override
     public void flushSummary(RoomSummary summary) {
         super.flushSummary(summary);
-
-        if (mRoomsToCommitForSummaries.indexOf(summary.getRoomId()) < 0) {
-            mRoomsToCommitForSummaries.add(summary.getRoomId());
-            saveSummaries();
-        }
+        mRoomsToCommitForSummaries.add(summary.getRoomId());
+        saveSummaries();
     }
 
     @Override
@@ -885,13 +877,7 @@ public class MXFileStore extends MXMemoryStore {
         super.flushSummaries();
 
         // add any existing roomid to the list to save all
-        Collection<String> roomIds = mRoomSummaries.keySet();
-
-        for (String roomId : roomIds) {
-            if (mRoomsToCommitForSummaries.indexOf(roomId) < 0) {
-                mRoomsToCommitForSummaries.add(roomId);
-            }
-        }
+        mRoomsToCommitForSummaries.addAll(mRoomSummaries.keySet());
 
         saveSummaries();
     }
@@ -921,14 +907,14 @@ public class MXFileStore extends MXMemoryStore {
         // some updated rooms ?
         if ((mUserIdsToCommit.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
-            final List<String> fUserIds = mUserIdsToCommit;
-            mUserIdsToCommit = new ArrayList<>();
+            final HashSet<String> fUserIds = mUserIdsToCommit;
+            mUserIdsToCommit = new HashSet<>();
 
             try {
-                final ArrayList<User> fUsers;
+                final HashSet<User> fUsers;
 
                 synchronized (mUsers) {
-                    fUsers = new ArrayList<>(mUsers.values());
+                    fUsers = new HashSet<>(mUsers.values());
                 }
 
                 Runnable r = new Runnable() {
@@ -1039,6 +1025,53 @@ public class MXFileStore extends MXMemoryStore {
     // Room messages management
     //================================================================================
 
+    /**
+     * Computes the saved events map to reduce storage footprint.
+     *
+     * @param roomId the room id
+     * @return the saved eventMap
+     */
+    private LinkedHashMap<String, Event> getSavedEventsMap(String roomId) {
+        LinkedHashMap<String, Event> eventsMap;
+
+        synchronized (mRoomEventsLock) {
+            eventsMap = mRoomEvents.get(roomId);
+        }
+
+        List<Event> eventsList;
+
+        synchronized (mRoomEventsLock) {
+            eventsList = new ArrayList<>(eventsMap.values());
+        }
+
+        int startIndex = 0;
+
+        // try to reduce the number of stored messages
+        // it does not make sense to keep the full history.
+
+        // the method consists in saving messages until finding the oldest known token.
+        // At initial sync, it is not saved so keep the whole history.
+        // if the user back paginates, the token is stored in the event.
+        // if some messages are received, the token is stored in the event.
+        if (eventsList.size() > MAX_STORED_MESSAGES_COUNT) {
+            // search backward the first known token
+            for (startIndex = eventsList.size() - MAX_STORED_MESSAGES_COUNT; !eventsList.get(startIndex).hasToken() && (startIndex > 0); startIndex--);
+
+            if (startIndex > 0) {
+                Log.d(LOG_TAG, "## getSavedEveventsMap() : " + roomId + " reduce the number of messages " + eventsList.size() + " -> " + (eventsList.size() - startIndex));
+            }
+        }
+
+        LinkedHashMap<String, Event> savedEvents = new LinkedHashMap<>();
+
+        for (int index = startIndex; index < eventsList.size(); index++) {
+            Event event = eventsList.get(index);
+            savedEvents.put(event.eventId, event);
+        }
+
+        return savedEvents;
+    }
+
     private void saveRoomMessages(String roomId) {
         LinkedHashMap<String, Event> eventsHash;
         synchronized (mRoomEventsLock) {
@@ -1049,55 +1082,11 @@ public class MXFileStore extends MXMemoryStore {
 
         // the list exists ?
         if ((null != eventsHash) && (null != token)) {
-            LinkedHashMap<String, Event> hashCopy = new LinkedHashMap<>();
-            ArrayList<Event> eventsList;
-
-            synchronized (mRoomEventsLock) {
-                eventsList = new ArrayList<>(eventsHash.values());
-            }
-
-            int startIndex = 0;
-
-            // try to reduce the number of stored messages
-            // it does not make sense to keep the full history.
-
-            // the method consists in saving messages until finding the oldest known token.
-            // At initial sync, it is not saved so keep the whole history.
-            // if the user back paginates, the token is stored in the event.
-            // if some messages are received, the token is stored in the event.
-            if (eventsList.size() > MAX_STORED_MESSAGES_COUNT) {
-                startIndex = eventsList.size() - MAX_STORED_MESSAGES_COUNT;
-
-                // search backward the first known token
-                for (; !eventsList.get(startIndex).hasToken() && (startIndex > 0); startIndex--)
-                    ;
-
-                // avoid saving huge messages count
-                // with a very verbosed room, the messages token
-                if ((eventsList.size() - startIndex) > (2 * MAX_STORED_MESSAGES_COUNT)) {
-                    Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") : too many messages, try reducing more");
-
-                    // start from 10 messages
-                    startIndex = eventsList.size() - 10;
-
-                    // search backward the first known token
-                    for (; !eventsList.get(startIndex).hasToken() && (startIndex > 0); startIndex--)
-                        ;
-                }
-
-                if (startIndex > 0) {
-                    Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") :  reduce the number of messages " + eventsList.size() + " -> " + (eventsList.size() - startIndex));
-                }
-            }
-
             long t0 = System.currentTimeMillis();
 
-            for (int index = startIndex; index < eventsList.size(); index++) {
-                Event event = eventsList.get(index);
-                hashCopy.put(event.eventId, event);
-            }
+            LinkedHashMap<String, Event> savedEventsMap = getSavedEventsMap(roomId);
 
-            if (!writeObject("saveRoomsMessage " + roomId, new File(mGzStoreRoomsMessagesFolderFile, roomId), hashCopy)) {
+            if (!writeObject("saveRoomsMessage " + roomId, new File(mGzStoreRoomsMessagesFolderFile, roomId), savedEventsMap)) {
                 return;
             }
 
@@ -1105,7 +1094,7 @@ public class MXFileStore extends MXMemoryStore {
                 return;
             }
 
-            Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") : " + eventsList.size() + " messages saved in " + (System.currentTimeMillis() - t0) + " ms");
+            Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") : " + savedEventsMap.size() + " messages saved in " + (System.currentTimeMillis() - t0) + " ms");
         } else {
             deleteRoomMessagesFiles(roomId);
         }
@@ -1118,8 +1107,8 @@ public class MXFileStore extends MXMemoryStore {
         // some updated rooms ?
         if ((mRoomsToCommitForMessages.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
-            final List<String> fRoomsToCommitForMessages = mRoomsToCommitForMessages;
-            mRoomsToCommitForMessages = new ArrayList<>();
+            final HashSet<String> fRoomsToCommitForMessages = mRoomsToCommitForMessages;
+            mRoomsToCommitForMessages = new HashSet<>();
 
             Runnable r = new Runnable() {
                 @Override
@@ -1173,13 +1162,6 @@ public class MXFileStore extends MXMemoryStore {
                     Log.d(LOG_TAG, "## loadRoomMessages() : the room " + roomId + " has " + events.size() + " stored events : we need to find a way to reduce it.");
                 }
 
-                ArrayList<String> eventIds = mRoomEventIds.get(roomId);
-
-                if (null == eventIds) {
-                    eventIds = new ArrayList<>();
-                    mRoomEventIds.put(roomId, eventIds);
-                }
-
                 long undeliverableTs = 1L << 50;
 
                 // finalizes the deserialization
@@ -1194,8 +1176,6 @@ public class MXFileStore extends MXMemoryStore {
                         event.originServerTs = undeliverableTs++;
                         shouldSave = true;
                     }
-
-                    eventIds.add(event.eventId);
                 }
             } else {
                 return false;
@@ -1481,8 +1461,8 @@ public class MXFileStore extends MXMemoryStore {
     private void saveRoomStates() {
         if ((mRoomsToCommitForStates.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
-            final List<String> fRoomsToCommitForStates = mRoomsToCommitForStates;
-            mRoomsToCommitForStates = new ArrayList<>();
+            final HashSet<String> fRoomsToCommitForStates = mRoomsToCommitForStates;
+            mRoomsToCommitForStates = new HashSet<>();
 
             Runnable r = new Runnable() {
                 @Override
@@ -1619,8 +1599,8 @@ public class MXFileStore extends MXMemoryStore {
     private void saveRoomsAccountData() {
         if ((mRoomsToCommitForAccountData.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
-            final List<String> fRoomsToCommitForAccountData = mRoomsToCommitForAccountData;
-            mRoomsToCommitForAccountData = new ArrayList<>();
+            final HashSet<String> fRoomsToCommitForAccountData = mRoomsToCommitForAccountData;
+            mRoomsToCommitForAccountData = new HashSet<>();
 
             Runnable r = new Runnable() {
                 @Override
@@ -1729,9 +1709,7 @@ public class MXFileStore extends MXMemoryStore {
 
             // sanity checks
             if ((room != null) && (null != accountData)) {
-                if (mRoomsToCommitForAccountData.indexOf(roomId) < 0) {
-                    mRoomsToCommitForAccountData.add(roomId);
-                }
+                mRoomsToCommitForAccountData.add(roomId);
             }
         }
     }
@@ -1765,8 +1743,8 @@ public class MXFileStore extends MXMemoryStore {
     private void saveSummaries() {
         if ((mRoomsToCommitForSummaries.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
-            final List<String> fRoomsToCommitForSummaries = mRoomsToCommitForSummaries;
-            mRoomsToCommitForSummaries = new ArrayList<>();
+            final HashSet<String> fRoomsToCommitForSummaries = mRoomsToCommitForSummaries;
+            mRoomsToCommitForSummaries = new HashSet<>();
 
             Runnable r = new Runnable() {
                 @Override
@@ -1987,9 +1965,7 @@ public class MXFileStore extends MXMemoryStore {
 
         if (res) {
             synchronized (this) {
-                if (mRoomsToCommitForReceipts.indexOf(roomId) < 0) {
-                    mRoomsToCommitForReceipts.add(roomId);
-                }
+                mRoomsToCommitForReceipts.add(roomId);
             }
         }
 
@@ -2143,7 +2119,7 @@ public class MXFileStore extends MXMemoryStore {
      */
     private void saveReceipts() {
         synchronized (this) {
-            List<String> roomsToCommit = mRoomsToCommitForReceipts;
+            HashSet<String> roomsToCommit = mRoomsToCommitForReceipts;
 
             for (String roomId : roomsToCommit) {
                 saveReceipts(roomId);

@@ -846,22 +846,28 @@ public class MXCallsManager {
             public void run() {
                 mCallResClient.getTurnServer(new ApiCallback<JsonObject>() {
                     private void restartAfter(int msDelay) {
-                        if (null != mTurnServerTimer) {
-                            mTurnServerTimer.cancel();
-                        }
-
-                        mTurnServerTimer = new Timer();
-                        mTurnServerTimer.schedule(new TimerTask() {
-                            @Override
-                            public void run() {
-                                if (mTurnServerTimer != null) {
-                                    mTurnServerTimer.cancel();
-                                    mTurnServerTimer = null;
-                                }
-
-                                refreshTurnServer();
+                        // reported by GA
+                        // "ttl" seems invalid
+                        if (msDelay <= 0) {
+                            Log.e(LOG_TAG, "## refreshTurnServer() : invalid delay " + msDelay);
+                        } else {
+                            if (null != mTurnServerTimer) {
+                                mTurnServerTimer.cancel();
                             }
-                        }, msDelay);
+
+                            mTurnServerTimer = new Timer();
+                            mTurnServerTimer.schedule(new TimerTask() {
+                                @Override
+                                public void run() {
+                                    if (mTurnServerTimer != null) {
+                                        mTurnServerTimer.cancel();
+                                        mTurnServerTimer = null;
+                                    }
+
+                                    refreshTurnServer();
+                                }
+                            }, msDelay);
+                        }
                     }
 
                     @Override
