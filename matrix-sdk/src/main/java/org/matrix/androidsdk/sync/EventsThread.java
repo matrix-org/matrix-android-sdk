@@ -55,9 +55,6 @@ public class EventsThread extends Thread {
     private boolean mPaused = true;
     private boolean mIsNetworkSuspended = false;
     private boolean mIsCatchingUp = false;
-    private boolean mGotFirstCatchupChunk = false;
-    // when a catchup is triggered,
-    private int mCatchupSyncRequestsCount;
     private boolean mIsOnline = true;
 
     private boolean mKilling = false;
@@ -140,8 +137,15 @@ public class EventsThread extends Thread {
 
         Log.d(LOG_TAG, "## setSyncDelay() : " + mRequestDelayMs + " with state " + getState());
 
-        if (State.WAITING == getState() && !mPaused) {
-            Log.d(LOG_TAG, "## setSyncDelay() : resume the application");
+        if (State.WAITING == getState() && (!mPaused || (0 == mRequestDelayMs) &&  mIsCatchingUp)) {
+            if (!mPaused) {
+                Log.d(LOG_TAG, "## setSyncDelay() : resume the application");
+            }
+
+            if ((0 == mRequestDelayMs) && mIsCatchingUp) {
+                Log.d(LOG_TAG, "## setSyncDelay() : cancel catchup");
+                mIsCatchingUp = false;
+            }
 
             // and sync asap
             synchronized (mSyncObject) {
@@ -243,7 +247,6 @@ public class EventsThread extends Thread {
             }
         }
 
-        mGotFirstCatchupChunk = false;
         mIsCatchingUp = true;
     }
 
@@ -505,40 +508,12 @@ public class EventsThread extends Thread {
                                     }
                                 }
 
-                                Log.d(LOG_TAG, "Got " + eventCounts + " useful events while catching up");
-
-                                if (!mGotFirstCatchupChunk) {
-                                    mGotFirstCatchupChunk = (0 != eventCounts);
-
-                                    if (mGotFirstCatchupChunk) {
-                                        Log.e(LOG_TAG, "Got first catchup chunk");
-                                        mCatchupSyncRequestsCount = 0;
-                                    } else {
-                                        Log.e(LOG_TAG, "Empty chunk : sync again");
-                                    }
-
-                                    mNextServerTimeoutms = mDefaultServerTimeoutms / 10;
-                                } else {
-                                    mCatchupSyncRequestsCount++;
-
-                                    // stop the catchup if no events have been retrieved
-                                    // or after 1 sync requests
-                                    if ((0 == eventCounts) || (mCatchupSyncRequestsCount > 1)) {
-                                        if (0 == eventCounts) {
-                                            Log.e(LOG_TAG, "Stop the catchup after " + mCatchupSyncRequestsCount + " sync requests");
-                                        } else {
-                                            Log.e(LOG_TAG, "Stop the catchup");
-                                        }
-
-                                        // stop any catch up
-                                        mIsCatchingUp = false;
-                                        mPaused = (0 == mRequestDelayMs);
-                                    } else {
-                                        Log.e(LOG_TAG, "Catchup still in progress " + mCatchupSyncRequestsCount + " loop");
-                                        mNextServerTimeoutms = mDefaultServerTimeoutms / 10;
-                                    }
-                                }
+                                // stop any catch up
+                                mIsCatchingUp = false;
+                                mPaused = (0 == mRequestDelayMs);
+                                Log.d(LOG_TAG, "Got " + eventCounts + " useful events while catching up : mPaused is set to " + mPaused);
                             }
+
                             Log.d(LOG_TAG, "Got event response");
                             mListener.onSyncResponse(syncResponse, mCurrentToken, (0 == mNextServerTimeoutms));
                             mCurrentToken = syncResponse.nextBatch;
