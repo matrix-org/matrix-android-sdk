@@ -507,6 +507,9 @@ public class EventTimeline {
             if ((null != roomSync.timeline.events) && (roomSync.timeline.events.size() > 0)) {
                 List<Event> events = roomSync.timeline.events;
 
+                // save the back token
+                events.get(0).mToken = roomSync.timeline.prevBatch;
+
                 // Here the events are handled in forward direction (see [handleLiveEvent:]).
                 // They will be added at the end of the stored events, so we keep the chronological order.
                 for (Event event : events) {
