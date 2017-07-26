@@ -8,7 +8,7 @@
     <string name="notice_room_invite_no_invitee">la invitación de %s</string>
     <string name="notice_room_invite">%1$s invitó a %2$s</string>
     <string name="notice_room_invite_you">%1$s te invitó</string>
-    <string name="notice_room_join">%1$s entro</string>
+    <string name="notice_room_join">%1$s entró</string>
     <string name="notice_room_leave">%1$s salió</string>
     <string name="notice_room_reject">%1$s rechazó la invitación</string>
     <string name="notice_room_kick">%1$s echó a %2$s</string>
