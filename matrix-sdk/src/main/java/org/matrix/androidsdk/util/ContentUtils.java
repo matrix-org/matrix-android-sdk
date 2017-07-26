@@ -17,7 +17,9 @@ package org.matrix.androidsdk.util;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+
 import org.matrix.androidsdk.util.Log;
+
 import android.webkit.MimeTypeMap;
 
 import org.matrix.androidsdk.rest.model.ImageInfo;
@@ -32,6 +34,7 @@ public class ContentUtils {
 
     /**
      * Build an ImageInfo object based on the image at the given path.
+     *
      * @param filePath the path to the image in storage
      * @return the image info
      */
@@ -60,6 +63,7 @@ public class ContentUtils {
 
     /**
      * Delete a directory with its content
+     *
      * @param directory the base directory
      * @return true if the directory is deleted
      */
@@ -75,11 +79,10 @@ public class ContentUtils {
             File[] files = directory.listFiles();
 
             if (null != files) {
-                for(int i=0; i<files.length; i++) {
-                    if(files[i].isDirectory()) {
+                for (int i = 0; i < files.length; i++) {
+                    if (files[i].isDirectory()) {
                         succeed &= deleteDirectory(files[i]);
-                    }
-                    else {
+                    } else {
                         succeed &= files[i].delete();
                     }
                 }
@@ -90,6 +93,32 @@ public class ContentUtils {
         } else {
             return false;
         }
-
     }
+
+    /**
+     * Recursive method to compute a directory sie
+     *
+     * @param directory the directory.
+     * @return the directory size in bytes.
+     */
+    public static long getDirectorySize(File directory) {
+        long size = 0;
+
+        File[] files = directory.listFiles();
+
+        if (null != files) {
+            for (int i = 0; i < files.length; i++) {
+                File file = files[i];
+
+                if (!file.isDirectory()) {
+                    size += file.length();
+                } else {
+                    size += getDirectorySize(file);
+                }
+            }
+        }
+
+        return size;
+    }
+
 }

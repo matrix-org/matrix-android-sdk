@@ -26,6 +26,9 @@ import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
@@ -172,37 +175,27 @@ public class MXMediasCache {
     }
 
     /**
-     * Recursive method to compute a directory sie
-     * @param directory the directory.
-     * @return the directory size in bytes.
-     */
-    private long cacheSize(File directory) {
-        long size = 0;
-
-        File[] files = directory.listFiles();
-
-        if (null != files) {
-            for(int i=0; i<files.length; i++) {
-                File file = files[i];
-
-                if(!file.isDirectory()) {
-                    size += file.length();
-                } else {
-                    size += cacheSize(file);
-                }
-            }
-        }
-
-        return size;
-    }
-
-    /**
      * Compute the medias cache size
      *
-     * @return the medias cache size in bytes
+     * @param context the context
+     * @param callback the asynchronous callback
      */
-    public long cacheSize() {
-        return cacheSize(getMediasFolderFile());
+    public static void getCachesSize(final Context context, final SimpleApiCallback<Long> callback) {
+        AsyncTask<Void, Void, Long> task = new AsyncTask<Void, Void, Long>() {
+            @Override
+            protected Long doInBackground(Void... params) {
+                return ContentUtils.getDirectorySize(new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER));
+            }
+
+            @Override
+            protected void onPostExecute(Long result) {
+                Log.d(LOG_TAG, "## getCachesSize() : " + result);
+                if (null != callback) {
+                    callback.onSuccess(result);
+                }
+            }
+        };
+        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
     /**
@@ -210,6 +203,8 @@ public class MXMediasCache {
      */
     public void clear() {
         ContentUtils.deleteDirectory(getMediasFolderFile());
+
+        ContentUtils.deleteDirectory(mThumbnailsFolderFile);
 
         // clear the media cache
         MXMediaDownloadWorkerTask.clearBitmapsCache();

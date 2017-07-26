@@ -75,6 +75,7 @@ import org.matrix.androidsdk.sync.EventsThread;
 import org.matrix.androidsdk.sync.EventsThreadListener;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.ContentManager;
+import org.matrix.androidsdk.util.ContentUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.UnsentEventsManager;
@@ -528,6 +529,30 @@ public class MXSession {
         return mMediasCache;
     }
 
+    /**
+     * Provides the application caches size.
+     *
+     * @param context the context
+     * @param callback the asynchronous callback
+     */
+    public static void getApplicationSizeCaches(final Context context, final SimpleApiCallback<Long> callback) {
+        // init the known locales in background
+        AsyncTask<Void, Void, Long> task = new AsyncTask<Void, Void, Long>() {
+            @Override
+            protected Long doInBackground(Void... params) {
+                return ContentUtils.getDirectorySize(context.getApplicationContext().getFilesDir());
+            }
+
+            @Override
+            protected void onPostExecute(Long result) {
+                Log.d(LOG_TAG, "## getCacheSize() : " + result);
+                if (null != callback) {
+                    callback.onSuccess(result);
+                }
+            }
+        };
+        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    }
 
     /**
      * Clear the application cache
