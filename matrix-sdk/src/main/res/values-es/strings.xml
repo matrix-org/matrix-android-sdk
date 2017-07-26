@@ -53,7 +53,7 @@
     <!-- Room Screen -->
     <string name="could_not_redact">No se pudo retractar</string>
     <string name="unable_to_send_message">No se pudo enviar el mensaje</string>
-    <string name="unread_messages_footer">"You've caught up"</string>
+    <string name="unread_messages_footer">Se ha puesto al día</string>
 
     <string name="message_failed_to_upload">La subida de la imagen falló</string>
 
@@ -81,7 +81,5 @@
     <!-- medium friendly name -->
     <string name="medium_email">Correo elecrónico</string>
     <string name="medium_phone_number">Número telefónico</string>
-
-<string name="unread_messages_footer">Se ha puesto al día</string>
 
     </resources>
