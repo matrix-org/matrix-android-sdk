@@ -48,6 +48,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Set;
 import java.util.concurrent.RejectedExecutionException;
 
 public class MXMediasCache {
@@ -196,6 +197,45 @@ public class MXMediasCache {
             }
         };
         task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    }
+
+    /**
+     * Remove medias older than ts
+     * @param ts the ts
+     * @param filePathToKeep set of files to keep
+     */
+    public void removeMediasBefore(long ts, Set<String> filePathToKeep) {
+        removeMediasBefore(getMediasFolderFile(), ts, filePathToKeep);
+        removeMediasBefore(getThumbnailsFolderFile(), ts, filePathToKeep);
+    }
+
+    /**
+     * Recursive method to remove older messages
+     * @param folder the base folder
+     * @param aTs the ts
+     * @param filePathToKeep set of files to keep
+     */
+    private void removeMediasBefore(File folder, long aTs, Set<String> filePathToKeep) {
+        File[] files = folder.listFiles();
+
+        if (null != files) {
+            for (int i = 0; i < files.length; i++) {
+                File file = files[i];
+
+                if (!file.isDirectory()) {
+
+                    if (!filePathToKeep.contains(file.getPath())) {
+                        long ts = ContentUtils.getLastAccessTime(file);
+                        if (ts < aTs) {
+                            Log.d(LOG_TAG, "## removeMediasBefore() : remove " + file.getPath() + " because " + ts + " < " + aTs);
+                            file.delete();
+                        }
+                    }
+                } else {
+                    removeMediasBefore(file, aTs, filePathToKeep);
+                }
+            }
+        }
     }
 
     /**
