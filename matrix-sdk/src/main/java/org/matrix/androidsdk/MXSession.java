@@ -19,11 +19,13 @@ package org.matrix.androidsdk;
 import android.content.Context;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.call.MXCallsManager;
@@ -55,18 +57,23 @@ import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
+import org.matrix.androidsdk.rest.model.AudioMessage;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.DeleteDeviceAuth;
 import org.matrix.androidsdk.rest.model.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.DevicesListResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.FileMessage;
+import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchUsersResponse;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
@@ -75,17 +82,20 @@ import org.matrix.androidsdk.sync.EventsThread;
 import org.matrix.androidsdk.sync.EventsThreadListener;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.ContentManager;
+import org.matrix.androidsdk.util.ContentUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.UnsentEventsManager;
 import org.matrix.olm.OlmManager;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -528,6 +538,30 @@ public class MXSession {
         return mMediasCache;
     }
 
+    /**
+     * Provides the application caches size.
+     *
+     * @param context the context
+     * @param callback the asynchronous callback
+     */
+    public static void getApplicationSizeCaches(final Context context, final SimpleApiCallback<Long> callback) {
+        // init the known locales in background
+        AsyncTask<Void, Void, Long> task = new AsyncTask<Void, Void, Long>() {
+            @Override
+            protected Long doInBackground(Void... params) {
+                return ContentUtils.getDirectorySize(context.getApplicationContext().getFilesDir());
+            }
+
+            @Override
+            protected void onPostExecute(Long result) {
+                Log.d(LOG_TAG, "## getCacheSize() : " + result);
+                if (null != callback) {
+                    callback.onSuccess(result);
+                }
+            }
+        };
+        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    }
 
     /**
      * Clear the application cache
@@ -599,6 +633,72 @@ public class MXSession {
             };
             task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         }
+    }
+
+    /**
+     * Remove the medias older than the provided timestamp.
+     *
+     * @param timestamp the timestamp (in seconds)
+     */
+    public void removeMediasBefore(long timestamp) {
+        // list the files to keep even if they are older than the provided timestamp
+        // because their upload failed
+        Set<String> filesToKeep = new HashSet<>();
+        IMXStore store = getDataHandler().getStore();
+
+        Collection<Room> rooms = store.getRooms();
+
+        for(Room room : rooms) {
+            Collection<Event> events = store.getRoomMessages(room.getRoomId());
+
+            for(Event event : events) {
+                try {
+                    if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE, event.getType())) {
+                        JsonElement msgtypeAsVoid = event.getContentAsJsonObject().get("msgtype");
+
+                        if (null != msgtypeAsVoid) {
+                            String msgtype = msgtypeAsVoid.getAsString();
+
+                            if (TextUtils.equals(Message.MSGTYPE_IMAGE, msgtype)) {
+                                ImageMessage imageMessage = (ImageMessage) JsonUtils.toMessage(event.getContent());
+
+                                if (null != imageMessage) {
+                                    if (imageMessage.isThumbnailLocalContent()) {
+                                        filesToKeep.add(Uri.parse(imageMessage.thumbnailUrl).getPath());
+                                    }
+
+                                    if (imageMessage.isLocalContent()) {
+                                        filesToKeep.add(Uri.parse(imageMessage.url).getPath());
+                                    }
+                                }
+                            } else if (TextUtils.equals(Message.MSGTYPE_VIDEO, msgtype)) {
+                                VideoMessage videoMessage = (VideoMessage) JsonUtils.toMessage(event.getContent());
+
+                                if ((null != videoMessage) && videoMessage.isLocalContent()) {
+                                    filesToKeep.add(Uri.parse(videoMessage.url).getPath());
+                                }
+                            } else if (TextUtils.equals(Message.MSGTYPE_FILE, msgtype)) {
+                                FileMessage fileMessage = (FileMessage) JsonUtils.toMessage(event.getContent());
+
+                                if ((null != fileMessage) && fileMessage.isLocalContent()) {
+                                    filesToKeep.add(Uri.parse(fileMessage.url).getPath());
+                                }
+                            } else if (TextUtils.equals(Message.MSGTYPE_AUDIO, msgtype)) {
+                                AudioMessage audioMessage = (AudioMessage) JsonUtils.toMessage(event.getContent());
+
+                                if ((null != audioMessage) && audioMessage.isLocalContent()) {
+                                    filesToKeep.add(Uri.parse(audioMessage.url).getPath());
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage());
+                }
+            }
+        }
+
+        getMediasCache().removeMediasBefore(timestamp, filesToKeep);
     }
 
     /**

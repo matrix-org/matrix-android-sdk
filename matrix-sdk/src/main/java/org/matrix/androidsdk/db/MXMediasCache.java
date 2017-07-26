@@ -26,6 +26,9 @@ import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
@@ -45,6 +48,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Set;
 import java.util.concurrent.RejectedExecutionException;
 
 public class MXMediasCache {
@@ -172,37 +176,66 @@ public class MXMediasCache {
     }
 
     /**
-     * Recursive method to compute a directory sie
-     * @param directory the directory.
-     * @return the directory size in bytes.
+     * Compute the medias cache size
+     *
+     * @param context the context
+     * @param callback the asynchronous callback
      */
-    private long cacheSize(File directory) {
-        long size = 0;
+    public static void getCachesSize(final Context context, final SimpleApiCallback<Long> callback) {
+        AsyncTask<Void, Void, Long> task = new AsyncTask<Void, Void, Long>() {
+            @Override
+            protected Long doInBackground(Void... params) {
+                return ContentUtils.getDirectorySize(new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER));
+            }
 
-        File[] files = directory.listFiles();
-
-        if (null != files) {
-            for(int i=0; i<files.length; i++) {
-                File file = files[i];
-
-                if(!file.isDirectory()) {
-                    size += file.length();
-                } else {
-                    size += cacheSize(file);
+            @Override
+            protected void onPostExecute(Long result) {
+                Log.d(LOG_TAG, "## getCachesSize() : " + result);
+                if (null != callback) {
+                    callback.onSuccess(result);
                 }
             }
-        }
-
-        return size;
+        };
+        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
     /**
-     * Compute the medias cache size
-     *
-     * @return the medias cache size in bytes
+     * Remove medias older than ts
+     * @param ts the ts
+     * @param filePathToKeep set of files to keep
      */
-    public long cacheSize() {
-        return cacheSize(getMediasFolderFile());
+    public void removeMediasBefore(long ts, Set<String> filePathToKeep) {
+        removeMediasBefore(getMediasFolderFile(), ts, filePathToKeep);
+        removeMediasBefore(getThumbnailsFolderFile(), ts, filePathToKeep);
+    }
+
+    /**
+     * Recursive method to remove older messages
+     * @param folder the base folder
+     * @param aTs the ts
+     * @param filePathToKeep set of files to keep
+     */
+    private void removeMediasBefore(File folder, long aTs, Set<String> filePathToKeep) {
+        File[] files = folder.listFiles();
+
+        if (null != files) {
+            for (int i = 0; i < files.length; i++) {
+                File file = files[i];
+
+                if (!file.isDirectory()) {
+
+                    if (!filePathToKeep.contains(file.getPath())) {
+                        long ts = ContentUtils.getLastAccessTime(file);
+                        if (ts < aTs) {
+                            Log.d(LOG_TAG, "## removeMediasBefore() : remove " + file.getPath() + " because " + ts + " < " + aTs);
+                            file.delete();
+                        }
+                    }
+                } else {
+                    removeMediasBefore(file, aTs, filePathToKeep);
+                }
+            }
+        }
     }
 
     /**
@@ -210,6 +243,8 @@ public class MXMediasCache {
      */
     public void clear() {
         ContentUtils.deleteDirectory(getMediasFolderFile());
+
+        ContentUtils.deleteDirectory(mThumbnailsFolderFile);
 
         // clear the media cache
         MXMediaDownloadWorkerTask.clearBitmapsCache();

@@ -15,14 +15,21 @@
  */
 package org.matrix.androidsdk.util;
 
+import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+
 import org.matrix.androidsdk.util.Log;
+
+import android.os.Build;
+import android.system.Os;
 import android.webkit.MimeTypeMap;
 
 import org.matrix.androidsdk.rest.model.ImageInfo;
 
 import java.io.File;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
 /**
  * Static content utility methods.
@@ -32,6 +39,7 @@ public class ContentUtils {
 
     /**
      * Build an ImageInfo object based on the image at the given path.
+     *
      * @param filePath the path to the image in storage
      * @return the image info
      */
@@ -60,6 +68,7 @@ public class ContentUtils {
 
     /**
      * Delete a directory with its content
+     *
      * @param directory the base directory
      * @return true if the directory is deleted
      */
@@ -75,11 +84,10 @@ public class ContentUtils {
             File[] files = directory.listFiles();
 
             if (null != files) {
-                for(int i=0; i<files.length; i++) {
-                    if(files[i].isDirectory()) {
+                for (int i = 0; i < files.length; i++) {
+                    if (files[i].isDirectory()) {
                         succeed &= deleteDirectory(files[i]);
-                    }
-                    else {
+                    } else {
                         succeed &= files[i].delete();
                     }
                 }
@@ -90,6 +98,61 @@ public class ContentUtils {
         } else {
             return false;
         }
+    }
 
+    /**
+     * Recursive method to compute a directory sie
+     *
+     * @param directory the directory.
+     * @return the directory size in bytes.
+     */
+    public static long getDirectorySize(File directory) {
+        long size = 0;
+
+        File[] files = directory.listFiles();
+
+        if (null != files) {
+            for (int i = 0; i < files.length; i++) {
+                File file = files[i];
+
+                if (!file.isDirectory()) {
+                    size += file.length();
+                } else {
+                    size += getDirectorySize(file);
+                }
+            }
+        }
+
+        return size;
+    }
+
+    @SuppressLint("NewApi")
+    public static long getLastAccessTime(File file) {
+        long lastAccessTime = file.lastModified();
+
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                lastAccessTime = Os.lstat(file.getAbsolutePath()).st_atime;
+            } else {
+                Class<?> clazz = Class.forName("libcore.io.Libcore");
+                Field field = clazz.getDeclaredField("os");
+                if (!field.isAccessible()) {
+                    field.setAccessible(true);
+                }
+                Object os = field.get(null);
+
+                Method method = os.getClass().getMethod("lstat", String.class);
+                Object lstat = method.invoke(os, file.getAbsolutePath());
+
+                field = lstat.getClass().getDeclaredField("st_atime");
+                if (!field.isAccessible()) {
+                    field.setAccessible(true);
+                }
+                lastAccessTime = field.getLong(lstat);
+            }
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## getLastAccessTime() failed " + e.getMessage() + " for file " + file);
+        }
+        return lastAccessTime;
     }
 }
