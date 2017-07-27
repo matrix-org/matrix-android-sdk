@@ -153,6 +153,9 @@ public class MXSession {
     // so, mEventsThread.start might be not ready
     private boolean mIsBgCatchupPending = false;
 
+    // tell if the data save mode is enabled
+    private boolean mUseDataSaveMode;
+
     // load the crypto libs.
     public static OlmManager mOlmManager = new OlmManager();
 
@@ -545,7 +548,6 @@ public class MXSession {
      * @param callback the asynchronous callback
      */
     public static void getApplicationSizeCaches(final Context context, final SimpleApiCallback<Long> callback) {
-        // init the known locales in background
         AsyncTask<Void, Void, Long> task = new AsyncTask<Void, Void, Long>() {
             @Override
             protected Long doInBackground(Void... params) {
@@ -560,7 +562,12 @@ public class MXSession {
                 }
             }
         };
-        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        try {
+            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## getApplicationSizeCaches() : failed " + e.getMessage());
+            task.cancel(true);
+        }
     }
 
     /**
@@ -640,10 +647,10 @@ public class MXSession {
      *
      * @param timestamp the timestamp (in seconds)
      */
-    public void removeMediasBefore(long timestamp) {
+    public void removeMediasBefore(final long timestamp) {
         // list the files to keep even if they are older than the provided timestamp
         // because their upload failed
-        Set<String> filesToKeep = new HashSet<>();
+        final Set<String> filesToKeep = new HashSet<>();
         IMXStore store = getDataHandler().getStore();
 
         Collection<Room> rooms = store.getRooms();
@@ -698,7 +705,19 @@ public class MXSession {
             }
         }
 
-        getMediasCache().removeMediasBefore(timestamp, filesToKeep);
+        AsyncTask<Void, Void, Long> task = new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Long doInBackground(Void... params) {
+                getMediasCache().removeMediasBefore(timestamp, filesToKeep);
+                return null;
+            }
+        };
+        try {
+            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage());
+            task.cancel(true);
+        }
     }
 
     /**
@@ -783,6 +802,8 @@ public class MXSession {
         if (mFailureCallback != null) {
             mEventsThread.setFailureCallback(mFailureCallback);
         }
+
+        mEventsThread.setUseDataSaveMode(mUseDataSaveMode);
 
         if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
             // GA issue
@@ -894,6 +915,17 @@ public class MXSession {
         }
 
         return 0;
+    }
+
+    /**
+     * Update the data save mode
+     * @param enabled true to enable the data save mode
+     */
+    public void setUseDataSaveMode(boolean enabled) {
+        mUseDataSaveMode = enabled;
+        if (null != mEventsThread) {
+            mEventsThread.setUseDataSaveMode(enabled);
+        }
     }
 
     /**
