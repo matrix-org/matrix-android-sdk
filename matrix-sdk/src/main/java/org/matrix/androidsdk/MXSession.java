@@ -551,7 +551,7 @@ public class MXSession {
         AsyncTask<Void, Void, Long> task = new AsyncTask<Void, Void, Long>() {
             @Override
             protected Long doInBackground(Void... params) {
-                return ContentUtils.getDirectorySize(context, context.getApplicationContext().getFilesDir().getParentFile(), 5);
+                return ContentUtils.getDirectorySize(context, context.getApplicationContext().getFilesDir(), 4);
             }
 
             @Override

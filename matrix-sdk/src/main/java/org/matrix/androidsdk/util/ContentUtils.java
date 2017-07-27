@@ -23,6 +23,7 @@ import android.graphics.BitmapFactory;
 import org.matrix.androidsdk.util.Log;
 
 import android.os.Build;
+import android.os.StatFs;
 import android.system.Os;
 import android.webkit.MimeTypeMap;
 
@@ -110,6 +111,31 @@ public class ContentUtils {
      * @return the directory size
      */
     public static long getDirectorySize(Context context, File directory, int logPathDepth) {
+        StatFs statFs = new StatFs(directory.getAbsolutePath());
+        long blockSize;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            blockSize = statFs.getBlockSizeLong();
+        } else {
+            blockSize = statFs.getBlockSize();
+        }
+
+        if (blockSize < 0) {
+        	   blockSize = 1;
+        }
+
+        return getDirectorySize(context, directory, logPathDepth, blockSize);
+    }
+
+    /**
+     * Recursive method to compute a directory size
+     *
+     * @param context the context
+     * @param directory the directory
+     * @param logPathDepth the depth to log
+     * @param blockSize the filesystem block size
+     * @return the directory size
+     */
+    public static long getDirectorySize(Context context, File directory, int logPathDepth, long blockSize) {
         long size = 0;
 
         File[] files = directory.listFiles();
@@ -119,7 +145,7 @@ public class ContentUtils {
                 File file = files[i];
 
                 if (!file.isDirectory()) {
-                    size += file.length();
+                    size += (file.length() / blockSize + 1) * blockSize;
                 } else {
                     size += getDirectorySize(context, file, logPathDepth-1);
                 }
