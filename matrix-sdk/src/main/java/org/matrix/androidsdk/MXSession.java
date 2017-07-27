@@ -705,9 +705,9 @@ public class MXSession {
             }
         }
 
-        AsyncTask<Void, Void, Long> task = new AsyncTask<Void, Void, Void>() {
+        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
             @Override
-            protected Long doInBackground(Void... params) {
+            protected Void doInBackground(Void... params) {
                 getMediasCache().removeMediasBefore(timestamp, filesToKeep);
                 return null;
             }
