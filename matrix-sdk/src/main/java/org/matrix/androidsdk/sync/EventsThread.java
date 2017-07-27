@@ -46,7 +46,7 @@ public class EventsThread extends Thread {
     private static final int DEFAULT_SERVER_TIMEOUT_MS = 30000;
     private static final int DEFAULT_CLIENT_TIMEOUT_MS = 120000;
 
-    private static final String DATA_SAVE_MODE_FILTER = "{\"room\": { \"state\": { \"types\": [\"m.room.*\", \"m.call.*\"]}, \"ephemeral\": {\"not_types\": [\"*\"]}}, \"presence\": { \"not_types\": [\"*\"]}}";
+    private static final String DATA_SAVE_MODE_FILTER = "{\"room\": {\"ephemeral\": {\"types\": [\"m.receipt\"]}}, \"presence\":{\"not_types\": [\"*\"]}}";
 
     private EventsRestClient mEventsRestClient = null;
 
@@ -335,6 +335,8 @@ public class EventsThread extends Thread {
         } else {
             Log.d(LOG_TAG, "Requesting initial sync...");
         }
+
+
 
         int serverTimeout;
 
