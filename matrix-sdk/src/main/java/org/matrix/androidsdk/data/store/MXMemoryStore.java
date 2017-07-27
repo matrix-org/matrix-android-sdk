@@ -73,7 +73,7 @@ public class MXMemoryStore implements IMXStore {
     protected Map<String, Map<String, ReceiptData>> mReceiptsByRoomId;
 
     // room state events
-    protected final Map<String, List<Event>> mRoomStateEventsByRoomId = new HashMap<>();
+    protected final Map<String, Map<String, Event>> mRoomStateEventsByRoomId = new HashMap<>();
 
     // common context
     private static Context mSharedContext = null;
@@ -826,14 +826,17 @@ public class MXMemoryStore implements IMXStore {
     @Override
     public void storeRoomStateEvent(String roomId, Event event) {
         synchronized (mRoomStateEventsByRoomId) {
-            List<Event> events = mRoomStateEventsByRoomId.get(roomId);
+            Map<String, Event> events = mRoomStateEventsByRoomId.get(roomId);
 
             if (null == events) {
-                events = new ArrayList<>();
+                events = new HashMap<>();
                 mRoomStateEventsByRoomId.put(roomId, events);
             }
 
-            events.add(event);
+            // keeps the latest state events
+            if (null != event.stateKey) {
+                events.put(event.stateKey, event);
+            }
         }
     }
 
@@ -843,7 +846,7 @@ public class MXMemoryStore implements IMXStore {
 
         synchronized (mRoomStateEventsByRoomId) {
             if (mRoomStateEventsByRoomId.containsKey(roomId)) {
-                events.addAll(mRoomStateEventsByRoomId.get(roomId));
+                events.addAll(mRoomStateEventsByRoomId.get(roomId).values());
             }
         }
 

@@ -62,7 +62,7 @@ public class MXFileStore extends MXMemoryStore {
     private static final String LOG_TAG = "MXFileStore";
 
     // some constant values
-    private static final int MXFILE_VERSION = 12;
+    private static final int MXFILE_VERSION = 13;
 
     // ensure that there is enough messages to fill a tablet screen
     private static final int MAX_STORED_MESSAGES_COUNT = 50;
@@ -95,6 +95,7 @@ public class MXFileStore extends MXMemoryStore {
     // filled with roomId
     private HashSet<String> mRoomsToCommitForMessages;
     private HashSet<String> mRoomsToCommitForStates;
+    private HashSet<String> mRoomsToCommitForStatesEvents;
     private HashSet<String> mRoomsToCommitForSummaries;
     private HashSet<String> mRoomsToCommitForAccountData;
     private HashSet<String> mRoomsToCommitForReceipts;
@@ -216,6 +217,7 @@ public class MXFileStore extends MXMemoryStore {
         // updated data
         mRoomsToCommitForMessages = new HashSet<>();
         mRoomsToCommitForStates = new HashSet<>();
+        mRoomsToCommitForStatesEvents = new HashSet<>();
         mRoomsToCommitForSummaries = new HashSet<>();
         mRoomsToCommitForAccountData = new HashSet<>();
         mRoomsToCommitForReceipts = new HashSet<>();
@@ -290,6 +292,7 @@ public class MXFileStore extends MXMemoryStore {
             saveUsers();
             saveRoomsMessages();
             saveRoomStates();
+            saveRoomStatesEvents();
             saveSummaries();
             saveRoomsAccountData();
             saveReceipts();
@@ -436,6 +439,7 @@ public class MXFileStore extends MXMemoryStore {
 
                                     mRoomsToCommitForMessages = new HashSet<>();
                                     mRoomsToCommitForStates = new HashSet<>();
+                                    mRoomsToCommitForStatesEvents = new HashSet<>();
                                     mRoomsToCommitForSummaries = new HashSet<>();
                                     mRoomsToCommitForReceipts = new HashSet<>();
 
@@ -1312,37 +1316,159 @@ public class MXFileStore extends MXMemoryStore {
     // Room states management
     //================================================================================
 
+    // waiting that the rooms state events are loaded
+    private HashMap<String, List<Event>> mPendingRoomStateEvents = new HashMap<>();
+
+    @Override
+    public void storeRoomStateEvent(final String roomId, final Event event) {
+        boolean isAlreadyLoaded;
+
+        synchronized (mRoomStateEventsByRoomId) {
+            isAlreadyLoaded = mRoomStateEventsByRoomId.containsKey(roomId);
+        }
+
+        if (isAlreadyLoaded) {
+            super.storeRoomStateEvent(roomId, event);
+            mRoomsToCommitForStatesEvents.add(roomId);
+            return;
+        }
+
+        boolean isRequestPending = false;
+
+        synchronized (mPendingRoomStateEvents) {
+            // a loading is already in progress
+            if (mPendingRoomStateEvents.containsKey(roomId)) {
+                mPendingRoomStateEvents.get(roomId).add(event);
+                isRequestPending = true;
+            }
+        }
+
+        if (isRequestPending) {
+            return;
+        }
+
+        synchronized (mPendingRoomStateEvents) {
+            List<Event> events = new ArrayList<Event>();
+            events.add(event);
+            mPendingRoomStateEvents.put(roomId, events);
+        }
+
+        getRoomStateEvents(roomId, new SimpleApiCallback<List<Event>>() {
+            @Override
+            public void onSuccess(List<Event> events) {
+                List<Event> pendingEvents;
+
+                synchronized (mPendingRoomStateEvents) {
+                    pendingEvents = mPendingRoomStateEvents.get(roomId);
+                    mPendingRoomStateEvents.remove(roomId);
+                }
+
+                // add them by now
+                for(Event event : pendingEvents) {
+                    storeRoomStateEvent(roomId, event);
+                }
+            }
+        });
+    }
+
+    /**
+     * Save the room state.
+     *
+     * @param roomId the room id.
+     */
+    private void saveRoomStateEvents(final String roomId) {
+        Log.d(LOG_TAG, "++ saveRoomStateEvents " + roomId);
+        
+        File roomStateFile = new File(mGzStoreRoomsStateEventsFolderFile, roomId);
+        Map<String, Event> eventsMap = mRoomStateEventsByRoomId.get(roomId);
+
+        if (null != eventsMap) {
+            List<Event> events = new ArrayList<>(eventsMap.values());
+
+            long start1 = System.currentTimeMillis();
+            writeObject("saveRoomStateEvents " + roomId, roomStateFile, events);
+            Log.d(LOG_TAG, "saveRoomStateEvents " + roomId + " :" + events.size() + " events : " + (System.currentTimeMillis() - start1) + " ms");
+        } else {
+            Log.d(LOG_TAG, "-- saveRoomStateEvents " + roomId  + " : empty list");
+        }
+    }
+
+    /**
+     * Flush the room state events files.
+     */
+    private void saveRoomStatesEvents() {
+        if ((mRoomsToCommitForStatesEvents.size() > 0) && (null != mFileStoreHandler)) {
+            // get the list
+            final HashSet<String> fRoomsToCommitForStatesEvents = mRoomsToCommitForStatesEvents;
+            mRoomsToCommitForStatesEvents = new HashSet<>();
+
+            Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    mFileStoreHandler.post(new Runnable() {
+                        public void run() {
+                            if (!isKilled()) {
+                                long start = System.currentTimeMillis();
+
+                                for (String roomId : fRoomsToCommitForStatesEvents) {
+                                    saveRoomStateEvents(roomId);
+                                }
+
+                                Log.d(LOG_TAG, "saveRoomStatesEvents : " + fRoomsToCommitForStatesEvents.size() + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+                            }
+                        }
+                    });
+                }
+            };
+
+            Thread t = new Thread(r);
+            t.start();
+        }
+    }
+
     @Override
     public void getRoomStateEvents(final String roomId, final SimpleApiCallback<List<Event>> callback) {
+        boolean isAlreadyLoaded;
+
+        synchronized (mRoomStateEventsByRoomId) {
+            isAlreadyLoaded = mRoomStateEventsByRoomId.containsKey(roomId);
+        }
+
+        if (isAlreadyLoaded) {
+            super.getRoomStateEvents(roomId, callback);
+            return;
+        }
+
         Runnable r = new Runnable() {
             @Override
             public void run() {
                 mFileStoreHandler.post(new Runnable() {
                     public void run() {
                         if (!isKilled()) {
-                            ArrayList<Event> eventsList = new ArrayList<>();
+                            File statesEventsFile = new File(mGzStoreRoomsStateEventsFolderFile, roomId);
+                            Map<String, Event> eventsMap = new HashMap<>();
+                            List<Event> eventsList = new ArrayList<>();
 
-                            File statesEventsFolder = new File(mGzStoreRoomsStateEventsFolderFile, roomId);
                             long start = System.currentTimeMillis();
 
-                            if (statesEventsFolder.exists()) {
-                                File[] files = statesEventsFolder.listFiles();
+                            if ((null != statesEventsFile) && statesEventsFile.exists()) {
+                                try {
+                                    Object eventsListAsVoid = readObject("getRoomStateEvents", statesEventsFile);
 
-                                for (int i = 0; i < files.length; i++) {
-                                    File file = files[i];
+                                    if (null != eventsListAsVoid) {
+                                        List<Event> events = (List<Event>) eventsListAsVoid;
 
-                                    try {
-                                        Object eventAsVoid = readObject("getRoomStateEvents", file);
-
-                                        if (null != eventAsVoid) {
-                                            Event event = (Event) eventAsVoid;
-                                            //event.finalizeDeserialization();
-                                            eventsList.add(event);
+                                        for (Event event : events) {
+                                            eventsMap.put(event.stateKey, event);
                                         }
-                                    } catch (Exception e) {
-                                        Log.e(LOG_TAG, "getRoomStateEvents failed : " + e.getMessage());
                                     }
+                                } catch (Exception e) {
+                                    Log.e(LOG_TAG, "getRoomStateEvents failed : " + e.getMessage());
                                 }
+                            }
+
+                            synchronized (mRoomStateEventsByRoomId) {
+                                mRoomStateEventsByRoomId.put(roomId, eventsMap);
                             }
 
                             Log.d(LOG_TAG, "getRoomStateEvents : retrieve " + eventsList.size() + " events in " + (System.currentTimeMillis() - start) + " ms");
@@ -1374,11 +1500,11 @@ public class MXFileStore extends MXMemoryStore {
             }
         }
 
-        File statesEventsFolder = new File(mGzStoreRoomsStateEventsFolderFile, roomId);
+        File statesEventsFile = new File(mGzStoreRoomsStateEventsFolderFile, roomId);
 
-        if (statesEventsFolder.exists()) {
+        if (statesEventsFile.exists()) {
             try {
-                ContentUtils.deleteDirectory(statesEventsFolder);
+                statesEventsFile.delete();
             } catch (Exception e) {
                 Log.e(LOG_TAG, "deleteRoomStateFile failed with error " + e.getMessage());
             }
@@ -1400,53 +1526,6 @@ public class MXFileStore extends MXMemoryStore {
             long start1 = System.currentTimeMillis();
             writeObject("saveRoomsState " + roomId, roomStateFile, room.getState());
             Log.d(LOG_TAG, "saveRoomsState " + room.getState().getMembers().size() + " members : " + (System.currentTimeMillis() - start1) + " ms");
-
-            // the state events are with low priority
-            // because they are only used in redact cases
-            Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    mFileStoreHandler.post(new Runnable() {
-                        public void run() {
-                            if (!isKilled()) {
-                                List<Event> stateEvents;
-
-                                synchronized (mRoomStateEventsByRoomId) {
-                                    if (mRoomStateEventsByRoomId.containsKey(roomId)) {
-                                        stateEvents = mRoomStateEventsByRoomId.get(roomId);
-                                        mRoomStateEventsByRoomId.remove(roomId);
-                                    } else {
-                                        stateEvents = null;
-                                    }
-                                }
-
-                                if (null != stateEvents) {
-                                    File roomStateEventsFile = new File(mGzStoreRoomsStateEventsFolderFile, roomId);
-
-                                    if (!roomStateEventsFile.exists()) {
-                                        roomStateEventsFile.mkdirs();
-                                    }
-
-                                    long start2 = System.currentTimeMillis();
-
-                                    for (Event event : stateEvents) {
-                                        File roomStateEventFile = new File(roomStateEventsFile, event.eventId);
-                                        writeObject("saveRoomsState : save state events " + roomId + " " + event.eventId, roomStateEventFile, event);
-                                    }
-
-                                    Log.d(LOG_TAG, "saveRoomsState : save " + stateEvents.size() + " stateEvents in " + (System.currentTimeMillis() - start2) + " ms in " + roomId);
-                                } else {
-                                    Log.d(LOG_TAG, "saveRoomsState : no state events to save");
-                                }
-                            }
-                        }
-                    });
-                }
-            };
-
-            Thread t = new Thread(r);
-            t.setPriority(Thread.MIN_PRIORITY);
-            t.start();
         } else {
             Log.d(LOG_TAG, "saveRoomsState : delete the room state");
             deleteRoomStateFile(roomId);
