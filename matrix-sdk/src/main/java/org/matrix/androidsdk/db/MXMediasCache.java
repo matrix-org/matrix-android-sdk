@@ -185,7 +185,7 @@ public class MXMediasCache {
         AsyncTask<Void, Void, Long> task = new AsyncTask<Void, Void, Long>() {
             @Override
             protected Long doInBackground(Void... params) {
-                return ContentUtils.getDirectorySize(new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER));
+                return ContentUtils.getDirectorySize(context, new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER), 1);
             }
 
             @Override

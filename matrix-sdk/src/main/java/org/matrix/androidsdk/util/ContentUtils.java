@@ -16,6 +16,7 @@
 package org.matrix.androidsdk.util;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
@@ -101,12 +102,14 @@ public class ContentUtils {
     }
 
     /**
-     * Recursive method to compute a directory sie
+     * Recursive method to compute a directory size
      *
-     * @param directory the directory.
-     * @return the directory size in bytes.
+     * @param context the context
+     * @param directory the directory
+     * @param logPathDepth the depth to log
+     * @return the directory size
      */
-    public static long getDirectorySize(File directory) {
+    public static long getDirectorySize(Context context, File directory, int logPathDepth) {
         long size = 0;
 
         File[] files = directory.listFiles();
@@ -118,9 +121,13 @@ public class ContentUtils {
                 if (!file.isDirectory()) {
                     size += file.length();
                 } else {
-                    size += getDirectorySize(file);
+                    size += getDirectorySize(context, file, logPathDepth-1);
                 }
             }
+        }
+
+        if (logPathDepth > 0) {
+            Log.d(LOG_TAG, "## getDirectorySize() " + directory.getPath() + " " + android.text.format.Formatter.formatFileSize(context, size));
         }
 
         return size;
