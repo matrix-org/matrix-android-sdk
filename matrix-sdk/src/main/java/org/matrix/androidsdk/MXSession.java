@@ -647,7 +647,7 @@ public class MXSession {
      *
      * @param timestamp the timestamp (in seconds)
      */
-    public void removeMediasBefore(final long timestamp) {
+    public void removeMediasBefore(final Context context, final long timestamp) {
         // list the files to keep even if they are older than the provided timestamp
         // because their upload failed
         final Set<String> filesToKeep = new HashSet<>();
@@ -708,7 +708,29 @@ public class MXSession {
         AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... params) {
-                getMediasCache().removeMediasBefore(timestamp, filesToKeep);
+                long length = getMediasCache().removeMediasBefore(timestamp, filesToKeep);
+
+                // delete also the log files
+                // they might be large
+                File logsDir = Log.getLogDirectory();
+
+                if (null != logsDir) {
+                    File[] logFiles = logsDir.listFiles();
+
+                    for(File file : logFiles) {
+                        if (ContentUtils.getLastAccessTime(file) < timestamp) {
+                            length += file.length();
+                            file.delete();
+                        }
+                    }
+                }
+
+                if (0 != length) {
+                    Log.d(LOG_TAG, "## removeMediasBefore() : save " + android.text.format.Formatter.formatFileSize(context, length));
+                } else {
+                    Log.d(LOG_TAG, "## removeMediasBefore() : useless");
+                }
+
                 return null;
             }
         };

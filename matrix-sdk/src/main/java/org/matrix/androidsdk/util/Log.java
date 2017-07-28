@@ -81,7 +81,15 @@ public class Log {
         }
         sCacheDirectory = cacheDir;
     }
-    
+
+    /**
+     * Set the directory to put log files.
+     * @return the cache directory
+     */
+    public static File getLogDirectory() {
+        return sCacheDirectory;
+    }
+
     /**
      * Adds our own log files to the provided list of files.
      * @param files The list of files to add to.

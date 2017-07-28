@@ -203,10 +203,15 @@ public class MXMediasCache {
      * Remove medias older than ts
      * @param ts the ts
      * @param filePathToKeep set of files to keep
+     * @return length of deleted files
      */
-    public void removeMediasBefore(long ts, Set<String> filePathToKeep) {
-        removeMediasBefore(getMediasFolderFile(), ts, filePathToKeep);
-        removeMediasBefore(getThumbnailsFolderFile(), ts, filePathToKeep);
+    public long removeMediasBefore(long ts, Set<String> filePathToKeep) {
+        long length = 0;
+
+        length += removeMediasBefore(getMediasFolderFile(), ts, filePathToKeep);
+        length += removeMediasBefore(getThumbnailsFolderFile(), ts, filePathToKeep);
+
+        return length;
     }
 
     /**
@@ -214,8 +219,10 @@ public class MXMediasCache {
      * @param folder the base folder
      * @param aTs the ts
      * @param filePathToKeep set of files to keep
+     * @return length of deleted files
      */
-    private void removeMediasBefore(File folder, long aTs, Set<String> filePathToKeep) {
+    private long removeMediasBefore(File folder, long aTs, Set<String> filePathToKeep) {
+        long length = 0;
         File[] files = folder.listFiles();
 
         if (null != files) {
@@ -227,15 +234,17 @@ public class MXMediasCache {
                     if (!filePathToKeep.contains(file.getPath())) {
                         long ts = ContentUtils.getLastAccessTime(file);
                         if (ts < aTs) {
-                            Log.d(LOG_TAG, "## removeMediasBefore() : remove " + file.getPath() + " because " + ts + " < " + aTs);
+                            length += file.length();
                             file.delete();
                         }
                     }
                 } else {
-                    removeMediasBefore(file, aTs, filePathToKeep);
+                    length += removeMediasBefore(file, aTs, filePathToKeep);
                 }
             }
         }
+
+        return length;
     }
 
     /**
