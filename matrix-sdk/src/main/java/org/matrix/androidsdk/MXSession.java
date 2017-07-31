@@ -167,6 +167,7 @@ public class MXSession {
     public static final String MATRIX_ROOM_ALIAS_REGEX = "#[A-Z0-9._%#+-]+:[A-Z0-9.-]+\\.[A-Z]{2,}+(\\:[0-9]{2,})?";
     public static final Pattern PATTERN_CONTAIN_MATRIX_ALIAS = Pattern.compile(MATRIX_ROOM_ALIAS_REGEX, Pattern.CASE_INSENSITIVE);
 
+
     // regex pattern to find room ids in a string.
     public static final String MATRIX_ROOM_IDENTIFIER_REGEX = "![A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}+(\\:[0-9]{2,})?";
     public static final Pattern PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER = Pattern.compile(MATRIX_ROOM_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
@@ -657,50 +658,51 @@ public class MXSession {
 
         for(Room room : rooms) {
             Collection<Event> events = store.getRoomMessages(room.getRoomId());
+            if (null != events) {
+                for (Event event : events) {
+                    try {
+                        if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE, event.getType())) {
+                            JsonElement msgtypeAsVoid = event.getContentAsJsonObject().get("msgtype");
 
-            for(Event event : events) {
-                try {
-                    if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE, event.getType())) {
-                        JsonElement msgtypeAsVoid = event.getContentAsJsonObject().get("msgtype");
+                            if (null != msgtypeAsVoid) {
+                                String msgtype = msgtypeAsVoid.getAsString();
 
-                        if (null != msgtypeAsVoid) {
-                            String msgtype = msgtypeAsVoid.getAsString();
+                                if (TextUtils.equals(Message.MSGTYPE_IMAGE, msgtype)) {
+                                    ImageMessage imageMessage = (ImageMessage) JsonUtils.toMessage(event.getContent());
 
-                            if (TextUtils.equals(Message.MSGTYPE_IMAGE, msgtype)) {
-                                ImageMessage imageMessage = (ImageMessage) JsonUtils.toMessage(event.getContent());
+                                    if (null != imageMessage) {
+                                        if (imageMessage.isThumbnailLocalContent()) {
+                                            filesToKeep.add(Uri.parse(imageMessage.thumbnailUrl).getPath());
+                                        }
 
-                                if (null != imageMessage) {
-                                    if (imageMessage.isThumbnailLocalContent()) {
-                                        filesToKeep.add(Uri.parse(imageMessage.thumbnailUrl).getPath());
+                                        if (imageMessage.isLocalContent()) {
+                                            filesToKeep.add(Uri.parse(imageMessage.url).getPath());
+                                        }
                                     }
+                                } else if (TextUtils.equals(Message.MSGTYPE_VIDEO, msgtype)) {
+                                    VideoMessage videoMessage = (VideoMessage) JsonUtils.toMessage(event.getContent());
 
-                                    if (imageMessage.isLocalContent()) {
-                                        filesToKeep.add(Uri.parse(imageMessage.url).getPath());
+                                    if ((null != videoMessage) && videoMessage.isLocalContent()) {
+                                        filesToKeep.add(Uri.parse(videoMessage.url).getPath());
                                     }
-                                }
-                            } else if (TextUtils.equals(Message.MSGTYPE_VIDEO, msgtype)) {
-                                VideoMessage videoMessage = (VideoMessage) JsonUtils.toMessage(event.getContent());
+                                } else if (TextUtils.equals(Message.MSGTYPE_FILE, msgtype)) {
+                                    FileMessage fileMessage = (FileMessage) JsonUtils.toMessage(event.getContent());
 
-                                if ((null != videoMessage) && videoMessage.isLocalContent()) {
-                                    filesToKeep.add(Uri.parse(videoMessage.url).getPath());
-                                }
-                            } else if (TextUtils.equals(Message.MSGTYPE_FILE, msgtype)) {
-                                FileMessage fileMessage = (FileMessage) JsonUtils.toMessage(event.getContent());
+                                    if ((null != fileMessage) && fileMessage.isLocalContent()) {
+                                        filesToKeep.add(Uri.parse(fileMessage.url).getPath());
+                                    }
+                                } else if (TextUtils.equals(Message.MSGTYPE_AUDIO, msgtype)) {
+                                    AudioMessage audioMessage = (AudioMessage) JsonUtils.toMessage(event.getContent());
 
-                                if ((null != fileMessage) && fileMessage.isLocalContent()) {
-                                    filesToKeep.add(Uri.parse(fileMessage.url).getPath());
-                                }
-                            } else if (TextUtils.equals(Message.MSGTYPE_AUDIO, msgtype)) {
-                                AudioMessage audioMessage = (AudioMessage) JsonUtils.toMessage(event.getContent());
-
-                                if ((null != audioMessage) && audioMessage.isLocalContent()) {
-                                    filesToKeep.add(Uri.parse(audioMessage.url).getPath());
+                                    if ((null != audioMessage) && audioMessage.isLocalContent()) {
+                                        filesToKeep.add(Uri.parse(audioMessage.url).getPath());
+                                    }
                                 }
                             }
                         }
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage());
                     }
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage());
                 }
             }
         }
@@ -717,10 +719,12 @@ public class MXSession {
                 if (null != logsDir) {
                     File[] logFiles = logsDir.listFiles();
 
-                    for(File file : logFiles) {
-                        if (ContentUtils.getLastAccessTime(file) < timestamp) {
-                            length += file.length();
-                            file.delete();
+                    if (null != logFiles) {
+                        for (File file : logFiles) {
+                            if (ContentUtils.getLastAccessTime(file) < timestamp) {
+                                length += file.length();
+                                file.delete();
+                            }
                         }
                     }
                 }
