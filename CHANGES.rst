@@ -1,3 +1,12 @@
+Changes to Matrix Android SDK in 0.7.15 (2017-07-25)
+=======================================================
+
+Bugfixes:
+
+* Remove server catchup patch (i.e the sync requests were triggered until getting something).
+  It used to drain battery on small accounts.
+* Fix application resume edge cases (fdroid only)
+
 Changes to Matrix Android SDK in 0.7.14 (2017-07-04)
 =======================================================
 
