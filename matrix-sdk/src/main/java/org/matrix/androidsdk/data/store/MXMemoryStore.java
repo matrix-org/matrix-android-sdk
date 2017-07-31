@@ -62,8 +62,6 @@ public class MXMemoryStore implements IMXStore {
 
     // room id -> map of (event_id -> event) events for this room (linked so insertion order is preserved)
     protected Map<String, LinkedHashMap<String, Event>> mRoomEvents;
-    // room id -> list of event Ids
-    protected Map<String, ArrayList<String>> mRoomEventIds;
 
     protected Map<String, String> mRoomTokens;
 
@@ -103,7 +101,6 @@ public class MXMemoryStore implements IMXStore {
         mRooms = new ConcurrentHashMap<>();
         mUsers = new ConcurrentHashMap<>();
         mRoomEvents = new ConcurrentHashMap<>();
-        mRoomEventIds = new ConcurrentHashMap<>();
         mRoomTokens = new ConcurrentHashMap<>();
         mRoomSummaries = new ConcurrentHashMap<>();
         mReceiptsByRoomId = new ConcurrentHashMap<>();
@@ -569,45 +566,41 @@ public class MXMemoryStore implements IMXStore {
     @Override
     public void storeLiveRoomEvent(Event event) {
         try {
-            if ((null != event) && (null != event.roomId)) {
+            if ((null != event) && (null != event.roomId) && (null != event.eventId)) {
                 synchronized (mRoomEventsLock) {
-                    // check if the message is already defined
-                    if (!doesEventExist(event.eventId, event.roomId)) {
-                        LinkedHashMap<String, Event> events = mRoomEvents.get(event.roomId);
+                    LinkedHashMap<String, Event> events = mRoomEvents.get(event.roomId);
 
-                        // create the list it does not exist
-                        if (null == events) {
-                            events = new LinkedHashMap<>();
-                            mRoomEvents.put(event.roomId, events);
-                        } else if (!event.isDummyEvent() && (mTemporaryEventsList.size() > 0)) {
-                            // remove any waiting echo event
-                            String dummyKey = null;
+                    // create the list it does not exist
+                    if (null == events) {
+                        events = new LinkedHashMap<>();
+                        mRoomEvents.put(event.roomId, events);
+                    } else if (events.containsKey(event.eventId)) {
+                        // the event is already define
+                        return;
+                    } else if (!event.isDummyEvent() && (mTemporaryEventsList.size() > 0)) {
+                        // remove any waiting echo event
+                        String dummyKey = null;
 
-                            for (String key : mTemporaryEventsList.keySet()) {
-                                Event eventToCheck = mTemporaryEventsList.get(key);
-                                if (TextUtils.equals(eventToCheck.eventId, event.eventId)) {
-                                    dummyKey = key;
-                                    break;
-                                }
-                            }
-
-                            if (null != dummyKey) {
-                                events.remove(dummyKey);
-                                mTemporaryEventsList.remove(dummyKey);
+                        for (String key : mTemporaryEventsList.keySet()) {
+                            Event eventToCheck = mTemporaryEventsList.get(key);
+                            if (TextUtils.equals(eventToCheck.eventId, event.eventId)) {
+                                dummyKey = key;
+                                break;
                             }
                         }
 
-                        // If we don't have any information on this room - a pagination token, namely - we don't store the event but instead
-                        // wait for the first pagination request to set things right
-                        events.put(event.eventId, event);
-
-                        // add to the list of known events
-                        ArrayList<String> eventIds = mRoomEventIds.get(event.roomId);
-                        eventIds.add(event.eventId);
-
-                        if (event.isDummyEvent()) {
-                            mTemporaryEventsList.put(event.eventId, event);
+                        if (null != dummyKey) {
+                            events.remove(dummyKey);
+                            mTemporaryEventsList.remove(dummyKey);
                         }
+                    }
+
+                    // If we don't have any information on this room - a pagination token, namely - we don't store the event but instead
+                    // wait for the first pagination request to set things right
+                    events.put(event.eventId, event);
+
+                    if (event.isDummyEvent()) {
+                        mTemporaryEventsList.put(event.eventId, event);
                     }
                 }
             }
@@ -621,14 +614,9 @@ public class MXMemoryStore implements IMXStore {
         boolean res = false;
 
         if (!TextUtils.isEmpty(eventId) && !TextUtils.isEmpty(roomId)) {
-            ArrayList<String> eventIds = mRoomEventIds.get(roomId);
-
-            if (null == eventIds) {
-                eventIds = new ArrayList<>();
-                mRoomEventIds.put(roomId, eventIds);
+            synchronized (mRoomEventsLock) {
+                res = mRoomEvents.containsKey(roomId) && mRoomEvents.get(roomId).containsKey(eventId);
             }
-
-            res = eventIds.indexOf(eventId) >= 0;
         }
 
         return res;
@@ -638,7 +626,7 @@ public class MXMemoryStore implements IMXStore {
     public Event getEvent(String eventId, String roomId) {
         Event event = null;
 
-        if (doesEventExist(eventId, roomId)) {
+        if (!TextUtils.isEmpty(eventId) && !TextUtils.isEmpty(roomId)) {
             synchronized (mRoomEventsLock) {
                 LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
 
@@ -655,15 +643,9 @@ public class MXMemoryStore implements IMXStore {
     public void deleteEvent(Event event) {
         if ((null != event) && (null != event.roomId) && (event.eventId != null)) {
             synchronized (mRoomEventsLock) {
-
                 LinkedHashMap<String, Event> events = mRoomEvents.get(event.roomId);
                 if (events != null) {
                     events.remove(event.eventId);
-                }
-
-                ArrayList<String> ids = mRoomEventIds.get(event.roomId);
-                if (null != ids) {
-                    ids.remove(event.eventId);
                 }
             }
         }
@@ -686,7 +668,6 @@ public class MXMemoryStore implements IMXStore {
         if (null != roomId) {
             synchronized (mRoomEventsLock) {
                 mRoomEvents.remove(roomId);
-                mRoomEventIds.remove(roomId);
                 mRoomTokens.remove(roomId);
                 mRoomSummaries.remove(roomId);
                 mRoomAccountData.remove(roomId);
@@ -711,26 +692,17 @@ public class MXMemoryStore implements IMXStore {
                     LinkedHashMap<String, Event> eventMap = mRoomEvents.get(roomId);
 
                     if (null != eventMap) {
-                        ArrayList<String> eventIds = mRoomEventIds.get(roomId);
                         ArrayList<Event> events = new ArrayList<>(eventMap.values());
 
                         for (Event event : events) {
                             if (event.mSentState == Event.SentState.SENT) {
                                 if (null != event.eventId) {
                                     eventMap.remove(event.eventId);
-
-                                    // sanity check
-                                    if (null != eventIds) {
-                                        eventIds.remove(event.eventId);
-                                    }
                                 }
                             }
                         }
-                    } else {
-                        mRoomEventIds.remove(roomId);
                     }
                 } else {
-                    mRoomEventIds.remove(roomId);
                     mRoomEvents.remove(roomId);
                 }
 

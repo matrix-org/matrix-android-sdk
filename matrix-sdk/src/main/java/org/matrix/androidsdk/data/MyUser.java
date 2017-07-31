@@ -20,15 +20,13 @@ package org.matrix.androidsdk.data;
 import android.os.Handler;
 import android.os.Looper;
 
-import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationResponse;
-import org.matrix.androidsdk.util.Log;
-
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.ThreePid;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -98,23 +96,25 @@ public class MyUser extends User {
 
     /**
      * Request a validation token for an email address 3Pid
-     * @param pid the pid to retrieve a token
+     *
+     * @param pid      the pid to retrieve a token
      * @param callback the callback when the operation is done
      */
     public void requestEmailValidationToken(ThreePid pid, ApiCallback<Void> callback) {
         if (null != pid) {
-            pid.requestEmailValidationToken(mDataHandler.getThirdPidRestClient(), null, callback);
+            pid.requestEmailValidationToken(mDataHandler.getProfileRestClient(), null, false, callback);
         }
     }
 
     /**
      * Request a validation token for a phone number 3Pid
-     * @param pid the pid to retrieve a token
+     *
+     * @param pid      the pid to retrieve a token
      * @param callback the callback when the operation is done
      */
-    public void requestPhoneNumberValidationToken(ThreePid pid, ApiCallback<RequestPhoneNumberValidationResponse> callback) {
+    public void requestPhoneNumberValidationToken(ThreePid pid, ApiCallback<Void> callback) {
         if (null != pid) {
-            pid.requestPhoneNumberValidationToken(mDataHandler.getThirdPidRestClient(), null, callback);
+            pid.requestPhoneNumberValidationToken(mDataHandler.getProfileRestClient(), false, callback);
         }
     }
 

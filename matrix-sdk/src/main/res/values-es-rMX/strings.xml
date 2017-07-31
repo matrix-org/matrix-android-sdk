@@ -1,3 +1,4 @@
+<?xml version='1.0' encoding='UTF-8'?>
 <resources>
     <string name="matrix_sdk_app_name">Matrix Android SDK</string>
 
@@ -30,7 +31,7 @@
     <string name="notice_room_visibility_shared">todos los miembros.</string>
     <string name="notice_room_visibility_world_readable">todos.</string>
     <string name="notice_room_visibility_unknown">desconocido (%s).</string>
-    <string name="notice_end_to_end">%1$s encendió la cifración de persona-a-persona (%2$s)</string>
+    <string name="notice_end_to_end">%1$s encendió el cifrado de extremo a extremo (%2$s)</string>
 
     <string name="notice_requested_voip_conference">%1$s solicitó una conferencia VoIP</string>
     <string name="notice_voip_started">conferencia VoIP comenzó</string>

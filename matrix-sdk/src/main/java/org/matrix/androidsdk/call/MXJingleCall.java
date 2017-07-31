@@ -395,28 +395,32 @@ public class MXJingleCall extends MXCall {
         if ((null != mVideoCapturer) && (isSwitchCameraSupported())) {
             VideoCapturerAndroid videoCapturerAndroid = (VideoCapturerAndroid) mVideoCapturer;
 
-            if (videoCapturerAndroid.switchCamera(null)) {
-                // toggle the video capturer instance
-                if (CAMERA_TYPE_FRONT == mCameraInUse) {
-                    mCameraInUse = CAMERA_TYPE_REAR;
-                } else {
-                    mCameraInUse = CAMERA_TYPE_FRONT;
-                }
-
-                // compute camera switch new status
-                mIsCameraSwitched = !mIsCameraSwitched;
-
-                mUIThreadHandler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        listenPreviewUpdate();
+            try {
+                if ((null != videoCapturerAndroid) && videoCapturerAndroid.switchCamera(null)) {
+                    // toggle the video capturer instance
+                    if (CAMERA_TYPE_FRONT == mCameraInUse) {
+                        mCameraInUse = CAMERA_TYPE_REAR;
+                    } else {
+                        mCameraInUse = CAMERA_TYPE_FRONT;
                     }
-                }, 500);
 
-                return true;
+                    // compute camera switch new status
+                    mIsCameraSwitched = !mIsCameraSwitched;
 
-            } else {
-                Log.w(LOG_TAG, "## switchRearFrontCamera(): failed");
+                    mUIThreadHandler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            listenPreviewUpdate();
+                        }
+                    }, 500);
+
+                    return true;
+
+                } else {
+                    Log.w(LOG_TAG, "## switchRearFrontCamera(): failed");
+                }
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## switchRearFrontCamera(): failed " + e.getMessage());
             }
         } else {
             Log.w(LOG_TAG, "## switchRearFrontCamera(): failure - invalid values");

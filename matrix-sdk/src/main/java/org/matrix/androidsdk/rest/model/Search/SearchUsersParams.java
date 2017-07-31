@@ -13,25 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest.model;
+package org.matrix.androidsdk.rest.model.Search;
 
 /**
- *  Response to a request an phone number validation request
+ * Class representing an user search parameters
  */
-public class RequestPhoneNumberValidationResponse {
+public class SearchUsersParams {
+    // the searched term
+    public String search_term;
 
-    // the client secret key
-    public String clientSecret;
-
-    // the attempt count
-    public Integer sendAttempt;
-
-    // the sid
-    public String sid;
-
-    // the msisdn
-    public String msisdn;
-
-    // phone number international format
-    public String intl_fmt;
+    // set a limit to the request response
+    public Integer limit;
 }

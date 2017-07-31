@@ -1,3 +1,28 @@
+Changes to Matrix Android SDK in 0.8.00 (2017-08-01)
+=======================================================
+
+Features:
+
+* Add the new users search API.
+* Remove the default implementation of the messages adapter.
+* Add a method to remove older medias.
+* Add a beta data saver mode.
+
+Improvements: 
+
+* Improve the catchup synchronisation (reduce the number of stored events)
+* Refactor the state events storage format to reduce its size.
+* Improve the backward / fordward management to avoid having UI lags.
+
+Bugfixes:
+
+* fix many GA issues
+* fix read markers issues.
+* #1407 : Getting notifications for unrelated messages. 
+* #1433 : Riot crashed while opening https://vector.im/develop/#/room/#kekistan:kek.community
+* Fix the matrix items regex to support servers with port number (like $111:matrix.org:8080).
+
+
 Changes to Matrix Android SDK in 0.7.15 (2017-07-25)
 =======================================================
 

@@ -1025,6 +1025,53 @@ public class MXFileStore extends MXMemoryStore {
     // Room messages management
     //================================================================================
 
+    /**
+     * Computes the saved events map to reduce storage footprint.
+     *
+     * @param roomId the room id
+     * @return the saved eventMap
+     */
+    private LinkedHashMap<String, Event> getSavedEventsMap(String roomId) {
+        LinkedHashMap<String, Event> eventsMap;
+
+        synchronized (mRoomEventsLock) {
+            eventsMap = mRoomEvents.get(roomId);
+        }
+
+        List<Event> eventsList;
+
+        synchronized (mRoomEventsLock) {
+            eventsList = new ArrayList<>(eventsMap.values());
+        }
+
+        int startIndex = 0;
+
+        // try to reduce the number of stored messages
+        // it does not make sense to keep the full history.
+
+        // the method consists in saving messages until finding the oldest known token.
+        // At initial sync, it is not saved so keep the whole history.
+        // if the user back paginates, the token is stored in the event.
+        // if some messages are received, the token is stored in the event.
+        if (eventsList.size() > MAX_STORED_MESSAGES_COUNT) {
+            // search backward the first known token
+            for (startIndex = eventsList.size() - MAX_STORED_MESSAGES_COUNT; !eventsList.get(startIndex).hasToken() && (startIndex > 0); startIndex--);
+
+            if (startIndex > 0) {
+                Log.d(LOG_TAG, "## getSavedEveventsMap() : " + roomId + " reduce the number of messages " + eventsList.size() + " -> " + (eventsList.size() - startIndex));
+            }
+        }
+
+        LinkedHashMap<String, Event> savedEvents = new LinkedHashMap<>();
+
+        for (int index = startIndex; index < eventsList.size(); index++) {
+            Event event = eventsList.get(index);
+            savedEvents.put(event.eventId, event);
+        }
+
+        return savedEvents;
+    }
+
     private void saveRoomMessages(String roomId) {
         LinkedHashMap<String, Event> eventsHash;
         synchronized (mRoomEventsLock) {
@@ -1035,55 +1082,11 @@ public class MXFileStore extends MXMemoryStore {
 
         // the list exists ?
         if ((null != eventsHash) && (null != token)) {
-            LinkedHashMap<String, Event> hashCopy = new LinkedHashMap<>();
-            ArrayList<Event> eventsList;
-
-            synchronized (mRoomEventsLock) {
-                eventsList = new ArrayList<>(eventsHash.values());
-            }
-
-            int startIndex = 0;
-
-            // try to reduce the number of stored messages
-            // it does not make sense to keep the full history.
-
-            // the method consists in saving messages until finding the oldest known token.
-            // At initial sync, it is not saved so keep the whole history.
-            // if the user back paginates, the token is stored in the event.
-            // if some messages are received, the token is stored in the event.
-            if (eventsList.size() > MAX_STORED_MESSAGES_COUNT) {
-                startIndex = eventsList.size() - MAX_STORED_MESSAGES_COUNT;
-
-                // search backward the first known token
-                for (; !eventsList.get(startIndex).hasToken() && (startIndex > 0); startIndex--)
-                    ;
-
-                // avoid saving huge messages count
-                // with a very verbosed room, the messages token
-                if ((eventsList.size() - startIndex) > (2 * MAX_STORED_MESSAGES_COUNT)) {
-                    Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") : too many messages, try reducing more");
-
-                    // start from 10 messages
-                    startIndex = eventsList.size() - 10;
-
-                    // search backward the first known token
-                    for (; !eventsList.get(startIndex).hasToken() && (startIndex > 0); startIndex--)
-                        ;
-                }
-
-                if (startIndex > 0) {
-                    Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") :  reduce the number of messages " + eventsList.size() + " -> " + (eventsList.size() - startIndex));
-                }
-            }
-
             long t0 = System.currentTimeMillis();
 
-            for (int index = startIndex; index < eventsList.size(); index++) {
-                Event event = eventsList.get(index);
-                hashCopy.put(event.eventId, event);
-            }
+            LinkedHashMap<String, Event> savedEventsMap = getSavedEventsMap(roomId);
 
-            if (!writeObject("saveRoomsMessage " + roomId, new File(mGzStoreRoomsMessagesFolderFile, roomId), hashCopy)) {
+            if (!writeObject("saveRoomsMessage " + roomId, new File(mGzStoreRoomsMessagesFolderFile, roomId), savedEventsMap)) {
                 return;
             }
 
@@ -1091,7 +1094,7 @@ public class MXFileStore extends MXMemoryStore {
                 return;
             }
 
-            Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") : " + eventsList.size() + " messages saved in " + (System.currentTimeMillis() - t0) + " ms");
+            Log.d(LOG_TAG, "saveRoomsMessage (" + roomId + ") : " + savedEventsMap.size() + " messages saved in " + (System.currentTimeMillis() - t0) + " ms");
         } else {
             deleteRoomMessagesFiles(roomId);
         }
@@ -1159,13 +1162,6 @@ public class MXFileStore extends MXMemoryStore {
                     Log.d(LOG_TAG, "## loadRoomMessages() : the room " + roomId + " has " + events.size() + " stored events : we need to find a way to reduce it.");
                 }
 
-                ArrayList<String> eventIds = mRoomEventIds.get(roomId);
-
-                if (null == eventIds) {
-                    eventIds = new ArrayList<>();
-                    mRoomEventIds.put(roomId, eventIds);
-                }
-
                 long undeliverableTs = 1L << 50;
 
                 // finalizes the deserialization
@@ -1180,8 +1176,6 @@ public class MXFileStore extends MXMemoryStore {
                         event.originServerTs = undeliverableTs++;
                         shouldSave = true;
                     }
-
-                    eventIds.add(event.eventId);
                 }
             } else {
                 return false;

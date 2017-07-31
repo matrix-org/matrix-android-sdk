@@ -17,6 +17,7 @@
 
 package org.matrix.androidsdk.data;
 
+import android.os.AsyncTask;
 import android.os.Looper;
 import android.text.TextUtils;
 
@@ -506,6 +507,9 @@ public class EventTimeline {
             if ((null != roomSync.timeline.events) && (roomSync.timeline.events.size() > 0)) {
                 List<Event> events = roomSync.timeline.events;
 
+                // save the back token
+                events.get(0).mToken = roomSync.timeline.prevBatch;
+
                 // Here the events are handled in forward direction (see [handleLiveEvent:]).
                 // They will be added at the end of the stored events, so we keep the chronological order.
                 for (Event event : events) {
@@ -710,7 +714,11 @@ public class EventTimeline {
                     // remove expected keys
                     eventToPrune.prune(event);
 
+                    // store the prune event
                     storeEvent(eventToPrune);
+
+                    // store the redaction event too (for the read markers management)
+                    storeEvent(event);
 
                     // the redaction check must not be done during an initial sync
                     // or the redacted event is received with roomSync.timeline.limited
@@ -1066,8 +1074,6 @@ public class EventTimeline {
                     }
                     mSnapshotEvents.add(new SnapshotEvent(event, getBackState()));
                     // onEvent will be called in manageBackEvents
-                } else {
-                    onEvent(event, Direction.FORWARDS, getState());
                 }
             }
         }
@@ -1083,16 +1089,30 @@ public class EventTimeline {
      * @param direction the direction
      * @param callback the callback.
      */
-    private void addPaginationEvents(List<Event> events, Direction direction, final ApiCallback<Integer> callback) {
-        addPaginationEvents(events, direction);
-
-        if (direction == Direction.BACKWARDS) {
-            manageBackEvents(MAX_EVENT_COUNT_PER_PAGINATION, callback);
-        } else {
-            if (null != callback) {
-                callback.onSuccess(events.size());
+    private void addPaginationEvents(final List<Event> events, final Direction direction, final ApiCallback<Integer> callback) {
+        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Void doInBackground(Void... params) {
+                addPaginationEvents(events, direction);
+                return null;
             }
-        }
+
+            @Override
+            protected void onPostExecute(Void args) {
+                if (direction == Direction.BACKWARDS) {
+                    manageBackEvents(MAX_EVENT_COUNT_PER_PAGINATION, callback);
+                } else {
+                    for(Event event : events) {
+                        onEvent(event, Direction.FORWARDS, getState());
+                    }
+                        
+                    if (null != callback) {
+                        callback.onSuccess(events.size());
+                    }
+                }
+            }
+        };
+        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
     /**
@@ -1381,69 +1401,81 @@ public class EventTimeline {
 
         mDataHandler.getDataRetriever().getRoomsRestClient().getContextOfEvent(mRoomId, mInitialEventId, limit, new ApiCallback<EventContext>() {
             @Override
-            public void onSuccess(EventContext eventContext) {
-                // the state is the one after the latest event of the chunk i.e. the last message of eventContext.eventsAfter
-                for(Event event : eventContext.state) {
-                    processStateEvent(event, Direction.FORWARDS);
-                }
+            public void onSuccess(final EventContext eventContext) {
 
-                // init the room states
-                initHistory();
-
-                // build the events list
-                ArrayList<Event> events = new ArrayList<>();
-
-                Collections.reverse(eventContext.eventsAfter);
-                events.addAll(eventContext.eventsAfter);
-                events.add(eventContext.event);
-                events.addAll(eventContext.eventsBefore);
-
-                // add events after
-                addPaginationEvents(events, Direction.BACKWARDS);
-
-                // create dummy forward events list
-                // to center the selected event id
-                // else if might be out of screen
-                ArrayList<SnapshotEvent> nextSnapshotEvents = new ArrayList<>(mSnapshotEvents.subList(0, (mSnapshotEvents.size() + 1) / 2));
-
-                // put in the right order
-                Collections.reverse(nextSnapshotEvents);
-
-                // send them one by one
-                for(SnapshotEvent snapshotEvent : nextSnapshotEvents) {
-                    mSnapshotEvents.remove(snapshotEvent);
-                    onEvent(snapshotEvent.mEvent, Direction.FORWARDS, snapshotEvent.mState);
-                }
-
-                // init the tokens
-                mBackState.setToken(eventContext.start);
-                mForwardsPaginationToken = eventContext.end;
-
-                // send the back events to complete pagination
-                manageBackEvents(MAX_EVENT_COUNT_PER_PAGINATION, new ApiCallback<Integer>() {
+                AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
                     @Override
-                    public void onSuccess(Integer info) {
-                        Log.d(LOG_TAG, "addPaginationEvents succeeds");
+                    protected Void doInBackground(Void... params) {
+                        // the state is the one after the latest event of the chunk i.e. the last message of eventContext.eventsAfter
+                        for(Event event : eventContext.state) {
+                            processStateEvent(event, Direction.FORWARDS);
+                        }
+
+                        // init the room states
+                        initHistory();
+
+                        // build the events list
+                        ArrayList<Event> events = new ArrayList<>();
+
+                        Collections.reverse(eventContext.eventsAfter);
+                        events.addAll(eventContext.eventsAfter);
+                        events.add(eventContext.event);
+                        events.addAll(eventContext.eventsBefore);
+
+                        // add events after
+                        addPaginationEvents(events, Direction.BACKWARDS);
+
+                        return null;
                     }
 
                     @Override
-                    public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
-                    }
+                    protected void onPostExecute(Void args) {
+                        // create dummy forward events list
+                        // to center the selected event id
+                        // else if might be out of screen
+                        ArrayList<SnapshotEvent> nextSnapshotEvents = new ArrayList<>(mSnapshotEvents.subList(0, (mSnapshotEvents.size() + 1) / 2));
 
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
-                    }
+                        // put in the right order
+                        Collections.reverse(nextSnapshotEvents);
 
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
-                    }
-                });
+                        // send them one by one
+                        for(SnapshotEvent snapshotEvent : nextSnapshotEvents) {
+                            mSnapshotEvents.remove(snapshotEvent);
+                            onEvent(snapshotEvent.mEvent, Direction.FORWARDS, snapshotEvent.mState);
+                        }
 
-                // everything is done
-                callback.onSuccess(null);
+                        // init the tokens
+                        mBackState.setToken(eventContext.start);
+                        mForwardsPaginationToken = eventContext.end;
+
+                        // send the back events to complete pagination
+                        manageBackEvents(MAX_EVENT_COUNT_PER_PAGINATION, new ApiCallback<Integer>() {
+                            @Override
+                            public void onSuccess(Integer info) {
+                                Log.d(LOG_TAG, "addPaginationEvents succeeds");
+                            }
+
+                            @Override
+                            public void onNetworkError(Exception e) {
+                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
+                            }
+
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
+                            }
+
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
+                            }
+                        });
+
+                        // everything is done
+                        callback.onSuccess(null);
+                    }
+                };
+                task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
             }
 
             @Override

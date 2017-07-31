@@ -16,7 +16,6 @@
 package org.matrix.androidsdk.util;
 
 import android.text.TextUtils;
-import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
@@ -340,7 +339,7 @@ public class BingRulesManager {
                                     String disambiguousedName = room.getLiveState().getMemberName(mMyUserId);
 
                                     if (!TextUtils.equals(disambiguousedName, mMyUserId)) {
-                                        pattern = disambiguousedName;
+                                        pattern = Pattern.quote(disambiguousedName);
                                     }
                                 }
                             }
