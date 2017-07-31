@@ -397,9 +397,7 @@ public class MatrixMessagesFragment extends Fragment {
                 Log.e(LOG_TAG, "The room preview of " + mRoom.getRoomId() + "failed " + errorMessage);
 
                 if (null != getActivity()) {
-                    if (null != mMatrixMessagesListener) {
-                        mMatrixMessagesListener.hideInitLoading();
-                    }
+                    getActivity().finish();
                 }
             }
 

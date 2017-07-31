@@ -153,23 +153,27 @@ public class MXSession {
     // so, mEventsThread.start might be not ready
     private boolean mIsBgCatchupPending = false;
 
+    // tell if the data save mode is enabled
+    private boolean mUseDataSaveMode;
+
     // load the crypto libs.
     public static OlmManager mOlmManager = new OlmManager();
 
     // regex pattern to find matrix user ids in a string.
-    public static final String MATRIX_USER_IDENTIFIER_REGEX = "@[A-Z0-9._=-]+:[A-Z0-9.-]+\\.[A-Z]{2,}";
+    public static final String MATRIX_USER_IDENTIFIER_REGEX = "@[A-Z0-9._=-]+:[A-Z0-9.-]+\\.[A-Z]{2,}+(\\:[0-9]{2,})?";
     public static final Pattern PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER = Pattern.compile(MATRIX_USER_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
 
     // regex pattern to find room aliases in a string.
-    public static final String MATRIX_ROOM_ALIAS_REGEX = "#[A-Z0-9._%#+-]+:[A-Z0-9.-]+\\.[A-Z]{2,}";
+    public static final String MATRIX_ROOM_ALIAS_REGEX = "#[A-Z0-9._%#+-]+:[A-Z0-9.-]+\\.[A-Z]{2,}+(\\:[0-9]{2,})?";
     public static final Pattern PATTERN_CONTAIN_MATRIX_ALIAS = Pattern.compile(MATRIX_ROOM_ALIAS_REGEX, Pattern.CASE_INSENSITIVE);
 
+
     // regex pattern to find room ids in a string.
-    public static final String MATRIX_ROOM_IDENTIFIER_REGEX = "![A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}";
+    public static final String MATRIX_ROOM_IDENTIFIER_REGEX = "![A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}+(\\:[0-9]{2,})?";
     public static final Pattern PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER = Pattern.compile(MATRIX_ROOM_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
 
     // regex pattern to find message ids in a string.
-    public static final String MATRIX_MESSAGE_IDENTIFIER_REGEX = "\\$[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}";
+    public static final String MATRIX_MESSAGE_IDENTIFIER_REGEX = "\\$[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}+(\\:[0-9]{2,})?";
     public static final Pattern PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER = Pattern.compile(MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
 
     // regex pattern to find permalink with message id.
@@ -545,11 +549,10 @@ public class MXSession {
      * @param callback the asynchronous callback
      */
     public static void getApplicationSizeCaches(final Context context, final SimpleApiCallback<Long> callback) {
-        // init the known locales in background
         AsyncTask<Void, Void, Long> task = new AsyncTask<Void, Void, Long>() {
             @Override
             protected Long doInBackground(Void... params) {
-                return ContentUtils.getDirectorySize(context.getApplicationContext().getFilesDir());
+                return ContentUtils.getDirectorySize(context, context.getApplicationContext().getFilesDir().getParentFile(), 5);
             }
 
             @Override
@@ -560,7 +563,12 @@ public class MXSession {
                 }
             }
         };
-        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        try {
+            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## getApplicationSizeCaches() : failed " + e.getMessage());
+            task.cancel(true);
+        }
     }
 
     /**
@@ -640,65 +648,102 @@ public class MXSession {
      *
      * @param timestamp the timestamp (in seconds)
      */
-    public void removeMediasBefore(long timestamp) {
+    public void removeMediasBefore(final Context context, final long timestamp) {
         // list the files to keep even if they are older than the provided timestamp
         // because their upload failed
-        Set<String> filesToKeep = new HashSet<>();
+        final Set<String> filesToKeep = new HashSet<>();
         IMXStore store = getDataHandler().getStore();
 
         Collection<Room> rooms = store.getRooms();
 
         for(Room room : rooms) {
             Collection<Event> events = store.getRoomMessages(room.getRoomId());
+            if (null != events) {
+                for (Event event : events) {
+                    try {
+                        if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE, event.getType())) {
+                            JsonElement msgtypeAsVoid = event.getContentAsJsonObject().get("msgtype");
 
-            for(Event event : events) {
-                try {
-                    if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE, event.getType())) {
-                        JsonElement msgtypeAsVoid = event.getContentAsJsonObject().get("msgtype");
+                            if (null != msgtypeAsVoid) {
+                                String msgtype = msgtypeAsVoid.getAsString();
 
-                        if (null != msgtypeAsVoid) {
-                            String msgtype = msgtypeAsVoid.getAsString();
+                                if (TextUtils.equals(Message.MSGTYPE_IMAGE, msgtype)) {
+                                    ImageMessage imageMessage = (ImageMessage) JsonUtils.toMessage(event.getContent());
 
-                            if (TextUtils.equals(Message.MSGTYPE_IMAGE, msgtype)) {
-                                ImageMessage imageMessage = (ImageMessage) JsonUtils.toMessage(event.getContent());
+                                    if (null != imageMessage) {
+                                        if (imageMessage.isThumbnailLocalContent()) {
+                                            filesToKeep.add(Uri.parse(imageMessage.thumbnailUrl).getPath());
+                                        }
 
-                                if (null != imageMessage) {
-                                    if (imageMessage.isThumbnailLocalContent()) {
-                                        filesToKeep.add(Uri.parse(imageMessage.thumbnailUrl).getPath());
+                                        if (imageMessage.isLocalContent()) {
+                                            filesToKeep.add(Uri.parse(imageMessage.url).getPath());
+                                        }
                                     }
+                                } else if (TextUtils.equals(Message.MSGTYPE_VIDEO, msgtype)) {
+                                    VideoMessage videoMessage = (VideoMessage) JsonUtils.toMessage(event.getContent());
 
-                                    if (imageMessage.isLocalContent()) {
-                                        filesToKeep.add(Uri.parse(imageMessage.url).getPath());
+                                    if ((null != videoMessage) && videoMessage.isLocalContent()) {
+                                        filesToKeep.add(Uri.parse(videoMessage.url).getPath());
                                     }
-                                }
-                            } else if (TextUtils.equals(Message.MSGTYPE_VIDEO, msgtype)) {
-                                VideoMessage videoMessage = (VideoMessage) JsonUtils.toMessage(event.getContent());
+                                } else if (TextUtils.equals(Message.MSGTYPE_FILE, msgtype)) {
+                                    FileMessage fileMessage = (FileMessage) JsonUtils.toMessage(event.getContent());
 
-                                if ((null != videoMessage) && videoMessage.isLocalContent()) {
-                                    filesToKeep.add(Uri.parse(videoMessage.url).getPath());
-                                }
-                            } else if (TextUtils.equals(Message.MSGTYPE_FILE, msgtype)) {
-                                FileMessage fileMessage = (FileMessage) JsonUtils.toMessage(event.getContent());
+                                    if ((null != fileMessage) && fileMessage.isLocalContent()) {
+                                        filesToKeep.add(Uri.parse(fileMessage.url).getPath());
+                                    }
+                                } else if (TextUtils.equals(Message.MSGTYPE_AUDIO, msgtype)) {
+                                    AudioMessage audioMessage = (AudioMessage) JsonUtils.toMessage(event.getContent());
 
-                                if ((null != fileMessage) && fileMessage.isLocalContent()) {
-                                    filesToKeep.add(Uri.parse(fileMessage.url).getPath());
-                                }
-                            } else if (TextUtils.equals(Message.MSGTYPE_AUDIO, msgtype)) {
-                                AudioMessage audioMessage = (AudioMessage) JsonUtils.toMessage(event.getContent());
-
-                                if ((null != audioMessage) && audioMessage.isLocalContent()) {
-                                    filesToKeep.add(Uri.parse(audioMessage.url).getPath());
+                                    if ((null != audioMessage) && audioMessage.isLocalContent()) {
+                                        filesToKeep.add(Uri.parse(audioMessage.url).getPath());
+                                    }
                                 }
                             }
                         }
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage());
                     }
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage());
                 }
             }
         }
 
-        getMediasCache().removeMediasBefore(timestamp, filesToKeep);
+        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Void doInBackground(Void... params) {
+                long length = getMediasCache().removeMediasBefore(timestamp, filesToKeep);
+
+                // delete also the log files
+                // they might be large
+                File logsDir = Log.getLogDirectory();
+
+                if (null != logsDir) {
+                    File[] logFiles = logsDir.listFiles();
+
+                    if (null != logFiles) {
+                        for (File file : logFiles) {
+                            if (ContentUtils.getLastAccessTime(file) < timestamp) {
+                                length += file.length();
+                                file.delete();
+                            }
+                        }
+                    }
+                }
+
+                if (0 != length) {
+                    Log.d(LOG_TAG, "## removeMediasBefore() : save " + android.text.format.Formatter.formatFileSize(context, length));
+                } else {
+                    Log.d(LOG_TAG, "## removeMediasBefore() : useless");
+                }
+
+                return null;
+            }
+        };
+        try {
+            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage());
+            task.cancel(true);
+        }
     }
 
     /**
@@ -783,6 +828,8 @@ public class MXSession {
         if (mFailureCallback != null) {
             mEventsThread.setFailureCallback(mFailureCallback);
         }
+
+        mEventsThread.setUseDataSaveMode(mUseDataSaveMode);
 
         if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
             // GA issue
@@ -894,6 +941,17 @@ public class MXSession {
         }
 
         return 0;
+    }
+
+    /**
+     * Update the data save mode
+     * @param enabled true to enable the data save mode
+     */
+    public void setUseDataSaveMode(boolean enabled) {
+        mUseDataSaveMode = enabled;
+        if (null != mEventsThread) {
+            mEventsThread.setUseDataSaveMode(enabled);
+        }
     }
 
     /**

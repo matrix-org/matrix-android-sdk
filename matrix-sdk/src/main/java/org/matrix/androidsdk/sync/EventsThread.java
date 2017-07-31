@@ -46,6 +46,8 @@ public class EventsThread extends Thread {
     private static final int DEFAULT_SERVER_TIMEOUT_MS = 30000;
     private static final int DEFAULT_CLIENT_TIMEOUT_MS = 120000;
 
+    private static final String DATA_SAVE_MODE_FILTER = "{\"room\": {\"ephemeral\": {\"types\": [\"m.receipt\"]}}, \"presence\":{\"not_types\": [\"*\"]}}";
+
     private EventsRestClient mEventsRestClient = null;
 
     private EventsThreadListener mListener = null;
@@ -77,6 +79,8 @@ public class EventsThread extends Thread {
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
     private boolean mbIsConnected = true;
 
+    // use dedicated filter when enable
+    private boolean mIsInDataSaveMode = false;
 
     private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
         @Override
@@ -107,6 +111,14 @@ public class EventsThread extends Thread {
         mEventsRestClient = apiClient;
         mListener = listener;
         mCurrentToken = initialToken;
+    }
+
+    /**
+     * Update the data save mode
+     * @param enabled true to enable the data save mode
+     */
+    public void setUseDataSaveMode(boolean enabled) {
+        mIsInDataSaveMode = enabled;
     }
 
     /**
@@ -324,6 +336,8 @@ public class EventsThread extends Thread {
             Log.d(LOG_TAG, "Requesting initial sync...");
         }
 
+
+
         int serverTimeout;
 
         mPaused = false;
@@ -469,11 +483,15 @@ public class EventsThread extends Thread {
 
             // the service could have been killed while being paused.
             if (!mKilling) {
-                String inlineFilter = null; //"{\"room\":{\"timeline\":{\"limit\":250}}}";
+                String inlineFilter = mIsInDataSaveMode ? DATA_SAVE_MODE_FILTER : null; //"{\"room\":{\"timeline\":{\"limit\":250}}}";
 
                 final CountDownLatch latch = new CountDownLatch(1);
 
-                Log.d(LOG_TAG, "Get events from token " + mCurrentToken);
+                if (mIsInDataSaveMode) {
+                    Log.d(LOG_TAG, "[Data save mode] Get events from token " + mCurrentToken);
+                } else {
+                    Log.d(LOG_TAG, "Get events from token " + mCurrentToken);
+                }
 
                 final int fServerTimeout = serverTimeout;
                 mNextServerTimeoutms = mDefaultServerTimeoutms;
