@@ -17,9 +17,9 @@ android {
         minSdkVersion 11
         targetSdkVersion 23
         // use version to define a version code.
-        versionCode 800
-        version "0.8.00-dev"
-        versionName "0.8.00-dev"
+        versionCode 801
+        version "0.8.01-dev"
+        versionName "0.8.01-dev"
         resValue "string", "flavor_description", "SDKApp"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
      }
@@ -68,6 +68,7 @@ android {
 
     lintOptions {
         disable 'InvalidPackage'
+        disable 'MissingTranslation'
     }
 
     repositories {
