@@ -1,22 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="room_background">#f4f4f4</color>
-
-    <color name="message_normal">#000</color>
-    <color name="message_highlighted">#00f</color>
-    <color name="message_encryting">#777</color>
-    <color name="message_sending">#aaa</color>
-    <color name="message_not_sent">#f00</color>
-
     <color name="pie_fraction_fill">#f00</color>
     <color name="pie_fraction_rest">#aaa</color>
-
-    <color name="chat_gray_text">#FFAAAAAA</color>
-
-    <color name="markdown_code_background">#FFEEEEEE</color>
-
-    <color name="presence_unknown">#aaa</color>
-
-    <color name="unread_marker_line">#FF76cfa6</color>
-
+   
 </resources>

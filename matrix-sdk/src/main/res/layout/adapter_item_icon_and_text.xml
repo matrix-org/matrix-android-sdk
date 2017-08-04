@@ -5,7 +5,6 @@
     android:layout_height="wrap_content"
     android:paddingTop="10dp"
     android:paddingBottom="10dp"
-    android:background="@color/room_background"
     android:orientation="horizontal" >
 
     <ImageView
@@ -26,8 +25,7 @@
         android:paddingRight="8dp"
         android:singleLine="true"
         android:text = "A text here"
-        android:textColor="#000"
-        style="@style/Base.TextAppearance.AppCompat.Subhead"
-        />
+        android:textColor="@android:color/white"
+        style="@style/Base.TextAppearance.AppCompat.Subhead"/>
 
 </LinearLayout>
