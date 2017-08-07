@@ -1399,7 +1399,7 @@ public class MXFileStore extends MXMemoryStore {
     private void saveRoomStatesEvents() {
         if ((mRoomsToCommitForStatesEvents.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
-            final HashSet<String> fRoomsToCommitForStatesEvents = mRoomsToCommitForStatesEvents;
+            final HashSet<String> fRoomsToCommitForStatesEvents = new HashSet<>(mRoomsToCommitForStatesEvents);
             mRoomsToCommitForStatesEvents = new HashSet<>();
 
             Runnable r = new Runnable() {
