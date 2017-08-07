@@ -53,7 +53,6 @@
     <!-- Room Screen -->
     <string name="could_not_redact">Не удалось изменить</string>
     <string name="unable_to_send_message">Не удалось отправить сообщение</string>
-    <string name="unread_messages_footer">Вы все прочитали</string>
 
     <string name="message_failed_to_upload">Не удалось загрузить изображение</string>
     
@@ -62,15 +61,9 @@
     <string name="matrix_error">Ошибка Matrix</string>
 
     <!-- Home Screen -->
-    <string name="users"> пользователей</string>
-    <string name="user"> пользователь</string>
-    
+
     <!-- Last seen time -->
-    <string name="last_seen_secs">%dсек</string>
-    <string name="last_seen_mins">%dмин</string>
-    <string name="last_seen_hours">%dчас</string>
-    <string name="last_seen_days">%dдн</string>
-    
+
     <!-- call events -->
 
     <!-- room error messages -->
