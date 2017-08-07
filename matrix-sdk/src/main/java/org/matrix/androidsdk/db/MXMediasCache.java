@@ -196,7 +196,12 @@ public class MXMediasCache {
                 }
             }
         };
-        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        try {
+            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## getCachesSize() : failed " + e.getMessage());
+            task.cancel(true);
+        }
     }
 
     /**
