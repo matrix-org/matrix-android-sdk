@@ -848,7 +848,6 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                         final ImageView imageView = weakRef.get();
 
                         if (imageView != null && TextUtils.equals(mUrl, (String) imageView.getTag())) {
-                            imageView.setBackgroundColor(Color.TRANSPARENT);
                             imageView.setImageBitmap(bitmap);
                         }
                     }
