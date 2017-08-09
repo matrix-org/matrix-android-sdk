@@ -20,6 +20,8 @@
 package org.matrix.androidsdk.view;
 
 import android.content.Context;
+import android.support.annotation.ColorInt;
+import android.support.v4.content.ContextCompat;
 import android.text.Editable;
 import android.text.Html;
 import android.text.Layout;
@@ -42,7 +44,7 @@ import java.util.Stack;
  */
 // custom implementation of  org.sufficientlysecure.htmltextview.HtmlTagHandler
 // to have the same UI as the webclient
-public class ConsoleHtmlTagHandler implements Html.TagHandler {
+public class HtmlTagHandler implements Html.TagHandler {
     /**
      * Keeps track of lists (ol, ul). On bottom of Stack is the outermost list
      * and on top of Stack is the most nested list
@@ -81,6 +83,8 @@ public class ConsoleHtmlTagHandler implements Html.TagHandler {
 
     public Context mContext;
 
+    public int mCodeBlockBackgroundColor = -1;
+
     private static class Ul {
     }
 
@@ -106,6 +110,14 @@ public class ConsoleHtmlTagHandler implements Html.TagHandler {
     }
 
     private static class Td {
+    }
+
+    /**
+     * Defines the code block background color
+     * @param color the new color
+     */
+    public void setCodeBlockBackgroundColor(@ColorInt int color) {
+        mCodeBlockBackgroundColor = color;
     }
 
     @Override
@@ -190,7 +202,11 @@ public class ConsoleHtmlTagHandler implements Html.TagHandler {
                     end(output, Ol.class, false, new LeadingMarginSpan.Standard(numberMargin));
                 }
             } else if (tag.equalsIgnoreCase("code")) {
-                end(output, Code.class, false, new BackgroundColorSpan(mContext.getResources().getColor(R.color.markdown_code_background)), new TypefaceSpan("monospace"));
+                if (-1 == mCodeBlockBackgroundColor) {
+                    mCodeBlockBackgroundColor = ContextCompat.getColor(mContext, android.R.color.darker_gray);
+                }
+
+                end(output, Code.class, false, new BackgroundColorSpan(mCodeBlockBackgroundColor), new TypefaceSpan("monospace"));
             } else if (tag.equalsIgnoreCase("center")) {
                 end(output, Center.class, true, new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER));
             } else if (tag.equalsIgnoreCase("s") || tag.equalsIgnoreCase("strike")) {

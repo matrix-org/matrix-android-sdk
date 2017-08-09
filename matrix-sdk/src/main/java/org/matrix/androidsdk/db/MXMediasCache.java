@@ -868,7 +868,6 @@ public class MXMediasCache {
             if (null != imageView) {
                 if (Looper.getMainLooper().getThread() == Thread.currentThread()) {
                     // display it
-                    imageView.setBackgroundColor(Color.TRANSPARENT);
                     imageView.setImageBitmap(bitmap);
                 } else {
                     // init
@@ -883,7 +882,6 @@ public class MXMediasCache {
                         public void run() {
                             if (TextUtils.equals(fDownloadableUrl, (String) imageView.getTag())) {
                                 // display it
-                                imageView.setBackgroundColor(Color.TRANSPARENT);
                                 imageView.setImageBitmap(bitmap);
                             }
                         }
