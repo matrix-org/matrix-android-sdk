@@ -61,14 +61,8 @@
     <string name="matrix_error">Matrix-Fehler</string>
 
     <!-- Home Screen -->
-    <string name="users"> Nutzer</string>
-    <string name="user"> Nutzer</string>
 
     <!-- Last seen time -->
-    <string name="last_seen_secs">%ds</string>
-    <string name="last_seen_mins">%dm</string>
-    <string name="last_seen_hours">%dh</string>
-    <string name="last_seen_days">%dT</string>
 
     <!-- call events -->
 
@@ -81,6 +75,4 @@
     <string name="medium_email">E-Mail-Adresse</string>
     <string name="medium_phone_number">Telefonnummer</string>
 
-    <string name="unread_messages_footer">Du hast alle Nachrichten gelesen</string>
-
-    </resources>
+</resources>

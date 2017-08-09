@@ -52,7 +52,6 @@
     <!-- Room Screen -->
     <string name="could_not_redact">Kon niet verwijderd worden</string>
     <string name="unable_to_send_message">Niet in staat om het bericht te sturen</string>
-    <string name="unread_messages_footer">"You've caught up"</string>
 
     <string name="message_failed_to_upload">Uploaden van de afbeelding mislukt</string>
 
@@ -61,14 +60,8 @@
     <string name="matrix_error">Matrix fout</string>
 
     <!-- Home Screen -->
-    <string name="users"> gebruikers</string>
-    <string name="user"> gebruiker</string>
 
     <!-- Last seen time -->
-    <string name="last_seen_secs">%ds</string>
-    <string name="last_seen_mins">%dm</string>
-    <string name="last_seen_hours">%du</string>
-    <string name="last_seen_days">%dd</string>
 
     <!-- room error messages -->
     <string name="room_error_join_failed_empty_room">Het is momenteel niet mogelijk om een lege ruimte opnieuw toe te treden.</string>

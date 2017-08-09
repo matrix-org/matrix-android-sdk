@@ -51,22 +51,13 @@
 
     <string name="could_not_redact">Szerkesztés sikertelen</string>
     <string name="unable_to_send_message">Üzenet küldése sikertelen</string>
-    <string name="unread_messages_footer">Utolérted magad</string>
 
     <string name="message_failed_to_upload">Kép feltöltése sikertelen</string>
 
     <string name="network_error">Hálózat hiba</string>
     <string name="matrix_error">Matrix hiba</string>
 
-    <string name="users">" felhasználók"</string>
-    <string name="user">" felhasználó"</string>
-
-    <string name="last_seen_secs">%dmp</string>
-    <string name="last_seen_mins">%dp</string>
-    <string name="last_seen_hours">%dó</string>
-    <string name="last_seen_days">%dn</string>
-
-    <string name="room_error_join_failed_empty_room">hívás események 
+    <string name="room_error_join_failed_empty_room">hívás események
  szoba hiba üzenetek</string>
 
     <string name="encrypted_message">Titkosított üzenet</string>
