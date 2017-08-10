@@ -22,6 +22,7 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.telephony.TelephonyManager;
 
 import org.matrix.androidsdk.util.Log;
 
@@ -44,6 +45,8 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
     private final List<IMXNetworkEventListener> mOnNetworkConnectedEventListeners = new ArrayList<>();
 
     private boolean mIsConnected = false;
+    private boolean mIsUseWifiConnection = false;
+    private int mNetworkSubType = TelephonyManager.NETWORK_TYPE_UNKNOWN;
 
     @Override
     public void onReceive(final Context context, final Intent intent) {
@@ -113,6 +116,9 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
                     Log.d(LOG_TAG, "## checkNetworkConnection() : there is no connection");
                     listNetworkConnections(context);
                 }
+
+                mIsUseWifiConnection = (null != networkInfo) && (networkInfo.getType() == ConnectivityManager.TYPE_WIFI);
+                mNetworkSubType = (null != networkInfo) ? networkInfo.getSubtype() : TelephonyManager.NETWORK_TYPE_UNKNOWN;
 
                 // avoid triggering useless info
                 if (mIsConnected != isConnected) {
@@ -251,5 +257,57 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
         Log.d(LOG_TAG, "## isConnected() : " + res);
 
         return res;
+    }
+
+
+    /**
+     * Tells if the connection is a wifi one
+     * @return true if a wifi connection is used
+     */
+    public boolean useWifiConnection() {
+        boolean res;
+
+        synchronized (LOG_TAG) {
+            res = mIsUseWifiConnection;
+        }
+
+        Log.d(LOG_TAG, "## useWifiConnection() : " + res);
+
+        return res;
+    }
+
+    /**
+     * Provides a scale factor to apply to the request timeouts.
+     *
+     * @return the scale factor
+     */
+    public float getTimeoutScale() {
+        float scale;
+
+        synchronized (LOG_TAG) {
+            switch(mNetworkSubType) {
+                case TelephonyManager.NETWORK_TYPE_GPRS:
+                    scale = 3.0f;
+                    break;
+                case TelephonyManager.NETWORK_TYPE_EDGE:
+                    scale = 2.5f;
+                    break;
+                case TelephonyManager.NETWORK_TYPE_UMTS:
+                case TelephonyManager.NETWORK_TYPE_CDMA:
+                case TelephonyManager.NETWORK_TYPE_HSPA:
+                case TelephonyManager.NETWORK_TYPE_HSDPA:
+                case TelephonyManager.NETWORK_TYPE_HSUPA:
+                case TelephonyManager.NETWORK_TYPE_HSPAP:
+                    scale = 2.0f;
+                    break;
+                case TelephonyManager.NETWORK_TYPE_LTE:
+                    scale = 1.5f;
+                    break;
+                default:
+                    scale = 1.0f;
+                    break;
+            }
+        }
+        return scale;
     }
 }

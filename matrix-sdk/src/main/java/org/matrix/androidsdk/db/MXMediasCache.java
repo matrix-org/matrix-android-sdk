@@ -19,7 +19,6 @@ package org.matrix.androidsdk.db;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -27,7 +26,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.util.Log;
 import android.webkit.MimeTypeMap;
@@ -76,6 +75,9 @@ public class MXMediasCache {
     private File mOthersFolderFile = null;
     private File mThumbnailsFolderFile = null;
 
+    // track the network updates
+    private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
+
     /**
      * Clear the former medias cache.
      * The dirtree has been updated.
@@ -102,11 +104,13 @@ public class MXMediasCache {
     /**
      * Constructor
      * @param contentManager the content manager.
+     * @param networkConnectivityReceiver the network connectivity receiver
      * @param userID the account user Id.
      * @param context the context
      */
-    public MXMediasCache(ContentManager contentManager, String userID, Context context) {
+    public MXMediasCache(ContentManager contentManager, NetworkConnectivityReceiver networkConnectivityReceiver, String userID, Context context) {
         mContentManager = contentManager;
+        mNetworkConnectivityReceiver = networkConnectivityReceiver;
 
         File mediaBaseFolderFile = new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER);
 
@@ -692,7 +696,7 @@ public class MXMediasCache {
         }
 
         // download it in background
-        MXMediaDownloadWorkerTask task = new MXMediaDownloadWorkerTask(context, hsConfig, getFolderFile(mimeType), downloadableUrl, mimeType, encryptionInfo);
+        MXMediaDownloadWorkerTask task = new MXMediaDownloadWorkerTask(context, hsConfig, mNetworkConnectivityReceiver, getFolderFile(mimeType), downloadableUrl, mimeType, encryptionInfo);
 
         // avoid crash if there are too many running task
         try {
@@ -899,7 +903,7 @@ public class MXMediasCache {
                 }
             } else {
                 // download it in background
-                MXMediaDownloadWorkerTask task = new MXMediaDownloadWorkerTask(context, hsConfig, folderFile, downloadableUrl, rotationAngle, mimeType, encryptionInfo);
+                MXMediaDownloadWorkerTask task = new MXMediaDownloadWorkerTask(context, hsConfig, mNetworkConnectivityReceiver, folderFile, downloadableUrl, rotationAngle, mimeType, encryptionInfo);
 
                 if (null != imageView) {
                     task.addImageView(imageView);

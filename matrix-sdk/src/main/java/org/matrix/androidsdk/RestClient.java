@@ -26,6 +26,7 @@ import com.google.gson.Gson;
 import com.squareup.okhttp.OkHttpClient;
 
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
+import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.client.MXRestExecutor;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.ssl.CertUtil;
@@ -198,17 +199,41 @@ public class RestClient<T> {
     }
 
     /**
+     * Refresh the connection timeouts.
+     * @param networkConnectivityReceiver the network connectivity receiver
+     */
+    private void refreshConnectionTimeout(NetworkConnectivityReceiver networkConnectivityReceiver) {
+        if (networkConnectivityReceiver.isConnected()) {
+            float factor = networkConnectivityReceiver.getTimeoutScale();
+
+            mOkHttpClient.setConnectTimeout((int)(CONNECTION_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS);
+            mOkHttpClient.setReadTimeout((int)(READ_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS);
+            mOkHttpClient.setWriteTimeout((int)(WRITE_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS);
+
+            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update setConnectTimeout to " + mOkHttpClient.getConnectTimeout() + " ms");
+            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update setReadTimeout to " + mOkHttpClient.getReadTimeout() + " ms");
+            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update setWriteTimeout to " + mOkHttpClient.getWriteTimeout() + " ms");
+        } else {
+            mOkHttpClient.setConnectTimeout(1, TimeUnit.MILLISECONDS);
+            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update the requests timeout to 1 ms");
+        }
+    }
+
+    /**
      * Set the unsentEvents manager.
      * @param unsentEventsManager The unsentEvents manager.
      */
     public void setUnsentEventsManager(UnsentEventsManager unsentEventsManager) {
         mUnsentEventsManager = unsentEventsManager;
 
-        mUnsentEventsManager.getNetworkConnectivityReceiver().addEventListener(new IMXNetworkEventListener() {
+        final NetworkConnectivityReceiver networkConnectivityReceiver = mUnsentEventsManager.getNetworkConnectivityReceiver();
+        refreshConnectionTimeout(networkConnectivityReceiver);
+
+        networkConnectivityReceiver.addEventListener(new IMXNetworkEventListener() {
             @Override
             public void onNetworkConnectionUpdate(boolean isConnected) {
                 Log.e(LOG_TAG, "## setUnsentEventsManager()  : update the requests timeout to " + (isConnected ? CONNECTION_TIMEOUT_MS : 1) + " ms");
-                mOkHttpClient.setConnectTimeout(isConnected ? CONNECTION_TIMEOUT_MS : 1, TimeUnit.MILLISECONDS);
+                refreshConnectionTimeout(networkConnectivityReceiver);
             }
         });
     }

@@ -19,12 +19,13 @@ package org.matrix.androidsdk.db;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Looper;
 import android.support.v4.util.LruCache;
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
@@ -151,6 +152,11 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      * the encrypted file information
      */
     private EncryptedFileInfo mEncryptedFileInfo;
+
+    /**
+     * Network updates tracker
+     */
+    private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
 
     /**
      * Download constants
@@ -446,13 +452,15 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      * MXMediaDownloadWorkerTask creator
      * @param appContext the context
      * @param hsConfig the home server config.
+     * @param networkConnectivityReceiver the network connectivity receiver
      * @param directoryFile the directory in which the media must be stored
      * @param url the media url
      * @param mimeType the mime type.
      * @param encryptedFileInfo the encryption information
      */
-    public MXMediaDownloadWorkerTask(Context appContext, HomeserverConnectionConfig hsConfig, File directoryFile, String url, String mimeType, EncryptedFileInfo encryptedFileInfo) {
+    public MXMediaDownloadWorkerTask(Context appContext, HomeserverConnectionConfig hsConfig, NetworkConnectivityReceiver networkConnectivityReceiver, File directoryFile, String url, String mimeType, EncryptedFileInfo encryptedFileInfo) {
         commonInit(appContext, url, mimeType);
+        mNetworkConnectivityReceiver = networkConnectivityReceiver;
         mDirectoryFile = directoryFile;
         mImageViewReferences = new ArrayList<>();
         mHsConfig = hsConfig;
@@ -463,14 +471,16 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      * MXMediaDownloadWorkerTask creator
      * @param appContext the context
      * @param hsConfig the home server config
+     * @param networkConnectivityReceiver the network connectivity receiver
      * @param directoryFile the directory in which the media must be stored
      * @param url the media url
      * @param rotation the rotation
      * @param mimeType the mime type.
      * @param encryptedFileInfo the encryption information
      */
-    public MXMediaDownloadWorkerTask(Context appContext, HomeserverConnectionConfig hsConfig, File directoryFile, String url, int rotation, String mimeType, EncryptedFileInfo encryptedFileInfo) {
+    public MXMediaDownloadWorkerTask(Context appContext, HomeserverConnectionConfig hsConfig, NetworkConnectivityReceiver networkConnectivityReceiver, File directoryFile, String url, int rotation, String mimeType, EncryptedFileInfo encryptedFileInfo) {
         commonInit(appContext, url, mimeType);
+        mNetworkConnectivityReceiver = networkConnectivityReceiver;
         mImageViewReferences = new ArrayList<>();
         mDirectoryFile = directoryFile;
         mRotation = rotation;
@@ -493,6 +503,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
         mImageViewReferences = task.mImageViewReferences;
         mHsConfig = task.mHsConfig;
         mEncryptedFileInfo = task.mEncryptedFileInfo;
+        mNetworkConnectivityReceiver = task.mNetworkConnectivityReceiver;
     }
 
     /**
@@ -632,7 +643,8 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                 }
 
                 // add a timeout to avoid infinite loading display.
-                connection.setReadTimeout(DOWNLOAD_TIME_OUT);
+                float scale = (null != mNetworkConnectivityReceiver) ? mNetworkConnectivityReceiver.getTimeoutScale() : 1.0f;
+                connection.setReadTimeout((int)(DOWNLOAD_TIME_OUT * scale));
                 filelen = connection.getContentLength();
                 stream = connection.getInputStream();
             } catch (Exception e) {
