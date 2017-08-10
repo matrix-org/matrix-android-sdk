@@ -48,7 +48,7 @@
     <string name="notice_room_third_party_registered_invite">%1$s akzeptierte die Einladung für %2$s</string>
 
     <string name="notice_crypto_unable_to_decrypt">** Nicht entschlüsselbar: %s **</string>
-    <string name="notice_crypto_error_unkwown_inbound_session_id">Das absendende Gerät hat uns uns keine Schlüssel für diese Nachricht übermittelt.</string>
+    <string name="notice_crypto_error_unkwown_inbound_session_id">Das absendende Gerät hat uns keine Schlüssel für diese Nachricht übermittelt.</string>
 
     <!-- Room Screen -->
     <string name="could_not_redact">Entfernen nicht möglich</string>
