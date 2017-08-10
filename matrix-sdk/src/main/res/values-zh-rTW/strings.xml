@@ -64,4 +64,6 @@
     <string name="medium_email">電子郵件</string>
     <string name="medium_phone_number">電話號碼</string>
 
-</resources>
+<string name="summary_user_sent_sticker">%1$s 傳送了一張貼圖。</string>
+
+    </resources>
