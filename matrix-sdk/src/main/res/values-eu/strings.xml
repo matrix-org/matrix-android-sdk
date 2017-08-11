@@ -12,7 +12,7 @@
     <string name="notice_room_reject">%1$s erabiltzaileak gonbidapena baztertu du</string>
     <string name="notice_room_kick">%1$s erabiltzaileak %2$s kanporatu du</string>
     <string name="notice_room_unban">%1$s erabiltzaileak debekua kendu dio %2$s erabiltzaileari</string>
-    <string name="notice_room_ban">%1$s erabiltzaielak %2$s debekatu du</string>
+    <string name="notice_room_ban">%1$s erabiltzaileak %2$s debekatu du</string>
     <string name="notice_room_withdraw">%1$s erabiltzaileak %2$s erabiltzailearen gonbidapena atzera bota du</string>
     <string name="notice_avatar_url_changed">%1$s erabiltzaileak abatarra aldatu du</string>
     <string name="notice_display_name_set">%1$s erabiltzaileak bere pantaila izena aldatu du beste honetara: %2$s</string>
