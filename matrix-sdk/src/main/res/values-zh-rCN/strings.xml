@@ -52,4 +52,13 @@
     <string name="medium_email">电子邮箱地址</string>
     <string name="medium_phone_number">电话号码</string>
 
-</resources>
+<string name="notice_room_withdraw">%1$s 撤回了 %2$s 的邀请</string>
+    <string name="notice_made_future_room_visibility">%1$s 让未来的聊天室历史记录对 %2$s 可见</string>
+    <string name="notice_event_redacted">"删改了 %1$s "</string>
+    <string name="notice_event_redacted_by">" 被 %1$s"</string>
+    <string name="notice_profile_change_redacted">%1$s 更新了他们的配置文件 %2$s</string>
+    <string name="notice_room_third_party_invite">%1$s 向 %2$s 发送了加入聊天室的邀请</string>
+    <string name="notice_room_third_party_registered_invite">%1$s 接受了对 %2$s 的邀请</string>
+
+    <string name="could_not_redact">无法删改</string>
+    </resources>
