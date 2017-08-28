@@ -504,6 +504,7 @@ public class EventsThread extends Thread {
                             // we get no to_device messages back.
                             if (0 == fServerTimeout) {
                                 if (hasDevicesChanged(syncResponse)) {
+                                    Log.d(LOG_TAG, "mNextServerTimeoutms is set to 0 because of hasDevicesChanged " + syncResponse.deviceLists.changed);
                                     mNextServerTimeoutms = 0;
                                 }
                             }
