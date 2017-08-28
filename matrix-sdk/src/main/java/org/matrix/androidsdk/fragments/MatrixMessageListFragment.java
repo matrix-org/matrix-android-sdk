@@ -748,23 +748,28 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         MessageRow currentReadMarkerRow = mAdapter.getMessageRow(currentReadMarkerEventId);
 
         if (null == currentReadMarkerRow) {
-            Event readMarkedEvent = mSession.getDataHandler().getStore().getEvent(currentReadMarkerEventId, mRoom.getRoomId());
+            // crash reported by GA
+            try {
+                Event readMarkedEvent = mSession.getDataHandler().getStore().getEvent(currentReadMarkerEventId, mRoom.getRoomId());
 
-            // the read marked event might be a non displayable event
-            if ((null != readMarkedEvent) && !canAddEvent(readMarkedEvent)) {
-                // retrieve the previous displayed event
-                currentReadMarkerRow = mAdapter.getClosestRowFromTs(readMarkedEvent.eventId, readMarkedEvent.getOriginServerTs());
+                // the read marked event might be a non displayable event
+                if ((null != readMarkedEvent) && !canAddEvent(readMarkedEvent)) {
+                    // retrieve the previous displayed event
+                    currentReadMarkerRow = mAdapter.getClosestRowFromTs(readMarkedEvent.eventId, readMarkedEvent.getOriginServerTs());
 
-                // the undisplayable event might be in the middle of two displayable events
-                // or it is the last known event
-                if ((null != currentReadMarkerRow) && !canUpdateReadMarker(newMessageRow, currentReadMarkerRow)) {
-                    currentReadMarkerRow = null;
+                    // the undisplayable event might be in the middle of two displayable events
+                    // or it is the last known event
+                    if ((null != currentReadMarkerRow) && !canUpdateReadMarker(newMessageRow, currentReadMarkerRow)) {
+                        currentReadMarkerRow = null;
+                    }
+
+                    // use the next one
+                    if (null == currentReadMarkerRow) {
+                        currentReadMarkerRow = mAdapter.getClosestRowBeforeTs(readMarkedEvent.eventId, readMarkedEvent.getOriginServerTs());
+                    }
                 }
-
-                // use the next one
-                if (null == currentReadMarkerRow) {
-                    currentReadMarkerRow = mAdapter.getClosestRowBeforeTs(readMarkedEvent.eventId, readMarkedEvent.getOriginServerTs());
-                }
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## getReadMarkerMessageRow() failed : " + e.getMessage());
             }
         }
 
