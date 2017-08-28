@@ -36,6 +36,8 @@ import java.util.logging.Logger;
  * Intended to mimic {@link android.util.Log} in terms of interface, but with a lot of extra behind the scenes stuff.
  */
 public class Log {
+    private static final String LOG_TAG = "Log";
+
     private static final String LINE_SEPARATOR = System.getProperty("line.separator");
     private static final int LOG_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
     
@@ -96,15 +98,22 @@ public class Log {
      * @return The same list with more files added.
      */
     public static List<File> addLogFiles(List<File> files) {
-        sFileHandler.flush();
-        String absPath = sCacheDirectory.getAbsolutePath();
-        
-        for (int i=0; i<=LOG_ROTATION_COUNT; i++) {
-            String filepath = absPath+"/"+sFileName+"."+i+".txt";
-            File file = new File(filepath);
-            if (file.exists()) {
-                files.add(file);
+        try {
+            // reported by GA
+            if (null != sFileHandler) {
+                sFileHandler.flush();
+                String absPath = sCacheDirectory.getAbsolutePath();
+
+                for (int i = 0; i <= LOG_ROTATION_COUNT; i++) {
+                    String filepath = absPath + "/" + sFileName + "." + i + ".txt";
+                    File file = new File(filepath);
+                    if (file.exists()) {
+                        files.add(file);
+                    }
+                }
             }
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## addLogFiles() failed : " + e.getMessage());
         }
         return files;
     }
