@@ -1091,7 +1091,8 @@ public class Room {
      * @param summary the room summary
      */
     private void clearUnreadCounters(RoomSummary summary) {
-        Log.d(LOG_TAG, "## clearUnreadCounters " + summary.getRoomId());
+        Log.d(LOG_TAG, "## clearUnreadCounters " + getRoomId());
+
         // reset the notification count
         getLiveState().setHighlightCount(0);
         getLiveState().setNotificationCount(0);
