@@ -817,10 +817,17 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         }
 
         if ((null != sessionId) && (null != senderKey) && mInboundGroupSessions.containsKey(senderKey)) {
-            MXOlmInboundGroupSession2 session;
+            MXOlmInboundGroupSession2 session = null;
 
-            synchronized (mInboundGroupSessionsLock) {
-                session = mInboundGroupSessions.get(senderKey).get(sessionId);
+            try {
+                synchronized (mInboundGroupSessionsLock) {
+                    session = mInboundGroupSessions.get(senderKey).get(sessionId);
+                }
+            } catch (Exception e) {
+                // it should never happen
+                // MXOlmInboundGroupSession has been replaced by MXOlmInboundGroupSession2
+                // but it seems that the application code is not properly updated (JIT issue) ?
+                Log.e(LOG_TAG, "## getInboundGroupSession() failed " + e.getMessage());
             }
 
             return session;
