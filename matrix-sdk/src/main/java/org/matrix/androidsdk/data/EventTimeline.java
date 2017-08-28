@@ -1112,7 +1112,22 @@ public class EventTimeline {
                 }
             }
         };
-        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+
+        try {
+            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        } catch (final Exception e) {
+            Log.e(LOG_TAG, "## addPaginationEvents() failed " + e.getMessage());
+            task.cancel(true);
+
+            (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
+                @Override
+                public void run() {
+                    if (null != callback) {
+                        callback.onUnexpectedError(e);
+                    }
+                }
+            });
+        }
     }
 
     /**
@@ -1457,17 +1472,17 @@ public class EventTimeline {
 
                             @Override
                             public void onNetworkError(Exception e) {
-                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
+                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage());
                             }
 
                             @Override
                             public void onMatrixError(MatrixError e) {
-                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
+                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage());
                             }
 
                             @Override
                             public void onUnexpectedError(Exception e) {
-                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
+                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage());
                             }
                         });
 
@@ -1475,7 +1490,22 @@ public class EventTimeline {
                         callback.onSuccess(null);
                     }
                 };
-                task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+
+                try {
+                    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                } catch (final Exception e) {
+                    Log.e(LOG_TAG, "## resetPaginationAroundInitialEvent() failed " + e.getMessage());
+                    task.cancel(true);
+
+                    (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (null != callback) {
+                                callback.onUnexpectedError(e);
+                            }
+                        }
+                    });
+                }
             }
 
             @Override

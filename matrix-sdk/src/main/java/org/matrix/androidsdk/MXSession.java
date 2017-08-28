@@ -100,6 +100,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.regex.Pattern;
 
 /**
@@ -565,9 +566,19 @@ public class MXSession {
         };
         try {
             task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             Log.e(LOG_TAG, "## getApplicationSizeCaches() : failed " + e.getMessage());
             task.cancel(true);
+
+            (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
+                @Override
+                public void run() {
+                    if (null != callback) {
+                        callback.onUnexpectedError(e);
+                    }
+                }
+            });
+
         }
     }
 
@@ -639,7 +650,22 @@ public class MXSession {
                     }
                 }
             };
-            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+
+            try {
+                task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            } catch (final Exception e) {
+                Log.e(LOG_TAG, "## clear() failed " + e.getMessage());
+                task.cancel(true);
+
+                (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (null != callback) {
+                            callback.onUnexpectedError(e);
+                        }
+                    }
+                });
+            }
         }
     }
 

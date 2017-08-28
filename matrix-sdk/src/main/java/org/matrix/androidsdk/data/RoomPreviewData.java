@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.data;
 
 import android.os.AsyncTask;
+import android.os.Looper;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXSession;
@@ -25,6 +26,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomResponse;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.Collections;
 import java.util.Map;
@@ -203,7 +205,21 @@ public class RoomPreviewData {
                         apiCallback.onSuccess(null);
                     }
                 };
-                task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                try {
+                    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                } catch (final Exception e) {
+                    Log.e(LOG_TAG, "## fetchPreviewData() failed " + e.getMessage());
+                    task.cancel(true);
+
+                    (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (null != apiCallback) {
+                                apiCallback.onUnexpectedError(e);
+                            }
+                        }
+                    });
+                }
             }
 
             @Override

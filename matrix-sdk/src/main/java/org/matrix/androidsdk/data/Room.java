@@ -540,8 +540,18 @@ public class Room {
             // avoid crash if there are too many running task
             try {
                 task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, url);
-            } catch (Exception e) {
+            } catch (final Exception e) {
+                task.cancel(true);
                 Log.e(LOG_TAG, "joinWithThirdPartySigned : task.executeOnExecutor failed" + e.getMessage());
+
+                (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (null != callback) {
+                            callback.onUnexpectedError(e);
+                        }
+                    }
+                });
             }
         }
     }

@@ -714,7 +714,10 @@ public class MXMediasCache {
             }
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "downloadMedia failed " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "downloadMedia failed " + e.getMessage());
+            synchronized (mSuspendedTasks) {
+                task.cancel(true);
+            }
         }
 
         return downloadableUrl;
