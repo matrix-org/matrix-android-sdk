@@ -146,7 +146,7 @@ public class MXSession {
     private boolean mIsAliveSession = true;
 
     // online status
-    private boolean mIsOnline = true;
+    private boolean mIsOnline = false;
 
     private HomeserverConnectionConfig mHsConfig;
 
@@ -850,6 +850,7 @@ public class MXSession {
 
         mEventsThread = new EventsThread(mEventsRestClient, fEventsListener, initialToken);
         mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
+        mEventsThread.setIsOnline(mIsOnline);
 
         if (mFailureCallback != null) {
             mEventsThread.setFailureCallback(mFailureCallback);

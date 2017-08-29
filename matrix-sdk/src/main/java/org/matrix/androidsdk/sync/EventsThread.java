@@ -57,7 +57,7 @@ public class EventsThread extends Thread {
     private boolean mPaused = true;
     private boolean mIsNetworkSuspended = false;
     private boolean mIsCatchingUp = false;
-    private boolean mIsOnline = true;
+    private boolean mIsOnline = false;
 
     private boolean mKilling = false;
 
@@ -304,6 +304,15 @@ public class EventsThread extends Thread {
         mIsOnline = isOnline;
     }
 
+    /**
+     * Tells if the presence is online.
+     *
+     * @return true if the user is seen as online.
+     */
+    public boolean isOnline() {
+        return mIsOnline;
+    }
+
     @Override
     public void run() {
         try {
@@ -496,7 +505,7 @@ public class EventsThread extends Thread {
                 final int fServerTimeout = serverTimeout;
                 mNextServerTimeoutms = mDefaultServerTimeoutms;
 
-                mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, DEFAULT_CLIENT_TIMEOUT_MS, (mIsCatchingUp && mIsOnline) ? "offline" : null, inlineFilter, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
+                mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null :"offline", inlineFilter, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         if (!mKilling) {
