@@ -367,7 +367,7 @@ public class EventsThread extends Thread {
             // Start with initial sync
             while (!mInitialSyncDone) {
                 final CountDownLatch latch = new CountDownLatch(1);
-                mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, null, null, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
+                mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null :"offline", DATA_SAVE_MODE_FILTER, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         Log.d(LOG_TAG, "Received initial sync response.");
