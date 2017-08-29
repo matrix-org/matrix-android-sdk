@@ -1134,13 +1134,16 @@ public class MXDataHandler implements IMXEventListener {
 
                     // Handle first joined rooms
                     for (String roomId : roomIds) {
+                        try {
+                            if (null != mLeftRoomsStore.getRoom(roomId)) {
+                                Log.d(LOG_TAG, "the room " + roomId + " moves from left to the joined ones");
+                                mLeftRoomsStore.deleteRoom(roomId);
+                            }
 
-                        if (null != mLeftRoomsStore.getRoom(roomId)) {
-                            Log.d(LOG_TAG, "the room " + roomId + " moves from left to the joined ones");
-                            mLeftRoomsStore.deleteRoom(roomId);
+                            getRoom(roomId).handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "## manageResponse() : handleJoinedRoomSync failed " + e.getMessage() + " for room " + roomId);
                         }
-
-                        getRoom(roomId).handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
                    }
 
                     isEmptyResponse = false;
@@ -1153,14 +1156,18 @@ public class MXDataHandler implements IMXEventListener {
                     Set<String> roomIds = syncResponse.rooms.invite.keySet();
 
                     for (String roomId : roomIds) {
-                        Log.d(LOG_TAG, "## manageResponse() : the user has been invited to " + roomId);
+                        try {
+                            Log.d(LOG_TAG, "## manageResponse() : the user has been invited to " + roomId);
 
-                        if (null != mLeftRoomsStore.getRoom(roomId)) {
-                            Log.d(LOG_TAG, "the room " + roomId + " moves from left to the invited ones");
-                            mLeftRoomsStore.deleteRoom(roomId);
+                            if (null != mLeftRoomsStore.getRoom(roomId)) {
+                                Log.d(LOG_TAG, "the room " + roomId + " moves from left to the invited ones");
+                                mLeftRoomsStore.deleteRoom(roomId);
+                            }
+
+                            getRoom(roomId).handleInvitedRoomSync(syncResponse.rooms.invite.get(roomId));
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "## manageResponse() : handleInvitedRoomSync failed " + e.getMessage() + " for room " + roomId);
                         }
-
-                        getRoom(roomId).handleInvitedRoomSync(syncResponse.rooms.invite.get(roomId));
                     }
 
                     isEmptyResponse = false;
