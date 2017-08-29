@@ -95,7 +95,7 @@ public class MXFileStore extends MXMemoryStore {
     // filled with roomId
     private HashSet<String> mRoomsToCommitForMessages;
     private HashSet<String> mRoomsToCommitForStates;
-    private HashSet<String> mRoomsToCommitForStatesEvents;
+    //private HashSet<String> mRoomsToCommitForStatesEvents;
     private HashSet<String> mRoomsToCommitForSummaries;
     private HashSet<String> mRoomsToCommitForAccountData;
     private HashSet<String> mRoomsToCommitForReceipts;
@@ -217,7 +217,7 @@ public class MXFileStore extends MXMemoryStore {
         // updated data
         mRoomsToCommitForMessages = new HashSet<>();
         mRoomsToCommitForStates = new HashSet<>();
-        mRoomsToCommitForStatesEvents = new HashSet<>();
+        //mRoomsToCommitForStatesEvents = new HashSet<>();
         mRoomsToCommitForSummaries = new HashSet<>();
         mRoomsToCommitForAccountData = new HashSet<>();
         mRoomsToCommitForReceipts = new HashSet<>();
@@ -439,7 +439,7 @@ public class MXFileStore extends MXMemoryStore {
 
                                     mRoomsToCommitForMessages = new HashSet<>();
                                     mRoomsToCommitForStates = new HashSet<>();
-                                    mRoomsToCommitForStatesEvents = new HashSet<>();
+                                    //mRoomsToCommitForStatesEvents = new HashSet<>();
                                     mRoomsToCommitForSummaries = new HashSet<>();
                                     mRoomsToCommitForReceipts = new HashSet<>();
 
@@ -1321,7 +1321,7 @@ public class MXFileStore extends MXMemoryStore {
 
     @Override
     public void storeRoomStateEvent(final String roomId, final Event event) {
-        boolean isAlreadyLoaded;
+        /*boolean isAlreadyLoaded = true;
 
         synchronized (mRoomStateEventsByRoomId) {
             isAlreadyLoaded = mRoomStateEventsByRoomId.containsKey(roomId);
@@ -1368,7 +1368,7 @@ public class MXFileStore extends MXMemoryStore {
                     storeRoomStateEvent(roomId, event);
                 }
             }
-        });
+        });*/
     }
 
     /**
@@ -1377,7 +1377,7 @@ public class MXFileStore extends MXMemoryStore {
      * @param roomId the room id.
      */
     private void saveRoomStateEvents(final String roomId) {
-        Log.d(LOG_TAG, "++ saveRoomStateEvents " + roomId);
+        /*Log.d(LOG_TAG, "++ saveRoomStateEvents " + roomId);
         
         File roomStateFile = new File(mGzStoreRoomsStateEventsFolderFile, roomId);
         Map<String, Event> eventsMap = mRoomStateEventsByRoomId.get(roomId);
@@ -1390,14 +1390,14 @@ public class MXFileStore extends MXMemoryStore {
             Log.d(LOG_TAG, "saveRoomStateEvents " + roomId + " :" + events.size() + " events : " + (System.currentTimeMillis() - start1) + " ms");
         } else {
             Log.d(LOG_TAG, "-- saveRoomStateEvents " + roomId  + " : empty list");
-        }
+        }*/
     }
 
     /**
      * Flush the room state events files.
      */
     private void saveRoomStatesEvents() {
-        if ((mRoomsToCommitForStatesEvents.size() > 0) && (null != mFileStoreHandler)) {
+        /*if ((mRoomsToCommitForStatesEvents.size() > 0) && (null != mFileStoreHandler)) {
             // get the list
             final HashSet<String> fRoomsToCommitForStatesEvents = new HashSet<>(mRoomsToCommitForStatesEvents);
             mRoomsToCommitForStatesEvents = new HashSet<>();
@@ -1423,23 +1423,23 @@ public class MXFileStore extends MXMemoryStore {
 
             Thread t = new Thread(r);
             t.start();
-        }
+        }*/
     }
 
     @Override
     public void getRoomStateEvents(final String roomId, final SimpleApiCallback<List<Event>> callback) {
-        boolean isAlreadyLoaded;
+        boolean isAlreadyLoaded = true;
 
-        synchronized (mRoomStateEventsByRoomId) {
+        /*synchronized (mRoomStateEventsByRoomId) {
             isAlreadyLoaded = mRoomStateEventsByRoomId.containsKey(roomId);
-        }
+        }*/
 
         if (isAlreadyLoaded) {
             super.getRoomStateEvents(roomId, callback);
             return;
         }
 
-        Runnable r = new Runnable() {
+        /*Runnable r = new Runnable() {
             @Override
             public void run() {
                 mFileStoreHandler.post(new Runnable() {
@@ -1480,7 +1480,7 @@ public class MXFileStore extends MXMemoryStore {
         };
 
         Thread t = new Thread(r);
-        t.start();
+        t.start();*/
     }
 
     /**

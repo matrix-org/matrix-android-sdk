@@ -73,7 +73,7 @@ public class MXMemoryStore implements IMXStore {
     protected Map<String, Map<String, ReceiptData>> mReceiptsByRoomId;
 
     // room state events
-    protected final Map<String, Map<String, Event>> mRoomStateEventsByRoomId = new HashMap<>();
+    //protected final Map<String, Map<String, Event>> mRoomStateEventsByRoomId = new HashMap<>();
 
     // common context
     private static Context mSharedContext = null;
@@ -825,7 +825,7 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public void storeRoomStateEvent(String roomId, Event event) {
-        synchronized (mRoomStateEventsByRoomId) {
+        /*synchronized (mRoomStateEventsByRoomId) {
             Map<String, Event> events = mRoomStateEventsByRoomId.get(roomId);
 
             if (null == events) {
@@ -837,18 +837,18 @@ public class MXMemoryStore implements IMXStore {
             if (null != event.stateKey) {
                 events.put(event.stateKey, event);
             }
-        }
+        }*/
     }
 
     @Override
     public void getRoomStateEvents(final String roomId, final SimpleApiCallback<List<Event>> callback) {
         final List<Event> events = new ArrayList<>();
 
-        synchronized (mRoomStateEventsByRoomId) {
+        /*synchronized (mRoomStateEventsByRoomId) {
             if (mRoomStateEventsByRoomId.containsKey(roomId)) {
                 events.addAll(mRoomStateEventsByRoomId.get(roomId).values());
             }
-        }
+        }*/
 
         (new Handler(Looper.getMainLooper())).post(new Runnable() {
             @Override
