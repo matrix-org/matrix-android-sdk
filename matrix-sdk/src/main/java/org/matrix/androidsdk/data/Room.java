@@ -1151,7 +1151,7 @@ public class Room {
      */
     private boolean markAllAsRead(boolean updateReadMarker, final ApiCallback<Void> aRespCallback) {
         final Event lastEvent = mStore.getLatestEvent(getRoomId());
-        boolean res = sendReadMarkers(updateReadMarker ? lastEvent.eventId : getReadMarkerEventId(), null, aRespCallback);
+        boolean res = sendReadMarkers(updateReadMarker ? ((null != lastEvent) ? lastEvent.eventId : null) : getReadMarkerEventId(), null, aRespCallback);
 
         if (!res) {
             RoomSummary summary = mDataHandler.getStore().getSummary(getRoomId());
