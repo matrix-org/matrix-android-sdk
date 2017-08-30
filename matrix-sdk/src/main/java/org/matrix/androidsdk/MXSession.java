@@ -100,7 +100,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.regex.Pattern;
 
 /**
@@ -227,6 +226,8 @@ public class MXSession {
                     store.initWithCredentials(mAppContent, mCredentials);
 
                     if (store.hasData() || mEnableCryptoWhenStartingMXSession) {
+                        Log.d(LOG_TAG, "## postProcess() : create the crypto instance for session " + this);
+
                         // open the store
                         store.open();
 
@@ -236,6 +237,8 @@ public class MXSession {
 
                         // the room summaries are not stored with decrypted content
                         decryptRoomSummaries();
+                    } else {
+                        Log.e(LOG_TAG, "## postProcess() : no crypto data");
                     }
                 } else {
                     Log.e(LOG_TAG, "## postProcess() : mCrypto is already created");
@@ -2325,6 +2328,9 @@ public class MXSession {
                     Log.e(LOG_TAG, "## checkCrypto() : failed " + e.getMessage());
                 }
             });
+        } else if (mDataHandler.getCrypto() != mCrypto) {
+            Log.e(LOG_TAG, "## checkCrypto() : the data handler crypto was not initialized");
+            mDataHandler.setCrypto(mCrypto);
         }
     }
 

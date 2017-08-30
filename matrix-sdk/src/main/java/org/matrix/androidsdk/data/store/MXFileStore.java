@@ -129,7 +129,7 @@ public class MXFileStore extends MXMemoryStore {
 
     // the read receipts are asynchronously loaded
     // keep a list of the remaining receipts to load
-    private final ArrayList<String> mRoomReceiptsToLoad = new ArrayList<>();
+    private final List<String> mRoomReceiptsToLoad = new ArrayList<>();
 
     // store some stats
     private HashMap<String, Long> mStoreStats = new HashMap<>();
@@ -520,17 +520,20 @@ public class MXFileStore extends MXMemoryStore {
                 Runnable r = new Runnable() {
                     @Override
                     public void run() {
-                        if (!mIsPostProcessingDone) {
-                            Log.e(LOG_TAG, "## open() : is ready but the post processing was not yet done.");
-                            dispatchPostProcess(mCredentials.userId);
-                            mIsPostProcessingDone = true;
-                        } else {
-                            Log.e(LOG_TAG, "## open() when ready : the post processing is already done.");
-                        }
-                        Log.e(LOG_TAG, "The store is opened.");
-                        dispatchOnStoreReady(mCredentials.userId);
-
-                        mPreloadTime = System.currentTimeMillis() - fLoadTimeT0;
+                        mFileStoreHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                // should never happen
+                                if (!mIsPostProcessingDone) {
+                                    Log.e(LOG_TAG, "## open() : is ready but the post processing was not yet done : please wait....");
+                                    return;
+                                } else {
+                                    Log.e(LOG_TAG, "The store is opened.");
+                                    dispatchOnStoreReady(mCredentials.userId);
+                                    mPreloadTime = System.currentTimeMillis() - fLoadTimeT0;
+                                }
+                            }
+                        });
                     }
                 };
 
