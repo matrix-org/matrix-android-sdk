@@ -851,7 +851,7 @@ public class MXSession {
 
         final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler) : anEventsListener;
 
-        mEventsThread = new EventsThread(mEventsRestClient, fEventsListener, initialToken);
+        mEventsThread = new EventsThread(mAppContent, mEventsRestClient, fEventsListener, initialToken);
         mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
         mEventsThread.setIsOnline(mIsOnline);
 

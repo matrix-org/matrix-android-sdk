@@ -16,6 +16,7 @@
     <application
         tools:replace="label"
         android:label="@string/matrix_sdk_app_name">
-    </application>
 
+        <receiver android:name="org.matrix.androidsdk.sync.EventsThread$SyncDelayReceiver" />
+    </application>
 </manifest>
