@@ -490,7 +490,7 @@ public class MXCallsManager {
      * check if there is a pending incoming call
      */
     public void checkPendingIncomingCalls() {
-        Log.d(LOG_TAG, "checkPendingIncomingCalls");
+        //Log.d(LOG_TAG, "checkPendingIncomingCalls");
 
         mUIThreadHandler.post(new Runnable() {
             @Override
