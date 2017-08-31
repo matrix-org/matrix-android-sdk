@@ -524,11 +524,17 @@ public class MXFileStore extends MXMemoryStore {
                             @Override
                             public void run() {
                                 // should never happen
-                                if (!mIsPostProcessingDone) {
+                                if (!mIsPostProcessingDone && !mIsNewStorage) {
                                     Log.e(LOG_TAG, "## open() : is ready but the post processing was not yet done : please wait....");
                                     return;
                                 } else {
-                                    Log.e(LOG_TAG, "The store is opened.");
+                                    if (!mIsPostProcessingDone) {
+                                        Log.e(LOG_TAG, "## open() : is ready but the post processing was not yet done.");
+                                        dispatchPostProcess(mCredentials.userId);
+                                        mIsPostProcessingDone = true;
+                                    } else {
+                                        Log.e(LOG_TAG, "## open() when ready : the post processing is already done.");
+                                    }
                                     dispatchOnStoreReady(mCredentials.userId);
                                     mPreloadTime = System.currentTimeMillis() - fLoadTimeT0;
                                 }
