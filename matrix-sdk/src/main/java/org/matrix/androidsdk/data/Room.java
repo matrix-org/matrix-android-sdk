@@ -1222,7 +1222,7 @@ public class Room {
     public boolean sendReadReceipt(Event event, final ApiCallback<Void> aRespCallback) {
         String eventId = (null != event) ? event.eventId : null;
         Log.d(LOG_TAG, "## sendReadReceipt() : eventId " + eventId + " in room " + getRoomId());
-        return sendReadMarkers(null, (null != event) ? event.eventId : null, aRespCallback);
+        return sendReadMarkers(null, eventId, aRespCallback);
     }
 
     /**
