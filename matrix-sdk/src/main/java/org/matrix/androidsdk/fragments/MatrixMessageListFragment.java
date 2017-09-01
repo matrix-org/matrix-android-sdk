@@ -966,8 +966,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         final Event event = messageRow.getEvent();
 
         if (!event.isUndeliverable()) {
-            final String prevEventId = event.eventId;
-
             mMatrixMessagesFragment.sendEvent(event, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
@@ -975,18 +973,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         @Override
                         public void run() {
                             onMessageSendingSucceeded(event);
-                            if (mFutureReadMarkerEventId != null && prevEventId.equals(mFutureReadMarkerEventId)) {
-                                mFutureReadMarkerEventId = null;
-                                // Move read marker to the newly sent message
-                                mRoom.setReadMakerEventId(event.eventId);
-                                RoomSummary summary = mRoom.getDataHandler().getStore().getSummary(mRoom.getRoomId());
-                                if (summary != null) {
-                                    String readReceiptEventId = summary.getReadReceiptEventId();
-                                    // Inform adapter of the new read marker position
-                                    mAdapter.updateReadMarker(event.eventId, readReceiptEventId);
-                                }
-                            }
-                            mAdapter.updateEventById(event, prevEventId);
 
                             // pending resending ?
                             if ((null != mResendingEventsList) && (mResendingEventsList.size() > 0)) {
@@ -1014,7 +1000,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                 } else if (null != event.unsentMatrixError) {
                                     Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.getLocalizedMessage() + ".", Toast.LENGTH_LONG).show();
                                 }
-
 
                                 mAdapter.notifyDataSetChanged();
                                 onMessageSendingFailed(event);
@@ -2455,14 +2440,31 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
-    public void onSentEvent(Event event) {
+    public void onEventSent(Event event, String prevEventId) {
         // detect if a message was sent but not yet added to the adapter
         // For example, the quick reply does not use the fragment to send messages
         // Thus, the messages are not added to the adapter.
         // onEvent is not called because the server event echo manages an event sent by itself
         if ((null == mAdapter.getMessageRow(event.eventId)) && canAddEvent(event)) {
-            // refresh the listView only when it is a live timeline or a search
-            mAdapter.add(new MessageRow(event, mRoom.getLiveState()), true);
+            if (null != mAdapter.getMessageRow(prevEventId)) {
+                mAdapter.updateEventById(event, prevEventId);
+            } else {
+                // refresh the listView only when it is a live timeline or a search
+                mAdapter.add(new MessageRow(event, mRoom.getLiveState()), true);
+            }
+
+            if (mFutureReadMarkerEventId != null && prevEventId.equals(mFutureReadMarkerEventId)) {
+                mFutureReadMarkerEventId = null;
+                // Move read marker to the newly sent message
+                mRoom.setReadMakerEventId(event.eventId);
+                RoomSummary summary = mRoom.getDataHandler().getStore().getSummary(mRoom.getRoomId());
+
+                if (summary != null) {
+                    String readReceiptEventId = summary.getReadReceiptEventId();
+                    // Inform adapter of the new read marker position
+                    mAdapter.updateReadMarker(event.eventId, readReceiptEventId);
+                }
+            }
         }
     }
 

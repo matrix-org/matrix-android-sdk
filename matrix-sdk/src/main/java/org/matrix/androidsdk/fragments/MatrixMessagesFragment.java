@@ -87,7 +87,7 @@ public class MatrixMessagesFragment extends Fragment {
     public interface MatrixMessagesListener {
         void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState);
 
-        void onSentEvent(Event event);
+        void onEventSent(Event event, String prevEventId);
 
         void onLiveEventsChunkProcessed();
 
@@ -148,9 +148,9 @@ public class MatrixMessagesFragment extends Fragment {
         }
 
         @Override
-        public void onSentEvent(Event event) {
+        public void onEventSent(Event event, String prevEventId) {
             if (null != mMatrixMessagesListener) {
-                mMatrixMessagesListener.onSentEvent(event);
+                mMatrixMessagesListener.onEventSent(event, prevEventId);
             }
         }
     };

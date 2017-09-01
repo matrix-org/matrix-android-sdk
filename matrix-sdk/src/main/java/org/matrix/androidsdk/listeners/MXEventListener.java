@@ -56,7 +56,7 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
-    public void onSentEvent(Event event) {
+    public void onEventSent(final Event event, final String prevEventId) {
     }
 
     @Override

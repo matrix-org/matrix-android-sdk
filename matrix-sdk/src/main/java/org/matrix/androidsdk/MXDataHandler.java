@@ -1692,9 +1692,9 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     @Override
-    public void onSentEvent(final Event event) {
+    public void onEventSent(final Event event, final String prevEventId) {
         if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onSentEvent(event);
+            mCryptoEventsListener.onEventSent(event, prevEventId);
         }
 
         if (ignoreEvent(event.roomId)) {
@@ -1708,9 +1708,9 @@ public class MXDataHandler implements IMXEventListener {
             public void run() {
                 for (IMXEventListener listener : eventListeners) {
                     try {
-                        listener.onSentEvent(event);
+                        listener.onEventSent(event, prevEventId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onSentEvent " + e.getMessage());
+                        Log.e(LOG_TAG, "onEventSent " + e.getMessage());
                     }
                 }
             }

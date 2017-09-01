@@ -1955,13 +1955,13 @@ public class Room {
             }
 
             @Override
-            public void onSentEvent(Event event) {
+            public void onEventSent(final Event event, final String prevEventId) {
                 // Filter out events for other rooms
                 if (TextUtils.equals(getRoomId(), event.roomId)) {
                     try {
-                        eventListener.onSentEvent(event);
+                        eventListener.onEventSent(event, prevEventId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onSentEvent exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onEventSent exception " + e.getMessage());
                     }
                 }
             }
@@ -2132,6 +2132,8 @@ public class Room {
             return;
         }
 
+        final String prevEventId = event.eventId;
+
         final ApiCallback<Event> localCB = new ApiCallback<Event>() {
             @Override
             public void onSuccess(final Event serverResponseEvent) {
@@ -2155,7 +2157,7 @@ public class Room {
                 markAllAsRead(isReadMarkerUpdated, null);
 
                 mStore.commit();
-                mDataHandler.onSentEvent(event);
+                mDataHandler.onEventSent(event, prevEventId);
 
                 try {
                     callback.onSuccess(null);
