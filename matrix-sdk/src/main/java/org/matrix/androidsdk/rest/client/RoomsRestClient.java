@@ -23,6 +23,7 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.api.RoomsApi;
@@ -104,16 +105,22 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         //final String description = "sendEvent : roomId " + roomId + " - eventType " + eventType + " content " + content;
         final String description = "sendEvent : roomId " + roomId + " - eventType " + eventType;
 
-        mApi.send(transactionId, roomId, eventType, content, new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                try {
-                    sendEventToRoom(transactionId, roomId, eventType, content, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend sendEvent : failed " + e.getLocalizedMessage());
+        // do not retry the call invite
+        // it might trigger weird behaviour on flaggy networks
+        if (!TextUtils.equals(eventType, Event.EVENT_TYPE_CALL_INVITE)) {
+            mApi.send(transactionId, roomId, eventType, content, new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    try {
+                        sendEventToRoom(transactionId, roomId, eventType, content, callback);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "resend sendEvent : failed " + e.getLocalizedMessage());
+                    }
                 }
-            }
-        }));
+            }));
+        } else {
+            mApi.send(transactionId, roomId, eventType, content, new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, null));
+        }
     }
 
     /**

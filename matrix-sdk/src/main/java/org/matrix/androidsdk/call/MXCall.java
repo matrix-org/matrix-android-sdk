@@ -555,19 +555,24 @@ public class MXCall implements IMXCall {
                     mPendingEvent = mPendingEvents.get(0);
                     mPendingEvents.remove(mPendingEvent);
 
+                    Log.d(LOG_TAG, "## sendNextEvent() : sending event of type " + mPendingEvent.getType() + " event id " + mPendingEvent.eventId);
                     mCallSignalingRoom.sendEvent(mPendingEvent, new ApiCallback<Void>() {
                         @Override
                         public void onSuccess(Void info) {
                             mUIThreadHandler.post(new Runnable() {
                                 @Override
                                 public void run() {
+                                    Log.d(LOG_TAG, "## sendNextEvent() : event " + mPendingEvent.eventId + " is sent");
+
                                     mPendingEvent = null;
                                     sendNextEvent();
                                 }
                             });
                         }
 
-                        private void commonFailure() {
+                        private void commonFailure(String reason) {
+                            Log.d(LOG_TAG, "## sendNextEvent() : event " + mPendingEvent.eventId + " failed to be sent " + reason);
+
                             // let try next candidate event
                             if (TextUtils.equals(mPendingEvent.getType(), Event.EVENT_TYPE_CALL_CANDIDATES)) {
                                 mUIThreadHandler.post(new Runnable() {
@@ -578,23 +583,23 @@ public class MXCall implements IMXCall {
                                     }
                                 });
                             } else {
-                                hangup("");
+                                hangup(reason);
                             }
                         }
 
                         @Override
                         public void onNetworkError(Exception e) {
-                            commonFailure();
+                            commonFailure(e.getLocalizedMessage());
                         }
 
                         @Override
                         public void onMatrixError(MatrixError e) {
-                            commonFailure();
+                            commonFailure(e.getLocalizedMessage());
                         }
 
                         @Override
                         public void onUnexpectedError(Exception e) {
-                            commonFailure();
+                            commonFailure(e.getLocalizedMessage());
                         }
                     });
                 }
