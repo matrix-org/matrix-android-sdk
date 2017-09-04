@@ -1066,7 +1066,7 @@ public class EventTimeline {
                     if (mIsLiveTimeline) {
                         // update the summary is the event has been received after the oldest known event
                         // it might happen after a timeline update (hole in the chat history)
-                        if ((null != summary) && (summary.getLatestReceivedEvent().originServerTs < event.originServerTs) && RoomSummary.isSupportedEvent(event)) {
+                        if ((null != summary) && ((null == summary.getLatestReceivedEvent()) || ((summary.getLatestReceivedEvent().originServerTs < event.originServerTs) && RoomSummary.isSupportedEvent(event)))) {
                             summary.setLatestReceivedEvent(event, getState());
                             mStore.storeSummary(summary);
                             shouldCommitStore = true;
