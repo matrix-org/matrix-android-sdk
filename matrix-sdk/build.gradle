@@ -18,8 +18,8 @@ android {
         targetSdkVersion 23
         // use version to define a version code.
         versionCode 801
-        version "0.8.01-dev"
-        versionName "0.8.01-dev"
+        version "0.8.01"
+        versionName "0.8.01"
         resValue "string", "flavor_description", "SDKApp"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
      }
