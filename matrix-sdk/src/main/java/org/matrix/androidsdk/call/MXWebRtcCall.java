@@ -18,26 +18,20 @@
 package org.matrix.androidsdk.call;
 
 import android.content.Context;
-import android.graphics.Point;
-import android.hardware.Camera;
-import android.opengl.GLSurfaceView;
 import android.os.Build;
+import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.util.Log;
 
 import android.util.DisplayMetrics;
-import android.view.Surface;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.RelativeLayout;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.oney.WebRTCModule.EglUtils;
-import com.oney.WebRTCModule.RTCVideoViewManager;
-import com.oney.WebRTCModule.SurfaceViewRenderer;
 import com.oney.WebRTCModule.WebRTCView;
 
 import org.matrix.androidsdk.MXSession;
@@ -46,7 +40,6 @@ import org.webrtc.AudioSource;
 import org.webrtc.AudioTrack;
 import org.webrtc.Camera1Enumerator;
 import org.webrtc.Camera2Enumerator;
-import org.webrtc.CameraEnumerationAndroid;
 import org.webrtc.CameraEnumerator;
 import org.webrtc.CameraVideoCapturer;
 import org.webrtc.DataChannel;
@@ -56,32 +49,24 @@ import org.webrtc.MediaConstraints;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
 import org.webrtc.PeerConnectionFactory;
-import org.webrtc.RendererCommon;
 import org.webrtc.RtpReceiver;
 import org.webrtc.SdpObserver;
 import org.webrtc.SessionDescription;
-import org.webrtc.VideoCapturer;
-import org.webrtc.VideoRenderer;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class MXJingleCall extends MXCall {
-
-    private static final String LOG_TAG = "MXJingleCall";
+public class MXWebRtcCall extends MXCall {
+    private static final String LOG_TAG = "MXWebRtcCall";
 
     private static final String VIDEO_TRACK_ID = "ARDAMSv0";
     private static final String AUDIO_TRACK_ID = "ARDAMSa0";
 
-    private static final String MIN_VIDEO_WIDTH_CONSTRAINT = "minWidth";
-
-    private static final int DEFAULT_WIDTH = 1280;
-    private static final int DEFAULT_HEIGHT = 720;
+    private static final int DEFAULT_WIDTH = 640;
+    private static final int DEFAULT_HEIGHT = 360;
     private static final int DEFAULT_FPS = 30;
 
     private static final int CAMERA_TYPE_FRONT = 1;
@@ -96,7 +81,6 @@ public class MXJingleCall extends MXCall {
     private RelativeLayout mCallView = null;
 
     private boolean mIsCameraSwitched;
-    private boolean mIsVideoSourceStopped = false;
     private VideoSource mVideoSource = null;
     private VideoTrack mLocalVideoTrack = null;
     private AudioSource mAudioSource = null;
@@ -112,8 +96,6 @@ public class MXJingleCall extends MXCall {
     private boolean mUsingLargeLocalRenderer = true;
     private WebRTCView mFullScreenRTCView = null;
     private WebRTCView mPipRTCView = null;
-    private static int mLocalRenderWidth = -1;
-    private static int mLocalRenderHeight = -1;
 
     private static boolean mIsInitialized = false;
     // null -> not initialized
@@ -128,21 +110,6 @@ public class MXJingleCall extends MXCall {
     private int mCameraInUse = CAMERA_TYPE_UNDEFINED;
 
     private boolean mIsAnswered = false;
-
-    private VideoLayoutConfiguration mInitLocalVideoPosition;
-
-
-    // Fix for devices running old Android versions not finding the libraries.
-    // https://bugs.chromium.org/p/webrtc/issues/detail?id=6751
-    /*static {
-        try {
-            System.loadLibrary("c++_shared");
-            System.loadLibrary("boringssl.cr");
-            System.loadLibrary("protobuf_lite.cr");
-        } catch (UnsatisfiedLinkError e) {
-            Log.e(LOG_TAG, "Failed to load native dependencies: ", e);
-        }
-    }*/
 
     /**
      * @return true if this stack can perform calls.
@@ -187,26 +154,26 @@ public class MXJingleCall extends MXCall {
     }
 
     /**
-     * Class creator
+     * Constructor
      *
      * @param session    the session
      * @param context    the context
      * @param turnServer the turn server
      */
-    public MXJingleCall(MXSession session, Context context, JsonElement turnServer) {
+    public MXWebRtcCall(MXSession session, Context context, JsonElement turnServer) {
         if (!isSupported(context)) {
-            throw new AssertionError("MXJingleCall : not supported with the current android version");
+            throw new AssertionError("MXWebRtcCall : not supported with the current android version");
         }
 
         if (null == session) {
-            throw new AssertionError("MXJingleCall : session cannot be null");
+            throw new AssertionError("MXWebRtcCall : session cannot be null");
         }
 
         if (null == context) {
-            throw new AssertionError("MXJingleCall : context cannot be null");
+            throw new AssertionError("MXWebRtcCall : context cannot be null");
         }
 
-        Log.d(LOG_TAG, "MXJingleCall constructor " + turnServer);
+        Log.d(LOG_TAG, "MXWebRtcCall constructor " + turnServer);
 
         mCallId = "c" + System.currentTimeMillis();
         mSession = session;
@@ -215,7 +182,7 @@ public class MXJingleCall extends MXCall {
     }
 
     /**
-     * Initialize the jingle globals
+     * Initialize globals
      */
     private static void initializeAndroidGlobals(Context context) {
         if (!mIsInitialized) {
@@ -231,10 +198,6 @@ public class MXJingleCall extends MXCall {
 
                 mIsSupported = true;
                 Log.d(LOG_TAG, "## initializeAndroidGlobals(): mIsInitialized=" + mIsInitialized);
-            } catch (UnsatisfiedLinkError e) {
-                Log.e(LOG_TAG, "## initializeAndroidGlobals(): Exception Msg=" + e.getMessage());
-                mIsInitialized = true;
-                mIsSupported = false;
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## initializeAndroidGlobals(): Exception Msg=" + e.getMessage());
                 mIsInitialized = true;
@@ -249,16 +212,15 @@ public class MXJingleCall extends MXCall {
     @Override
     public void createCallView() {
         if ((null != mIsSupported) && mIsSupported) {
-            Log.d(LOG_TAG, "MXJingleCall createCallView");
+            Log.d(LOG_TAG, "++ createCallView()");
 
             dispatchOnStateDidChange(CALL_STATE_CREATING_CALL_VIEW);
             mUIThreadHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     mCallView = new RelativeLayout(mContext);
-                    RelativeLayout.LayoutParams labelLayoutParams = new RelativeLayout.LayoutParams(
-                            RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
-                    mCallView.setLayoutParams(labelLayoutParams);
+                    mCallView.setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
+                    mCallView.setBackgroundColor(ContextCompat.getColor(mContext, android.R.color.black));
                     mCallView.setVisibility(View.GONE);
 
                     dispatchOnViewLoading(mCallView);
@@ -344,11 +306,11 @@ public class MXJingleCall extends MXCall {
     private void sendInvite(final SessionDescription sessionDescription) {
         // check if the call has not been killed
         if (isCallEnded()) {
-            Log.d(LOG_TAG, "MXJingleCall isCallEnded");
+            Log.d(LOG_TAG, "##sendInvite(): isCallEnded");
             return;
         }
 
-        Log.d(LOG_TAG, "MXJingleCall sendInvite");
+        Log.d(LOG_TAG, "##sendInvite()");
 
         // build the invitation event
         JsonObject inviteContent = new JsonObject();
@@ -422,16 +384,9 @@ public class MXJingleCall extends MXCall {
     @Override
     public void updateLocalVideoRendererPosition(VideoLayoutConfiguration aConfigurationToApply) {
         try {
-            updateWebRtcView(mPipRTCView, aConfigurationToApply);
+            updateWebRtcViewLayout(mPipRTCView, aConfigurationToApply);
         } catch (Exception e) {
             Log.e(LOG_TAG, "## updateLocalVideoRendererPosition(): Exception Msg=" + e.getMessage());
-            return;
-        }
-
-        if (null != mCallView) {
-            mCallView.postInvalidate();
-        } else {
-            Log.w(LOG_TAG, "## updateLocalVideoRendererPosition(): Skipped due to mCallView = null");
         }
     }
 
@@ -446,6 +401,7 @@ public class MXJingleCall extends MXCall {
         if ((null != mCameraVideoCapturer) && (isSwitchCameraSupported())) {
             try {
                 mCameraVideoCapturer.switchCamera(null);
+
                 // toggle the video capturer instance
                 if (CAMERA_TYPE_FRONT == mCameraInUse) {
                     mCameraInUse = CAMERA_TYPE_REAR;
@@ -455,13 +411,6 @@ public class MXJingleCall extends MXCall {
 
                 // compute camera switch new status
                 mIsCameraSwitched = !mIsCameraSwitched;
-
-                mUIThreadHandler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        listenPreviewUpdate();
-                    }
-                }, 500);
 
                 return true;
             } catch (Exception e) {
@@ -510,21 +459,6 @@ public class MXJingleCall extends MXCall {
     @Override
     public boolean isCameraSwitched() {
         return mIsCameraSwitched;
-    }
-
-    @Override
-    public void addListener(MXCallListener callListener) {
-        super.addListener(callListener);
-
-        // warn about the preview update
-        if ((-1 != mLocalRenderWidth) && (1 != mLocalRenderHeight)) {
-            mUIThreadHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    dispatchOnPreviewSizeChanged(mLocalRenderWidth, mLocalRenderHeight);
-                }
-            });
-        }
     }
 
     /**
@@ -629,11 +563,9 @@ public class MXJingleCall extends MXCall {
                                             mPipRTCView.setStream(mLocalMediaStream);
                                             mPipRTCView.setVisibility(View.VISIBLE);
 
+                                            // to be able to display the avatar video above the large one
                                             mPipRTCView.setZOrder(1);
-                                            //mLargeRemoteRTCView.setZOrder(2);
                                         }
-
-                                        listenPreviewUpdate();
 
                                         mLocalVideoTrack.setEnabled(true);
                                         mUsingLargeLocalRenderer = false;
@@ -903,47 +835,12 @@ public class MXJingleCall extends MXCall {
         return (null != mFrontCameraName) || (null != mBackCameraName);
     }
 
-    class JingleCameraEventsHandler implements CameraVideoCapturer.CameraEventsHandler {
-        private final static String TAG = "CameraEventsHandler";
-
-        // Camera error handler - invoked when camera can not be opened
-        // or any camera exception happens on camera thread.
-        @Override
-        public void onCameraError(String errorDescription) {
-            Log.d(TAG, String.format("CameraEventsHandler.onCameraError: errorDescription=%s", errorDescription));
-        }
-
-        // Called when camera is disconnected.
-        @Override
-        public void onCameraDisconnected() {
-            Log.d(TAG, "CameraEventsHandler.onCameraDisconnected");
-        }
-
-        // Invoked when camera stops receiving frames
-        @Override
-        public void onCameraFreezed(String errorDescription) {
-            Log.d(TAG, String.format("CameraEventsHandler.onCameraFreezed: errorDescription=%s", errorDescription));
-        }
-
-        // Callback invoked when camera is opening.
-        @Override
-        public void onCameraOpening(String cameraName) {
-            Log.d(TAG, String.format("CameraEventsHandler.onCameraOpening: cameraName=%s", cameraName));
-        }
-
-        // Callback invoked when first camera frame is available after camera is opened.
-        @Override
-        public void onFirstFrameAvailable() {
-            Log.d(TAG, "CameraEventsHandler.onFirstFrameAvailable");
-        }
-
-        // Callback invoked when camera closed.
-        @Override
-        public void onCameraClosed() {
-            Log.d(TAG, "CameraEventsHandler.onFirstFrameAvailable");
-        }
-    }
-
+    /**
+     * Create the video capturer
+     *
+     * @param cameraName the selected camera name
+     * @return the video capturer
+     */
     private CameraVideoCapturer createVideoCapturer(String cameraName) {
         CameraVideoCapturer cameraVideoCapturer = null;
 
@@ -954,8 +851,7 @@ public class MXJingleCall extends MXCall {
         if ((null != deviceNames) && (deviceNames.length > 0)) {
             for (String name : deviceNames) {
                 if (name.equals(cameraName)) {
-                    cameraVideoCapturer = camerasEnumerator.createCapturer(name, new JingleCameraEventsHandler());
-
+                    cameraVideoCapturer = camerasEnumerator.createCapturer(name, null);
                     if (null != cameraVideoCapturer) {
                         break;
                     }
@@ -963,7 +859,7 @@ public class MXJingleCall extends MXCall {
             }
 
             if (null == cameraVideoCapturer) {
-                cameraVideoCapturer = camerasEnumerator.createCapturer(deviceNames[0], new JingleCameraEventsHandler());
+                cameraVideoCapturer = camerasEnumerator.createCapturer(deviceNames[0], null);
             }
         }
 
@@ -972,10 +868,8 @@ public class MXJingleCall extends MXCall {
 
     /**
      * Create the local video stack
-     *
-     * @return the video track
      */
-    private VideoTrack createVideoTrack() { // permission crash
+    private void createVideoTrack() { // permission crash
         Log.d(LOG_TAG, "createVideoTrack");
 
         // create the local renderer only if there is a camera on the device
@@ -983,7 +877,6 @@ public class MXJingleCall extends MXCall {
 
             try {
                 if (null != mFrontCameraName) {
-                    // TODO add listeners
                     mCameraVideoCapturer = createVideoCapturer(mFrontCameraName);
 
                     if (null == mCameraVideoCapturer) {
@@ -994,7 +887,6 @@ public class MXJingleCall extends MXCall {
                 }
 
                 if ((null == mCameraVideoCapturer) && (null != mBackCameraName)) {
-                    // TODO add listeners
                     mCameraVideoCapturer = createVideoCapturer(mBackCameraName);
 
                     if (null == mCameraVideoCapturer) {
@@ -1032,16 +924,12 @@ public class MXJingleCall extends MXCall {
                 Log.e(LOG_TAG, "## createVideoTrack(): Cannot create Video Capturer - no camera available");
             }
         }
-
-        return mLocalVideoTrack;
     }
 
     /**
-     * Create the local video stack
-     *
-     * @return the video track
+     * Create the local audio stack
      */
-    private AudioTrack createAudioTrack() {
+    private void createAudioTrack() {
         Log.d(LOG_TAG, "createAudioTrack");
 
         MediaConstraints audioConstraints = new MediaConstraints();
@@ -1064,11 +952,15 @@ public class MXJingleCall extends MXCall {
 
         mAudioSource = mPeerConnectionFactory.createAudioSource(audioConstraints);
         mLocalAudioTrack = mPeerConnectionFactory.createAudioTrack(AUDIO_TRACK_ID, mAudioSource);
-
-        return mLocalAudioTrack;
     }
 
-    private void updateWebRtcView(WebRTCView webRTCView, VideoLayoutConfiguration aLocalVideoPosition) {
+    /**
+     * Update the webRtcView layout
+     *
+     * @param webRTCView          the view
+     * @param aLocalVideoPosition the video configuration
+     */
+    private void updateWebRtcViewLayout(WebRTCView webRTCView, VideoLayoutConfiguration aLocalVideoPosition) {
         final DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
 
         int screenWidth = (aLocalVideoPosition.mDisplayWidth > 0) ? aLocalVideoPosition.mDisplayWidth : displayMetrics.widthPixels;
@@ -1102,7 +994,6 @@ public class MXJingleCall extends MXCall {
         if (isVideo()) {
             Log.d(LOG_TAG, "## initCallUI(): building UI video call");
             try {
-
                 mUIThreadHandler.post(new Runnable() {
                     @Override
                     public void run() {
@@ -1135,31 +1026,24 @@ public class MXJingleCall extends MXCall {
                 Log.e(LOG_TAG, "## initCallUI(): VideoRendererGui.setView : Exception Msg =" + e.getMessage());
             }
 
-            // create the renderers after the VideoRendererGui.setView
             try {
                 Log.d(LOG_TAG, "## initCallUI() building UI");
 
-                RelativeLayout subRelativeLayout = new RelativeLayout(mContext);
-                mCallView.addView(subRelativeLayout, new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
-
                 mFullScreenRTCView = new WebRTCView(mContext);
-                mFullScreenRTCView.setBackgroundColor(0xFFFF0000);
-                subRelativeLayout.addView(mFullScreenRTCView, new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
+                mFullScreenRTCView.setBackgroundColor(ContextCompat.getColor(mContext, android.R.color.black));
+                mCallView.addView(mFullScreenRTCView, new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
                 mFullScreenRTCView.setVisibility(View.GONE);
 
                 mPipRTCView = new WebRTCView(mContext);
-                RelativeLayout.LayoutParams params2 = new RelativeLayout.LayoutParams(200, 200);
-                params2.leftMargin = 200;
-                params2.topMargin = 300;
-                subRelativeLayout.addView(mPipRTCView, params2);
-                mPipRTCView.setBackgroundColor(0xFF0000FF);
+                mCallView.addView(mPipRTCView, new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
+                mPipRTCView.setBackgroundColor(ContextCompat.getColor(mContext, android.R.color.transparent));
                 mPipRTCView.setVisibility(View.GONE);
 
                 if (null != aLocalVideoPosition) {
-                    updateWebRtcView(mPipRTCView, aLocalVideoPosition);
+                    updateWebRtcViewLayout(mPipRTCView, aLocalVideoPosition);
                     Log.d(LOG_TAG, "## initCallUI(): " + aLocalVideoPosition);
                 } else {
-                    updateWebRtcView(mPipRTCView, new VideoLayoutConfiguration(5, 5, 25, 25));
+                    updateWebRtcViewLayout(mPipRTCView, new VideoLayoutConfiguration(5, 5, 25, 25));
                 }
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## initCallUI(): Exception Msg =" + e.getMessage());
@@ -1186,73 +1070,6 @@ public class MXJingleCall extends MXCall {
                     }
                 }
             });
-        }
-    }
-
-    // actions (must be done after dispatchOnViewReady()
-
-    /**
-     * The activity is paused.
-     */
-    @Override
-    public void onPause() {
-        super.onPause();
-
-        Log.d(LOG_TAG, "onPause");
-
-        try {
-            if (!isCallEnded()) {
-
-                Log.d(LOG_TAG, "onPause with active call");
-
-                if (null != mCallView) {
-                    //mCallView.onPause();
-                }
-
-                if (mVideoSource != null && !mIsVideoSourceStopped) {
-                    //mVideoSource.stop();
-                    mIsVideoSourceStopped = true;
-                }
-            }
-        } catch (Exception e) {
-            // race condition
-            Log.e(LOG_TAG, "onPause failed " + e.getLocalizedMessage());
-        }
-    }
-
-    /**
-     * The activity is resumed.
-     */
-    @Override
-    public void onResume() {
-        super.onResume();
-
-        Log.d(LOG_TAG, "onResume");
-
-        try {
-            if (!isCallEnded()) {
-
-                Log.d(LOG_TAG, "onResume with active call");
-
-                if (null != mCallView) {
-                    //mCallView.onResume();
-                }
-
-                if (mVideoSource != null && mIsVideoSourceStopped) {
-                    //mVideoSource.restart();
-                    mIsVideoSourceStopped = false;
-                }
-
-                mUIThreadHandler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        listenPreviewUpdate();
-                    }
-                }, 500);
-
-            }
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "onResume failed " + e.getLocalizedMessage());
         }
     }
 
@@ -1443,10 +1260,9 @@ public class MXJingleCall extends MXCall {
     /**
      * The other call member hangs up the call.
      *
-     * @param event          the event
      * @param hangUpReasonId hang up reason
      */
-    private void onCallHangup(final Event event, final int hangUpReasonId) {
+    private void onCallHangup(final int hangUpReasonId) {
         Log.d(LOG_TAG, "## onCallHangup(): call state=" + getCallState());
         String state = getCallState();
 
@@ -1556,7 +1372,7 @@ public class MXJingleCall extends MXCall {
                     JsonArray candidates = eventContent.getAsJsonArray("candidates");
                     addCandidates(candidates);
                 } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(eventType)) {
-                    onCallHangup(event, IMXCall.END_CALL_REASON_PEER_HANG_UP);
+                    onCallHangup(IMXCall.END_CALL_REASON_PEER_HANG_UP);
                 }
 
             } else { // event from the current member, but sent from another device
@@ -1583,7 +1399,7 @@ public class MXJingleCall extends MXCall {
 
                     case Event.EVENT_TYPE_CALL_HANGUP:
                         // current member answered elsewhere
-                        onCallHangup(event, IMXCall.END_CALL_REASON_PEER_HANG_UP_ELSEWHERE);
+                        onCallHangup(IMXCall.END_CALL_REASON_PEER_HANG_UP_ELSEWHERE);
                         break;
 
                     default:
@@ -1743,7 +1559,6 @@ public class MXJingleCall extends MXCall {
         return false;
     }
 
-
     /**
      * The call has been answered on another device.
      * We distinguish the case where an account is active on
@@ -1779,122 +1594,4 @@ public class MXJingleCall extends MXCall {
 
         super.dispatchOnStateDidChange(newState);
     }
-
-    //==============================================================================================================
-    // Preview size management
-    //==============================================================================================================
-
-    /**
-     * @return the device rotation angle
-     */
-    private int getDeviceOrientation() {
-        try {
-            WindowManager wm = (WindowManager) this.mContext.getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
-            short orientation1;
-            switch (wm.getDefaultDisplay().getRotation()) {
-                case Surface.ROTATION_0:
-                default:
-                    orientation1 = 0;
-                    break;
-                case Surface.ROTATION_90:
-                    orientation1 = 90;
-                    break;
-                case Surface.ROTATION_180:
-                    orientation1 = 180;
-                    break;
-                case Surface.ROTATION_270:
-                    orientation1 = 270;
-            }
-
-            return orientation1;
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## getDeviceOrientation() failed " + e.getMessage());
-        }
-
-        return 0;
-    }
-
-    /**
-     * The camera preview frame has been updated
-     *
-     * @param camera            the camera
-     * @param cameraOrientation the camera orientation
-     */
-    private void onPreviewFrameUpdate(Camera camera, int cameraOrientation) {
-        Camera.Size s;
-
-        try {
-            s = camera.getParameters().getPreviewSize();
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## onPreviewFrameUpdate() failed " + e.getMessage());
-            return;
-        }
-
-        final int width;
-        final int height;
-        int rotation = (360 + cameraOrientation + getDeviceOrientation()) % 360;
-
-        if ((rotation == 90) || (rotation == 270)) {
-            width = s.height;
-            height = s.width;
-        } else {
-            width = s.width;
-            height = s.height;
-        }
-
-        if ((width != mLocalRenderWidth) || (height != mLocalRenderHeight)) {
-            mLocalRenderWidth = width;
-            mLocalRenderHeight = height;
-
-            mUIThreadHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    dispatchOnPreviewSizeChanged(width, height);
-                }
-            });
-        }
-    }
-
-    /**
-     * Define a listener to track the local frame update.
-     */
-    private void listenPreviewUpdate() {
-        try {
-            /*if (null != mCameraVideoCapturer) {
-                Field field = mCameraVideoCapturer.getClass().getDeclaredField("camera");
-                field.setAccessible(true);
-                Camera camera = (Camera) field.get(mCameraVideoCapturer);
-
-                if (null != camera) {
-                    try {
-                        Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
-                        Camera.getCameraInfo(mCameraInUse == CAMERA_TYPE_FRONT ? android.hardware.Camera.CameraInfo.CAMERA_FACING_FRONT : android.hardware.Camera.CameraInfo.CAMERA_FACING_BACK, info);
-
-                        final int cameraOrientation = info.orientation;
-
-                        camera.setPreviewCallbackWithBuffer(new Camera.PreviewCallback() {
-                            @Override
-                            public void onPreviewFrame(byte[] data, Camera camera) {
-                                onPreviewFrameUpdate(camera, cameraOrientation);
-                                try {
-                                    mCameraVideoCapturer.onPreviewFrame(data, camera);
-                                } catch (Exception e) {
-                                    Log.e(LOG_TAG, "## listenPreviewUpdate() : onPreviewFrame failed " + e.getMessage());
-                                }
-                            }
-                        });
-
-                        onPreviewFrameUpdate(camera, cameraOrientation);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "## listenPreviewUpdate() : fail to update the camera preview " + e.getMessage());
-                    }
-                } else {
-                    Log.e(LOG_TAG, "## listenPreviewUpdate() : did not find the camera");
-                }
-            }*/
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## listenPreviewUpdate() failed " + e.getMessage());
-        }
-    }
-
 }
