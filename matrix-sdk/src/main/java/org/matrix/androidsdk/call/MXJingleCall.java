@@ -559,8 +559,10 @@ public class MXJingleCall extends MXCall {
             mLocalMediaStream.addTrack(mLocalAudioTrack);
         }
 
-        mLargeLocalRTCView.setStream(mLocalMediaStream);
-        mLargeLocalRTCView.setVisibility(View.VISIBLE);
+        if (null != mLargeLocalRTCView) {
+            mLargeLocalRTCView.setStream(mLocalMediaStream);
+            mLargeLocalRTCView.setVisibility(View.VISIBLE);
+        }
 
         // build ICE servers list
         ArrayList<PeerConnection.IceServer> iceServers = new ArrayList<>();
