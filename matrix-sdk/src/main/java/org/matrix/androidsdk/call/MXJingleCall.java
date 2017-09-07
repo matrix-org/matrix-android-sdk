@@ -37,6 +37,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.oney.WebRTCModule.EglUtils;
 import com.oney.WebRTCModule.RTCVideoViewManager;
+import com.oney.WebRTCModule.SurfaceViewRenderer;
 import com.oney.WebRTCModule.WebRTCView;
 
 import org.matrix.androidsdk.MXSession;
@@ -79,9 +80,9 @@ public class MXJingleCall extends MXCall {
 
     private static final String MIN_VIDEO_WIDTH_CONSTRAINT = "minWidth";
 
-    private static final int DEFAULT_WIDTH  = 1280;
+    private static final int DEFAULT_WIDTH = 1280;
     private static final int DEFAULT_HEIGHT = 720;
-    private static final int DEFAULT_FPS    = 30;
+    private static final int DEFAULT_FPS = 30;
 
     private static final int CAMERA_TYPE_FRONT = 1;
     private static final int CAMERA_TYPE_REAR = 2;
@@ -128,6 +129,7 @@ public class MXJingleCall extends MXCall {
 
     private boolean mIsAnswered = false;
 
+    private VideoLayoutConfiguration mInitLocalVideoPosition;
 
 
     // Fix for devices running old Android versions not finding the libraries.
@@ -162,6 +164,7 @@ public class MXJingleCall extends MXCall {
 
     /**
      * Tells if the camera2 Api is supported
+     *
      * @param context the context
      * @return true if the Camera2 API is supported
      */
@@ -171,12 +174,13 @@ public class MXJingleCall extends MXCall {
 
     /**
      * Get a camera enumerator
+     *
      * @param context the context
      * @return the camera enumerator
      */
     private static CameraEnumerator getCameraEnumerator(Context context) {
         if (useCamera2(context)) {
-           return new Camera2Enumerator(context);
+            return new Camera2Enumerator(context);
         } else {
             return new Camera1Enumerator(false);
         }
@@ -758,8 +762,6 @@ public class MXJingleCall extends MXCall {
                                     mRemoteVideoTrack.setEnabled(true);
                                     mFullScreenRTCView.setStream(mediaStream);
                                     mFullScreenRTCView.setVisibility(View.VISIBLE);
-                                    //mLargeRemoteRTCView.setZOrder(0);
-                                    //mRemoteVideoTrack.addRenderer(mLargeRemoteRenderer);
                                 }
                             }
                         });
@@ -1066,17 +1068,16 @@ public class MXJingleCall extends MXCall {
         return mLocalAudioTrack;
     }
 
-    private void updateWebRtcView(WebRTCView webRTCView,  VideoLayoutConfiguration aLocalVideoPosition) {
+    private void updateWebRtcView(WebRTCView webRTCView, VideoLayoutConfiguration aLocalVideoPosition) {
         final DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
 
-        int screenWidth = displayMetrics.widthPixels;
-        int screenHeight = displayMetrics.heightPixels;
+        int screenWidth = (aLocalVideoPosition.mDisplayWidth > 0) ? aLocalVideoPosition.mDisplayWidth : displayMetrics.widthPixels;
+        int screenHeight = (aLocalVideoPosition.mDisplayHeight > 0) ? aLocalVideoPosition.mDisplayHeight : displayMetrics.heightPixels;
 
         int x = screenWidth * aLocalVideoPosition.mX / 100;
         int y = screenHeight * aLocalVideoPosition.mY / 100;
         int width = screenWidth * aLocalVideoPosition.mWidth / 100;
         int height = screenHeight * aLocalVideoPosition.mHeight / 100;
-
 
         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(width, height);
         params.leftMargin = x;
@@ -1084,22 +1085,12 @@ public class MXJingleCall extends MXCall {
         webRTCView.setLayoutParams(params);
     }
 
-    /*if (null != aLocalVideoPosition) {
-              mSmallLocalRendererCallbacks = VideoRendererGui.create(aLocalVideoPosition.mX, aLocalVideoPosition.mY, aLocalVideoPosition.mWidth, aLocalVideoPosition.mHeight, VideoRendererGui.ScalingType.SCALE_ASPECT_BALANCED, true);
-              Log.d(LOG_TAG, "## initCallUI(): " + aLocalVideoPosition);
-          } else {
-              // default layout
-              mSmallLocalRendererCallbacks = VideoRendererGui.create(5, 5, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_BALANCED, true);
-          }
-          }
-
-
-/**
-* Initialize the call UI
-*
-* @param callInviteParams    the invite params
-* @param aLocalVideoPosition position of the local video attendee
-*/
+    /**
+     * Initialize the call UI
+     *
+     * @param callInviteParams    the invite params
+     * @param aLocalVideoPosition position of the local video attendee
+     */
     private void initCallUI(final JsonObject callInviteParams, VideoLayoutConfiguration aLocalVideoPosition) {
         Log.d(LOG_TAG, "## initCallUI(): IN");
 
@@ -1148,29 +1139,12 @@ public class MXJingleCall extends MXCall {
             try {
                 Log.d(LOG_TAG, "## initCallUI() building UI");
 
-
-                /*public void setObjectFit(String objectFit) {
-                    RendererCommon.ScalingType scalingType
-                            = "cover".equals(objectFit)
-                            ? RendererCommon.ScalingType.SCALE_ASPECT_FILL
-                            : RendererCommon.ScalingType.SCALE_ASPECT_FIT;
-
-                    setScalingType(scalingType);
-                }*/
-
-
                 RelativeLayout subRelativeLayout = new RelativeLayout(mContext);
                 mCallView.addView(subRelativeLayout, new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
 
-
                 mFullScreenRTCView = new WebRTCView(mContext);
-                /*RelativeLayout.LayoutParams params1 = new RelativeLayout.LayoutParams(400, 400);
-                params1.leftMargin = 0;
-                params1.topMargin = 0;
-                mCallView.addView(mLargeRemoteRTCView, params1);*/
                 mFullScreenRTCView.setBackgroundColor(0xFFFF0000);
                 subRelativeLayout.addView(mFullScreenRTCView, new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
-                mFullScreenRTCView.setObjectFit("cover");
                 mFullScreenRTCView.setVisibility(View.GONE);
 
                 mPipRTCView = new WebRTCView(mContext);
@@ -1178,7 +1152,6 @@ public class MXJingleCall extends MXCall {
                 params2.leftMargin = 200;
                 params2.topMargin = 300;
                 subRelativeLayout.addView(mPipRTCView, params2);
-                mPipRTCView.setObjectFit("cover");
                 mPipRTCView.setBackgroundColor(0xFF0000FF);
                 mPipRTCView.setVisibility(View.GONE);
 
@@ -1188,20 +1161,6 @@ public class MXJingleCall extends MXCall {
                 } else {
                     updateWebRtcView(mPipRTCView, new VideoLayoutConfiguration(5, 5, 25, 25));
                 }
-
-
-                // create the video displaying the local user: horizontal center, just above the video buttons menu
-                /*if (null != aLocalVideoPosition) {
-                    mSmallLocalRendererCallbacks = VideoRendererGui.create(aLocalVideoPosition.mX, aLocalVideoPosition.mY, aLocalVideoPosition.mWidth, aLocalVideoPosition.mHeight, VideoRendererGui.ScalingType.SCALE_ASPECT_BALANCED, true);
-                    Log.d(LOG_TAG, "## initCallUI(): " + aLocalVideoPosition);
-                } else {
-                    // default layout
-                    mSmallLocalRendererCallbacks = VideoRendererGui.create(5, 5, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_BALANCED, true);
-                }
-                mSmallLocalRenderer = new VideoRenderer(mSmallLocalRendererCallbacks);*/
-
-
-
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## initCallUI(): Exception Msg =" + e.getMessage());
             }
