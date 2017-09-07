@@ -109,12 +109,10 @@ public class MXJingleCall extends MXCall {
     private String mCallState = CALL_STATE_CREATED;
 
     private boolean mUsingLargeLocalRenderer = true;
-    private WebRTCView mLargeRemoteRTCView = null;
-    private WebRTCView mSmallLocalRTCView = null;
+    private WebRTCView mFullScreenRTCView = null;
+    private WebRTCView mPipRTCView = null;
     private static int mLocalRenderWidth = -1;
     private static int mLocalRenderHeight = -1;
-
-    private WebRTCView mLargeLocalRTCView = null;
 
     private static boolean mIsInitialized = false;
     // null -> not initialized
@@ -420,14 +418,7 @@ public class MXJingleCall extends MXCall {
     @Override
     public void updateLocalVideoRendererPosition(VideoLayoutConfiguration aConfigurationToApply) {
         try {
-            updateWebRtcView(mSmallLocalRTCView, aConfigurationToApply);
-            // compute the new layout
-            /*if ((null != mSmallLocalRendererCallbacks) && (null != aConfigurationToApply)) {
-                //VideoRendererGui.update(mSmallLocalRendererCallbacks, aConfigurationToApply.mX, aConfigurationToApply.mY, aConfigurationToApply.mWidth, aConfigurationToApply.mHeight, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
-                Log.d(LOG_TAG, "## updateLocalVideoRendererPosition(): X=" + aConfigurationToApply.mX + " Y=" + aConfigurationToApply.mY + " width=" + aConfigurationToApply.mWidth + " height" + aConfigurationToApply.mHeight);
-            } else {
-                Log.w(LOG_TAG, "## updateLocalVideoRendererPosition(): Skipped due to invalid parameters");
-            }*/
+            updateWebRtcView(mPipRTCView, aConfigurationToApply);
         } catch (Exception e) {
             Log.e(LOG_TAG, "## updateLocalVideoRendererPosition(): Exception Msg=" + e.getMessage());
             return;
@@ -559,9 +550,9 @@ public class MXJingleCall extends MXCall {
             mLocalMediaStream.addTrack(mLocalAudioTrack);
         }
 
-        if (null != mLargeLocalRTCView) {
-            mLargeLocalRTCView.setStream(mLocalMediaStream);
-            mLargeLocalRTCView.setVisibility(View.VISIBLE);
+        if (null != mFullScreenRTCView) {
+            mFullScreenRTCView.setStream(mLocalMediaStream);
+            mFullScreenRTCView.setVisibility(View.VISIBLE);
         }
 
         // build ICE servers list
@@ -625,18 +616,16 @@ public class MXJingleCall extends MXCall {
                                 if (iceConnectionState == PeerConnection.IceConnectionState.CONNECTED) {
                                     if ((null != mLocalVideoTrack) && mUsingLargeLocalRenderer && isVideo()) {
                                         mLocalVideoTrack.setEnabled(false);
-                                        mLargeLocalRTCView.setStream(null);
-                                        mLargeLocalRTCView.setVisibility(View.GONE);
 
                                         // in conference call, there is no local preview,
                                         // the local attendee video is sent by the server among the others conference attendees.
                                         if (!isConference()) {
                                             // add local preview, only for 1:1 call
                                             //mLocalVideoTrack.addRenderer(mSmallLocalRenderer);
-                                            mSmallLocalRTCView.setStream(mLocalMediaStream);
-                                            mSmallLocalRTCView.setVisibility(View.VISIBLE);
+                                            mPipRTCView.setStream(mLocalMediaStream);
+                                            mPipRTCView.setVisibility(View.VISIBLE);
 
-                                            mSmallLocalRTCView.setZOrder(2);
+                                            mPipRTCView.setZOrder(1);
                                             //mLargeRemoteRTCView.setZOrder(2);
                                         }
 
@@ -767,9 +756,9 @@ public class MXJingleCall extends MXCall {
                                 if ((mediaStream.videoTracks.size() == 1) && !isCallEnded()) {
                                     mRemoteVideoTrack = mediaStream.videoTracks.get(0);
                                     mRemoteVideoTrack.setEnabled(true);
-                                    mLargeRemoteRTCView.setStream(mediaStream);
-                                    mLargeRemoteRTCView.setVisibility(View.VISIBLE);
-                                    mLargeRemoteRTCView.setZOrder(1);
+                                    mFullScreenRTCView.setStream(mediaStream);
+                                    mFullScreenRTCView.setVisibility(View.VISIBLE);
+                                    //mLargeRemoteRTCView.setZOrder(0);
                                     //mRemoteVideoTrack.addRenderer(mLargeRemoteRenderer);
                                 }
                             }
@@ -1174,33 +1163,30 @@ public class MXJingleCall extends MXCall {
                 mCallView.addView(subRelativeLayout, new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
 
 
-                mLargeLocalRTCView = new WebRTCView(mContext);
-                subRelativeLayout.addView(mLargeLocalRTCView, new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
-                mLargeLocalRTCView.setVisibility(View.GONE);
-                mLargeLocalRTCView.setObjectFit("cover");
-
-                mLargeRemoteRTCView = new WebRTCView(mContext);
+                mFullScreenRTCView = new WebRTCView(mContext);
                 /*RelativeLayout.LayoutParams params1 = new RelativeLayout.LayoutParams(400, 400);
                 params1.leftMargin = 0;
                 params1.topMargin = 0;
                 mCallView.addView(mLargeRemoteRTCView, params1);*/
-                subRelativeLayout.addView(mLargeRemoteRTCView, new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
-                mLargeRemoteRTCView.setObjectFit("cover");
-                mLargeRemoteRTCView.setVisibility(View.GONE);
+                mFullScreenRTCView.setBackgroundColor(0xFFFF0000);
+                subRelativeLayout.addView(mFullScreenRTCView, new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
+                mFullScreenRTCView.setObjectFit("cover");
+                mFullScreenRTCView.setVisibility(View.GONE);
 
-                mSmallLocalRTCView = new WebRTCView(mContext);
+                mPipRTCView = new WebRTCView(mContext);
                 RelativeLayout.LayoutParams params2 = new RelativeLayout.LayoutParams(200, 200);
                 params2.leftMargin = 200;
                 params2.topMargin = 300;
-                subRelativeLayout.addView(mSmallLocalRTCView, params2);
-                mSmallLocalRTCView.setObjectFit("cover");
-                mSmallLocalRTCView.setVisibility(View.GONE);
+                subRelativeLayout.addView(mPipRTCView, params2);
+                mPipRTCView.setObjectFit("cover");
+                mPipRTCView.setBackgroundColor(0xFF0000FF);
+                mPipRTCView.setVisibility(View.GONE);
 
                 if (null != aLocalVideoPosition) {
-                    updateWebRtcView(mSmallLocalRTCView, aLocalVideoPosition);
+                    updateWebRtcView(mPipRTCView, aLocalVideoPosition);
                     Log.d(LOG_TAG, "## initCallUI(): " + aLocalVideoPosition);
                 } else {
-                    updateWebRtcView(mSmallLocalRTCView, new VideoLayoutConfiguration(5, 5, 25, 25));
+                    updateWebRtcView(mPipRTCView, new VideoLayoutConfiguration(5, 5, 25, 25));
                 }
 
 
