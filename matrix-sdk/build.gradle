@@ -14,7 +14,7 @@ android {
 
 
     defaultConfig {
-        minSdkVersion 11
+        minSdkVersion 16
         targetSdkVersion 23
         // use version to define a version code.
         versionCode 802
@@ -58,7 +58,7 @@ android {
                     def outputFile = output.outputFile
                     if (outputFile != null && outputFile.name.endsWith('.aar')) {
                         def fileName = outputFile.name.replace(".aar", "-${version}.aar")
-                        output.outputFile = new File(outputFile.parent, fileName)
+                        output.outputFile = new File("/Users/yannick_lecollen/riot-android/vector/libs", "matrix-sdk.aar")
                     }
                 }
             }
@@ -100,9 +100,11 @@ dependencies {
     compile 'com.google.code.gson:gson:2.3'
     compile 'com.squareup.okhttp:okhttp-urlconnection:2.2.0'
     compile 'com.squareup.okhttp:okhttp:2.2.0'
-    compile 'io.pristine:libjingle:9690@aar'
 
     compile(name: 'olm-sdk', ext: 'aar')
+
+    // replace the compile 'io.pristine:libjingle:9690@aar'
+    compile(name: 'react-native-webrtc', ext: 'aar')
 
     // Robolectric
     testCompile 'com.android.support.test:runner:0.3'

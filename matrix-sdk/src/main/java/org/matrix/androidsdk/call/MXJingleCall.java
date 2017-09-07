@@ -18,6 +18,7 @@
 package org.matrix.androidsdk.call;
 
 import android.content.Context;
+import android.graphics.Point;
 import android.hardware.Camera;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
@@ -25,35 +26,48 @@ import android.text.TextUtils;
 
 import org.matrix.androidsdk.util.Log;
 
+import android.util.DisplayMetrics;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.RelativeLayout;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.oney.WebRTCModule.EglUtils;
+import com.oney.WebRTCModule.RTCVideoViewManager;
+import com.oney.WebRTCModule.WebRTCView;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.rest.model.Event;
 import org.webrtc.AudioSource;
 import org.webrtc.AudioTrack;
+import org.webrtc.Camera1Enumerator;
+import org.webrtc.Camera2Enumerator;
+import org.webrtc.CameraEnumerationAndroid;
+import org.webrtc.CameraEnumerator;
+import org.webrtc.CameraVideoCapturer;
 import org.webrtc.DataChannel;
+import org.webrtc.EglBase;
 import org.webrtc.IceCandidate;
 import org.webrtc.MediaConstraints;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
 import org.webrtc.PeerConnectionFactory;
+import org.webrtc.RendererCommon;
+import org.webrtc.RtpReceiver;
 import org.webrtc.SdpObserver;
 import org.webrtc.SessionDescription;
 import org.webrtc.VideoCapturer;
 import org.webrtc.VideoCapturerAndroid;
 import org.webrtc.VideoRenderer;
-import org.webrtc.VideoRendererGui;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -66,7 +80,10 @@ public class MXJingleCall extends MXCall {
 
     private static final String MIN_VIDEO_WIDTH_CONSTRAINT = "minWidth";
 
-    private static final int MIN_VIDEO_WIDTH = 640;
+    private static final int DEFAULT_WIDTH  = 1280;
+    private static final int DEFAULT_HEIGHT = 720;
+    private static final int DEFAULT_FPS    = 30;
+
     private static final int CAMERA_TYPE_FRONT = 1;
     private static final int CAMERA_TYPE_REAR = 2;
     private static final int CAMERA_TYPE_UNDEFINED = -1;
@@ -76,7 +93,7 @@ public class MXJingleCall extends MXCall {
     static private String mBackCameraName = null;
     static private VideoCapturer mVideoCapturer = null;
 
-    private GLSurfaceView mCallView = null;
+    private RelativeLayout mCallView = null;
 
     private boolean mIsCameraSwitched;
     private boolean mIsVideoSourceStopped = false;
@@ -93,14 +110,12 @@ public class MXJingleCall extends MXCall {
     private String mCallState = CALL_STATE_CREATED;
 
     private boolean mUsingLargeLocalRenderer = true;
-    private VideoRenderer mLargeRemoteRenderer = null;
-    private VideoRenderer mSmallLocalRenderer = null;
+    private WebRTCView mLargeRemoteRTCView = null;
+    private WebRTCView mSmallLocalRTCView = null;
     private static int mLocalRenderWidth = -1;
     private static int mLocalRenderHeight = -1;
 
-    private VideoRenderer.Callbacks mLargeLocalRendererCallbacks = null;
-    private VideoRenderer.Callbacks mSmallLocalRendererCallbacks;
-    private VideoRenderer mLargeLocalRenderer = null;
+    private WebRTCView mLargeLocalRTCView = null;
 
     private static boolean mIsInitialized = false;
     // null -> not initialized
@@ -115,6 +130,20 @@ public class MXJingleCall extends MXCall {
     private int mCameraInUse = CAMERA_TYPE_UNDEFINED;
 
     private boolean mIsAnswered = false;
+
+
+
+    // Fix for devices running old Android versions not finding the libraries.
+    // https://bugs.chromium.org/p/webrtc/issues/detail?id=6751
+    /*static {
+        try {
+            System.loadLibrary("c++_shared");
+            System.loadLibrary("boringssl.cr");
+            System.loadLibrary("protobuf_lite.cr");
+        } catch (UnsatisfiedLinkError e) {
+            Log.e(LOG_TAG, "Failed to load native dependencies: ", e);
+        }
+    }*/
 
     /**
      * @return true if this stack can perform calls.
@@ -132,6 +161,28 @@ public class MXJingleCall extends MXCall {
         }
 
         return mIsSupported;
+    }
+
+    /**
+     * Tells if the camera2 Api is supported
+     * @param context the context
+     * @return true if the Camera2 API is supported
+     */
+    private static boolean useCamera2(Context context) {
+        return Camera2Enumerator.isSupported(context);
+    }
+
+    /**
+     * Get a camera enumerator
+     * @param context the context
+     * @return the camera enumerator
+     */
+    private static CameraEnumerator getCameraEnumerator(Context context) {
+        if (useCamera2(context)) {
+           return new Camera2Enumerator(context);
+        } else {
+            return new Camera1Enumerator(false);
+        }
     }
 
     /**
@@ -172,10 +223,11 @@ public class MXJingleCall extends MXCall {
                         context,
                         true, // enable audio initializing
                         true, // enable video initializing
-                        true, // enable hardware acceleration
-                        VideoRendererGui.getEGLContext());
+                        true  // enable hardware acceleration
+                );
 
                 PeerConnectionFactory.initializeFieldTrials(null);
+
                 mIsSupported = true;
                 Log.d(LOG_TAG, "## initializeAndroidGlobals(): mIsInitialized=" + mIsInitialized);
             } catch (UnsatisfiedLinkError e) {
@@ -202,7 +254,10 @@ public class MXJingleCall extends MXCall {
             mUIThreadHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    mCallView = new GLSurfaceView(mContext); // set the GLSurfaceView where it should render to
+                    mCallView = new RelativeLayout(mContext);
+                    RelativeLayout.LayoutParams labelLayoutParams = new RelativeLayout.LayoutParams(
+                            RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
+                    mCallView.setLayoutParams(labelLayoutParams);
                     mCallView.setVisibility(View.GONE);
 
                     dispatchOnViewLoading(mCallView);
@@ -366,13 +421,14 @@ public class MXJingleCall extends MXCall {
     @Override
     public void updateLocalVideoRendererPosition(VideoLayoutConfiguration aConfigurationToApply) {
         try {
+            updateWebRtcView(mSmallLocalRTCView, aConfigurationToApply);
             // compute the new layout
-            if ((null != mSmallLocalRendererCallbacks) && (null != aConfigurationToApply)) {
-                VideoRendererGui.update(mSmallLocalRendererCallbacks, aConfigurationToApply.mX, aConfigurationToApply.mY, aConfigurationToApply.mWidth, aConfigurationToApply.mHeight, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
+            /*if ((null != mSmallLocalRendererCallbacks) && (null != aConfigurationToApply)) {
+                //VideoRendererGui.update(mSmallLocalRendererCallbacks, aConfigurationToApply.mX, aConfigurationToApply.mY, aConfigurationToApply.mWidth, aConfigurationToApply.mHeight, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, true);
                 Log.d(LOG_TAG, "## updateLocalVideoRendererPosition(): X=" + aConfigurationToApply.mX + " Y=" + aConfigurationToApply.mY + " width=" + aConfigurationToApply.mWidth + " height" + aConfigurationToApply.mHeight);
             } else {
                 Log.w(LOG_TAG, "## updateLocalVideoRendererPosition(): Skipped due to invalid parameters");
-            }
+            }*/
         } catch (Exception e) {
             Log.e(LOG_TAG, "## updateLocalVideoRendererPosition(): Exception Msg=" + e.getMessage());
             return;
@@ -387,7 +443,8 @@ public class MXJingleCall extends MXCall {
 
     @Override
     public boolean isSwitchCameraSupported() {
-        return (VideoCapturerAndroid.getDeviceCount() > 1);
+        String[] deviceNames = getCameraEnumerator(mContext).getDeviceNames();
+        return (null != deviceNames) && (0 != deviceNames.length);
     }
 
     @Override
@@ -396,7 +453,8 @@ public class MXJingleCall extends MXCall {
             VideoCapturerAndroid videoCapturerAndroid = (VideoCapturerAndroid) mVideoCapturer;
 
             try {
-                if ((null != videoCapturerAndroid) && videoCapturerAndroid.switchCamera(null)) {
+                if (null != videoCapturerAndroid) {
+                    videoCapturerAndroid.switchCamera(null);
                     // toggle the video capturer instance
                     if (CAMERA_TYPE_FRONT == mCameraInUse) {
                         mCameraInUse = CAMERA_TYPE_REAR;
@@ -509,6 +567,9 @@ public class MXJingleCall extends MXCall {
             mLocalMediaStream.addTrack(mLocalAudioTrack);
         }
 
+        mLargeLocalRTCView.setStream(mLocalMediaStream);
+        mLargeLocalRTCView.setVisibility(View.VISIBLE);
+
         // build ICE servers list
         ArrayList<PeerConnection.IceServer> iceServers = new ArrayList<>();
 
@@ -570,14 +631,19 @@ public class MXJingleCall extends MXCall {
                                 if (iceConnectionState == PeerConnection.IceConnectionState.CONNECTED) {
                                     if ((null != mLocalVideoTrack) && mUsingLargeLocalRenderer && isVideo()) {
                                         mLocalVideoTrack.setEnabled(false);
-                                        VideoRendererGui.remove(mLargeLocalRendererCallbacks);
-                                        mLocalVideoTrack.removeRenderer(mLargeLocalRenderer);
+                                        mLargeLocalRTCView.setStream(null);
+                                        mLargeLocalRTCView.setVisibility(View.GONE);
 
                                         // in conference call, there is no local preview,
                                         // the local attendee video is sent by the server among the others conference attendees.
                                         if (!isConference()) {
                                             // add local preview, only for 1:1 call
-                                            mLocalVideoTrack.addRenderer(mSmallLocalRenderer);
+                                            //mLocalVideoTrack.addRenderer(mSmallLocalRenderer);
+                                            mSmallLocalRTCView.setStream(mLocalMediaStream);
+                                            mSmallLocalRTCView.setVisibility(View.VISIBLE);
+
+                                            mSmallLocalRTCView.setZOrder(2);
+                                            //mLargeRemoteRTCView.setZOrder(2);
                                         }
 
                                         listenPreviewUpdate();
@@ -620,8 +686,18 @@ public class MXJingleCall extends MXCall {
                     }
 
                     @Override
+                    public void onIceCandidatesRemoved(IceCandidate[] var1) {
+                        Log.d(LOG_TAG, "## mPeerConnection creation: onIceCandidatesRemoved " + var1);
+                    }
+
+                    @Override
                     public void onIceGatheringChange(PeerConnection.IceGatheringState iceGatheringState) {
                         Log.d(LOG_TAG, "## mPeerConnection creation: onIceGatheringChange " + iceGatheringState);
+                    }
+
+                    @Override
+                    public void onAddTrack(RtpReceiver var1, MediaStream[] var2) {
+                        Log.d(LOG_TAG, "## mPeerConnection creation: onAddTrack " + var1 + " -- " + var2);
                     }
 
                     @Override
@@ -697,7 +773,10 @@ public class MXJingleCall extends MXCall {
                                 if ((mediaStream.videoTracks.size() == 1) && !isCallEnded()) {
                                     mRemoteVideoTrack = mediaStream.videoTracks.get(0);
                                     mRemoteVideoTrack.setEnabled(true);
-                                    mRemoteVideoTrack.addRenderer(mLargeRemoteRenderer);
+                                    mLargeRemoteRTCView.setStream(mediaStream);
+                                    mLargeRemoteRTCView.setVisibility(View.VISIBLE);
+                                    mLargeRemoteRTCView.setZOrder(1);
+                                    //mRemoteVideoTrack.addRenderer(mLargeRemoteRenderer);
                                 }
                             }
                         });
@@ -812,19 +891,98 @@ public class MXJingleCall extends MXCall {
      * @return true if the device has a camera device
      */
     private boolean hasCameraDevice() {
-        int devicesNumber = 0;
-        try {
-            devicesNumber = VideoCapturerAndroid.getDeviceCount();
-            mFrontCameraName = VideoCapturerAndroid.getNameOfFrontFacingDevice();
-            mBackCameraName = VideoCapturerAndroid.getNameOfBackFacingDevice();
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "hasCameraDevice " + e.getLocalizedMessage());
+        CameraEnumerator enumerator = getCameraEnumerator(mContext);
+        String[] deviceNames = enumerator.getDeviceNames();
+        int cameraCount = 0;
+
+        mBackCameraName = mFrontCameraName = null;
+
+
+        if (null != deviceNames) {
+
+            for (String deviceName : deviceNames) {
+                if (enumerator.isFrontFacing(deviceName)) {
+                    mFrontCameraName = deviceName;
+                } else if (enumerator.isBackFacing(deviceName)) {
+                    mBackCameraName = deviceName;
+                }
+            }
+
+            cameraCount = deviceNames.length;
         }
 
-        Log.d(LOG_TAG, "hasCameraDevice():  camera number= " + devicesNumber);
+
+        Log.d(LOG_TAG, "hasCameraDevice():  camera number= " + cameraCount);
         Log.d(LOG_TAG, "hasCameraDevice():  frontCameraName=" + mFrontCameraName + " backCameraName=" + mBackCameraName);
 
         return (null != mFrontCameraName) || (null != mBackCameraName);
+    }
+
+    class JingleCameraEventsHandler implements CameraVideoCapturer.CameraEventsHandler {
+        private final static String TAG = "CameraEventsHandler";
+
+        // Camera error handler - invoked when camera can not be opened
+        // or any camera exception happens on camera thread.
+        @Override
+        public void onCameraError(String errorDescription) {
+            Log.d(TAG, String.format("CameraEventsHandler.onCameraError: errorDescription=%s", errorDescription));
+        }
+
+        // Called when camera is disconnected.
+        @Override
+        public void onCameraDisconnected() {
+            Log.d(TAG, "CameraEventsHandler.onCameraDisconnected");
+        }
+
+        // Invoked when camera stops receiving frames
+        @Override
+        public void onCameraFreezed(String errorDescription) {
+            Log.d(TAG, String.format("CameraEventsHandler.onCameraFreezed: errorDescription=%s", errorDescription));
+        }
+
+        // Callback invoked when camera is opening.
+        @Override
+        public void onCameraOpening(String cameraName) {
+            Log.d(TAG, String.format("CameraEventsHandler.onCameraOpening: cameraName=%s", cameraName));
+        }
+
+        // Callback invoked when first camera frame is available after camera is opened.
+        @Override
+        public void onFirstFrameAvailable() {
+            Log.d(TAG, "CameraEventsHandler.onFirstFrameAvailable");
+        }
+
+        // Callback invoked when camera closed.
+        @Override
+        public void onCameraClosed() {
+            Log.d(TAG, "CameraEventsHandler.onFirstFrameAvailable");
+        }
+    }
+
+    private VideoCapturer createVideoCapturer(String cameraName) {
+        VideoCapturer videoCapturer = null;
+
+        CameraEnumerator camerasEnumerator = getCameraEnumerator(mContext);
+        final String[] deviceNames = camerasEnumerator.getDeviceNames();
+
+
+        if ((null != deviceNames) && (deviceNames.length > 0)) {
+            for (String name : deviceNames) {
+                if (name.equals(cameraName)) {
+                    videoCapturer = camerasEnumerator.createCapturer(name, new JingleCameraEventsHandler());
+
+                    if (null != videoCapturer) {
+                        break;
+                    }
+                }
+            }
+
+            if (null == videoCapturer) {
+                videoCapturer = camerasEnumerator.createCapturer(deviceNames[0], new JingleCameraEventsHandler());
+            }
+        }
+
+        return videoCapturer;
     }
 
     /**
@@ -840,7 +998,8 @@ public class MXJingleCall extends MXCall {
 
             try {
                 if (null != mFrontCameraName) {
-                    mVideoCapturer = VideoCapturerAndroid.create(mFrontCameraName);
+                    // TODO add listeners
+                    mVideoCapturer = createVideoCapturer(mFrontCameraName);
 
                     if (null == mVideoCapturer) {
                         Log.e(LOG_TAG, "Cannot create Video Capturer from front camera");
@@ -850,7 +1009,8 @@ public class MXJingleCall extends MXCall {
                 }
 
                 if ((null == mVideoCapturer) && (null != mBackCameraName)) {
-                    mVideoCapturer = VideoCapturerAndroid.create(mBackCameraName);
+                    // TODO add listeners
+                    mVideoCapturer = createVideoCapturer(mBackCameraName);
 
                     if (null == mVideoCapturer) {
                         Log.e(LOG_TAG, "Cannot create Video Capturer from back camera");
@@ -868,15 +1028,11 @@ public class MXJingleCall extends MXCall {
                 Log.d(LOG_TAG, "createVideoTrack find a video capturer");
 
                 try {
-                    MediaConstraints videoConstraints = new MediaConstraints();
+                    mVideoSource = mPeerConnectionFactory.createVideoSource(mVideoCapturer);
+                    mVideoCapturer.startCapture(DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_FPS);
 
-                    videoConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
-                            MIN_VIDEO_WIDTH_CONSTRAINT, Integer.toString(MIN_VIDEO_WIDTH)));
-
-                    mVideoSource = mPeerConnectionFactory.createVideoSource(mVideoCapturer, videoConstraints);
                     mLocalVideoTrack = mPeerConnectionFactory.createVideoTrack(VIDEO_TRACK_ID, mVideoSource);
                     mLocalVideoTrack.setEnabled(true);
-                    mLocalVideoTrack.addRenderer(mLargeLocalRenderer);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "createVideoSource fails with exception " + e.getLocalizedMessage());
 
@@ -927,12 +1083,40 @@ public class MXJingleCall extends MXCall {
         return mLocalAudioTrack;
     }
 
-    /**
-     * Initialize the call UI
-     *
-     * @param callInviteParams    the invite params
-     * @param aLocalVideoPosition position of the local video attendee
-     */
+    private void updateWebRtcView(WebRTCView webRTCView,  VideoLayoutConfiguration aLocalVideoPosition) {
+        final DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
+
+        int screenWidth = displayMetrics.widthPixels;
+        int screenHeight = displayMetrics.heightPixels;
+
+        int x = screenWidth * aLocalVideoPosition.mX / 100;
+        int y = screenHeight * aLocalVideoPosition.mY / 100;
+        int width = screenWidth * aLocalVideoPosition.mWidth / 100;
+        int height = screenHeight * aLocalVideoPosition.mHeight / 100;
+
+
+        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(width, height);
+        params.leftMargin = x;
+        params.topMargin = y;
+        webRTCView.setLayoutParams(params);
+    }
+
+    /*if (null != aLocalVideoPosition) {
+              mSmallLocalRendererCallbacks = VideoRendererGui.create(aLocalVideoPosition.mX, aLocalVideoPosition.mY, aLocalVideoPosition.mWidth, aLocalVideoPosition.mHeight, VideoRendererGui.ScalingType.SCALE_ASPECT_BALANCED, true);
+              Log.d(LOG_TAG, "## initCallUI(): " + aLocalVideoPosition);
+          } else {
+              // default layout
+              mSmallLocalRendererCallbacks = VideoRendererGui.create(5, 5, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_BALANCED, true);
+          }
+          }
+
+
+/**
+* Initialize the call UI
+*
+* @param callInviteParams    the invite params
+* @param aLocalVideoPosition position of the local video attendee
+*/
     private void initCallUI(final JsonObject callInviteParams, VideoLayoutConfiguration aLocalVideoPosition) {
         Log.d(LOG_TAG, "## initCallUI(): IN");
 
@@ -943,32 +1127,34 @@ public class MXJingleCall extends MXCall {
 
         if (isVideo()) {
             Log.d(LOG_TAG, "## initCallUI(): building UI video call");
-
             try {
-                // pass a runnable to be run once the surface view is ready
-                VideoRendererGui.setView(mCallView, new Runnable() {
+
+                mUIThreadHandler.post(new Runnable() {
                     @Override
                     public void run() {
-                        mUIThreadHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (null == mPeerConnectionFactory) {
-                                    Log.d(LOG_TAG, "## initCallUI(): video call and no mPeerConnectionFactory");
+                        if (null == mPeerConnectionFactory) {
+                            Log.d(LOG_TAG, "## initCallUI(): video call and no mPeerConnectionFactory");
 
-                                    mPeerConnectionFactory = new PeerConnectionFactory();
-                                    createVideoTrack();
-                                    createAudioTrack();
-                                    createLocalStream();
+                            mPeerConnectionFactory = new PeerConnectionFactory(null);
 
-                                    if (null != callInviteParams) {
-                                        dispatchOnStateDidChange(CALL_STATE_RINGING);
-                                        setRemoteDescription(callInviteParams);
-                                    }
-                                }
+                            // Initialize EGL contexts required for HW acceleration.
+                            EglBase.Context eglContext = EglUtils.getRootEglBaseContext();
+                            if (eglContext != null) {
+                                mPeerConnectionFactory.setVideoHwAccelerationOptions(eglContext, eglContext);
                             }
-                        });
+
+                            createVideoTrack();
+                            createAudioTrack();
+                            createLocalStream();
+
+                            if (null != callInviteParams) {
+                                dispatchOnStateDidChange(CALL_STATE_RINGING);
+                                setRemoteDescription(callInviteParams);
+                            }
+                        }
                     }
                 });
+
             } catch (Exception e) {
                 // GA issue
                 // it seems that setView triggers some exception like "setRenderer has already been called"
@@ -978,25 +1164,58 @@ public class MXJingleCall extends MXCall {
             // create the renderers after the VideoRendererGui.setView
             try {
                 Log.d(LOG_TAG, "## initCallUI() building UI");
-                //  create the video displaying the remote view sent by the server
-                if (isConference()) {
-                    mLargeRemoteRenderer = VideoRendererGui.createGui(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FIT, false);
+
+
+                /*public void setObjectFit(String objectFit) {
+                    RendererCommon.ScalingType scalingType
+                            = "cover".equals(objectFit)
+                            ? RendererCommon.ScalingType.SCALE_ASPECT_FILL
+                            : RendererCommon.ScalingType.SCALE_ASPECT_FIT;
+
+                    setScalingType(scalingType);
+                }*/
+
+                mLargeLocalRTCView = new WebRTCView(mContext);
+                mCallView.addView(mLargeLocalRTCView, new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
+                mLargeLocalRTCView.setVisibility(View.GONE);
+                mLargeLocalRTCView.setObjectFit("cover");
+
+                mLargeRemoteRTCView = new WebRTCView(mContext);
+                /*RelativeLayout.LayoutParams params1 = new RelativeLayout.LayoutParams(400, 400);
+                params1.leftMargin = 0;
+                params1.topMargin = 0;
+                mCallView.addView(mLargeRemoteRTCView, params1);*/
+                mCallView.addView(mLargeRemoteRTCView, new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
+                mLargeRemoteRTCView.setObjectFit("cover");
+                mLargeRemoteRTCView.setVisibility(View.GONE);
+
+                mSmallLocalRTCView = new WebRTCView(mContext);
+                RelativeLayout.LayoutParams params2 = new RelativeLayout.LayoutParams(200, 200);
+                params2.leftMargin = 200;
+                params2.topMargin = 300;
+                mCallView.addView(mSmallLocalRTCView, params2);
+                mSmallLocalRTCView.setObjectFit("cover");
+                mSmallLocalRTCView.setVisibility(View.GONE);
+
+                if (null != aLocalVideoPosition) {
+                    updateWebRtcView(mSmallLocalRTCView, aLocalVideoPosition);
+                    Log.d(LOG_TAG, "## initCallUI(): " + aLocalVideoPosition);
                 } else {
-                    mLargeRemoteRenderer = VideoRendererGui.createGui(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FILL, false);
+                    updateWebRtcView(mSmallLocalRTCView, new VideoLayoutConfiguration(5, 5, 25, 25));
                 }
 
-                mLargeLocalRendererCallbacks = VideoRendererGui.create(0, 0, 100, 100, VideoRendererGui.ScalingType.SCALE_ASPECT_FILL, true);
-                mLargeLocalRenderer = new VideoRenderer(mLargeLocalRendererCallbacks);
 
                 // create the video displaying the local user: horizontal center, just above the video buttons menu
-                if (null != aLocalVideoPosition) {
+                /*if (null != aLocalVideoPosition) {
                     mSmallLocalRendererCallbacks = VideoRendererGui.create(aLocalVideoPosition.mX, aLocalVideoPosition.mY, aLocalVideoPosition.mWidth, aLocalVideoPosition.mHeight, VideoRendererGui.ScalingType.SCALE_ASPECT_BALANCED, true);
                     Log.d(LOG_TAG, "## initCallUI(): " + aLocalVideoPosition);
                 } else {
                     // default layout
                     mSmallLocalRendererCallbacks = VideoRendererGui.create(5, 5, 25, 25, VideoRendererGui.ScalingType.SCALE_ASPECT_BALANCED, true);
                 }
-                mSmallLocalRenderer = new VideoRenderer(mSmallLocalRendererCallbacks);
+                mSmallLocalRenderer = new VideoRenderer(mSmallLocalRendererCallbacks);*/
+
+
 
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## initCallUI(): Exception Msg =" + e.getMessage());
@@ -1043,11 +1262,11 @@ public class MXJingleCall extends MXCall {
                 Log.d(LOG_TAG, "onPause with active call");
 
                 if (null != mCallView) {
-                    mCallView.onPause();
+                    //mCallView.onPause();
                 }
 
                 if (mVideoSource != null && !mIsVideoSourceStopped) {
-                    mVideoSource.stop();
+                    //mVideoSource.stop();
                     mIsVideoSourceStopped = true;
                 }
             }
@@ -1072,11 +1291,11 @@ public class MXJingleCall extends MXCall {
                 Log.d(LOG_TAG, "onResume with active call");
 
                 if (null != mCallView) {
-                    mCallView.onResume();
+                    //mCallView.onResume();
                 }
 
                 if (mVideoSource != null && mIsVideoSourceStopped) {
-                    mVideoSource.restart();
+                    //mVideoSource.restart();
                     mIsVideoSourceStopped = false;
                 }
 
