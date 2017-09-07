@@ -81,6 +81,7 @@ public class MXWebRtcCall extends MXCall {
     private RelativeLayout mCallView = null;
 
     private boolean mIsCameraSwitched;
+    private boolean mIsCameraUnplugged = false;
     private VideoSource mVideoSource = null;
     private VideoTrack mLocalVideoTrack = null;
     private AudioSource mAudioSource = null;
@@ -1070,6 +1071,53 @@ public class MXWebRtcCall extends MXCall {
                     }
                 }
             });
+        }
+    }
+
+    /**
+     * The activity is paused.
+     */
+    @Override
+    public void onPause() {
+        super.onPause();
+
+        Log.d(LOG_TAG, "onPause");
+
+        try {
+            if (!isCallEnded()) {
+                Log.d(LOG_TAG, "onPause with active call");
+
+                // unplugged the camera to avoid loosing the video when the application is suspended
+                if (!isVideoRecordingMuted()) {
+                    muteVideoRecording(true);
+                    mIsCameraUnplugged = true;
+                }
+            }
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "onPause failed " + e.getMessage());
+        }
+    }
+
+    /**
+     * The activity is resumed.
+     */
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        Log.d(LOG_TAG, "onResume");
+
+        try {
+            if (!isCallEnded()) {
+                Log.d(LOG_TAG, "onResume with active call");
+
+                if (mIsCameraUnplugged) {
+                    muteVideoRecording(false);
+                    mIsCameraUnplugged = false;
+                }
+            }
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "onResume failed " + e.getLocalizedMessage());
         }
     }
 
