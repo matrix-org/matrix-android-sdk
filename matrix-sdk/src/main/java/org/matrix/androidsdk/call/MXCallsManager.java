@@ -88,7 +88,7 @@ public class MXCallsManager {
      */
     public enum CallClass {
         CHROME_CLASS,
-        JINGLE_CLASS,
+        WEBRTC_CLASS,
         DEFAULT_CLASS
     }
 
@@ -100,7 +100,7 @@ public class MXCallsManager {
     private Timer mTurnServerTimer = null;
     private boolean mSuspendTurnServerRefresh = false;
 
-    private CallClass mPreferredCallClass = CallClass.JINGLE_CLASS;
+    private CallClass mPreferredCallClass = CallClass.WEBRTC_CLASS;
 
     // active calls
     private final HashMap<String, IMXCall> mCallsByCallId = new HashMap<>();
@@ -153,7 +153,7 @@ public class MXCallsManager {
      * @return true if the call feature is supported
      */
     public boolean isSupported() {
-        return MXChromeCall.isSupported() || MXJingleCall.isSupported(mContext);
+        return MXChromeCall.isSupported() || MXWebRtcCall.isSupported(mContext);
     }
 
     /**
@@ -166,8 +166,8 @@ public class MXCallsManager {
             list.add(CallClass.CHROME_CLASS);
         }
 
-        if (MXJingleCall.isSupported(mContext)) {
-            list.add(CallClass.JINGLE_CLASS);
+        if (MXWebRtcCall.isSupported(mContext)) {
+            list.add(CallClass.WEBRTC_CLASS);
         }
 
         Log.d(LOG_TAG, "supportedClass " + list);
@@ -187,8 +187,8 @@ public class MXCallsManager {
             isUpdatable = MXChromeCall.isSupported();
         }
 
-        if (callClass == CallClass.JINGLE_CLASS) {
-            isUpdatable = MXJingleCall.isSupported(mContext);
+        if (callClass == CallClass.WEBRTC_CLASS) {
+            isUpdatable = MXWebRtcCall.isSupported(mContext);
         }
 
         if (isUpdatable) {
@@ -214,7 +214,7 @@ public class MXCallsManager {
         // Jingle
         if (null == call) {
             try {
-                call = new MXJingleCall(mSession, mContext, getTurnServer());
+                call = new MXWebRtcCall(mSession, mContext, getTurnServer());
             } catch (Exception e) {
                 Log.e(LOG_TAG, "createCall " + e.getLocalizedMessage());
             }
