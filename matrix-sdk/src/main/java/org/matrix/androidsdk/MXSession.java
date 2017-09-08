@@ -830,50 +830,56 @@ public class MXSession {
     public void startEventStream(final EventsThreadListener anEventsListener, final NetworkConnectivityReceiver networkConnectivityReceiver, final String initialToken) {
         checkIfAlive();
 
-        if (mEventsThread != null) {
-            if (!mEventsThread.isAlive()) {
-                mEventsThread = null;
-                Log.e(LOG_TAG, "startEventStream() : create a new EventsThread");
-            } else {
-                // https://github.com/vector-im/riot-android/issues/1331
-                mEventsThread.cancelKill();
-                Log.e(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
+        // reported by a rageshake issue
+        // startEventStream might be called several times
+        // when the service is killed and automatically restarted.
+        // It might be restarted by itself and by android at the same time.
+        synchronized (LOG_TAG) {
+            if (mEventsThread != null) {
+                if (!mEventsThread.isAlive()) {
+                    mEventsThread = null;
+                    Log.e(LOG_TAG, "startEventStream() : create a new EventsThread");
+                } else {
+                    // https://github.com/vector-im/riot-android/issues/1331
+                    mEventsThread.cancelKill();
+                    Log.e(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
+                    return;
+                }
+            }
+
+            if (mDataHandler == null) {
+                Log.e(LOG_TAG, "Error starting the event stream: No data handler is defined");
                 return;
             }
-        }
 
-        if (mDataHandler == null) {
-            Log.e(LOG_TAG, "Error starting the event stream: No data handler is defined");
-            return;
-        }
+            Log.d(LOG_TAG, "startEventStream : create the event stream");
 
-        Log.d(LOG_TAG, "startEventStream : create the event stream");
+            final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler) : anEventsListener;
 
-        final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler) : anEventsListener;
+            mEventsThread = new EventsThread(mAppContent, mEventsRestClient, fEventsListener, initialToken);
+            mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
+            mEventsThread.setIsOnline(mIsOnline);
 
-        mEventsThread = new EventsThread(mAppContent, mEventsRestClient, fEventsListener, initialToken);
-        mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
-        mEventsThread.setIsOnline(mIsOnline);
-
-        if (mFailureCallback != null) {
-            mEventsThread.setFailureCallback(mFailureCallback);
-        }
-
-        mEventsThread.setUseDataSaveMode(mUseDataSaveMode);
-
-        if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
-            // GA issue
-            try {
-                mEventsThread.start();
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## startEventStream() :  mEventsThread.start failed " + e.getMessage());
+            if (mFailureCallback != null) {
+                mEventsThread.setFailureCallback(mFailureCallback);
             }
 
-            if (mIsBgCatchupPending) {
-                Log.d(LOG_TAG, "startEventStream : start a catchup");
-                mIsBgCatchupPending = false;
-                // catchup retrieve any available messages before stop the sync
-                mEventsThread.catchup();
+            mEventsThread.setUseDataSaveMode(mUseDataSaveMode);
+
+            if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
+                // GA issue
+                try {
+                    mEventsThread.start();
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## startEventStream() :  mEventsThread.start failed " + e.getMessage());
+                }
+
+                if (mIsBgCatchupPending) {
+                    Log.d(LOG_TAG, "startEventStream : start a catchup");
+                    mIsBgCatchupPending = false;
+                    // catchup retrieve any available messages before stop the sync
+                    mEventsThread.catchup();
+                }
             }
         }
     }
