@@ -44,6 +44,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The state of a room.
@@ -94,7 +95,7 @@ public class RoomState implements Externalizable {
     private List<String> mMergedAliasesList;
 
     //
-    private Map<String, Event> mStateEvents = new HashMap<>();
+    private Map<String, List<Event>> mStateEvents = new HashMap<>();
 
     // Informs which alias is the canonical one.
     public String alias;
@@ -248,18 +249,38 @@ public class RoomState implements Externalizable {
      * It includes the room member creation events (they are not loaded in memory by default).
      *
      * @param store the store in which the state events must be retrieved
+     * @param types the allowed event types.
      * @param callback the asynchronous callback.
      */
-    public void getStateEvents(IMXStore store, final SimpleApiCallback<List<Event>> callback) {
+    public void getStateEvents(IMXStore store, final Set<String> types, final SimpleApiCallback<List<Event>> callback) {
         if (null != store) {
-            final List<Event> stateEvents = new ArrayList<>(mStateEvents.values());
+            final List<Event> stateEvents = new ArrayList<>();
+
+            Collection<List<Event>> currentStateEvents = mStateEvents.values();
+
+            for(List<Event> eventsList : currentStateEvents) {
+                stateEvents.addAll(eventsList);
+            }
 
             // retrieve the roomMember creation events
             store.getRoomStateEvents(roomId, new SimpleApiCallback<List<Event>>() {
                 @Override
                 public void onSuccess(List<Event> events) {
                     stateEvents.addAll(events);
-                    callback.onSuccess(stateEvents);
+
+                    final List<Event> filteredStateEvents = new ArrayList<>();
+
+                    if ((null != types) && !types.isEmpty()) {
+                        for(Event stateEvent : stateEvents) {
+                            if ((null != stateEvent.getType()) && types.contains(stateEvent.getType())) {
+                                filteredStateEvents.add(stateEvent);
+                            }
+                        }
+                    } else {
+                        filteredStateEvents.addAll(stateEvents);
+                    }
+
+                    callback.onSuccess(filteredStateEvents);
                 }
             });
         }
@@ -880,7 +901,20 @@ public class RoomState implements Externalizable {
                 }
             }
 
-            mStateEvents.put(eventType, event);
+            // same the latest room state events
+            // excepts the membership ones
+            // they are saved elsewhere
+            if (!TextUtils.isEmpty(eventType) && !Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
+                List<Event> eventsList = mStateEvents.get(eventType);
+
+                if (null == eventsList) {
+                    eventsList = new ArrayList<>();
+                    mStateEvents.put(eventType, eventsList);
+                }
+
+                eventsList.add(event);
+            }
+
         } catch (Exception e) {
             Log.e(LOG_TAG, "applyState failed with error " + e.getLocalizedMessage());
         }
@@ -986,9 +1020,9 @@ public class RoomState implements Externalizable {
             mMergedAliasesList = (List<String>) input.readObject();
         }
 
-        List<Event> stateEvents = (List<Event>) input.readObject();
-        for (Event e : stateEvents) {
-            mStateEvents.put(e.getType(), e);
+        Map<String, List<Event>> stateEvents = (Map<String, List<Event>>)input.readObject();
+        if (null != stateEvents) {
+            mStateEvents = new HashMap<>(stateEvents);
         }
 
         if (input.readBoolean()) {
@@ -1098,7 +1132,7 @@ public class RoomState implements Externalizable {
             output.writeObject(mMergedAliasesList);
         }
 
-        output.writeObject(new ArrayList<>(mStateEvents.values()));
+        output.writeObject(mStateEvents);
 
         output.writeBoolean(null != alias);
         if (null != alias) {

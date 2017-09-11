@@ -1540,11 +1540,17 @@ public class EventTimeline {
 
             // check if the state events is locally known
             // to avoid triggering a room initial sync
-            mState.getStateEvents(getStore(), new SimpleApiCallback<List<Event>>() {
+            mState.getStateEvents(getStore(), null, new SimpleApiCallback<List<Event>>() {
                 @Override
                 public void onSuccess(List<Event> stateEvents) {
                     boolean isFound = false;
-                    for(int index = 0; index < stateEvents.size(); index++) {
+
+                    // The membership events are not anymore stored in the application store
+                    // until we have found a way to improve the way they are stored.
+                    // It used to have many out of memory errors because they are too many stored small memory objects.
+                    // see https://github.com/matrix-org/matrix-android-sdk/issues/196
+
+                    /*for(int index = 0; index < stateEvents.size(); index++) {
                         Event stateEvent = stateEvents.get(index);
 
                         if (TextUtils.equals(stateEvent.eventId, event.eventId)) {
@@ -1552,7 +1558,7 @@ public class EventTimeline {
                             isFound = true;
                             break;
                         }
-                    }
+                    }*/
 
                     // if the room state can be locally pruned
                     // and can create a new valid room state
