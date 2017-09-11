@@ -2210,6 +2210,16 @@ public class MXCrypto {
         getDecryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
+                if (null == mCryptoStore) {
+                    getUIHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onSuccess(new byte[0]);
+                        }
+                    });
+                    return;
+                }
+
                 ArrayList<Map<String, Object>> exportedSessions = new ArrayList<>();
 
                 List<MXOlmInboundGroupSession2> inboundGroupSessions = mCryptoStore.getInboundGroupSessions();
