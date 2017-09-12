@@ -136,12 +136,22 @@ public interface RoomsApi {
     /**
      * Send a generic state events
      * @param roomId the room id.
-     * @param stateEvent the state event type
+     * @param stateEventType the state event type
      * @param params the request parameters
      * @param callback the callback
      */
-    @PUT("/rooms/{roomId}/state/{state_event}")
-    void sendStateEvent(@Path("roomId") String roomId, @Path("state_event") String stateEvent, @Body Map<String, Object> params, Callback<Void> callback);
+    @PUT("/rooms/{roomId}/state/{state_event_type}")
+    void sendStateEvent(@Path("roomId") String roomId, @Path("state_event_type") String stateEventType, @Body Map<String, Object> params, Callback<Void> callback);
+
+    /**
+     * Send a generic state events
+     * @param roomId the room id.
+     * @param stateEventType the state event type
+     * @param params the request parameters
+     * @param callback the callback
+     */
+    @PUT("/rooms/{roomId}/state/{state_event_type}/{stateKey}")
+    void sendStateEvent(@Path("roomId") String roomId, @Path("state_event_type") String stateEventType, @Path("stateKey") String stateKey, @Body Map<String, Object> params, Callback<Void> callback);
 
     /**
      * Invite a user to the given room.

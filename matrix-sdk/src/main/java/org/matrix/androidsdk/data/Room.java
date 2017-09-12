@@ -162,6 +162,13 @@ public class Room {
     }
 
     /**
+     * @return the store in which the room is stored
+     */
+    public IMXStore getStore() {
+        return mStore;
+    }
+
+    /**
      * Tells if the room is a call conference one
      * i.e. this room has been created to manage the call conference
      *
@@ -2662,7 +2669,7 @@ public class Room {
                 addEventListener(mEncryptionListener);
             }
 
-            mDataHandler.getDataRetriever().getRoomsRestClient().sendStateEvent(getRoomId(), Event.EVENT_TYPE_MESSAGE_ENCRYPTION, params, new ApiCallback<Void>() {
+            mDataHandler.getDataRetriever().getRoomsRestClient().sendStateEvent(getRoomId(), Event.EVENT_TYPE_MESSAGE_ENCRYPTION, null, params, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
                     // Wait for the event coming back from the hs

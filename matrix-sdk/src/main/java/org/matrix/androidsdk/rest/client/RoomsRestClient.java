@@ -673,22 +673,36 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * Send a state events.
      * @param roomId the dedicated room id
      * @param eventType the event type
+     * @param stateKey the state key
      * @param params the put parameters
      * @param callback the asynchronous callback
      */
-    public void sendStateEvent(final String roomId, final String eventType, final Map<String, Object> params, final ApiCallback<Void> callback) {
+    public void sendStateEvent(final String roomId, final String eventType, final String stateKey, final Map<String, Object> params, final ApiCallback<Void> callback) {
         final String description = "sendStateEvent : roomId " + roomId + " - eventType "+ eventType;
 
-        mApi.sendStateEvent(roomId, eventType, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                try {
-                    sendStateEvent(roomId, eventType, params, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend sendStateEvent failed " + e.getLocalizedMessage());
+        if (null != stateKey) {
+            mApi.sendStateEvent(roomId, eventType, stateKey, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    try {
+                        sendStateEvent(roomId, eventType, stateKey, params, callback);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "resend sendStateEvent failed " + e.getLocalizedMessage());
+                    }
                 }
-            }
-        }));
+            }));
+        } else {
+            mApi.sendStateEvent(roomId, eventType, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    try {
+                        sendStateEvent(roomId, eventType, stateKey, params, callback);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "resend sendStateEvent failed " + e.getLocalizedMessage());
+                    }
+                }
+            }));
+        }
     }
 
     /**
