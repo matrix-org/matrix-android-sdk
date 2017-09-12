@@ -64,4 +64,6 @@
     <string name="medium_email">Email cím</string>
     <string name="medium_phone_number">Telefonszám</string>
 
-</resources>
+<string name="summary_user_sent_sticker">%1$s küldött egy matricát.</string>
+
+    </resources>
