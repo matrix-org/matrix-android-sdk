@@ -877,7 +877,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param event the event to test
      * @return true it is supported.
      */
-    private boolean canAddEvent(Event event) {
+    protected boolean canAddEvent(Event event) {
         String type = event.getType();
 
         return mDisplayAllEvents ||

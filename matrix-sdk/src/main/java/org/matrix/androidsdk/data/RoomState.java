@@ -245,7 +245,37 @@ public class RoomState implements Externalizable {
     }
 
     /**
-     * Provides the latest state events used to create this room state.
+     * Provides the loaded states event list.
+     * The room member events are NOT included.
+     *
+     * @param types the allowed event types.
+     */
+    public List<Event> getStateEvents(final Set<String> types) {
+        final List<Event> filteredStateEvents = new ArrayList<>();
+        final List<Event> stateEvents = new ArrayList<>();
+
+        // merge the values lists
+        Collection<List<Event>> currentStateEvents = mStateEvents.values();
+        for(List<Event> eventsList : currentStateEvents) {
+            stateEvents.addAll(eventsList);
+        }
+            
+        if ((null != types) && !types.isEmpty()) {
+            for(Event stateEvent : stateEvents) {
+                if ((null != stateEvent.getType()) && types.contains(stateEvent.getType())) {
+                    filteredStateEvents.add(stateEvent);
+                }
+            }
+        } else {
+            filteredStateEvents.addAll(stateEvents);
+        }
+
+        return filteredStateEvents;
+    }
+
+
+    /**
+     * Provides the state events list.
      * It includes the room member creation events (they are not loaded in memory by default).
      *
      * @param store the store in which the state events must be retrieved
