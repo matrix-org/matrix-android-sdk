@@ -62,7 +62,7 @@ public class MXFileStore extends MXMemoryStore {
     private static final String LOG_TAG = "MXFileStore";
 
     // some constant values
-    private static final int MXFILE_VERSION = 13;
+    private static final int MXFILE_VERSION = 14;
 
     // ensure that there is enough messages to fill a tablet screen
     private static final int MAX_STORED_MESSAGES_COUNT = 50;
