@@ -211,6 +211,8 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
         params.put("timeout", timeout);
 
+        // increase the timeout because the init sync might require more time to be built
+        setConnectionTimeout(RestClient.CONNECTION_TIMEOUT_MS * ((null == token) ? 2 : 1));
 
         final String description = "syncFromToken";
 

@@ -58,7 +58,7 @@ public class RestClient<T> {
 
     private static final String PARAM_ACCESS_TOKEN = "access_token";
 
-    private static final int CONNECTION_TIMEOUT_MS = 30000;
+    protected static final int CONNECTION_TIMEOUT_MS = 30000;
     private static final int READ_TIMEOUT_MS = 60000;
     private static final int WRITE_TIMEOUT_MS = 60000;
 
@@ -87,6 +87,7 @@ public class RestClient<T> {
 
     /**
      * Public constructor.
+     *
      * @param hsConfig The homeserver connection config.
      */
     public RestClient(HomeserverConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization, boolean useIdentityServer) {
@@ -157,6 +158,7 @@ public class RestClient<T> {
 
     /**
      * Create an user agent with the application version.
+     *
      * @param appContext the application context
      */
     public static void initUserAgent(Context appContext) {
@@ -187,28 +189,29 @@ public class RestClient<T> {
         }
 
         // if there is no user agent or cannot parse it
-        if ((null == sUserAgent) || (sUserAgent.lastIndexOf(")") == -1) || (sUserAgent.indexOf("(") == -1))  {
-            sUserAgent = appName + "/" + appVersion + " ( Flavour " +  appContext.getString(R.string.flavor_description) + "; MatrixAndroidSDK " + BuildConfig.VERSION_NAME + ")";
+        if ((null == sUserAgent) || (sUserAgent.lastIndexOf(")") == -1) || (sUserAgent.indexOf("(") == -1)) {
+            sUserAgent = appName + "/" + appVersion + " ( Flavour " + appContext.getString(R.string.flavor_description) + "; MatrixAndroidSDK " + BuildConfig.VERSION_NAME + ")";
         } else {
             // update
             sUserAgent = appName + "/" + appVersion + " " +
                     sUserAgent.substring(sUserAgent.indexOf("("), sUserAgent.lastIndexOf(")") - 1) +
-                            "; Flavour " + appContext.getString(R.string.flavor_description) +
-                            "; MatrixAndroidSDK " +  BuildConfig.VERSION_NAME + ")";
+                    "; Flavour " + appContext.getString(R.string.flavor_description) +
+                    "; MatrixAndroidSDK " + BuildConfig.VERSION_NAME + ")";
         }
     }
 
     /**
      * Refresh the connection timeouts.
+     *
      * @param networkConnectivityReceiver the network connectivity receiver
      */
     private void refreshConnectionTimeout(NetworkConnectivityReceiver networkConnectivityReceiver) {
         if (networkConnectivityReceiver.isConnected()) {
             float factor = networkConnectivityReceiver.getTimeoutScale();
 
-            mOkHttpClient.setConnectTimeout((int)(CONNECTION_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS);
-            mOkHttpClient.setReadTimeout((int)(READ_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS);
-            mOkHttpClient.setWriteTimeout((int)(WRITE_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS);
+            mOkHttpClient.setConnectTimeout((int) (CONNECTION_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS);
+            mOkHttpClient.setReadTimeout((int) (READ_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS);
+            mOkHttpClient.setWriteTimeout((int) (WRITE_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS);
 
             Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update setConnectTimeout to " + mOkHttpClient.getConnectTimeout() + " ms");
             Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update setReadTimeout to " + mOkHttpClient.getReadTimeout() + " ms");
@@ -216,6 +219,30 @@ public class RestClient<T> {
         } else {
             mOkHttpClient.setConnectTimeout(1, TimeUnit.MILLISECONDS);
             Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update the requests timeout to 1 ms");
+        }
+    }
+
+    /**
+     * Update the connection timeout
+     * @param aTimeoutMs the connection timeout
+     */
+    protected void setConnectionTimeout(int aTimeoutMs) {
+        int timeoutMs = aTimeoutMs;
+
+        if (null != mUnsentEventsManager) {
+            NetworkConnectivityReceiver networkConnectivityReceiver = mUnsentEventsManager.getNetworkConnectivityReceiver();
+
+            if (null != networkConnectivityReceiver) {
+                if (networkConnectivityReceiver.isConnected()) {
+                    timeoutMs *= networkConnectivityReceiver.getTimeoutScale();
+                } else {
+                    timeoutMs = 1000;
+                }
+            }
+        }
+
+        if (timeoutMs != mOkHttpClient.getConnectTimeout()) {
+            mOkHttpClient.setConnectTimeout(timeoutMs, TimeUnit.MILLISECONDS);
         }
     }
 
