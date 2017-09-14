@@ -2533,4 +2533,14 @@ public class MXSession {
     public static boolean isMessageId(String aMessageId) {
         return (null != aMessageId) && PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER.matcher(aMessageId).matches();
     }
+
+    /**
+     * Gets a bearer token from the homeserver that the user can
+     * present to a third party in order to prove their ownership
+     * of the Matrix account they are logged into.
+     * @param callback the asynchronous callback called when finished
+     */
+    public void openIdToken(final ApiCallback<Map<Object, Object>> callback) {
+        mAccountDataRestClient.openIdToken(getMyUserId(), callback);
+    }
 }
