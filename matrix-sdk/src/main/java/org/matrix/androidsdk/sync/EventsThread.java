@@ -465,6 +465,8 @@ public class EventsThread extends Thread {
                     latch.await();
                 } catch (InterruptedException e) {
                     Log.e(LOG_TAG, "Interrupted whilst performing initial sync.");
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## startSync() failed " + e.getMessage());
                 }
             }
             serverTimeout = mNextServerTimeoutms;
