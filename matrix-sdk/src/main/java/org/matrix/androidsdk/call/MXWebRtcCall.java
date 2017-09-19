@@ -962,20 +962,22 @@ public class MXWebRtcCall extends MXCall {
      * @param aLocalVideoPosition the video configuration
      */
     private void updateWebRtcViewLayout(WebRTCView webRTCView, VideoLayoutConfiguration aLocalVideoPosition) {
-        final DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
+        if (null != webRTCView) {
+            final DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
 
-        int screenWidth = (aLocalVideoPosition.mDisplayWidth > 0) ? aLocalVideoPosition.mDisplayWidth : displayMetrics.widthPixels;
-        int screenHeight = (aLocalVideoPosition.mDisplayHeight > 0) ? aLocalVideoPosition.mDisplayHeight : displayMetrics.heightPixels;
+            int screenWidth = (aLocalVideoPosition.mDisplayWidth > 0) ? aLocalVideoPosition.mDisplayWidth : displayMetrics.widthPixels;
+            int screenHeight = (aLocalVideoPosition.mDisplayHeight > 0) ? aLocalVideoPosition.mDisplayHeight : displayMetrics.heightPixels;
 
-        int x = screenWidth * aLocalVideoPosition.mX / 100;
-        int y = screenHeight * aLocalVideoPosition.mY / 100;
-        int width = screenWidth * aLocalVideoPosition.mWidth / 100;
-        int height = screenHeight * aLocalVideoPosition.mHeight / 100;
+            int x = screenWidth * aLocalVideoPosition.mX / 100;
+            int y = screenHeight * aLocalVideoPosition.mY / 100;
+            int width = screenWidth * aLocalVideoPosition.mWidth / 100;
+            int height = screenHeight * aLocalVideoPosition.mHeight / 100;
 
-        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(width, height);
-        params.leftMargin = x;
-        params.topMargin = y;
-        webRTCView.setLayoutParams(params);
+            RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(width, height);
+            params.leftMargin = x;
+            params.topMargin = y;
+            webRTCView.setLayoutParams(params);
+        }
     }
 
     /**
