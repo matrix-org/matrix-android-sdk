@@ -17,13 +17,14 @@
 
 package org.matrix.androidsdk.rest.client;
 
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
-import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.api.RoomsApi;
@@ -677,7 +678,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param params the put parameters
      * @param callback the asynchronous callback
      */
-    public void sendStateEvent(final String roomId, final String eventType, final String stateKey, final Map<String, Object> params, final ApiCallback<Void> callback) {
+    public void sendStateEvent(final String roomId, final String eventType, @Nullable final String stateKey, final Map<String, Object> params, final ApiCallback<Void> callback) {
         final String description = "sendStateEvent : roomId " + roomId + " - eventType "+ eventType;
 
         if (null != stateKey) {
@@ -696,13 +697,56 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 @Override
                 public void onRetry() {
                     try {
-                        sendStateEvent(roomId, eventType, stateKey, params, callback);
+                        sendStateEvent(roomId, eventType, null, params, callback);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "resend sendStateEvent failed " + e.getLocalizedMessage());
                     }
                 }
             }));
         }
+    }
+
+    /**
+     * Looks up the contents of a state event in a room
+     * @param roomId the room id
+     * @param eventType the event type
+     * @param callback the asynchronous callback
+     */
+    public void getStateEvent(final String roomId, final String eventType, final ApiCallback<JsonElement> callback) {
+        final String description = "getStateEvent : roomId " + roomId + " eventId " + eventType;
+
+        mApi.getStateEvent(roomId, eventType, new RestAdapterCallback<JsonElement>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    getStateEvent(roomId, eventType, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend getStateEvent failed " + e.getLocalizedMessage());
+                }
+            }
+        }));
+    }
+
+    /**
+     * Looks up the contents of a state event in a room
+     * @param roomId the room id
+     * @param eventType the event type
+     * @param stateKey the key of the state to look up
+     * @param callback the asynchronous callback
+     */
+    public void getStateEvent(final String roomId, final String eventType, final String stateKey, final ApiCallback<JsonElement> callback) {
+        final String description = "getStateEvent : roomId " + roomId + " eventId " + eventType + " stateKey " + stateKey;
+
+        mApi.getStateEvent(roomId, eventType, stateKey, new RestAdapterCallback<JsonElement>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                try {
+                    getStateEvent(roomId, eventType, stateKey, callback);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "resend getStateEvent failed " + e.getLocalizedMessage());
+                }
+            }
+        }));
     }
 
     /**
