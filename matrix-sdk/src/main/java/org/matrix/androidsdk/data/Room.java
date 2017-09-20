@@ -49,6 +49,7 @@ import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.UrlPostTask;
 import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.FileInfo;
 import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageInfo;
@@ -69,6 +70,7 @@ import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.util.ImageUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
+import org.matrix.androidsdk.util.MXOsHandler;
 
 import java.io.File;
 import java.lang.reflect.Type;
@@ -437,6 +439,55 @@ public class Room {
 
     public RoomMember getMember(String userId) {
         return getState().getMember(userId);
+    }
+
+    // member event caches
+    private Map<String, Event> mMemberEventByEventId = new HashMap<>();
+
+    public void getMemberEvent(final String userId, final ApiCallback<Event> callback) {
+        final Event event;
+        final RoomMember member = getMember(userId);
+
+        if ((null != member) && (null != member.getOriginalEventId())) {
+            event = mMemberEventByEventId.get(member.getOriginalEventId());
+
+            if (null == event) {
+                mDataHandler.getDataRetriever().getRoomsRestClient().getContextOfEvent(getRoomId(), member.getOriginalEventId(), 1, new ApiCallback<EventContext>() {
+                    @Override
+                    public void onSuccess(EventContext eventContext) {
+                        if (null != eventContext.event) {
+                            mMemberEventByEventId.put(eventContext.event.eventId, eventContext.event);
+                        }
+                        callback.onSuccess(eventContext.event);
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        callback.onNetworkError(e);
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        callback.onMatrixError(e);
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        callback.onUnexpectedError(e);
+                    }
+                });
+                return;
+            }
+        } else {
+            event = null;
+        }
+
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                callback.onSuccess(event);
+            }
+        });
     }
 
     public String getTopic() {

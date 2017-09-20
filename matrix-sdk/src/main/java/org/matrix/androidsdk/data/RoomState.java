@@ -866,6 +866,7 @@ public class RoomState implements Externalizable {
                     try {
                         member.setUserId(userId);
                         member.setOriginServerTs(event.getOriginServerTs());
+                        member.setOriginalEventId(event.eventId);
                         member.setInviterId(event.getSender());
 
                         if ((null != store) && (direction == EventTimeline.Direction.FORWARDS)) {
