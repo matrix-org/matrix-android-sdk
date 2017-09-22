@@ -244,7 +244,7 @@ public class Room {
                     mDataHandler.onLiveEvent(event, getState());
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "ephemeral event failed " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "ephemeral event failed " + e.getMessage());
             }
         }
     }
@@ -294,7 +294,7 @@ public class Room {
                     try {
                         fOnInitialSyncCallback.onSuccess(null);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "handleJoinedRoomSync : onSuccess failed" + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "handleJoinedRoomSync : onSuccess failed" + e.getMessage());
                     }
                 }
             });
@@ -573,7 +573,7 @@ public class Room {
                         map = new Gson().fromJson(object, new TypeToken<HashMap<String, Object>>() {
                         }.getType());
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "joinWithThirdPartySigned :  Gson().fromJson failed" + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "joinWithThirdPartySigned :  Gson().fromJson failed" + e.getMessage());
                     }
 
                     if (null != map) {
@@ -671,13 +671,13 @@ public class Room {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "join onNetworkError " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "join onNetworkError " + e.getMessage());
                 callback.onNetworkError(e);
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "join onMatrixError " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "join onMatrixError " + e.getMessage());
 
                 if (MatrixError.UNKNOWN.equals(e.errcode) && TextUtils.equals("No known servers", e.error)) {
                     // minging kludge until https://matrix.org/jira/browse/SYN-678 is fixed
@@ -690,7 +690,7 @@ public class Room {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "join onUnexpectedError " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "join onUnexpectedError " + e.getMessage());
                 callback.onUnexpectedError(e);
             }
         });
@@ -1147,7 +1147,7 @@ public class Room {
                 }
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "handleReceiptEvent : failed" + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "handleReceiptEvent : failed" + e.getMessage());
         }
 
         return senderIDs;
@@ -1551,7 +1551,7 @@ public class Room {
                 thumbInfo.mimetype = thumbMimeType;
                 locationMessage.thumbnail_info = thumbInfo;
             } catch (Exception e) {
-                Log.e(LOG_TAG, "fillLocationInfo : failed" + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "fillLocationInfo : failed" + e.getMessage());
             }
         }
     }
@@ -1586,7 +1586,7 @@ public class Room {
                     mp.release();
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "fillVideoInfo : MediaPlayer.create failed" + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "fillVideoInfo : MediaPlayer.create failed" + e.getMessage());
             }
             videoInfo.size = file.length();
 
@@ -1616,7 +1616,7 @@ public class Room {
 
             videoMessage.info = videoInfo;
         } catch (Exception e) {
-            Log.e(LOG_TAG, "fillVideoInfo : failed" + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "fillVideoInfo : failed" + e.getMessage());
         }
     }
 
@@ -1641,7 +1641,7 @@ public class Room {
             fileMessage.info = fileInfo;
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "fillFileInfo : failed" + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "fillFileInfo : failed" + e.getMessage());
         }
     }
 
@@ -1700,7 +1700,7 @@ public class Room {
                     }
 
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "fillImageInfo : failed" + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "fillImageInfo : failed" + e.getMessage());
                 } catch (OutOfMemoryError oom) {
                     Log.e(LOG_TAG, "fillImageInfo : oom");
                 }
@@ -1715,7 +1715,7 @@ public class Room {
             imageInfo.mimetype = mimeType;
             imageInfo.size = file.length();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "fillImageInfo : failed" + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "fillImageInfo : failed" + e.getMessage());
             imageInfo = null;
         }
 

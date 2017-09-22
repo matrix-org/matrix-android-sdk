@@ -215,7 +215,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
 
             uniqueId = sb.toString();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "uniqueId failed " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "uniqueId failed " + e.getMessage());
         }
 
         if (null == uniqueId) {
@@ -339,7 +339,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                         filename = uri.getPath();
 
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "bitmapForURL #1 : " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "bitmapForURL #1 : " + e.getMessage());
                     }
 
                     // cannot extract the filename -> sorry
@@ -399,7 +399,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                                         bitmap.recycle();
                                         bitmap =  transformedBitmap;
                                     } catch (OutOfMemoryError ex) {
-                                        Log.e(LOG_TAG, "bitmapForURL rotation error : " + ex.getLocalizedMessage());
+                                        Log.e(LOG_TAG, "bitmapForURL rotation error : " + ex.getMessage());
                                     }
                                 }
 
@@ -638,7 +638,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                         sslConn.setSSLSocketFactory(CertUtil.newPinnedSSLSocketFactory(mHsConfig));
                         sslConn.setHostnameVerifier(CertUtil.newHostnameVerifier(mHsConfig));
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "doInBackground SSL exception " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "doInBackground SSL exception " + e.getMessage());
                     }
                 }
 
@@ -665,7 +665,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
 
                         mErrorAsJsonElement = new JsonParser().parse(responseStrBuilder.toString());
                     } catch (Exception ee) {
-                        Log.e(LOG_TAG, "bitmapForURL : Error parsing error " + ee.getLocalizedMessage());
+                        Log.e(LOG_TAG, "bitmapForURL : Error parsing error " + ee.getMessage());
                     }
                 }
 
@@ -788,7 +788,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                         }
                         originalFile.renameTo(newFile);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "doInBackground : renaming error " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "doInBackground : renaming error " + e.getMessage());
                     }
                 }
             }
@@ -824,7 +824,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             stream.close();
         }
         catch (Exception e) {
-            Log.e(LOG_TAG, "close error " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "close error " + e.getMessage());
         }
     }
 
@@ -881,7 +881,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             try {
                 callback.onDownloadStart(mUrl);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "dispatchDownloadStart error " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "dispatchDownloadStart error " + e.getMessage());
             }
         }
     }
@@ -895,7 +895,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             try {
                 callback.onDownloadProgress(mUrl, stats);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "dispatchOnDownloadProgress error " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "dispatchOnDownloadProgress error " + e.getMessage());
             }
         }
     }
@@ -909,7 +909,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             try {
                 callback.onDownloadError(mUrl, jsonElement);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "dispatchOnDownloadError error " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "dispatchOnDownloadError error " + e.getMessage());
             }
         }
     }
@@ -922,7 +922,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             try {
                 callback.onDownloadComplete(mUrl);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "dispatchOnDownloadComplete error " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "dispatchOnDownloadComplete error " + e.getMessage());
             }
         }
     }
@@ -935,7 +935,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             try {
                 callback.onDownloadCancel(mUrl);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "dispatchDownloadCancel error " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "dispatchDownloadCancel error " + e.getMessage());
             }
         }
     }

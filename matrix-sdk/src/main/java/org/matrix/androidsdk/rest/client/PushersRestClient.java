@@ -111,11 +111,7 @@ public class PushersRestClient extends RestClient<PushersApi> {
         mApi.set(pusher, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, append, callback, addPusher);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## manageHttpPusher() failed" + e.getMessage());
-                }
+                manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, append, callback, addPusher);
             }
         }));
     }
@@ -130,11 +126,7 @@ public class PushersRestClient extends RestClient<PushersApi> {
         mApi.get(new RestAdapterCallback<PushersResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    getPushers(callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## getPushers() failed" + e.getMessage());
-                }
+                getPushers(callback);
             }
         }));
     }

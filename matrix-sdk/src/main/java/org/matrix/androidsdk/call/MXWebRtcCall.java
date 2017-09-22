@@ -523,7 +523,7 @@ public class MXWebRtcCall extends MXCall {
                     }
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## createLocalStream(): Exception in ICE servers list Msg=" + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "## createLocalStream(): Exception in ICE servers list Msg=" + e.getMessage());
             }
         }
 
@@ -912,7 +912,7 @@ public class MXWebRtcCall extends MXCall {
                     mLocalVideoTrack = mPeerConnectionFactory.createVideoTrack(VIDEO_TRACK_ID, mVideoSource);
                     mLocalVideoTrack.setEnabled(true);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "createVideoSource fails with exception " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "createVideoSource fails with exception " + e.getMessage());
 
                     mLocalVideoTrack = null;
 
@@ -1119,7 +1119,7 @@ public class MXWebRtcCall extends MXCall {
                 }
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "onResume failed " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "onResume failed " + e.getMessage());
         }
     }
 
@@ -1276,7 +1276,7 @@ public class MXWebRtcCall extends MXCall {
                         }
 
                     } catch (Exception e) {
-                        Log.d(LOG_TAG, "onCallAnswer : " + e.getLocalizedMessage());
+                        Log.d(LOG_TAG, "onCallAnswer : " + e.getMessage());
                     }
 
                     mPeerConnection.setRemoteDescription(new SdpObserver() {

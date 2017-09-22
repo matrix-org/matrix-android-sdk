@@ -260,7 +260,7 @@ public class BingRulesManager {
             Pattern pattern = Pattern.compile("(\\W|^)" + subString + "(\\W|$)", Pattern.CASE_INSENSITIVE);
             found = pattern.matcher(longString).find();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "caseInsensitiveFind : pattern.matcher failed with " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "caseInsensitiveFind : pattern.matcher failed with " + e.getMessage());
         }
 
         return found;

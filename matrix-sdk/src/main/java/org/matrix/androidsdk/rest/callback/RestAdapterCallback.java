@@ -156,13 +156,13 @@ public class RestAdapterCallback<T> implements Callback<T> {
                         try {
                             mApiCallback.onNetworkError(error);
                         } catch (Exception e) {
-                            Log.e(LOG_TAG, "## failure(): onNetworkError " + error.getLocalizedMessage());
+                            Log.e(LOG_TAG, "## failure(): onNetworkError " + error.getMessage());
                         }
                     }
                 } catch (Exception e) {
                     // privacy
                     //Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage() + " while managing " + error.getUrl());
-                    Log.e(LOG_TAG, "## failure():  NetworkError " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "## failure():  NetworkError " + e.getMessage());
                 }
             }
             else {
@@ -207,7 +207,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
                         } catch (Exception e) {
                             // privacy
                             //Log.e(LOG_TAG, "Exception MatrixError " + e.getMessage() + " while managing " + error.getUrl());
-                            Log.e(LOG_TAG, "## failure():  MatrixError " + e.getLocalizedMessage());
+                            Log.e(LOG_TAG, "## failure():  MatrixError " + e.getMessage());
                         }
                     }
                 }
@@ -219,7 +219,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
                     } catch (Exception e) {
                         // privacy
                         //Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
-                        Log.e(LOG_TAG, "## failure():  UnexpectedError " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "## failure():  UnexpectedError " + e.getMessage());
                     }
                 }
             }

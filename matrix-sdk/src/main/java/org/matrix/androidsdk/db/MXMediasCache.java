@@ -323,7 +323,7 @@ public class MXMediasCache {
                 return file;
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "thumbnailCacheFile failed " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "thumbnailCacheFile failed " + e.getMessage());
         }
 
         return null;
@@ -369,7 +369,7 @@ public class MXMediasCache {
             }
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "mediaCacheFile failed " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "mediaCacheFile failed " + e.getMessage());
         }
 
         return null;
@@ -405,7 +405,7 @@ public class MXMediasCache {
 
             cacheURL = Uri.fromFile(file).toString();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "saveBitmap failed " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "saveBitmap failed " + e.getMessage());
         }
 
         return cacheURL;
@@ -461,7 +461,7 @@ public class MXMediasCache {
                     fos.write(buf, 0, len);
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "saveMedia failed " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "saveMedia failed " + e.getMessage());
             }
 
             fos.flush();
@@ -470,7 +470,7 @@ public class MXMediasCache {
 
             cacheURL = Uri.fromFile(file).toString();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "saveMedia failed " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "saveMedia failed " + e.getMessage());
 
         }
 
@@ -525,7 +525,7 @@ public class MXMediasCache {
                 try {
                     destFile.delete();
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "saveFileMediaForUrl delete failed " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "saveFileMediaForUrl delete failed " + e.getMessage());
                 }
             }
 
@@ -549,7 +549,7 @@ public class MXMediasCache {
             }
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "saveFileMediaForUrl failed " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "saveFileMediaForUrl failed " + e.getMessage());
         }
     }
 
@@ -939,7 +939,7 @@ public class MXMediasCache {
                     }
 
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "loadBitmap failed " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "loadBitmap failed " + e.getMessage());
                 }
             }
         }

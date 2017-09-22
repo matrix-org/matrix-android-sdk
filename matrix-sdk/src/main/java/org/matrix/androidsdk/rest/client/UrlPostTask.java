@@ -98,12 +98,12 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
                 sb.append(line + "\n");
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "convertStreamToString " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "convertStreamToString " + e.getMessage());
         } finally {
             try {
                 is.close();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "convertStreamToString finally failed " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "convertStreamToString finally failed " + e.getMessage());
             }
         }
         return sb.toString();

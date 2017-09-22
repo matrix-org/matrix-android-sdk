@@ -666,7 +666,7 @@ public class MXCall implements IMXCall {
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.d(LOG_TAG, "## sendHangup(): onMatrixError Msg=" + e.getLocalizedMessage());
+                Log.d(LOG_TAG, "## sendHangup(): onMatrixError Msg=" + e.getMessage());
             }
 
             @Override

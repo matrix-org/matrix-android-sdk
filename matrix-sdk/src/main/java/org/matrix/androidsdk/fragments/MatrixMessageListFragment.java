@@ -907,7 +907,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             try {
                 mEventSendingListener.onMessageSendingFailed(event);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "onMessageSendingFailed failed " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "onMessageSendingFailed failed " + e.getMessage());
             }
         }
     }
@@ -922,7 +922,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             try {
                 mEventSendingListener.onMessageSendingSucceeded(event);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "onMessageSendingSucceeded failed " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "onMessageSendingSucceeded failed " + e.getMessage());
             }
         }
     }
@@ -938,7 +938,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             try {
                 mEventSendingListener.onUnknownDevices(event, cryptoError);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "onUnknownDevices failed " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "onUnknownDevices failed " + e.getMessage());
             }
         }
     }
@@ -1177,7 +1177,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "uploadFileContent failed with " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "uploadFileContent failed with " + e.getMessage());
         }
 
         // remove any displayed MessageRow with this URL
@@ -1268,7 +1268,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             Bitmap thumb = ThumbnailUtils.createVideoThumbnail(uri.getPath(), MediaStore.Images.Thumbnails.MINI_KIND);
             thumbUrl = getMXMediasCache().saveBitmap(thumb, null);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "getVideoThumbailUrl failed with " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "getVideoThumbailUrl failed with " + e.getMessage());
         }
 
         return thumbUrl;
@@ -1324,7 +1324,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             uri = Uri.parse(videoUrl);
             thumbUri = Uri.parse(thumbnailUrl);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "uploadVideoContent failed with " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "uploadVideoContent failed with " + e.getMessage());
         }
 
         // the video message is not defined
@@ -1339,7 +1339,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     tmpVideoMessage.body = uri.getLastPathSegment();
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "uploadVideoContent : fillVideoInfo failed " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "uploadVideoContent : fillVideoInfo failed " + e.getMessage());
             }
         }
 
@@ -1393,7 +1393,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "uploadVideoContent : media parsing failed " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "uploadVideoContent : media parsing failed " + e.getMessage());
         }
 
         final boolean isContentUpload = TextUtils.equals(uploadId, videoUrl);
@@ -1706,7 +1706,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 tmpLocationMessage.body = "Location";
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "uploadLocationContent failed with " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "uploadLocationContent failed with " + e.getMessage());
         }
 
         // remove any displayed MessageRow with this URL
@@ -2028,7 +2028,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             } else if (error instanceof MatrixError) {
                 final MatrixError matrixError = (MatrixError) error;
-                Log.e(LOG_TAG, "Matrix error" + " : " + matrixError.errcode + " - " + matrixError.getLocalizedMessage());
+                Log.e(LOG_TAG, "Matrix error" + " : " + matrixError.errcode + " - " + matrixError.getMessage());
                 Toast.makeText(activity, activity.getString(R.string.matrix_error) + " : " + matrixError.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
             }
 
@@ -2521,7 +2521,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "onReceiptEvent failed with " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "onReceiptEvent failed with " + e.getMessage());
         }
 
         if (shouldRefresh) {
@@ -2680,7 +2680,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 try {
                     mRoomPreviewDataListener = (IRoomPreviewDataListener) getActivity();
                 } catch (ClassCastException e) {
-                    Log.e(LOG_TAG, "getRoomPreviewData failed with " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "getRoomPreviewData failed with " + e.getMessage());
                 }
             }
 
@@ -2800,7 +2800,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "Matrix error" + " : " + e.errcode + " - " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "Matrix error" + " : " + e.errcode + " - " + e.getMessage());
                 onError();
             }
 
@@ -2871,7 +2871,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             try {
                 onSearchResultListener.onSearchSucceed(messageRows.size());
             } catch (Exception e) {
-                Log.e(LOG_TAG, "onSearchResponse failed with " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "onSearchResponse failed with " + e.getMessage());
             }
         }
     }
@@ -2931,7 +2931,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                     try {
                                         onSearchResultListener.onSearchFailed();
                                     } catch (Exception e) {
-                                        Log.e(LOG_TAG, "onSearchResultListener failed with " + e.getLocalizedMessage());
+                                        Log.e(LOG_TAG, "onSearchResultListener failed with " + e.getMessage());
                                     }
                                 }
                             }
@@ -2947,7 +2947,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                     @Override
                     public void onMatrixError(MatrixError e) {
-                        Log.e(LOG_TAG, "Matrix error" + " : " + e.errcode + " - " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "Matrix error" + " : " + e.errcode + " - " + e.getMessage());
                         onError();
                     }
 

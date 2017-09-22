@@ -83,22 +83,14 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
             mApi.uploadKeys(encodedDeviceId, params, new RestAdapterCallback<KeysUploadResponse>(description, null, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
-                    try {
-                        uploadKeys(deviceKeys, oneTimeKeys, deviceId, callback);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "resend uploadKeys : failed " + e.getMessage());
-                    }
+                    uploadKeys(deviceKeys, oneTimeKeys, deviceId, callback);
                 }
             }));
         } else {
             mApi.uploadKeys(params, new RestAdapterCallback<KeysUploadResponse>(description, null, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
-                    try {
-                        uploadKeys(deviceKeys, oneTimeKeys, deviceId, callback);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "resend uploadKeys : failed " + e.getMessage());
-                    }
+                    uploadKeys(deviceKeys, oneTimeKeys, deviceId, callback);
                 }
             }));
         }
@@ -131,11 +123,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
         mApi.downloadKeysForUsers(parameters, new RestAdapterCallback<KeysQueryResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    downloadKeysForUsers(userIds, token, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend downloadKeysForUsers : failed " + e.getMessage());
-                }
+                downloadKeysForUsers(userIds, token, callback);
             }
         }));
     }
@@ -154,11 +142,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
         mApi.claimOneTimeKeysForUsersDevices(params, new RestAdapterCallback<KeysClaimResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    claimOneTimeKeysForUsersDevices(usersDevicesKeyTypesMap, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend claimOneTimeKeysForUsersDevices : failed " + e.getMessage());
-                }
+                claimOneTimeKeysForUsersDevices(usersDevicesKeyTypesMap, callback);
             }
         }) {
             @Override
@@ -224,11 +208,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
         mApi.getDevices(new RestAdapterCallback<DevicesListResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    getDevices(callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend getDevices : failed " + e.getMessage());
-                }
+                getDevices(callback);
             }
         }));
     }
@@ -245,11 +225,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
         mApi.deleteDevice(deviceId, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    deleteDevice(deviceId, params, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend deleteDevice : failed " + e.getMessage());
-                }
+                deleteDevice(deviceId, params, callback);
             }
         }));
     }
@@ -269,11 +245,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
         mApi.updateDeviceInfo(deviceId, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    setDeviceName(deviceId, deviceName, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend setDeviceName : failed " + e.getMessage());
-                }
+                setDeviceName(deviceId, deviceName, callback);
             }
         }));
     }
@@ -290,11 +262,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
         mApi.getKeyChanges(from, to, new RestAdapterCallback<KeyChangesResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    getKeyChanges(from, to, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend getKeyChanges : failed " + e.getMessage());
-                }
+                getKeyChanges(from, to, callback);
             }
         }));
     }

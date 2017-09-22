@@ -1068,7 +1068,7 @@ public class Event implements Externalizable {
                 try {
                     unsigned.redacted_because.content.reason = contentAsJson.get("reason").getAsString();
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "unsigned.redacted_because.content.reason failed " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "unsigned.redacted_because.content.reason failed " + e.getMessage());
                 }
 
             }

@@ -434,7 +434,7 @@ public class MXDeviceList {
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    Log.e(LOG_TAG, "## downloadKeys() : doKeyDownloadForUsers onMatrixError " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "## downloadKeys() : doKeyDownloadForUsers onMatrixError " + e.getMessage());
                     if (null != callback) {
                         callback.onMatrixError(e);
                     }

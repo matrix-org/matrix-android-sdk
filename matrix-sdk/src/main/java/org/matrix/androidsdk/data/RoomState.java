@@ -947,7 +947,7 @@ public class RoomState implements Externalizable {
             }
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "applyState failed with error " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "applyState failed with error " + e.getMessage());
         }
 
         return true;

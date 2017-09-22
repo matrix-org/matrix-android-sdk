@@ -435,7 +435,7 @@ public class EventsThread extends Thread {
                         if (null != mCurrentToken) {
                             onSuccess(null);
                         } else {
-                            Log.e(LOG_TAG, "Sync V2 onNetworkError " + e.getLocalizedMessage());
+                            Log.e(LOG_TAG, "Sync V2 onNetworkError " + e.getMessage());
                             super.onNetworkError(e);
                             sleepAndUnblock();
                         }
@@ -455,7 +455,7 @@ public class EventsThread extends Thread {
                     @Override
                     public void onUnexpectedError(Exception e) {
                         super.onUnexpectedError(e);
-                        Log.e(LOG_TAG, "Sync V2 onUnexpectedError " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "Sync V2 onUnexpectedError " + e.getMessage());
                         sleepAndUnblock();
                     }
                 });

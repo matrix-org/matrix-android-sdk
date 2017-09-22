@@ -521,7 +521,7 @@ public class EventTimeline {
                         // digest the forward event
                         handleLiveEvent(event, !isLimited && !isInitialSync, !isInitialSync && !isRoomInitialSync);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "timeline event failed " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "timeline event failed " + e.getMessage());
                     }
                 }
             }
@@ -1606,19 +1606,19 @@ public class EventTimeline {
                 }
                 @Override
                 public void onNetworkError(Exception e) {
-                    Log.e(LOG_TAG, "checkStateEventRedaction :  onNetworkError " + e.getLocalizedMessage() + "-> get a refreshed roomState");
+                    Log.e(LOG_TAG, "checkStateEventRedaction :  onNetworkError " + e.getMessage() + "-> get a refreshed roomState");
                     forceRoomStateServerSync();
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    Log.e(LOG_TAG, "checkStateEventRedaction :  onMatrixError " + e.getLocalizedMessage() + "-> get a refreshed roomState");
+                    Log.e(LOG_TAG, "checkStateEventRedaction :  onMatrixError " + e.getMessage() + "-> get a refreshed roomState");
                     forceRoomStateServerSync();
                 }
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    Log.e(LOG_TAG, "checkStateEventRedaction :  onUnexpectedError " + e.getLocalizedMessage() + "-> get a refreshed roomState");
+                    Log.e(LOG_TAG, "checkStateEventRedaction :  onUnexpectedError " + e.getMessage() + "-> get a refreshed roomState");
                     forceRoomStateServerSync();
                 }
             });
@@ -1725,7 +1725,7 @@ public class EventTimeline {
                 try {
                     listener.onEvent(event, direction, roomState);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "EventTimeline.onEvent " + listener + " crashes " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "EventTimeline.onEvent " + listener + " crashes " + e.getMessage());
                 }
             }
         }

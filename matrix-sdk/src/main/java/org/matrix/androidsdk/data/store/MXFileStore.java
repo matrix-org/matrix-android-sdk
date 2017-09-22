@@ -827,7 +827,7 @@ public class MXFileStore extends MXMemoryStore {
             try {
                 messagesListFile.delete();
             } catch (Exception e) {
-                Log.d(LOG_TAG, "deleteRoomMessagesFiles - messagesListFile failed " + e.getLocalizedMessage());
+                Log.d(LOG_TAG, "deleteRoomMessagesFiles - messagesListFile failed " + e.getMessage());
             }
         }
 
@@ -836,7 +836,7 @@ public class MXFileStore extends MXMemoryStore {
             try {
                 tokenFile.delete();
             } catch (Exception e) {
-                Log.d(LOG_TAG, "deleteRoomMessagesFiles - tokenFile failed " + e.getLocalizedMessage());
+                Log.d(LOG_TAG, "deleteRoomMessagesFiles - tokenFile failed " + e.getMessage());
             }
         }
     }
@@ -1315,7 +1315,7 @@ public class MXFileStore extends MXMemoryStore {
 
         } catch (Exception e) {
             succeed = false;
-            Log.e(LOG_TAG, "loadRoomToken failed : " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "loadRoomToken failed : " + e.getMessage());
         }
 
         return succeed;
@@ -1607,7 +1607,7 @@ public class MXFileStore extends MXMemoryStore {
                 }
             } catch (Exception e) {
                 succeed = false;
-                Log.e(LOG_TAG, "loadRoomState failed : " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "loadRoomState failed : " + e.getMessage());
             }
 
             if (null != liveState) {
@@ -1621,7 +1621,7 @@ public class MXFileStore extends MXMemoryStore {
                 messagesListFile.delete();
 
             } catch (Exception e) {
-                Log.e(LOG_TAG, "loadRoomState failed to delete a file : " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "loadRoomState failed to delete a file : " + e.getMessage());
             }
         }
 
@@ -1653,7 +1653,7 @@ public class MXFileStore extends MXMemoryStore {
 
         } catch (Exception e) {
             succeed = false;
-            Log.e(LOG_TAG, "loadRoomsState failed : " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "loadRoomsState failed : " + e.getMessage());
         }
 
         return succeed;
@@ -1676,7 +1676,7 @@ public class MXFileStore extends MXMemoryStore {
             try {
                 file.delete();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "deleteRoomAccountDataFile failed : " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "deleteRoomAccountDataFile failed : " + e.getMessage());
             }
         }
     }
@@ -1782,7 +1782,7 @@ public class MXFileStore extends MXMemoryStore {
             }
         } catch (Exception e) {
             succeed = false;
-            Log.e(LOG_TAG, "loadRoomsAccountData failed : " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "loadRoomsAccountData failed : " + e.getMessage());
         }
 
         return succeed;
@@ -1820,7 +1820,7 @@ public class MXFileStore extends MXMemoryStore {
             try {
                 statesFile.delete();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "deleteRoomSummaryFile failed : " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "deleteRoomSummaryFile failed : " + e.getMessage());
             }
         }
     }
@@ -1855,7 +1855,7 @@ public class MXFileStore extends MXMemoryStore {
                                     } catch (OutOfMemoryError oom) {
                                         dispatchOOM(oom);
                                     } catch (Exception e) {
-                                        Log.e(LOG_TAG, "saveSummaries failed : " + e.getLocalizedMessage());
+                                        Log.e(LOG_TAG, "saveSummaries failed : " + e.getMessage());
                                         // Toast.makeText(mContext, "saveSummaries failed " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                                     }
                                 }
@@ -1939,7 +1939,7 @@ public class MXFileStore extends MXMemoryStore {
             mStoreStats.put("loadSummaries", delta);
         } catch (Exception e) {
             succeed = false;
-            Log.e(LOG_TAG, "loadSummaries failed : " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "loadSummaries failed : " + e.getMessage());
         }
 
         return succeed;
@@ -2145,7 +2145,7 @@ public class MXFileStore extends MXMemoryStore {
         } catch (Exception e) {
             succeed = false;
             //Toast.makeText(mContext, "loadReceipts failed" + e, Toast.LENGTH_LONG).show();
-            Log.e(LOG_TAG, "loadReceipts failed : " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "loadReceipts failed : " + e.getMessage());
         }
 
         synchronized (this) {
@@ -2230,7 +2230,7 @@ public class MXFileStore extends MXMemoryStore {
             try {
                 receiptsFile.delete();
             } catch (Exception e) {
-                Log.d(LOG_TAG, "deleteReceiptsFile - failed " + e.getLocalizedMessage());
+                Log.d(LOG_TAG, "deleteReceiptsFile - failed " + e.getMessage());
             }
         }
     }

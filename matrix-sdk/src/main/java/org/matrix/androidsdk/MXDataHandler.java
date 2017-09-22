@@ -1410,7 +1410,7 @@ public class MXDataHandler implements IMXEventListener {
                     @Override
                     public void onMatrixError(MatrixError e) {
                         synchronized (mLeftRoomsRefreshCallbacks) {
-                            Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getLocalizedMessage());
+                            Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getMessage());
 
                             for (ApiCallback<Void> c : mLeftRoomsRefreshCallbacks) {
                                 c.onMatrixError(e);

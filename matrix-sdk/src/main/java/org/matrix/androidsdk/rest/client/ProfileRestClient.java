@@ -201,11 +201,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         mApi.updatePassword(passwordParams, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    resetPassword(newPassword, threepid_creds, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## resetPassword() failed" + e.getMessage());
-                }
+                resetPassword(newPassword, threepid_creds, callback);
             }
         }));
     }
@@ -230,11 +226,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
             mApi.forgetPassword(forgetPasswordParams, new RestAdapterCallback<ForgetPasswordResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
-                    try {
-                        forgetPassword(email, callback);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "## forgetPassword() failed" + e.getMessage());
-                    }
+                    forgetPassword(email, callback);
                 }
             }) {
                 @Override

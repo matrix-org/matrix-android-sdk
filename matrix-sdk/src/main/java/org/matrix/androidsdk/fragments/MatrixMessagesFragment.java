@@ -667,7 +667,7 @@ public class MatrixMessagesFragment extends Fragment {
                                     mMatrixMessagesListener.hideInitLoading();
                                     mMatrixMessagesListener.onInitialMessagesLoaded();
                                 } catch (Exception e) {
-                                    Log.e(LOG_TAG, "joinRoom callback fails " + e.getLocalizedMessage());
+                                    Log.e(LOG_TAG, "joinRoom callback fails " + e.getMessage());
                                 }
                             }
                         });
@@ -694,19 +694,19 @@ public class MatrixMessagesFragment extends Fragment {
             // the request will be automatically restarted when a valid network will be found
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "joinRoom Network error: " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "joinRoom Network error: " + e.getMessage());
                 onError(e.getLocalizedMessage());
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "joinRoom onMatrixError : " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "joinRoom onMatrixError : " + e.getMessage());
                 onError(e.getLocalizedMessage());
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "joinRoom Override : " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "joinRoom Override : " + e.getMessage());
                 onError(e.getLocalizedMessage());
             }
         });

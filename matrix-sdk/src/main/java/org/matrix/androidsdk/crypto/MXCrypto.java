@@ -1124,7 +1124,7 @@ public class MXCrypto {
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getMessage());
 
                 if (null != callback) {
                     callback.onMatrixError(e);

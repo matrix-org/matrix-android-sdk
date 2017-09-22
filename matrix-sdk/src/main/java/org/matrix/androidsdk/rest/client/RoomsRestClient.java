@@ -84,11 +84,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.sendMessage(transactionId, roomId, message, new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    sendMessage(transactionId, roomId, message, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend sendMessage : failed " + e.getLocalizedMessage());
-                }
+                sendMessage(transactionId, roomId, message, callback);
             }
         }));
     }
@@ -112,11 +108,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
             mApi.send(transactionId, roomId, eventType, content, new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
-                    try {
-                        sendEventToRoom(transactionId, roomId, eventType, content, callback);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "resend sendEvent : failed " + e.getLocalizedMessage());
-                    }
+                    sendEventToRoom(transactionId, roomId, eventType, content, callback);
                 }
             }));
         } else {
@@ -138,11 +130,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.getRoomMessagesFrom(roomId, (direction == EventTimeline.Direction.BACKWARDS) ? "b" : "f", fromToken, limit, new RestAdapterCallback<TokensChunkResponse<Event>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    getRoomMessagesFrom(roomId, fromToken, direction, limit, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend messagesFrom : failed " + e.getLocalizedMessage());
-                }
+                getRoomMessagesFrom(roomId, fromToken, direction, limit, callback);
             }
         }));
     }
@@ -161,11 +149,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.invite(roomId, user, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    inviteUserToRoom(roomId, userId, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend inviteToRoom : failed " + e.getLocalizedMessage());
-                }
+                inviteUserToRoom(roomId, userId, callback);
             }
         }));
     }
@@ -209,11 +193,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.invite(roomId, parameters, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    inviteThreePidToRoom(medium, address, roomId, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend inviteThreePidToRoom : failed " + e.getLocalizedMessage());
-                }
+                inviteThreePidToRoom(medium, address, roomId, callback);
             }
         }));
     }
@@ -239,11 +219,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.joinRoomByAliasOrId(roomIdOrAlias, (null == params) ? new HashMap<String, Object>() : params, new RestAdapterCallback<RoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    joinRoom(roomIdOrAlias, params, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend joinRoomByAlias : failed " + e.getLocalizedMessage());
-                }
+                joinRoom(roomIdOrAlias, params, callback);
             }
         }));
     }
@@ -259,11 +235,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.leave(roomId, new JsonObject(), new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    leaveRoom(roomId, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend leaveRoom : failed " + e.getLocalizedMessage());
-                }
+                leaveRoom(roomId, callback);
             }
         }));
     }
@@ -279,11 +251,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.forget(roomId, new JsonObject(), new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    leaveRoom(roomId, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend forgetRoom : failed " + e.getLocalizedMessage());
-                }
+                leaveRoom(roomId, callback);
             }
         }));
     }
@@ -304,11 +272,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.updateRoomMember(roomId, userId, member, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    kickFromRoom(roomId, userId, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend kickFromRoom : failed " + e.getLocalizedMessage());
-                }
+                kickFromRoom(roomId, userId, callback);
             }
         }));
     }
@@ -325,11 +289,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.ban(roomId, user, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    banFromRoom(roomId, user, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend banFromRoom : failed " + e.getLocalizedMessage());
-                }
+                banFromRoom(roomId, user, callback);
             }
         }));
     }
@@ -346,11 +306,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.unban(roomId, user, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    unbanFromRoom(roomId, user, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend unbanFromRoom : failed " + e.getLocalizedMessage());
-                }
+                unbanFromRoom(roomId, user, callback);
             }
         }));
     }
@@ -384,11 +340,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.createRoom(roomState, new RestAdapterCallback<CreateRoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    createRoom(name, topic, visibility, alias, guestAccess, historyVisibility, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend createRoom failed " + e.getLocalizedMessage());
-                }
+                createRoom(name, topic, visibility, alias, guestAccess, historyVisibility, callback);
             }
         }));
     }
@@ -406,11 +358,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.createRoom(parameters, new RestAdapterCallback<CreateRoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    createRoom(parameters, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend createRoom failed " + e.getLocalizedMessage());
-                }
+                createRoom(parameters, callback);
             }
         }));
     }
@@ -426,11 +374,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.initialSync(roomId, DEFAULT_MESSAGES_PAGINATION_LIMIT, new RestAdapterCallback<RoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    initialSync(roomId, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend initialSync failed " + e.getLocalizedMessage());
-                }
+                initialSync(roomId, callback);
             }
         }));
     }
@@ -448,11 +392,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.getContextOfEvent(roomId, eventId, limit, new RestAdapterCallback<EventContext>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    getContextOfEvent(roomId, eventId, limit, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend getContextOfEvent failed " + e.getLocalizedMessage());
-                }
+                getContextOfEvent(roomId, eventId, limit, callback);
             }
         }));
     }
@@ -472,11 +412,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.setRoomName(roomId, roomState, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    updateRoomName(roomId, name, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend updateName failed " + e.getLocalizedMessage());
-                }
+                updateRoomName(roomId, name, callback);
             }
         }));
     }
@@ -496,11 +432,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.setCanonicalAlias(roomId, roomState, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    updateCanonicalAlias(roomId, canonicalAlias, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend updateCanonicalAlias failed " + e.getLocalizedMessage());
-                }
+                updateCanonicalAlias(roomId, canonicalAlias, callback);
             }
         }));
     }
@@ -520,11 +452,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.setHistoryVisibility(roomId, roomState, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    updateHistoryVisibility(roomId, aVisibility, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend updateHistoryVisibility failed " + e.getLocalizedMessage());
-                }
+                updateHistoryVisibility(roomId, aVisibility, callback);
             }
         }));
     }
@@ -544,11 +472,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.setRoomDirectoryVisibility(aRoomId, roomState, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    updateDirectoryVisibility(aRoomId, aDirectoryVisibility, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend updateHistoryVisibility failed " + e.getLocalizedMessage());
-                }
+                updateDirectoryVisibility(aRoomId, aDirectoryVisibility, callback);
             }
         }));
     }
@@ -585,11 +509,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.setRoomTopic(roomId, roomState, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    updateTopic(roomId, topic, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend updateTopic failed " + e.getLocalizedMessage());
-                }
+                updateTopic(roomId, topic, callback);
             }
         }));
     }
@@ -606,13 +526,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.redactEvent(roomId, eventId, new JsonObject(), new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                Log.e(LOG_TAG, "resend redactEvent " + roomId);
-
-                try {
-                    redactEvent(roomId, eventId, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend redactEvent failed " + e.getLocalizedMessage());
-                }
+                redactEvent(roomId, eventId, callback);
             }
         }));
     }
@@ -640,11 +554,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.reportEvent(roomId, eventId, content, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    reportEvent(roomId, eventId, score, reason, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend report failed " + e.getLocalizedMessage());
-                }
+                reportEvent(roomId, eventId, score, reason, callback);
             }
         }));
     }
@@ -661,11 +571,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.setPowerLevels(roomId, powerLevels, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    updatePowerLevels(roomId, powerLevels, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend updatePowerLevels failed " + e.getLocalizedMessage());
-                }
+                updatePowerLevels(roomId, powerLevels, callback);
             }
         }));
     }
@@ -685,22 +591,14 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
             mApi.sendStateEvent(roomId, eventType, stateKey, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
-                    try {
-                        sendStateEvent(roomId, eventType, stateKey, params, callback);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "resend sendStateEvent failed " + e.getLocalizedMessage());
-                    }
+                    sendStateEvent(roomId, eventType, stateKey, params, callback);
                 }
             }));
         } else {
             mApi.sendStateEvent(roomId, eventType, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
-                    try {
-                        sendStateEvent(roomId, eventType, null, params, callback);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "resend sendStateEvent failed " + e.getLocalizedMessage());
-                    }
+                    sendStateEvent(roomId, eventType, null, params, callback);
                 }
             }));
         }
@@ -718,11 +616,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.getStateEvent(roomId, eventType, new RestAdapterCallback<JsonElement>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    getStateEvent(roomId, eventType, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend getStateEvent failed " + e.getLocalizedMessage());
-                }
+                getStateEvent(roomId, eventType, callback);
             }
         }));
     }
@@ -740,11 +634,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.getStateEvent(roomId, eventType, stateKey, new RestAdapterCallback<JsonElement>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    getStateEvent(roomId, eventType, stateKey, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend getStateEvent failed " + e.getLocalizedMessage());
-                }
+                getStateEvent(roomId, eventType, stateKey, callback);
             }
         }));
     }
@@ -785,11 +675,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.setRoomAvatarUrl(roomId, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    updateAvatarUrl(roomId, avatarUrl, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend updateAvatarUrl failed " + e.getLocalizedMessage());
-                }
+                updateAvatarUrl(roomId, avatarUrl, callback);
             }
         }));
     }
@@ -816,11 +702,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.sendReadMarker(roomId, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, true, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    sendReadMarker(roomId, rmEventId, rrEventId, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend sendReadmarker : failed " + e.getLocalizedMessage());
-                }
+                sendReadMarker(roomId, rmEventId, rrEventId, callback);
             }
         }));
     }
@@ -843,11 +725,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.addTag(mCredentials.userId, roomId, tag, hashMap, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    addTag(roomId, tag, order, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend addTag : failed " + e.getLocalizedMessage());
-                }
+                addTag(roomId, tag, order, callback);
             }
         }));
     }
@@ -865,11 +743,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.removeTag(mCredentials.userId, roomId, tag, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    removeTag(roomId, tag, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend removeTag : failed " + e.getLocalizedMessage());
-                }
+                removeTag(roomId, tag, callback);
             }
         }));
     }
@@ -885,11 +759,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.getRoomIdByAlias(roomAlias, new RestAdapterCallback<RoomAliasDescription>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    getRoomIdByAlias(roomAlias, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend getRoomIdByAlias : failed " + e.getLocalizedMessage());
-                }
+                getRoomIdByAlias(roomAlias, callback);
             }
         }));
     }
@@ -909,11 +779,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.setRoomIdByAlias(roomAlias, roomAliasDescription, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    setRoomIdByAlias(roomId, roomAlias, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend setRoomIdByAlias : failed " + e.getLocalizedMessage());
-                }
+                setRoomIdByAlias(roomId, roomAlias, callback);
             }
         }));
     }
@@ -929,11 +795,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.removeRoomAlias(roomAlias, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    removeRoomAlias(roomAlias, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend removeRoomAlias : failed " + e.getLocalizedMessage());
-                }
+                removeRoomAlias(roomAlias, callback);
             }
         }));
     }
@@ -955,11 +817,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.setJoinRules(aRoomId, roomStateParam, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    updateJoinRules(aRoomId, aJoinRule, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend updateJoinRules failed " + e.getLocalizedMessage());
-                }
+                updateJoinRules(aRoomId, aJoinRule, callback);
             }
         }));
     }
@@ -981,13 +839,8 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.setGuestAccess(aRoomId, roomStateParam, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    updateGuestAccess(aRoomId, aGuestAccessRule, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "resend updateJoinRules failed " + e.getLocalizedMessage());
-                }
+                updateGuestAccess(aRoomId, aGuestAccessRule, callback);
             }
-
         }));
     }
 }
