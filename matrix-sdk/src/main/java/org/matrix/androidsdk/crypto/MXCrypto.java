@@ -41,6 +41,7 @@ import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.model.DeviceListResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.MatrixError;
@@ -240,7 +241,7 @@ public class MXCrypto {
         if (refreshDevicesList) {
             // ensure to have the up-to-date devices list
             // got some issues when upgrading from Riot < 0.6.4
-            mDevicesList.invalidateUserDeviceList(Arrays.asList(mSession.getMyUserId()));
+            mDevicesList.handleDeviceListsChanges(Arrays.asList(mSession.getMyUserId()), null);
         }
     }
 
@@ -333,7 +334,7 @@ public class MXCrypto {
      * @return the tracking status
      */
     public int getDeviceTrackingStatus(String userId) {
-        return mCryptoStore.getDeviceTrackingStatus(userId, MXDeviceList.TRACKING_STATUS_UNDEFINED);
+        return mCryptoStore.getDeviceTrackingStatus(userId, MXDeviceList.TRACKING_STATUS_NOT_TRACKED);
     }
 
     /**
@@ -584,7 +585,7 @@ public class MXCrypto {
             @Override
             public void run() {
                 if (null != syncResponse.deviceLists) {
-                    getDeviceList().invalidateUserDeviceList(syncResponse.deviceLists.changed);
+                    getDeviceList().handleDeviceListsChanges(syncResponse.deviceLists.changed, syncResponse.deviceLists.left);
                 }
 
                 if (isStarted()) {
@@ -1542,7 +1543,7 @@ public class MXCrypto {
 
         // Catch up on any m.new_device events which arrived during the initial sync.
         // And force download all devices keys  the user already has.
-        mDevicesList.invalidateUserDeviceList(Arrays.asList(mMyDevice.userId));
+        mDevicesList.handleDeviceListsChanges(Arrays.asList(mMyDevice.userId), null);
         mDevicesList.refreshOutdatedDeviceLists();
 
         // We need to tell all the devices in all the rooms we are members of that
@@ -1729,7 +1730,7 @@ public class MXCrypto {
             return;
         }
 
-        mDevicesList.invalidateUserDeviceList(Arrays.asList(userId));
+        mDevicesList.handleDeviceListsChanges(Arrays.asList(userId), null);
     }
 
     /**

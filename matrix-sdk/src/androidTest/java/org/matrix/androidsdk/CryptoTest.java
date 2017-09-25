@@ -4313,6 +4313,186 @@ public class CryptoTest {
         mAliceSession.clear(context);
     }
 
+    // Test for https://github.com/vector-im/riot-web/issues/4983
+    // - Alice and Bob share an e2e room; Bob tracks Alice's devices
+    // - Bob leaves the room, so stops getting updates
+    // - Alice adds a new device
+    // - Alice and Bob start sharing a room again
+    // - Bob has an out of date list of Alice's devices
+    @Test
+    public void test28_testLeftBobAndAliceWithNewDevice() throws Exception {
+        Log.e(LOG_TAG, "test28_testLeftBobAndAliceWithNewDevice");
+        Context context = InstrumentationRegistry.getContext();
+        final HashMap<String, Object> results = new HashMap();
+
+        doE2ETestWithAliceAndBobInARoomWithCryptedMessages(true);
+
+        // - Bob leaves the room, so stops getting updates
+        final CountDownLatch lock1 = new CountDownLatch(1);
+
+        final Room bobLeftRoom = mBobSession.getDataHandler().getRoom(mRoomId);
+        bobLeftRoom.leave(new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                results.put("lock1", "lock1");
+                lock1.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock1.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock1.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock1.countDown();
+            }
+        });
+
+        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue (results.containsKey("lock1"));
+
+        // - Alice adds a new device
+        final MXSession aliceSession2 = CryptoTestHelper.logAccountAndSync(context, mAliceSession.getMyUserId(), MXTESTS_ALICE_PWD);
+        assertTrue (null != aliceSession2);
+
+        // - Alice and Bob start sharing a room again
+        final CountDownLatch lock3 = new CountDownLatch(1);
+        aliceSession2.createRoom(null, null, RoomState.DIRECTORY_VISIBILITY_PUBLIC, null, RoomState.GUEST_ACCESS_CAN_JOIN, RoomState.HISTORY_VISIBILITY_SHARED, new ApiCallback<String>() {
+            @Override
+            public void onSuccess(String info) {
+                mRoomId = info;
+                lock3.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock3.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock3.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock3.countDown();
+            }
+        });
+        lock3.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue (null != mRoomId);
+
+        Room roomFromAlicePOV = aliceSession2.getDataHandler().getRoom(mRoomId);
+        final CountDownLatch lock4 = new CountDownLatch(1);
+        roomFromAlicePOV.enableEncryptionWithAlgorithm(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                results.put("lock4", "lock4");
+                lock4.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock4.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock4.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock4.countDown();
+            }
+        });
+        lock4.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue (results.containsKey("lock4"));
+
+        final CountDownLatch lock5 = new CountDownLatch(1);
+        mBobSession.joinRoom(mRoomId, new ApiCallback<String>() {
+            @Override
+            public void onSuccess(String info) {
+                results.put("lock5", "lock5");
+                lock5.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock5.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock5.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock5.countDown();
+            }
+        });
+        lock5.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue (results.containsKey("lock5"));
+
+        // - Bob has an out of date list of Alice's devices
+        Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
+        final String messageFromBob = "Hello Alice with new device!";
+        final CountDownLatch lock6 = new CountDownLatch(2);
+        MXEventListener eventListener = new MXEventListener() {
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                try {
+                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                        if (checkEncryptedEvent(event, mRoomId, messageFromBob, mBobSession)) {
+                            results.put("lock6", "lock6");
+                            lock6.countDown();
+                        }
+                    }
+                } catch (Exception e) {
+                }
+            }
+        };
+
+        roomFromAlicePOV.addEventListener(eventListener);
+
+        roomFromBobPOV.sendEvent(buildTextEvent(messageFromBob, mBobSession), new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                lock6.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                lock6.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                lock6.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                lock6.countDown();
+            }
+        });
+
+        lock6.await(5000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results.containsKey("lock6"));
+
+        mBobSession.clear(context);
+        mAliceSession.clear(context);
+        aliceSession2.clear(context);
+    }
+
+
     //==============================================================================================================
     // private test routines
     //==============================================================================================================
