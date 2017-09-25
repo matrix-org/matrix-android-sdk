@@ -39,7 +39,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
     }
 
     // the event description
-    private String mEventDescription;
+    private final String mEventDescription;
 
     // the callback
     private final ApiCallback mApiCallback;

@@ -112,20 +112,20 @@ public class MXSession {
     private DataRetriever mDataRetriever;
     private MXDataHandler mDataHandler;
     private EventsThread mEventsThread;
-    private Credentials mCredentials;
+    private final Credentials mCredentials;
 
     // Api clients
     private EventsRestClient mEventsRestClient;
     private ProfileRestClient mProfileRestClient;
     private PresenceRestClient mPresenceRestClient;
     private RoomsRestClient mRoomsRestClient;
-    private BingRulesRestClient mBingRulesRestClient;
-    private PushersRestClient mPushersRestClient;
-    private ThirdPidRestClient mThirdPidRestClient;
-    private CallRestClient mCallRestClient;
-    private AccountDataRestClient mAccountDataRestClient;
-    private CryptoRestClient mCryptoRestClient;
-    private LoginRestClient mLoginRestClient;
+    private final BingRulesRestClient mBingRulesRestClient;
+    private final PushersRestClient mPushersRestClient;
+    private final ThirdPidRestClient mThirdPidRestClient;
+    private final CallRestClient mCallRestClient;
+    private final AccountDataRestClient mAccountDataRestClient;
+    private final CryptoRestClient mCryptoRestClient;
+    private final LoginRestClient mLoginRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -147,7 +147,7 @@ public class MXSession {
     // online status
     private boolean mIsOnline = false;
 
-    private HomeserverConnectionConfig mHsConfig;
+    private final HomeserverConnectionConfig mHsConfig;
 
     // the application is launched from a notification
     // so, mEventsThread.start might be not ready
@@ -157,7 +157,7 @@ public class MXSession {
     private boolean mUseDataSaveMode;
 
     // load the crypto libs.
-    public static OlmManager mOlmManager = new OlmManager();
+    public static final OlmManager mOlmManager = new OlmManager();
 
     // regex pattern to find matrix user ids in a string.
     public static final String MATRIX_USER_IDENTIFIER_REGEX = "@[A-Z0-9._=-]+:[A-Z0-9.-]+\\.[A-Z]{2,}+(\\:[0-9]{2,})?";
@@ -1824,8 +1824,8 @@ public class MXSession {
      * This class defines a direct chat backward compliancyc structure
      */
     private class RoomIdsListRetroCompat {
-        String mRoomId;
-        String mParticipantUserId;
+        final String mRoomId;
+        final String mParticipantUserId;
 
         public RoomIdsListRetroCompat(String aParticipantUserId, String aRoomId) {
             this.mParticipantUserId = aParticipantUserId;

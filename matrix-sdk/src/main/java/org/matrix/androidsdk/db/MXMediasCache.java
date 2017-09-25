@@ -76,7 +76,7 @@ public class MXMediasCache {
     private File mThumbnailsFolderFile = null;
 
     // track the network updates
-    private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
+    private final NetworkConnectivityReceiver mNetworkConnectivityReceiver;
 
     /**
      * Clear the former medias cache.

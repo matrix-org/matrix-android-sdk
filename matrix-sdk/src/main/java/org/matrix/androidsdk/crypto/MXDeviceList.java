@@ -72,7 +72,7 @@ public class MXDeviceList {
     private final HashSet<String> mNotReadyToRetryHS = new HashSet<>();
 
     // indexed by UserId
-    private HashMap<String, String> mPendingDownloadKeysRequestToken = new HashMap<>();
+    private final HashMap<String, String> mPendingDownloadKeysRequestToken = new HashMap<>();
 
     // download keys queue
     class DownloadKeysPromise {

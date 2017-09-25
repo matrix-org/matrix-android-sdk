@@ -87,7 +87,7 @@ public class MXMemoryStore implements IMXStore {
 
     protected String mEventStreamToken = null;
 
-    protected ArrayList<IMXStoreListener> mListeners = new ArrayList<>();
+    protected final ArrayList<IMXStoreListener> mListeners = new ArrayList<>();
 
     // Meta data about the store. It is defined only if the passed MXCredentials contains all information.
     // When nil, nothing is stored on the file system.

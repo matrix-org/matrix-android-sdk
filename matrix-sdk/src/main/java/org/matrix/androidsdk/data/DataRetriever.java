@@ -38,9 +38,9 @@ public class DataRetriever {
 
     private RoomsRestClient mRestClient;
 
-    private HashMap<String, String> mPendingFordwardRequestTokenByRoomId = new HashMap<>();
-    private HashMap<String, String> mPendingBackwardRequestTokenByRoomId = new HashMap<>();
-    private HashMap<String, String> mPendingRemoteRequestTokenByRoomId = new HashMap<>();
+    private final HashMap<String, String> mPendingFordwardRequestTokenByRoomId = new HashMap<>();
+    private final HashMap<String, String> mPendingBackwardRequestTokenByRoomId = new HashMap<>();
+    private final HashMap<String, String> mPendingRemoteRequestTokenByRoomId = new HashMap<>();
 
     public RoomsRestClient getRoomsRestClient() {
         return mRestClient;

@@ -134,7 +134,7 @@ public class MXDataHandler implements IMXEventListener {
     private boolean mIsRetrievingLeftRooms;
 
     // the left rooms are saved in a dedicated store.
-    private MXMemoryStore mLeftRoomsStore;
+    private final MXMemoryStore mLeftRoomsStore;
 
     // e2e decoder
     private MXCrypto mCrypto;

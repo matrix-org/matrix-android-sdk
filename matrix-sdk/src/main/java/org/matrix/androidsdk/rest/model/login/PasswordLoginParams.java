@@ -28,16 +28,16 @@ import java.util.Map;
  * Object to pass to a /login call of type password.
  */
 public class PasswordLoginParams extends LoginParams {
-    public static String IDENTIFIER_KEY_TYPE_USER = "m.id.user";
-    public static String IDENTIFIER_KEY_TYPE_THIRD_PARTY = "m.id.thirdparty";
-    public static String IDENTIFIER_KEY_TYPE_PHONE = "m.id.phone";
+    public static final String IDENTIFIER_KEY_TYPE_USER = "m.id.user";
+    public static final String IDENTIFIER_KEY_TYPE_THIRD_PARTY = "m.id.thirdparty";
+    public static final String IDENTIFIER_KEY_TYPE_PHONE = "m.id.phone";
 
-    public static String IDENTIFIER_KEY_TYPE = "type";
-    public static String IDENTIFIER_KEY_MEDIUM = "medium";
-    public static String IDENTIFIER_KEY_ADDRESS = "address";
-    public static String IDENTIFIER_KEY_USER = "user";
-    public static String IDENTIFIER_KEY_COUNTRY = "country";
-    public static String IDENTIFIER_KEY_NUMBER = "number";
+    public static final String IDENTIFIER_KEY_TYPE = "type";
+    public static final String IDENTIFIER_KEY_MEDIUM = "medium";
+    public static final String IDENTIFIER_KEY_ADDRESS = "address";
+    public static final String IDENTIFIER_KEY_USER = "user";
+    public static final String IDENTIFIER_KEY_COUNTRY = "country";
+    public static final String IDENTIFIER_KEY_NUMBER = "number";
 
     // identifier parameters
     public Map<String, Object> identifier;

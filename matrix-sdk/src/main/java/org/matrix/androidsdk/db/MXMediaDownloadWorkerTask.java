@@ -151,12 +151,12 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
     /**
      * the encrypted file information
      */
-    private EncryptedFileInfo mEncryptedFileInfo;
+    private final EncryptedFileInfo mEncryptedFileInfo;
 
     /**
      * Network updates tracker
      */
-    private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
+    private final NetworkConnectivityReceiver mNetworkConnectivityReceiver;
 
     /**
      * Download constants

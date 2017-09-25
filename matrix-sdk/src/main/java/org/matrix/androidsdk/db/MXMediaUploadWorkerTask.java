@@ -55,7 +55,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
     private static final HashMap<String, MXMediaUploadWorkerTask> mPendingUploadByUploadId = new HashMap<>();
 
     // progress listener
-    private ArrayList<IMXMediaUploadListener> mUploadListeners = new ArrayList<>();
+    private final ArrayList<IMXMediaUploadListener> mUploadListeners = new ArrayList<>();
 
     // the upload stats
     private IMXMediaUploadListener.UploadStats mUploadStats;
@@ -84,7 +84,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
     private static final int UPLOAD_BUFFER_READ_SIZE = 1024 * 32;
 
     // dummy ApiCallback uses to be warned when the upload must be declared as "undeliverable".
-    private ApiCallback mApiCallback = new ApiCallback() {
+    private final ApiCallback mApiCallback = new ApiCallback() {
         @Override
         public void onSuccess(Object info) {
         }

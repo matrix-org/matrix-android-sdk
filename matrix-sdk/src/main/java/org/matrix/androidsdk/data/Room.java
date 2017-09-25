@@ -441,7 +441,7 @@ public class Room {
     }
 
     // member event caches
-    private Map<String, Event> mMemberEventByEventId = new HashMap<>();
+    private final Map<String, Event> mMemberEventByEventId = new HashMap<>();
 
     public void getMemberEvent(final String userId, final ApiCallback<Event> callback) {
         final Event event;

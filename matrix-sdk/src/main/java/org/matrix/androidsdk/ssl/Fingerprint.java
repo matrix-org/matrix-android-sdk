@@ -31,8 +31,8 @@ import java.util.Arrays;
 public class Fingerprint {
     public enum HashType { SHA1, SHA256 }
 
-    private byte[] mBytes;
-    private HashType mHashType;
+    private final byte[] mBytes;
+    private final  HashType mHashType;
     private String mDisplayableHexRepr;
 
     public Fingerprint(byte[] bytes, HashType hashType) {

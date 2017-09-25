@@ -132,7 +132,7 @@ public class MXFileStore extends MXMemoryStore {
     private final List<String> mRoomReceiptsToLoad = new ArrayList<>();
 
     // store some stats
-    private HashMap<String, Long> mStoreStats = new HashMap<>();
+    private final HashMap<String, Long> mStoreStats = new HashMap<>();
 
     /**
      * Create the file store dirtrees

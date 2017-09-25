@@ -26,8 +26,8 @@ import java.util.concurrent.Executor;
  * MXRestExecutor is a basic thread executor
  */
 public class MXRestExecutor implements Executor {
-    private HandlerThread mHandlerThread;
-    private MXOsHandler mHandler;
+    private final HandlerThread mHandlerThread;
+    private final MXOsHandler mHandler;
 
     public MXRestExecutor() {
         mHandlerThread = new HandlerThread("MXRestExecutor" + this.hashCode(), Thread.MIN_PRIORITY);

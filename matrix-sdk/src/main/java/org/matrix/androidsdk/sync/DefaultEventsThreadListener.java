@@ -25,7 +25,7 @@ import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
  */
 public class DefaultEventsThreadListener implements EventsThreadListener {
 
-    private MXDataHandler mData;
+    private final MXDataHandler mData;
 
     public DefaultEventsThreadListener(MXDataHandler data) {
         mData = data;

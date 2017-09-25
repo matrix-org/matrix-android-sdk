@@ -34,10 +34,10 @@ public class ContentManager {
     public static final String URI_PREFIX_CONTENT_API = "/_matrix/media/v1";
 
     // HS config
-    private HomeserverConnectionConfig mHsConfig;
+    private final HomeserverConnectionConfig mHsConfig;
 
     // the unsent events Manager
-    private UnsentEventsManager mUnsentEventsManager;
+    private final UnsentEventsManager mUnsentEventsManager;
 
     /**
      * Default constructor.

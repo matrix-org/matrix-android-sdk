@@ -74,9 +74,9 @@ public class EventsThread extends Thread {
     private int mNextServerTimeoutms = DEFAULT_SERVER_TIMEOUT_MS;
 
     // add a delay between two sync requests
-    private Context mContext;
+    private final Context mContext;
     private int mRequestDelayMs = 0;
-    private AlarmManager mAlarmManager;
+    private final AlarmManager mAlarmManager;
     private PowerManager mPowerManager;
     private PendingIntent mPendingDelayedIntent;
     private static final Map<String, EventsThread> mSyncObjectByInstance = new HashMap<>();

@@ -79,16 +79,16 @@ public class BingRulesManager {
     }
 
     // general members
-    private BingRulesRestClient mApiClient;
-    private MXSession mSession;
-    private String mMyUserId;
-    private MXDataHandler mDataHandler;
+    private final BingRulesRestClient mApiClient;
+    private final MXSession mSession;
+    private final String mMyUserId;
+    private final MXDataHandler mDataHandler;
 
     // the rules set to apply
     private BingRuleSet mRulesSet = new BingRuleSet();
 
     // the rules list
-    private List<BingRule> mRules = new ArrayList<>();
+    private final List<BingRule> mRules = new ArrayList<>();
 
     // the default bing rule
     private BingRule mDefaultBingRule = new BingRule(true);
@@ -97,7 +97,7 @@ public class BingRulesManager {
     private boolean mIsInitialized = false;
 
     // map to check if a room is "mention only"
-    private Map<String, Boolean> mIsMentionOnlyMap = new HashMap<>();
+    private final Map<String, Boolean> mIsMentionOnlyMap = new HashMap<>();
 
     // network management
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
@@ -105,7 +105,7 @@ public class BingRulesManager {
     private ApiCallback<Void> mLoadRulesCallback;
 
     //  listener
-    private Set<onBingRulesUpdateListener> mBingRulesUpdateListeners = new HashSet<>();
+    private final Set<onBingRulesUpdateListener> mBingRulesUpdateListeners = new HashSet<>();
 
     /**
      * Constructor

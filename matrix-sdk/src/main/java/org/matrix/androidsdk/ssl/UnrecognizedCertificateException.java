@@ -24,8 +24,8 @@ import java.security.cert.X509Certificate;
  * expect.
  */
 public class UnrecognizedCertificateException extends CertificateException {
-    private X509Certificate mCert;
-    private Fingerprint mFingerprint;
+    private final X509Certificate mCert;
+    private final Fingerprint mFingerprint;
 
     public UnrecognizedCertificateException(X509Certificate cert, Fingerprint fingerprint, Throwable cause) {
         super("Unrecognized certificate with unknown fingerprint: " + cert.getSubjectDN(), cause);

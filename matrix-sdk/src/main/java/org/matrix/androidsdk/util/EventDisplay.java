@@ -55,7 +55,7 @@ public class EventDisplay {
     protected boolean mPrependAuthor;
 
     // let the application defines if the redacted events must be displayed
-    public static boolean mDisplayRedactedEvents = false;
+    public static final boolean mDisplayRedactedEvents = false;
 
     // constructor
     public EventDisplay(Context context, Event event, RoomState roomState) {

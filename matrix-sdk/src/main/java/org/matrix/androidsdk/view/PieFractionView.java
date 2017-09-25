@@ -36,11 +36,11 @@ public class PieFractionView extends View {
     // The fraction between 0 and 100
     private int fraction = 0;
 
-    private RectF rectF;
-    private Paint paint;
+    private final RectF rectF;
+    private final Paint paint;
 
-    private int powerColor;
-    private int restColor;
+    private final int powerColor;
+    private final int restColor;
 
     @SuppressLint("deprecation")
     public int fillColor() {
