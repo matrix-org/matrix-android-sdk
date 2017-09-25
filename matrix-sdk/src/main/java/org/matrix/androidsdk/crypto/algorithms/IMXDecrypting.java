@@ -25,7 +25,7 @@ import org.matrix.androidsdk.rest.model.Event;
 public interface IMXDecrypting {
     /**
      * Init the object fields
-     * @param matrixSession
+     * @param matrixSession the session
      */
     void initWithMatrixSession(MXSession matrixSession);
 

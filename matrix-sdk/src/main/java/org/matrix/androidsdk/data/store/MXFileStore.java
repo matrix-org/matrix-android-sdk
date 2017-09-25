@@ -2326,7 +2326,7 @@ public class MXFileStore extends MXMemoryStore {
      * @param names the names list
      * @return the filtered list
      */
-    private static final List<String> listFiles(String[] names) {
+    private static List<String> listFiles(String[] names) {
         ArrayList<String> filteredFilenames = new ArrayList<>();
         ArrayList<String> tmpFilenames = new ArrayList<>();
 

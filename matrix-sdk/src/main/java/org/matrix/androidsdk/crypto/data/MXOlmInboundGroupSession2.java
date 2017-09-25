@@ -78,7 +78,6 @@ public class MXOlmInboundGroupSession2 implements Serializable {
 
     /**
      * Create a new instance from the provided keys map.
-     * @return the inbound group session if the operation succeeds.
      */
     public MXOlmInboundGroupSession2(Map<String, Object> map) throws Exception {
         try {

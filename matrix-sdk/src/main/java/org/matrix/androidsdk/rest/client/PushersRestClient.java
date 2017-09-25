@@ -16,8 +16,6 @@
 
 package org.matrix.androidsdk.rest.client;
 
-import org.matrix.androidsdk.util.Log;
-
 import org.matrix.androidsdk.HomeserverConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.data.Pusher;

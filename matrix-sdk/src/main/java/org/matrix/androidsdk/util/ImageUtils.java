@@ -144,7 +144,7 @@ public class ImageUtils {
      * @param aSampleSize     the image dimension divider.
      * @param quality         the image quality (0 -> 100)
      * @return a stream of the resized imaged
-     * @throws IOException
+     * @throws IOException file IO exception.
      */
     public static InputStream resizeImage(InputStream fullImageStream, int maxSize, int aSampleSize, int quality) throws IOException {
         /*

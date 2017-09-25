@@ -191,7 +191,7 @@ public interface IMXEventListener {
     /**
      * A read marker has been updated
      *
-     * @param roomId
+     * @param roomId thr room id.
      */
     void onReadMarkerEvent(String roomId);
 

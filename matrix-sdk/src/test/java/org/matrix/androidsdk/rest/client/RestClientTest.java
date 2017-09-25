@@ -1,38 +1,9 @@
 package org.matrix.androidsdk.rest.client;
 
-import com.google.gson.FieldNamingPolicy;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import org.matrix.androidsdk.rest.model.PublicRoomsFilter;
-import org.matrix.androidsdk.rest.model.PublicRoomsParams;
-import org.matrix.androidsdk.rest.model.PublicRoomsResponse;
 import org.robolectric.RobolectricTestRunner;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.api.EventsApi;
-import org.matrix.androidsdk.rest.model.PublicRoom;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
-import org.matrix.androidsdk.test.JSONUtils;
-import org.matrix.androidsdk.test.RetrofitUtils;
-import org.mockito.ArgumentCaptor;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-
-
-import java.util.List;
-
-import retrofit.Callback;
-import retrofit.client.Response;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 
 /**
  * Unit tests RestClient.

@@ -66,7 +66,7 @@ public class CertUtil {
      * @param cert the certificate
      * @param type the type
      * @return the fingerprint
-     * @throws CertificateException
+     * @throws CertificateException certificate exception
      */
     private static byte[] generateFingerprint(X509Certificate cert, String type) throws CertificateException {
         final byte[] fingerprint;

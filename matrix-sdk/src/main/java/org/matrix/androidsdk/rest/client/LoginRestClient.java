@@ -177,8 +177,8 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * Make login request
      *
      * @param params login params
-     * @param callback
-     * @param description
+     * @param callback the asynchronous callback
+     * @param description the request description
      */
     private void login(final PasswordLoginParams params, final ApiCallback<Credentials> callback, final String description) {
         mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,

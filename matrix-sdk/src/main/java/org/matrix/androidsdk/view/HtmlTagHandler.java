@@ -34,7 +34,6 @@ import android.text.style.LeadingMarginSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.TypefaceSpan;
 
-import org.matrix.androidsdk.R;
 import org.xml.sax.XMLReader;
 
 import java.util.Stack;
@@ -55,9 +54,7 @@ public class HtmlTagHandler implements Html.TagHandler {
      * we can continue with correct index of outer list
      */
     Stack<Integer> olNextIndex = new Stack<>();
-    /**
-     * List indentation in pixels. Nested lists use multiple of this.
-     */
+
     /**
      * Running HTML table string based off of the root table tag. Root table tag being the tag which
      * isn't embedded within any other table tag. Example:

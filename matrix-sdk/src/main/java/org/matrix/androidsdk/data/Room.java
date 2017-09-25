@@ -70,7 +70,6 @@ import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.util.ImageUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
-import org.matrix.androidsdk.util.MXOsHandler;
 
 import java.io.File;
 import java.lang.reflect.Type;
@@ -1287,7 +1286,7 @@ public class Room {
      * Forget the current read marker
      * This will update the read marker to match the read receipt
      *
-     * @param callback
+     * @param callback the asynchronous callback
      */
     public void forgetReadMarker(final ApiCallback<Void> callback) {
         final RoomSummary summary = mStore.getSummary(getRoomId());
@@ -1372,11 +1371,11 @@ public class Room {
     }
 
     /**
-     * Send the request to update the read marker and read receipt
+     * Send the request to update the read marker and read receipt.
      *
-     * @param aReadMarkerEventId
-     * @param aReadReceiptEventId
-     * @param callback
+     * @param aReadMarkerEventId the read marker event id
+     * @param aReadReceiptEventId the read receipt event id
+     * @param callback the asynchronous callback
      */
     private void setReadMarkers(final String aReadMarkerEventId, final String aReadReceiptEventId, final ApiCallback<Void> callback) {
         Log.d(LOG_TAG, "## setReadMarkers(): readMarkerEventId " + aReadMarkerEventId + " readReceiptEventId " + aReadMarkerEventId);

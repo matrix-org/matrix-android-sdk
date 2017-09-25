@@ -64,8 +64,8 @@ public abstract class AbstractMessagesAdapter extends ArrayAdapter<MessageRow> {
      * Get the closest row after the given event
      * Used when we need to jump to an event that is not displayed
      *
-     * @param event
-     * @return closest row
+     * @param event the event
+     * @return closest row the closest row
      */
     public abstract MessageRow getClosestRow(Event event);
 
@@ -73,8 +73,8 @@ public abstract class AbstractMessagesAdapter extends ArrayAdapter<MessageRow> {
      * Get the closest row after the given event id/ts
      * Used when we need to jump to an event that is not displayed
      *
-     * @param eventId
-     * @param eventTs
+     * @param eventId the event id
+     * @param eventTs the event timestamp
      * @return closest row
      */
     public abstract MessageRow getClosestRowFromTs(final String eventId, final long eventTs);
@@ -82,8 +82,8 @@ public abstract class AbstractMessagesAdapter extends ArrayAdapter<MessageRow> {
     /**
      * Get the closest row before the given event id/ts
      *
-     * @param eventId
-     * @param eventTs
+     * @param eventId the event id
+     * @param eventTs the event timestamp
      * @return closest row
      */
     public abstract MessageRow getClosestRowBeforeTs(final String eventId, final long eventTs);
@@ -119,7 +119,7 @@ public abstract class AbstractMessagesAdapter extends ArrayAdapter<MessageRow> {
     /**
      * Set whether we are ine preview mode to show unread messages
      *
-     * @param isUnreadViewMode
+     * @param isUnreadViewMode true if it shoudl be displayed in preview mode.
      */
     public abstract void setIsUnreadViewMode(boolean isUnreadViewMode);
 
@@ -157,7 +157,7 @@ public abstract class AbstractMessagesAdapter extends ArrayAdapter<MessageRow> {
     /**
      * Specify the last read message (to display read marker line)
      *
-     * @param readMarkerEventId
+     * @param readMarkerEventId the read marker event id.
      */
     public abstract void updateReadMarker(final String readMarkerEventId, final String readReceiptEventId);
 

@@ -28,7 +28,6 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.util.Log;
 
-import java.util.Collections;
 import java.util.Map;
 
 /**

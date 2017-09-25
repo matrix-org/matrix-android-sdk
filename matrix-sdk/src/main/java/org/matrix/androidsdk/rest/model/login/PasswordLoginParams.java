@@ -58,8 +58,8 @@ public class PasswordLoginParams extends LoginParams {
     /**
      * Set login params for username/password
      *
-     * @param username
-     * @param password
+     * @param username the username
+     * @param password the password
      */
     public void setUserIdentifier(@NonNull final String username, @NonNull final String password) {
         identifier = new HashMap<>();
@@ -76,7 +76,7 @@ public class PasswordLoginParams extends LoginParams {
      *
      * @param medium   3pid type
      * @param address  3pid value
-     * @param password
+     * @param password the password
      */
     public void setThirdPartyIdentifier(@NonNull final String medium, @NonNull final String address, @NonNull final String password) {
         identifier = new HashMap<>();
@@ -93,9 +93,9 @@ public class PasswordLoginParams extends LoginParams {
     /**
      * Set login params for phone number/password
      *
-     * @param phoneNumber
-     * @param countryCode
-     * @param password
+     * @param phoneNumber the phone number
+     * @param countryCode the country code
+     * @param password the password
      */
     public void setPhoneIdentifier(@NonNull final String phoneNumber, @NonNull final String countryCode, @NonNull final String password) {
         identifier = new HashMap<>();
@@ -109,7 +109,7 @@ public class PasswordLoginParams extends LoginParams {
     /**
      * Set basic params
      *
-     * @param password
+     * @param password the password
      */
     private void setOtherData(@NonNull final String password) {
         this.password = password;

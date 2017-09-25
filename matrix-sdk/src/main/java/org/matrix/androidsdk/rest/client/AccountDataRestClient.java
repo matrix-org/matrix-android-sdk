@@ -24,11 +24,6 @@ import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import java.util.HashMap;
 import java.util.Map;
 
-import retrofit.Callback;
-import retrofit.http.Body;
-import retrofit.http.POST;
-import retrofit.http.Path;
-
 public class AccountDataRestClient extends RestClient<AccountDataApi> {
     /**
      * Account data types

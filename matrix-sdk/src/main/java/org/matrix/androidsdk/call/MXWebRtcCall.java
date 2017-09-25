@@ -17,6 +17,7 @@
 
 package org.matrix.androidsdk.call;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Build;
 import android.support.v4.content.ContextCompat;
@@ -986,6 +987,7 @@ public class MXWebRtcCall extends MXCall {
      * @param callInviteParams    the invite params
      * @param aLocalVideoPosition position of the local video attendee
      */
+    @SuppressLint("deprecation")
     private void initCallUI(final JsonObject callInviteParams, VideoLayoutConfiguration aLocalVideoPosition) {
         Log.d(LOG_TAG, "## initCallUI(): IN");
 

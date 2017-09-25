@@ -68,7 +68,6 @@ import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResult;
-import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -159,7 +158,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         /**
          * See {@link AbsListView.OnScrollListener#onScrollStateChanged(AbsListView, int)}
          *
-         * @param scrollState
+         * @param scrollState the scrollstate
          */
         void onScrollStateChanged(int scrollState);
     }
@@ -2333,8 +2332,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     /**
      * Scroll to the given row
      *
-     * @param messageRow
-     * @param isLastRead
+     * @param messageRow the message row.
+     * @param isLastRead true if the row is the latest read one.
      */
     public void scrollToRow(final MessageRow messageRow, boolean isLastRead) {
         final int distanceFromTop = (int) (getResources().getDisplayMetrics().density * 100);

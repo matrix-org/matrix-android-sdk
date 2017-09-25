@@ -21,7 +21,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.HashMap;
 import java.util.regex.Pattern;

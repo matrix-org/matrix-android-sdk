@@ -44,8 +44,7 @@ android {
         classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
         destinationDir = file("../docs/javadoc/")
         delete "../docs/"
-        
-        options.memberLevel = org.gradle.external.javadoc.JavadocMemberLevel.PRIVATE
+
         options.links("http://docs.oracle.com/javase/7/docs/api/");
         options.links("http://developer.android.com/reference/");
         exclude '**/BuildConfig.java'

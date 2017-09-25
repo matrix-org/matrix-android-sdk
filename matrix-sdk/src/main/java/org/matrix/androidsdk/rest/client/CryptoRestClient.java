@@ -41,11 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import retrofit.Callback;
 import retrofit.client.Response;
-import retrofit.http.Body;
-import retrofit.http.PUT;
-import retrofit.http.Path;
 
 public class CryptoRestClient extends RestClient<CryptoApi> {
 

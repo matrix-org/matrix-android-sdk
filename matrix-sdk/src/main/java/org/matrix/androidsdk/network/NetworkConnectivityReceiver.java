@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk.network;
 
+import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -139,6 +140,7 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
      *
      * @param context the context
      */
+    @SuppressLint("deprecation")
     private static void listNetworkConnections(Context context) {
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         List<NetworkInfo> networkInfos = new ArrayList<>();

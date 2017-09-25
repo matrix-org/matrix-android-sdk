@@ -236,14 +236,6 @@ public class MXCall implements IMXCall {
     }
 
     /**
-     * Set the linked room
-     * @param room the room
-     */
-    /*public void setRoom(Room room) {
-        setRooms(room, room);
-    }*/
-
-    /**
      * Set the linked rooms.
      * @param room the room where the conference take place
      * @param callSignalingRoom the call signaling room.

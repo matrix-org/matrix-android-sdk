@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk.view;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
@@ -41,10 +42,12 @@ public class PieFractionView extends View {
     private int powerColor;
     private int restColor;
 
+    @SuppressLint("deprecation")
     public int fillColor() {
         return getResources().getColor(R.color.pie_fraction_fill);
     }
 
+    @SuppressLint("deprecation")
     public int getRestColor() {
         return getResources().getColor(R.color.pie_fraction_rest);
     }
