@@ -639,7 +639,7 @@ public class MXChromeCall extends MXCall {
                                                 Log.e(LOG_TAG, "## wSendEvent() ; " + e.getMessage());
                                             }
                                         }
-                                    }, 30 * 1000);
+                                    }, CALL_TIMEOUT_MS);
                                 }
                             }
                         }

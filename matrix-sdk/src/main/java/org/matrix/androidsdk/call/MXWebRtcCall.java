@@ -318,7 +318,7 @@ public class MXWebRtcCall extends MXCall {
         JsonObject inviteContent = new JsonObject();
         inviteContent.addProperty("version", 0);
         inviteContent.addProperty("call_id", mCallId);
-        inviteContent.addProperty("lifetime", 60000);
+        inviteContent.addProperty("lifetime", CALL_TIMEOUT_MS);
 
         JsonObject offerContent = new JsonObject();
         offerContent.addProperty("sdp", sessionDescription.description);
@@ -346,7 +346,7 @@ public class MXWebRtcCall extends MXCall {
                     Log.e(LOG_TAG, "## sendInvite(): Exception Msg= " + e.getMessage());
                 }
             }
-        }, 60 * 1000);
+        }, CALL_TIMEOUT_MS);
 
         sendNextEvent();
     }
@@ -369,7 +369,7 @@ public class MXWebRtcCall extends MXCall {
         JsonObject answerContent = new JsonObject();
         answerContent.addProperty("version", 0);
         answerContent.addProperty("call_id", mCallId);
-        answerContent.addProperty("lifetime", 60000);
+        answerContent.addProperty("lifetime", CALL_TIMEOUT_MS);
 
         JsonObject offerContent = new JsonObject();
         offerContent.addProperty("sdp", sessionDescription.description);

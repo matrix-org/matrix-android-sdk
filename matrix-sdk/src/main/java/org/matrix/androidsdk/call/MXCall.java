@@ -42,6 +42,9 @@ import java.util.Timer;
 public class MXCall implements IMXCall {
     private static final String LOG_TAG = "MXCall";
 
+    // defines the call timeout
+    public static final int CALL_TIMEOUT_MS = 60 * 1000;
+
     /**
      * The session
      */
@@ -72,7 +75,7 @@ public class MXCall implements IMXCall {
     /**
      * The call events listeners
      */
-    private final ArrayList<MXCallListener> mCallListeners = new ArrayList<>();
+    private final List<MXCallListener> mCallListeners = new ArrayList<>();
 
     /**
      * the call id

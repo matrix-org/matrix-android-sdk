@@ -397,7 +397,7 @@ public class MXCallsManager {
                             }
 
                             // ignore older call messages
-                            if (lifeTime < 30000) {
+                            if (lifeTime < MXCall.CALL_TIMEOUT_MS) {
                                 // create the call only it is triggered from someone else
                                 IMXCall call = getCallWithCallId(callId, !isMyEvent);
 
