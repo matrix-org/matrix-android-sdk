@@ -24,6 +24,7 @@ import android.text.TextUtils;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.call.MXCall;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXMemoryStore;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -821,6 +822,20 @@ public class EventTimeline {
                 && (null != (bingRule = bingRulesManager.fulfilledBingRule(event)))) {
 
             if (bingRule.shouldNotify()) {
+                // bing the call events only if they make sense
+                if (Event.EVENT_TYPE_CALL_INVITE.equals(event.getType())) {
+                    long lifeTime = event.getAge();
+
+                    if (Long.MAX_VALUE == lifeTime) {
+                        lifeTime = System.currentTimeMillis() - event.getOriginServerTs();
+                    }
+
+                    if (lifeTime > MXCall.CALL_TIMEOUT_MS) {
+                        Log.d(LOG_TAG, "handleLiveEvent : IGNORED onBingEvent rule id " + bingRule.ruleId + " event id " + event.eventId + " in " + event.roomId);
+                        return;
+                    }
+                }
+
                 Log.d(LOG_TAG, "handleLiveEvent : onBingEvent rule id " + bingRule.ruleId + " event id " + event.eventId + " in " + event.roomId);
                 mDataHandler.onBingEvent(event, mState, bingRule);
             } else {
