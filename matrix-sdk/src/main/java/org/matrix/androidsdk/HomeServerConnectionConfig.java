@@ -31,7 +31,7 @@ import java.util.List;
  * Represents how to connect to a specific Homeserver, may include credentials to use.
  */
 public class HomeServerConnectionConfig {
-    
+
     // the home server URI
     private Uri mHsUri;
     // the identity server URI

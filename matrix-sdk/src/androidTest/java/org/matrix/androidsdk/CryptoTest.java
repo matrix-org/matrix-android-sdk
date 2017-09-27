@@ -52,6 +52,7 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.ssl.UnrecognizedCertificateException;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 
@@ -184,11 +185,7 @@ public class CryptoTest {
 
         IMXStore store =  new MXFileStore(hs, context);
 
-        MXSession bobSession2 = new MXSession(hs, new MXDataHandler(store, bobCredentials, new MXDataHandler.InvalidTokenListener() {
-            @Override
-            public void onTokenCorrupted() {
-            }
-        }), context);
+        MXSession bobSession2 = new MXSession(hs, new MXDataHandler(store, bobCredentials), context);
 
 
         final CountDownLatch lock1 = new CountDownLatch(1);
@@ -429,11 +426,7 @@ public class CryptoTest {
 
         IMXStore store =  new MXFileStore(hs, context);
 
-        MXSession bobSession2 = new MXSession(hs, new MXDataHandler(store, bobCredentials, new MXDataHandler.InvalidTokenListener() {
-            @Override
-            public void onTokenCorrupted() {
-            }
-        }), context);
+        MXSession bobSession2 = new MXSession(hs, new MXDataHandler(store, bobCredentials), context);
 
         final CountDownLatch lock4 = new CountDownLatch(1);
 
@@ -671,11 +664,7 @@ public class CryptoTest {
 
         IMXStore store =  new MXFileStore(hs, context);
 
-        MXSession bobSession2 = new MXSession(hs, new MXDataHandler(store, bobCredentials, new MXDataHandler.InvalidTokenListener() {
-            @Override
-            public void onTokenCorrupted() {
-            }
-        }), context);
+        MXSession bobSession2 = new MXSession(hs, new MXDataHandler(store, bobCredentials), context);
 
         final CountDownLatch lock5 = new CountDownLatch(1);
 
@@ -1192,11 +1181,7 @@ public class CryptoTest {
 
         final CountDownLatch lock1 = new CountDownLatch(1);
 
-        final MXSession aliceSession2 = new MXSession(hs, new MXDataHandler(store, aliceCredentials, new MXDataHandler.InvalidTokenListener() {
-            @Override
-            public void onTokenCorrupted() {
-            }
-        }), context);
+        final MXSession aliceSession2 = new MXSession(hs, new MXDataHandler(store, aliceCredentials), context);
 
         MXStoreListener listener = new MXStoreListener() {
             @Override
@@ -1361,11 +1346,7 @@ public class CryptoTest {
 
         IMXStore store =  new MXFileStore(hs, context);
 
-        MXSession aliceSession2 = new MXSession(hs, new MXDataHandler(store, aliceCredentials2, new MXDataHandler.InvalidTokenListener() {
-            @Override
-            public void onTokenCorrupted() {
-            }
-        }), context);
+        MXSession aliceSession2 = new MXSession(hs, new MXDataHandler(store, aliceCredentials2), context);
 
         aliceSession2.enableCryptoWhenStarting();
 
@@ -1454,11 +1435,7 @@ public class CryptoTest {
 
         final CountDownLatch lock1 = new CountDownLatch(2);
 
-        MXSession bobSession2 = new MXSession(hs, new MXDataHandler(store, bobCredentials, new MXDataHandler.InvalidTokenListener() {
-            @Override
-            public void onTokenCorrupted() {
-            }
-        }), context);
+        MXSession bobSession2 = new MXSession(hs, new MXDataHandler(store, bobCredentials), context);
 
         MXEventListener eventListener = new MXEventListener() {
             @Override
@@ -3130,11 +3107,7 @@ public class CryptoTest {
 
         IMXStore store =  new MXFileStore(hs, context);
 
-        MXSession aliceSession2 = new MXSession(hs, new MXDataHandler(store, aliceCredentials2, new MXDataHandler.InvalidTokenListener() {
-            @Override
-            public void onTokenCorrupted() {
-            }
-        }), context);
+        MXSession aliceSession2 = new MXSession(hs, new MXDataHandler(store, aliceCredentials2), context);
 
         aliceSession2.enableCryptoWhenStarting();
 

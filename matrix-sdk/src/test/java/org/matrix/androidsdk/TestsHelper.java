@@ -151,11 +151,7 @@ public class TestsHelper {
 
         IMXStore store =  new MXFileStore(hs, context);
 
-        MXSession mxSession = new MXSession(hs, new MXDataHandler(store, credentials, new MXDataHandler.InvalidTokenListener() {
-            @Override
-            public void onTokenCorrupted() {
-            }
-        }), context);
+        MXSession mxSession = new MXSession(hs, new MXDataHandler(store, credentials), context);
 
 
         if (!startSession) {

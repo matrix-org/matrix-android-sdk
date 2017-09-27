@@ -145,11 +145,7 @@ public class CryptoTestHelper {
 
         IMXStore store =  new MXFileStore(hs, context);
 
-        MXSession mxSession = new MXSession(hs, new MXDataHandler(store, credentials, new MXDataHandler.InvalidTokenListener() {
-            @Override
-            public void onTokenCorrupted() {
-            }
-        }), context);
+        MXSession mxSession = new MXSession(hs, new MXDataHandler(store, credentials), context);
 
 
         if (!startSession) {
@@ -225,11 +221,7 @@ public class CryptoTestHelper {
 
         IMXStore store =  new MXFileStore(hs, context);
 
-        MXSession mxSession = new MXSession(hs, new MXDataHandler(store, credentials, new MXDataHandler.InvalidTokenListener() {
-            @Override
-            public void onTokenCorrupted() {
-            }
-        }), context);
+        MXSession mxSession = new MXSession(hs, new MXDataHandler(store, credentials), context);
 
         mxSession.enableCryptoWhenStarting();
 
