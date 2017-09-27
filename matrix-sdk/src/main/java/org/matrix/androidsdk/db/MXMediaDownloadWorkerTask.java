@@ -33,7 +33,7 @@ import android.widget.ImageView;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
-import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
 import org.matrix.androidsdk.rest.model.EncryptedFileInfo;
@@ -141,7 +141,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
     /**
      * The home server config.
      */
-    private final HomeserverConnectionConfig mHsConfig;
+    private final HomeServerConnectionConfig mHsConfig;
 
     /**
      * The bitmap to use when the URL is unreachable.
@@ -458,7 +458,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      * @param mimeType the mime type.
      * @param encryptedFileInfo the encryption information
      */
-    public MXMediaDownloadWorkerTask(Context appContext, HomeserverConnectionConfig hsConfig, NetworkConnectivityReceiver networkConnectivityReceiver, File directoryFile, String url, String mimeType, EncryptedFileInfo encryptedFileInfo) {
+    public MXMediaDownloadWorkerTask(Context appContext, HomeServerConnectionConfig hsConfig, NetworkConnectivityReceiver networkConnectivityReceiver, File directoryFile, String url, String mimeType, EncryptedFileInfo encryptedFileInfo) {
         commonInit(appContext, url, mimeType);
         mNetworkConnectivityReceiver = networkConnectivityReceiver;
         mDirectoryFile = directoryFile;
@@ -478,7 +478,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      * @param mimeType the mime type.
      * @param encryptedFileInfo the encryption information
      */
-    public MXMediaDownloadWorkerTask(Context appContext, HomeserverConnectionConfig hsConfig, NetworkConnectivityReceiver networkConnectivityReceiver, File directoryFile, String url, int rotation, String mimeType, EncryptedFileInfo encryptedFileInfo) {
+    public MXMediaDownloadWorkerTask(Context appContext, HomeServerConnectionConfig hsConfig, NetworkConnectivityReceiver networkConnectivityReceiver, File directoryFile, String url, int rotation, String mimeType, EncryptedFileInfo encryptedFileInfo) {
         commonInit(appContext, url, mimeType);
         mNetworkConnectivityReceiver = networkConnectivityReceiver;
         mImageViewReferences = new ArrayList<>();

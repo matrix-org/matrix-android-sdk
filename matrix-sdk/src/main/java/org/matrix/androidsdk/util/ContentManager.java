@@ -18,7 +18,7 @@ package org.matrix.androidsdk.util;
 
 import org.matrix.androidsdk.util.Log;
 
-import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 
 /**
  * Class for accessing content from the current session.
@@ -34,7 +34,7 @@ public class ContentManager {
     public static final String URI_PREFIX_CONTENT_API = "/_matrix/media/v1";
 
     // HS config
-    private final HomeserverConnectionConfig mHsConfig;
+    private final HomeServerConnectionConfig mHsConfig;
 
     // the unsent events Manager
     private final UnsentEventsManager mUnsentEventsManager;
@@ -43,7 +43,7 @@ public class ContentManager {
      * Default constructor.
      * @param hsConfig the HomeserverConnectionConfig to use
      */
-    public ContentManager(HomeserverConnectionConfig hsConfig, UnsentEventsManager unsentEventsManager) {
+    public ContentManager(HomeServerConnectionConfig hsConfig, UnsentEventsManager unsentEventsManager) {
         mHsConfig = hsConfig;
         mUnsentEventsManager = unsentEventsManager;
     }
@@ -51,7 +51,7 @@ public class ContentManager {
     /**
      * @return the hs config.
      */
-    public HomeserverConnectionConfig getHsConfig() {
+    public HomeServerConnectionConfig getHsConfig() {
         return mHsConfig;
     }
 

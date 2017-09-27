@@ -52,7 +52,7 @@ public class TestsHelper {
         RestClient.mUseMXExececutor = true;
 
         Uri uri = Uri.parse(TESTS_HOME_SERVER_URL);
-        HomeserverConnectionConfig hs = new HomeserverConnectionConfig(uri);
+        HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
         LoginRestClient loginRestClient = new LoginRestClient(hs);
 
         final HashMap<String, Object> params = new HashMap<>();

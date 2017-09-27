@@ -21,7 +21,7 @@ import android.text.TextUtils;
 import org.matrix.androidsdk.rest.model.KeyChangesResponse;
 import org.matrix.androidsdk.util.Log;
 
-import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.crypto.data.MXKey;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
@@ -50,7 +50,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
     /**
      * {@inheritDoc}
      */
-    public CryptoRestClient(HomeserverConnectionConfig hsConfig) {
+    public CryptoRestClient(HomeServerConnectionConfig hsConfig) {
         super(hsConfig, CryptoApi.class, URI_API_PREFIX_PATH_UNSTABLE, false, false);
     }
 

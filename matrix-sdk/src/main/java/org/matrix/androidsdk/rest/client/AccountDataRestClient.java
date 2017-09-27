@@ -15,7 +15,7 @@
  */
 package org.matrix.androidsdk.rest.client;
 
-import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.AccountDataApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -39,7 +39,7 @@ public class AccountDataRestClient extends RestClient<AccountDataApi> {
     /**
      * {@inheritDoc}
      */
-    public AccountDataRestClient(HomeserverConnectionConfig hsConfig) {
+    public AccountDataRestClient(HomeServerConnectionConfig hsConfig) {
         super(hsConfig, AccountDataApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
     }
 

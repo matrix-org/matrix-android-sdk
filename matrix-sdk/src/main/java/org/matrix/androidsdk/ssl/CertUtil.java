@@ -17,7 +17,7 @@
 package org.matrix.androidsdk.ssl;
 
 import org.matrix.androidsdk.util.Log;
-import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 
 import java.security.KeyStore;
 import java.security.MessageDigest;
@@ -45,6 +45,7 @@ public class CertUtil {
 
     /**
      * Generates the SHA-256 fingerprint of the given certificate
+     *
      * @param cert the certificate.
      * @return the finger print
      */
@@ -54,6 +55,7 @@ public class CertUtil {
 
     /**
      * Generates the SHA-1 fingerprint of the given certificate
+     *
      * @param cert the certificated
      * @return the SHA1 fingerprint
      */
@@ -63,6 +65,7 @@ public class CertUtil {
 
     /**
      * Generate the fingerprint for a dedicated type.
+     *
      * @param cert the certificate
      * @param type the type
      * @return the fingerprint
@@ -73,7 +76,7 @@ public class CertUtil {
         final MessageDigest md;
         try {
             md = MessageDigest.getInstance(type);
-        } catch(Exception e) {
+        } catch (Exception e) {
             // This really *really* shouldn't throw, as java should always have a SHA-256 and SHA-1 impl.
             throw new CertificateException(e);
         }
@@ -87,6 +90,7 @@ public class CertUtil {
 
     /**
      * Convert the fingerprint to an hexa string.
+     *
      * @param fingerprint the fingerprint
      * @return the hexa string.
      */
@@ -96,7 +100,7 @@ public class CertUtil {
 
     public static String fingerprintToHexString(byte[] fingerprint, char sep) {
         char[] hexChars = new char[fingerprint.length * 3];
-        for ( int j = 0; j < fingerprint.length; j++ ) {
+        for (int j = 0; j < fingerprint.length; j++) {
             int v = fingerprint[j] & 0xFF;
             hexChars[j * 3] = hexArray[v >>> 4];
             hexChars[j * 3 + 1] = hexArray[v & 0x0F];
@@ -105,10 +109,10 @@ public class CertUtil {
         return new String(hexChars, 0, hexChars.length - 1);
     }
 
-
     /**
      * Recursively checks the exception to see if it was caused by an
      * UnrecognizedCertificateException
+     *
      * @param e the throwable.
      * @return The UnrecognizedCertificateException if exists, else null.
      */
@@ -127,10 +131,11 @@ public class CertUtil {
 
     /**
      * Create a SSLSocket factory for a HS config.
+     *
      * @param hsConfig the HS config.
      * @return SSLSocket factory
      */
-    public static SSLSocketFactory newPinnedSSLSocketFactory(HomeserverConnectionConfig hsConfig) {
+    public static SSLSocketFactory newPinnedSSLSocketFactory(HomeServerConnectionConfig hsConfig) {
         try {
             X509TrustManager defaultTrustManager = null;
 
@@ -182,10 +187,11 @@ public class CertUtil {
 
     /**
      * Create a Host name verifier for a hs config.
+     *
      * @param hsConfig teh hs config.
      * @return a new HostnameVerifier.
      */
-    public static HostnameVerifier newHostnameVerifier(HomeserverConnectionConfig hsConfig) {
+    public static HostnameVerifier newHostnameVerifier(HomeServerConnectionConfig hsConfig) {
         final HostnameVerifier defaultVerifier = HttpsURLConnection.getDefaultHostnameVerifier();
         final List<Fingerprint> trusted_fingerprints = hsConfig.getAllowedFingerprints();
 

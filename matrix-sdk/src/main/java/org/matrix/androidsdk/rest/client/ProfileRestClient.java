@@ -17,7 +17,7 @@ package org.matrix.androidsdk.rest.client;
 
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.ProfileApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -56,7 +56,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     /**
      * {@inheritDoc}
      */
-    public ProfileRestClient(HomeserverConnectionConfig hsConfig) {
+    public ProfileRestClient(HomeServerConnectionConfig hsConfig) {
         super(hsConfig, ProfileApi.class, "", false);
     }
 

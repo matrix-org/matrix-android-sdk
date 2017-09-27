@@ -24,7 +24,7 @@ import android.text.TextUtils;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.util.Log;
 
-import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
@@ -203,7 +203,7 @@ public class MXFileStore extends MXMemoryStore {
      * @param hsConfig the expected credentials
      * @param context  the context.
      */
-    public MXFileStore(HomeserverConnectionConfig hsConfig, Context context) {
+    public MXFileStore(HomeServerConnectionConfig hsConfig, Context context) {
         initCommon();
         setContext(context);
 

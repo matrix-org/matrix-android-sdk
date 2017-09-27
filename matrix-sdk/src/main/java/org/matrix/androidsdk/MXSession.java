@@ -147,7 +147,7 @@ public class MXSession {
     // online status
     private boolean mIsOnline = false;
 
-    private final HomeserverConnectionConfig mHsConfig;
+    private final HomeServerConnectionConfig mHsConfig;
 
     // the application is launched from a notification
     // so, mEventsThread.start might be not ready
@@ -189,7 +189,7 @@ public class MXSession {
      *
      * @param hsConfig the home server connection config
      */
-    private MXSession(HomeserverConnectionConfig hsConfig) {
+    private MXSession(HomeServerConnectionConfig hsConfig) {
         mCredentials = hsConfig.getCredentials();
         mHsConfig = hsConfig;
 
@@ -213,7 +213,7 @@ public class MXSession {
      * @param dataHandler the data handler
      * @param appContext  the application context
      */
-    public MXSession(HomeserverConnectionConfig hsConfig, MXDataHandler dataHandler, Context appContext) {
+    public MXSession(HomeServerConnectionConfig hsConfig, MXDataHandler dataHandler, Context appContext) {
         this(hsConfig);
         mDataHandler = dataHandler;
 
@@ -501,7 +501,7 @@ public class MXSession {
         return mCryptoRestClient;
     }
 
-    public HomeserverConnectionConfig getHomeserverConfig() {
+    public HomeServerConnectionConfig getHomeServerConfig() {
         checkIfAlive();
         return mHsConfig;
     }

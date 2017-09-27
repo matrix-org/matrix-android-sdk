@@ -33,7 +33,7 @@ import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 
 
-import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
 import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
 import org.matrix.androidsdk.listeners.MXMediaDownloadListener;
@@ -563,7 +563,7 @@ public class MXMediasCache {
      * @param side      the avatar thumbnail side
      * @return a download identifier if the image is not cached.
      */
-    public String loadAvatarThumbnail(HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int side) {
+    public String loadAvatarThumbnail(HomeServerConnectionConfig hsConfig, ImageView imageView, String url, int side) {
         return loadBitmap(imageView.getContext(), hsConfig, imageView, url, side, side, 0, ExifInterface.ORIENTATION_UNDEFINED, null, getThumbnailsFolderFile(), null);
     }
 
@@ -578,7 +578,7 @@ public class MXMediasCache {
      * @param aDefaultAvatar the avatar to use when the Url is not reachable.
      * @return a download identifier if the image is not cached.
      */
-    public String loadAvatarThumbnail(HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int side, Bitmap aDefaultAvatar) {
+    public String loadAvatarThumbnail(HomeServerConnectionConfig hsConfig, ImageView imageView, String url, int side, Bitmap aDefaultAvatar) {
         return loadBitmap(imageView.getContext(), hsConfig, imageView, url, side, side, 0, ExifInterface.ORIENTATION_UNDEFINED, null, getThumbnailsFolderFile(), aDefaultAvatar, null);
     }
 
@@ -613,7 +613,7 @@ public class MXMediasCache {
      * @param encryptionInfo the encryption file info
      * @return a download identifier if the image is not cached.
      */
-    public String loadBitmap(HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int rotationAngle, int orientation, String mimeType, EncryptedFileInfo encryptionInfo) {
+    public String loadBitmap(HomeServerConnectionConfig hsConfig, ImageView imageView, String url, int rotationAngle, int orientation, String mimeType, EncryptedFileInfo encryptionInfo) {
         return loadBitmap(hsConfig, imageView, url, -1, -1, rotationAngle, orientation, mimeType, encryptionInfo);
     }
 
@@ -630,7 +630,7 @@ public class MXMediasCache {
      * @param encryptionInfo the encryption file info
      * @return a download identifier if the image is not cached.
      */
-    public String loadBitmap(Context context, HomeserverConnectionConfig hsConfig, String url, int rotationAngle, int orientation, String mimeType, EncryptedFileInfo encryptionInfo) {
+    public String loadBitmap(Context context, HomeServerConnectionConfig hsConfig, String url, int rotationAngle, int orientation, String mimeType, EncryptedFileInfo encryptionInfo) {
         return loadBitmap(context, hsConfig, null, url, -1, -1, rotationAngle, orientation, mimeType, getFolderFile(mimeType), encryptionInfo);
     }
 
@@ -651,7 +651,7 @@ public class MXMediasCache {
      * @param encryptionInfo the encryption file info
      * @return a download identifier if the image is not cached
      */
-    public String loadBitmap(HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int width, int height, int rotationAngle,  int orientation, String mimeType, EncryptedFileInfo encryptionInfo) {
+    public String loadBitmap(HomeServerConnectionConfig hsConfig, ImageView imageView, String url, int width, int height, int rotationAngle,  int orientation, String mimeType, EncryptedFileInfo encryptionInfo) {
         return loadBitmap(imageView.getContext(), hsConfig, imageView, url, width, height, rotationAngle, orientation, mimeType, getFolderFile(mimeType), encryptionInfo);
     }
 
@@ -677,7 +677,7 @@ public class MXMediasCache {
      * @param encryptionInfo the encryption information
      * @return the download identifier.
      */
-    public String downloadMedia(Context context, HomeserverConnectionConfig hsConfig, String url, String mimeType, EncryptedFileInfo encryptionInfo) {
+    public String downloadMedia(Context context, HomeServerConnectionConfig hsConfig, String url, String mimeType, EncryptedFileInfo encryptionInfo) {
         // sanity checks
         if ((null == mimeType) || (null == url) || (null == context)) {
             return null;
@@ -796,7 +796,7 @@ public class MXMediasCache {
      * @param encryptionInfo the encryption file information.
      * @return a download identifier if the image is not cached
      */
-    public String loadBitmap(Context context, HomeserverConnectionConfig hsConfig, final ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, File folderFile, EncryptedFileInfo encryptionInfo) {
+    public String loadBitmap(Context context, HomeServerConnectionConfig hsConfig, final ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, File folderFile, EncryptedFileInfo encryptionInfo) {
         return loadBitmap(context, hsConfig, imageView, url, width, height, rotationAngle, orientation, mimeType, folderFile, null, encryptionInfo);
     }
 
@@ -824,7 +824,7 @@ public class MXMediasCache {
      * @param encryptionInfo the file encryption info
      * @return a download identifier if the image is not cached
      */
-    public String loadBitmap(Context context, HomeserverConnectionConfig hsConfig, final ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, File folderFile, Bitmap aDefaultBitmap, EncryptedFileInfo encryptionInfo) {
+    public String loadBitmap(Context context, HomeServerConnectionConfig hsConfig, final ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, File folderFile, Bitmap aDefaultBitmap, EncryptedFileInfo encryptionInfo) {
         if (null == url) {
             return null;
         }

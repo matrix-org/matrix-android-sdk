@@ -70,7 +70,7 @@ public class RestClient<T> {
 
     protected UnsentEventsManager mUnsentEventsManager;
 
-    protected HomeserverConnectionConfig mHsConfig;
+    protected HomeServerConnectionConfig mHsConfig;
 
     // unitary tests only
     public static boolean mUseMXExececutor = false;
@@ -81,7 +81,7 @@ public class RestClient<T> {
     // http client
     private OkHttpClient mOkHttpClient = new OkHttpClient();
 
-    public RestClient(HomeserverConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization) {
+    public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization) {
         this(hsConfig, type, uriPrefix, withNullSerialization, false);
     }
 
@@ -90,7 +90,7 @@ public class RestClient<T> {
      *
      * @param hsConfig The homeserver connection config.
      */
-    public RestClient(HomeserverConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization, boolean useIdentityServer) {
+    public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization, boolean useIdentityServer) {
         // The JSON -> object mapper
         gson = JsonUtils.getGson(withNullSerialization);
 

@@ -18,6 +18,9 @@ package org.matrix.androidsdk.util;
 
 import android.content.Context;
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.ssl.CertUtil;
+import org.matrix.androidsdk.ssl.UnrecognizedCertificateException;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.MXDataHandler;
@@ -367,12 +370,30 @@ public class UnsentEventsManager {
                 // trace the matrix error.
                 if ((null != eventDescription) && (null != mxError)) {
                     Log.d(LOG_TAG, "Matrix error " + mxError.errcode + " " + mxError.getMessage() + " [" +  eventDescription + "]");
+
+                    if (TextUtils.equals(MatrixError.UNKNOWN_TOKEN, mxError.errcode)) {
+                        Log.e(LOG_TAG, "## onEventSendingFailed() : invalid token detected");
+                        mDataHandler.onInvalidToken();
+                        triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
+                        return;
+                    }
                 }
 
                 int matrixRetryTimeout = -1;
 
                 if ((null != mxError) &&  MatrixError.LIMIT_EXCEEDED.equals(mxError.errcode) && (null != mxError.retry_after_ms)) {
                     matrixRetryTimeout = mxError.retry_after_ms + 200;
+                }
+
+                if ((null != retrofitError) && retrofitError.isNetworkError()) {
+                    UnrecognizedCertificateException unrecCertEx = CertUtil.getCertificateException(retrofitError);
+
+                    if (null != unrecCertEx) {
+                        Log.e(LOG_TAG, "## onEventSendingFailed() : SSL issue detected");
+                        mDataHandler.onSSLCertificateError(unrecCertEx);
+                        triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
+                        return;
+                    }
                 }
 
                 // some matrix errors are not trapped.

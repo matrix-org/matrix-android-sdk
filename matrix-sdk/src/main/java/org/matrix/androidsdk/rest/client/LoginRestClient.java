@@ -21,7 +21,7 @@ import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
 
-import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.LoginApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -56,7 +56,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * Public constructor.
      * @param hsConfig the home server connection config
      */
-    public LoginRestClient(HomeserverConnectionConfig hsConfig) {
+    public LoginRestClient(HomeServerConnectionConfig hsConfig) {
         super(hsConfig, LoginApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
     }
 

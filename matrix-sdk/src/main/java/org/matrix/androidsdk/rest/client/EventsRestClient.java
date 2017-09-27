@@ -18,7 +18,7 @@ package org.matrix.androidsdk.rest.client;
 
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.EventsApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -59,7 +59,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
     /**
      * {@inheritDoc}
      */
-    public EventsRestClient(HomeserverConnectionConfig hsConfig) {
+    public EventsRestClient(HomeServerConnectionConfig hsConfig) {
         super(hsConfig, EventsApi.class, "", false);
     }
 

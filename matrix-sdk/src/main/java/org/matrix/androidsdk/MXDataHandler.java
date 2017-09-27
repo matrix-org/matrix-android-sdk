@@ -59,6 +59,7 @@ import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
 import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.ssl.UnrecognizedCertificateException;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
@@ -84,11 +85,16 @@ public class MXDataHandler implements IMXEventListener {
 
     private static final String LEFT_ROOMS_FILTER = "{\"room\":{\"timeline\":{\"limit\":1},\"include_leave\":true}}";
 
-    public interface InvalidTokenListener {
+    public interface RequestNetworkErrorListener {
         /**
          * Call when the access token is corrupted
          */
         void onTokenCorrupted();
+
+        /**
+         * Call when the requests are rejected after a SSL update
+         */
+        void onSSLCertificateError(UnrecognizedCertificateException exception);
     }
 
     private IMXEventListener mCryptoEventsListener = null;
@@ -123,7 +129,7 @@ public class MXDataHandler implements IMXEventListener {
 
     private boolean mIsAlive = true;
 
-    private final InvalidTokenListener mInvalidTokenListener;
+    private RequestNetworkErrorListener mRequestNetworkErrorListener;
 
     // the left rooms are managed
     // by default, they are not supported
@@ -146,7 +152,7 @@ public class MXDataHandler implements IMXEventListener {
      * Default constructor.
      * @param store the data storage implementation.
      */
-    public MXDataHandler(IMXStore store, Credentials credentials,InvalidTokenListener invalidTokenListener) {
+    public MXDataHandler(IMXStore store, Credentials credentials) {
         mStore = store;
         mCredentials = credentials;
 
@@ -156,9 +162,11 @@ public class MXDataHandler implements IMXEventListener {
         mSyncHandlerThread.start();
         mSyncHandler = new MXOsHandler(mSyncHandlerThread.getLooper());
 
-        mInvalidTokenListener = invalidTokenListener;
-
         mLeftRoomsStore = new MXMemoryStore(credentials, store.getContext());
+    }
+
+    public void setRequestNetworkErrorListener(RequestNetworkErrorListener requestNetworkErrorListener) {
+        mRequestNetworkErrorListener = requestNetworkErrorListener;
     }
 
     public Credentials getCredentials() {
@@ -262,8 +270,17 @@ public class MXDataHandler implements IMXEventListener {
      * The current token is not anymore valid
      */
     public void onInvalidToken() {
-        if (null != mInvalidTokenListener) {
-            mInvalidTokenListener.onTokenCorrupted();
+        if (null != mRequestNetworkErrorListener) {
+            mRequestNetworkErrorListener.onTokenCorrupted();
+        }
+    }
+
+    /**
+     * Call when the requests are rejected after a SSL update
+     */
+    public void onSSLCertificateError(UnrecognizedCertificateException exception) {
+        if (null != mRequestNetworkErrorListener) {
+            mRequestNetworkErrorListener.onSSLCertificateError(exception);
         }
     }
 

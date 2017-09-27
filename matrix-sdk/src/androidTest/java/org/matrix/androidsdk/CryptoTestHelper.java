@@ -51,7 +51,7 @@ public class CryptoTestHelper {
      */
     public static MXSession createAccountAndSync(Context context, String userName, String password, boolean startSession) throws Exception {
         Uri uri = Uri.parse(TESTS_HOME_SERVER_URL);
-        HomeserverConnectionConfig hs = new HomeserverConnectionConfig(uri);
+        HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
         LoginRestClient loginRestClient = new LoginRestClient(hs);
 
         final HashMap<String, Object> params = new HashMap<>();
@@ -184,7 +184,7 @@ public class CryptoTestHelper {
      */
     public static MXSession logAccountAndSync(Context context, String userName, String password) throws Exception {
         Uri uri = Uri.parse(TESTS_HOME_SERVER_URL);
-        HomeserverConnectionConfig hs = new HomeserverConnectionConfig(uri);
+        HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
         LoginRestClient loginRestClient = new LoginRestClient(hs);
 
         final HashMap<String, Object> params = new HashMap<>();

@@ -23,7 +23,7 @@ import android.text.TextUtils;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.RoomState;
@@ -63,7 +63,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     /**
      * {@inheritDoc}
      */
-    public RoomsRestClient(HomeserverConnectionConfig hsConfig) {
+    public RoomsRestClient(HomeServerConnectionConfig hsConfig) {
         super(hsConfig, RoomsApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
     }
 

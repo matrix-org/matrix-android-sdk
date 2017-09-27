@@ -25,44 +25,49 @@ import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.ssl.Fingerprint;
 
 import java.util.ArrayList;
-
+import java.util.List;
 
 /**
  * Represents how to connect to a specific Homeserver, may include credentials to use.
  */
-public class HomeserverConnectionConfig {
+public class HomeServerConnectionConfig {
+    // the home server URI
     private Uri mHsUri;
+    // the identity server URI
     private Uri mIdentityServerUri;
-    private ArrayList<Fingerprint> mAllowedFingerprints = new ArrayList<>();
+    // allowed fingerprints
+    private List<Fingerprint> mAllowedFingerprints = new ArrayList<>();
+    // the credentials
     private Credentials mCredentials;
+    // tell whether we should reject X509 certs that were issued by trusts CAs and only trustcerts with matching fingerprints.
     private boolean mPin;
 
     /**
      * @param hsUri The URI to use to connect to the homeserver
      */
-    public HomeserverConnectionConfig(Uri hsUri) {
+    public HomeServerConnectionConfig(Uri hsUri) {
         this(hsUri, null);
     }
 
     /**
-     * @param hsUri The URI to use to connect to the homeserver
+     * @param hsUri       The URI to use to connect to the homeserver
      * @param credentials The credentials to use, if needed. Can be null.
      */
-    public HomeserverConnectionConfig(Uri hsUri, Credentials credentials) {
+    public HomeServerConnectionConfig(Uri hsUri, Credentials credentials) {
         this(hsUri, null, credentials, new ArrayList<Fingerprint>(), false);
     }
 
     /**
-     * @param hsUri The URI to use to connect to the homeserver
-     * @param identityServerUri The URI to use to manage identity
-     * @param credentials The credentials to use, if needed. Can be null.
+     * @param hsUri               The URI to use to connect to the homeserver
+     * @param identityServerUri   The URI to use to manage identity
+     * @param credentials         The credentials to use, if needed. Can be null.
      * @param allowedFingerprints If using SSL, allow server certs that match these fingerprints.
-     * @param pin If true only allow certs matching given fingerprints, otherwise fallback to
-     *            standard X509 checks.
+     * @param pin                 If true only allow certs matching given fingerprints, otherwise fallback to
+     *                            standard X509 checks.
      */
-    public HomeserverConnectionConfig(Uri hsUri, Uri identityServerUri, Credentials credentials, ArrayList<Fingerprint> allowedFingerprints, boolean pin) {
-        if (hsUri == null || (!"http".equals(hsUri.getScheme()) && !"https".equals(hsUri.getScheme())) ) {
-            throw new RuntimeException("Invalid home server URI: "+hsUri);
+    public HomeServerConnectionConfig(Uri hsUri, Uri identityServerUri, Credentials credentials, List<Fingerprint> allowedFingerprints, boolean pin) {
+        if (hsUri == null || (!"http".equals(hsUri.getScheme()) && !"https".equals(hsUri.getScheme()))) {
+            throw new RuntimeException("Invalid home server URI: " + hsUri);
         }
 
         if ((null != identityServerUri) && (!"http".equals(hsUri.getScheme()) && !"https".equals(hsUri.getScheme()))) {
@@ -73,9 +78,9 @@ public class HomeserverConnectionConfig {
         if (hsUri.toString().endsWith("/")) {
             try {
                 String url = hsUri.toString();
-                hsUri = Uri.parse(url.substring(0, url.length()-1));
+                hsUri = Uri.parse(url.substring(0, url.length() - 1));
             } catch (Exception e) {
-                throw new RuntimeException("Invalid home server URI: "+hsUri);
+                throw new RuntimeException("Invalid home server URI: " + hsUri);
             }
         }
 
@@ -83,7 +88,7 @@ public class HomeserverConnectionConfig {
         if ((null != identityServerUri) && identityServerUri.toString().endsWith("/")) {
             try {
                 String url = identityServerUri.toString();
-                identityServerUri = Uri.parse(url.substring(0, url.length()-1));
+                identityServerUri = Uri.parse(url.substring(0, url.length() - 1));
             } catch (Exception e) {
                 throw new RuntimeException("Invalid identity server URI: " + identityServerUri);
             }
@@ -100,21 +105,36 @@ public class HomeserverConnectionConfig {
         this.mCredentials = credentials;
     }
 
+    /**
+     * Getters / setters
+     */
     public void setHomeserverUri(Uri uri) {
         mHsUri = uri;
     }
-    public Uri getHomeserverUri() { return mHsUri; }
+
+    public Uri getHomeserverUri() {
+        return mHsUri;
+    }
 
     public void setIdentityServerUri(Uri uri) {
         mIdentityServerUri = uri;
     }
-    public Uri getIdentityServerUri() { return (null == mIdentityServerUri) ? mHsUri : mIdentityServerUri; }
 
-    public ArrayList<Fingerprint> getAllowedFingerprints() { return mAllowedFingerprints; }
+    public Uri getIdentityServerUri() {
+        return (null == mIdentityServerUri) ? mHsUri : mIdentityServerUri;
+    }
 
-    public Credentials getCredentials() { return mCredentials; }
-    public void setCredentials(Credentials credentials) { this.mCredentials = credentials; }
+    public List<Fingerprint> getAllowedFingerprints() {
+        return mAllowedFingerprints;
+    }
 
+    public Credentials getCredentials() {
+        return mCredentials;
+    }
+
+    public void setCredentials(Credentials credentials) {
+        this.mCredentials = credentials;
+    }
 
     /**
      * @return whether we should reject X509 certs that were issued by trusts CAs and only trust
@@ -135,6 +155,11 @@ public class HomeserverConnectionConfig {
                 '}';
     }
 
+    /**
+     * Convert the object instance into a JSon object
+     * @return the JSon representation
+     * @throws JSONException the JSON conversion failure reason
+     */
     public JSONObject toJson() throws JSONException {
         JSONObject json = new JSONObject();
 
@@ -157,8 +182,14 @@ public class HomeserverConnectionConfig {
         return json;
     }
 
-    public static HomeserverConnectionConfig fromJson(JSONObject obj) throws JSONException {
-        JSONArray fingerprintArray = obj.optJSONArray("fingerprints");
+    /**
+     * Create an object instance from the json object.
+     * @param jsonObject the json object
+     * @return a HomeServerConnectionConfig instance
+     * @throws JSONException the conversion failure reason
+     */
+    public static HomeServerConnectionConfig fromJson(JSONObject jsonObject) throws JSONException {
+        JSONArray fingerprintArray = jsonObject.optJSONArray("fingerprints");
         ArrayList<Fingerprint> fingerprints = new ArrayList<>();
         if (fingerprintArray != null) {
             for (int i = 0; i < fingerprintArray.length(); i++) {
@@ -166,15 +197,15 @@ public class HomeserverConnectionConfig {
             }
         }
 
-        JSONObject credentialsObj = obj.optJSONObject("credentials");
+        JSONObject credentialsObj = jsonObject.optJSONObject("credentials");
         Credentials creds = credentialsObj != null ? Credentials.fromJson(credentialsObj) : null;
 
-        HomeserverConnectionConfig config = new HomeserverConnectionConfig(
-                Uri.parse(obj.getString("home_server_url")),
-                obj.has("identity_server_url") ? Uri.parse(obj.getString("identity_server_url")) : null,
+        HomeServerConnectionConfig config = new HomeServerConnectionConfig(
+                Uri.parse(jsonObject.getString("home_server_url")),
+                jsonObject.has("identity_server_url") ? Uri.parse(jsonObject.getString("identity_server_url")) : null,
                 creds,
                 fingerprints,
-                obj.optBoolean("pin", false));
+                jsonObject.optBoolean("pin", false));
 
         return config;
     }

@@ -15,7 +15,7 @@
  */
 package org.matrix.androidsdk.rest.client;
 
-import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.BingRulesApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -31,7 +31,7 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
     /**
      * {@inheritDoc}
      */
-    public BingRulesRestClient(HomeserverConnectionConfig hsConfig) {
+    public BingRulesRestClient(HomeServerConnectionConfig hsConfig) {
         super(hsConfig, BingRulesApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
     }
 
