@@ -100,6 +100,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
 /**
@@ -157,7 +158,7 @@ public class MXSession {
     private boolean mUseDataSaveMode;
 
     // load the crypto libs.
-    public static final OlmManager mOlmManager = new OlmManager();
+    public static OlmManager mOlmManager = new OlmManager();
 
     // regex pattern to find matrix user ids in a string.
     public static final String MATRIX_USER_IDENTIFIER_REGEX = "@[A-Z0-9._=-]+:[A-Z0-9.-]+\\.[A-Z]{2,}+(\\:[0-9]{2,})?";
@@ -227,16 +228,7 @@ public class MXSession {
 
                     if (store.hasData() || mEnableCryptoWhenStartingMXSession) {
                         Log.d(LOG_TAG, "## postProcess() : create the crypto instance for session " + this);
-
-                        // open the store
-                        store.open();
-
-                        // enable
-                        mCrypto = new MXCrypto(MXSession.this, store);
-                        mDataHandler.setCrypto(mCrypto);
-
-                        // the room summaries are not stored with decrypted content
-                        decryptRoomSummaries();
+                        checkCrypto();
                     } else {
                         Log.e(LOG_TAG, "## postProcess() : no crypto data");
                     }
@@ -2308,32 +2300,40 @@ public class MXSession {
         MXFileCryptoStore fileCryptoStore = new MXFileCryptoStore();
         fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
 
-        if (fileCryptoStore.hasData() && (null == mCrypto)) {
-            Log.e(LOG_TAG, "## checkCrypto() : there are some crypto data but the engine was not launched");
+        if ((fileCryptoStore.hasData() || mEnableCryptoWhenStartingMXSession) && (null == mCrypto)) {
+            boolean isStoreLoaded = false;
+            try {
+                // open the store
+                fileCryptoStore.open();
+                isStoreLoaded = true;
+            } catch (UnsatisfiedLinkError e) {
+                Log.e(LOG_TAG, "## checkCrypto() failed " + e.getMessage());
+            }
 
-            enableCrypto(true, new ApiCallback<Void>() {
-                @Override
-                public void onSuccess(Void info) {
-                    Log.e(LOG_TAG, "## checkCrypto() : restarted");
-                    mDataHandler.setCrypto(mCrypto);
-                    decryptRoomSummaries();
-                }
+            if (!isStoreLoaded) {
+                // load again the olm manager
+                // reported by rageshake, it seems that the olm lib is unloaded.
+                mOlmManager = new OlmManager();
 
-                @Override
-                public void onNetworkError(Exception e) {
-                    Log.e(LOG_TAG, "## checkCrypto() : failed " + e.getMessage());
+                try {
+                    // open the store
+                    fileCryptoStore.open();
+                    isStoreLoaded = true;
+                } catch (UnsatisfiedLinkError e) {
+                    Log.e(LOG_TAG, "## checkCrypto() failed 2 " + e.getMessage());
                 }
+            }
 
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    Log.e(LOG_TAG, "## checkCrypto() : failed " + e.getMessage());
-                }
+            if (!isStoreLoaded) {
+                Log.e(LOG_TAG, "## checkCrypto() : cannot enable the crypto because of olm lib");
+                return;
+            }
 
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    Log.e(LOG_TAG, "## checkCrypto() : failed " + e.getMessage());
-                }
-            });
+            mDataHandler.setCrypto(mCrypto);
+            // the room summaries are not stored with decrypted content
+            decryptRoomSummaries();
+
+            Log.d(LOG_TAG, "## checkCrypto() : the crypto engine is ready");
         } else if (mDataHandler.getCrypto() != mCrypto) {
             Log.e(LOG_TAG, "## checkCrypto() : the data handler crypto was not initialized");
             mDataHandler.setCrypto(mCrypto);
