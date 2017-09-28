@@ -147,6 +147,8 @@ public class MXSession {
 
     // online status
     private boolean mIsOnline = false;
+    private int mSyncTimeout = 0;
+    private int mSyncDelay = 0;
 
     private final HomeServerConnectionConfig mHsConfig;
 
@@ -851,6 +853,8 @@ public class MXSession {
             mEventsThread = new EventsThread(mAppContent, mEventsRestClient, fEventsListener, initialToken);
             mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
             mEventsThread.setIsOnline(mIsOnline);
+            mEventsThread.setServerLongPollTimeout(mSyncTimeout);
+            mEventsThread.setSyncDelay(mSyncDelay);
 
             if (mFailureCallback != null) {
                 mEventsThread.setFailureCallback(mFailureCallback);
@@ -933,6 +937,7 @@ public class MXSession {
      * @param ms the delay in ms
      */
     public void setSyncTimeout(int ms) {
+        mSyncTimeout = ms;
         if (null != mEventsThread) {
             mEventsThread.setServerLongPollTimeout(ms);
         }
@@ -942,11 +947,7 @@ public class MXSession {
      * @return the heartbeat request timeout
      */
     public int getSyncTimeout() {
-        if (null != mEventsThread) {
-            return mEventsThread.getServerLongPollTimeout();
-        }
-
-        return 0;
+        return mSyncTimeout;
     }
 
     /**
@@ -955,6 +956,7 @@ public class MXSession {
      * @param ms the delay in ms
      */
     public void setSyncDelay(int ms) {
+        mSyncDelay = ms;
         if (null != mEventsThread) {
             mEventsThread.setSyncDelay(ms);
         }
@@ -964,11 +966,7 @@ public class MXSession {
      * @return the delay between two sync requests.
      */
     public int getSyncDelay() {
-        if (null != mEventsThread) {
-            return mEventsThread.getSyncDelay();
-        }
-
-        return 0;
+        return mSyncDelay;
     }
 
     /**
