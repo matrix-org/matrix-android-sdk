@@ -41,25 +41,26 @@ public class PushersRestClient extends RestClient<PushersApi> {
 
     /** Add a new HTTP pusher.
      * @param pushkey the pushkey
-     * @param appId the appplication id
+     * @param appId the application id
      * @param profileTag the profile tag
      * @param lang the language
      * @param appDisplayName a human-readable application name
      * @param deviceDisplayName a human-readable device name
      * @param url the URL that should be used to send notifications
      * @param append append the pusher
+     * @param withEventIdOnly true to limit the push content
      */
     public void addHttpPusher(
             final String pushkey, final String appId,
             final String profileTag, final String lang,
             final String appDisplayName, final String deviceDisplayName,
-            final String url, boolean append, final ApiCallback<Void> callback) {
-        manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, append, callback, true);
+            final String url, boolean append, boolean withEventIdOnly, final ApiCallback<Void> callback) {
+        manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, append, withEventIdOnly, true, callback);
     }
 
     /** remove a new HTTP pusher.
      * @param pushkey the pushkey
-     * @param appId the appplication id
+     * @param appId the application id
      * @param profileTag the profile tag
      * @param lang the language
      * @param appDisplayName a human-readable application name
@@ -71,7 +72,7 @@ public class PushersRestClient extends RestClient<PushersApi> {
             final String profileTag, final String lang,
             final String appDisplayName, final String deviceDisplayName,
             final String url, final ApiCallback<Void> callback) {
-        manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, false, callback, false);
+        manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, false, false, false, callback);
     }
 
 
@@ -83,13 +84,15 @@ public class PushersRestClient extends RestClient<PushersApi> {
      * @param appDisplayName a human-readable application name
      * @param deviceDisplayName a human-readable device name
      * @param url the URL that should be used to send notifications
+     * @param withEventIdOnly true to limit the push content
      * @param addPusher true to add the pusher / false to remove it
      */
     private void manageHttpPusher(
             final String pushkey, final String appId,
             final String profileTag, final String lang,
             final String appDisplayName, final String deviceDisplayName,
-            final String url, final Boolean append, final ApiCallback<Void> callback, final boolean addPusher) {
+            final String url, final boolean append, final boolean withEventIdOnly,
+            final boolean addPusher, final ApiCallback<Void> callback) {
         Pusher pusher = new Pusher();
         pusher.pushkey = pushkey;
         pusher.appId = appId;
@@ -100,8 +103,13 @@ public class PushersRestClient extends RestClient<PushersApi> {
         pusher.deviceDisplayName = deviceDisplayName;
         pusher.data = new HashMap<>();
         pusher.data.put(DATA_KEY_HTTP_URL, url);
+
         if (addPusher) {
             pusher.append = append;
+        }
+
+        if (withEventIdOnly) {
+            pusher.data.put("format", "event_id_only");
         }
 
         final String description = "manageHttpPusher";
@@ -109,7 +117,7 @@ public class PushersRestClient extends RestClient<PushersApi> {
         mApi.set(pusher, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, append, callback, addPusher);
+                manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, append, withEventIdOnly, addPusher, callback);
             }
         }));
     }
