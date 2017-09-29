@@ -267,11 +267,30 @@ public class BingRulesManager {
     }
 
     /**
+     * Returns the first highlighted notifiable bing rule which fulfills its condition with this event.
+     * @param event the event
+     * @return the first matched bing rule, null if none
+     */
+    public BingRule fulfilledHighlightBingRule(Event event) {
+        return fulfilledBingRule(event, true);
+    }
+
+    /**
      * Returns the first notifiable bing rule which fulfills its condition with this event.
      * @param event the event
      * @return the first matched bing rule, null if none
      */
     public BingRule fulfilledBingRule(Event event) {
+        return fulfilledBingRule(event, false);
+    }
+
+    /**
+     * Returns the first notifiable bing rule which fulfills its condition with this event.
+     * @param event the event
+     * @param highlightRuleOnly true to only check the highlight rule
+     * @return the first matched bing rule, null if none
+     */
+    private BingRule fulfilledBingRule(Event event, boolean highlightRuleOnly) {
         // sanity check
         if (null == event) {
             Log.e(LOG_TAG, "## fulfilledBingRule() : null event");
@@ -313,7 +332,7 @@ public class BingRulesManager {
 
         // Go down the rule list until we find a match
         for (BingRule bingRule : rules) {
-            if (bingRule.isEnabled) {
+            if (bingRule.isEnabled && (!highlightRuleOnly || bingRule.shouldHighlight())) {
                 boolean isFullfilled = false;
 
                 // some rules have no condition
