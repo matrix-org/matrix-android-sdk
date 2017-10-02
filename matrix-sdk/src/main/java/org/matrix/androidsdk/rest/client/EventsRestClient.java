@@ -18,7 +18,7 @@ package org.matrix.androidsdk.rest.client;
 
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.EventsApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -36,6 +36,7 @@ import org.matrix.androidsdk.rest.model.Search.SearchUsersRequestResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchUsersResponse;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.ThirdPartyProtocol;
+import org.matrix.androidsdk.rest.model.URLPreview;
 import org.matrix.androidsdk.rest.model.User;
 
 import java.util.ArrayList;
@@ -59,7 +60,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
     /**
      * {@inheritDoc}
      */
-    public EventsRestClient(HomeserverConnectionConfig hsConfig) {
+    public EventsRestClient(HomeServerConnectionConfig hsConfig) {
         super(hsConfig, EventsApi.class, "", false);
     }
 
@@ -211,6 +212,8 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
         params.put("timeout", timeout);
 
+        // increase the timeout because the init sync might require more time to be built
+        setConnectionTimeout(RestClient.CONNECTION_TIMEOUT_MS * ((null == token) ? 2 : 1));
 
         final String description = "syncFromToken";
 
@@ -529,4 +532,48 @@ public class EventsRestClient extends RestClient<EventsApi> {
         mSearchUsersPatternIdentifier = null;
     }
 
+    /**
+     * Retrieve the URL preview information.
+     * @param URL the URL
+     * @param ts the timestamp
+     * @param callback the asynchronous callback
+     */
+    public void getURLPreview(final String URL, final long ts, final ApiCallback<URLPreview> callback) {
+        final String description = "getURLPreview : URL " + URL + " with ts " + ts;
+
+        mApi.getURLPreview(URL, ts, new RestAdapterCallback<Map<String, Object>>(description, null, false, new ApiCallback<Map<String, Object>>() {
+            @Override
+            public void onSuccess(Map<String, Object> map) {
+                if (null != callback) {
+                    callback.onSuccess(new URLPreview(map));
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        }, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                getURLPreview(URL, ts, callback);
+            }
+        }));
+    }
 }

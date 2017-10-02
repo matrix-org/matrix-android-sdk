@@ -16,6 +16,7 @@
  */
 package org.matrix.androidsdk.rest.api;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.data.RoomState;
@@ -136,12 +137,41 @@ public interface RoomsApi {
     /**
      * Send a generic state events
      * @param roomId the room id.
-     * @param stateEvent the state event type
+     * @param stateEventType the state event type
      * @param params the request parameters
      * @param callback the callback
      */
-    @PUT("/rooms/{roomId}/state/{state_event}")
-    void sendStateEvent(@Path("roomId") String roomId, @Path("state_event") String stateEvent, @Body Map<String, Object> params, Callback<Void> callback);
+    @PUT("/rooms/{roomId}/state/{state_event_type}")
+    void sendStateEvent(@Path("roomId") String roomId, @Path("state_event_type") String stateEventType, @Body Map<String, Object> params, Callback<Void> callback);
+
+    /**
+     * Send a generic state events
+     * @param roomId the room id.
+     * @param stateEventType the state event type
+     * @param params the request parameters
+     * @param callback the callback
+     */
+    @PUT("/rooms/{roomId}/state/{state_event_type}/{stateKey}")
+    void sendStateEvent(@Path("roomId") String roomId, @Path("state_event_type") String stateEventType, @Path("stateKey") String stateKey, @Body Map<String, Object> params, Callback<Void> callback);
+
+    /**
+     * Looks up the contents of a state event in a room
+     * @param roomId the room id
+     * @param eventType the event type
+     * @param callback the callback
+     */
+    @GET("rooms/{roomId}/state/{eventType}")
+    void getStateEvent(@Path("roomId") String roomId, @Path("eventType") String eventType, Callback<JsonElement> callback);
+
+    /**
+     * Looks up the contents of a state event in a room
+     * @param roomId the room id
+     * @param eventType the event type
+     * @param stateKey the key of the state to look up
+     * @param callback the callback
+     */
+    @GET("rooms/{roomId}/state/{eventType}/{stateKey}")
+    void getStateEvent(@Path("roomId") String roomId, @Path("eventType") String eventType, @Path("stateKey") String stateKey, Callback<JsonElement> callback);
 
     /**
      * Invite a user to the given room.

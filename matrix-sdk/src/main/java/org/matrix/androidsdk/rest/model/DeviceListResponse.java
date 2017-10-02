@@ -23,4 +23,7 @@ import java.util.List;
 public class DeviceListResponse {
     // user ids list which have new crypto devices
     public List<String> changed;
+
+    //  List of user ids who are no more tracked.
+    public List<String> left;
 }

@@ -262,7 +262,7 @@ public class ThreePid implements java.io.Serializable {
      * Get the friendly name of the medium
      *
      * @param medium medium of the 3pid
-     * @param context
+     * @param context the context
      * @return friendly name of the medium
      */
     public static String getMediumFriendlyName(final String medium,  final Context context){

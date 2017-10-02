@@ -37,7 +37,7 @@ public class MXOutboundSessionInfo {
 
     // Devices with which we have shared the session key
     // userId -> {deviceId -> msgindex}
-    public MXUsersDevicesMap<Integer> mSharedWithDevices;
+    public final MXUsersDevicesMap<Integer> mSharedWithDevices;
 
     // constructor
     public MXOutboundSessionInfo(String sessionId) {

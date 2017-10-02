@@ -79,16 +79,16 @@ public class BingRulesManager {
     }
 
     // general members
-    private BingRulesRestClient mApiClient;
-    private MXSession mSession;
-    private String mMyUserId;
-    private MXDataHandler mDataHandler;
+    private final BingRulesRestClient mApiClient;
+    private final MXSession mSession;
+    private final String mMyUserId;
+    private final MXDataHandler mDataHandler;
 
     // the rules set to apply
     private BingRuleSet mRulesSet = new BingRuleSet();
 
     // the rules list
-    private List<BingRule> mRules = new ArrayList<>();
+    private final List<BingRule> mRules = new ArrayList<>();
 
     // the default bing rule
     private BingRule mDefaultBingRule = new BingRule(true);
@@ -97,7 +97,7 @@ public class BingRulesManager {
     private boolean mIsInitialized = false;
 
     // map to check if a room is "mention only"
-    private Map<String, Boolean> mIsMentionOnlyMap = new HashMap<>();
+    private final Map<String, Boolean> mIsMentionOnlyMap = new HashMap<>();
 
     // network management
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
@@ -105,7 +105,7 @@ public class BingRulesManager {
     private ApiCallback<Void> mLoadRulesCallback;
 
     //  listener
-    private Set<onBingRulesUpdateListener> mBingRulesUpdateListeners = new HashSet<>();
+    private final Set<onBingRulesUpdateListener> mBingRulesUpdateListeners = new HashSet<>();
 
     /**
      * Constructor
@@ -260,10 +260,19 @@ public class BingRulesManager {
             Pattern pattern = Pattern.compile("(\\W|^)" + subString + "(\\W|$)", Pattern.CASE_INSENSITIVE);
             found = pattern.matcher(longString).find();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "caseInsensitiveFind : pattern.matcher failed with " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "caseInsensitiveFind : pattern.matcher failed with " + e.getMessage());
         }
 
         return found;
+    }
+
+    /**
+     * Returns the first highlighted notifiable bing rule which fulfills its condition with this event.
+     * @param event the event
+     * @return the first matched bing rule, null if none
+     */
+    public BingRule fulfilledHighlightBingRule(Event event) {
+        return fulfilledBingRule(event, true);
     }
 
     /**
@@ -272,6 +281,16 @@ public class BingRulesManager {
      * @return the first matched bing rule, null if none
      */
     public BingRule fulfilledBingRule(Event event) {
+        return fulfilledBingRule(event, false);
+    }
+
+    /**
+     * Returns the first notifiable bing rule which fulfills its condition with this event.
+     * @param event the event
+     * @param highlightRuleOnly true to only check the highlight rule
+     * @return the first matched bing rule, null if none
+     */
+    private BingRule fulfilledBingRule(Event event, boolean highlightRuleOnly) {
         // sanity check
         if (null == event) {
             Log.e(LOG_TAG, "## fulfilledBingRule() : null event");
@@ -313,7 +332,7 @@ public class BingRulesManager {
 
         // Go down the rule list until we find a match
         for (BingRule bingRule : rules) {
-            if (bingRule.isEnabled) {
+            if (bingRule.isEnabled && (!highlightRuleOnly || bingRule.shouldHighlight())) {
                 boolean isFullfilled = false;
 
                 // some rules have no condition

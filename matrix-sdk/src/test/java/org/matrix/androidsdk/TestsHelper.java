@@ -52,7 +52,7 @@ public class TestsHelper {
         RestClient.mUseMXExececutor = true;
 
         Uri uri = Uri.parse(TESTS_HOME_SERVER_URL);
-        HomeserverConnectionConfig hs = new HomeserverConnectionConfig(uri);
+        HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
         LoginRestClient loginRestClient = new LoginRestClient(hs);
 
         final HashMap<String, Object> params = new HashMap<>();
@@ -151,11 +151,7 @@ public class TestsHelper {
 
         IMXStore store =  new MXFileStore(hs, context);
 
-        MXSession mxSession = new MXSession(hs, new MXDataHandler(store, credentials, new MXDataHandler.InvalidTokenListener() {
-            @Override
-            public void onTokenCorrupted() {
-            }
-        }), context);
+        MXSession mxSession = new MXSession(hs, new MXDataHandler(store, credentials), context);
 
 
         if (!startSession) {

@@ -26,6 +26,7 @@ import com.google.gson.Gson;
 import com.squareup.okhttp.OkHttpClient;
 
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
+import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.client.MXRestExecutor;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.ssl.CertUtil;
@@ -47,6 +48,7 @@ public class RestClient<T> {
 
     private static final String LOG_TAG = "RestClient";
 
+    public static final String URI_API_PREFIX_PATH_MEDIA_R0 = "/_matrix/media/r0";
     public static final String URI_API_PREFIX_PATH_R0 = "/_matrix/client/r0";
     public static final String URI_API_PREFIX_PATH_UNSTABLE = "/_matrix/client/unstable";
 
@@ -57,7 +59,7 @@ public class RestClient<T> {
 
     private static final String PARAM_ACCESS_TOKEN = "access_token";
 
-    private static final int CONNECTION_TIMEOUT_MS = 30000;
+    protected static final int CONNECTION_TIMEOUT_MS = 30000;
     private static final int READ_TIMEOUT_MS = 60000;
     private static final int WRITE_TIMEOUT_MS = 60000;
 
@@ -69,7 +71,7 @@ public class RestClient<T> {
 
     protected UnsentEventsManager mUnsentEventsManager;
 
-    protected HomeserverConnectionConfig mHsConfig;
+    protected HomeServerConnectionConfig mHsConfig;
 
     // unitary tests only
     public static boolean mUseMXExececutor = false;
@@ -80,15 +82,16 @@ public class RestClient<T> {
     // http client
     private OkHttpClient mOkHttpClient = new OkHttpClient();
 
-    public RestClient(HomeserverConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization) {
+    public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization) {
         this(hsConfig, type, uriPrefix, withNullSerialization, false);
     }
 
     /**
      * Public constructor.
+     *
      * @param hsConfig The homeserver connection config.
      */
-    public RestClient(HomeserverConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization, boolean useIdentityServer) {
+    public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization, boolean useIdentityServer) {
         // The JSON -> object mapper
         gson = JsonUtils.getGson(withNullSerialization);
 
@@ -156,6 +159,7 @@ public class RestClient<T> {
 
     /**
      * Create an user agent with the application version.
+     *
      * @param appContext the application context
      */
     public static void initUserAgent(Context appContext) {
@@ -186,14 +190,60 @@ public class RestClient<T> {
         }
 
         // if there is no user agent or cannot parse it
-        if ((null == sUserAgent) || (sUserAgent.lastIndexOf(")") == -1) || (sUserAgent.indexOf("(") == -1))  {
-            sUserAgent = appName + "/" + appVersion + " ( Flavour " +  appContext.getString(R.string.flavor_description) + "; MatrixAndroidSDK " + BuildConfig.VERSION_NAME + ")";
+        if ((null == sUserAgent) || (sUserAgent.lastIndexOf(")") == -1) || (sUserAgent.indexOf("(") == -1)) {
+            sUserAgent = appName + "/" + appVersion + " ( Flavour " + appContext.getString(R.string.flavor_description) + "; MatrixAndroidSDK " + BuildConfig.VERSION_NAME + ")";
         } else {
             // update
             sUserAgent = appName + "/" + appVersion + " " +
                     sUserAgent.substring(sUserAgent.indexOf("("), sUserAgent.lastIndexOf(")") - 1) +
-                            "; Flavour " + appContext.getString(R.string.flavor_description) +
-                            "; MatrixAndroidSDK " +  BuildConfig.VERSION_NAME + ")";
+                    "; Flavour " + appContext.getString(R.string.flavor_description) +
+                    "; MatrixAndroidSDK " + BuildConfig.VERSION_NAME + ")";
+        }
+    }
+
+    /**
+     * Refresh the connection timeouts.
+     *
+     * @param networkConnectivityReceiver the network connectivity receiver
+     */
+    private void refreshConnectionTimeout(NetworkConnectivityReceiver networkConnectivityReceiver) {
+        if (networkConnectivityReceiver.isConnected()) {
+            float factor = networkConnectivityReceiver.getTimeoutScale();
+
+            mOkHttpClient.setConnectTimeout((int) (CONNECTION_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS);
+            mOkHttpClient.setReadTimeout((int) (READ_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS);
+            mOkHttpClient.setWriteTimeout((int) (WRITE_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS);
+
+            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update setConnectTimeout to " + mOkHttpClient.getConnectTimeout() + " ms");
+            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update setReadTimeout to " + mOkHttpClient.getReadTimeout() + " ms");
+            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update setWriteTimeout to " + mOkHttpClient.getWriteTimeout() + " ms");
+        } else {
+            mOkHttpClient.setConnectTimeout(1, TimeUnit.MILLISECONDS);
+            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update the requests timeout to 1 ms");
+        }
+    }
+
+    /**
+     * Update the connection timeout
+     * @param aTimeoutMs the connection timeout
+     */
+    protected void setConnectionTimeout(int aTimeoutMs) {
+        int timeoutMs = aTimeoutMs;
+
+        if (null != mUnsentEventsManager) {
+            NetworkConnectivityReceiver networkConnectivityReceiver = mUnsentEventsManager.getNetworkConnectivityReceiver();
+
+            if (null != networkConnectivityReceiver) {
+                if (networkConnectivityReceiver.isConnected()) {
+                    timeoutMs *= networkConnectivityReceiver.getTimeoutScale();
+                } else {
+                    timeoutMs = 1000;
+                }
+            }
+        }
+
+        if (timeoutMs != mOkHttpClient.getConnectTimeout()) {
+            mOkHttpClient.setConnectTimeout(timeoutMs, TimeUnit.MILLISECONDS);
         }
     }
 
@@ -204,11 +254,14 @@ public class RestClient<T> {
     public void setUnsentEventsManager(UnsentEventsManager unsentEventsManager) {
         mUnsentEventsManager = unsentEventsManager;
 
-        mUnsentEventsManager.getNetworkConnectivityReceiver().addEventListener(new IMXNetworkEventListener() {
+        final NetworkConnectivityReceiver networkConnectivityReceiver = mUnsentEventsManager.getNetworkConnectivityReceiver();
+        refreshConnectionTimeout(networkConnectivityReceiver);
+
+        networkConnectivityReceiver.addEventListener(new IMXNetworkEventListener() {
             @Override
             public void onNetworkConnectionUpdate(boolean isConnected) {
                 Log.e(LOG_TAG, "## setUnsentEventsManager()  : update the requests timeout to " + (isConnected ? CONNECTION_TIMEOUT_MS : 1) + " ms");
-                mOkHttpClient.setConnectTimeout(isConnected ? CONNECTION_TIMEOUT_MS : 1, TimeUnit.MILLISECONDS);
+                refreshConnectionTimeout(networkConnectivityReceiver);
             }
         });
     }

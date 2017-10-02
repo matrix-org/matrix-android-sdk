@@ -17,7 +17,7 @@ package org.matrix.androidsdk.rest.client;
 
 import com.google.gson.JsonObject;
 
-import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.CallRulesApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -31,7 +31,7 @@ public class CallRestClient extends RestClient<CallRulesApi> {
     /**
      * {@inheritDoc}
      */
-    public CallRestClient(HomeserverConnectionConfig hsConfig) {
+    public CallRestClient(HomeServerConnectionConfig hsConfig) {
         super(hsConfig, CallRulesApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
     }
 

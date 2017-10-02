@@ -240,7 +240,7 @@ public class MXCrypto {
         if (refreshDevicesList) {
             // ensure to have the up-to-date devices list
             // got some issues when upgrading from Riot < 0.6.4
-            mDevicesList.invalidateUserDeviceList(Arrays.asList(mSession.getMyUserId()));
+            mDevicesList.handleDeviceListsChanges(Arrays.asList(mSession.getMyUserId()), null);
         }
     }
 
@@ -333,7 +333,7 @@ public class MXCrypto {
      * @return the tracking status
      */
     public int getDeviceTrackingStatus(String userId) {
-        return mCryptoStore.getDeviceTrackingStatus(userId, MXDeviceList.TRACKING_STATUS_UNDEFINED);
+        return mCryptoStore.getDeviceTrackingStatus(userId, MXDeviceList.TRACKING_STATUS_NOT_TRACKED);
     }
 
     /**
@@ -584,7 +584,7 @@ public class MXCrypto {
             @Override
             public void run() {
                 if (null != syncResponse.deviceLists) {
-                    getDeviceList().invalidateUserDeviceList(syncResponse.deviceLists.changed);
+                    getDeviceList().handleDeviceListsChanges(syncResponse.deviceLists.changed, syncResponse.deviceLists.left);
                 }
 
                 if (isStarted()) {
@@ -1124,7 +1124,7 @@ public class MXCrypto {
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getMessage());
 
                 if (null != callback) {
                     callback.onMatrixError(e);
@@ -1542,7 +1542,7 @@ public class MXCrypto {
 
         // Catch up on any m.new_device events which arrived during the initial sync.
         // And force download all devices keys  the user already has.
-        mDevicesList.invalidateUserDeviceList(Arrays.asList(mMyDevice.userId));
+        mDevicesList.handleDeviceListsChanges(Arrays.asList(mMyDevice.userId), null);
         mDevicesList.refreshOutdatedDeviceLists();
 
         // We need to tell all the devices in all the rooms we are members of that
@@ -1729,7 +1729,7 @@ public class MXCrypto {
             return;
         }
 
-        mDevicesList.invalidateUserDeviceList(Arrays.asList(userId));
+        mDevicesList.handleDeviceListsChanges(Arrays.asList(userId), null);
     }
 
     /**
@@ -2210,6 +2210,16 @@ public class MXCrypto {
         getDecryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
+                if (null == mCryptoStore) {
+                    getUIHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onSuccess(new byte[0]);
+                        }
+                    });
+                    return;
+                }
+
                 ArrayList<Map<String, Object>> exportedSessions = new ArrayList<>();
 
                 List<MXOlmInboundGroupSession2> inboundGroupSessions = mCryptoStore.getInboundGroupSessions();

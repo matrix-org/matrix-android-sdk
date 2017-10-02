@@ -47,7 +47,7 @@ public class MyUser extends User {
     // so, if there is a pending refresh the listeners are added to this list.
     private transient ArrayList<ApiCallback<Void>> mRefreshListeners;
 
-    private transient Handler mUiHandler;
+    private transient final Handler mUiHandler;
 
     // linked emails to the account
     private transient List<ThirdPartyIdentifier> mEmailIdentifiers = new ArrayList<>();

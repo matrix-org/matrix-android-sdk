@@ -97,10 +97,12 @@ public interface IMXEventListener {
 
     /**
      * An event has been sent.
+     * prevEventId defines the event id set before getting the server new one.
      *
      * @param event the event
+     * @param prevEventId the previous eventId
      */
-    void onSentEvent(Event event);
+    void onEventSent(Event event, String prevEventId);
 
     /**
      * The event fails to be sent.
@@ -189,7 +191,7 @@ public interface IMXEventListener {
     /**
      * A read marker has been updated
      *
-     * @param roomId
+     * @param roomId thr room id.
      */
     void onReadMarkerEvent(String roomId);
 

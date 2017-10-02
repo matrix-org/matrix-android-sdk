@@ -18,6 +18,9 @@ package org.matrix.androidsdk.util;
 
 import android.content.Context;
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.ssl.CertUtil;
+import org.matrix.androidsdk.ssl.UnrecognizedCertificateException;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.MXDataHandler;
@@ -28,7 +31,6 @@ import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
@@ -61,7 +63,7 @@ public class UnsentEventsManager {
     // faster way to check if the event is already sent
     private final HashMap<Object, UnsentEventSnapshot> mUnsentEventsMap = new HashMap<>();
     // get the sending order
-    private final ArrayList<UnsentEventSnapshot> mUnsentEvents = new ArrayList<>();
+    private final List<UnsentEventSnapshot> mUnsentEvents = new ArrayList<>();
     // true of the device is connected to a data network
     private boolean mbIsConnected = false;
 
@@ -121,7 +123,8 @@ public class UnsentEventsManager {
 
                         mRequestRetryCallBack.onRetry();
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## resendEventAfter() : onRetry failed " + e.getMessage());
+                        UnsentEventSnapshot.this.mIsResending = false;
+                        Log.e(LOG_TAG, "## resendEventAfter() : " + mEventDescription + " + onRetry failed " + e.getMessage());
                     }
                 }
             }, delayMs);
@@ -263,7 +266,7 @@ public class UnsentEventsManager {
             } catch (Exception e) {
                 // privacy
                 //Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
-                Log.e(LOG_TAG, "Exception UnexpectedError " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage());
             }
         }
         else if (error.isNetworkError()) {
@@ -277,7 +280,7 @@ public class UnsentEventsManager {
             } catch (Exception e) {
                 // privacy
                 //Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage() + " while managing " + error.getUrl());
-                Log.e(LOG_TAG, "Exception NetworkError " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage());
             }
         }
         else {
@@ -366,13 +369,31 @@ public class UnsentEventsManager {
 
                 // trace the matrix error.
                 if ((null != eventDescription) && (null != mxError)) {
-                    Log.d(LOG_TAG, "Matrix error " + mxError.errcode + " " + mxError.getLocalizedMessage() + " [" +  eventDescription + "]");
+                    Log.d(LOG_TAG, "Matrix error " + mxError.errcode + " " + mxError.getMessage() + " [" +  eventDescription + "]");
+
+                    if (TextUtils.equals(MatrixError.UNKNOWN_TOKEN, mxError.errcode)) {
+                        Log.e(LOG_TAG, "## onEventSendingFailed() : invalid token detected");
+                        mDataHandler.onInvalidToken();
+                        triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
+                        return;
+                    }
                 }
 
                 int matrixRetryTimeout = -1;
 
                 if ((null != mxError) &&  MatrixError.LIMIT_EXCEEDED.equals(mxError.errcode) && (null != mxError.retry_after_ms)) {
                     matrixRetryTimeout = mxError.retry_after_ms + 200;
+                }
+
+                if ((null != retrofitError) && retrofitError.isNetworkError()) {
+                    UnrecognizedCertificateException unrecCertEx = CertUtil.getCertificateException(retrofitError);
+
+                    if (null != unrecCertEx) {
+                        Log.e(LOG_TAG, "## onEventSendingFailed() : SSL issue detected");
+                        mDataHandler.onSSLCertificateError(unrecCertEx);
+                        triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
+                        return;
+                    }
                 }
 
                 // some matrix errors are not trapped.
@@ -483,31 +504,36 @@ public class UnsentEventsManager {
 
         synchronized (mUnsentEventsMap) {
             if (mUnsentEvents.size() > 0) {
-                try {
-                    // retry the first
-                    for(int index = 0; index < mUnsentEvents.size(); index++) {
-                        UnsentEventSnapshot unsentEventSnapshot = mUnsentEvents.get(index);
+                List<UnsentEventSnapshot> staledSnapShots = new ArrayList<>();
 
-                        // check if there is no required delay to resend the message
-                        if (!unsentEventSnapshot.waitToBeResent()) {
-                            // if the message is already resending,
-                            if (unsentEventSnapshot.mIsResending) {
-                                // do not resend any other one to try to keep the messages sending order.
-                                return;
-                            } else {
-                                if (null != unsentEventSnapshot.mEventDescription) {
-                                    Log.d(LOG_TAG, "Automatically resend " + unsentEventSnapshot.mEventDescription);
-                                }
+                // retry the first
+                for(int index = 0; index < mUnsentEvents.size(); index++) {
+                    UnsentEventSnapshot unsentEventSnapshot = mUnsentEvents.get(index);
 
+                    // check if there is no required delay to resend the message
+                    if (!unsentEventSnapshot.waitToBeResent()) {
+                        // if the message is already resending,
+                        if (unsentEventSnapshot.mIsResending) {
+                            // do not resend any other one to try to keep the messages sending order.
+                        } else {
+                            if (null != unsentEventSnapshot.mEventDescription) {
+                                Log.d(LOG_TAG, "Automatically resend " + unsentEventSnapshot.mEventDescription);
+                            }
+
+                            try {
                                 unsentEventSnapshot.mIsResending = true;
                                 unsentEventSnapshot.mRequestRetryCallBack.onRetry();
+                                break;
+                            } catch (Exception e) {
+                                unsentEventSnapshot.mIsResending = false;
+                                staledSnapShots.add(unsentEventSnapshot);
+                                Log.e(LOG_TAG, "## resentUnsents() : " + unsentEventSnapshot.mEventDescription + " onRetry() failed " + e.getMessage());
                             }
-                            break;
                         }
                     }
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## resentUnsents() : failure Msg=" + e.getMessage());
                 }
+
+                mUnsentEvents.removeAll(staledSnapShots);
             }
         }
     }

@@ -27,7 +27,6 @@ import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
-import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
@@ -73,7 +72,7 @@ public class MXMemoryStore implements IMXStore {
     protected Map<String, Map<String, ReceiptData>> mReceiptsByRoomId;
 
     // room state events
-    protected final Map<String, Map<String, Event>> mRoomStateEventsByRoomId = new HashMap<>();
+    //protected final Map<String, Map<String, Event>> mRoomStateEventsByRoomId = new HashMap<>();
 
     // common context
     private static Context mSharedContext = null;
@@ -88,7 +87,7 @@ public class MXMemoryStore implements IMXStore {
 
     protected String mEventStreamToken = null;
 
-    protected ArrayList<IMXStoreListener> mListeners = new ArrayList<>();
+    protected final ArrayList<IMXStoreListener> mListeners = new ArrayList<>();
 
     // Meta data about the store. It is defined only if the passed MXCredentials contains all information.
     // When nil, nothing is stored on the file system.
@@ -825,7 +824,7 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public void storeRoomStateEvent(String roomId, Event event) {
-        synchronized (mRoomStateEventsByRoomId) {
+        /*synchronized (mRoomStateEventsByRoomId) {
             Map<String, Event> events = mRoomStateEventsByRoomId.get(roomId);
 
             if (null == events) {
@@ -837,18 +836,18 @@ public class MXMemoryStore implements IMXStore {
             if (null != event.stateKey) {
                 events.put(event.stateKey, event);
             }
-        }
+        }*/
     }
 
     @Override
     public void getRoomStateEvents(final String roomId, final SimpleApiCallback<List<Event>> callback) {
         final List<Event> events = new ArrayList<>();
 
-        synchronized (mRoomStateEventsByRoomId) {
+        /*synchronized (mRoomStateEventsByRoomId) {
             if (mRoomStateEventsByRoomId.containsKey(roomId)) {
                 events.addAll(mRoomStateEventsByRoomId.get(roomId).values());
             }
-        }
+        }*/
 
         (new Handler(Looper.getMainLooper())).post(new Runnable() {
             @Override

@@ -16,8 +16,17 @@
  */
 package org.matrix.androidsdk.sync;
 
+import android.annotation.SuppressLint;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
+import android.os.SystemClock;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.rest.model.Sync.RoomsSyncResponse;
@@ -31,8 +40,8 @@ import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -57,7 +66,7 @@ public class EventsThread extends Thread {
     private boolean mPaused = true;
     private boolean mIsNetworkSuspended = false;
     private boolean mIsCatchingUp = false;
-    private boolean mIsOnline = true;
+    private boolean mIsOnline = false;
 
     private boolean mKilling = false;
 
@@ -65,8 +74,12 @@ public class EventsThread extends Thread {
     private int mNextServerTimeoutms = DEFAULT_SERVER_TIMEOUT_MS;
 
     // add a delay between two sync requests
+    private final Context mContext;
     private int mRequestDelayMs = 0;
-    private Timer mSyncDelayTimer = null;
+    private final AlarmManager mAlarmManager;
+    private PowerManager mPowerManager;
+    private PendingIntent mPendingDelayedIntent;
+    private static final Map<String, EventsThread> mSyncObjectByInstance = new HashMap<>();
 
     // avoid sync on "this" because it might differ if there is a timer.
     private final Object mSyncObject = new Object();
@@ -102,15 +115,20 @@ public class EventsThread extends Thread {
     /**
      * Default constructor.
      *
+     * @param context      the context
      * @param apiClient    API client to make the events API calls
      * @param listener     a listener to inform
      * @param initialToken the sync initial token.
      */
-    public EventsThread(EventsRestClient apiClient, EventsThreadListener listener, String initialToken) {
+    public EventsThread(Context context, EventsRestClient apiClient, EventsThreadListener listener, String initialToken) {
         super("Events thread");
+        mContext = context;
         mEventsRestClient = apiClient;
         mListener = listener;
         mCurrentToken = initialToken;
+        mSyncObjectByInstance.put(this.toString(), this);
+        mAlarmManager = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
+        mPowerManager = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
     }
 
     /**
@@ -304,6 +322,15 @@ public class EventsThread extends Thread {
         mIsOnline = isOnline;
     }
 
+    /**
+     * Tells if the presence is online.
+     *
+     * @return true if the user is seen as online.
+     */
+    public boolean isOnline() {
+        return mIsOnline;
+    }
+
     @Override
     public void run() {
         try {
@@ -326,17 +353,41 @@ public class EventsThread extends Thread {
                 (syncResponse.deviceLists.changed.size() > 0);
     }
 
+
+    /**
+     * Use a broadcast receiver because the Timer delay might be inaccurate when the screen is turned off.
+     * For example, request a 1 min delay and get a 6 mins one.
+     */
+    public static class SyncDelayReceiver extends BroadcastReceiver {
+        public static final String EXTRA_INSTANCE_ID = "EXTRA_INSTANCE_ID";
+
+        public void onReceive(Context context, Intent intent) {
+            String instanceId = intent.getStringExtra(EXTRA_INSTANCE_ID);
+
+            if ((null != instanceId) && mSyncObjectByInstance.containsKey(instanceId)) {
+                EventsThread eventsThread = mSyncObjectByInstance.get(instanceId);
+
+                eventsThread.mPendingDelayedIntent = null;
+
+                Log.d(LOG_TAG, "start a sync after " + eventsThread.mRequestDelayMs + " ms");
+
+                synchronized (eventsThread.mSyncObject) {
+                    eventsThread.mSyncObject.notify();
+                }
+            }
+        }
+    }
+
     /**
      * Start the events sync
      */
+    @SuppressLint("NewApi")
     private void startSync() {
         if (null != mCurrentToken) {
             Log.d(LOG_TAG, "Resuming initial sync from " + mCurrentToken);
         } else {
             Log.d(LOG_TAG, "Requesting initial sync...");
         }
-
-
 
         int serverTimeout;
 
@@ -358,7 +409,7 @@ public class EventsThread extends Thread {
             // Start with initial sync
             while (!mInitialSyncDone) {
                 final CountDownLatch latch = new CountDownLatch(1);
-                mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, null, null, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
+                mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null :"offline", DATA_SAVE_MODE_FILTER, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         Log.d(LOG_TAG, "Received initial sync response.");
@@ -384,7 +435,7 @@ public class EventsThread extends Thread {
                         if (null != mCurrentToken) {
                             onSuccess(null);
                         } else {
-                            Log.e(LOG_TAG, "Sync V2 onNetworkError " + e.getLocalizedMessage());
+                            Log.e(LOG_TAG, "Sync V2 onNetworkError " + e.getMessage());
                             super.onNetworkError(e);
                             sleepAndUnblock();
                         }
@@ -404,7 +455,7 @@ public class EventsThread extends Thread {
                     @Override
                     public void onUnexpectedError(Exception e) {
                         super.onUnexpectedError(e);
-                        Log.e(LOG_TAG, "Sync V2 onUnexpectedError " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "Sync V2 onUnexpectedError " + e.getMessage());
                         sleepAndUnblock();
                     }
                 });
@@ -414,6 +465,8 @@ public class EventsThread extends Thread {
                     latch.await();
                 } catch (InterruptedException e) {
                     Log.e(LOG_TAG, "Interrupted whilst performing initial sync.");
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## startSync() failed " + e.getMessage());
                 }
             }
             serverTimeout = mNextServerTimeoutms;
@@ -436,22 +489,21 @@ public class EventsThread extends Thread {
             if ((!mPaused && !mIsNetworkSuspended) && (0 != mRequestDelayMs)) {
                 Log.d(LOG_TAG, "startSync : start a delay timer ");
 
-                mSyncDelayTimer = new Timer();
+                Intent intent = new Intent(mContext, SyncDelayReceiver.class);
+                intent.putExtra(SyncDelayReceiver.EXTRA_INSTANCE_ID, this.toString());
+                mPendingDelayedIntent = PendingIntent.getBroadcast(mContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-                mSyncDelayTimer.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        Log.d(LOG_TAG, "start a sync after " + mRequestDelayMs + " ms");
+                long futureInMillis = SystemClock.elapsedRealtime() + mRequestDelayMs;
 
-                        synchronized (mSyncObject) {
-                            mSyncObject.notify();
-                        }
-                    }
-                }, mRequestDelayMs);
+                if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) && mPowerManager.isIgnoringBatteryOptimizations(mContext.getPackageName())) {
+                    mAlarmManager.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, futureInMillis, mPendingDelayedIntent);
+                } else {
+                    mAlarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, futureInMillis, mPendingDelayedIntent);
+                }
             }
 
-            if (mPaused || mIsNetworkSuspended || (null != mSyncDelayTimer)) {
-                if (null != mSyncDelayTimer) {
+            if (mPaused || mIsNetworkSuspended || (null != mPendingDelayedIntent)) {
+                if (null != mPendingDelayedIntent) {
                     Log.d(LOG_TAG, "Event stream is paused because there is a timer delay.");
                 } else if (mIsNetworkSuspended) {
                     Log.d(LOG_TAG, "Event stream is paused because there is no available network.");
@@ -466,10 +518,11 @@ public class EventsThread extends Thread {
                         mSyncObject.wait();
                     }
 
-                    if (null != mSyncDelayTimer) {
+                    if (null != mPendingDelayedIntent) {
                         Log.d(LOG_TAG, "startSync : cancel mSyncDelayTimer");
-                        mSyncDelayTimer.cancel();
-                        mSyncDelayTimer = null;
+                        mAlarmManager.cancel(mPendingDelayedIntent);
+                        mPendingDelayedIntent.cancel();
+                        mPendingDelayedIntent = null;
                     }
 
                     Log.d(LOG_TAG, "Event stream woken from pause.");
@@ -496,7 +549,7 @@ public class EventsThread extends Thread {
                 final int fServerTimeout = serverTimeout;
                 mNextServerTimeoutms = mDefaultServerTimeoutms;
 
-                mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, DEFAULT_CLIENT_TIMEOUT_MS, (mIsCatchingUp && mIsOnline) ? "offline" : null, inlineFilter, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
+                mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null :"offline", inlineFilter, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         if (!mKilling) {
@@ -504,6 +557,7 @@ public class EventsThread extends Thread {
                             // we get no to_device messages back.
                             if (0 == fServerTimeout) {
                                 if (hasDevicesChanged(syncResponse)) {
+                                    Log.d(LOG_TAG, "mNextServerTimeoutms is set to 0 because of hasDevicesChanged " + syncResponse.deviceLists.changed);
                                     mNextServerTimeoutms = 0;
                                 }
                             }

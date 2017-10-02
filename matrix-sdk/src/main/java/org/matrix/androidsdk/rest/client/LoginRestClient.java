@@ -21,7 +21,7 @@ import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
 
-import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.LoginApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -56,7 +56,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * Public constructor.
      * @param hsConfig the home server connection config
      */
-    public LoginRestClient(HomeserverConnectionConfig hsConfig) {
+    public LoginRestClient(HomeServerConnectionConfig hsConfig) {
         super(hsConfig, LoginApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
     }
 
@@ -131,10 +131,23 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param callback the callback success and failure callback
      */
     public void loginWithUser(final String user, final String password, final ApiCallback<Credentials> callback) {
+        loginWithUser(user, password, null, callback);
+    }
+
+    /**
+     * Attempt to login with username/password
+     *
+     * @param user     the username
+     * @param password the password
+     * @param deviceName the device name
+     * @param callback the callback success and failure callback
+     */
+    public void loginWithUser(final String user, final String password, final String deviceName, final ApiCallback<Credentials> callback) {
         final String description = "loginWithUser : " + user;
 
         PasswordLoginParams params = new PasswordLoginParams();
         params.setUserIdentifier(user, password);
+        params.setDeviceName(deviceName);
 
         login(params, callback, description);
     }
@@ -148,10 +161,24 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param callback the callback success and failure callback
      */
     public void loginWith3Pid(final String medium, final String address, final String password, final ApiCallback<Credentials> callback) {
+        loginWith3Pid(medium, address, password, null, callback);
+    }
+
+    /**
+     * Attempt to login with 3pid/password
+     *
+     * @param medium   the medium of the 3pid
+     * @param address  the address of the 3pid
+     * @param password the password
+     * @param deviceName the device name
+     * @param callback the callback success and failure callback
+     */
+    public void loginWith3Pid(final String medium, final String address, final String password, final String deviceName, final ApiCallback<Credentials> callback) {
         final String description = "loginWith3pid : " + address;
 
         PasswordLoginParams params = new PasswordLoginParams();
         params.setThirdPartyIdentifier(medium, address, password);
+        params.setDeviceName(deviceName);
 
         login(params, callback, description);
     }
@@ -165,10 +192,24 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param callback    the callback success and failure callback
      */
     public void loginWithPhoneNumber(final String phoneNumber, final String countryCode, final String password, final ApiCallback<Credentials> callback) {
+        loginWithPhoneNumber(phoneNumber, countryCode, password, null, callback);
+    }
+
+    /**
+     * Attempt to login with phone number/password
+     *
+     * @param phoneNumber the phone number
+     * @param countryCode the ISO country code
+     * @param password    the password
+     * @param deviceName the device name
+     * @param callback    the callback success and failure callback
+     */
+    public void loginWithPhoneNumber(final String phoneNumber, final String countryCode, final String password, final String deviceName, final ApiCallback<Credentials> callback) {
         final String description = "loginWithPhoneNumber : " + phoneNumber;
 
         PasswordLoginParams params = new PasswordLoginParams();
         params.setPhoneIdentifier(phoneNumber, countryCode, password);
+        params.setDeviceName(deviceName);
 
         login(params, callback, description);
     }
@@ -177,8 +218,8 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * Make login request
      *
      * @param params login params
-     * @param callback
-     * @param description
+     * @param callback the asynchronous callback
+     * @param description the request description
      */
     private void login(final PasswordLoginParams params, final ApiCallback<Credentials> callback, final String description) {
         mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
@@ -206,8 +247,8 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param token the token
      * @param callback the callback success and failure callback
      */
-    public void loginWithToken(final String user, final String token, final ApiCallback<Credentials> callback) {
-         loginWithToken(user, token, UUID.randomUUID().toString(), callback);
+    public void loginWithToken(final String user, final String token, final String deviceName, final ApiCallback<Credentials> callback) {
+         loginWithToken(user, token, UUID.randomUUID().toString(), deviceName, callback);
     }
 
     /**
@@ -217,7 +258,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param txn_id the client transactio id to include in the request
      * @param callback the callback success and failure callback
      */
-    public void loginWithToken(final String user, final String token, final String txn_id, final ApiCallback<Credentials> callback) {
+    public void loginWithToken(final String user, final String token, final String txn_id, String deviceName, final ApiCallback<Credentials> callback) {
         // privacy
         //final String description = "loginWithPassword user : " + user;
         final String description = "loginWithPassword user";
@@ -226,7 +267,12 @@ public class LoginRestClient extends RestClient<LoginApi> {
         params.user = user;
         params.token = token;
         params.txn_id = txn_id;
-        params.initial_device_display_name = Build.MODEL.trim();
+
+        if ((null != deviceName) && !TextUtils.isEmpty(deviceName.trim())) {
+            params.initial_device_display_name = deviceName.trim();
+        } else {
+            params.initial_device_display_name = Build.MODEL.trim();
+        }
 
         mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
 

@@ -78,6 +78,8 @@ public class Event implements Externalizable {
     public static final String EVENT_TYPE_NEW_DEVICE = "m.new_device";
     public static final String EVENT_TYPE_ROOM_KEY = "m.room_key";
     public static final String EVENT_TYPE_READ_MARKER = "m.fully_read";
+    public static final String EVENT_TYPE_ROOM_PLUMBING = "m.room.plumbing";
+    public static final String EVENT_TYPE_ROOM_BOT_OPTIONS = "m.room.bot.options";
 
     // State events
     public static final String EVENT_TYPE_STATE_ROOM_NAME = "m.room.name";
@@ -1066,7 +1068,7 @@ public class Event implements Externalizable {
                 try {
                     unsigned.redacted_because.content.reason = contentAsJson.get("reason").getAsString();
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "unsigned.redacted_because.content.reason failed " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "unsigned.redacted_because.content.reason failed " + e.getMessage());
                 }
 
             }

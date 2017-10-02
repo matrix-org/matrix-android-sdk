@@ -27,8 +27,8 @@ import javax.net.ssl.X509TrustManager;
  * fingerprints.
  */
 public class PinnedTrustManager implements X509TrustManager {
-    private List<Fingerprint> mFingerprints;
-    private X509TrustManager mDefaultTrustManager;
+    private final List<Fingerprint> mFingerprints;
+    private final X509TrustManager mDefaultTrustManager;
 
     /**
      * @param fingerprints An array of SHA256 cert fingerprints

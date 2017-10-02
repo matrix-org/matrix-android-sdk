@@ -24,7 +24,7 @@ import android.os.Looper;
 public class MXOsHandler  {
 
     // the internal handler
-    private android.os.Handler mHandler;
+    private final android.os.Handler mHandler;
 
     /**
      * Listener
@@ -35,7 +35,7 @@ public class MXOsHandler  {
     }
 
     // static
-    public static IPostListener mPostListener = null;
+    public static final IPostListener mPostListener = null;
 
     /**
      * Constructor

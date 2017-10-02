@@ -49,6 +49,7 @@ import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.UrlPostTask;
 import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.FileInfo;
 import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageInfo;
@@ -162,6 +163,13 @@ public class Room {
     }
 
     /**
+     * @return the store in which the room is stored
+     */
+    public IMXStore getStore() {
+        return mStore;
+    }
+
+    /**
      * Tells if the room is a call conference one
      * i.e. this room has been created to manage the call conference
      *
@@ -235,7 +243,7 @@ public class Room {
                     mDataHandler.onLiveEvent(event, getState());
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "ephemeral event failed " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "ephemeral event failed " + e.getMessage());
             }
         }
     }
@@ -285,7 +293,7 @@ public class Room {
                     try {
                         fOnInitialSyncCallback.onSuccess(null);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "handleJoinedRoomSync : onSuccess failed" + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "handleJoinedRoomSync : onSuccess failed" + e.getMessage());
                     }
                 }
             });
@@ -432,6 +440,55 @@ public class Room {
         return getState().getMember(userId);
     }
 
+    // member event caches
+    private final Map<String, Event> mMemberEventByEventId = new HashMap<>();
+
+    public void getMemberEvent(final String userId, final ApiCallback<Event> callback) {
+        final Event event;
+        final RoomMember member = getMember(userId);
+
+        if ((null != member) && (null != member.getOriginalEventId())) {
+            event = mMemberEventByEventId.get(member.getOriginalEventId());
+
+            if (null == event) {
+                mDataHandler.getDataRetriever().getRoomsRestClient().getContextOfEvent(getRoomId(), member.getOriginalEventId(), 1, new ApiCallback<EventContext>() {
+                    @Override
+                    public void onSuccess(EventContext eventContext) {
+                        if (null != eventContext.event) {
+                            mMemberEventByEventId.put(eventContext.event.eventId, eventContext.event);
+                        }
+                        callback.onSuccess(eventContext.event);
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        callback.onNetworkError(e);
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        callback.onMatrixError(e);
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        callback.onUnexpectedError(e);
+                    }
+                });
+                return;
+            }
+        } else {
+            event = null;
+        }
+
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                callback.onSuccess(event);
+            }
+        });
+    }
+
     public String getTopic() {
         return this.getState().topic;
     }
@@ -515,7 +572,7 @@ public class Room {
                         map = new Gson().fromJson(object, new TypeToken<HashMap<String, Object>>() {
                         }.getType());
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "joinWithThirdPartySigned :  Gson().fromJson failed" + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "joinWithThirdPartySigned :  Gson().fromJson failed" + e.getMessage());
                     }
 
                     if (null != map) {
@@ -540,8 +597,18 @@ public class Room {
             // avoid crash if there are too many running task
             try {
                 task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, url);
-            } catch (Exception e) {
+            } catch (final Exception e) {
+                task.cancel(true);
                 Log.e(LOG_TAG, "joinWithThirdPartySigned : task.executeOnExecutor failed" + e.getMessage());
+
+                (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (null != callback) {
+                            callback.onUnexpectedError(e);
+                        }
+                    }
+                });
             }
         }
     }
@@ -603,13 +670,13 @@ public class Room {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "join onNetworkError " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "join onNetworkError " + e.getMessage());
                 callback.onNetworkError(e);
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "join onMatrixError " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "join onMatrixError " + e.getMessage());
 
                 if (MatrixError.UNKNOWN.equals(e.errcode) && TextUtils.equals("No known servers", e.error)) {
                     // minging kludge until https://matrix.org/jira/browse/SYN-678 is fixed
@@ -622,7 +689,7 @@ public class Room {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "join onUnexpectedError " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "join onUnexpectedError " + e.getMessage());
                 callback.onUnexpectedError(e);
             }
         });
@@ -1079,7 +1146,7 @@ public class Room {
                 }
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "handleReceiptEvent : failed" + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "handleReceiptEvent : failed" + e.getMessage());
         }
 
         return senderIDs;
@@ -1091,7 +1158,8 @@ public class Room {
      * @param summary the room summary
      */
     private void clearUnreadCounters(RoomSummary summary) {
-        Log.d(LOG_TAG, "## clearUnreadCounters " + summary.getRoomId());
+        Log.d(LOG_TAG, "## clearUnreadCounters " + getRoomId());
+
         // reset the notification count
         getLiveState().setHighlightCount(0);
         getLiveState().setNotificationCount(0);
@@ -1140,7 +1208,7 @@ public class Room {
      */
     private boolean markAllAsRead(boolean updateReadMarker, final ApiCallback<Void> aRespCallback) {
         final Event lastEvent = mStore.getLatestEvent(getRoomId());
-        boolean res = sendReadMarkers(updateReadMarker ? lastEvent.eventId : getReadMarkerEventId(), null, aRespCallback);
+        boolean res = sendReadMarkers(updateReadMarker ? ((null != lastEvent) ? lastEvent.eventId : null) : getReadMarkerEventId(), null, aRespCallback);
 
         if (!res) {
             RoomSummary summary = mDataHandler.getStore().getSummary(getRoomId());
@@ -1211,14 +1279,14 @@ public class Room {
     public boolean sendReadReceipt(Event event, final ApiCallback<Void> aRespCallback) {
         String eventId = (null != event) ? event.eventId : null;
         Log.d(LOG_TAG, "## sendReadReceipt() : eventId " + eventId + " in room " + getRoomId());
-        return sendReadMarkers(null, (null != event) ? event.eventId : null, aRespCallback);
+        return sendReadMarkers(null, eventId, aRespCallback);
     }
 
     /**
      * Forget the current read marker
      * This will update the read marker to match the read receipt
      *
-     * @param callback
+     * @param callback the asynchronous callback
      */
     public void forgetReadMarker(final ApiCallback<Void> callback) {
         final RoomSummary summary = mStore.getSummary(getRoomId());
@@ -1303,11 +1371,11 @@ public class Room {
     }
 
     /**
-     * Send the request to update the read marker and read receipt
+     * Send the request to update the read marker and read receipt.
      *
-     * @param aReadMarkerEventId
-     * @param aReadReceiptEventId
-     * @param callback
+     * @param aReadMarkerEventId the read marker event id
+     * @param aReadReceiptEventId the read receipt event id
+     * @param callback the asynchronous callback
      */
     private void setReadMarkers(final String aReadMarkerEventId, final String aReadReceiptEventId, final ApiCallback<Void> callback) {
         Log.d(LOG_TAG, "## setReadMarkers(): readMarkerEventId " + aReadMarkerEventId + " readReceiptEventId " + aReadMarkerEventId);
@@ -1482,7 +1550,7 @@ public class Room {
                 thumbInfo.mimetype = thumbMimeType;
                 locationMessage.thumbnail_info = thumbInfo;
             } catch (Exception e) {
-                Log.e(LOG_TAG, "fillLocationInfo : failed" + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "fillLocationInfo : failed" + e.getMessage());
             }
         }
     }
@@ -1517,7 +1585,7 @@ public class Room {
                     mp.release();
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "fillVideoInfo : MediaPlayer.create failed" + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "fillVideoInfo : MediaPlayer.create failed" + e.getMessage());
             }
             videoInfo.size = file.length();
 
@@ -1547,7 +1615,7 @@ public class Room {
 
             videoMessage.info = videoInfo;
         } catch (Exception e) {
-            Log.e(LOG_TAG, "fillVideoInfo : failed" + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "fillVideoInfo : failed" + e.getMessage());
         }
     }
 
@@ -1572,7 +1640,7 @@ public class Room {
             fileMessage.info = fileInfo;
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "fillFileInfo : failed" + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "fillFileInfo : failed" + e.getMessage());
         }
     }
 
@@ -1631,7 +1699,7 @@ public class Room {
                     }
 
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "fillImageInfo : failed" + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "fillImageInfo : failed" + e.getMessage());
                 } catch (OutOfMemoryError oom) {
                     Log.e(LOG_TAG, "fillImageInfo : oom");
                 }
@@ -1646,7 +1714,7 @@ public class Room {
             imageInfo.mimetype = mimeType;
             imageInfo.size = file.length();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "fillImageInfo : failed" + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "fillImageInfo : failed" + e.getMessage());
             imageInfo = null;
         }
 
@@ -1944,13 +2012,13 @@ public class Room {
             }
 
             @Override
-            public void onSentEvent(Event event) {
+            public void onEventSent(final Event event, final String prevEventId) {
                 // Filter out events for other rooms
                 if (TextUtils.equals(getRoomId(), event.roomId)) {
                     try {
-                        eventListener.onSentEvent(event);
+                        eventListener.onEventSent(event, prevEventId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onSentEvent exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onEventSent exception " + e.getMessage());
                     }
                 }
             }
@@ -2121,6 +2189,8 @@ public class Room {
             return;
         }
 
+        final String prevEventId = event.eventId;
+
         final ApiCallback<Event> localCB = new ApiCallback<Event>() {
             @Override
             public void onSuccess(final Event serverResponseEvent) {
@@ -2144,7 +2214,7 @@ public class Room {
                 markAllAsRead(isReadMarkerUpdated, null);
 
                 mStore.commit();
-                mDataHandler.onSentEvent(event);
+                mDataHandler.onEventSent(event, prevEventId);
 
                 try {
                     callback.onSuccess(null);
@@ -2649,7 +2719,7 @@ public class Room {
                 addEventListener(mEncryptionListener);
             }
 
-            mDataHandler.getDataRetriever().getRoomsRestClient().sendStateEvent(getRoomId(), Event.EVENT_TYPE_MESSAGE_ENCRYPTION, params, new ApiCallback<Void>() {
+            mDataHandler.getDataRetriever().getRoomsRestClient().sendStateEvent(getRoomId(), Event.EVENT_TYPE_MESSAGE_ENCRYPTION, null, params, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
                     // Wait for the event coming back from the hs

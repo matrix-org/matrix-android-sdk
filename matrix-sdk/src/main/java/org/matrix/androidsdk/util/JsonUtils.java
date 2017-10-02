@@ -95,7 +95,7 @@ public class JsonUtils {
         }
     }
 
-    private static Gson gson = new GsonBuilder()
+    private static final Gson gson = new GsonBuilder()
             .setFieldNamingStrategy(new MatrixFieldNamingStrategy())
             .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
             .registerTypeAdapter(Condition.class, new ConditionDeserializer())
@@ -104,7 +104,7 @@ public class JsonUtils {
     // add a call to serializeNulls().
     // by default the null parameters are not sent in the requests.
     // serializeNulls forces to add them.
-    private static Gson gsonWithNullSerialization = new GsonBuilder()
+    private static final Gson gsonWithNullSerialization = new GsonBuilder()
             .setFieldNamingStrategy(new MatrixFieldNamingStrategy())
             .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
             .serializeNulls()
@@ -113,7 +113,7 @@ public class JsonUtils {
 
     // for crypto (canonicalize)
     // avoid converting "=" to \u003d
-    private static Gson gsonWithoutHtmlEscaping = new GsonBuilder()
+    private static final Gson gsonWithoutHtmlEscaping = new GsonBuilder()
             .setFieldNamingStrategy(new MatrixFieldNamingStrategy())
             .disableHtmlEscaping()
             .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)

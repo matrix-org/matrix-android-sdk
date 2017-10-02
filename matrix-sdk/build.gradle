@@ -14,12 +14,12 @@ android {
 
 
     defaultConfig {
-        minSdkVersion 11
+        minSdkVersion 16
         targetSdkVersion 23
         // use version to define a version code.
-        versionCode 801
-        version "0.8.01-dev"
-        versionName "0.8.01-dev"
+        versionCode 802
+        version "0.8.02-dev"
+        versionName "0.8.02-dev"
         resValue "string", "flavor_description", "SDKApp"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
      }
@@ -37,6 +37,19 @@ android {
             keyAlias project.hasProperty("RELEASE_KEY_ALIAS") ? RELEASE_KEY_ALIAS : "dummy alias"
             keyPassword project.hasProperty("RELEASE_KEY_PASSWORD") ? RELEASE_KEY_PASSWORD : "dummy password"
         }
+    }
+
+    task javadoc(type: Javadoc) {
+        source = android.sourceSets.main.java.srcDirs
+        classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+        destinationDir = file("../docs/javadoc/")
+        delete "../docs/"
+
+        options.links("http://docs.oracle.com/javase/7/docs/api/");
+        options.links("http://developer.android.com/reference/");
+        exclude '**/BuildConfig.java'
+        exclude '**/R.java'
+        failOnError false
     }
 
     buildTypes {
@@ -100,9 +113,11 @@ dependencies {
     compile 'com.google.code.gson:gson:2.3'
     compile 'com.squareup.okhttp:okhttp-urlconnection:2.2.0'
     compile 'com.squareup.okhttp:okhttp:2.2.0'
-    compile 'io.pristine:libjingle:9690@aar'
 
     compile(name: 'olm-sdk', ext: 'aar')
+
+    // replace the compile 'io.pristine:libjingle:9690@aar'
+    compile(name: 'react-native-webrtc', ext: 'aar')
 
     // Robolectric
     testCompile 'com.android.support.test:runner:0.3'

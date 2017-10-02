@@ -26,7 +26,6 @@ import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.olm.OlmAccount;
-import org.matrix.olm.OlmException;
 import org.matrix.olm.OlmInboundGroupSession;
 import org.matrix.olm.OlmMessage;
 import org.matrix.olm.OlmOutboundGroupSession;

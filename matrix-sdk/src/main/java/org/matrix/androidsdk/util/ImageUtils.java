@@ -93,7 +93,7 @@ public class ImageUtils {
             catch (Exception e) {
                 // eg SecurityException from com.google.android.apps.photos.content.GooglePhotosImageProvider URIs
                 // eg IOException from trying to parse the returned path as a file when it is an http uri.
-                Log.e(LOG_TAG, "Cannot get orientation for bitmap: " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "Cannot get orientation for bitmap: " + e.getMessage());
             }
             finally {
                 if (cursor != null) {
@@ -107,7 +107,7 @@ public class ImageUtils {
                 orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
             }
             catch (Exception e) {
-                Log.e(LOG_TAG, "Cannot get EXIF for file uri "+uri+" because " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "Cannot get EXIF for file uri "+uri+" because " + e.getMessage());
             }
         }
 
@@ -144,7 +144,7 @@ public class ImageUtils {
      * @param aSampleSize     the image dimension divider.
      * @param quality         the image quality (0 -> 100)
      * @return a stream of the resized imaged
-     * @throws IOException
+     * @throws IOException file IO exception.
      */
     public static InputStream resizeImage(InputStream fullImageStream, int maxSize, int aSampleSize, int quality) throws IOException {
         /*
@@ -251,9 +251,9 @@ public class ImageUtils {
                     bitmap = BitmapFactory.decodeStream(imageStream, null, options);
                     imageStream.close();
                 } catch (OutOfMemoryError e) {
-                    Log.e(LOG_TAG, "applyExifRotation BitmapFactory.decodeStream : " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "applyExifRotation BitmapFactory.decodeStream : " + e.getMessage());
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "applyExifRotation " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "applyExifRotation " + e.getMessage());
                 }
 
                 android.graphics.Matrix bitmapMatrix = new android.graphics.Matrix();
@@ -269,9 +269,9 @@ public class ImageUtils {
             }
 
         } catch (OutOfMemoryError e) {
-            Log.e(LOG_TAG, "applyExifRotation " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "applyExifRotation " + e.getMessage());
         } catch (Exception e) {
-            Log.e(LOG_TAG, "applyExifRotation " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "applyExifRotation " + e.getMessage());
         }
 
         return rotatedBitmap;
@@ -299,7 +299,7 @@ public class ImageUtils {
             }
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "applyExifRotation " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "applyExifRotation " + e.getMessage());
         }
 
         return rotatedBitmap;
@@ -322,7 +322,7 @@ public class ImageUtils {
                 url = mediasCache.saveMedia(scaledStream, null, mimeType);
                 rotateImage(context, url, rotationAngle, mediasCache);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "rotateAndScale " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "rotateAndScale " + e.getMessage());
             }
         }
         return url;

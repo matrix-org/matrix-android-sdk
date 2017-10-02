@@ -139,7 +139,7 @@ public interface ProfileApi {
      * Note: Proxies the identity server API validate/email/requestToken, but first checks that
      * the given email address is not already associated with an account on this Home Server.
      *
-     * @param callback
+     * @param callback the asynchronous callback
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/account/3pid/email/requestToken")
     void requestEmailValidation(@Body RequestEmailValidationParams params, Callback<RequestEmailValidationResponse> callback);
@@ -149,7 +149,7 @@ public interface ProfileApi {
      * Note: Proxies the identity server API validate/email/requestToken, but first checks that
      * the given email address is not already associated with an account on this Home Server.
      *
-     * @param callback
+     * @param callback the asynchronous callback
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/register/email/requestToken")
     void requestEmailValidationForRegistration(@Body RequestEmailValidationParams params, Callback<RequestEmailValidationResponse> callback);
@@ -159,7 +159,7 @@ public interface ProfileApi {
      * Note: Proxies the identity server API validate/msisdn/requestToken, but first checks that
      * the given phone number is not already associated with an account on this Home Server.
      *
-     * @param callback
+     * @param callback the asynchronous callback
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/account/3pid/msisdn/requestToken")
     void requestPhoneNumberValidation(@Body RequestPhoneNumberValidationParams params, Callback<RequestPhoneNumberValidationResponse> callback);
@@ -169,7 +169,7 @@ public interface ProfileApi {
      * Note: Proxies the identity server API validate/msisdn/requestToken, but first checks that
      * the given phone number is not already associated with an account on this Home Server.
      *
-     * @param callback
+     * @param callback the asynchronous callback
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/register/msisdn/requestToken")
     void requestPhoneNumberValidationForRegistration(@Body RequestPhoneNumberValidationParams params, Callback<RequestPhoneNumberValidationResponse> callback);

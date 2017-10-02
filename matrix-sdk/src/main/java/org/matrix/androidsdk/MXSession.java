@@ -100,6 +100,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
 /**
@@ -112,20 +113,20 @@ public class MXSession {
     private DataRetriever mDataRetriever;
     private MXDataHandler mDataHandler;
     private EventsThread mEventsThread;
-    private Credentials mCredentials;
+    private final Credentials mCredentials;
 
     // Api clients
     private EventsRestClient mEventsRestClient;
     private ProfileRestClient mProfileRestClient;
     private PresenceRestClient mPresenceRestClient;
     private RoomsRestClient mRoomsRestClient;
-    private BingRulesRestClient mBingRulesRestClient;
-    private PushersRestClient mPushersRestClient;
-    private ThirdPidRestClient mThirdPidRestClient;
-    private CallRestClient mCallRestClient;
-    private AccountDataRestClient mAccountDataRestClient;
-    private CryptoRestClient mCryptoRestClient;
-    private LoginRestClient mLoginRestClient;
+    private final BingRulesRestClient mBingRulesRestClient;
+    private final PushersRestClient mPushersRestClient;
+    private final ThirdPidRestClient mThirdPidRestClient;
+    private final CallRestClient mCallRestClient;
+    private final AccountDataRestClient mAccountDataRestClient;
+    private final CryptoRestClient mCryptoRestClient;
+    private final LoginRestClient mLoginRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -145,9 +146,11 @@ public class MXSession {
     private boolean mIsAliveSession = true;
 
     // online status
-    private boolean mIsOnline = true;
+    private boolean mIsOnline = false;
+    private int mSyncTimeout = 0;
+    private int mSyncDelay = 0;
 
-    private HomeserverConnectionConfig mHsConfig;
+    private final HomeServerConnectionConfig mHsConfig;
 
     // the application is launched from a notification
     // so, mEventsThread.start might be not ready
@@ -189,7 +192,7 @@ public class MXSession {
      *
      * @param hsConfig the home server connection config
      */
-    private MXSession(HomeserverConnectionConfig hsConfig) {
+    private MXSession(HomeServerConnectionConfig hsConfig) {
         mCredentials = hsConfig.getCredentials();
         mHsConfig = hsConfig;
 
@@ -213,7 +216,7 @@ public class MXSession {
      * @param dataHandler the data handler
      * @param appContext  the application context
      */
-    public MXSession(HomeserverConnectionConfig hsConfig, MXDataHandler dataHandler, Context appContext) {
+    public MXSession(HomeServerConnectionConfig hsConfig, MXDataHandler dataHandler, Context appContext) {
         this(hsConfig);
         mDataHandler = dataHandler;
 
@@ -226,15 +229,10 @@ public class MXSession {
                     store.initWithCredentials(mAppContent, mCredentials);
 
                     if (store.hasData() || mEnableCryptoWhenStartingMXSession) {
-                        // open the store
-                        store.open();
-
-                        // enable
-                        mCrypto = new MXCrypto(MXSession.this, store);
-                        mDataHandler.setCrypto(mCrypto);
-
-                        // the room summaries are not stored with decrypted content
-                        decryptRoomSummaries();
+                        Log.d(LOG_TAG, "## postProcess() : create the crypto instance for session " + this);
+                        checkCrypto();
+                    } else {
+                        Log.e(LOG_TAG, "## postProcess() : no crypto data");
                     }
                 } else {
                     Log.e(LOG_TAG, "## postProcess() : mCrypto is already created");
@@ -298,7 +296,7 @@ public class MXSession {
 
         // return the default cache manager
         mLatestChatMessageCache = new MXLatestChatMessageCache(mCredentials.userId);
-        mMediasCache = new MXMediasCache(mContentManager, mCredentials.userId, appContext);
+        mMediasCache = new MXMediasCache(mContentManager, mNetworkConnectivityReceiver, mCredentials.userId, appContext);
         mDataHandler.setMediasCache(mMediasCache);
     }
 
@@ -497,7 +495,7 @@ public class MXSession {
         return mCryptoRestClient;
     }
 
-    public HomeserverConnectionConfig getHomeserverConfig() {
+    public HomeServerConnectionConfig getHomeServerConfig() {
         checkIfAlive();
         return mHsConfig;
     }
@@ -565,9 +563,19 @@ public class MXSession {
         };
         try {
             task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             Log.e(LOG_TAG, "## getApplicationSizeCaches() : failed " + e.getMessage());
             task.cancel(true);
+
+            (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
+                @Override
+                public void run() {
+                    if (null != callback) {
+                        callback.onUnexpectedError(e);
+                    }
+                }
+            });
+
         }
     }
 
@@ -639,7 +647,22 @@ public class MXSession {
                     }
                 }
             };
-            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+
+            try {
+                task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            } catch (final Exception e) {
+                Log.e(LOG_TAG, "## clear() failed " + e.getMessage());
+                task.cancel(true);
+
+                (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (null != callback) {
+                            callback.onUnexpectedError(e);
+                        }
+                    }
+                });
+            }
         }
     }
 
@@ -801,49 +824,58 @@ public class MXSession {
     public void startEventStream(final EventsThreadListener anEventsListener, final NetworkConnectivityReceiver networkConnectivityReceiver, final String initialToken) {
         checkIfAlive();
 
-        if (mEventsThread != null) {
-            if (!mEventsThread.isAlive()) {
-                mEventsThread = null;
-                Log.e(LOG_TAG, "startEventStream() : create a new EventsThread");
-            } else {
-                // https://github.com/vector-im/riot-android/issues/1331
-                mEventsThread.cancelKill();
-                Log.e(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
+        // reported by a rageshake issue
+        // startEventStream might be called several times
+        // when the service is killed and automatically restarted.
+        // It might be restarted by itself and by android at the same time.
+        synchronized (LOG_TAG) {
+            if (mEventsThread != null) {
+                if (!mEventsThread.isAlive()) {
+                    mEventsThread = null;
+                    Log.e(LOG_TAG, "startEventStream() : create a new EventsThread");
+                } else {
+                    // https://github.com/vector-im/riot-android/issues/1331
+                    mEventsThread.cancelKill();
+                    Log.e(LOG_TAG, "Ignoring startEventStream() : Thread already created.");
+                    return;
+                }
+            }
+
+            if (mDataHandler == null) {
+                Log.e(LOG_TAG, "Error starting the event stream: No data handler is defined");
                 return;
             }
-        }
 
-        if (mDataHandler == null) {
-            Log.e(LOG_TAG, "Error starting the event stream: No data handler is defined");
-            return;
-        }
+            Log.d(LOG_TAG, "startEventStream : create the event stream");
 
-        Log.d(LOG_TAG, "startEventStream : create the event stream");
+            final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler) : anEventsListener;
 
-        final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler) : anEventsListener;
+            mEventsThread = new EventsThread(mAppContent, mEventsRestClient, fEventsListener, initialToken);
+            mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
+            mEventsThread.setIsOnline(mIsOnline);
+            mEventsThread.setServerLongPollTimeout(mSyncTimeout);
+            mEventsThread.setSyncDelay(mSyncDelay);
 
-        mEventsThread = new EventsThread(mEventsRestClient, fEventsListener, initialToken);
-        mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
-
-        if (mFailureCallback != null) {
-            mEventsThread.setFailureCallback(mFailureCallback);
-        }
-
-        mEventsThread.setUseDataSaveMode(mUseDataSaveMode);
-
-        if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
-            // GA issue
-            try {
-                mEventsThread.start();
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## startEventStream() :  mEventsThread.start failed " + e.getMessage());
+            if (mFailureCallback != null) {
+                mEventsThread.setFailureCallback(mFailureCallback);
             }
 
-            if (mIsBgCatchupPending) {
-                Log.d(LOG_TAG, "startEventStream : start a catchup");
-                mIsBgCatchupPending = false;
-                // catchup retrieve any available messages before stop the sync
-                mEventsThread.catchup();
+            mEventsThread.setUseDataSaveMode(mUseDataSaveMode);
+
+            if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
+                // GA issue
+                try {
+                    mEventsThread.start();
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## startEventStream() :  mEventsThread.start failed " + e.getMessage());
+                }
+
+                if (mIsBgCatchupPending) {
+                    Log.d(LOG_TAG, "startEventStream : start a catchup");
+                    mIsBgCatchupPending = false;
+                    // catchup retrieve any available messages before stop the sync
+                    mEventsThread.catchup();
+                }
             }
         }
     }
@@ -862,17 +894,17 @@ public class MXSession {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.d(LOG_TAG, "refreshToken : onNetworkError " + e.getLocalizedMessage());
+                Log.d(LOG_TAG, "refreshToken : onNetworkError " + e.getMessage());
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.d(LOG_TAG, "refreshToken : onMatrixError " + e.getLocalizedMessage());
+                Log.d(LOG_TAG, "refreshToken : onMatrixError " + e.getMessage());
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.d(LOG_TAG, "refreshToken : onMatrixError " + e.getLocalizedMessage());
+                Log.d(LOG_TAG, "refreshToken : onMatrixError " + e.getMessage());
             }
         });
     }
@@ -905,6 +937,7 @@ public class MXSession {
      * @param ms the delay in ms
      */
     public void setSyncTimeout(int ms) {
+        mSyncTimeout = ms;
         if (null != mEventsThread) {
             mEventsThread.setServerLongPollTimeout(ms);
         }
@@ -914,11 +947,7 @@ public class MXSession {
      * @return the heartbeat request timeout
      */
     public int getSyncTimeout() {
-        if (null != mEventsThread) {
-            return mEventsThread.getServerLongPollTimeout();
-        }
-
-        return 0;
+        return mSyncTimeout;
     }
 
     /**
@@ -927,6 +956,7 @@ public class MXSession {
      * @param ms the delay in ms
      */
     public void setSyncDelay(int ms) {
+        mSyncDelay = ms;
         if (null != mEventsThread) {
             mEventsThread.setSyncDelay(ms);
         }
@@ -936,11 +966,7 @@ public class MXSession {
      * @return the delay between two sync requests.
      */
     public int getSyncDelay() {
-        if (null != mEventsThread) {
-            return mEventsThread.getSyncDelay();
-        }
-
-        return 0;
+        return mSyncDelay;
     }
 
     /**
@@ -1788,8 +1814,8 @@ public class MXSession {
      * This class defines a direct chat backward compliancyc structure
      */
     private class RoomIdsListRetroCompat {
-        String mRoomId;
-        String mParticipantUserId;
+        final String mRoomId;
+        final String mParticipantUserId;
 
         public RoomIdsListRetroCompat(String aParticipantUserId, String aRoomId) {
             this.mParticipantUserId = aParticipantUserId;
@@ -2272,32 +2298,44 @@ public class MXSession {
         MXFileCryptoStore fileCryptoStore = new MXFileCryptoStore();
         fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
 
-        if (fileCryptoStore.hasData() && (null == mCrypto)) {
-            Log.e(LOG_TAG, "## checkCrypto() : there are some crypto data but the engine was not launched");
+        if ((fileCryptoStore.hasData() || mEnableCryptoWhenStartingMXSession) && (null == mCrypto)) {
+            boolean isStoreLoaded = false;
+            try {
+                // open the store
+                fileCryptoStore.open();
+                isStoreLoaded = true;
+            } catch (UnsatisfiedLinkError e) {
+                Log.e(LOG_TAG, "## checkCrypto() failed " + e.getMessage());
+            }
 
-            enableCrypto(true, new ApiCallback<Void>() {
-                @Override
-                public void onSuccess(Void info) {
-                    Log.e(LOG_TAG, "## checkCrypto() : restarted");
-                    mDataHandler.setCrypto(mCrypto);
-                    decryptRoomSummaries();
-                }
+            if (!isStoreLoaded) {
+                // load again the olm manager
+                // reported by rageshake, it seems that the olm lib is unloaded.
+                mOlmManager = new OlmManager();
 
-                @Override
-                public void onNetworkError(Exception e) {
-                    Log.e(LOG_TAG, "## checkCrypto() : failed " + e.getMessage());
+                try {
+                    // open the store
+                    fileCryptoStore.open();
+                    isStoreLoaded = true;
+                } catch (UnsatisfiedLinkError e) {
+                    Log.e(LOG_TAG, "## checkCrypto() failed 2 " + e.getMessage());
                 }
+            }
 
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    Log.e(LOG_TAG, "## checkCrypto() : failed " + e.getMessage());
-                }
+            if (!isStoreLoaded) {
+                Log.e(LOG_TAG, "## checkCrypto() : cannot enable the crypto because of olm lib");
+                return;
+            }
 
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    Log.e(LOG_TAG, "## checkCrypto() : failed " + e.getMessage());
-                }
-            });
+            mCrypto = new MXCrypto(MXSession.this, fileCryptoStore);
+            mDataHandler.setCrypto(mCrypto);
+            // the room summaries are not stored with decrypted content
+            decryptRoomSummaries();
+
+            Log.d(LOG_TAG, "## checkCrypto() : the crypto engine is ready");
+        } else if (mDataHandler.getCrypto() != mCrypto) {
+            Log.e(LOG_TAG, "## checkCrypto() : the data handler crypto was not initialized");
+            mDataHandler.setCrypto(mCrypto);
         }
     }
 
@@ -2493,5 +2531,15 @@ public class MXSession {
      */
     public static boolean isMessageId(String aMessageId) {
         return (null != aMessageId) && PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER.matcher(aMessageId).matches();
+    }
+
+    /**
+     * Gets a bearer token from the homeserver that the user can
+     * present to a third party in order to prove their ownership
+     * of the Matrix account they are logged into.
+     * @param callback the asynchronous callback called when finished
+     */
+    public void openIdToken(final ApiCallback<Map<Object, Object>> callback) {
+        mAccountDataRestClient.openIdToken(getMyUserId(), callback);
     }
 }

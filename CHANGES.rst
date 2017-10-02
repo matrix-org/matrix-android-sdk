@@ -1,3 +1,25 @@
+Changes to Matrix Android SDK in 0.8.01 (2017-09-04)
+=======================================================
+
+Improvements: 
+
+* Remove useless resources
+* Adapt the request timeouts to the network speed
+* Disable the room state events saving / loading to reduce the used RAM.
+* Use the data saver mode to perform the initial sync to reduce the loading time.
+* Replace the timer by an alarm to manage the delay between two sync requests.
+* Do not retry to send the call invitation if it fails.
+
+
+Bugfixes:
+
+* Fix many crashes
+* Fix crashes when too many asynctasks was started.
+* Improve the offline management to avoid sending an "online" status if the application is automatically restarted.
+* #1467 : Rotating the device while an image is uploading inserts the image twice.
+* #1548 : Unable to decrypt: encryption not enabled 
+
+
 Changes to Matrix Android SDK in 0.8.00 (2017-08-01)
 =======================================================
 

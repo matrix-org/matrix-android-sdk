@@ -19,12 +19,13 @@ package org.matrix.androidsdk.db;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Looper;
 import android.support.v4.util.LruCache;
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
@@ -32,7 +33,7 @@ import android.widget.ImageView;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
-import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
 import org.matrix.androidsdk.rest.model.EncryptedFileInfo;
@@ -140,7 +141,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
     /**
      * The home server config.
      */
-    private final HomeserverConnectionConfig mHsConfig;
+    private final HomeServerConnectionConfig mHsConfig;
 
     /**
      * The bitmap to use when the URL is unreachable.
@@ -150,7 +151,12 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
     /**
      * the encrypted file information
      */
-    private EncryptedFileInfo mEncryptedFileInfo;
+    private final EncryptedFileInfo mEncryptedFileInfo;
+
+    /**
+     * Network updates tracker
+     */
+    private final NetworkConnectivityReceiver mNetworkConnectivityReceiver;
 
     /**
      * Download constants
@@ -209,7 +215,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
 
             uniqueId = sb.toString();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "uniqueId failed " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "uniqueId failed " + e.getMessage());
         }
 
         if (null == uniqueId) {
@@ -333,7 +339,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                         filename = uri.getPath();
 
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "bitmapForURL #1 : " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "bitmapForURL #1 : " + e.getMessage());
                     }
 
                     // cannot extract the filename -> sorry
@@ -393,7 +399,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                                         bitmap.recycle();
                                         bitmap =  transformedBitmap;
                                     } catch (OutOfMemoryError ex) {
-                                        Log.e(LOG_TAG, "bitmapForURL rotation error : " + ex.getLocalizedMessage());
+                                        Log.e(LOG_TAG, "bitmapForURL rotation error : " + ex.getMessage());
                                     }
                                 }
 
@@ -446,13 +452,15 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      * MXMediaDownloadWorkerTask creator
      * @param appContext the context
      * @param hsConfig the home server config.
+     * @param networkConnectivityReceiver the network connectivity receiver
      * @param directoryFile the directory in which the media must be stored
      * @param url the media url
      * @param mimeType the mime type.
      * @param encryptedFileInfo the encryption information
      */
-    public MXMediaDownloadWorkerTask(Context appContext, HomeserverConnectionConfig hsConfig, File directoryFile, String url, String mimeType, EncryptedFileInfo encryptedFileInfo) {
+    public MXMediaDownloadWorkerTask(Context appContext, HomeServerConnectionConfig hsConfig, NetworkConnectivityReceiver networkConnectivityReceiver, File directoryFile, String url, String mimeType, EncryptedFileInfo encryptedFileInfo) {
         commonInit(appContext, url, mimeType);
+        mNetworkConnectivityReceiver = networkConnectivityReceiver;
         mDirectoryFile = directoryFile;
         mImageViewReferences = new ArrayList<>();
         mHsConfig = hsConfig;
@@ -463,14 +471,16 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      * MXMediaDownloadWorkerTask creator
      * @param appContext the context
      * @param hsConfig the home server config
+     * @param networkConnectivityReceiver the network connectivity receiver
      * @param directoryFile the directory in which the media must be stored
      * @param url the media url
      * @param rotation the rotation
      * @param mimeType the mime type.
      * @param encryptedFileInfo the encryption information
      */
-    public MXMediaDownloadWorkerTask(Context appContext, HomeserverConnectionConfig hsConfig, File directoryFile, String url, int rotation, String mimeType, EncryptedFileInfo encryptedFileInfo) {
+    public MXMediaDownloadWorkerTask(Context appContext, HomeServerConnectionConfig hsConfig, NetworkConnectivityReceiver networkConnectivityReceiver, File directoryFile, String url, int rotation, String mimeType, EncryptedFileInfo encryptedFileInfo) {
         commonInit(appContext, url, mimeType);
+        mNetworkConnectivityReceiver = networkConnectivityReceiver;
         mImageViewReferences = new ArrayList<>();
         mDirectoryFile = directoryFile;
         mRotation = rotation;
@@ -493,6 +503,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
         mImageViewReferences = task.mImageViewReferences;
         mHsConfig = task.mHsConfig;
         mEncryptedFileInfo = task.mEncryptedFileInfo;
+        mNetworkConnectivityReceiver = task.mNetworkConnectivityReceiver;
     }
 
     /**
@@ -627,12 +638,13 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                         sslConn.setSSLSocketFactory(CertUtil.newPinnedSSLSocketFactory(mHsConfig));
                         sslConn.setHostnameVerifier(CertUtil.newHostnameVerifier(mHsConfig));
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "doInBackground SSL exception " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "doInBackground SSL exception " + e.getMessage());
                     }
                 }
 
                 // add a timeout to avoid infinite loading display.
-                connection.setReadTimeout(DOWNLOAD_TIME_OUT);
+                float scale = (null != mNetworkConnectivityReceiver) ? mNetworkConnectivityReceiver.getTimeoutScale() : 1.0f;
+                connection.setReadTimeout((int)(DOWNLOAD_TIME_OUT * scale));
                 filelen = connection.getContentLength();
                 stream = connection.getInputStream();
             } catch (Exception e) {
@@ -653,7 +665,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
 
                         mErrorAsJsonElement = new JsonParser().parse(responseStrBuilder.toString());
                     } catch (Exception ee) {
-                        Log.e(LOG_TAG, "bitmapForURL : Error parsing error " + ee.getLocalizedMessage());
+                        Log.e(LOG_TAG, "bitmapForURL : Error parsing error " + ee.getMessage());
                     }
                 }
 
@@ -776,7 +788,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                         }
                         originalFile.renameTo(newFile);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "doInBackground : renaming error " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "doInBackground : renaming error " + e.getMessage());
                     }
                 }
             }
@@ -812,7 +824,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             stream.close();
         }
         catch (Exception e) {
-            Log.e(LOG_TAG, "close error " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "close error " + e.getMessage());
         }
     }
 
@@ -869,7 +881,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             try {
                 callback.onDownloadStart(mUrl);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "dispatchDownloadStart error " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "dispatchDownloadStart error " + e.getMessage());
             }
         }
     }
@@ -883,7 +895,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             try {
                 callback.onDownloadProgress(mUrl, stats);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "dispatchOnDownloadProgress error " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "dispatchOnDownloadProgress error " + e.getMessage());
             }
         }
     }
@@ -897,7 +909,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             try {
                 callback.onDownloadError(mUrl, jsonElement);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "dispatchOnDownloadError error " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "dispatchOnDownloadError error " + e.getMessage());
             }
         }
     }
@@ -910,7 +922,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             try {
                 callback.onDownloadComplete(mUrl);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "dispatchOnDownloadComplete error " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "dispatchOnDownloadComplete error " + e.getMessage());
             }
         }
     }
@@ -923,7 +935,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             try {
                 callback.onDownloadCancel(mUrl);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "dispatchDownloadCancel error " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "dispatchDownloadCancel error " + e.getMessage());
             }
         }
     }

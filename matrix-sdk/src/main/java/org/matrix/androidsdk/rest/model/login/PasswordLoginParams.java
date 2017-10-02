@@ -18,6 +18,7 @@ package org.matrix.androidsdk.rest.model.login;
 
 import android.os.Build;
 import android.support.annotation.NonNull;
+import android.text.TextUtils;
 
 import org.matrix.androidsdk.rest.client.LoginRestClient;
 
@@ -28,16 +29,16 @@ import java.util.Map;
  * Object to pass to a /login call of type password.
  */
 public class PasswordLoginParams extends LoginParams {
-    public static String IDENTIFIER_KEY_TYPE_USER = "m.id.user";
-    public static String IDENTIFIER_KEY_TYPE_THIRD_PARTY = "m.id.thirdparty";
-    public static String IDENTIFIER_KEY_TYPE_PHONE = "m.id.phone";
+    public static final String IDENTIFIER_KEY_TYPE_USER = "m.id.user";
+    public static final String IDENTIFIER_KEY_TYPE_THIRD_PARTY = "m.id.thirdparty";
+    public static final String IDENTIFIER_KEY_TYPE_PHONE = "m.id.phone";
 
-    public static String IDENTIFIER_KEY_TYPE = "type";
-    public static String IDENTIFIER_KEY_MEDIUM = "medium";
-    public static String IDENTIFIER_KEY_ADDRESS = "address";
-    public static String IDENTIFIER_KEY_USER = "user";
-    public static String IDENTIFIER_KEY_COUNTRY = "country";
-    public static String IDENTIFIER_KEY_NUMBER = "number";
+    public static final String IDENTIFIER_KEY_TYPE = "type";
+    public static final String IDENTIFIER_KEY_MEDIUM = "medium";
+    public static final String IDENTIFIER_KEY_ADDRESS = "address";
+    public static final String IDENTIFIER_KEY_USER = "user";
+    public static final String IDENTIFIER_KEY_COUNTRY = "country";
+    public static final String IDENTIFIER_KEY_NUMBER = "number";
 
     // identifier parameters
     public Map<String, Object> identifier;
@@ -58,8 +59,8 @@ public class PasswordLoginParams extends LoginParams {
     /**
      * Set login params for username/password
      *
-     * @param username
-     * @param password
+     * @param username the username
+     * @param password the password
      */
     public void setUserIdentifier(@NonNull final String username, @NonNull final String password) {
         identifier = new HashMap<>();
@@ -76,7 +77,7 @@ public class PasswordLoginParams extends LoginParams {
      *
      * @param medium   3pid type
      * @param address  3pid value
-     * @param password
+     * @param password the password
      */
     public void setThirdPartyIdentifier(@NonNull final String medium, @NonNull final String address, @NonNull final String password) {
         identifier = new HashMap<>();
@@ -93,9 +94,9 @@ public class PasswordLoginParams extends LoginParams {
     /**
      * Set login params for phone number/password
      *
-     * @param phoneNumber
-     * @param countryCode
-     * @param password
+     * @param phoneNumber the phone number
+     * @param countryCode the country code
+     * @param password the password
      */
     public void setPhoneIdentifier(@NonNull final String phoneNumber, @NonNull final String countryCode, @NonNull final String password) {
         identifier = new HashMap<>();
@@ -109,11 +110,24 @@ public class PasswordLoginParams extends LoginParams {
     /**
      * Set basic params
      *
-     * @param password
+     * @param password the password
      */
     private void setOtherData(@NonNull final String password) {
         this.password = password;
         this.type = LoginRestClient.LOGIN_FLOW_TYPE_PASSWORD;
         this.initial_device_display_name = Build.MODEL.trim();
+    }
+
+    /**
+     * Set the device name
+     *
+     * @param deviceName the new device name
+     */
+    public void setDeviceName(String deviceName) {
+        if ((null != deviceName) && !TextUtils.isEmpty(deviceName.trim())) {
+            this.initial_device_display_name = deviceName.trim();
+        } else {
+            this.initial_device_display_name = Build.MODEL.trim();
+        }
     }
 }

@@ -19,7 +19,6 @@ package org.matrix.androidsdk.db;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -27,14 +26,14 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 
 
-import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
 import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
 import org.matrix.androidsdk.listeners.MXMediaDownloadListener;
@@ -76,6 +75,9 @@ public class MXMediasCache {
     private File mOthersFolderFile = null;
     private File mThumbnailsFolderFile = null;
 
+    // track the network updates
+    private final NetworkConnectivityReceiver mNetworkConnectivityReceiver;
+
     /**
      * Clear the former medias cache.
      * The dirtree has been updated.
@@ -102,11 +104,13 @@ public class MXMediasCache {
     /**
      * Constructor
      * @param contentManager the content manager.
+     * @param networkConnectivityReceiver the network connectivity receiver
      * @param userID the account user Id.
      * @param context the context
      */
-    public MXMediasCache(ContentManager contentManager, String userID, Context context) {
+    public MXMediasCache(ContentManager contentManager, NetworkConnectivityReceiver networkConnectivityReceiver, String userID, Context context) {
         mContentManager = contentManager;
+        mNetworkConnectivityReceiver = networkConnectivityReceiver;
 
         File mediaBaseFolderFile = new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER);
 
@@ -319,7 +323,7 @@ public class MXMediasCache {
                 return file;
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "thumbnailCacheFile failed " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "thumbnailCacheFile failed " + e.getMessage());
         }
 
         return null;
@@ -365,7 +369,7 @@ public class MXMediasCache {
             }
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "mediaCacheFile failed " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "mediaCacheFile failed " + e.getMessage());
         }
 
         return null;
@@ -401,7 +405,7 @@ public class MXMediasCache {
 
             cacheURL = Uri.fromFile(file).toString();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "saveBitmap failed " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "saveBitmap failed " + e.getMessage());
         }
 
         return cacheURL;
@@ -457,7 +461,7 @@ public class MXMediasCache {
                     fos.write(buf, 0, len);
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "saveMedia failed " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "saveMedia failed " + e.getMessage());
             }
 
             fos.flush();
@@ -466,7 +470,7 @@ public class MXMediasCache {
 
             cacheURL = Uri.fromFile(file).toString();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "saveMedia failed " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "saveMedia failed " + e.getMessage());
 
         }
 
@@ -521,7 +525,7 @@ public class MXMediasCache {
                 try {
                     destFile.delete();
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "saveFileMediaForUrl delete failed " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "saveFileMediaForUrl delete failed " + e.getMessage());
                 }
             }
 
@@ -545,7 +549,7 @@ public class MXMediasCache {
             }
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "saveFileMediaForUrl failed " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "saveFileMediaForUrl failed " + e.getMessage());
         }
     }
 
@@ -559,7 +563,7 @@ public class MXMediasCache {
      * @param side      the avatar thumbnail side
      * @return a download identifier if the image is not cached.
      */
-    public String loadAvatarThumbnail(HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int side) {
+    public String loadAvatarThumbnail(HomeServerConnectionConfig hsConfig, ImageView imageView, String url, int side) {
         return loadBitmap(imageView.getContext(), hsConfig, imageView, url, side, side, 0, ExifInterface.ORIENTATION_UNDEFINED, null, getThumbnailsFolderFile(), null);
     }
 
@@ -574,7 +578,7 @@ public class MXMediasCache {
      * @param aDefaultAvatar the avatar to use when the Url is not reachable.
      * @return a download identifier if the image is not cached.
      */
-    public String loadAvatarThumbnail(HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int side, Bitmap aDefaultAvatar) {
+    public String loadAvatarThumbnail(HomeServerConnectionConfig hsConfig, ImageView imageView, String url, int side, Bitmap aDefaultAvatar) {
         return loadBitmap(imageView.getContext(), hsConfig, imageView, url, side, side, 0, ExifInterface.ORIENTATION_UNDEFINED, null, getThumbnailsFolderFile(), aDefaultAvatar, null);
     }
 
@@ -609,7 +613,7 @@ public class MXMediasCache {
      * @param encryptionInfo the encryption file info
      * @return a download identifier if the image is not cached.
      */
-    public String loadBitmap(HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int rotationAngle, int orientation, String mimeType, EncryptedFileInfo encryptionInfo) {
+    public String loadBitmap(HomeServerConnectionConfig hsConfig, ImageView imageView, String url, int rotationAngle, int orientation, String mimeType, EncryptedFileInfo encryptionInfo) {
         return loadBitmap(hsConfig, imageView, url, -1, -1, rotationAngle, orientation, mimeType, encryptionInfo);
     }
 
@@ -626,7 +630,7 @@ public class MXMediasCache {
      * @param encryptionInfo the encryption file info
      * @return a download identifier if the image is not cached.
      */
-    public String loadBitmap(Context context, HomeserverConnectionConfig hsConfig, String url, int rotationAngle, int orientation, String mimeType, EncryptedFileInfo encryptionInfo) {
+    public String loadBitmap(Context context, HomeServerConnectionConfig hsConfig, String url, int rotationAngle, int orientation, String mimeType, EncryptedFileInfo encryptionInfo) {
         return loadBitmap(context, hsConfig, null, url, -1, -1, rotationAngle, orientation, mimeType, getFolderFile(mimeType), encryptionInfo);
     }
 
@@ -647,7 +651,7 @@ public class MXMediasCache {
      * @param encryptionInfo the encryption file info
      * @return a download identifier if the image is not cached
      */
-    public String loadBitmap(HomeserverConnectionConfig hsConfig, ImageView imageView, String url, int width, int height, int rotationAngle,  int orientation, String mimeType, EncryptedFileInfo encryptionInfo) {
+    public String loadBitmap(HomeServerConnectionConfig hsConfig, ImageView imageView, String url, int width, int height, int rotationAngle,  int orientation, String mimeType, EncryptedFileInfo encryptionInfo) {
         return loadBitmap(imageView.getContext(), hsConfig, imageView, url, width, height, rotationAngle, orientation, mimeType, getFolderFile(mimeType), encryptionInfo);
     }
 
@@ -673,7 +677,7 @@ public class MXMediasCache {
      * @param encryptionInfo the encryption information
      * @return the download identifier.
      */
-    public String downloadMedia(Context context, HomeserverConnectionConfig hsConfig, String url, String mimeType, EncryptedFileInfo encryptionInfo) {
+    public String downloadMedia(Context context, HomeServerConnectionConfig hsConfig, String url, String mimeType, EncryptedFileInfo encryptionInfo) {
         // sanity checks
         if ((null == mimeType) || (null == url) || (null == context)) {
             return null;
@@ -692,7 +696,7 @@ public class MXMediasCache {
         }
 
         // download it in background
-        MXMediaDownloadWorkerTask task = new MXMediaDownloadWorkerTask(context, hsConfig, getFolderFile(mimeType), downloadableUrl, mimeType, encryptionInfo);
+        MXMediaDownloadWorkerTask task = new MXMediaDownloadWorkerTask(context, hsConfig, mNetworkConnectivityReceiver, getFolderFile(mimeType), downloadableUrl, mimeType, encryptionInfo);
 
         // avoid crash if there are too many running task
         try {
@@ -710,7 +714,10 @@ public class MXMediasCache {
             }
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "downloadMedia failed " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "downloadMedia failed " + e.getMessage());
+            synchronized (mSuspendedTasks) {
+                task.cancel(true);
+            }
         }
 
         return downloadableUrl;
@@ -789,7 +796,7 @@ public class MXMediasCache {
      * @param encryptionInfo the encryption file information.
      * @return a download identifier if the image is not cached
      */
-    public String loadBitmap(Context context, HomeserverConnectionConfig hsConfig, final ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, File folderFile, EncryptedFileInfo encryptionInfo) {
+    public String loadBitmap(Context context, HomeServerConnectionConfig hsConfig, final ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, File folderFile, EncryptedFileInfo encryptionInfo) {
         return loadBitmap(context, hsConfig, imageView, url, width, height, rotationAngle, orientation, mimeType, folderFile, null, encryptionInfo);
     }
 
@@ -817,7 +824,7 @@ public class MXMediasCache {
      * @param encryptionInfo the file encryption info
      * @return a download identifier if the image is not cached
      */
-    public String loadBitmap(Context context, HomeserverConnectionConfig hsConfig, final ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, File folderFile, Bitmap aDefaultBitmap, EncryptedFileInfo encryptionInfo) {
+    public String loadBitmap(Context context, HomeServerConnectionConfig hsConfig, final ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, File folderFile, Bitmap aDefaultBitmap, EncryptedFileInfo encryptionInfo) {
         if (null == url) {
             return null;
         }
@@ -899,7 +906,7 @@ public class MXMediasCache {
                 }
             } else {
                 // download it in background
-                MXMediaDownloadWorkerTask task = new MXMediaDownloadWorkerTask(context, hsConfig, folderFile, downloadableUrl, rotationAngle, mimeType, encryptionInfo);
+                MXMediaDownloadWorkerTask task = new MXMediaDownloadWorkerTask(context, hsConfig, mNetworkConnectivityReceiver, folderFile, downloadableUrl, rotationAngle, mimeType, encryptionInfo);
 
                 if (null != imageView) {
                     task.addImageView(imageView);
@@ -932,7 +939,7 @@ public class MXMediasCache {
                     }
 
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "loadBitmap failed " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "loadBitmap failed " + e.getMessage());
                 }
             }
         }

@@ -87,7 +87,7 @@ public class MatrixMessagesFragment extends Fragment {
     public interface MatrixMessagesListener {
         void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState);
 
-        void onSentEvent(Event event);
+        void onEventSent(Event event, String prevEventId);
 
         void onLiveEventsChunkProcessed();
 
@@ -148,9 +148,9 @@ public class MatrixMessagesFragment extends Fragment {
         }
 
         @Override
-        public void onSentEvent(Event event) {
+        public void onEventSent(Event event, String prevEventId) {
             if (null != mMatrixMessagesListener) {
-                mMatrixMessagesListener.onSentEvent(event);
+                mMatrixMessagesListener.onEventSent(event, prevEventId);
             }
         }
     };
@@ -667,7 +667,7 @@ public class MatrixMessagesFragment extends Fragment {
                                     mMatrixMessagesListener.hideInitLoading();
                                     mMatrixMessagesListener.onInitialMessagesLoaded();
                                 } catch (Exception e) {
-                                    Log.e(LOG_TAG, "joinRoom callback fails " + e.getLocalizedMessage());
+                                    Log.e(LOG_TAG, "joinRoom callback fails " + e.getMessage());
                                 }
                             }
                         });
@@ -694,19 +694,19 @@ public class MatrixMessagesFragment extends Fragment {
             // the request will be automatically restarted when a valid network will be found
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "joinRoom Network error: " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "joinRoom Network error: " + e.getMessage());
                 onError(e.getLocalizedMessage());
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "joinRoom onMatrixError : " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "joinRoom onMatrixError : " + e.getMessage());
                 onError(e.getLocalizedMessage());
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "joinRoom Override : " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "joinRoom Override : " + e.getMessage());
                 onError(e.getLocalizedMessage());
             }
         });

@@ -88,7 +88,7 @@ public class MXCallsManager {
      */
     public enum CallClass {
         CHROME_CLASS,
-        JINGLE_CLASS,
+        WEBRTC_CLASS,
         DEFAULT_CLASS
     }
 
@@ -100,7 +100,7 @@ public class MXCallsManager {
     private Timer mTurnServerTimer = null;
     private boolean mSuspendTurnServerRefresh = false;
 
-    private CallClass mPreferredCallClass = CallClass.JINGLE_CLASS;
+    private CallClass mPreferredCallClass = CallClass.WEBRTC_CLASS;
 
     // active calls
     private final HashMap<String, IMXCall> mCallsByCallId = new HashMap<>();
@@ -153,7 +153,7 @@ public class MXCallsManager {
      * @return true if the call feature is supported
      */
     public boolean isSupported() {
-        return MXChromeCall.isSupported() || MXJingleCall.isSupported(mContext);
+        return MXChromeCall.isSupported() || MXWebRtcCall.isSupported(mContext);
     }
 
     /**
@@ -166,8 +166,8 @@ public class MXCallsManager {
             list.add(CallClass.CHROME_CLASS);
         }
 
-        if (MXJingleCall.isSupported(mContext)) {
-            list.add(CallClass.JINGLE_CLASS);
+        if (MXWebRtcCall.isSupported(mContext)) {
+            list.add(CallClass.WEBRTC_CLASS);
         }
 
         Log.d(LOG_TAG, "supportedClass " + list);
@@ -187,8 +187,8 @@ public class MXCallsManager {
             isUpdatable = MXChromeCall.isSupported();
         }
 
-        if (callClass == CallClass.JINGLE_CLASS) {
-            isUpdatable = MXJingleCall.isSupported(mContext);
+        if (callClass == CallClass.WEBRTC_CLASS) {
+            isUpdatable = MXWebRtcCall.isSupported(mContext);
         }
 
         if (isUpdatable) {
@@ -214,9 +214,9 @@ public class MXCallsManager {
         // Jingle
         if (null == call) {
             try {
-                call = new MXJingleCall(mSession, mContext, getTurnServer());
+                call = new MXWebRtcCall(mSession, mContext, getTurnServer());
             } catch (Exception e) {
-                Log.e(LOG_TAG, "createCall " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "createCall " + e.getMessage());
             }
         }
 
@@ -397,7 +397,7 @@ public class MXCallsManager {
                             }
 
                             // ignore older call messages
-                            if (lifeTime < 30000) {
+                            if (lifeTime < MXCall.CALL_TIMEOUT_MS) {
                                 // create the call only it is triggered from someone else
                                 IMXCall call = getCallWithCallId(callId, !isMyEvent);
 
@@ -490,7 +490,7 @@ public class MXCallsManager {
      * check if there is a pending incoming call
      */
     public void checkPendingIncomingCalls() {
-        Log.d(LOG_TAG, "checkPendingIncomingCalls");
+        //Log.d(LOG_TAG, "checkPendingIncomingCalls");
 
         mUIThreadHandler.post(new Runnable() {
             @Override
@@ -703,7 +703,7 @@ public class MXCallsManager {
 
                                     @Override
                                     public void onNetworkError(Exception e) {
-                                        Log.d(LOG_TAG, "createCallInRoom : getConferenceUserRoom failed " + e.getLocalizedMessage());
+                                        Log.d(LOG_TAG, "createCallInRoom : getConferenceUserRoom failed " + e.getMessage());
 
                                         if (null != callback) {
                                             callback.onNetworkError(e);
@@ -712,7 +712,7 @@ public class MXCallsManager {
 
                                     @Override
                                     public void onMatrixError(MatrixError e) {
-                                        Log.d(LOG_TAG, "createCallInRoom : getConferenceUserRoom failed " + e.getLocalizedMessage());
+                                        Log.d(LOG_TAG, "createCallInRoom : getConferenceUserRoom failed " + e.getMessage());
 
 
                                         if (null != callback) {
@@ -722,7 +722,7 @@ public class MXCallsManager {
 
                                     @Override
                                     public void onUnexpectedError(Exception e) {
-                                        Log.d(LOG_TAG, "createCallInRoom : getConferenceUserRoom failed " + e.getLocalizedMessage());
+                                        Log.d(LOG_TAG, "createCallInRoom : getConferenceUserRoom failed " + e.getMessage());
 
                                         if (null != callback) {
                                             callback.onUnexpectedError(e);
@@ -733,7 +733,7 @@ public class MXCallsManager {
 
                             @Override
                             public void onNetworkError(Exception e) {
-                                Log.d(LOG_TAG, "createCallInRoom : inviteConferenceUser fails " + e.getLocalizedMessage());
+                                Log.d(LOG_TAG, "createCallInRoom : inviteConferenceUser fails " + e.getMessage());
 
                                 if (null != callback) {
                                     callback.onNetworkError(e);
@@ -742,7 +742,7 @@ public class MXCallsManager {
 
                             @Override
                             public void onMatrixError(MatrixError e) {
-                                Log.d(LOG_TAG, "createCallInRoom : inviteConferenceUser fails " + e.getLocalizedMessage());
+                                Log.d(LOG_TAG, "createCallInRoom : inviteConferenceUser fails " + e.getMessage());
 
                                 if (null != callback) {
                                     callback.onMatrixError(e);
@@ -751,7 +751,7 @@ public class MXCallsManager {
 
                             @Override
                             public void onUnexpectedError(Exception e) {
-                                Log.d(LOG_TAG, "createCallInRoom : inviteConferenceUser fails " + e.getLocalizedMessage());
+                                Log.d(LOG_TAG, "createCallInRoom : inviteConferenceUser fails " + e.getMessage());
 
                                 if (null != callback) {
                                     callback.onUnexpectedError(e);
@@ -1088,13 +1088,13 @@ public class MXCallsManager {
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    Log.d(LOG_TAG, "getConferenceUserRoom : failed " + e.getLocalizedMessage());
+                    Log.d(LOG_TAG, "getConferenceUserRoom : failed " + e.getMessage());
                     callback.onMatrixError(e);
                 }
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    Log.d(LOG_TAG, "getConferenceUserRoom : failed " + e.getLocalizedMessage());
+                    Log.d(LOG_TAG, "getConferenceUserRoom : failed " + e.getMessage());
                     callback.onUnexpectedError(e);
                 }
             });

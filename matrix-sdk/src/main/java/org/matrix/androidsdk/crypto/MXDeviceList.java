@@ -30,7 +30,6 @@ import org.matrix.androidsdk.util.Log;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,7 +37,29 @@ import java.util.Set;
 public class MXDeviceList {
     private static final String LOG_TAG = "MXDeviceList";
 
-    public static final int TRACKING_STATUS_UNDEFINED = -1;
+    /**
+     * State transition diagram for DeviceList.deviceTrackingStatus
+     *
+     * |
+     * stopTrackingDeviceList     V
+     * +---------------------> NOT_TRACKED
+     * |                            |
+     * +<--------------------+      | startTrackingDeviceList
+     * |                     |      V
+     * |   +-------------> PENDING_DOWNLOAD <--------------------+-+
+     * |   |                      ^ |                            | |
+     * |   | restart     download | |  start download            | | invalidateUserDeviceList
+     * |   | client        failed | |                            | |
+     * |   |                      | V                            | |
+     * |   +------------ DOWNLOAD_IN_PROGRESS -------------------+ |
+     * |                    |       |                              |
+     * +<-------------------+       |  download successful         |
+     * ^                            V                              |
+     * +----------------------- UP_TO_DATE ------------------------+
+     *
+     **/
+
+    public static final int TRACKING_STATUS_NOT_TRACKED = -1;
     public static final int TRACKING_STATUS_PENDING_DOWNLOAD = 1;
     public static final int TRACKING_STATUS_DOWNLOAD_IN_PROGRESS = 2;
     public static final int TRACKING_STATUS_UP_TO_DATE = 3;
@@ -51,7 +72,7 @@ public class MXDeviceList {
     private final HashSet<String> mNotReadyToRetryHS = new HashSet<>();
 
     // indexed by UserId
-    private HashMap<String, String> mPendingDownloadKeysRequestToken = new HashMap<>();
+    private final HashMap<String, String> mPendingDownloadKeysRequestToken = new HashMap<>();
 
     // download keys queue
     class DownloadKeysPromise {
@@ -184,7 +205,7 @@ public class MXDeviceList {
             Map<String, Integer> deviceTrackingStatuses = mCryptoStore.getDeviceTrackingStatuses();
 
             for (String userId : userIds) {
-                if (!deviceTrackingStatuses.containsKey(userId)) {
+                if (!deviceTrackingStatuses.containsKey(userId) || (TRACKING_STATUS_NOT_TRACKED == deviceTrackingStatuses.get(userId))) {
                     Log.d(LOG_TAG, "## startTrackingDeviceList() : Now tracking device list for " + userId);
                     deviceTrackingStatuses.put(userId, TRACKING_STATUS_PENDING_DOWNLOAD);
                     isUpdated = true;
@@ -198,28 +219,41 @@ public class MXDeviceList {
     }
 
     /**
-     * Invalidate the user device list
+     * Update the devices list statuses
      *
-     * @param userIds the user ids list
+     * @param changed the user ids list which have new devices
+     * @param left the user ids list which left a room
      */
-    public void invalidateUserDeviceList(final List<String> userIds) {
-        if ((null != userIds) && (0 != userIds.size())) {
+    public void handleDeviceListsChanges(List<String> changed, List<String> left) {
+        boolean isUpdated = false;
+        Map<String, Integer> deviceTrackingStatuses = mCryptoStore.getDeviceTrackingStatuses();
+
+        if ((null != changed) && (0 != changed.size())) {
             clearUnavailableServersList();
 
-            boolean isUpdated = false;
-            Map<String, Integer> deviceTrackingStatuses = mCryptoStore.getDeviceTrackingStatuses();
-
-            for (String userId : userIds) {
+            for (String userId : changed) {
                 if (deviceTrackingStatuses.containsKey(userId)) {
                     Log.d(LOG_TAG, "## invalidateUserDeviceList() : Marking device list outdated for " + userId);
                     deviceTrackingStatuses.put(userId, TRACKING_STATUS_PENDING_DOWNLOAD);
                     isUpdated = true;
                 }
             }
+        }
 
-            if (isUpdated) {
-                mCryptoStore.saveDeviceTrackingStatuses(deviceTrackingStatuses);
+        if ((null != left) && (0 != left.size())) {
+            clearUnavailableServersList();
+
+            for (String userId : left) {
+                if (deviceTrackingStatuses.containsKey(userId)) {
+                    Log.d(LOG_TAG, "## invalidateUserDeviceList() : No longer tracking device list for " + userId);
+                    deviceTrackingStatuses.put(userId, TRACKING_STATUS_NOT_TRACKED);
+                    isUpdated = true;
+                }
             }
+        }
+
+        if (isUpdated) {
+            mCryptoStore.saveDeviceTrackingStatuses(deviceTrackingStatuses);
         }
     }
 
@@ -228,7 +262,7 @@ public class MXDeviceList {
      + update
      */
     public void invalidateAllDeviceLists() {
-        invalidateUserDeviceList(new ArrayList<>(mCryptoStore.getDeviceTrackingStatuses().keySet()));
+        handleDeviceListsChanges(new ArrayList<>(mCryptoStore.getDeviceTrackingStatuses().keySet()), null);
     }
 
     /**
@@ -376,7 +410,7 @@ public class MXDeviceList {
                 downloadUsers.addAll(userIds);
             } else {
                 for (String userId : userIds) {
-                    Integer status = mCryptoStore.getDeviceTrackingStatus(userId, TRACKING_STATUS_UNDEFINED);
+                    Integer status = mCryptoStore.getDeviceTrackingStatus(userId, TRACKING_STATUS_NOT_TRACKED);
 
                     // downloading keys ->the keys download won't be triggered twice but the callback requires the dedicated keys
                     // not yet retrieved
@@ -434,7 +468,7 @@ public class MXDeviceList {
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    Log.e(LOG_TAG, "## downloadKeys() : doKeyDownloadForUsers onMatrixError " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "## downloadKeys() : doKeyDownloadForUsers onMatrixError " + e.getMessage());
                     if (null != callback) {
                         callback.onMatrixError(e);
                     }

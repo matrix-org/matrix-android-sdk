@@ -24,6 +24,7 @@ import android.text.TextUtils;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.call.MXCall;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXMemoryStore;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -521,7 +522,7 @@ public class EventTimeline {
                         // digest the forward event
                         handleLiveEvent(event, !isLimited && !isInitialSync, !isInitialSync && !isRoomInitialSync);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "timeline event failed " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "timeline event failed " + e.getMessage());
                     }
                 }
             }
@@ -821,6 +822,20 @@ public class EventTimeline {
                 && (null != (bingRule = bingRulesManager.fulfilledBingRule(event)))) {
 
             if (bingRule.shouldNotify()) {
+                // bing the call events only if they make sense
+                if (Event.EVENT_TYPE_CALL_INVITE.equals(event.getType())) {
+                    long lifeTime = event.getAge();
+
+                    if (Long.MAX_VALUE == lifeTime) {
+                        lifeTime = System.currentTimeMillis() - event.getOriginServerTs();
+                    }
+
+                    if (lifeTime > MXCall.CALL_TIMEOUT_MS) {
+                        Log.d(LOG_TAG, "handleLiveEvent : IGNORED onBingEvent rule id " + bingRule.ruleId + " event id " + event.eventId + " in " + event.roomId);
+                        return;
+                    }
+                }
+
                 Log.d(LOG_TAG, "handleLiveEvent : onBingEvent rule id " + bingRule.ruleId + " event id " + event.eventId + " in " + event.roomId);
                 mDataHandler.onBingEvent(event, mState, bingRule);
             } else {
@@ -1066,7 +1081,7 @@ public class EventTimeline {
                     if (mIsLiveTimeline) {
                         // update the summary is the event has been received after the oldest known event
                         // it might happen after a timeline update (hole in the chat history)
-                        if ((null != summary) && (summary.getLatestReceivedEvent().originServerTs < event.originServerTs) && RoomSummary.isSupportedEvent(event)) {
+                        if ((null != summary) && ((null == summary.getLatestReceivedEvent()) || ((summary.getLatestReceivedEvent().originServerTs < event.originServerTs) && RoomSummary.isSupportedEvent(event)))) {
                             summary.setLatestReceivedEvent(event, getState());
                             mStore.storeSummary(summary);
                             shouldCommitStore = true;
@@ -1112,7 +1127,22 @@ public class EventTimeline {
                 }
             }
         };
-        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+
+        try {
+            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        } catch (final Exception e) {
+            Log.e(LOG_TAG, "## addPaginationEvents() failed " + e.getMessage());
+            task.cancel(true);
+
+            (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
+                @Override
+                public void run() {
+                    if (null != callback) {
+                        callback.onUnexpectedError(e);
+                    }
+                }
+            });
+        }
     }
 
     /**
@@ -1457,17 +1487,17 @@ public class EventTimeline {
 
                             @Override
                             public void onNetworkError(Exception e) {
-                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
+                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage());
                             }
 
                             @Override
                             public void onMatrixError(MatrixError e) {
-                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
+                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage());
                             }
 
                             @Override
                             public void onUnexpectedError(Exception e) {
-                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getLocalizedMessage());
+                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage());
                             }
                         });
 
@@ -1475,7 +1505,22 @@ public class EventTimeline {
                         callback.onSuccess(null);
                     }
                 };
-                task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+
+                try {
+                    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                } catch (final Exception e) {
+                    Log.e(LOG_TAG, "## resetPaginationAroundInitialEvent() failed " + e.getMessage());
+                    task.cancel(true);
+
+                    (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (null != callback) {
+                                callback.onUnexpectedError(e);
+                            }
+                        }
+                    });
+                }
             }
 
             @Override
@@ -1510,11 +1555,17 @@ public class EventTimeline {
 
             // check if the state events is locally known
             // to avoid triggering a room initial sync
-            mState.getStateEvents(getStore(), new SimpleApiCallback<List<Event>>() {
+            mState.getStateEvents(getStore(), null, new SimpleApiCallback<List<Event>>() {
                 @Override
                 public void onSuccess(List<Event> stateEvents) {
                     boolean isFound = false;
-                    for(int index = 0; index < stateEvents.size(); index++) {
+
+                    // The membership events are not anymore stored in the application store
+                    // until we have found a way to improve the way they are stored.
+                    // It used to have many out of memory errors because they are too many stored small memory objects.
+                    // see https://github.com/matrix-org/matrix-android-sdk/issues/196
+
+                    /*for(int index = 0; index < stateEvents.size(); index++) {
                         Event stateEvent = stateEvents.get(index);
 
                         if (TextUtils.equals(stateEvent.eventId, event.eventId)) {
@@ -1522,7 +1573,7 @@ public class EventTimeline {
                             isFound = true;
                             break;
                         }
-                    }
+                    }*/
 
                     // if the room state can be locally pruned
                     // and can create a new valid room state
@@ -1570,19 +1621,19 @@ public class EventTimeline {
                 }
                 @Override
                 public void onNetworkError(Exception e) {
-                    Log.e(LOG_TAG, "checkStateEventRedaction :  onNetworkError " + e.getLocalizedMessage() + "-> get a refreshed roomState");
+                    Log.e(LOG_TAG, "checkStateEventRedaction :  onNetworkError " + e.getMessage() + "-> get a refreshed roomState");
                     forceRoomStateServerSync();
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    Log.e(LOG_TAG, "checkStateEventRedaction :  onMatrixError " + e.getLocalizedMessage() + "-> get a refreshed roomState");
+                    Log.e(LOG_TAG, "checkStateEventRedaction :  onMatrixError " + e.getMessage() + "-> get a refreshed roomState");
                     forceRoomStateServerSync();
                 }
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    Log.e(LOG_TAG, "checkStateEventRedaction :  onUnexpectedError " + e.getLocalizedMessage() + "-> get a refreshed roomState");
+                    Log.e(LOG_TAG, "checkStateEventRedaction :  onUnexpectedError " + e.getMessage() + "-> get a refreshed roomState");
                     forceRoomStateServerSync();
                 }
             });
@@ -1689,7 +1740,7 @@ public class EventTimeline {
                 try {
                     listener.onEvent(event, direction, roomState);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "EventTimeline.onEvent " + listener + " crashes " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "EventTimeline.onEvent " + listener + " crashes " + e.getMessage());
                 }
             }
         }

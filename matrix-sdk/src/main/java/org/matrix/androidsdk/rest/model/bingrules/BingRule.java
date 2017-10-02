@@ -73,6 +73,12 @@ public class BingRule {
 
     public String kind = null;
 
+    // bing rule statuses to compute them once
+    private String mNotificationSound;
+    private Boolean mShouldHighlight;
+    private Boolean mShouldNotify;
+    private Boolean mShouldNotNotify;
+
     public BingRule(boolean isDefaultValue) {
         this.isDefault = isDefaultValue;
     }
@@ -219,14 +225,18 @@ public class BingRule {
      * @return the notification sound (null if it is not defined)
      */
     public String notificationSound() {
-        String sound = null;
-        JsonObject jsonObject = jsonObjectWithTweak(ACTION_SET_TWEAK_SOUND_VALUE);
+        // do it once
+        if (null == mNotificationSound) {
+            String sound = null;
+            JsonObject jsonObject = jsonObjectWithTweak(ACTION_SET_TWEAK_SOUND_VALUE);
 
-        if ((null != jsonObject) && jsonObject.has(ACTION_PARAMETER_VALUE)) {
-            sound = jsonObject.get(ACTION_PARAMETER_VALUE).getAsString();
+            if ((null != jsonObject) && jsonObject.has(ACTION_PARAMETER_VALUE)) {
+                sound = jsonObject.get(ACTION_PARAMETER_VALUE).getAsString();
+            }
+            mNotificationSound = TextUtils.isEmpty(sound) ? "" : sound;
         }
 
-        return sound;
+        return TextUtils.isEmpty(mNotificationSound) ? null : mNotificationSound;
     }
 
     /**
@@ -234,19 +244,22 @@ public class BingRule {
      * @return true if the rule should play sound
      */
     public boolean shouldHighlight() {
-        boolean highlight = false;
-        JsonObject jsonObject = jsonObjectWithTweak(ACTION_SET_TWEAK_HIGHTLIGHT_VALUE);
+        // do it once
+        if (null == mShouldHighlight) {
+            mShouldHighlight = false;
+            JsonObject jsonObject = jsonObjectWithTweak(ACTION_SET_TWEAK_HIGHTLIGHT_VALUE);
 
-        if (null != jsonObject) {
-            // default behaviour
-            highlight = true;
+            if (null != jsonObject) {
+                // default behaviour
+                mShouldHighlight = true;
 
-            if (jsonObject.has(ACTION_PARAMETER_VALUE)) {
-                highlight = TextUtils.equals(jsonObject.get(ACTION_PARAMETER_VALUE).getAsString(), ACTION_VALUE_TRUE);
+                if (jsonObject.has(ACTION_PARAMETER_VALUE)) {
+                    mShouldHighlight = TextUtils.equals(jsonObject.get(ACTION_PARAMETER_VALUE).getAsString(), ACTION_VALUE_TRUE);
+                }
             }
         }
 
-        return highlight;
+        return mShouldHighlight;
     }
 
     /**
@@ -254,7 +267,11 @@ public class BingRule {
      * @return true if the rule should play sound
      */
     public boolean shouldNotify() {
-        return null != jsonPrimitive(ACTION_NOTIFY);
+        if (null == mShouldNotify) {
+            mShouldNotify = (null != jsonPrimitive(ACTION_NOTIFY));
+        }
+
+        return mShouldNotify;
     }
 
     /**
@@ -262,6 +279,9 @@ public class BingRule {
      * @return true if the rule should not play sound
      */
     public boolean shouldNotNotify() {
-        return null != jsonPrimitive(ACTION_DONT_NOTIFY);
+        if (null == mShouldNotNotify) {
+            mShouldNotNotify = (null != jsonPrimitive(ACTION_DONT_NOTIFY));
+        }
+        return mShouldNotNotify;
     }
 }

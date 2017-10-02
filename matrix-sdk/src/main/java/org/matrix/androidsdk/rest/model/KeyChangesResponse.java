@@ -22,5 +22,8 @@ import java.util.List;
  */
 public class KeyChangesResponse {
     // list of user ids which have new devices
-    List<String> changed;
+    public List<String> changed;
+
+    //  List of user ids who are no more tracked.
+    public List<String> left;
 }

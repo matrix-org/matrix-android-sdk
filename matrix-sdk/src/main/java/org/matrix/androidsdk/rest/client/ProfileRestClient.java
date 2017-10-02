@@ -17,7 +17,7 @@ package org.matrix.androidsdk.rest.client;
 
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.ProfileApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -56,7 +56,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     /**
      * {@inheritDoc}
      */
-    public ProfileRestClient(HomeserverConnectionConfig hsConfig) {
+    public ProfileRestClient(HomeServerConnectionConfig hsConfig) {
         super(hsConfig, ProfileApi.class, "", false);
     }
 
@@ -201,11 +201,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         mApi.updatePassword(passwordParams, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    resetPassword(newPassword, threepid_creds, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## resetPassword() failed" + e.getMessage());
-                }
+                resetPassword(newPassword, threepid_creds, callback);
             }
         }));
     }
@@ -230,11 +226,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
             mApi.forgetPassword(forgetPasswordParams, new RestAdapterCallback<ForgetPasswordResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
-                    try {
-                        forgetPassword(email, callback);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "## forgetPassword() failed" + e.getMessage());
-                    }
+                    forgetPassword(email, callback);
                 }
             }) {
                 @Override

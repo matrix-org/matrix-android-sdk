@@ -16,9 +16,7 @@
 
 package org.matrix.androidsdk.rest.client;
 
-import org.matrix.androidsdk.util.Log;
-
-import org.matrix.androidsdk.HomeserverConnectionConfig;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.data.Pusher;
 import org.matrix.androidsdk.rest.api.PushersApi;
@@ -37,31 +35,32 @@ public class PushersRestClient extends RestClient<PushersApi> {
     private static final String PUSHER_KIND_HTTP = "http";
     private static final String DATA_KEY_HTTP_URL = "url";
 
-    public PushersRestClient(HomeserverConnectionConfig hsConfig) {
+    public PushersRestClient(HomeServerConnectionConfig hsConfig) {
         super(hsConfig, PushersApi.class, RestClient.URI_API_PREFIX_PATH_R0, true);
     }
 
     /** Add a new HTTP pusher.
      * @param pushkey the pushkey
-     * @param appId the appplication id
+     * @param appId the application id
      * @param profileTag the profile tag
      * @param lang the language
      * @param appDisplayName a human-readable application name
      * @param deviceDisplayName a human-readable device name
      * @param url the URL that should be used to send notifications
      * @param append append the pusher
+     * @param withEventIdOnly true to limit the push content
      */
     public void addHttpPusher(
             final String pushkey, final String appId,
             final String profileTag, final String lang,
             final String appDisplayName, final String deviceDisplayName,
-            final String url, boolean append, final ApiCallback<Void> callback) {
-        manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, append, callback, true);
+            final String url, boolean append, boolean withEventIdOnly, final ApiCallback<Void> callback) {
+        manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, append, withEventIdOnly, true, callback);
     }
 
     /** remove a new HTTP pusher.
      * @param pushkey the pushkey
-     * @param appId the appplication id
+     * @param appId the application id
      * @param profileTag the profile tag
      * @param lang the language
      * @param appDisplayName a human-readable application name
@@ -73,7 +72,7 @@ public class PushersRestClient extends RestClient<PushersApi> {
             final String profileTag, final String lang,
             final String appDisplayName, final String deviceDisplayName,
             final String url, final ApiCallback<Void> callback) {
-        manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, false, callback, false);
+        manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, false, false, false, callback);
     }
 
 
@@ -85,13 +84,15 @@ public class PushersRestClient extends RestClient<PushersApi> {
      * @param appDisplayName a human-readable application name
      * @param deviceDisplayName a human-readable device name
      * @param url the URL that should be used to send notifications
+     * @param withEventIdOnly true to limit the push content
      * @param addPusher true to add the pusher / false to remove it
      */
     private void manageHttpPusher(
             final String pushkey, final String appId,
             final String profileTag, final String lang,
             final String appDisplayName, final String deviceDisplayName,
-            final String url, final Boolean append, final ApiCallback<Void> callback, final boolean addPusher) {
+            final String url, final boolean append, final boolean withEventIdOnly,
+            final boolean addPusher, final ApiCallback<Void> callback) {
         Pusher pusher = new Pusher();
         pusher.pushkey = pushkey;
         pusher.appId = appId;
@@ -102,8 +103,13 @@ public class PushersRestClient extends RestClient<PushersApi> {
         pusher.deviceDisplayName = deviceDisplayName;
         pusher.data = new HashMap<>();
         pusher.data.put(DATA_KEY_HTTP_URL, url);
+
         if (addPusher) {
             pusher.append = append;
+        }
+
+        if (withEventIdOnly) {
+            pusher.data.put("format", "event_id_only");
         }
 
         final String description = "manageHttpPusher";
@@ -111,11 +117,7 @@ public class PushersRestClient extends RestClient<PushersApi> {
         mApi.set(pusher, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, append, callback, addPusher);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## manageHttpPusher() failed" + e.getMessage());
-                }
+                manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, append, withEventIdOnly, addPusher, callback);
             }
         }));
     }
@@ -130,11 +132,7 @@ public class PushersRestClient extends RestClient<PushersApi> {
         mApi.get(new RestAdapterCallback<PushersResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                try {
-                    getPushers(callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## getPushers() failed" + e.getMessage());
-                }
+                getPushers(callback);
             }
         }));
     }

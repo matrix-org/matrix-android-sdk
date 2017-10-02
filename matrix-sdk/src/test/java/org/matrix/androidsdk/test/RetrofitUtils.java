@@ -1,6 +1,5 @@
 package org.matrix.androidsdk.test;
 
-import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 

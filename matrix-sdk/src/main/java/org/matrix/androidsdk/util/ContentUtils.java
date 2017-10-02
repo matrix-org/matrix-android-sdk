@@ -95,11 +95,8 @@ public class ContentUtils {
                 }
             }
         }
-        if (succeed) {
-            return (directory.delete());
-        } else {
-            return false;
-        }
+
+        return succeed && directory.delete();
     }
 
     /**
@@ -110,6 +107,7 @@ public class ContentUtils {
      * @param logPathDepth the depth to log
      * @return the directory size
      */
+    @SuppressLint("deprecation")
     public static long getDirectorySize(Context context, File directory, int logPathDepth) {
         StatFs statFs = new StatFs(directory.getAbsolutePath());
         long blockSize;

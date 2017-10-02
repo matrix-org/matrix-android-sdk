@@ -59,6 +59,7 @@ import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
 import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.ssl.UnrecognizedCertificateException;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
@@ -84,11 +85,16 @@ public class MXDataHandler implements IMXEventListener {
 
     private static final String LEFT_ROOMS_FILTER = "{\"room\":{\"timeline\":{\"limit\":1},\"include_leave\":true}}";
 
-    public interface InvalidTokenListener {
+    public interface RequestNetworkErrorListener {
         /**
          * Call when the access token is corrupted
          */
         void onTokenCorrupted();
+
+        /**
+         * Call when the requests are rejected after a SSL update
+         */
+        void onSSLCertificateError(UnrecognizedCertificateException exception);
     }
 
     private IMXEventListener mCryptoEventsListener = null;
@@ -123,7 +129,7 @@ public class MXDataHandler implements IMXEventListener {
 
     private boolean mIsAlive = true;
 
-    private final InvalidTokenListener mInvalidTokenListener;
+    private RequestNetworkErrorListener mRequestNetworkErrorListener;
 
     // the left rooms are managed
     // by default, they are not supported
@@ -134,7 +140,7 @@ public class MXDataHandler implements IMXEventListener {
     private boolean mIsRetrievingLeftRooms;
 
     // the left rooms are saved in a dedicated store.
-    private MXMemoryStore mLeftRoomsStore;
+    private final MXMemoryStore mLeftRoomsStore;
 
     // e2e decoder
     private MXCrypto mCrypto;
@@ -146,7 +152,7 @@ public class MXDataHandler implements IMXEventListener {
      * Default constructor.
      * @param store the data storage implementation.
      */
-    public MXDataHandler(IMXStore store, Credentials credentials,InvalidTokenListener invalidTokenListener) {
+    public MXDataHandler(IMXStore store, Credentials credentials) {
         mStore = store;
         mCredentials = credentials;
 
@@ -156,9 +162,11 @@ public class MXDataHandler implements IMXEventListener {
         mSyncHandlerThread.start();
         mSyncHandler = new MXOsHandler(mSyncHandlerThread.getLooper());
 
-        mInvalidTokenListener = invalidTokenListener;
-
         mLeftRoomsStore = new MXMemoryStore(credentials, store.getContext());
+    }
+
+    public void setRequestNetworkErrorListener(RequestNetworkErrorListener requestNetworkErrorListener) {
+        mRequestNetworkErrorListener = requestNetworkErrorListener;
     }
 
     public Credentials getCredentials() {
@@ -262,8 +270,17 @@ public class MXDataHandler implements IMXEventListener {
      * The current token is not anymore valid
      */
     public void onInvalidToken() {
-        if (null != mInvalidTokenListener) {
-            mInvalidTokenListener.onTokenCorrupted();
+        if (null != mRequestNetworkErrorListener) {
+            mRequestNetworkErrorListener.onTokenCorrupted();
+        }
+    }
+
+    /**
+     * Call when the requests are rejected after a SSL update
+     */
+    public void onSSLCertificateError(UnrecognizedCertificateException exception) {
+        if (null != mRequestNetworkErrorListener) {
+            mRequestNetworkErrorListener.onSSLCertificateError(exception);
         }
     }
 
@@ -1134,13 +1151,16 @@ public class MXDataHandler implements IMXEventListener {
 
                     // Handle first joined rooms
                     for (String roomId : roomIds) {
+                        try {
+                            if (null != mLeftRoomsStore.getRoom(roomId)) {
+                                Log.d(LOG_TAG, "the room " + roomId + " moves from left to the joined ones");
+                                mLeftRoomsStore.deleteRoom(roomId);
+                            }
 
-                        if (null != mLeftRoomsStore.getRoom(roomId)) {
-                            Log.d(LOG_TAG, "the room " + roomId + " moves from left to the joined ones");
-                            mLeftRoomsStore.deleteRoom(roomId);
+                            getRoom(roomId).handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "## manageResponse() : handleJoinedRoomSync failed " + e.getMessage() + " for room " + roomId);
                         }
-
-                        getRoom(roomId).handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
                    }
 
                     isEmptyResponse = false;
@@ -1153,14 +1173,18 @@ public class MXDataHandler implements IMXEventListener {
                     Set<String> roomIds = syncResponse.rooms.invite.keySet();
 
                     for (String roomId : roomIds) {
-                        Log.d(LOG_TAG, "## manageResponse() : the user has been invited to " + roomId);
+                        try {
+                            Log.d(LOG_TAG, "## manageResponse() : the user has been invited to " + roomId);
 
-                        if (null != mLeftRoomsStore.getRoom(roomId)) {
-                            Log.d(LOG_TAG, "the room " + roomId + " moves from left to the invited ones");
-                            mLeftRoomsStore.deleteRoom(roomId);
+                            if (null != mLeftRoomsStore.getRoom(roomId)) {
+                                Log.d(LOG_TAG, "the room " + roomId + " moves from left to the invited ones");
+                                mLeftRoomsStore.deleteRoom(roomId);
+                            }
+
+                            getRoom(roomId).handleInvitedRoomSync(syncResponse.rooms.invite.get(roomId));
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "## manageResponse() : handleInvitedRoomSync failed " + e.getMessage() + " for room " + roomId);
                         }
-
-                        getRoom(roomId).handleInvitedRoomSync(syncResponse.rooms.invite.get(roomId));
                     }
 
                     isEmptyResponse = false;
@@ -1403,7 +1427,7 @@ public class MXDataHandler implements IMXEventListener {
                     @Override
                     public void onMatrixError(MatrixError e) {
                         synchronized (mLeftRoomsRefreshCallbacks) {
-                            Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getLocalizedMessage());
+                            Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getMessage());
 
                             for (ApiCallback<Void> c : mLeftRoomsRefreshCallbacks) {
                                 c.onMatrixError(e);
@@ -1685,9 +1709,9 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     @Override
-    public void onSentEvent(final Event event) {
+    public void onEventSent(final Event event, final String prevEventId) {
         if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onSentEvent(event);
+            mCryptoEventsListener.onEventSent(event, prevEventId);
         }
 
         if (ignoreEvent(event.roomId)) {
@@ -1701,9 +1725,9 @@ public class MXDataHandler implements IMXEventListener {
             public void run() {
                 for (IMXEventListener listener : eventListeners) {
                     try {
-                        listener.onSentEvent(event);
+                        listener.onEventSent(event, prevEventId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onSentEvent " + e.getMessage());
+                        Log.e(LOG_TAG, "onEventSent " + e.getMessage());
                     }
                 }
             }

@@ -49,13 +49,13 @@ public class EventDisplay {
     private static final String LOG_TAG = "EventDisplay";
 
     // members
-    private final Event mEvent;
-    private final Context mContext;
-    private final RoomState mRoomState;
-    private boolean mPrependAuthor;
+    protected final Event mEvent;
+    protected final Context mContext;
+    protected final RoomState mRoomState;
+    protected boolean mPrependAuthor;
 
     // let the application defines if the redacted events must be displayed
-    public static boolean mDisplayRedactedEvents = false;
+    public static final boolean mDisplayRedactedEvents = false;
 
     // constructor
     public EventDisplay(Context context, Event event, RoomState roomState) {
@@ -79,7 +79,7 @@ public class EventDisplay {
      * @param roomState the room state
      * @return the user display name
      */
-    private static String getUserDisplayName(String userId, RoomState roomState) {
+    protected static String getUserDisplayName(String userId, RoomState roomState) {
         if (null != roomState) {
             return roomState.getMemberName(userId);
         } else {
@@ -119,7 +119,7 @@ public class EventDisplay {
                         String sdpValue = sdp.getAsString();
                         isVideo = sdpValue.contains("m=video");
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "getTextualDisplay : " + e.getLocalizedMessage());
+                        Log.e(LOG_TAG, "getTextualDisplay : " + e.getMessage());
                     }
 
                     if (isVideo) {
@@ -287,7 +287,7 @@ public class EventDisplay {
             }
         }
         catch (Exception e) {
-            Log.e(LOG_TAG, "getTextualDisplay() " + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "getTextualDisplay() " + e.getMessage());
         }
 
         return text;
@@ -343,7 +343,7 @@ public class EventDisplay {
      * @param roomState the room state
      * @return the "human readable" display name
      */
-    private static String senderDisplayNameForEvent(Event event, EventContent eventContent, EventContent prevEventContent,  RoomState roomState) {
+    protected static String senderDisplayNameForEvent(Event event, EventContent eventContent, EventContent prevEventContent,  RoomState roomState) {
         String senderDisplayName = event.getSender();
 
         if (!event.isRedacted()) {
