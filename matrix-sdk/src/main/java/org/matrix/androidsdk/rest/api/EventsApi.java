@@ -77,13 +77,22 @@ public interface EventsApi {
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/search")
     void searchEvents(@Body SearchParams searchParams, @Query("next_batch") String nextBatch, Callback<SearchResponse> callback);
 
-
     /**
      * Perform an users search.
      *
      * @param searchUsersParams the search params.
-     * @param callback     The search result.
+     * @param callback          The search result.
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/user_directory/search")
     void searchUsers(@Body SearchUsersParams searchUsersParams, Callback<SearchUsersRequestResponse> callback);
+
+    /**
+     * Retrieve the preview information of an URL.
+     *
+     * @param url      the URL
+     * @param ts       the ts
+     * @param callback the asynchronous callback
+     */
+    @GET(RestClient.URI_API_PREFIX_PATH_MEDIA_R0 + "/preview_url")
+    void getURLPreview(@Query("url") String url, @Query("ts") long ts, Callback<Map<String, Object>> callback);
 }

@@ -48,6 +48,7 @@ public class RestClient<T> {
 
     private static final String LOG_TAG = "RestClient";
 
+    public static final String URI_API_PREFIX_PATH_MEDIA_R0 = "/_matrix/media/r0";
     public static final String URI_API_PREFIX_PATH_R0 = "/_matrix/client/r0";
     public static final String URI_API_PREFIX_PATH_UNSTABLE = "/_matrix/client/unstable";
 
