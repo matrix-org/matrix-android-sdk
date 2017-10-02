@@ -18,6 +18,7 @@ package org.matrix.androidsdk.rest.model.login;
 
 import android.os.Build;
 import android.support.annotation.NonNull;
+import android.text.TextUtils;
 
 import org.matrix.androidsdk.rest.client.LoginRestClient;
 
@@ -115,5 +116,18 @@ public class PasswordLoginParams extends LoginParams {
         this.password = password;
         this.type = LoginRestClient.LOGIN_FLOW_TYPE_PASSWORD;
         this.initial_device_display_name = Build.MODEL.trim();
+    }
+
+    /**
+     * Set the device name
+     *
+     * @param deviceName the new device name
+     */
+    public void setDeviceName(String deviceName) {
+        if ((null != deviceName) && !TextUtils.isEmpty(deviceName.trim())) {
+            this.initial_device_display_name = deviceName.trim();
+        } else {
+            this.initial_device_display_name = Build.MODEL.trim();
+        }
     }
 }
