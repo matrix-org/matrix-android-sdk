@@ -1,3 +1,26 @@
+Changes to Matrix Android SDK in 0.8.02 (2017-10-03)
+=======================================================
+
+Features:
+
+* Add widgets management.
+* Add javadoc to the project.
+* Add getUrlPreview request.
+
+Improvements: 
+
+* Replace the third party call lib (libJingle by webrtc).
+* Increase the initial sync request timeout.
+* Increase the incoming call timeout to one minute.
+
+Bugfixes:
+
+* Fix several crashes reported by Google Analytics.
+* #1592 Client unable to connect on server after certificate update
+* #1603 Stale device lists when users re-join e2e rooms 
+* #1613 Phone rings for ever 
+
+
 Changes to Matrix Android SDK in 0.8.01 (2017-09-04)
 =======================================================
 
