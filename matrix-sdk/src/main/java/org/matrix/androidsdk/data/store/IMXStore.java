@@ -131,7 +131,7 @@ public interface IMXStore {
     void addMXStoreListener(IMXStoreListener listener);
 
     /**
-     * remive a MXStore listener.
+     * remove a MXStore listener.
      *
      * @param listener the listener
      */
@@ -142,11 +142,26 @@ public interface IMXStore {
      */
     String displayName();
 
-    void setDisplayName(String displayName);
+    /**
+     * Update the user display name
+     * @param displayName the displayname
+     * @param ts the timestamp update
+     * @return true if there is an update
+     */
+    boolean setDisplayName(String displayName, long ts);
 
+    /**
+     * @return the avatar URL
+     */
     String avatarURL();
 
-    void setAvatarURL(String avatarURL);
+    /**
+     * Update the avatar URL
+     * @param avatarURL the new URL
+     * @param ts the timestamp update
+     * @return true if there is an update
+     */
+    boolean setAvatarURL(String avatarURL, long ts);
 
     List<ThirdPartyIdentifier> thirdPartyIdentifiers();
 
@@ -460,4 +475,10 @@ public interface IMXStore {
      * @return the store stats
      */
     Map<String, Long> getStats();
+
+    /**
+     * Start a runnable from the store thread
+     * @param runnable the runnable to call
+     */
+    void post(Runnable runnable);
 }
