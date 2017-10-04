@@ -289,7 +289,7 @@ public class MXFileStore extends MXMemoryStore {
     @Override
     public void commit() {
         // Save data only if metaData exists
-        if ((null != mMetadata) && !isKilled()) {
+        if ((null != mMetadata) && (null != mMetadata.mAccessToken) && !isKilled()) {
             Log.d(LOG_TAG, "++ Commit");
             saveUsers();
             saveRoomsMessages();

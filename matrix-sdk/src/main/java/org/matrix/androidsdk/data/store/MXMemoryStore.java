@@ -93,6 +93,10 @@ public class MXMemoryStore implements IMXStore {
     // When nil, nothing is stored on the file system.
     protected MXFileStoreMetaData mMetadata = null;
 
+    // last time the avatar / displayname was updated
+    protected long mUserDisplayNameTs;
+    protected long mUserAvatarUrlTs;
+
     /**
      * Initialization method.
      */
@@ -293,7 +297,7 @@ public class MXMemoryStore implements IMXStore {
 
     @Override
     public boolean setDisplayName(String displayName, long ts) {
-        boolean isUpdated = false;
+        boolean isUpdated;
 
         synchronized (LOG_TAG) {
             if (null != mMetadata) {
@@ -301,11 +305,11 @@ public class MXMemoryStore implements IMXStore {
             }
 
             isUpdated = (null != mMetadata) && !TextUtils.equals(mMetadata.mUserDisplayName, displayName) &&
-                    (mMetadata.mUserDisplayNameTs < ts) && (ts != 0) && (ts <= System.currentTimeMillis());
+                    (mUserDisplayNameTs < ts) && (ts != 0) && (ts <= System.currentTimeMillis());
 
             if (isUpdated) {
                 mMetadata.mUserDisplayName = (null != displayName) ? displayName.trim() : null;
-                mMetadata.mUserDisplayNameTs = ts;
+                mUserDisplayNameTs = ts;
 
                 // update the cached oneself User
                 User myUser = getUser(mMetadata.mUserId);
@@ -341,11 +345,11 @@ public class MXMemoryStore implements IMXStore {
             }
 
             isUpdated = (null != mMetadata) && !TextUtils.equals(mMetadata.mUserAvatarUrl, avatarURL) &&
-                    (mMetadata.mUserAvatarUrlTs < ts) && (ts != 0) && (ts <= System.currentTimeMillis());
+                    (mUserAvatarUrlTs < ts) && (ts != 0) && (ts <= System.currentTimeMillis());
 
             if (isUpdated) {
                 mMetadata.mUserAvatarUrl = avatarURL;
-                mMetadata.mUserAvatarUrlTs = ts;
+                mUserAvatarUrlTs = ts;
 
                 // update the cached oneself User
                 User myUser = getUser(mMetadata.mUserId);
