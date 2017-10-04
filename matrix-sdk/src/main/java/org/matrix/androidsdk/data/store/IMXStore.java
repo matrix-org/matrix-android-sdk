@@ -475,4 +475,10 @@ public interface IMXStore {
      * @return the store stats
      */
     Map<String, Long> getStats();
+
+    /**
+     * Start a runnable from the store thread
+     * @param runnable the runnable to call
+     */
+    void post(Runnable runnable);
 }

@@ -18,7 +18,9 @@
 package org.matrix.androidsdk.data.store;
 
 import android.content.Context;
+import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Looper;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -2345,5 +2347,17 @@ public class MXFileStore extends MXMemoryStore {
         }
 
         return filteredFilenames;
+    }
+
+    /**
+     * Start a runnable from the store thread
+     * @param runnable the runnable to call
+     */
+    public void post(Runnable runnable) {
+        if (null != mFileStoreHandler) {
+            mFileStoreHandler.post(runnable);
+        } else {
+            super.post(runnable);
+        }
     }
 }

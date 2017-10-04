@@ -1485,4 +1485,12 @@ public class MXMemoryStore implements IMXStore {
     public Map<String, Long> getStats() {
         return new HashMap<>();
     }
+
+    /**
+     * Start a runnable from the store thread
+     * @param runnable the runnable to call
+     */
+    public void post(Runnable runnable) {
+        new Handler(Looper.getMainLooper()).post(runnable);
+    }
 }
