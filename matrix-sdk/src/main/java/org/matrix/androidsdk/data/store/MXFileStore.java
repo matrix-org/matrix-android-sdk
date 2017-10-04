@@ -715,21 +715,13 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
-    public void setDisplayName(String displayName) {
-        // privacy
-        //Log.d(LOG_TAG, "Set setDisplayName to " + displayName);
-        Log.d(LOG_TAG, "Set setDisplayName ");
-        mMetaDataHasChanged = true;
-        super.setDisplayName(displayName);
+    public boolean setDisplayName(String displayName, long ts) {
+        return mMetaDataHasChanged = super.setDisplayName(displayName, ts);
     }
 
     @Override
-    public void setAvatarURL(String avatarURL) {
-        // privacy
-        //Log.d(LOG_TAG, "Set setAvatarURL to " + avatarURL);
-        Log.d(LOG_TAG, "Set setAvatarURL");
-        mMetaDataHasChanged = true;
-        super.setAvatarURL(avatarURL);
+    public boolean setAvatarURL(String avatarURL, long ts) {
+        return mMetaDataHasChanged = super.setAvatarURL(avatarURL, ts);
     }
 
     @Override

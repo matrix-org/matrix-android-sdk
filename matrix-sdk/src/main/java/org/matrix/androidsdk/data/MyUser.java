@@ -71,7 +71,7 @@ public class MyUser extends User {
             public void onSuccess(Void info) {
                 // Update the object member before calling the given callback
                 MyUser.this.displayname = displayName;
-                MyUser.this.mDataHandler.getStore().setDisplayName(displayName);
+                MyUser.this.mDataHandler.getStore().setDisplayName(displayName, System.currentTimeMillis());
                 super.onSuccess(info);
             }
         });
@@ -88,7 +88,7 @@ public class MyUser extends User {
             public void onSuccess(Void info) {
                 // Update the object member before calling the given callback
                 MyUser.this.setAvatarUrl(avatarUrl);
-                MyUser.this.mDataHandler.getStore().setAvatarURL(avatarUrl);
+                MyUser.this.mDataHandler.getStore().setAvatarURL(avatarUrl, System.currentTimeMillis());
                 super.onSuccess(info);
             }
         });
@@ -331,7 +331,7 @@ public class MyUser extends User {
                     // local value
                     setAvatarUrl(anAvatarUrl);
                     // metadata file
-                    mDataHandler.getStore().setAvatarURL(anAvatarUrl);
+                    mDataHandler.getStore().setAvatarURL(anAvatarUrl, System.currentTimeMillis());
                     // user
                     mDataHandler.getStore().storeUser(MyUser.this);
 
@@ -385,7 +385,7 @@ public class MyUser extends User {
                     // local value
                     displayname = aDisplayname;
                     // store metadata
-                    mDataHandler.getStore().setDisplayName(aDisplayname);
+                    mDataHandler.getStore().setDisplayName(aDisplayname, System.currentTimeMillis());
 
                     mIsDisplayNameRefreshed = true;
 

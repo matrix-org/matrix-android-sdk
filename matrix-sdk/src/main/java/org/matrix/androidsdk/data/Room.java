@@ -252,9 +252,9 @@ public class Room {
      * Handle the events of a joined room.
      *
      * @param roomSync      the sync events list.
-     * @param isInitialSync true if the room is initialized by a global initial sync.
+     * @param isGlobalInitialSync true if the room is initialized by a global initial sync.
      */
-    public void handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync) {
+    public void handleJoinedRoomSync(RoomSync roomSync, boolean isGlobalInitialSync) {
         if (null != mOnInitialSyncCallback) {
             Log.d(LOG_TAG, "initial sync handleJoinedRoomSync " + getRoomId());
         } else {
@@ -264,7 +264,7 @@ public class Room {
         mIsSyncing = true;
 
         synchronized (this) {
-            mLiveTimeline.handleJoinedRoomSync(roomSync, isInitialSync);
+            mLiveTimeline.handleJoinedRoomSync(roomSync, isGlobalInitialSync);
 
             // ephemeral events
             if ((null != roomSync.ephemeral) && (null != roomSync.ephemeral.events)) {
@@ -273,7 +273,7 @@ public class Room {
 
             // Handle account data events (if any)
             if ((null != roomSync.accountData) && (null != roomSync.accountData.events) && (roomSync.accountData.events.size() > 0)) {
-                if (isInitialSync) {
+                if (isGlobalInitialSync) {
                     Log.d(LOG_TAG, "## handleJoinedRoomSync : received " + roomSync.accountData.events.size() + " account data events");
                 }
 
@@ -304,7 +304,7 @@ public class Room {
         mIsSyncing = false;
 
         if (mRefreshUnreadAfterSync) {
-            refreshUnreadCounter();
+            refreshUnreadCounter(isGlobalInitialSync);
             mRefreshUnreadAfterSync = false;
         }
     }
@@ -1459,6 +1459,13 @@ public class Room {
      * refresh the unread events counts.
      */
     public void refreshUnreadCounter() {
+        refreshUnreadCounter(false);
+    }
+
+    /**
+     * refresh the unread events counts.
+     */
+    private void refreshUnreadCounter(boolean isGlobalInitialSync) {
         // avoid refreshing the unread counter while processing a bunch of messages.
         if (!mIsSyncing) {
             RoomSummary summary = mStore.getSummary(getRoomId());
@@ -1469,8 +1476,13 @@ public class Room {
 
                 if (prevValue != newValue) {
                     summary.setUnreadEventsCount(newValue);
-                    mStore.flushSummary(summary);
-                    mStore.commit();
+
+                    if (!isGlobalInitialSync) {
+                        mStore.flushSummary(summary);
+                    } else {
+                        // postpone the
+                        mStore.storeSummary(summary);
+                    }
                 }
             }
         } else {

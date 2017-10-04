@@ -39,7 +39,9 @@ public class MXFileStoreMetaData implements java.io.Serializable {
      User information
      */
     public String mUserDisplayName = null;
+    public long mUserDisplayNameTs;
     public String mUserAvatarUrl = null;
+    public long mUserAvatarUrlTs;
     public List<ThirdPartyIdentifier> mThirdPartyIdentifiers = null;
     public List<String> mIgnoredUsers = new ArrayList<>();
     public Map<String, List<String>> mDirectChatRoomsMap = null;

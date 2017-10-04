@@ -560,7 +560,10 @@ public class EventTimeline {
                     if (oldestEvent != null) {
                         // always defined a room summary else the room won't be displayed in the recents
                         mStore.storeSummary(new RoomSummary(null, oldestEvent, mState, myUserId));
-                        mStore.commit();
+
+                        if (!isInitialSync) {
+                            mStore.commit();
+                        }
 
                         // if the event is not displayable
                         // back paginate until to find a valid one
@@ -572,7 +575,9 @@ public class EventTimeline {
                     else if (null != currentSummary) {
                         currentSummary.setLatestReceivedEvent(currentSummary.getLatestReceivedEvent(), mState);
                         mStore.storeSummary(currentSummary);
-                        mStore.commit();
+                        if (!isInitialSync) {
+                            mStore.commit();
+                        }
                     }
                     // try to build a summary from the state events
                     else if ((null != roomSync.state) && (null != roomSync.state.events) && (roomSync.state.events.size() > 0)) {
@@ -603,7 +608,9 @@ public class EventTimeline {
                                     }
                                 }
 
-                                mStore.commit();
+                                if (!isInitialSync) {
+                                    mStore.commit();
+                                }
                                 break;
                             }
                         }
@@ -926,13 +933,13 @@ public class EventTimeline {
                         if (!TextUtils.equals(eventContent.displayname, myUser.displayname)) {
                             hasAccountInfoUpdated = true;
                             myUser.displayname = eventContent.displayname;
-                            mStore.setDisplayName(myUser.displayname);
+                            mStore.setDisplayName(myUser.displayname, event.getOriginServerTs());
                         }
 
                         if (!TextUtils.equals(eventContent.avatar_url, myUser.getAvatarUrl())) {
                             hasAccountInfoUpdated = true;
                             myUser.setAvatarUrl(eventContent.avatar_url);
-                            mStore.setAvatarURL(myUser.avatar_url);
+                            mStore.setAvatarURL(myUser.avatar_url, event.getOriginServerTs());
                         }
 
                         if (hasAccountInfoUpdated) {

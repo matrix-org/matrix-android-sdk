@@ -301,8 +301,8 @@ public class MXDataHandler implements IMXEventListener {
 
             // assume the profile is not yet initialized
             if (null == store.displayName()) {
-                store.setAvatarURL(mMyUser.getAvatarUrl());
-                store.setDisplayName(mMyUser.displayname);
+                store.setAvatarURL(mMyUser.getAvatarUrl(), System.currentTimeMillis());
+                store.setDisplayName(mMyUser.displayname, System.currentTimeMillis());
             } else {
                 // use the latest user information
                 // The user could have updated his profile in offline mode and kill the application.
@@ -316,8 +316,8 @@ public class MXDataHandler implements IMXEventListener {
             // assume the profile is not yet initialized
             if ((null == store.displayName()) && (null != mMyUser.displayname)) {
                 // setAvatarURL && setDisplayName perform a commit if it is required.
-                store.setAvatarURL(mMyUser.getAvatarUrl());
-                store.setDisplayName(mMyUser.displayname);
+                store.setAvatarURL(mMyUser.getAvatarUrl(), System.currentTimeMillis());
+                store.setDisplayName(mMyUser.displayname, System.currentTimeMillis());
             } else if (!TextUtils.equals(mMyUser.displayname, store.displayName())) {
                 mMyUser.displayname = store.displayName();
                 mMyUser.setAvatarUrl(store.avatarURL());
@@ -1038,8 +1038,8 @@ public class MXDataHandler implements IMXEventListener {
                 getMyUser().displayname = user.displayname;
                 getMyUser().avatar_url = user.getAvatarUrl();
 
-                mStore.setAvatarURL(user.getAvatarUrl());
-                mStore.setDisplayName(user.displayname);
+                mStore.setAvatarURL(user.getAvatarUrl(), presenceEvent.getOriginServerTs());
+                mStore.setDisplayName(user.displayname, presenceEvent.getOriginServerTs());
             }
 
             mStore.storeUser(user);
