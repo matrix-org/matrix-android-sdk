@@ -304,7 +304,9 @@ public class Room {
         mIsSyncing = false;
 
         if (mRefreshUnreadAfterSync) {
-            refreshUnreadCounter(isGlobalInitialSync);
+            if (!isGlobalInitialSync) {
+                refreshUnreadCounter();
+            } // else -> it will be done at the end of the sync
             mRefreshUnreadAfterSync = false;
         }
     }
@@ -1459,13 +1461,6 @@ public class Room {
      * refresh the unread events counts.
      */
     public void refreshUnreadCounter() {
-        refreshUnreadCounter(false);
-    }
-
-    /**
-     * refresh the unread events counts.
-     */
-    private void refreshUnreadCounter(boolean isGlobalInitialSync) {
         // avoid refreshing the unread counter while processing a bunch of messages.
         if (!mIsSyncing) {
             RoomSummary summary = mStore.getSummary(getRoomId());
@@ -1476,13 +1471,7 @@ public class Room {
 
                 if (prevValue != newValue) {
                     summary.setUnreadEventsCount(newValue);
-
-                    if (!isGlobalInitialSync) {
-                        mStore.flushSummary(summary);
-                    } else {
-                        // postpone the
-                        mStore.storeSummary(summary);
-                    }
+                    mStore.flushSummary(summary);
                 }
             }
         } else {

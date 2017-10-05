@@ -405,9 +405,9 @@ public class EventTimeline {
     /**
      * Manage the joined room events.
      * @param roomSync the roomSync.
-     * @param isInitialSync true if the sync has been triggered by a global initial sync
+     * @param isGlobalInitialSync true if the sync has been triggered by a global initial sync
      */
-    public void handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync) {
+    public void handleJoinedRoomSync(RoomSync roomSync, boolean isGlobalInitialSync) {
         String membership = null;
         String myUserId = mDataHandler.getMyUser().user_id;
         RoomSummary currentSummary = null;
@@ -520,7 +520,7 @@ public class EventTimeline {
                         boolean isLimited = (null != roomSync.timeline) && roomSync.timeline.limited;
 
                         // digest the forward event
-                        handleLiveEvent(event, !isLimited && !isInitialSync, !isInitialSync && !isRoomInitialSync);
+                        handleLiveEvent(event, !isLimited && !isGlobalInitialSync, !isGlobalInitialSync && !isRoomInitialSync);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "timeline event failed " + e.getMessage());
                     }
@@ -560,10 +560,7 @@ public class EventTimeline {
                     if (oldestEvent != null) {
                         // always defined a room summary else the room won't be displayed in the recents
                         mStore.storeSummary(new RoomSummary(null, oldestEvent, mState, myUserId));
-
-                        if (!isInitialSync) {
-                            mStore.commit();
-                        }
+                        mStore.commit();
 
                         // if the event is not displayable
                         // back paginate until to find a valid one
@@ -575,9 +572,7 @@ public class EventTimeline {
                     else if (null != currentSummary) {
                         currentSummary.setLatestReceivedEvent(currentSummary.getLatestReceivedEvent(), mState);
                         mStore.storeSummary(currentSummary);
-                        if (!isInitialSync) {
-                            mStore.commit();
-                        }
+                        mStore.commit();
                     }
                     // try to build a summary from the state events
                     else if ((null != roomSync.state) && (null != roomSync.state.events) && (roomSync.state.events.size() > 0)) {
@@ -608,9 +603,7 @@ public class EventTimeline {
                                     }
                                 }
 
-                                if (!isInitialSync) {
-                                    mStore.commit();
-                                }
+                                mStore.commit();
                                 break;
                             }
                         }
