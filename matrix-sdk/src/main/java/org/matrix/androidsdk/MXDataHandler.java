@@ -68,6 +68,7 @@ import org.matrix.androidsdk.util.MXOsHandler;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -98,7 +99,7 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     private IMXEventListener mCryptoEventsListener = null;
-    private final List<IMXEventListener> mEventListeners = new ArrayList<>();
+    private final Set<IMXEventListener> mEventListeners = new HashSet<>();
 
     private final IMXStore mStore;
     private final Credentials mCredentials;
@@ -453,12 +454,9 @@ public class MXDataHandler implements IMXEventListener {
      * @param listener the listener to add.
      */
     public void addListener(IMXEventListener listener) {
-        if (isAlive()) {
+        if (isAlive() && (null != listener)) {
             synchronized (this) {
-                // avoid adding twice
-                if (mEventListeners.indexOf(listener) == -1) {
-                    mEventListeners.add(listener);
-                }
+                mEventListeners.add(listener);
             }
 
             if (null != mInitialSyncToToken) {
@@ -472,7 +470,7 @@ public class MXDataHandler implements IMXEventListener {
      * @param listener to remove.
      */
     public void removeListener(IMXEventListener listener) {
-        if (isAlive()) {
+        if (isAlive() && (null != listener)) {
             synchronized (this) {
                 mEventListeners.remove(listener);
             }
@@ -1298,10 +1296,10 @@ public class MXDataHandler implements IMXEventListener {
      * Refresh the unread summary counters of the updated rooms.
      */
     private void refreshUnreadCounters() {
-        ArrayList<String> roomIdsList;
+        Set<String> roomIdsList;
 
         synchronized (mUpdatedRoomIdList) {
-            roomIdsList = new ArrayList<>(mUpdatedRoomIdList);
+            roomIdsList = new HashSet<>(mUpdatedRoomIdList);
             mUpdatedRoomIdList.clear();
         }
         // refresh the unread counter
@@ -1504,7 +1502,7 @@ public class MXDataHandler implements IMXEventListener {
      * @return the current MXEvents listeners .
      */
     private List<IMXEventListener> getListenersSnapshot() {
-        ArrayList<IMXEventListener> eventListeners;
+        List<IMXEventListener> eventListeners;
 
         synchronized (this) {
             eventListeners = new ArrayList<>(mEventListeners);
@@ -1585,7 +1583,7 @@ public class MXDataHandler implements IMXEventListener {
      * Stored the room id of the rooms which have received some events
      * which imply an unread messages counter refresh.
      */
-    private final ArrayList<String> mUpdatedRoomIdList = new ArrayList<>();
+    private final Set<String> mUpdatedRoomIdList = new HashSet<>();
 
     /**
      * Tell if a room Id event should be ignored
@@ -1610,9 +1608,7 @@ public class MXDataHandler implements IMXEventListener {
 
         if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type) && !TextUtils.equals(Event.EVENT_TYPE_RECEIPT, type) && !TextUtils.equals(Event.EVENT_TYPE_TYPING, type)) {
             synchronized (mUpdatedRoomIdList) {
-                if (mUpdatedRoomIdList.indexOf(roomState.roomId) < 0) {
-                    mUpdatedRoomIdList.add(roomState.roomId);
-                }
+                mUpdatedRoomIdList.add(roomState.roomId);
             }
         }
 
@@ -2008,9 +2004,7 @@ public class MXDataHandler implements IMXEventListener {
     public void onReceiptEvent(final String roomId, final List<String> senderIds) {
         synchronized (mUpdatedRoomIdList) {
             // refresh the unread countries at the end of the process chunk
-            if (mUpdatedRoomIdList.indexOf(roomId) < 0) {
-                mUpdatedRoomIdList.add(roomId);
-            }
+            mUpdatedRoomIdList.add(roomId);
         }
 
         if (null != mCryptoEventsListener) {
