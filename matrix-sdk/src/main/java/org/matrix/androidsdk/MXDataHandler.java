@@ -1084,7 +1084,7 @@ public class MXDataHandler implements IMXEventListener {
 
                 // copy events and receiptData
                 // it is not required but it is better, it could be useful later
-                // the room summary should be enough to be displayed in the recents pages
+                // the room summary should be enough to be displayed in the recent pages
                 ArrayList<ReceiptData> receipts = new ArrayList<>();
                 Collection<Event> events = getStore().getRoomMessages(roomId);
 
