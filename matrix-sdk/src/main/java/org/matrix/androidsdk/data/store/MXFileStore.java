@@ -18,7 +18,9 @@
 package org.matrix.androidsdk.data.store;
 
 import android.content.Context;
+import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Looper;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -287,7 +289,7 @@ public class MXFileStore extends MXMemoryStore {
     @Override
     public void commit() {
         // Save data only if metaData exists
-        if ((null != mMetadata) && !isKilled()) {
+        if ((null != mMetadata) && (null != mMetadata.mAccessToken) && !isKilled()) {
             Log.d(LOG_TAG, "++ Commit");
             saveUsers();
             saveRoomsMessages();
@@ -715,21 +717,13 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
-    public void setDisplayName(String displayName) {
-        // privacy
-        //Log.d(LOG_TAG, "Set setDisplayName to " + displayName);
-        Log.d(LOG_TAG, "Set setDisplayName ");
-        mMetaDataHasChanged = true;
-        super.setDisplayName(displayName);
+    public boolean setDisplayName(String displayName, long ts) {
+        return mMetaDataHasChanged = super.setDisplayName(displayName, ts);
     }
 
     @Override
-    public void setAvatarURL(String avatarURL) {
-        // privacy
-        //Log.d(LOG_TAG, "Set setAvatarURL to " + avatarURL);
-        Log.d(LOG_TAG, "Set setAvatarURL");
-        mMetaDataHasChanged = true;
-        super.setAvatarURL(avatarURL);
+    public boolean setAvatarURL(String avatarURL, long ts) {
+        return mMetaDataHasChanged = super.setAvatarURL(avatarURL, ts);
     }
 
     @Override
@@ -768,7 +762,10 @@ public class MXFileStore extends MXMemoryStore {
         super.flushRoomEvents(roomId);
 
         mRoomsToCommitForMessages.add(roomId);
-        saveRoomsMessages();
+
+        if ((null != mMetadata) && (null != mMetadata.mAccessToken) && !isKilled()) {
+            saveRoomsMessages();
+        }
     }
 
     @Override
@@ -882,7 +879,10 @@ public class MXFileStore extends MXMemoryStore {
     public void flushSummary(RoomSummary summary) {
         super.flushSummary(summary);
         mRoomsToCommitForSummaries.add(summary.getRoomId());
-        saveSummaries();
+
+        if ((null != mMetadata) && (null != mMetadata.mAccessToken) && !isKilled()) {
+            saveSummaries();
+        }
     }
 
     @Override
@@ -892,7 +892,9 @@ public class MXFileStore extends MXMemoryStore {
         // add any existing roomid to the list to save all
         mRoomsToCommitForSummaries.addAll(mRoomSummaries.keySet());
 
-        saveSummaries();
+        if ((null != mMetadata) && (null != mMetadata.mAccessToken) && !isKilled()) {
+            saveSummaries();
+        }
     }
 
     @Override
@@ -2353,5 +2355,17 @@ public class MXFileStore extends MXMemoryStore {
         }
 
         return filteredFilenames;
+    }
+
+    /**
+     * Start a runnable from the store thread
+     * @param runnable the runnable to call
+     */
+    public void post(Runnable runnable) {
+        if (null != mFileStoreHandler) {
+            mFileStoreHandler.post(runnable);
+        } else {
+            super.post(runnable);
+        }
     }
 }

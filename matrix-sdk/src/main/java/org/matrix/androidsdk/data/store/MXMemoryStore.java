@@ -93,6 +93,10 @@ public class MXMemoryStore implements IMXStore {
     // When nil, nothing is stored on the file system.
     protected MXFileStoreMetaData mMetadata = null;
 
+    // last time the avatar / displayname was updated
+    protected long mUserDisplayNameTs;
+    protected long mUserAvatarUrlTs;
+
     /**
      * Initialization method.
      */
@@ -292,24 +296,34 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public void setDisplayName(String displayName) {
-        if ((null != mMetadata) && !TextUtils.equals(mMetadata.mUserDisplayName, displayName)) {
-            mMetadata.mUserDisplayName = displayName;
+    public boolean setDisplayName(String displayName, long ts) {
+        boolean isUpdated;
 
-            if (null != displayName) {
-                mMetadata.mUserDisplayName = mMetadata.mUserDisplayName.trim();
+        synchronized (LOG_TAG) {
+            if (null != mMetadata) {
+                Log.d(LOG_TAG, "## setDisplayName() : from " + mMetadata.mUserDisplayName + " to " + displayName + " ts " + ts);
             }
 
-            // update the cached oneself User
-            User myUser = getUser(mMetadata.mUserId);
+            isUpdated = (null != mMetadata) && !TextUtils.equals(mMetadata.mUserDisplayName, displayName) &&
+                    (mUserDisplayNameTs < ts) && (ts != 0) && (ts <= System.currentTimeMillis());
 
-            if (null != myUser) {
-                myUser.displayname = mMetadata.mUserDisplayName;
+            if (isUpdated) {
+                mMetadata.mUserDisplayName = (null != displayName) ? displayName.trim() : null;
+                mUserDisplayNameTs = ts;
+
+                // update the cached oneself User
+                User myUser = getUser(mMetadata.mUserId);
+
+                if (null != myUser) {
+                    myUser.displayname = mMetadata.mUserDisplayName;
+                }
+
+                Log.d(LOG_TAG, "## setDisplayName() : updated");
+                commit();
             }
-
-            Log.d(LOG_TAG, "setDisplayName : commit");
-            commit();
         }
+
+        return isUpdated;
     }
 
     @Override
@@ -322,20 +336,34 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public void setAvatarURL(String avatarURL) {
-        if ((null != mMetadata) && !TextUtils.equals(mMetadata.mUserAvatarUrl, avatarURL)) {
-            mMetadata.mUserAvatarUrl = avatarURL;
+    public boolean setAvatarURL(String avatarURL, long ts) {
+        boolean isUpdated = false;
 
-            // update the cached oneself User
-            User myUser = getUser(mMetadata.mUserId);
-
-            if (null != myUser) {
-                myUser.setAvatarUrl(avatarURL);
+        synchronized (LOG_TAG) {
+            if (null != mMetadata) {
+                Log.d(LOG_TAG, "## setAvatarURL() : from " + mMetadata.mUserAvatarUrl + " to " + avatarURL + " ts " + ts);
             }
 
-            Log.d(LOG_TAG, "setAvatarURL : commit");
-            commit();
+            isUpdated = (null != mMetadata) && !TextUtils.equals(mMetadata.mUserAvatarUrl, avatarURL) &&
+                    (mUserAvatarUrlTs < ts) && (ts != 0) && (ts <= System.currentTimeMillis());
+
+            if (isUpdated) {
+                mMetadata.mUserAvatarUrl = avatarURL;
+                mUserAvatarUrlTs = ts;
+
+                // update the cached oneself User
+                User myUser = getUser(mMetadata.mUserId);
+
+                if (null != myUser) {
+                    myUser.setAvatarUrl(avatarURL);
+                }
+
+                Log.d(LOG_TAG, "## setAvatarURL() : updated");
+                commit();
+            }
         }
+
+        return isUpdated;
     }
 
     @Override
@@ -1460,5 +1488,13 @@ public class MXMemoryStore implements IMXStore {
      */
     public Map<String, Long> getStats() {
         return new HashMap<>();
+    }
+
+    /**
+     * Start a runnable from the store thread
+     * @param runnable the runnable to call
+     */
+    public void post(Runnable runnable) {
+        new Handler(Looper.getMainLooper()).post(runnable);
     }
 }

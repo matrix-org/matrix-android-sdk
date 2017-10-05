@@ -405,9 +405,9 @@ public class EventTimeline {
     /**
      * Manage the joined room events.
      * @param roomSync the roomSync.
-     * @param isInitialSync true if the sync has been triggered by a global initial sync
+     * @param isGlobalInitialSync true if the sync has been triggered by a global initial sync
      */
-    public void handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync) {
+    public void handleJoinedRoomSync(RoomSync roomSync, boolean isGlobalInitialSync) {
         String membership = null;
         String myUserId = mDataHandler.getMyUser().user_id;
         RoomSummary currentSummary = null;
@@ -520,7 +520,7 @@ public class EventTimeline {
                         boolean isLimited = (null != roomSync.timeline) && roomSync.timeline.limited;
 
                         // digest the forward event
-                        handleLiveEvent(event, !isLimited && !isInitialSync, !isInitialSync && !isRoomInitialSync);
+                        handleLiveEvent(event, !isLimited && !isGlobalInitialSync, !isGlobalInitialSync && !isRoomInitialSync);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "timeline event failed " + e.getMessage());
                     }
@@ -926,13 +926,13 @@ public class EventTimeline {
                         if (!TextUtils.equals(eventContent.displayname, myUser.displayname)) {
                             hasAccountInfoUpdated = true;
                             myUser.displayname = eventContent.displayname;
-                            mStore.setDisplayName(myUser.displayname);
+                            mStore.setDisplayName(myUser.displayname, event.getOriginServerTs());
                         }
 
                         if (!TextUtils.equals(eventContent.avatar_url, myUser.getAvatarUrl())) {
                             hasAccountInfoUpdated = true;
                             myUser.setAvatarUrl(eventContent.avatar_url);
-                            mStore.setAvatarURL(myUser.avatar_url);
+                            mStore.setAvatarURL(myUser.avatar_url, event.getOriginServerTs());
                         }
 
                         if (hasAccountInfoUpdated) {

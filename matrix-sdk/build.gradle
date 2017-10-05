@@ -17,9 +17,9 @@ android {
         minSdkVersion 16
         targetSdkVersion 23
         // use version to define a version code.
-        versionCode 802
-        version "0.8.02"
-        versionName "0.8.02"
+        versionCode 803
+        version "0.8.03"
+        versionName "0.8.03"
         resValue "string", "flavor_description", "SDKApp"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
      }
