@@ -762,7 +762,10 @@ public class MXFileStore extends MXMemoryStore {
         super.flushRoomEvents(roomId);
 
         mRoomsToCommitForMessages.add(roomId);
-        saveRoomsMessages();
+
+        if ((null != mMetadata) && (null != mMetadata.mAccessToken) && !isKilled()) {
+            saveRoomsMessages();
+        }
     }
 
     @Override
@@ -876,7 +879,10 @@ public class MXFileStore extends MXMemoryStore {
     public void flushSummary(RoomSummary summary) {
         super.flushSummary(summary);
         mRoomsToCommitForSummaries.add(summary.getRoomId());
-        saveSummaries();
+
+        if ((null != mMetadata) && (null != mMetadata.mAccessToken) && !isKilled()) {
+            saveSummaries();
+        }
     }
 
     @Override
@@ -886,7 +892,9 @@ public class MXFileStore extends MXMemoryStore {
         // add any existing roomid to the list to save all
         mRoomsToCommitForSummaries.addAll(mRoomSummaries.keySet());
 
-        saveSummaries();
+        if ((null != mMetadata) && (null != mMetadata.mAccessToken) && !isKilled()) {
+            saveSummaries();
+        }
     }
 
     @Override
