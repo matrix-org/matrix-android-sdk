@@ -1,3 +1,11 @@
+Changes to Matrix Android SDK in 0.8.03 (2017-10-05)
+=======================================================
+
+Improvements: 
+
+* Improve the initial sync management : the data are stored only when the initial sync data are stored.
+
+
 Changes to Matrix Android SDK in 0.8.02 (2017-10-03)
 =======================================================
 
