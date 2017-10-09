@@ -48,7 +48,6 @@ public class MessageRow {
         this.mRoomDataItem = roomDataItem;
     }
 
-
     /**
      * @return the event.
      */

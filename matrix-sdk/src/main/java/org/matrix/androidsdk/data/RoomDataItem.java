@@ -26,6 +26,7 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.HandlerThread;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.provider.MediaStore;
@@ -47,7 +48,9 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * RoomDataItem is a representation of item to send in a room
@@ -57,6 +60,20 @@ public class RoomDataItem implements Parcelable {
     private static final String LOG_TAG = RoomDataItem.class.getSimpleName();
 
     private static final Uri mDummyUri = Uri.parse("http://www.matrixdummy.org");
+
+    static final String MAX_THUMBNAIL_WIDTH_KEY =  "MAX_THUMBNAIL_WIDTH_KEY";
+    static final String MAX_THUMBNAIL_HEIGHT_KEY =  "MAX_THUMBNAIL_HEIGHT_KEY";
+
+    /**
+     * Interface to monitor event sending
+     */
+    public interface RoomDataItemListener {
+        /**
+         * The message sending starts.
+         * @param dataItem the data item
+         */
+        void onSending(RoomDataItem dataItem);
+    }
 
     // the item is defined either from an uri
     private Uri mUri;
@@ -75,13 +92,16 @@ public class RoomDataItem implements Parcelable {
     private String mFileName;
 
     // custom data
-    private transient Object mCustomData;
+    private transient Map<String, Object> mCustomData = new HashMap<>();
 
     // upload media upload listener
     private transient IMXMediaUploadListener mMediaUploadListener;
 
     // event sending callback
     private transient ApiCallback<Void> mSendingCallback;
+
+    //
+    private transient RoomDataItemListener mRoomDataItemListener;
 
     /**
      * Constructor
@@ -129,12 +149,20 @@ public class RoomDataItem implements Parcelable {
         return mEvent;
     }
 
-    public void setCustomData(Object customData) {
-        mCustomData = customData;
+    public void setCustomObject(String key, Object value) {
+        if (null == value) {
+            mCustomData.remove(key);
+        } else {
+            mCustomData.put(key, value);
+        }
     }
 
-    public Object getCustomData() {
-        return mCustomData;
+    public Object getCustomObject(String key) {
+        return mCustomData.get(key);
+    }
+
+    public boolean containsCustomObject(String key) {
+        return mCustomData.containsKey(key);
     }
 
     public void setMediaUploadListener(IMXMediaUploadListener mediaUploadListener) {
@@ -151,6 +179,14 @@ public class RoomDataItem implements Parcelable {
 
     public ApiCallback<Void> getSendingCallback() {
         return mSendingCallback;
+    }
+
+    public void setRoomDataItemListener(RoomDataItemListener roomDataItemListener) {
+        mRoomDataItemListener = roomDataItemListener;
+    }
+
+    public RoomDataItemListener getRoomDataItemListener() {
+        return mRoomDataItemListener;
     }
 
     /**

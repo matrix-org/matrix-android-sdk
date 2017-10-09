@@ -992,6 +992,97 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      *
      * @param messageRow the message row to send.
      */
+    private void add(final RoomDataItem item) {
+        MessageRow messageRow = addMessageRow(item);
+
+        // add sanity check
+        if (null == messageRow) {
+            return;
+        }
+
+        final Event event = messageRow.getEvent();
+        final RoomDataItem dataItem = messageRow.getRoomDataItem();
+
+        if (!event.isUndeliverable()) {
+            ApiCallback<Void> callback = new ApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    getUiHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            onMessageSendingSucceeded(event);
+
+                            // pending resending ?
+                            if ((null != mResendingEventsList) && (mResendingEventsList.size() > 0)) {
+                                resend(mResendingEventsList.get(0));
+                                mResendingEventsList.remove(0);
+                            }
+                        }
+                    });
+                }
+
+                private void commonFailure(final Event event) {
+                    getUiHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Activity activity = getActivity();
+
+                            if (null != activity) {
+                                // display the error message only if the message cannot be resent
+                                if ((null != event.unsentException) && (event.isUndeliverable())) {
+                                    if ((event.unsentException instanceof RetrofitError) && ((RetrofitError) event.unsentException).isNetworkError()) {
+                                        Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + getActivity().getString(R.string.network_error), Toast.LENGTH_LONG).show();
+                                    } else {
+                                        Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                                    }
+                                } else if (null != event.unsentMatrixError) {
+                                    Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.getLocalizedMessage() + ".", Toast.LENGTH_LONG).show();
+                                }
+
+                                mAdapter.notifyDataSetChanged();
+                                onMessageSendingFailed(event);
+                            }
+                        }
+                    });
+                }
+
+                @Override
+                public void onNetworkError(final Exception e) {
+                    commonFailure(event);
+                }
+
+                @Override
+                public void onMatrixError(final MatrixError e) {
+                    // do not display toast if the sending failed because of unknown deviced (e2e issue)
+                    if (event.mSentState == Event.SentState.FAILED_UNKNOWN_DEVICES) {
+                        getUiHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mAdapter.notifyDataSetChanged();
+                                onUnknownDevices(event, (MXCryptoError) e);
+                            }
+                        });
+                    } else {
+                        commonFailure(event);
+                    }
+                }
+
+                @Override
+                public void onUnexpectedError(final Exception e) {
+                    commonFailure(event);
+                }
+            };
+
+            dataItem.setSendingCallback(callback);
+        }
+    }
+
+
+    /**
+     * Send a message row in the dedicated room.
+     *
+     * @param messageRow the message row to send.
+     */
     private void send(final MessageRow messageRow) {
         // add sanity check
         if (null == messageRow) {
@@ -1096,7 +1187,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param format        the format
      */
     public void sendTextMessage(String body, String formattedBody, String format) {
-        send(addMessageRow(mRoom.sendTextMessage(body, formattedBody)));
+        mRoom.sendTextMessage(body, formattedBody, new RoomDataItem.RoomDataItemListener() {
+            @Override
+            public void onSending(RoomDataItem dataItem) {
+                add(dataItem);
+            }
+        });
     }
 
     /**
@@ -1559,160 +1655,33 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param mediaFilename the mediaFilename
      * @param imageMimeType the image mine type
      */
-    public void uploadImageContent(ImageMessage imageMessage, final MessageRow aImageRow, final String thumbnailUrl, final String anImageUrl, final String mediaFilename, final String imageMimeType) {
-        if (null == imageMessage) {
-            imageMessage = new ImageMessage();
-            imageMessage.url = anImageUrl;
-            imageMessage.thumbnailUrl = thumbnailUrl;
-            imageMessage.body = mediaFilename;
-        }
-
-        String mimeType = null;
-        MXEncryptedAttachments.EncryptionResult encryptionResult = null;
-        InputStream imageStream = null;
-        String url = null;
-
-        try {
-            Uri imageUri = Uri.parse(anImageUrl);
-
-            if (null == imageMessage.info) {
-                Room.fillImageInfo(getActivity(), imageMessage, imageUri, imageMimeType);
+    public void uploadImageContent(final RoomDataItem item) {
+        mRoom.sendImage(getActivity(), item, getMaxThumbnailWith(), getMaxThumbnailHeight(), new RoomDataItem.RoomDataItemListener() {
+            public void onSending(RoomDataItem dataItem) {
+                add(dataItem);
             }
+        });
 
-            if ((null != thumbnailUrl) && (null == imageMessage.thumbnailInfo)) {
-                Uri thumbUri = Uri.parse(thumbnailUrl);
-                Room.fillThumbnailInfo(getActivity(), imageMessage, thumbUri, "image/jpeg");
-            }
-
-            String filename;
-
-            if (imageMessage.isThumbnailLocalContent()) {
-                url = thumbnailUrl;
-                mimeType = "image/jpeg";
-                filename = Uri.parse(thumbnailUrl).getPath();
-            } else {
-                url = anImageUrl;
-                mimeType = imageMimeType;
-                filename = imageUri.getPath();
-            }
-
-            imageStream = new FileInputStream(new File(filename));
-
-            if (mRoom.isEncrypted() && mSession.isCryptoEnabled() && (null != imageStream)) {
-                encryptionResult = MXEncryptedAttachments.encryptAttachment(imageStream, mimeType);
-                imageStream.close();
-
-                if (null != encryptionResult) {
-                    imageStream = encryptionResult.mEncryptedStream;
-                    mimeType = "application/octet-stream";
-                } else {
-                    displayEncryptionAlert();
-                    return;
-                }
-            }
-
-            imageMessage.body = imageUri.getLastPathSegment();
-
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "uploadImageContent failed with " + e.getMessage());
-        }
-
-        if (TextUtils.isEmpty(imageMessage.body)) {
-            imageMessage.body = "Image";
-        }
-
-        // remove any displayed MessageRow with this URL
-        // to avoid duplicate
-        final String fMimeType = mimeType;
-        final MessageRow imageRow = (null == aImageRow) ? addMessageRow(imageMessage) : aImageRow;
-        final ImageMessage fImageMessage = imageMessage;
-        imageRow.getEvent().mSentState = Event.SentState.SENDING;
-
-        final MXEncryptedAttachments.EncryptionResult fEncryptionResult = encryptionResult;
-
-        getSession().getMediasCache().uploadContent(imageStream, imageMessage.isThumbnailLocalContent() ? ("thumb" + imageMessage.body) : imageMessage.body, mimeType, url, new MXMediaUploadListener() {
+        item.setMediaUploadListener(new MXMediaUploadListener() {
             @Override
             public void onUploadStart(String uploadId) {
-                getUiHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        onMessageSendingSucceeded(imageRow.getEvent());
-                        mAdapter.notifyDataSetChanged();
-                    }
-                });
+                onMessageSendingSucceeded(item.getEvent());
+                mAdapter.notifyDataSetChanged();
             }
 
             @Override
             public void onUploadCancel(String uploadId) {
-                getUiHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        onMessageSendingFailed(imageRow.getEvent());
-                    }
-                });
+                onMessageSendingFailed(item.getEvent());
             }
 
             @Override
             public void onUploadError(final String uploadId, final int serverResponseCode, final String serverErrorMessage) {
-                getUiHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        commonMediaUploadError(serverResponseCode, serverErrorMessage, imageRow);
-                    }
-                });
+                commonMediaUploadError(serverResponseCode, serverErrorMessage, mAdapter.getMessageRow(item.getEvent().eventId));
             }
 
             @Override
             public void onUploadComplete(final String uploadId, final String contentUri) {
-                getUiHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (fImageMessage.isThumbnailLocalContent()) {
-                            if (null != fEncryptionResult) {
-                                fImageMessage.info.thumbnail_file = fEncryptionResult.mEncryptedFileInfo;
-                                fImageMessage.info.thumbnail_file.url = contentUri;
-                                fImageMessage.thumbnailUrl = null;
-                                getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, -1, -1, "image/jpeg");
-
-                            } else {
-                                fImageMessage.thumbnailUrl = contentUri;
-                                getMXMediasCache().saveFileMediaForUrl(contentUri, thumbnailUrl, mAdapter.getMaxThumbnailWith(), mAdapter.getMaxThumbnailHeight(), "image/jpeg");
-                            }
-
-                            // update the event content with the new message info
-                            imageRow.getEvent().updateContent(JsonUtils.toJson(fImageMessage));
-
-                            // force to save the room events list
-                            // https://github.com/vector-im/riot-android/issues/1390
-                            mSession.getDataHandler().getStore().flushRoomEvents(mRoom.getRoomId());
-
-                            // upload the high res picture
-                            uploadImageContent(fImageMessage, imageRow, contentUri, anImageUrl, mediaFilename, fMimeType);
-                        } else {
-                            // replace the thumbnail and the media contents by the computed one
-                            getMXMediasCache().saveFileMediaForUrl(contentUri, anImageUrl, fImageMessage.getMimeType());
-
-                            if (null != fEncryptionResult) {
-                                fImageMessage.file = fEncryptionResult.mEncryptedFileInfo;
-                                fImageMessage.file.url = contentUri;
-                                fImageMessage.url = null;
-                            } else {
-                                fImageMessage.url = contentUri;
-                            }
-
-                            // update the event content with the new message info
-                            imageRow.getEvent().updateContent(JsonUtils.toJson(fImageMessage));
-
-                            // force to save the room events list
-                            // https://github.com/vector-im/riot-android/issues/1390
-                            mSession.getDataHandler().getStore().flushRoomEvents(mRoom.getRoomId());
-
-                            Log.d(LOG_TAG, "Uploaded to " + contentUri);
-
-                            send(imageRow);
-                        }
-                    }
-                });
+                Log.d(LOG_TAG, "Uploaded to " + contentUri);
             }
         });
     }
@@ -1955,7 +1924,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             // media has not been uploaded
             if (imageMessage.isLocalContent() || imageMessage.isThumbnailLocalContent()) {
-                uploadImageContent(imageMessage, null, imageMessage.thumbnailUrl, imageMessage.url, imageMessage.body, imageMessage.getMimeType());
+                //uploadImageContent(imageMessage, null, imageMessage.thumbnailUrl, imageMessage.url, imageMessage.body, imageMessage.getMimeType());
                 return;
             }
         } else if (message instanceof FileMessage) {

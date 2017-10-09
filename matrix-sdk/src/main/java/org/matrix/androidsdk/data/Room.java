@@ -25,6 +25,7 @@ import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.HandlerThread;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.os.Handler;
@@ -36,13 +37,16 @@ import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.adapters.MessageRow;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCryptoError;
+import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.androidsdk.listeners.MXMediaUploadListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
@@ -71,8 +75,12 @@ import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.util.ImageUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
+import org.matrix.androidsdk.util.MXOsHandler;
+import org.matrix.androidsdk.util.ResourceUtils;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -2781,13 +2789,39 @@ public class Room {
      * @param HTMLFormattedText the HTML formatted text
      * @return the new event
      */
-    public RoomDataItem sendTextMessage(String text, String HTMLFormattedText) {
+    public void sendTextMessage(String text, String HTMLFormattedText, final RoomDataItem.RoomDataItemListener listener) {
         initRoomDataItemsSender();
 
         RoomDataItem dataItem = new RoomDataItem(text, HTMLFormattedText);
         dataItem.setMessageType(Message.MSGTYPE_TEXT);
+        dataItem.setRoomDataItemListener(listener);
         mRoomDataItemsSender.send(dataItem);
+    }
 
-        return dataItem;
+    /**
+     * Send an image message asynchronously
+     * @param dataItem the image message
+     */
+    public void sendImage(final Context context, final RoomDataItem dataItem, final int maxThumbnailWidth, final int maxThumbnailHeight, final RoomDataItem.RoomDataItemListener listener) {
+        initRoomDataItemsSender();
+
+        if (null == dataItem.getUri()) {
+            Log.e(LOG_TAG, "sendImage : null uri");
+            return;
+        }
+
+        final String mimeType = dataItem.getMimeType(context);
+
+        if (!mimeType.startsWith("image/")) {
+            Log.e(LOG_TAG, "sendImage : invalid mime type " + mimeType);
+            return;
+        }
+
+        dataItem.setMessageType(Message.MSGTYPE_IMAGE);
+        dataItem.setCustomObject(RoomDataItem.MAX_THUMBNAIL_WIDTH_KEY, maxThumbnailWidth);
+        dataItem.setCustomObject(RoomDataItem.MAX_THUMBNAIL_HEIGHT_KEY, maxThumbnailHeight);
+        dataItem.setRoomDataItemListener(listener);
+
+        mRoomDataItemsSender.send(dataItem);
     }
 }
