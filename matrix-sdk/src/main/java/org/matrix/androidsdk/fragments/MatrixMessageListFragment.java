@@ -48,6 +48,7 @@ import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomDataItem;
 import org.matrix.androidsdk.data.RoomPreviewData;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
@@ -778,6 +779,41 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     // create a dummy message row for the message
     // It is added to the Adapter
     // return the created Message
+    private MessageRow addMessageRow(RoomDataItem item) {
+        // a message row can only be added if there is a defined room
+        if (null != mRoom) {
+            Event event = item.getEvent();
+            MessageRow newMessageRow = new MessageRow(event, mRoom.getState(), item);
+            mAdapter.add(newMessageRow);
+
+            // Move read marker if necessary
+            MessageRow currentReadMarkerRow = getReadMarkerMessageRow(newMessageRow);
+
+            if (canUpdateReadMarker(newMessageRow, currentReadMarkerRow)) {
+                View childView = mMessageListView.getChildAt(mMessageListView.getChildCount() - 1);
+
+                // Previous message was the last read
+                if ((null != childView) && (childView.getTop() >= 0)) {
+                    // New message is fully visible, keep reference to move the read marker once server echo is received
+                    mFutureReadMarkerEventId = event.eventId;
+                    mAdapter.resetReadMarker();
+                }
+            }
+
+            scrollToBottom();
+
+            Log.d(LOG_TAG, "AddMessage Row : commit");
+            getSession().getDataHandler().getStore().commit();
+            return newMessageRow;
+        } else {
+            return null;
+        }
+    }
+
+
+    // create a dummy message row for the message
+    // It is added to the Adapter
+    // return the created Message
     private MessageRow addMessageRow(Message message) {
         // a message row can only be added if there is a defined room
         if (null != mRoom) {
@@ -963,9 +999,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
 
         final Event event = messageRow.getEvent();
+        final RoomDataItem dataItem = messageRow.getRoomDataItem();
 
         if (!event.isUndeliverable()) {
-            mMatrixMessagesFragment.sendEvent(event, new ApiCallback<Void>() {
+             ApiCallback<Void> callback = new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
                     getUiHandler().post(new Runnable() {
@@ -1032,7 +1069,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 public void onUnexpectedError(final Exception e) {
                     commonFailure(event);
                 }
-            });
+            };
+
+            if (null != dataItem) {
+                dataItem.setSendingCallback(callback);
+            } else {
+                mRoom.sendEvent(event, callback);
+            }
         }
     }
 
@@ -1053,7 +1096,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param format        the format
      */
     public void sendTextMessage(String body, String formattedBody, String format) {
-        sendMessage(Message.MSGTYPE_TEXT, body, formattedBody, format);
+        send(addMessageRow(mRoom.sendTextMessage(body, formattedBody)));
     }
 
     /**

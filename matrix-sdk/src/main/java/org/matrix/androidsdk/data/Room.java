@@ -56,6 +56,7 @@ import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.LocationMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -2757,5 +2758,36 @@ public class Room {
                 callback.onMatrixError(new MXCryptoError(MXCryptoError.MISSING_FIELDS_ERROR_CODE, MXCryptoError.UNABLE_TO_ENCRYPT, MXCryptoError.MISSING_FIELDS_REASON));
             }
         }
+    }
+
+    //==============================================================================================================
+    // Room events helper
+    //==============================================================================================================
+    private RoomDataItemsSender mRoomDataItemsSender;
+
+    /**
+     * Init the mRoomDataItemsSender instance
+     */
+    private void initRoomDataItemsSender() {
+        if (null == mRoomDataItemsSender) {
+            mRoomDataItemsSender = new RoomDataItemsSender(mDataHandler.getStore().getContext(), mDataHandler, this);
+        }
+    }
+
+    /**
+     * Send a text message asynchronously.
+     *
+     * @param text the unformatted text
+     * @param HTMLFormattedText the HTML formatted text
+     * @return the new event
+     */
+    public RoomDataItem sendTextMessage(String text, String HTMLFormattedText) {
+        initRoomDataItemsSender();
+
+        RoomDataItem dataItem = new RoomDataItem(text, HTMLFormattedText);
+        dataItem.setMessageType(Message.MSGTYPE_TEXT);
+        mRoomDataItemsSender.send(dataItem);
+
+        return dataItem;
     }
 }

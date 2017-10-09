@@ -31,6 +31,12 @@ import android.os.Parcelable;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.ResourceUtils;
 
@@ -56,12 +62,26 @@ public class RoomDataItem implements Parcelable {
     private Uri mUri;
     private String mMimeType;
 
+    // the message to send
+    private Event mEvent;
+
+    // Message.MSGTYPE_XX value
+    private String mMessageType;
+
     // or a clipData Item
     private ClipData.Item mClipDataItem;
 
     // the filename
     private String mFileName;
 
+    // custom data
+    private transient Object mCustomData;
+
+    // upload media upload listener
+    private transient IMXMediaUploadListener mMediaUploadListener;
+
+    // event sending callback
+    private transient ApiCallback<Void> mSendingCallback;
 
     /**
      * Constructor
@@ -69,9 +89,18 @@ public class RoomDataItem implements Parcelable {
      * @param clipDataItem the data item
      * @param mimeType     the mime type
      */
-    private RoomDataItem(ClipData.Item clipDataItem, String mimeType) {
+    public RoomDataItem(ClipData.Item clipDataItem, String mimeType) {
         mClipDataItem = clipDataItem;
         mMimeType = mimeType;
+    }
+    /**
+     * Constructor
+     * @param text the text
+     * @param htmlText the HTML text
+     */
+    public RoomDataItem(CharSequence text, String htmlText) {
+        mClipDataItem = new ClipData.Item(text, htmlText);
+        mMimeType = (null == htmlText) ? ClipDescription.MIMETYPE_TEXT_PLAIN : ClipDescription.MIMETYPE_TEXT_HTML;
     }
 
     /**
@@ -81,6 +110,47 @@ public class RoomDataItem implements Parcelable {
      */
     public RoomDataItem(Uri uri) {
         mUri = uri;
+    }
+
+
+    public void setMessageType(String messageType) {
+        mMessageType = messageType;
+    }
+
+    public String getMessageType() {
+        return mMessageType;
+    }
+
+    public void setEvent(Event event) {
+        mEvent = event;
+    }
+
+    public Event getEvent() {
+        return mEvent;
+    }
+
+    public void setCustomData(Object customData) {
+        mCustomData = customData;
+    }
+
+    public Object getCustomData() {
+        return mCustomData;
+    }
+
+    public void setMediaUploadListener(IMXMediaUploadListener mediaUploadListener) {
+        mMediaUploadListener = mediaUploadListener;
+    }
+
+    public IMXMediaUploadListener getMediaUploadListener() {
+        return mMediaUploadListener;
+    }
+
+    public void setSendingCallback(ApiCallback<Void> callback) {
+        mSendingCallback = callback;
+    }
+
+    public ApiCallback<Void> getSendingCallback() {
+        return mSendingCallback;
     }
 
     /**
