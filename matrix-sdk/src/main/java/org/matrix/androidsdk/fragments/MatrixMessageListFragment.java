@@ -1415,12 +1415,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         // send it again
         final Message message = JsonUtils.toMessage(event.getContent());
+        final RoomDataItem item = new RoomDataItem(new Event(message, mSession.getMyUserId(), mRoom.getRoomId()));
+
         if (message instanceof MediaMessage) {
-            sendMediaMessage(new RoomDataItem(event));
+            sendMediaMessage(item);
         } else {
             // default case : text / emote
             // skip the upload progress
-            mRoom.sendMediaMessage(new RoomDataItem(event), -1, -1, new RoomDataItem.RoomDataItemListener() {
+            mRoom.sendMediaMessage(item, -1, -1, new RoomDataItem.RoomDataItemListener() {
                 @Override
                 public void onEventCreated(RoomDataItem dataItem) {
                     add(dataItem);

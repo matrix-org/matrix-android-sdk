@@ -114,7 +114,7 @@ class RoomDataItemsSender {
             @Override
             public void run() {
                 if (null == item.getEvent()) {
-                    Message message = null;
+                    Message message;
                     String mimeType = item.getMimeType(mContext);
 
                     // avoid null case

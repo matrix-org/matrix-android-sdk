@@ -585,6 +585,15 @@ public class Event implements Externalizable {
     }
 
     /**
+     * Check if the current event is unsent.
+     *
+     * @return true if it is unsent.
+     */
+    public boolean isUnsent() {
+        return (mSentState == SentState.UNSENT);
+    }
+
+    /**
      * Check if the current event is sending.
      *
      * @return true if it is sending.
