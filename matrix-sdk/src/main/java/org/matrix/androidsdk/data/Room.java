@@ -2789,35 +2789,38 @@ public class Room {
      * @param HTMLFormattedText the HTML formatted text
      * @return the new event
      */
-    public void sendTextMessage(String text, String HTMLFormattedText, final RoomDataItem.RoomDataItemListener listener) {
+    public void sendTextMessage(String text, String HTMLFormattedText, String format, RoomDataItem.RoomDataItemListener listener) {
+        sendTextMessage(text, HTMLFormattedText, format, Message.MSGTYPE_TEXT, listener);
+    }
+
+    /**
+     * Send a text message asynchronously.
+     *
+     * @param text the unformatted text
+     * @param HTMLFormattedText the HTML formatted text
+     * @return the new event
+     */
+    public void sendEmoteMessage(String text, String HTMLFormattedText, String format, final RoomDataItem.RoomDataItemListener listener) {
+        sendTextMessage(text, HTMLFormattedText, format, Message.MSGTYPE_EMOTE, listener);
+    }
+
+
+    private void sendTextMessage(String text, String HTMLFormattedText, String format, String msgType, final RoomDataItem.RoomDataItemListener listener) {
         initRoomDataItemsSender();
 
-        RoomDataItem dataItem = new RoomDataItem(text, HTMLFormattedText);
-        dataItem.setMessageType(Message.MSGTYPE_TEXT);
+        RoomDataItem dataItem = new RoomDataItem(text, HTMLFormattedText, format);
+        dataItem.setMessageType(msgType);
         dataItem.setRoomDataItemListener(listener);
         mRoomDataItemsSender.send(dataItem);
     }
 
     /**
-     * Send an image message asynchronously
+     * Send an media message asynchronously
      * @param dataItem the image message
      */
-    public void sendImage(final Context context, final RoomDataItem dataItem, final int maxThumbnailWidth, final int maxThumbnailHeight, final RoomDataItem.RoomDataItemListener listener) {
+    public void sendMediaMessage(final RoomDataItem dataItem, final int maxThumbnailWidth, final int maxThumbnailHeight, final RoomDataItem.RoomDataItemListener listener) {
         initRoomDataItemsSender();
 
-        if (null == dataItem.getUri()) {
-            Log.e(LOG_TAG, "sendImage : null uri");
-            return;
-        }
-
-        final String mimeType = dataItem.getMimeType(context);
-
-        if (!mimeType.startsWith("image/")) {
-            Log.e(LOG_TAG, "sendImage : invalid mime type " + mimeType);
-            return;
-        }
-
-        dataItem.setMessageType(Message.MSGTYPE_IMAGE);
         dataItem.setCustomObject(RoomDataItem.MAX_THUMBNAIL_WIDTH_KEY, maxThumbnailWidth);
         dataItem.setCustomObject(RoomDataItem.MAX_THUMBNAIL_HEIGHT_KEY, maxThumbnailHeight);
         dataItem.setRoomDataItemListener(listener);

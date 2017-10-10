@@ -38,6 +38,7 @@ import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.ResourceUtils;
 
@@ -72,7 +73,7 @@ public class RoomDataItem implements Parcelable {
          * The message sending starts.
          * @param dataItem the data item
          */
-        void onSending(RoomDataItem dataItem);
+        void onEventCreated(RoomDataItem dataItem);
     }
 
     // the item is defined either from an uri
@@ -118,9 +119,9 @@ public class RoomDataItem implements Parcelable {
      * @param text the text
      * @param htmlText the HTML text
      */
-    public RoomDataItem(CharSequence text, String htmlText) {
+    public RoomDataItem(CharSequence text, String htmlText, String format) {
         mClipDataItem = new ClipData.Item(text, htmlText);
-        mMimeType = (null == htmlText) ? ClipDescription.MIMETYPE_TEXT_PLAIN : ClipDescription.MIMETYPE_TEXT_HTML;
+        mMimeType = (null == htmlText) ? ClipDescription.MIMETYPE_TEXT_PLAIN : format;
     }
 
     /**
@@ -132,6 +133,15 @@ public class RoomDataItem implements Parcelable {
         mUri = uri;
     }
 
+    public RoomDataItem(Event event) {
+        setEvent(event);
+
+        Message message = JsonUtils.toMessage(event.getContent());
+
+        if (null != message) {
+            setMessageType(message.msgtype);
+        }
+    }
 
     public void setMessageType(String messageType) {
         mMessageType = messageType;

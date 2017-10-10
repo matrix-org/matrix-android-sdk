@@ -1,5 +1,5 @@
 /* 
- * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import org.matrix.androidsdk.rest.model.EncryptedFileInfo;
+
 public class ImageInfo {
     public String mimetype;
     public Integer w;
@@ -29,6 +31,7 @@ public class ImageInfo {
 
     /**
      * Make a deep copy.
+     *
      * @return the copy
      */
     public ImageInfo deepCopy() {
