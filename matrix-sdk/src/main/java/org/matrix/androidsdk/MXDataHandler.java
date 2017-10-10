@@ -224,6 +224,13 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
+     * @return true if the crypto is enabled
+     */
+    public boolean isCryptoEnabled() {
+        return null != mCrypto;
+    }
+
+    /**
      * Provide the list of user Ids to ignore.
      * The result cannot be null.
      * @return the user Ids list

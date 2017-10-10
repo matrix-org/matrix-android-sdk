@@ -29,6 +29,7 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.os.Handler;
+import android.util.Pair;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -2771,14 +2772,14 @@ public class Room {
     //==============================================================================================================
     // Room events helper
     //==============================================================================================================
-    private RoomDataItemsSender mRoomDataItemsSender;
+    private RoomMediaMessagesSender mRoomMediaMessagesSender;
 
     /**
      * Init the mRoomDataItemsSender instance
      */
     private void initRoomDataItemsSender() {
-        if (null == mRoomDataItemsSender) {
-            mRoomDataItemsSender = new RoomDataItemsSender(mDataHandler.getStore().getContext(), mDataHandler, this);
+        if (null == mRoomMediaMessagesSender) {
+            mRoomMediaMessagesSender = new RoomMediaMessagesSender(mDataHandler.getStore().getContext(), mDataHandler, this);
         }
     }
 
@@ -2787,10 +2788,23 @@ public class Room {
      *
      * @param text the unformatted text
      * @param HTMLFormattedText the HTML formatted text
-     * @return the new event
+     * @param format the formatted text format
+     * @param listener the event creation listener
      */
-    public void sendTextMessage(String text, String HTMLFormattedText, String format, RoomDataItem.RoomDataItemListener listener) {
+    public void sendTextMessage(String text, String HTMLFormattedText, String format, RoomMediaMessage.EventCreationListener listener) {
         sendTextMessage(text, HTMLFormattedText, format, Message.MSGTYPE_TEXT, listener);
+    }
+
+    /**
+     * Send an emote message asynchronously.
+     *
+     * @param text the unformatted text
+     * @param HTMLFormattedText the HTML formatted text
+     * @param format the formatted text format
+     * @param listener the event creation listener
+     */
+    public void sendEmoteMessage(String text, String HTMLFormattedText, String format, final RoomMediaMessage.EventCreationListener listener) {
+        sendTextMessage(text, HTMLFormattedText, format, Message.MSGTYPE_EMOTE, listener);
     }
 
     /**
@@ -2798,33 +2812,29 @@ public class Room {
      *
      * @param text the unformatted text
      * @param HTMLFormattedText the HTML formatted text
-     * @return the new event
+     * @param format the formatted text format
+     * @param msgType the message type
+     * @param listener the event creation listener
      */
-    public void sendEmoteMessage(String text, String HTMLFormattedText, String format, final RoomDataItem.RoomDataItemListener listener) {
-        sendTextMessage(text, HTMLFormattedText, format, Message.MSGTYPE_EMOTE, listener);
-    }
-
-
-    private void sendTextMessage(String text, String HTMLFormattedText, String format, String msgType, final RoomDataItem.RoomDataItemListener listener) {
+    private void sendTextMessage(String text, String HTMLFormattedText, String format, String msgType, final RoomMediaMessage.EventCreationListener listener) {
         initRoomDataItemsSender();
 
-        RoomDataItem dataItem = new RoomDataItem(text, HTMLFormattedText, format);
-        dataItem.setMessageType(msgType);
-        dataItem.setRoomDataItemListener(listener);
-        mRoomDataItemsSender.send(dataItem);
+        RoomMediaMessage roomMediaMessage = new RoomMediaMessage(text, HTMLFormattedText, format);
+        roomMediaMessage.setMessageType(msgType);
+        roomMediaMessage.setEventCreationListener(listener);
+        mRoomMediaMessagesSender.send(roomMediaMessage);
     }
 
     /**
      * Send an media message asynchronously
-     * @param dataItem the image message
+     * @param roomMediaMessage the media message
      */
-    public void sendMediaMessage(final RoomDataItem dataItem, final int maxThumbnailWidth, final int maxThumbnailHeight, final RoomDataItem.RoomDataItemListener listener) {
+    public void sendMediaMessage(final RoomMediaMessage roomMediaMessage, final int maxThumbnailWidth, final int maxThumbnailHeight, final RoomMediaMessage.EventCreationListener listener) {
         initRoomDataItemsSender();
 
-        dataItem.setCustomObject(RoomDataItem.MAX_THUMBNAIL_WIDTH_KEY, maxThumbnailWidth);
-        dataItem.setCustomObject(RoomDataItem.MAX_THUMBNAIL_HEIGHT_KEY, maxThumbnailHeight);
-        dataItem.setRoomDataItemListener(listener);
+        roomMediaMessage.setThumnailSize(new Pair<>(maxThumbnailWidth, maxThumbnailHeight));
+        roomMediaMessage.setEventCreationListener(listener);
 
-        mRoomDataItemsSender.send(dataItem);
+        mRoomMediaMessagesSender.send(roomMediaMessage);
     }
 }

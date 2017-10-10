@@ -26,14 +26,12 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.HandlerThread;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
@@ -42,38 +40,42 @@ import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.ResourceUtils;
 
+import android.util.Pair;
 import android.webkit.MimeTypeMap;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * RoomDataItem is a representation of item to send in a room
+ * RoomMediaMessage encapsulates the media information to be sent.
  */
-
-public class RoomDataItem implements Parcelable {
-    private static final String LOG_TAG = RoomDataItem.class.getSimpleName();
+public class RoomMediaMessage implements Parcelable {
+    private static final String LOG_TAG = RoomMediaMessage.class.getSimpleName();
 
     private static final Uri mDummyUri = Uri.parse("http://www.matrixdummy.org");
 
-    static final String MAX_THUMBNAIL_WIDTH_KEY =  "MAX_THUMBNAIL_WIDTH_KEY";
-    static final String MAX_THUMBNAIL_HEIGHT_KEY =  "MAX_THUMBNAIL_HEIGHT_KEY";
-
     /**
-     * Interface to monitor event sending
+     * Interface to monitor event creation.
      */
-    public interface RoomDataItemListener {
+    public interface EventCreationListener {
         /**
-         * The message sending starts.
-         * @param dataItem the data item
+         * The dedicated event has been created and added to the events list.
+         *
+         * @param roomMediaMessage the room media message.
          */
-        void onEventCreated(RoomDataItem dataItem);
+        void onEventCreated(RoomMediaMessage roomMediaMessage);
+
+        /**
+         * The media encryption failed.
+         *
+         * @param roomMediaMessage the room media message.
+         */
+        void onEncryptionFailed(RoomMediaMessage roomMediaMessage);
     }
 
     // the item is defined either from an uri
@@ -83,14 +85,17 @@ public class RoomDataItem implements Parcelable {
     // the message to send
     private Event mEvent;
 
-    // Message.MSGTYPE_XX value
-    private String mMessageType;
-
     // or a clipData Item
     private ClipData.Item mClipDataItem;
 
     // the filename
     private String mFileName;
+
+    // Message.MSGTYPE_XX value
+    private String mMessageType;
+
+    // thumbnail size
+    private Pair<Integer, Integer> mThumbnailSize = new Pair<>(100, 100);
 
     // custom data
     private transient Map<String, Object> mCustomData = new HashMap<>();
@@ -99,108 +104,96 @@ public class RoomDataItem implements Parcelable {
     private transient IMXMediaUploadListener mMediaUploadListener;
 
     // event sending callback
-    private transient ApiCallback<Void> mSendingCallback;
+    private transient ApiCallback<Void> mEventSendingCallback;
 
-    //
-    private transient RoomDataItemListener mRoomDataItemListener;
+    // event creation listener
+    private transient EventCreationListener mEventCreationListener;
 
     /**
-     * Constructor
+     * Constructor from a ClipData.Item.
+     * It might be used by a third party medias selection.
      *
      * @param clipDataItem the data item
      * @param mimeType     the mime type
      */
-    public RoomDataItem(ClipData.Item clipDataItem, String mimeType) {
+    public RoomMediaMessage(ClipData.Item clipDataItem, String mimeType) {
         mClipDataItem = clipDataItem;
         mMimeType = mimeType;
     }
+
     /**
-     * Constructor
-     * @param text the text
+     * Constructor for a text message.
+     *
+     * @param text     the text
      * @param htmlText the HTML text
+     * @param format   the formatted text format
      */
-    public RoomDataItem(CharSequence text, String htmlText, String format) {
+    public RoomMediaMessage(CharSequence text, String htmlText, String format) {
         mClipDataItem = new ClipData.Item(text, htmlText);
         mMimeType = (null == htmlText) ? ClipDescription.MIMETYPE_TEXT_PLAIN : format;
     }
 
     /**
-     * Constructor
+     * Constructor from a media Uri/
      *
      * @param uri the media uri
      */
-    public RoomDataItem(Uri uri) {
-        mUri = uri;
+    public RoomMediaMessage(Uri uri) {
+        this(uri, null);
     }
 
-    public RoomDataItem(Event event) {
+    /**
+     * Constructor from a media Uri/
+     *
+     * @param uri the media uri
+     * @param filename the media file name
+     */
+    public RoomMediaMessage(Uri uri, String filename) {
+        mUri = uri;
+        mFileName = filename;
+    }
+
+    /**
+     * Constructor from an event.
+     *
+     * @param event the event
+     */
+    public RoomMediaMessage(Event event) {
         setEvent(event);
 
         Message message = JsonUtils.toMessage(event.getContent());
-
         if (null != message) {
             setMessageType(message.msgtype);
         }
     }
 
-    public void setMessageType(String messageType) {
-        mMessageType = messageType;
-    }
+    /**
+     * Constructor from a parcel
+     *
+     * @param source the parcel
+     */
+    private RoomMediaMessage(Parcel source) {
+        mUri = unformatNullUri((Uri) source.readParcelable(Uri.class.getClassLoader()));
+        mMimeType = unformatNullString(source.readString());
 
-    public String getMessageType() {
-        return mMessageType;
-    }
+        CharSequence clipDataItemText = unformatNullString(source.readString());
+        String clipDataItemHtml = unformatNullString(source.readString());
+        Uri clipDataItemUri = unformatNullUri((Uri) source.readParcelable(Uri.class.getClassLoader()));
 
-    public void setEvent(Event event) {
-        mEvent = event;
-    }
-
-    public Event getEvent() {
-        return mEvent;
-    }
-
-    public void setCustomObject(String key, Object value) {
-        if (null == value) {
-            mCustomData.remove(key);
-        } else {
-            mCustomData.put(key, value);
+        if (!TextUtils.isEmpty(clipDataItemText) || !TextUtils.isEmpty(clipDataItemHtml) || (null != clipDataItemUri)) {
+            mClipDataItem = new ClipData.Item(clipDataItemText, clipDataItemHtml, null, clipDataItemUri);
         }
+
+        mFileName = unformatNullString(source.readString());
     }
 
-    public Object getCustomObject(String key) {
-        return mCustomData.get(key);
-    }
-
-    public boolean containsCustomObject(String key) {
-        return mCustomData.containsKey(key);
-    }
-
-    public void setMediaUploadListener(IMXMediaUploadListener mediaUploadListener) {
-        mMediaUploadListener = mediaUploadListener;
-    }
-
-    public IMXMediaUploadListener getMediaUploadListener() {
-        return mMediaUploadListener;
-    }
-
-    public void setSendingCallback(ApiCallback<Void> callback) {
-        mSendingCallback = callback;
-    }
-
-    public ApiCallback<Void> getSendingCallback() {
-        return mSendingCallback;
-    }
-
-    public void setRoomDataItemListener(RoomDataItemListener roomDataItemListener) {
-        mRoomDataItemListener = roomDataItemListener;
-    }
-
-    public RoomDataItemListener getRoomDataItemListener() {
-        return mRoomDataItemListener;
-    }
+    //==============================================================================================================
+    // Parcelable
+    //==============================================================================================================
 
     /**
      * Unformat parcelled String
+     *
      * @param string the string to unformat
      * @return the unformatted string
      */
@@ -214,6 +207,7 @@ public class RoomDataItem implements Parcelable {
 
     /**
      * Convert null uri to a dummy one
+     *
      * @param uri the uri to unformat
      * @return the unformatted
      */
@@ -225,24 +219,6 @@ public class RoomDataItem implements Parcelable {
         return uri;
     }
 
-    /**
-     * Constructor from a parcel
-     * @param source the parcel
-     */
-    private RoomDataItem(Parcel source) {
-        mUri = unformatNullUri((Uri)source.readParcelable(Uri.class.getClassLoader()));
-        mMimeType = unformatNullString(source.readString());
-
-        CharSequence clipDataItemText = unformatNullString(source.readString());
-        String clipDataItemHtml =  unformatNullString(source.readString());
-        Uri clipDataItemUri = unformatNullUri((Uri)source.readParcelable(Uri.class.getClassLoader()));
-
-        if (!TextUtils.isEmpty(clipDataItemText) || !TextUtils.isEmpty(clipDataItemHtml) || (null != clipDataItemUri)) {
-            mClipDataItem = new ClipData.Item(clipDataItemText, clipDataItemHtml, null, clipDataItemUri);
-        }
-
-        mFileName = unformatNullString(source.readString());
-    }
 
     @Override
     public int describeContents() {
@@ -251,6 +227,7 @@ public class RoomDataItem implements Parcelable {
 
     /**
      * Convert null string to ""
+     *
      * @param string the string to format
      * @return the formatted string
      */
@@ -272,6 +249,7 @@ public class RoomDataItem implements Parcelable {
 
     /**
      * Convert null uri to a dummy one
+     *
      * @param uri the uri to format
      * @return the formatted
      */
@@ -303,15 +281,114 @@ public class RoomDataItem implements Parcelable {
 
     // Creator
     public static final Parcelable.Creator CREATOR = new Parcelable.Creator() {
-        public RoomDataItem createFromParcel(Parcel in) {
-            return new RoomDataItem(in);
+        public RoomMediaMessage createFromParcel(Parcel in) {
+            return new RoomMediaMessage(in);
         }
 
-        public RoomDataItem[] newArray(int size) {
-            return new RoomDataItem[size];
+        public RoomMediaMessage[] newArray(int size) {
+            return new RoomMediaMessage[size];
         }
     };
 
+    //==============================================================================================================
+    // Setters / getters
+    //==============================================================================================================
+
+    /**
+     * Set the message type.
+     *
+     * @param messageType the message type.
+     */
+    public void setMessageType(String messageType) {
+        mMessageType = messageType;
+    }
+
+    /**
+     * @return the message type.
+     */
+    public String getMessageType() {
+        return mMessageType;
+    }
+
+    /**
+     * Update the inner event.
+     *
+     * @param event the new event.
+     */
+    public void setEvent(Event event) {
+        mEvent = event;
+    }
+
+    /**
+     * @return the inner event objects
+     */
+    public Event getEvent() {
+        return mEvent;
+    }
+
+    /**
+     * Update the thumbnail size.
+     *
+     * @param size the new thumbnail size.
+     */
+    public void setThumnailSize(Pair<Integer, Integer> size) {
+        mThumbnailSize = size;
+    }
+
+    /**
+     * @return the thumbnail size.
+     */
+    public Pair<Integer, Integer> getThumnailSize() {
+        return mThumbnailSize;
+    }
+
+    /**
+     * Update the media upload listener.
+     *
+     * @param mediaUploadListener the media upload listener.
+     */
+    public void setMediaUploadListener(IMXMediaUploadListener mediaUploadListener) {
+        mMediaUploadListener = mediaUploadListener;
+    }
+
+    /**
+     * @return the media upload listener.
+     */
+    public IMXMediaUploadListener getMediaUploadListener() {
+        return mMediaUploadListener;
+    }
+
+    /**
+     * Update the event sending callback.
+     *
+     * @param callback the callback
+     */
+    public void setEventSendingCallback(ApiCallback<Void> callback) {
+        mEventSendingCallback = callback;
+    }
+
+    /**
+     * @return the event sending callback.
+     */
+    public ApiCallback<Void> getSendingCallback() {
+        return mEventSendingCallback;
+    }
+
+    /**
+     * Update the listener
+     *
+     * @param eventCreationListener the new listener
+     */
+    public void setEventCreationListener(EventCreationListener eventCreationListener) {
+        mEventCreationListener = eventCreationListener;
+    }
+
+    /**
+     * @return the listener.
+     */
+    public EventCreationListener getEventCreationListener() {
+        return mEventCreationListener;
+    }
 
     /**
      * Retrieve the raw text contained in this Item.
@@ -392,26 +469,29 @@ public class RoomDataItem implements Parcelable {
 
     /**
      * Gets the MINI_KIND image thumbnail.
+     *
      * @param context the context
      * @return the MINI_KIND thumbnail it it exists
      */
     public Bitmap getMiniKindImageThumbnail(Context context) {
-        return getImageThumbnail(context,  MediaStore.Images.Thumbnails.MINI_KIND);
+        return getImageThumbnail(context, MediaStore.Images.Thumbnails.MINI_KIND);
     }
 
     /**
      * Gets the FULL_SCREEN image thumbnail.
+     *
      * @param context the context
      * @return the FULL_SCREEN thumbnail it it exists
      */
     public Bitmap getFullScreenImageKindThumbnail(Context context) {
-        return getImageThumbnail(context,  MediaStore.Images.Thumbnails.FULL_SCREEN_KIND);
+        return getImageThumbnail(context, MediaStore.Images.Thumbnails.FULL_SCREEN_KIND);
     }
 
     /**
      * Gets the image thumbnail.
+     *
      * @param context the context.
-     * @param kind the thumbnail kind.
+     * @param kind    the thumbnail kind.
      * @return the thumbnail.
      */
     private Bitmap getImageThumbnail(Context context, int kind) {
@@ -518,10 +598,11 @@ public class RoomDataItem implements Parcelable {
     /**
      * Save a file in a dedicated directory.
      * The filename is optional.
-     * @param folder the destinated folder
-     * @param stream teh file stream
+     *
+     * @param folder          the destinated folder
+     * @param stream          teh file stream
      * @param defaultFileName the filename, null to generate a new one
-     * @param mimeType the file mimetype.
+     * @param mimeType        the file mimetype.
      * @return the file uri
      */
     private static Uri saveFile(File folder, InputStream stream, String defaultFileName, String mimeType) {
@@ -574,23 +655,58 @@ public class RoomDataItem implements Parcelable {
         return fileUri;
     }
 
+    //==============================================================================================================
+    // Dispatchers
+    //==============================================================================================================
+
+    /**
+     * Dispatch onEventCreated.
+     */
+    void onEventCreated() {
+        if (null != getEventCreationListener()) {
+            try {
+                getEventCreationListener().onEventCreated(this);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## onEventCreated() failed : " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Dispatch onEncryptionFailed.
+     */
+    void onEncryptionFailed() {
+        if (null != getEventCreationListener()) {
+            try {
+                getEventCreationListener().onEncryptionFailed(this);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## onEncryptionFailed() failed : " + e.getMessage());
+            }
+        }
+    }
+
+    //==============================================================================================================
+    // Retrieve RoomMediaMessages from intents.
+    //==============================================================================================================
 
     /**
      * List the item provided in an intent.
+     *
      * @param intent the intent.
-     * @return the RoomDataItem list
+     * @return the RoomMediaMessages list
      */
-    public static List<RoomDataItem> listRoomDataItems(Intent intent) {
-        return listRoomDataItems(intent, null);
+    public static List<RoomMediaMessage> listRoomMediaMessages(Intent intent) {
+        return listRoomMediaMessages(intent, null);
     }
 
     /**
      * List the item provided in an intent.
+     *
      * @param intent the intent.
      * @return the room list
      */
-    public static List<RoomDataItem> listRoomDataItems(Intent intent, ClassLoader loader) {
-        ArrayList<RoomDataItem> roomDataItems = new ArrayList<>();
+    public static List<RoomMediaMessage> listRoomMediaMessages(Intent intent, ClassLoader loader) {
+        List<RoomMediaMessage> roomMediaMessages = new ArrayList<>();
 
         if (null != intent) {
             ClipData clipData = null;
@@ -606,7 +722,7 @@ public class RoomDataItem implements Parcelable {
                     if (0 != clipData.getDescription().getMimeTypeCount()) {
                         mimetypes = new ArrayList<>();
 
-                        for(int i = 0; i < clipData.getDescription().getMimeTypeCount(); i++) {
+                        for (int i = 0; i < clipData.getDescription().getMimeTypeCount(); i++) {
                             mimetypes.add(clipData.getDescription().getMimeType(i));
                         }
 
@@ -638,10 +754,10 @@ public class RoomDataItem implements Parcelable {
                         }
                     }
 
-                    roomDataItems.add(new RoomDataItem(item, mimetype));
+                    roomMediaMessages.add(new RoomMediaMessage(item, mimetype));
                 }
             } else if (null != intent.getData()) {
-                roomDataItems.add(new RoomDataItem(intent.getData()));
+                roomMediaMessages.add(new RoomMediaMessage(intent.getData()));
             } else {
                 Bundle bundle = intent.getExtras();
 
@@ -649,7 +765,7 @@ public class RoomDataItem implements Parcelable {
 
                     // provide a custom loader
                     if (null != loader) {
-                        bundle.setClassLoader(RoomDataItem.class.getClassLoader());
+                        bundle.setClassLoader(RoomMediaMessage.class.getClassLoader());
                     }
 
                     // list the Uris list
@@ -658,15 +774,15 @@ public class RoomDataItem implements Parcelable {
                             Object streamUri = bundle.get(Intent.EXTRA_STREAM);
 
                             if (streamUri instanceof Uri) {
-                                roomDataItems.add(new RoomDataItem((Uri) streamUri));
+                                roomMediaMessages.add(new RoomMediaMessage((Uri) streamUri));
                             } else if (streamUri instanceof List) {
                                 List<Object> streams = (List<Object>) streamUri;
 
                                 for (Object object : streams) {
                                     if (object instanceof Uri) {
-                                        roomDataItems.add(new RoomDataItem((Uri) object));
-                                    } else if (object instanceof RoomDataItem) {
-                                        roomDataItems.add((RoomDataItem) object);
+                                        roomMediaMessages.add(new RoomMediaMessage((Uri) object));
+                                    } else if (object instanceof RoomMediaMessage) {
+                                        roomMediaMessages.add((RoomMediaMessage) object);
                                     }
                                 }
                             }
@@ -678,6 +794,6 @@ public class RoomDataItem implements Parcelable {
             }
         }
 
-        return roomDataItems;
+        return roomMediaMessages;
     }
 }

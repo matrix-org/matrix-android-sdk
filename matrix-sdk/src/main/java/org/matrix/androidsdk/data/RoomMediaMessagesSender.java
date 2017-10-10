@@ -27,6 +27,7 @@ import android.os.Looper;
 import android.provider.MediaStore;
 import android.text.Html;
 import android.text.TextUtils;
+import android.util.Pair;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
@@ -44,7 +45,6 @@ import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.util.ImageUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
-import org.matrix.androidsdk.util.MXOsHandler;
 import org.matrix.androidsdk.util.ResourceUtils;
 
 import java.io.File;
@@ -54,111 +54,113 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Room helper to send messages in the right order.
+ * Room helper to send media messages in the right order.
  */
-class RoomDataItemsSender {
-    private static final String LOG_TAG = RoomDataItemsSender.class.getSimpleName();
+class RoomMediaMessagesSender {
+    private static final String LOG_TAG = RoomMediaMessagesSender.class.getSimpleName();
 
     // pending events list
-    private final List<RoomDataItem> mPendingItems = new ArrayList<>();
+    private final List<RoomMediaMessage> mPendingRoomMediaMessages = new ArrayList<>();
 
     // linked room
     private final Room mRoom;
 
+    // data handler
     private final MXDataHandler mDataHandler;
 
     // linked context
     private final Context mContext;
 
     // the sending item
-    private RoomDataItem mSendingItem;
+    private RoomMediaMessage mSendingRoomMediaMessage;
 
+    // UI thread
     private static android.os.Handler mUiHandler = null;
 
-    // dedicated threads
-    private static HandlerThread mEventHandlerThread = null;
+    // events creation threads
     private static android.os.Handler mEventHandler = null;
 
-    private static HandlerThread mEncodingHandlerThread = null;
+    // encoding creation threads
     private static android.os.Handler mEncodingHandler = null;
 
     /**
      * Constructor
-     * @param context the context
-     * @param room the room
+     *
+     * @param context     the context
+     * @param dataHandler the dataHanlder
+     * @param room        the room
      */
-    RoomDataItemsSender(Context context, MXDataHandler dataHandler, Room room) {
+    RoomMediaMessagesSender(Context context, MXDataHandler dataHandler, Room room) {
         mRoom = room;
-        mContext = context;
+        mContext = context.getApplicationContext();
         mDataHandler = dataHandler;
 
         if (null == mUiHandler) {
             mUiHandler = new android.os.Handler(Looper.getMainLooper());
 
-            mEventHandlerThread = new HandlerThread("RoomDataItemsSender_event", Thread.MIN_PRIORITY);
-            mEventHandlerThread.start();
-            mEventHandler = new android.os.Handler(mEventHandlerThread.getLooper());
+            HandlerThread eventHandlerThread = new HandlerThread("RoomDataItemsSender_event", Thread.MIN_PRIORITY);
+            eventHandlerThread.start();
+            mEventHandler = new android.os.Handler(eventHandlerThread.getLooper());
 
-            mEncodingHandlerThread = new HandlerThread("RoomDataItemsSender_encoding", Thread.MIN_PRIORITY);
-            mEncodingHandlerThread.start();
-            mEncodingHandler = new android.os.Handler(mEncodingHandlerThread.getLooper());
+            HandlerThread encodingHandlerThread = new HandlerThread("RoomDataItemsSender_encoding", Thread.MIN_PRIORITY);
+            encodingHandlerThread.start();
+            mEncodingHandler = new android.os.Handler(encodingHandlerThread.getLooper());
         }
     }
 
     /**
-     * Send a new item message in the room
-     * @param item the item to send
+     * Send a new media message in the room
+     *
+     * @param roomMediaMessage the message to send
      */
-    void send(final RoomDataItem item) {
+    void send(final RoomMediaMessage roomMediaMessage) {
         mEventHandler.post(new Runnable() {
             @Override
             public void run() {
-                if (null == item.getEvent()) {
+                if (null == roomMediaMessage.getEvent()) {
                     Message message;
-                    String mimeType = item.getMimeType(mContext);
+                    String mimeType = roomMediaMessage.getMimeType(mContext);
 
                     // avoid null case
                     if (null == mimeType) {
                         mimeType = "";
                     }
 
-                    if ((null == item.getUri()) && (TextUtils.equals(ClipDescription.MIMETYPE_TEXT_PLAIN, mimeType) || TextUtils.equals(ClipDescription.MIMETYPE_TEXT_HTML, mimeType))) {
-                        message = buildTextMessage(item);
+                    if ((null == roomMediaMessage.getUri()) && (TextUtils.equals(ClipDescription.MIMETYPE_TEXT_PLAIN, mimeType) || TextUtils.equals(ClipDescription.MIMETYPE_TEXT_HTML, mimeType))) {
+                        message = buildTextMessage(roomMediaMessage);
                     } else if (mimeType.startsWith("image/")) {
-                        message = buildImageMessage(item);
+                        message = buildImageMessage(roomMediaMessage);
                     } else if (mimeType.startsWith("video/")) {
-                        message = buildVideoMessage(item);
+                        message = buildVideoMessage(roomMediaMessage);
                     } else {
-                        message = buildFileMessage(item);
+                        message = buildFileMessage(roomMediaMessage);
                     }
 
                     if (null == message) {
-                        Log.e(LOG_TAG, "## send " + item + " not supported");
+                        Log.e(LOG_TAG, "## send " + roomMediaMessage + " not supported");
                         return;
                     }
 
-                    item.setMessageType(message.msgtype);
+                    roomMediaMessage.setMessageType(message.msgtype);
 
                     Event event = new Event(message, mDataHandler.getUserId(), mRoom.getRoomId());
-                    item.setEvent(event);
+                    roomMediaMessage.setEvent(event);
                 }
 
-                item.getEvent().mSentState = Event.SentState.UNSENT;
-                mRoom.storeOutgoingEvent(item.getEvent());
+                roomMediaMessage.getEvent().mSentState = Event.SentState.UNSENT;
+                mRoom.storeOutgoingEvent(roomMediaMessage.getEvent());
                 mDataHandler.getStore().commit();
 
-                if (null != item.getRoomDataItemListener()) {
-                    mUiHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            item.getRoomDataItemListener().onEventCreated(item);
-                        }
-                    });
-                }
+                mUiHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        roomMediaMessage.onEventCreated();
+                    }
+                });
 
                 synchronized (LOG_TAG) {
-                    if (!mPendingItems.contains(item)) {
-                        mPendingItems.add(item);
+                    if (!mPendingRoomMediaMessages.contains(roomMediaMessage)) {
+                        mPendingRoomMediaMessages.add(roomMediaMessage);
                     }
                 }
 
@@ -173,9 +175,12 @@ class RoomDataItemsSender {
         });
     }
 
+    /**
+     * Skip the sending media item.
+     */
     private void skip() {
         synchronized (LOG_TAG) {
-            mSendingItem = null;
+            mSendingRoomMediaMessage = null;
         }
 
         sendNext();
@@ -185,34 +190,39 @@ class RoomDataItemsSender {
      * Send the next pending item
      */
     private void sendNext() {
-        RoomDataItem dataItem;
+        RoomMediaMessage roomMediaMessage;
 
         synchronized (LOG_TAG) {
             // please wait
-
-            if (null != mSendingItem) {
+            if (null != mSendingRoomMediaMessage) {
                 return;
             }
 
-            if (!mPendingItems.isEmpty()) {
-                mSendingItem = mPendingItems.get(0);
-                mPendingItems.remove(0);
+            if (!mPendingRoomMediaMessages.isEmpty()) {
+                mSendingRoomMediaMessage = mPendingRoomMediaMessages.get(0);
+                mPendingRoomMediaMessages.remove(0);
             } else {
                 // nothing to do
                 return;
             }
 
-            dataItem = mSendingItem;
+            roomMediaMessage = mSendingRoomMediaMessage;
         }
 
-        if (uploadMedias(dataItem)) {
+        // upload the medias first
+        if (uploadMedias(roomMediaMessage)) {
             return;
         }
 
-        //
-        sendEvent(dataItem.getEvent());
+        // send the event
+        sendEvent(roomMediaMessage.getEvent());
     }
 
+    /**
+     * Send the event after uploading the medias
+     *
+     * @param event the event to send
+     */
     private void sendEvent(final Event event) {
         mUiHandler.post(new Runnable() {
             @Override
@@ -223,8 +233,8 @@ class RoomDataItemsSender {
                         ApiCallback<Void> callback;
 
                         synchronized (LOG_TAG) {
-                            callback = mSendingItem.getSendingCallback();
-                            mSendingItem = null;
+                            callback = mSendingRoomMediaMessage.getSendingCallback();
+                            mSendingRoomMediaMessage = null;
                         }
 
                         return callback;
@@ -294,10 +304,19 @@ class RoomDataItemsSender {
         });
     }
 
+    //==============================================================================================================
+    // Messages builder methods.
+    //==============================================================================================================
 
-    private Message buildTextMessage(RoomDataItem item) {
-        CharSequence sequence = item.getText();
-        String htmlText = item.getHtmlText();
+    /**
+     * Build a text message from a RoomMediaMessage.
+     *
+     * @param roomMediaMessage the RoomMediaMessage.
+     * @return the message
+     */
+    private Message buildTextMessage(RoomMediaMessage roomMediaMessage) {
+        CharSequence sequence = roomMediaMessage.getText();
+        String htmlText = roomMediaMessage.getHtmlText();
         String text = null;
 
         if (null == sequence) {
@@ -309,7 +328,7 @@ class RoomDataItemsSender {
         }
 
         Message message = new Message();
-        message.msgtype = (null == item.getMessageType()) ? Message.MSGTYPE_TEXT : item.getMessageType();
+        message.msgtype = (null == roomMediaMessage.getMessageType()) ? Message.MSGTYPE_TEXT : roomMediaMessage.getMessageType();
         message.body = text;
 
         if (!TextUtils.isEmpty(htmlText)) {
@@ -322,6 +341,7 @@ class RoomDataItemsSender {
 
     /**
      * Returns the thumbnail path of shot image.
+     *
      * @param picturePath the image path
      * @return the thumbnail image path.
      */
@@ -335,10 +355,11 @@ class RoomDataItemsSender {
 
     /**
      * Retrieves the image thumbnail saved by the medias picker.
+     *
      * @param sharedDataItem the sharedItem
      * @return the thumbnail if it exits.
      */
-    private Bitmap getMediasPickerThumbnail(RoomDataItem sharedDataItem) {
+    private Bitmap getMediasPickerThumbnail(RoomMediaMessage sharedDataItem) {
         Bitmap thumbnailBitmap = null;
 
         try {
@@ -362,70 +383,79 @@ class RoomDataItemsSender {
         return thumbnailBitmap;
     }
 
-    private Message buildImageMessage(RoomDataItem item) {
-        final MXMediasCache mediasCache = mDataHandler.getMediasCache();
-        String mimeType = item.getMimeType(mContext);
+    /**
+     * Build an image message from a RoomMediaMessage.
+     *
+     * @param roomMediaMessage the roomMediaMessage
+     * @return the image message
+     */
+    private Message buildImageMessage(RoomMediaMessage roomMediaMessage) {
+        try {
+            String mimeType = roomMediaMessage.getMimeType(mContext);
+            final MXMediasCache mediasCache = mDataHandler.getMediasCache();
 
-        ResourceUtils.Resource resource = ResourceUtils.openResource(mContext, item.getUri(), mimeType);
+            ResourceUtils.Resource resource = ResourceUtils.openResource(mContext, roomMediaMessage.getUri(), mimeType);
 
-        // save the file in the filesystem
-        String mediaUrl = mediasCache.saveMedia(resource.mContentStream, null, mimeType);
-        resource.close();
+            // save the file in the filesystem
+            String mediaUrl = mediasCache.saveMedia(resource.mContentStream, null, mimeType);
+            resource.close();
 
-        // compute the thumbnail
-        Bitmap thumbnailBitmap = item.getFullScreenImageKindThumbnail(mContext);
+            // compute the thumbnail
+            Bitmap thumbnailBitmap = roomMediaMessage.getFullScreenImageKindThumbnail(mContext);
 
-        if (null == thumbnailBitmap) {
-            thumbnailBitmap = getMediasPickerThumbnail(item);
+            if (null == thumbnailBitmap) {
+                thumbnailBitmap = getMediasPickerThumbnail(roomMediaMessage);
+            }
+
+            if (null == thumbnailBitmap) {
+                Pair<Integer, Integer> thumbnailSize = roomMediaMessage.getThumnailSize();
+                thumbnailBitmap = ResourceUtils.createThumbnailBitmap(mContext, roomMediaMessage.getUri(), thumbnailSize.first, thumbnailSize.second);
+            }
+
+            if (null == thumbnailBitmap) {
+                thumbnailBitmap = roomMediaMessage.getMiniKindImageThumbnail(mContext);
+            }
+
+            String thumbnailURL = null;
+
+            if (null != thumbnailBitmap) {
+                thumbnailURL = mediasCache.saveBitmap(thumbnailBitmap, null);
+            }
+
+            // get the exif rotation angle
+            final int rotationAngle = ImageUtils.getRotationAngleForBitmap(mContext, Uri.parse(mediaUrl));
+
+            if (0 != rotationAngle) {
+                // always apply the rotation to the image
+                ImageUtils.rotateImage(mContext, thumbnailURL, rotationAngle, mediasCache);
+            }
+
+            ImageMessage imageMessage = new ImageMessage();
+            imageMessage.url = mediaUrl;
+            imageMessage.thumbnailUrl = thumbnailURL;
+            imageMessage.body = roomMediaMessage.getFileName(mContext);
+
+            if (TextUtils.isEmpty(imageMessage.body)) {
+                imageMessage.body = "Image";
+            }
+
+            Uri imageUri = Uri.parse(mediaUrl);
+
+            if (null == imageMessage.info) {
+                Room.fillImageInfo(mContext, imageMessage, imageUri, mimeType);
+            }
+
+            if ((null != thumbnailURL) && (null == imageMessage.thumbnailInfo)) {
+                Uri thumbUri = Uri.parse(thumbnailURL);
+                Room.fillThumbnailInfo(mContext, imageMessage, thumbUri, "image/jpeg");
+            }
+
+            return imageMessage;
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## buildImageMessage() failed " + e.getMessage());
         }
 
-        if ((null == thumbnailBitmap)
-                && item.containsCustomObject(RoomDataItem.MAX_THUMBNAIL_HEIGHT_KEY)
-                && item.containsCustomObject(RoomDataItem.MAX_THUMBNAIL_WIDTH_KEY)) {
-            int maxThumbnailWidth = (int) item.getCustomObject(RoomDataItem.MAX_THUMBNAIL_WIDTH_KEY);
-            int maxThumbnailHeight = (int) item.getCustomObject(RoomDataItem.MAX_THUMBNAIL_HEIGHT_KEY);
-            thumbnailBitmap = ResourceUtils.createThumbnailBitmap(mContext, item.getUri(), maxThumbnailWidth, maxThumbnailHeight);
-        }
-
-        if (null == thumbnailBitmap) {
-            thumbnailBitmap = item.getMiniKindImageThumbnail(mContext);
-        }
-
-        String thumbnailURL = null;
-
-        if (null != thumbnailBitmap) {
-            thumbnailURL = mediasCache.saveBitmap(thumbnailBitmap, null);
-        }
-
-        // get the exif rotation angle
-        final int rotationAngle = ImageUtils.getRotationAngleForBitmap(mContext, Uri.parse(mediaUrl));
-
-        if (0 != rotationAngle) {
-            // always apply the rotation to the image
-            ImageUtils.rotateImage(mContext, thumbnailURL, rotationAngle, mediasCache);
-        }
-
-        ImageMessage imageMessage = new ImageMessage();
-        imageMessage.url = mediaUrl;
-        imageMessage.thumbnailUrl = thumbnailURL;
-        imageMessage.body = item.getFileName(mContext);
-
-        if (TextUtils.isEmpty(imageMessage.body)) {
-            imageMessage.body = "Image";
-        }
-
-        Uri imageUri = Uri.parse(mediaUrl);
-
-        if (null == imageMessage.info) {
-            Room.fillImageInfo(mContext, imageMessage, imageUri, mimeType);
-        }
-
-        if ((null != thumbnailURL) && (null == imageMessage.thumbnailInfo)) {
-            Uri thumbUri = Uri.parse(thumbnailURL);
-            Room.fillThumbnailInfo(mContext, imageMessage, thumbUri, "image/jpeg");
-        }
-
-        return imageMessage;
+        return null;
     }
 
     /**
@@ -441,69 +471,82 @@ class RoomDataItemsSender {
             Bitmap thumb = ThumbnailUtils.createVideoThumbnail(uri.getPath(), MediaStore.Images.Thumbnails.MINI_KIND);
             thumbUrl = mDataHandler.getMediasCache().saveBitmap(thumb, null);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "getVideoThumbailUrl failed with " + e.getMessage());
+            Log.e(LOG_TAG, "## getVideoThumbnailUrl() failed with " + e.getMessage());
         }
 
         return thumbUrl;
     }
 
-    private Message buildVideoMessage(RoomDataItem item) {
-        final MXMediasCache mediasCache = mDataHandler.getMediasCache();
-        String mimeType = item.getMimeType(mContext);
-
-        ResourceUtils.Resource resource = ResourceUtils.openResource(mContext, item.getUri(), mimeType);
-
-        // save the file in the filesystem
-        String mediaUrl = mediasCache.saveMedia(resource.mContentStream, null, mimeType);
-        resource.close();
-
-        String thumbnailUrl = getVideoThumbnailUrl(mediaUrl);
-
-        if (null == thumbnailUrl) {
-            return buildFileMessage(item);
-        }
-
-        VideoMessage videoMessage = new VideoMessage();
-        videoMessage.url = mediaUrl;
-        videoMessage.body = item.getFileName(mContext);
-
+    /**
+     * Build an video message from a RoomMediaMessage.
+     *
+     * @param roomMediaMessage the roomMediaMessage
+     * @return the video message
+     */
+    private Message buildVideoMessage(RoomMediaMessage roomMediaMessage) {
         try {
+            final MXMediasCache mediasCache = mDataHandler.getMediasCache();
+            String mimeType = roomMediaMessage.getMimeType(mContext);
+
+            ResourceUtils.Resource resource = ResourceUtils.openResource(mContext, roomMediaMessage.getUri(), mimeType);
+
+            // save the file in the filesystem
+            String mediaUrl = mediasCache.saveMedia(resource.mContentStream, null, mimeType);
+            resource.close();
+
+            String thumbnailUrl = getVideoThumbnailUrl(mediaUrl);
+
+            if (null == thumbnailUrl) {
+                return buildFileMessage(roomMediaMessage);
+            }
+
+            VideoMessage videoMessage = new VideoMessage();
+            videoMessage.url = mediaUrl;
+            videoMessage.body = roomMediaMessage.getFileName(mContext);
+
             Uri videoUri = Uri.parse(mediaUrl);
             Uri thumbnailUri = (null != thumbnailUrl) ? Uri.parse(thumbnailUrl) : null;
-            Room.fillVideoInfo(mContext, videoMessage, videoUri, item.getMimeType(mContext), thumbnailUri, "image/jpeg");
+            Room.fillVideoInfo(mContext, videoMessage, videoUri, roomMediaMessage.getMimeType(mContext), thumbnailUri, "image/jpeg");
 
             if (null == videoMessage.body) {
                 videoMessage.body = videoUri.getLastPathSegment();
             }
+
+            return videoMessage;
         } catch (Exception e) {
-            Log.e(LOG_TAG, "uploadVideoContent : fillVideoInfo failed " + e.getMessage());
+            Log.e(LOG_TAG, "## buildVideoMessage() failed " + e.getMessage());
         }
 
-        return videoMessage;
+        return null;
     }
 
-    private Message buildFileMessage(RoomDataItem item) {
-        final MXMediasCache mediasCache = mDataHandler.getMediasCache();
-        String mimeType = item.getMimeType(mContext);
-
-        ResourceUtils.Resource resource = ResourceUtils.openResource(mContext, item.getUri(), mimeType);
-
-        // save the file in the filesystem
-        String mediaUrl = mediasCache.saveMedia(resource.mContentStream, null, mimeType);
-        resource.close();
-
-        FileMessage fileMessage;
-
-        if (mimeType.startsWith("audio/")) {
-            fileMessage = new AudioMessage();
-        } else {
-            fileMessage = new FileMessage();
-        }
-
-        fileMessage.url = mediaUrl;
-        fileMessage.body = item.getFileName(mContext);
-
+    /**
+     * Build an file message from a RoomMediaMessage.
+     *
+     * @param roomMediaMessage the roomMediaMessage
+     * @return the video message
+     */
+    private Message buildFileMessage(RoomMediaMessage roomMediaMessage) {
         try {
+            final MXMediasCache mediasCache = mDataHandler.getMediasCache();
+            String mimeType = roomMediaMessage.getMimeType(mContext);
+
+            ResourceUtils.Resource resource = ResourceUtils.openResource(mContext, roomMediaMessage.getUri(), mimeType);
+
+            // save the file in the filesystem
+            String mediaUrl = mediasCache.saveMedia(resource.mContentStream, null, mimeType);
+            resource.close();
+
+            FileMessage fileMessage;
+
+            if (mimeType.startsWith("audio/")) {
+                fileMessage = new AudioMessage();
+            } else {
+                fileMessage = new FileMessage();
+            }
+
+            fileMessage.url = mediaUrl;
+            fileMessage.body = roomMediaMessage.getFileName(mContext);
             Uri uri = Uri.parse(mediaUrl);
             Room.fillFileInfo(mContext, fileMessage, uri, mimeType);
 
@@ -511,23 +554,33 @@ class RoomDataItemsSender {
                 fileMessage.body = uri.getLastPathSegment();
             }
 
+            return fileMessage;
         } catch (Exception e) {
-            Log.e(LOG_TAG, "buildFileMessage failed with " + e.getMessage());
+            Log.e(LOG_TAG, "## buildFileMessage() failed " + e.getMessage());
         }
 
-        return fileMessage;
+        return null;
     }
 
+    //==============================================================================================================
+    // Upload medias management
+    //==============================================================================================================
 
-    private boolean uploadMedias(final RoomDataItem dataItem) {
-        final Event event = dataItem.getEvent();
+    /**
+     * Upload the medias.
+     *
+     * @param roomMediaMessage the roomMediaMessage
+     * @return true if a media is uploaded
+     */
+    private boolean uploadMedias(final RoomMediaMessage roomMediaMessage) {
+        final Event event = roomMediaMessage.getEvent();
         final Message message = JsonUtils.toMessage(event.getContent());
 
         if (!(message instanceof MediaMessage)) {
             return false;
         }
 
-        final MediaMessage mediaMessage = (MediaMessage)message;
+        final MediaMessage mediaMessage = (MediaMessage) message;
         final String url;
         final String fMimeType;
 
@@ -548,20 +601,31 @@ class RoomDataItemsSender {
                 String mimeType = fMimeType;
 
                 final MXEncryptedAttachments.EncryptionResult encryptionResult;
-                InputStream imageStream;
+                InputStream stream;
 
                 try {
-                    imageStream = new FileInputStream(new File(uri.getPath()));
-                    if (mRoom.isEncrypted() /*&& mSession.isCryptoEnabled()*/ && (null != imageStream)) {
-                        encryptionResult = MXEncryptedAttachments.encryptAttachment(imageStream, mimeType);
-                        imageStream.close();
+                    stream = new FileInputStream(new File(uri.getPath()));
+                    if (mRoom.isEncrypted() && mDataHandler.isCryptoEnabled() && (null != stream)) {
+                        encryptionResult = MXEncryptedAttachments.encryptAttachment(stream, mimeType);
+                        stream.close();
 
                         if (null != encryptionResult) {
-                            imageStream = encryptionResult.mEncryptedStream;
+                            stream = encryptionResult.mEncryptedStream;
                             mimeType = "application/octet-stream";
                         } else {
                             skip();
-                            //displayEncryptionAlert();
+
+                            mUiHandler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    roomMediaMessage.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
+                                    mRoom.storeOutgoingEvent(roomMediaMessage.getEvent());
+                                    mDataHandler.getStore().commit();
+
+                                    roomMediaMessage.onEncryptionFailed();
+                                }
+                            });
+
                             return;
                         }
                     } else {
@@ -577,14 +641,14 @@ class RoomDataItemsSender {
 
                 final MXMediasCache mediasCache = mDataHandler.getMediasCache();
 
-                mediasCache.uploadContent(imageStream, mediaMessage.isThumbnailLocalContent() ? ("thumb" + message.body) : message.body, mimeType, url, new MXMediaUploadListener() {
+                mediasCache.uploadContent(stream, mediaMessage.isThumbnailLocalContent() ? ("thumb" + message.body) : message.body, mimeType, url, new MXMediaUploadListener() {
                     @Override
                     public void onUploadStart(final String uploadId) {
                         mUiHandler.post(new Runnable() {
                             @Override
                             public void run() {
-                                if (null != dataItem.getMediaUploadListener()) {
-                                    dataItem.getMediaUploadListener().onUploadStart(uploadId);
+                                if (null != roomMediaMessage.getMediaUploadListener()) {
+                                    roomMediaMessage.getMediaUploadListener().onUploadStart(uploadId);
                                 }
                             }
                         });
@@ -595,16 +659,11 @@ class RoomDataItemsSender {
                         mUiHandler.post(new Runnable() {
                             @Override
                             public void run() {
-                                if (null != dataItem.getMediaUploadListener()) {
-                                    dataItem.getMediaUploadListener().onUploadCancel(uploadId);
+                                if (null != roomMediaMessage.getMediaUploadListener()) {
+                                    roomMediaMessage.getMediaUploadListener().onUploadCancel(uploadId);
                                 }
 
-                                synchronized (LOG_TAG) {
-                                    synchronized (LOG_TAG) {
-                                        mSendingItem = null;
-                                    }
-                                    sendNext();
-                                }
+                                skip();
                             }
                         });
                     }
@@ -614,16 +673,11 @@ class RoomDataItemsSender {
                         mUiHandler.post(new Runnable() {
                             @Override
                             public void run() {
-                                if (null != dataItem.getMediaUploadListener()) {
-                                    dataItem.getMediaUploadListener().onUploadError(uploadId, serverResponseCode, serverErrorMessage);
+                                if (null != roomMediaMessage.getMediaUploadListener()) {
+                                    roomMediaMessage.getMediaUploadListener().onUploadError(uploadId, serverResponseCode, serverErrorMessage);
                                 }
 
-                                synchronized (LOG_TAG) {
-                                    synchronized (LOG_TAG) {
-                                        mSendingItem = null;
-                                    }
-                                    sendNext();
-                                }
+                                skip();
                             }
                         });
                     }
@@ -639,10 +693,8 @@ class RoomDataItemsSender {
                                     if (null != encryptionResult) {
                                         mediasCache.saveFileMediaForUrl(contentUri, url, -1, -1, "image/jpeg");
                                     } else {
-                                        int maxThumbnailWidth = (int) dataItem.getCustomObject(RoomDataItem.MAX_THUMBNAIL_WIDTH_KEY);
-                                        int maxThumbnailHeight = (int) dataItem.getCustomObject(RoomDataItem.MAX_THUMBNAIL_HEIGHT_KEY);
-
-                                        mediasCache.saveFileMediaForUrl(contentUri, url, maxThumbnailWidth, maxThumbnailHeight, "image/jpeg");
+                                        Pair<Integer, Integer> thumbnailSize = roomMediaMessage.getThumnailSize();
+                                        mediasCache.saveFileMediaForUrl(contentUri, url, thumbnailSize.first, thumbnailSize.second, "image/jpeg");
                                     }
 
                                     // update the event content with the new message info
@@ -652,8 +704,8 @@ class RoomDataItemsSender {
                                     // https://github.com/vector-im/riot-android/issues/1390
                                     mDataHandler.getStore().flushRoomEvents(mRoom.getRoomId());
 
-                                    // upload the high res picture
-                                    uploadMedias(dataItem);
+                                    // upload the media
+                                    uploadMedias(roomMediaMessage);
                                 } else {
                                     // replace the thumbnail and the media contents by the computed one
                                     mediasCache.saveFileMediaForUrl(contentUri, url, mediaMessage.getMimeType());
@@ -672,8 +724,8 @@ class RoomDataItemsSender {
                                     sendEvent(event);
                                 }
 
-                                if (null != dataItem.getMediaUploadListener()) {
-                                    dataItem.getMediaUploadListener().onUploadComplete(uploadId, contentUri);
+                                if (null != roomMediaMessage.getMediaUploadListener()) {
+                                    roomMediaMessage.getMediaUploadListener().onUploadComplete(uploadId, contentUri);
                                 }
 
                             }
