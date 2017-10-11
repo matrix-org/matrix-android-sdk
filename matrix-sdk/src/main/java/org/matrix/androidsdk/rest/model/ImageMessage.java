@@ -1,5 +1,5 @@
 /* 
- * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,15 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.matrix.androidsdk.rest.model;
 
 import android.media.ExifInterface;
-import android.net.Uri;
-import org.matrix.androidsdk.util.Log;
 
-import java.io.File;
+import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 
-public class ImageMessage extends Message {
+public class ImageMessage extends MediaMessage {
     private static final String LOG_TAG = "ImageMessage";
 
     public ImageInfo info;
@@ -39,6 +38,7 @@ public class ImageMessage extends Message {
 
     /**
      * Make a deep copy of this ImageMessage.
+     *
      * @return the copy
      */
     public ImageMessage deepCopy() {
@@ -63,9 +63,7 @@ public class ImageMessage extends Message {
         return copy;
     }
 
-    /**
-     * @return the media URL
-     */
+    @Override
     public String getUrl() {
         if (null != url) {
             return url;
@@ -76,9 +74,18 @@ public class ImageMessage extends Message {
         }
     }
 
-    /**
-     * @return the thumbnail url
-     */
+    @Override
+    public void setUrl(MXEncryptedAttachments.EncryptionResult encryptionResult, String contentUrl) {
+        if (null != encryptionResult) {
+            file = encryptionResult.mEncryptedFileInfo;
+            file.url = contentUrl;
+            url = null;
+        } else {
+            url = contentUrl;
+        }
+    }
+
+    @Override
     public String getThumbnailUrl() {
         if (null != thumbnailUrl) {
             return thumbnailUrl;
@@ -89,23 +96,18 @@ public class ImageMessage extends Message {
         }
     }
 
-    /**
-     * @return true if the thumbnail is a file url
-     */
-    public boolean isThumbnailLocalContent() {
-        return (null != info) && (null != thumbnailUrl) && (thumbnailUrl.startsWith("file://"));
+    @Override
+    public void setThumbnailUrl(MXEncryptedAttachments.EncryptionResult encryptionResult, String url) {
+        if (null != encryptionResult) {
+            info.thumbnail_file = encryptionResult.mEncryptedFileInfo;
+            info.thumbnail_file.url = url;
+            thumbnailUrl = null;
+        } else {
+            thumbnailUrl = url;
+        }
     }
 
-    /**
-     * @return true if the media url is a file one.
-     */
-    public boolean isLocalContent() {
-        return (null != url) && (url.startsWith("file://"));
-    }
-
-    /**
-     * @return The image mimetype. null is not defined.
-     */
+    @Override
     public String getMimeType() {
         if (null != file) {
             return file.mimetype;
@@ -135,37 +137,6 @@ public class ImageMessage extends Message {
             return info.orientation;
         } else {
             return ExifInterface.ORIENTATION_UNDEFINED;
-        }
-    }
-
-    /**
-     * Checks if the media Urls are still valid.
-     * The media Urls could define a file path.
-     * They could have been deleted after a media cache cleaning.
-     */
-    public void checkMediaUrls() {
-        if ((thumbnailUrl != null) && thumbnailUrl.startsWith("file://")) {
-            try {
-                File file = new File(Uri.parse(thumbnailUrl).getPath());
-
-                if (!file.exists()) {
-                    thumbnailUrl = null;
-                }
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## checkMediaUrls() failed " + e.getMessage());
-            }
-        }
-
-        if ((url != null) && url.startsWith("file://")) {
-            try {
-                File file = new File(Uri.parse(url).getPath());
-
-                if (!file.exists()) {
-                    url = null;
-                }
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## checkMediaUrls() failed " + e.getMessage());
-            }
         }
     }
 }

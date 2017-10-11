@@ -620,18 +620,6 @@ public class MatrixMessagesFragment extends Fragment {
     }
 
     /**
-     * Send an event in a room
-     *
-     * @param event    the event
-     * @param callback the callback
-     */
-    public void sendEvent(Event event, ApiCallback<Void> callback) {
-        if (null != mRoom) {
-            mRoom.sendEvent(event, callback);
-        }
-    }
-
-    /**
      * Redact an event.
      *
      * @param eventId  the event Id

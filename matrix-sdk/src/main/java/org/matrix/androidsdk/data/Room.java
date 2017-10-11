@@ -25,9 +25,11 @@ import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.HandlerThread;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.os.Handler;
+import android.util.Pair;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -36,13 +38,16 @@ import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.adapters.MessageRow;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCryptoError;
+import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.androidsdk.listeners.MXMediaUploadListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
@@ -56,6 +61,7 @@ import org.matrix.androidsdk.rest.model.ImageInfo;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.LocationMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -70,8 +76,12 @@ import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.util.ImageUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
+import org.matrix.androidsdk.util.MXOsHandler;
+import org.matrix.androidsdk.util.ResourceUtils;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -2756,6 +2766,137 @@ public class Room {
             } else {
                 callback.onMatrixError(new MXCryptoError(MXCryptoError.MISSING_FIELDS_ERROR_CODE, MXCryptoError.UNABLE_TO_ENCRYPT, MXCryptoError.MISSING_FIELDS_REASON));
             }
+        }
+    }
+
+    //==============================================================================================================
+    // Room events helper
+    //==============================================================================================================
+
+    private RoomMediaMessagesSender mRoomMediaMessagesSender;
+
+    /**
+     * Init the mRoomDataItemsSender instance
+     */
+    private void initRoomDataItemsSender() {
+        if (null == mRoomMediaMessagesSender) {
+            mRoomMediaMessagesSender = new RoomMediaMessagesSender(mDataHandler.getStore().getContext(), mDataHandler, this);
+        }
+    }
+
+    /**
+     * Send a text message asynchronously.
+     *
+     * @param text the unformatted text
+     * @param HTMLFormattedText the HTML formatted text
+     * @param format the formatted text format
+     * @param listener the event creation listener
+     */
+    public void sendTextMessage(String text, String HTMLFormattedText, String format, RoomMediaMessage.EventCreationListener listener) {
+        sendTextMessage(text, HTMLFormattedText, format, Message.MSGTYPE_TEXT, listener);
+    }
+
+    /**
+     * Send an emote message asynchronously.
+     *
+     * @param text the unformatted text
+     * @param HTMLFormattedText the HTML formatted text
+     * @param format the formatted text format
+     * @param listener the event creation listener
+     */
+    public void sendEmoteMessage(String text, String HTMLFormattedText, String format, final RoomMediaMessage.EventCreationListener listener) {
+        sendTextMessage(text, HTMLFormattedText, format, Message.MSGTYPE_EMOTE, listener);
+    }
+
+    /**
+     * Send a text message asynchronously.
+     *
+     * @param text the unformatted text
+     * @param HTMLFormattedText the HTML formatted text
+     * @param format the formatted text format
+     * @param msgType the message type
+     * @param listener the event creation listener
+     */
+    private void sendTextMessage(String text, String HTMLFormattedText, String format, String msgType, final RoomMediaMessage.EventCreationListener listener) {
+        initRoomDataItemsSender();
+
+        RoomMediaMessage roomMediaMessage = new RoomMediaMessage(text, HTMLFormattedText, format);
+        roomMediaMessage.setMessageType(msgType);
+        roomMediaMessage.setEventCreationListener(listener);
+        mRoomMediaMessagesSender.send(roomMediaMessage);
+    }
+
+    /**
+     * Send an media message asynchronously
+     * @param roomMediaMessage the media message
+     */
+    public void sendMediaMessage(final RoomMediaMessage roomMediaMessage, final int maxThumbnailWidth, final int maxThumbnailHeight, final RoomMediaMessage.EventCreationListener listener) {
+        initRoomDataItemsSender();
+
+        roomMediaMessage.setThumnailSize(new Pair<>(maxThumbnailWidth, maxThumbnailHeight));
+        roomMediaMessage.setEventCreationListener(listener);
+
+        mRoomMediaMessagesSender.send(roomMediaMessage);
+    }
+
+    //==============================================================================================================
+    // Unsent events managemenet
+    //==============================================================================================================
+
+    /**
+     * Provides the unsent messages list.
+     *
+     * @return the unsent events list
+     */
+    public List<Event> getUnsentEvents() {
+        List<Event> unsent = new ArrayList<>();
+
+        List<Event> undeliverableEvents = mDataHandler.getStore().getUndeliverableEvents(getRoomId());
+        List<Event> unknownDeviceEvents = mDataHandler.getStore().getUnknownDeviceEvents(getRoomId());
+
+        if (null != undeliverableEvents) {
+            unsent.addAll(undeliverableEvents);
+        }
+
+        if (null != unknownDeviceEvents) {
+            unsent.addAll(unknownDeviceEvents);
+        }
+
+        return unsent;
+    }
+
+    /**
+     * Delete an events list.
+     * @param events the events list
+     */
+    public void deleteEvents(List<Event> events) {
+        if ((null != events) && events.size() > 0) {
+            IMXStore store = mDataHandler.getStore();
+
+            // reset the timestamp
+            for (Event event : events) {
+                store.deleteEvent(event);
+            }
+
+            // update the summary
+            Event latestEvent = store.getLatestEvent(getRoomId());
+
+            // if there is an oldest event, use it to set a summary
+            if (latestEvent != null) {
+                if (RoomSummary.isSupportedEvent(latestEvent)) {
+                    RoomSummary summary = store.getSummary(getRoomId());
+
+                    if (null != summary) {
+                        summary.setLatestReceivedEvent(latestEvent, getState());
+                    } else {
+                        summary = new RoomSummary(null, latestEvent, getState(), mDataHandler.getUserId());
+                    }
+
+                    store.storeSummary(summary);
+                }
+            }
+
+            store.commit();
         }
     }
 }
