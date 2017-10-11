@@ -15,7 +15,6 @@
  */
 package org.matrix.androidsdk.adapters;
 
-import org.matrix.androidsdk.data.RoomMediaMessage;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 
@@ -26,8 +25,6 @@ public class MessageRow {
     private Event mEvent;
     // the room state
     private final RoomState mRoomState;
-    // the room data item i.e the message is sending
-    private final RoomMediaMessage mRoomMediaMessage;
 
     /**
      * Constructor
@@ -36,20 +33,10 @@ public class MessageRow {
      * @param roomState the room state
      */
     public MessageRow(Event event, RoomState roomState) {
-        this(event, roomState, null);
-    }
-
-    /**
-     * Constructor
-     *
-     * @param event     the event.
-     * @param roomState the room state
-     */
-    public MessageRow(Event event, RoomState roomState, RoomMediaMessage roomMediaMessage) {
         this.mEvent = event;
         this.mRoomState = roomState;
-        this.mRoomMediaMessage = roomMediaMessage;
     }
+
 
     /**
      * @return the event.
@@ -72,12 +59,5 @@ public class MessageRow {
      */
     public RoomState getRoomState() {
         return mRoomState;
-    }
-
-    /**
-     * @return the room media message.
-     */
-    public RoomMediaMessage getRoomMediaMessage() {
-        return mRoomMediaMessage;
     }
 }

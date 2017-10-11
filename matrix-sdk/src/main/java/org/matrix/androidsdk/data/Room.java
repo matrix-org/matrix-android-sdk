@@ -2772,6 +2772,7 @@ public class Room {
     //==============================================================================================================
     // Room events helper
     //==============================================================================================================
+
     private RoomMediaMessagesSender mRoomMediaMessagesSender;
 
     /**
@@ -2836,5 +2837,66 @@ public class Room {
         roomMediaMessage.setEventCreationListener(listener);
 
         mRoomMediaMessagesSender.send(roomMediaMessage);
+    }
+
+    //==============================================================================================================
+    // Unsent events managemenet
+    //==============================================================================================================
+
+    /**
+     * Provides the unsent messages list.
+     *
+     * @return the unsent events list
+     */
+    public List<Event> getUnsentEvents() {
+        List<Event> unsent = new ArrayList<>();
+
+        List<Event> undeliverableEvents = mDataHandler.getStore().getUndeliverableEvents(getRoomId());
+        List<Event> unknownDeviceEvents = mDataHandler.getStore().getUnknownDeviceEvents(getRoomId());
+
+        if (null != undeliverableEvents) {
+            unsent.addAll(undeliverableEvents);
+        }
+
+        if (null != unknownDeviceEvents) {
+            unsent.addAll(unknownDeviceEvents);
+        }
+
+        return unsent;
+    }
+
+    /**
+     * Delete an events list.
+     * @param events the events list
+     */
+    public void deleteEvents(List<Event> events) {
+        if ((null != events) && events.size() > 0) {
+            IMXStore store = mDataHandler.getStore();
+
+            // reset the timestamp
+            for (Event event : events) {
+                store.deleteEvent(event);
+            }
+
+            // update the summary
+            Event latestEvent = store.getLatestEvent(getRoomId());
+
+            // if there is an oldest event, use it to set a summary
+            if (latestEvent != null) {
+                if (RoomSummary.isSupportedEvent(latestEvent)) {
+                    RoomSummary summary = store.getSummary(getRoomId());
+
+                    if (null != summary) {
+                        summary.setLatestReceivedEvent(latestEvent, getState());
+                    } else {
+                        summary = new RoomSummary(null, latestEvent, getState(), mDataHandler.getUserId());
+                    }
+
+                    store.storeSummary(summary);
+                }
+            }
+
+            store.commit();
+        }
     }
 }

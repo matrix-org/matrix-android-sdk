@@ -657,8 +657,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     /**
      * @return the max thumbnail width
      */
-    public int getMaxThumbnailWith() {
-        return mAdapter.getMaxThumbnailWith();
+    public int getMaxThumbnailWidth() {
+        return mAdapter.getMaxThumbnailWidth();
     }
 
     /**
@@ -770,7 +770,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         // a message row can only be added if there is a defined room
         if (null != mRoom) {
             Event event = roomMediaMessage.getEvent();
-            MessageRow newMessageRow = new MessageRow(event, mRoom.getState(), roomMediaMessage);
+            MessageRow newMessageRow = new MessageRow(event, mRoom.getState());
             mAdapter.add(newMessageRow);
 
             // Move read marker if necessary
@@ -930,8 +930,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     /**
      * Add a media item in the room.
      */
-    private void add(final RoomMediaMessage item) {
-        MessageRow messageRow = addMessageRow(item);
+    private void add(final RoomMediaMessage roomMediaMessage) {
+        MessageRow messageRow = addMessageRow(roomMediaMessage);
 
         // add sanity check
         if (null == messageRow) {
@@ -939,7 +939,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
 
         final Event event = messageRow.getEvent();
-        final RoomMediaMessage roomMediaMessage = messageRow.getRoomMediaMessage();
 
         if (!event.isUndeliverable()) {
             ApiCallback<Void> callback = new ApiCallback<Void>() {
@@ -1070,6 +1069,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private void commonMediaUploadError(int serverResponseCode, final String serverErrorMessage, final MessageRow messageRow) {
         // warn the user that the media upload fails
         if (serverResponseCode == 500) {
+            messageRow.getEvent().mSentState = Event.SentState.WAITING_RETRY;
+
             Timer relaunchTimer = new Timer();
             mPendingRelaunchTimersByEventId.put(messageRow.getEvent().eventId, relaunchTimer);
             relaunchTimer.schedule(new TimerTask() {
@@ -1108,7 +1109,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         if (null != getActivity()) {
             new AlertDialog.Builder(getActivity())
                     .setMessage("Fail to encrypt?")
-                    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                    .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int which) {
                             // continue with delete
                         }
@@ -1124,7 +1125,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param roomMediaMessage the media message to send
      */
     public void sendMediaMessage(final RoomMediaMessage roomMediaMessage) {
-        mRoom.sendMediaMessage(roomMediaMessage, getMaxThumbnailWith(), getMaxThumbnailHeight(), new RoomMediaMessage.EventCreationListener() {
+        mRoom.sendMediaMessage(roomMediaMessage, getMaxThumbnailWidth(), getMaxThumbnailHeight(), new RoomMediaMessage.EventCreationListener() {
             public void onEventCreated(RoomMediaMessage roomMediaMessage) {
                 add(roomMediaMessage);
             }
@@ -1164,64 +1165,20 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     // Unsent messages management
     //==============================================================================================================
 
-    /**
-     * Provides the unsent messages list.
-     *
-     * @return the unsent messages list
-     */
-    private List<Event> getUnsentMessages() {
-        List<Event> unsent = new ArrayList<>();
-
-        List<Event> undeliverableEvents = mSession.getDataHandler().getStore().getUndeliverableEvents(mRoom.getRoomId());
-        List<Event> unknownDeviceEvents = mSession.getDataHandler().getStore().getUnknownDeviceEvents(mRoom.getRoomId());
-
-        if (null != undeliverableEvents) {
-            unsent.addAll(undeliverableEvents);
-        }
-
-        if (null != unknownDeviceEvents) {
-            unsent.addAll(unknownDeviceEvents);
-        }
-
-        return unsent;
-    }
 
     /**
      * Delete the unsent (undeliverable messages).
      */
-    public void deleteUnsentMessages() {
-        List<Event> unsent = getUnsentMessages();
+    public void deleteUnsentEvents() {
+        List<Event> unsent = mRoom.getUnsentEvents();
 
-        if (unsent.size() > 0) {
-            IMXStore store = mSession.getDataHandler().getStore();
+        mRoom.deleteEvents(unsent);
 
-            // reset the timestamp
-            for (Event event : unsent) {
-                mAdapter.removeEventById(event.eventId);
-                store.deleteEvent(event);
-            }
-
-            // update the summary
-            Event latestEvent = store.getLatestEvent(mRoom.getRoomId());
-
-            // if there is an oldest event, use it to set a summary
-            if (latestEvent != null) {
-                if (RoomSummary.isSupportedEvent(latestEvent)) {
-                    RoomSummary summary = store.getSummary(mRoom.getRoomId());
-
-                    if (null != summary) {
-                        summary.setLatestReceivedEvent(latestEvent, mRoom.getState());
-                    } else {
-                        summary = new RoomSummary(null, latestEvent, mRoom.getState(), mSession.getMyUserId());
-                    }
-
-                    store.storeSummary(summary);
-                }
-            }
-
-            store.commit();
-            mAdapter.notifyDataSetChanged();
+        for(Event event : unsent) {
+            mAdapter.removeEventById(event.eventId);
         }
+
+        mAdapter.notifyDataSetChanged();
     }
 
     /**
@@ -1242,9 +1199,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             return;
         }
 
-        List<Event> unsentMessages = getUnsentMessages();
+        List<Event> unsent = mRoom.getUnsentEvents();
 
-        for(Event unsentMessage : unsentMessages) {
+        for(Event unsentMessage : unsent) {
             resend(unsentMessage);
         }
     }
@@ -1291,7 +1248,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         } else {
             // default case : text / emote
             // skip the upload progress
-            mRoom.sendMediaMessage(roomMediaMessage, -1, -1, new RoomMediaMessage.EventCreationListener() {
+            mRoom.sendMediaMessage(roomMediaMessage, getMaxThumbnailWidth(), getMaxThumbnailHeight(), new RoomMediaMessage.EventCreationListener() {
                 @Override
                 public void onEventCreated(RoomMediaMessage roomMediaMessage) {
                     add(roomMediaMessage);

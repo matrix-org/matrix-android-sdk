@@ -170,7 +170,7 @@ public abstract class AbstractMessagesAdapter extends ArrayAdapter<MessageRow> {
     /**
      * @return the max thumbnail width
      */
-    public abstract int getMaxThumbnailWith();
+    public abstract int getMaxThumbnailWidth();
 
     /**
      * @return the max thumbnail height

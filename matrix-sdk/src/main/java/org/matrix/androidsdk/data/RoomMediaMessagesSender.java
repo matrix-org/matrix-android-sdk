@@ -384,6 +384,27 @@ class RoomMediaMessagesSender {
     }
 
     /**
+     * Retrieve the media Url.
+     * @param roomMediaMessage the room media message
+     * @return the media URL
+     */
+    private String getMediaUrl(RoomMediaMessage roomMediaMessage) {
+        String mediaUrl = roomMediaMessage.getUri().toString();
+
+        if (!mediaUrl.startsWith("file:")) {
+            // save the content:// file in to the medias cache
+            String mimeType = roomMediaMessage.getMimeType(mContext);
+            ResourceUtils.Resource resource = ResourceUtils.openResource(mContext, roomMediaMessage.getUri(), mimeType);
+
+            // save the file in the filesystem
+            mediaUrl = mDataHandler.getMediasCache().saveMedia(resource.mContentStream, null, mimeType);
+            resource.close();
+        }
+
+        return mediaUrl;
+    }
+
+    /**
      * Build an image message from a RoomMediaMessage.
      *
      * @param roomMediaMessage the roomMediaMessage
@@ -394,11 +415,7 @@ class RoomMediaMessagesSender {
             String mimeType = roomMediaMessage.getMimeType(mContext);
             final MXMediasCache mediasCache = mDataHandler.getMediasCache();
 
-            ResourceUtils.Resource resource = ResourceUtils.openResource(mContext, roomMediaMessage.getUri(), mimeType);
-
-            // save the file in the filesystem
-            String mediaUrl = mediasCache.saveMedia(resource.mContentStream, null, mimeType);
-            resource.close();
+            String mediaUrl = getMediaUrl(roomMediaMessage);
 
             // compute the thumbnail
             Bitmap thumbnailBitmap = roomMediaMessage.getFullScreenImageKindThumbnail(mContext);
@@ -486,14 +503,8 @@ class RoomMediaMessagesSender {
     private Message buildVideoMessage(RoomMediaMessage roomMediaMessage) {
         try {
             final MXMediasCache mediasCache = mDataHandler.getMediasCache();
-            String mimeType = roomMediaMessage.getMimeType(mContext);
 
-            ResourceUtils.Resource resource = ResourceUtils.openResource(mContext, roomMediaMessage.getUri(), mimeType);
-
-            // save the file in the filesystem
-            String mediaUrl = mediasCache.saveMedia(resource.mContentStream, null, mimeType);
-            resource.close();
-
+            String mediaUrl = getMediaUrl(roomMediaMessage);
             String thumbnailUrl = getVideoThumbnailUrl(mediaUrl);
 
             if (null == thumbnailUrl) {
@@ -528,15 +539,9 @@ class RoomMediaMessagesSender {
      */
     private Message buildFileMessage(RoomMediaMessage roomMediaMessage) {
         try {
-            final MXMediasCache mediasCache = mDataHandler.getMediasCache();
             String mimeType = roomMediaMessage.getMimeType(mContext);
 
-            ResourceUtils.Resource resource = ResourceUtils.openResource(mContext, roomMediaMessage.getUri(), mimeType);
-
-            // save the file in the filesystem
-            String mediaUrl = mediasCache.saveMedia(resource.mContentStream, null, mimeType);
-            resource.close();
-
+            String mediaUrl = getMediaUrl(roomMediaMessage);
             FileMessage fileMessage;
 
             if (mimeType.startsWith("audio/")) {
@@ -659,6 +664,8 @@ class RoomMediaMessagesSender {
                         mUiHandler.post(new Runnable() {
                             @Override
                             public void run() {
+                                event.mSentState = Event.SentState.UNDELIVERABLE;
+
                                 if (null != roomMediaMessage.getMediaUploadListener()) {
                                     roomMediaMessage.getMediaUploadListener().onUploadCancel(uploadId);
                                 }
@@ -673,6 +680,8 @@ class RoomMediaMessagesSender {
                         mUiHandler.post(new Runnable() {
                             @Override
                             public void run() {
+                                event.mSentState = Event.SentState.UNDELIVERABLE;
+
                                 if (null != roomMediaMessage.getMediaUploadListener()) {
                                     roomMediaMessage.getMediaUploadListener().onUploadError(uploadId, serverResponseCode, serverErrorMessage);
                                 }
