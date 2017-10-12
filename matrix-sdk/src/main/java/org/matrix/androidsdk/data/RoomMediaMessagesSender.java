@@ -126,7 +126,7 @@ class RoomMediaMessagesSender {
                         mimeType = "";
                     }
 
-                    if ((null == roomMediaMessage.getUri()) && (TextUtils.equals(ClipDescription.MIMETYPE_TEXT_PLAIN, mimeType) || TextUtils.equals(ClipDescription.MIMETYPE_TEXT_HTML, mimeType))) {
+                    if (null == roomMediaMessage.getUri()) {
                         message = buildTextMessage(roomMediaMessage);
                     } else if (mimeType.startsWith("image/")) {
                         message = buildImageMessage(roomMediaMessage);
@@ -325,6 +325,11 @@ class RoomMediaMessagesSender {
             }
         } else {
             text = sequence.toString();
+        }
+
+        // a text message cannot be null
+        if (TextUtils.isEmpty(text)) {
+            return null;
         }
 
         Message message = new Message();
