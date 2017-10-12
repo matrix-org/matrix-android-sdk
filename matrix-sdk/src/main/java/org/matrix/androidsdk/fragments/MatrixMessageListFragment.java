@@ -152,9 +152,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         void onScrollStateChanged(int scrollState);
     }
 
-    protected static final String TAG_FRAGMENT_MESSAGE_OPTIONS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_OPTIONS";
-    protected static final String TAG_FRAGMENT_MESSAGE_DETAILS = "org.matrix.androidsdk.RoomActivity.TAG_FRAGMENT_MESSAGE_DETAILS";
-
     // fragment parameters
     public static final String ARG_LAYOUT_ID = "MatrixMessageListFragment.ARG_LAYOUT_ID";
     public static final String ARG_MATRIX_ID = "MatrixMessageListFragment.ARG_MATRIX_ID";
@@ -288,6 +285,23 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     mAdapter.notifyDataSetChanged();
                 }
             });
+        }
+    };
+
+    private final RoomMediaMessage.EventCreationListener mEventCreationListener = new RoomMediaMessage.EventCreationListener() {
+        @Override
+        public void onEventCreated(RoomMediaMessage roomMediaMessage) {
+            add(roomMediaMessage);
+        }
+
+        @Override
+        public void onEventCreationFailed(RoomMediaMessage roomMediaMessage, String errorMessage) {
+            displayMessageSendingFailed(errorMessage);
+        }
+
+        @Override
+        public void onEncryptionFailed(RoomMediaMessage roomMediaMessage) {
+            displayEncryptionAlert();
         }
     };
 
@@ -1025,17 +1039,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param format        the format
      */
     public void sendTextMessage(String body, String formattedBody, String format) {
-        mRoom.sendTextMessage(body, formattedBody, format, new RoomMediaMessage.EventCreationListener() {
-            @Override
-            public void onEventCreated(RoomMediaMessage roomMediaMessage) {
-                add(roomMediaMessage);
-            }
-
-            @Override
-            public void onEncryptionFailed(RoomMediaMessage roomMediaMessage) {
-                displayEncryptionAlert();
-            }
-        });
+        mRoom.sendTextMessage(body, formattedBody, format, mEventCreationListener);
     }
 
     /**
@@ -1046,17 +1050,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param format         the format
      */
     public void sendEmote(String emote, String formattedEmote, String format) {
-        mRoom.sendEmoteMessage(emote, formattedEmote, format, new RoomMediaMessage.EventCreationListener() {
-            @Override
-            public void onEventCreated(RoomMediaMessage roomMediaMessage) {
-                add(roomMediaMessage);
-            }
-
-            @Override
-            public void onEncryptionFailed(RoomMediaMessage roomMediaMessage) {
-                displayEncryptionAlert();
-            }
-        });
+        mRoom.sendEmoteMessage(emote, formattedEmote, format, mEventCreationListener);
     }
 
     /**
@@ -1119,22 +1113,31 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
     }
 
+    /**
+     * The failure reason
+     * @param errorMessage the message
+     */
+    private void displayMessageSendingFailed(String errorMessage) {
+        if (null != getActivity()) {
+            new AlertDialog.Builder(getActivity())
+                    .setMessage(errorMessage)
+                    .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            // continue with delete
+                        }
+                    })
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .show();
+        }
+    }
+
 
     /**
      * Send a media message in this room
      * @param roomMediaMessage the media message to send
      */
     public void sendMediaMessage(final RoomMediaMessage roomMediaMessage) {
-        mRoom.sendMediaMessage(roomMediaMessage, getMaxThumbnailWidth(), getMaxThumbnailHeight(), new RoomMediaMessage.EventCreationListener() {
-            public void onEventCreated(RoomMediaMessage roomMediaMessage) {
-                add(roomMediaMessage);
-            }
-
-            @Override
-            public void onEncryptionFailed(RoomMediaMessage roomMediaMessage) {
-                displayEncryptionAlert();
-            }
-        });
+        mRoom.sendMediaMessage(roomMediaMessage, getMaxThumbnailWidth(), getMaxThumbnailHeight(), mEventCreationListener);
 
         roomMediaMessage.setMediaUploadListener(new MXMediaUploadListener() {
             @Override
@@ -1248,17 +1251,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         } else {
             // default case : text / emote
             // skip the upload progress
-            mRoom.sendMediaMessage(roomMediaMessage, getMaxThumbnailWidth(), getMaxThumbnailHeight(), new RoomMediaMessage.EventCreationListener() {
-                @Override
-                public void onEventCreated(RoomMediaMessage roomMediaMessage) {
-                    add(roomMediaMessage);
-                }
-
-                @Override
-                public void onEncryptionFailed(RoomMediaMessage roomMediaMessage) {
-                    displayEncryptionAlert();
-                }
-            });
+            mRoom.sendMediaMessage(roomMediaMessage, getMaxThumbnailWidth(), getMaxThumbnailHeight(), mEventCreationListener);
         }
     }
 

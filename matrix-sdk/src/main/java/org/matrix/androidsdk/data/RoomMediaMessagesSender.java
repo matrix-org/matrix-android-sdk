@@ -16,7 +16,6 @@
 
 package org.matrix.androidsdk.data;
 
-import android.content.ClipDescription;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -138,6 +137,14 @@ class RoomMediaMessagesSender {
 
                     if (null == message) {
                         Log.e(LOG_TAG, "## send " + roomMediaMessage + " not supported");
+
+
+                        mUiHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                roomMediaMessage.onEventCreationFailed("not supported " + roomMediaMessage);
+                            }
+                        });
                         return;
                     }
 
@@ -234,6 +241,7 @@ class RoomMediaMessagesSender {
 
                         synchronized (LOG_TAG) {
                             callback = mSendingRoomMediaMessage.getSendingCallback();
+                            mSendingRoomMediaMessage.setEventSendingCallback(null);
                             mSendingRoomMediaMessage = null;
                         }
 
@@ -507,8 +515,6 @@ class RoomMediaMessagesSender {
      */
     private Message buildVideoMessage(RoomMediaMessage roomMediaMessage) {
         try {
-            final MXMediasCache mediasCache = mDataHandler.getMediasCache();
-
             String mediaUrl = getMediaUrl(roomMediaMessage);
             String thumbnailUrl = getVideoThumbnailUrl(mediaUrl);
 
@@ -673,6 +679,8 @@ class RoomMediaMessagesSender {
 
                                 if (null != roomMediaMessage.getMediaUploadListener()) {
                                     roomMediaMessage.getMediaUploadListener().onUploadCancel(uploadId);
+                                    roomMediaMessage.setMediaUploadListener(null);
+                                    roomMediaMessage.setEventSendingCallback(null);
                                 }
 
                                 skip();
@@ -689,6 +697,8 @@ class RoomMediaMessagesSender {
 
                                 if (null != roomMediaMessage.getMediaUploadListener()) {
                                     roomMediaMessage.getMediaUploadListener().onUploadError(uploadId, serverResponseCode, serverErrorMessage);
+                                    roomMediaMessage.setMediaUploadListener(null);
+                                    roomMediaMessage.setEventSendingCallback(null);
                                 }
 
                                 skip();
@@ -740,8 +750,8 @@ class RoomMediaMessagesSender {
 
                                 if (null != roomMediaMessage.getMediaUploadListener()) {
                                     roomMediaMessage.getMediaUploadListener().onUploadComplete(uploadId, contentUri);
+                                    roomMediaMessage.setMediaUploadListener(null);
                                 }
-
                             }
                         });
                     }

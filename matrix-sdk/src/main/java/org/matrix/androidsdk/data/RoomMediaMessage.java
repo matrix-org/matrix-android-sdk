@@ -47,10 +47,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
 /**
  * RoomMediaMessage encapsulates the media information to be sent.
  */
@@ -69,6 +66,14 @@ public class RoomMediaMessage implements Parcelable {
          * @param roomMediaMessage the room media message.
          */
         void onEventCreated(RoomMediaMessage roomMediaMessage);
+
+        /**
+         * The event creation failed.
+         *
+         * @param roomMediaMessage the room media message.
+         * @param errorMessage the failure reason
+         */
+        void onEventCreationFailed(RoomMediaMessage roomMediaMessage, String errorMessage);
 
         /**
          * The media encryption failed.
@@ -96,9 +101,6 @@ public class RoomMediaMessage implements Parcelable {
 
     // thumbnail size
     private Pair<Integer, Integer> mThumbnailSize = new Pair<>(100, 100);
-
-    // custom data
-    private transient Map<String, Object> mCustomData = new HashMap<>();
 
     // upload media upload listener
     private transient IMXMediaUploadListener mMediaUploadListener;
@@ -185,6 +187,21 @@ public class RoomMediaMessage implements Parcelable {
         }
 
         mFileName = unformatNullString(source.readString());
+    }
+
+    @Override
+    public java.lang.String toString() {
+        String description = "";
+
+        description +="mUri " + mUri;
+        description +=" -- mMimeType " + mMimeType;
+        description +=" -- mEvent " + mEvent;
+        description +=" -- mClipDataItem " + mClipDataItem;
+        description +=" -- mFileName " + mFileName;
+        description +=" -- mMessageType " + mMessageType;
+        description +=" -- mThumbnailSize " + mThumbnailSize;
+
+        return description;
     }
 
     //==============================================================================================================
@@ -670,6 +687,27 @@ public class RoomMediaMessage implements Parcelable {
                 Log.e(LOG_TAG, "## onEventCreated() failed : " + e.getMessage());
             }
         }
+
+        // clear the listener
+        mEventCreationListener = null;
+    }
+
+    /**
+     * Dispatch onEventCreationFailed.
+     */
+    void onEventCreationFailed(String errorMessage) {
+        if (null != getEventCreationListener()) {
+            try {
+                getEventCreationListener().onEventCreationFailed(this, errorMessage);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## onEventCreationFailed() failed : " + e.getMessage());
+            }
+        }
+
+        // clear the listeners
+        mMediaUploadListener = null;
+        mEventSendingCallback = null;
+        mEventCreationListener = null;
     }
 
     /**
@@ -683,6 +721,11 @@ public class RoomMediaMessage implements Parcelable {
                 Log.e(LOG_TAG, "## onEncryptionFailed() failed : " + e.getMessage());
             }
         }
+
+        // clear the listeners
+        mMediaUploadListener = null;
+        mEventSendingCallback = null;
+        mEventCreationListener = null;
     }
 
     //==============================================================================================================
