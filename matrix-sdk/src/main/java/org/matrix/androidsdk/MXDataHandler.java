@@ -1225,11 +1225,13 @@ public class MXDataHandler implements IMXEventListener {
                             }
 
                             Log.d(LOG_TAG, "## manageResponse() : leave the room " + roomId);
-                            this.getStore().deleteRoom(roomId);
-                            onLeaveRoom(roomId);
                         } else {
                             Log.d(LOG_TAG, "## manageResponse() : Try to leave an unknown room " + roomId);
                         }
+
+                        // ensure that the room data are properly deleted
+                        this.getStore().deleteRoom(roomId);
+                        onLeaveRoom(roomId);
 
                         // don't add to the left rooms if the user has been kicked / banned
                         if ((mAreLeftRoomsSynced) && TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE)) {

@@ -2567,15 +2567,21 @@ public class Room {
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Room.this.mIsLeaving = false;
+                // the room was not anymore defined server side
+                // race condition ?
+                if (e.mStatus == 404) {
+                    onSuccess(null);
+                } else {
+                    Room.this.mIsLeaving = false;
 
-                try {
-                    callback.onMatrixError(e);
-                } catch (Exception anException) {
-                    Log.e(LOG_TAG, "leave exception " + anException.getMessage());
+                    try {
+                        callback.onMatrixError(e);
+                    } catch (Exception anException) {
+                        Log.e(LOG_TAG, "leave exception " + anException.getMessage());
+                    }
+
+                    mDataHandler.onRoomInternalUpdate(getRoomId());
                 }
-
-                mDataHandler.onRoomInternalUpdate(getRoomId());
             }
 
             @Override
