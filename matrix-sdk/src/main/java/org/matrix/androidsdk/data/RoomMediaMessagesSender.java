@@ -462,7 +462,6 @@ class RoomMediaMessagesSender {
 
             ImageMessage imageMessage = new ImageMessage();
             imageMessage.url = mediaUrl;
-            imageMessage.thumbnailUrl = thumbnailURL;
             imageMessage.body = roomMediaMessage.getFileName(mContext);
 
             if (TextUtils.isEmpty(imageMessage.body)) {
@@ -475,9 +474,10 @@ class RoomMediaMessagesSender {
                 Room.fillImageInfo(mContext, imageMessage, imageUri, mimeType);
             }
 
-            if ((null != thumbnailURL) && (null == imageMessage.thumbnailInfo)) {
+            if ((null != thumbnailURL) && (null != imageMessage.info) && (null == imageMessage.info.thumbnailInfo)) {
                 Uri thumbUri = Uri.parse(thumbnailURL);
                 Room.fillThumbnailInfo(mContext, imageMessage, thumbUri, "image/jpeg");
+                imageMessage.info.thumbnailUrl = thumbnailURL;
             }
 
             return imageMessage;

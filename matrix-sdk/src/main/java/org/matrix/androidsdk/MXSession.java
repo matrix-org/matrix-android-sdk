@@ -66,6 +66,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.FileMessage;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.MediaMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -685,41 +686,17 @@ public class MXSession {
                 for (Event event : events) {
                     try {
                         if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE, event.getType())) {
-                            JsonElement msgtypeAsVoid = event.getContentAsJsonObject().get("msgtype");
+                            Message message = JsonUtils.toMessage(event.getContent());
 
-                            if (null != msgtypeAsVoid) {
-                                String msgtype = msgtypeAsVoid.getAsString();
+                            if (message instanceof MediaMessage) {
+                                MediaMessage mediaMessage = (MediaMessage)message;
 
-                                if (TextUtils.equals(Message.MSGTYPE_IMAGE, msgtype)) {
-                                    ImageMessage imageMessage = (ImageMessage) JsonUtils.toMessage(event.getContent());
+                                if (mediaMessage.isThumbnailLocalContent()) {
+                                    filesToKeep.add(Uri.parse(mediaMessage.getThumbnailUrl()).getPath());
+                                }
 
-                                    if (null != imageMessage) {
-                                        if (imageMessage.isThumbnailLocalContent()) {
-                                            filesToKeep.add(Uri.parse(imageMessage.thumbnailUrl).getPath());
-                                        }
-
-                                        if (imageMessage.isLocalContent()) {
-                                            filesToKeep.add(Uri.parse(imageMessage.url).getPath());
-                                        }
-                                    }
-                                } else if (TextUtils.equals(Message.MSGTYPE_VIDEO, msgtype)) {
-                                    VideoMessage videoMessage = (VideoMessage) JsonUtils.toMessage(event.getContent());
-
-                                    if ((null != videoMessage) && videoMessage.isLocalContent()) {
-                                        filesToKeep.add(Uri.parse(videoMessage.url).getPath());
-                                    }
-                                } else if (TextUtils.equals(Message.MSGTYPE_FILE, msgtype)) {
-                                    FileMessage fileMessage = (FileMessage) JsonUtils.toMessage(event.getContent());
-
-                                    if ((null != fileMessage) && fileMessage.isLocalContent()) {
-                                        filesToKeep.add(Uri.parse(fileMessage.url).getPath());
-                                    }
-                                } else if (TextUtils.equals(Message.MSGTYPE_AUDIO, msgtype)) {
-                                    AudioMessage audioMessage = (AudioMessage) JsonUtils.toMessage(event.getContent());
-
-                                    if ((null != audioMessage) && audioMessage.isLocalContent()) {
-                                        filesToKeep.add(Uri.parse(audioMessage.url).getPath());
-                                    }
+                                if (mediaMessage.isLocalContent()) {
+                                    filesToKeep.add(Uri.parse(mediaMessage.getUrl()).getPath());
                                 }
                             }
                         }

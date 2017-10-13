@@ -21,12 +21,8 @@ import android.media.ExifInterface;
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 
 public class ImageMessage extends MediaMessage {
-    private static final String LOG_TAG = "ImageMessage";
-
     public ImageInfo info;
-    public ImageInfo thumbnailInfo;
     public String url;
-    public String thumbnailUrl;
 
     // encrypted medias
     // url and thumbnailUrl are replaced by their dedicated file
@@ -46,15 +42,6 @@ public class ImageMessage extends MediaMessage {
         copy.msgtype = msgtype;
         copy.body = body;
         copy.url = url;
-        copy.thumbnailUrl = thumbnailUrl;
-
-        if (null != info) {
-            copy.info = info.deepCopy();
-        }
-
-        if (null != thumbnailInfo) {
-            copy.thumbnailInfo = thumbnailInfo.deepCopy();
-        }
 
         if (null != file) {
             copy.file = file.deepCopy();
@@ -87,13 +74,14 @@ public class ImageMessage extends MediaMessage {
 
     @Override
     public String getThumbnailUrl() {
-        if (null != thumbnailUrl) {
-            return thumbnailUrl;
-        } else if ((null != info) && (null != info.thumbnail_file)) {
-            return info.thumbnail_file.url;
-        } else {
-            return null;
+        if (null != info) {
+            if (null != info.thumbnail_file) {
+                return info.thumbnail_file.url;
+            } else {
+                return info.thumbnailUrl;
+            }
         }
+        return null;
     }
 
     @Override
@@ -101,9 +89,9 @@ public class ImageMessage extends MediaMessage {
         if (null != encryptionResult) {
             info.thumbnail_file = encryptionResult.mEncryptedFileInfo;
             info.thumbnail_file.url = url;
-            thumbnailUrl = null;
+            info.thumbnailUrl = null;
         } else {
-            thumbnailUrl = url;
+            info.thumbnailUrl = url;
         }
     }
 

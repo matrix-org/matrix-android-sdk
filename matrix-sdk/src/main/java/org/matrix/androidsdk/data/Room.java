@@ -1663,8 +1663,8 @@ public class Room {
      * @param imageUri The full size image uri.
      * @param mimeType The image mimeType
      */
-    public static ImageInfo getImageInfo(Context context, Uri imageUri, String mimeType) {
-        ImageInfo imageInfo = new ImageInfo();
+    public static ImageInfo getImageInfo(Context context, ImageInfo anImageInfo, Uri imageUri, String mimeType) {
+        ImageInfo imageInfo = (null == anImageInfo) ? new ImageInfo() : anImageInfo;
 
         try {
             String filename = imageUri.getPath();
@@ -1741,7 +1741,7 @@ public class Room {
      * @param mimeType     The image mimeType
      */
     public static void fillImageInfo(Context context, ImageMessage imageMessage, Uri imageUri, String mimeType) {
-        imageMessage.info = getImageInfo(context, imageUri, mimeType);
+        imageMessage.info = getImageInfo(context, imageMessage.info, imageUri, mimeType);
     }
 
     /**
@@ -1753,7 +1753,19 @@ public class Room {
      * @param mimeType     The image mimeType
      */
     public static void fillThumbnailInfo(Context context, ImageMessage imageMessage, Uri thumbUri, String mimeType) {
-        imageMessage.thumbnailInfo = getImageInfo(context, thumbUri, mimeType);
+        ImageInfo imageInfo = getImageInfo(context, null, thumbUri, mimeType);
+
+        if (null != imageInfo) {
+            if (null == imageMessage.info) {
+                imageMessage.info = new ImageInfo();
+            }
+
+            imageMessage.info.thumbnailInfo = new ThumbnailInfo();
+            imageMessage.info.thumbnailInfo.w = imageInfo.w;
+            imageMessage.info.thumbnailInfo.h = imageInfo.h;
+            imageMessage.info.thumbnailInfo.size = imageInfo.size;
+            imageMessage.info.thumbnailInfo.mimetype = imageInfo.mimetype;
+        }
     }
 
     //================================================================================
