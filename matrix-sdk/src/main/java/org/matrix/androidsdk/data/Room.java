@@ -261,7 +261,7 @@ public class Room {
     /**
      * Handle the events of a joined room.
      *
-     * @param roomSync      the sync events list.
+     * @param roomSync            the sync events list.
      * @param isGlobalInitialSync true if the room is initialized by a global initial sync.
      */
     public void handleJoinedRoomSync(RoomSync roomSync, boolean isGlobalInitialSync) {
@@ -782,14 +782,16 @@ public class Room {
     /**
      * Update the room's name.
      *
-     * @param name     the new name
-     * @param callback the async callback
+     * @param aRoomName the new name
+     * @param callback  the async callback
      */
-    public void updateName(final String name, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateRoomName(getRoomId(), name, new RoomInfoUpdateCallback<Void>(callback) {
+    public void updateName(String aRoomName, final ApiCallback<Void> callback) {
+        final String fRoomName = TextUtils.isEmpty(aRoomName) ? null : aRoomName;
+
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateRoomName(getRoomId(), fRoomName, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
-                getState().name = name;
+                getState().name = fRoomName;
                 super.onSuccess(info);
             }
         });
@@ -798,14 +800,16 @@ public class Room {
     /**
      * Update the room's topic.
      *
-     * @param topic    the new topic
+     * @param aTopic   the new topic
      * @param callback the async callback
      */
-    public void updateTopic(final String topic, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateTopic(getRoomId(), topic, new RoomInfoUpdateCallback<Void>(callback) {
+    public void updateTopic(final String aTopic, final ApiCallback<Void> callback) {
+        final String fTopic = TextUtils.isEmpty(aTopic) ? null : aTopic;
+
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateTopic(getRoomId(), fTopic, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
-                getState().topic = topic;
+                getState().topic = fTopic;
                 super.onSuccess(info);
             }
         });
@@ -814,14 +818,16 @@ public class Room {
     /**
      * Update the room's main alias.
      *
-     * @param canonicalAlias the canonical alias
-     * @param callback       the async callback
+     * @param aCanonicalAlias the canonical alias
+     * @param callback        the async callback
      */
-    public void updateCanonicalAlias(final String canonicalAlias, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateCanonicalAlias(getRoomId(), canonicalAlias, new RoomInfoUpdateCallback<Void>(callback) {
+    public void updateCanonicalAlias(final String aCanonicalAlias, final ApiCallback<Void> callback) {
+        final String fCanonicalAlias = TextUtils.isEmpty(aCanonicalAlias) ? null : aCanonicalAlias;
+
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateCanonicalAlias(getRoomId(), fCanonicalAlias, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
-                getState().roomAliasName = canonicalAlias;
+                getState().roomAliasName = fCanonicalAlias;
                 super.onSuccess(info);
             }
         });
@@ -1216,7 +1222,7 @@ public class Room {
      * It also move the read marker to the latest known messages if updateReadMarker is set to true
      *
      * @param updateReadMarker true to move the read marker to the latest known event
-     * @param aRespCallback the asynchronous callback
+     * @param aRespCallback    the asynchronous callback
      */
     private boolean markAllAsRead(boolean updateReadMarker, final ApiCallback<Void> aRespCallback) {
         final Event lastEvent = mStore.getLatestEvent(getRoomId());
@@ -1269,7 +1275,7 @@ public class Room {
      */
     public void setReadMakerEventId(final String readMarkerEventId) {
         RoomSummary summary = mStore.getSummary(getRoomId());
-        if (summary!= null && !readMarkerEventId.equals(summary.getReadMarkerEventId())) {
+        if (summary != null && !readMarkerEventId.equals(summary.getReadMarkerEventId())) {
             sendReadMarkers(readMarkerEventId, summary.getReadReceiptEventId(), null);
         }
     }
@@ -1284,7 +1290,7 @@ public class Room {
     /**
      * Send the read receipt to the latest room message id.
      *
-     * @param event send a read receipt to a provided event
+     * @param event         send a read receipt to a provided event
      * @param aRespCallback asynchronous response callback
      * @return true if the read receipt has been sent, false otherwise
      */
@@ -1313,9 +1319,9 @@ public class Room {
     /**
      * Send the read markers
      *
-     * @param aReadMarkerEventId the new read marker event id (if null use the latest known event id)
+     * @param aReadMarkerEventId  the new read marker event id (if null use the latest known event id)
      * @param aReadReceiptEventId the new read receipt event id (if null use the latest known event id)
-     * @param aRespCallback asynchronous response callback
+     * @param aRespCallback       asynchronous response callback
      * @return true if the request is sent, false otherwise
      */
     public boolean sendReadMarkers(final String aReadMarkerEventId, final String aReadReceiptEventId, final ApiCallback<Void> aRespCallback) {
@@ -1385,9 +1391,9 @@ public class Room {
     /**
      * Send the request to update the read marker and read receipt.
      *
-     * @param aReadMarkerEventId the read marker event id
+     * @param aReadMarkerEventId  the read marker event id
      * @param aReadReceiptEventId the read receipt event id
-     * @param callback the asynchronous callback
+     * @param callback            the asynchronous callback
      */
     private void setReadMarkers(final String aReadMarkerEventId, final String aReadReceiptEventId, final ApiCallback<Void> callback) {
         Log.d(LOG_TAG, "## setReadMarkers(): readMarkerEventId " + aReadMarkerEventId + " readReceiptEventId " + aReadMarkerEventId);
@@ -1825,7 +1831,7 @@ public class Room {
                             if (TextUtils.isEmpty(event.eventId)) {
                                 Log.e(LOG_TAG, "## handleAccountDataEvents() : null event id " + accountDataEvent.getContent());
                             }
-                            
+
                             summary.setReadMarkerEventId(event.eventId);
 
                             mStore.flushSummary(summary);
@@ -2805,10 +2811,10 @@ public class Room {
     /**
      * Send a text message asynchronously.
      *
-     * @param text the unformatted text
+     * @param text              the unformatted text
      * @param HTMLFormattedText the HTML formatted text
-     * @param format the formatted text format
-     * @param listener the event creation listener
+     * @param format            the formatted text format
+     * @param listener          the event creation listener
      */
     public void sendTextMessage(String text, String HTMLFormattedText, String format, RoomMediaMessage.EventCreationListener listener) {
         sendTextMessage(text, HTMLFormattedText, format, Message.MSGTYPE_TEXT, listener);
@@ -2817,10 +2823,10 @@ public class Room {
     /**
      * Send an emote message asynchronously.
      *
-     * @param text the unformatted text
+     * @param text              the unformatted text
      * @param HTMLFormattedText the HTML formatted text
-     * @param format the formatted text format
-     * @param listener the event creation listener
+     * @param format            the formatted text format
+     * @param listener          the event creation listener
      */
     public void sendEmoteMessage(String text, String HTMLFormattedText, String format, final RoomMediaMessage.EventCreationListener listener) {
         sendTextMessage(text, HTMLFormattedText, format, Message.MSGTYPE_EMOTE, listener);
@@ -2829,11 +2835,11 @@ public class Room {
     /**
      * Send a text message asynchronously.
      *
-     * @param text the unformatted text
+     * @param text              the unformatted text
      * @param HTMLFormattedText the HTML formatted text
-     * @param format the formatted text format
-     * @param msgType the message type
-     * @param listener the event creation listener
+     * @param format            the formatted text format
+     * @param msgType           the message type
+     * @param listener          the event creation listener
      */
     private void sendTextMessage(String text, String HTMLFormattedText, String format, String msgType, final RoomMediaMessage.EventCreationListener listener) {
         initRoomDataItemsSender();
@@ -2846,6 +2852,7 @@ public class Room {
 
     /**
      * Send an media message asynchronously
+     *
      * @param roomMediaMessage the media message
      */
     public void sendMediaMessage(final RoomMediaMessage roomMediaMessage, final int maxThumbnailWidth, final int maxThumbnailHeight, final RoomMediaMessage.EventCreationListener listener) {
@@ -2885,6 +2892,7 @@ public class Room {
 
     /**
      * Delete an events list.
+     *
      * @param events the events list
      */
     public void deleteEvents(List<Event> events) {
