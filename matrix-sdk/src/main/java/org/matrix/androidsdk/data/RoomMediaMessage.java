@@ -523,7 +523,7 @@ public class RoomMediaMessage implements Parcelable {
             ContentResolver resolver = context.getContentResolver();
 
             List uriPath = getUri().getPathSegments();
-            long imageId;
+            Long imageId;
             String lastSegment = (String) uriPath.get(uriPath.size() - 1);
 
             // > Kitkat
@@ -531,9 +531,15 @@ public class RoomMediaMessage implements Parcelable {
                 lastSegment = lastSegment.substring("image:".length());
             }
 
-            imageId = Long.parseLong(lastSegment);
+            try {
+                imageId = Long.parseLong(lastSegment);
+            } catch (Exception e) {
+                imageId = null;
+            }
 
-            thumbnailBitmap = MediaStore.Images.Thumbnails.getThumbnail(resolver, imageId, kind, null);
+            if (null != imageId) {
+                thumbnailBitmap = MediaStore.Images.Thumbnails.getThumbnail(resolver, imageId, kind, null);
+            }
         } catch (Exception e) {
             Log.e(LOG_TAG, "MediaStore.Images.Thumbnails.getThumbnail " + e.getMessage());
         }
@@ -549,36 +555,31 @@ public class RoomMediaMessage implements Parcelable {
             Uri mediaUri = getUri();
 
             if (null != mediaUri) {
-                if (mediaUri.toString().startsWith("content://")) {
-                    Cursor cursor = null;
-                    try {
-                        cursor = context.getContentResolver().query(mediaUri, null, null, null, null);
-                        if (cursor != null && cursor.moveToFirst()) {
-                            mFileName = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+                try {
+                    if (mediaUri.toString().startsWith("content://")) {
+                        Cursor cursor = null;
+                        try {
+                            cursor = context.getContentResolver().query(mediaUri, null, null, null, null);
+                            if (cursor != null && cursor.moveToFirst()) {
+                                mFileName = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+                            }
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "cursor.getString " + e.getMessage());
+                        } finally {
+                            if (null != cursor) {
+                                cursor.close();
+                            }
                         }
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "cursor.getString " + e.getMessage());
-                    } finally {
-                        if (null != cursor) {
-                            cursor.close();
-                        }
-                    }
 
-                    if (TextUtils.isEmpty(mFileName)) {
-                        List uriPath = mediaUri.getPathSegments();
-                        mFileName = (String) uriPath.get(uriPath.size() - 1);
-                    }
-                } else if (mediaUri.toString().startsWith("file://")) {
-                    // try to retrieve the filename from the file url.
-                    try {
+                        if (TextUtils.isEmpty(mFileName)) {
+                            List uriPath = mediaUri.getPathSegments();
+                            mFileName = (String) uriPath.get(uriPath.size() - 1);
+                        }
+                    } else if (mediaUri.toString().startsWith("file://")) {
                         mFileName = mediaUri.getLastPathSegment();
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "## getFileName failed " + e.getMessage());
                     }
-
-                    if (TextUtils.isEmpty(mFileName)) {
-                        mFileName = null;
-                    }
+                } catch (Exception e) {
+                    mFileName = null;
                 }
             }
         }
