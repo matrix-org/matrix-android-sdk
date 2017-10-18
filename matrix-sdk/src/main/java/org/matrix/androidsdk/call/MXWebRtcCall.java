@@ -1626,7 +1626,6 @@ public class MXWebRtcCall extends MXCall {
         if (!isCallEnded() && !mIsAnswered) {
             dispatchAnsweredElsewhere();
             terminate(IMXCall.END_CALL_REASON_UNDEFINED);
-
         }
     }
 

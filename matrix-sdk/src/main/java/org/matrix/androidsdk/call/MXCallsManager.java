@@ -65,6 +65,12 @@ public class MXCallsManager {
         void onIncomingCall(IMXCall call, MXUsersDevicesMap<MXDeviceInfo> unknownDevices);
 
         /**
+         * An outgoing call is started.
+         * @param call the outgoing call
+         */
+        void onOutgoingCall(IMXCall call);
+
+        /**
          * Called when a called has been hung up
          * @param call the incoming call
          */
@@ -628,6 +634,7 @@ public class MXCallsManager {
                                 public void onSuccess(Void anything) {
                                     final IMXCall call = getCallWithCallId(null, true);
                                     call.setRooms(room, room);
+                                    dispatchOnOutgoingCall(call);
 
                                     if (null != callback) {
                                         mUIThreadHandler.post(new Runnable() {
@@ -662,6 +669,7 @@ public class MXCallsManager {
                             });
                         } else {
                             final IMXCall call = getCallWithCallId(null, true);
+                            dispatchOnOutgoingCall(call);
                             call.setRooms(room, room);
 
                             if (null != callback) {
@@ -690,6 +698,7 @@ public class MXCallsManager {
                                         final IMXCall call = getCallWithCallId(null, true);
                                         call.setRooms(room, conferenceRoom);
                                         call.setIsConference(true);
+                                        dispatchOnOutgoingCall(call);
 
                                         if (null != callback) {
                                             mUIThreadHandler.post(new Runnable() {
@@ -1159,6 +1168,24 @@ public class MXCallsManager {
                 l.onIncomingCall(call, unknownDevices);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "dispatchOnIncomingCall " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * dispatch the call creation to the listeners
+     * @param call the call
+     */
+    private void dispatchOnOutgoingCall(IMXCall call) {
+        Log.d(LOG_TAG, "dispatchOnOutgoingCall " + call.getCallId());
+
+        List<MXCallsManagerListener> listeners = getListeners();
+
+        for(MXCallsManagerListener l : listeners) {
+            try {
+                l.onOutgoingCall(call);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "dispatchOnOutgoingCall " + e.getMessage());
             }
         }
     }
