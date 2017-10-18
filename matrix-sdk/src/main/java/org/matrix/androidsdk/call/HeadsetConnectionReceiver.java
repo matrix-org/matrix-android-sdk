@@ -202,7 +202,7 @@ public class HeadsetConnectionReceiver extends BroadcastReceiver {
     public static boolean isHeadsetPlugged(Context context) {
         if (null == mIsHeadsetPlugged) {
             AudioManager audioManager = getAudioManager(context);
-            mIsHeadsetPlugged = (BluetoothAdapter.STATE_CONNECTED == BluetoothAdapter.getDefaultAdapter().getProfileConnectionState(BluetoothProfile.HEADSET)) || audioManager.isWiredHeadsetOn();
+            mIsHeadsetPlugged = isBTHeadsetPlugged() || audioManager.isWiredHeadsetOn();
         }
 
         return mIsHeadsetPlugged;

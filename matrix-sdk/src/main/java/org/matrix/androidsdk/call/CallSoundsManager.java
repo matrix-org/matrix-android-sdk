@@ -208,12 +208,14 @@ public class CallSoundsManager {
     private static final int VIBRATE_SLEEP = 1000;  // milliseconds
     private static final long[] VIBRATE_PATTERN = {0, VIBRATE_DURATION, VIBRATE_SLEEP};
 
-
     private Ringtone mRingTone;
     private MediaPlayer mMediaPlayer = null;
 
     // the audio manager
     private AudioManager mAudioManager = null;
+
+    // the playing sound
+    private int mPlayingSound = -1;
 
     /**
      * Tells that the device is ringing.
@@ -236,7 +238,7 @@ public class CallSoundsManager {
     /**
      * Stop any playing sound.
      */
-    private void stopSounds() {
+    public void stopSounds() {
         if (null != mRingTone) {
             mRingTone.stop();
             mRingTone = null;
@@ -248,6 +250,8 @@ public class CallSoundsManager {
             }
             mMediaPlayer = null;
         }
+
+        mPlayingSound = -1;
     }
 
     /**
@@ -375,6 +379,12 @@ public class CallSoundsManager {
     public void startSound(int resId, boolean isLooping, final OnMediaListener listener) {
         Log.d(LOG_TAG, "startSound");
 
+        if (mPlayingSound == resId) {
+            Log.d(LOG_TAG, "## startSound() : already playing " + resId);
+            return;
+        }
+
+        mPlayingSound = resId;
         stopSounds();
 
         mMediaPlayer = MediaPlayer.create(mContext, resId);
@@ -395,6 +405,7 @@ public class CallSoundsManager {
             mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                 @Override
                 public void onCompletion(MediaPlayer mp) {
+                    mPlayingSound = -1;
                     if (null != listener) {
                         listener.onMediaCompleted();
                     }
@@ -621,7 +632,7 @@ public class CallSoundsManager {
      * @param isInCall    true when the speaker is updated during call.
      * @param isSpeakerOn true to turn on the speaker (false to turn it off)
      */
-    private void setSpeakerphoneOn(boolean isInCall, boolean isSpeakerOn) {
+    public void setSpeakerphoneOn(boolean isInCall, boolean isSpeakerOn) {
         Log.d(LOG_TAG, "setCallSpeakerphoneOn " + isSpeakerOn);
 
         backupAudioConfig();
@@ -664,5 +675,12 @@ public class CallSoundsManager {
     public void toggleSpeaker() {
         AudioManager audioManager = getAudioManager();
         audioManager.setSpeakerphoneOn(!audioManager.isSpeakerphoneOn());
+    }
+
+    /**
+     * @return true if the speaker is turned on.
+     */
+    public boolean isSpeakerOn() {
+        return mAudioManager.isSpeakerphoneOn();
     }
 }
