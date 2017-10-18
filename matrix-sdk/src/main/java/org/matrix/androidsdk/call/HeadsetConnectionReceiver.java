@@ -22,7 +22,10 @@ import android.bluetooth.BluetoothProfile;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.media.AudioManager;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.util.Log;
@@ -59,19 +62,24 @@ public class HeadsetConnectionReceiver extends BroadcastReceiver {
     }
 
     // listeners
-    private Set<OnHeadsetStatusUpdateListener> mListeners = new HashSet<>();
+    private final Set<OnHeadsetStatusUpdateListener> mListeners = new HashSet<>();
 
-    /**
-     * Contructor
-     */
     public HeadsetConnectionReceiver() {
-        mSharedInstance = this;
     }
 
     /**
      * @return the shared instance
      */
-    public static HeadsetConnectionReceiver getInstance() {
+    public static HeadsetConnectionReceiver getSharedInstance(Context context) {
+        if (null == mSharedInstance) {
+            mSharedInstance = new HeadsetConnectionReceiver();
+            context.registerReceiver(mSharedInstance, new IntentFilter(Intent.ACTION_HEADSET_PLUG));
+            context.registerReceiver(mSharedInstance, new IntentFilter(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED));
+            context.registerReceiver(mSharedInstance, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
+            context.registerReceiver(mSharedInstance, new IntentFilter(BluetoothDevice.ACTION_ACL_CONNECTED));
+            context.registerReceiver(mSharedInstance, new IntentFilter(BluetoothDevice.ACTION_ACL_DISCONNECTED));
+        }
+
         return mSharedInstance;
     }
 
@@ -143,10 +151,9 @@ public class HeadsetConnectionReceiver extends BroadcastReceiver {
                 TextUtils.equals(action, BluetoothDevice.ACTION_ACL_DISCONNECTED)) {
 
             Boolean newState = null;
-            boolean isBTHeadsetUpdate = false;
+            final boolean isBTHeadsetUpdate;
 
             if (TextUtils.equals(action, Intent.ACTION_HEADSET_PLUG)) {
-
                 int state = aIntent.getIntExtra("state", -1);
 
                 switch (state) {
@@ -161,6 +168,7 @@ public class HeadsetConnectionReceiver extends BroadcastReceiver {
                     default:
                         Log.d(LOG_TAG, "undefined state");
                 }
+                isBTHeadsetUpdate = false;
             } else {
                 int state = BluetoothAdapter.getDefaultAdapter().getProfileConnectionState(BluetoothProfile.HEADSET);
 
@@ -169,15 +177,20 @@ public class HeadsetConnectionReceiver extends BroadcastReceiver {
                 isBTHeadsetUpdate = mIsHeadsetPlugged != newState;
             }
 
-
             if (newState != mIsHeadsetPlugged) {
                 mIsHeadsetPlugged = newState;
 
-                if (isBTHeadsetUpdate) {
-                    onBluetoothHeadsetUpdate(mIsHeadsetPlugged);
-                } else {
-                    onWiredHeadsetUpdate(mIsHeadsetPlugged);
-                }
+                // wait a little else route to BT headset does not work.
+                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (isBTHeadsetUpdate) {
+                            onBluetoothHeadsetUpdate(mIsHeadsetPlugged);
+                        } else {
+                            onWiredHeadsetUpdate(mIsHeadsetPlugged);
+                        }
+                    }
+                }, 1000);
             }
         }
     }

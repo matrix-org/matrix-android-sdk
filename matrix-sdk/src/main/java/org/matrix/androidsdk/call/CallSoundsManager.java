@@ -25,8 +25,6 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Environment;
-import android.os.Handler;
-import android.os.Looper;
 import android.os.Vibrator;
 import android.provider.MediaStore;
 
@@ -83,14 +81,14 @@ public class CallSoundsManager {
     }
 
     private static CallSoundsManager mSharedInstance = null;
-    private Context mContext;
+    private final Context mContext;
 
     /**
      * Constructor
      *
      * @param context the context
      */
-    public CallSoundsManager(Context context) {
+    private CallSoundsManager(Context context) {
         mContext = context;
     }
 
@@ -252,6 +250,9 @@ public class CallSoundsManager {
         }
 
         mPlayingSound = -1;
+
+        // stop vibrate
+        enableVibrating(false);
     }
 
     /**
@@ -295,32 +296,25 @@ public class CallSoundsManager {
      */
     public void releaseAudioFocus() {
         if (mIsFocusGranted) {
-            Handler handler = new Handler(Looper.getMainLooper());
+            AudioManager audioManager = getAudioManager();
 
-            // the audio focus is abandoned with delay
-            // to let the call to finish properly
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    AudioManager audioMgr;
+            if ((null != audioManager)) {
+                // release focus
+                int abandonResult = audioManager.abandonAudioFocus(mFocusListener);
 
-                    if ((null != (audioMgr = getAudioManager()))) {
-                        // release focus
-                        int abandonResult = audioMgr.abandonAudioFocus(mFocusListener);
-
-                        if (AudioManager.AUDIOFOCUS_REQUEST_GRANTED == abandonResult) {
-                            mIsFocusGranted = false;
-                            Log.d(LOG_TAG, "## releaseAudioFocus(): abandonAudioFocus = AUDIOFOCUS_REQUEST_GRANTED");
-                        }
-
-                        if (AudioManager.AUDIOFOCUS_REQUEST_FAILED == abandonResult) {
-                            Log.d(LOG_TAG, "## releaseAudioFocus(): abandonAudioFocus = AUDIOFOCUS_REQUEST_FAILED");
-                        }
-                    } else {
-                        Log.d(LOG_TAG, "## releaseAudioFocus(): failure - invalid AudioManager");
-                    }
+                if (AudioManager.AUDIOFOCUS_REQUEST_GRANTED == abandonResult) {
+                    Log.d(LOG_TAG, "## releaseAudioFocus(): abandonAudioFocus = AUDIOFOCUS_REQUEST_GRANTED");
                 }
-            }, 300);
+
+                if (AudioManager.AUDIOFOCUS_REQUEST_FAILED == abandonResult) {
+                    Log.d(LOG_TAG, "## releaseAudioFocus(): abandonAudioFocus = AUDIOFOCUS_REQUEST_FAILED");
+                }
+            } else {
+                Log.d(LOG_TAG, "## releaseAudioFocus(): failure - invalid AudioManager");
+            }
+
+            mIsFocusGranted = false;
+            restoreAudioConfig();
         }
     }
 
@@ -384,8 +378,8 @@ public class CallSoundsManager {
             return;
         }
 
-        mPlayingSound = resId;
         stopSounds();
+        mPlayingSound = resId;
 
         mMediaPlayer = MediaPlayer.create(mContext, resId);
 
@@ -405,10 +399,10 @@ public class CallSoundsManager {
             mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                 @Override
                 public void onCompletion(MediaPlayer mp) {
-                    mPlayingSound = -1;
                     if (null != listener) {
                         listener.onMediaCompleted();
                     }
+                    mPlayingSound = -1;
                 }
             });
 
@@ -551,7 +545,7 @@ public class CallSoundsManager {
      * @param context            the context
      * @param resId              The audio resource.
      * @param filename           the audio filename
-     * @param defaultRingToneUri
+     * @param defaultRingToneUri the default ring tone
      * @return a RingTone, null if the operation fails.
      */
     private static Ringtone getRingTone(Context context, int resId, String filename, Uri defaultRingToneUri) {
@@ -592,24 +586,30 @@ public class CallSoundsManager {
     private void restoreAudioConfig() {
         // ensure that something has been saved
         if ((null != mAudioMode) && (null != mIsSpeakerOn)) {
+            Log.d(LOG_TAG, "## restoreAudioConfig() starts");
             AudioManager audioManager = getAudioManager();
 
             if (mAudioMode != audioManager.getMode()) {
+                Log.d(LOG_TAG, "## restoreAudioConfig() : restore audio mode " + mAudioMode);
                 audioManager.setMode(mAudioMode);
             }
 
             if (mIsSpeakerOn != audioManager.isSpeakerphoneOn()) {
+                Log.d(LOG_TAG, "## restoreAudioConfig() : restore speaker " + mIsSpeakerOn);
                 audioManager.setSpeakerphoneOn(mIsSpeakerOn);
             }
 
             // stop the bluetooth
             if (audioManager.isBluetoothScoOn()) {
+                Log.d(LOG_TAG, "## restoreAudioConfig() : ends the bluetooth calls");
                 audioManager.stopBluetoothSco();
                 audioManager.setBluetoothScoOn(false);
             }
 
             mAudioMode = null;
             mIsSpeakerOn = null;
+
+            Log.d(LOG_TAG, "## restoreAudioConfig() done");
         }
     }
 
@@ -674,7 +674,22 @@ public class CallSoundsManager {
      */
     public void toggleSpeaker() {
         AudioManager audioManager = getAudioManager();
-        audioManager.setSpeakerphoneOn(!audioManager.isSpeakerphoneOn());
+        boolean isOn = !audioManager.isSpeakerphoneOn();
+        audioManager.setSpeakerphoneOn(isOn);
+
+        if (!isOn) {
+            try {
+                if (HeadsetConnectionReceiver.isBTHeadsetPlugged()) {
+                    audioManager.startBluetoothSco();
+                    audioManager.setBluetoothScoOn(true);
+                } else if (audioManager.isBluetoothScoOn()) {
+                    audioManager.stopBluetoothSco();
+                    audioManager.setBluetoothScoOn(false);
+                }
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## toggleSpeaker() failed " + e.getMessage());
+            }
+        }
     }
 
     /**
