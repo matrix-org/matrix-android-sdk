@@ -587,7 +587,11 @@ public class MXSession {
         mDataHandler.clear();
 
         // network event will not be listened anymore
-        mAppContent.unregisterReceiver(mNetworkConnectivityReceiver);
+        try {
+            mAppContent.unregisterReceiver(mNetworkConnectivityReceiver);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## clearApplicationCaches() : unregisterReceiver failed " + e.getMessage());
+        }
         mNetworkConnectivityReceiver.removeListeners();
 
         // auto resent messages will not be resent
