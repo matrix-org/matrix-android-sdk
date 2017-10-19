@@ -891,14 +891,11 @@ public class EventTimeline {
                     mStore.deleteEvent(storedEvent);
                     mStore.storeLiveRoomEvent(event);
                     mStore.commit();
-
                     Log.d(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " has been echoed");
-
                 } else {
                     Log.d(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " already exist.");
+                    return;
                 }
-
-                return;
             }
 
             // Room event
