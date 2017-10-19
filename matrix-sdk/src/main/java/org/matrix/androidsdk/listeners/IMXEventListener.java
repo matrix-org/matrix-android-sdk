@@ -82,6 +82,13 @@ public interface IMXEventListener {
     void onBingEvent(Event event, RoomState roomState, BingRule bingRule);
 
     /**
+     * An event is encrypting.
+     *
+     * @param event the encrypting event
+     */
+    void onEventEncrypting(Event event);
+
+    /**
      * An event has been successfully encrypted.
      *
      * @param event the encrypted event

@@ -2025,6 +2025,18 @@ public class Room {
             }
 
             @Override
+            public void onEventEncrypting(Event event) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), event.roomId)) {
+                    try {
+                        eventListener.onEventEncrypting(event);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onEventEncrypting exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
             public void onEventEncrypted(Event event) {
                 // Filter out events for other rooms
                 if (TextUtils.equals(getRoomId(), event.roomId)) {
@@ -2303,6 +2315,7 @@ public class Room {
 
         if (isEncrypted() && (null != mDataHandler.getCrypto())) {
             event.mSentState = Event.SentState.ENCRYPTING;
+            mDataHandler.onEventEncrypting(event);
 
             // Encrypt the content before sending
             mDataHandler.getCrypto().encryptEventContent(event.getContent().getAsJsonObject(), event.getType(), this, new ApiCallback<MXEncryptEventContentResult>() {

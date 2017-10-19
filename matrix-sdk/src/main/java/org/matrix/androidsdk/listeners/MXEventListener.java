@@ -60,6 +60,10 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
+    public void onEventEncrypting(Event event) {
+    }
+
+    @Override
     public void onEventEncrypted(Event event) {
     }
 
