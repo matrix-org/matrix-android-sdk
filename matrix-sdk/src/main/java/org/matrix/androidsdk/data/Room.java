@@ -651,7 +651,7 @@ public class Room {
      * @param extraParams the join extra params
      * @param callback    the callback for when done
      */
-    private void join(String roomAlias, HashMap<String, Object> extraParams, final ApiCallback<Void> callback) {
+    private void join(final String roomAlias, final HashMap<String, Object> extraParams, final ApiCallback<Void> callback) {
         Log.d(LOG_TAG, "Join the room " + getRoomId() + " with alias " + roomAlias);
 
         mDataHandler.getDataRetriever().getRoomsRestClient().joinRoom((null != roomAlias) ? roomAlias : getRoomId(), extraParams, new SimpleApiCallback<RoomResponse>(callback) {
@@ -694,6 +694,14 @@ public class Room {
                     // minging kludge until https://matrix.org/jira/browse/SYN-678 is fixed
                     // 'Error when trying to join an empty room should be more explicit
                     e.error = mStore.getContext().getString(org.matrix.androidsdk.R.string.room_error_join_failed_empty_room);
+                }
+
+                // if the alias is not found
+                // try with the room id
+                if ((e.mStatus == 404) && !TextUtils.isEmpty(roomAlias)) {
+                    Log.e(LOG_TAG, "Retry without the room alias");
+                    join(null, extraParams, callback);
+                    return;
                 }
 
                 callback.onMatrixError(e);
