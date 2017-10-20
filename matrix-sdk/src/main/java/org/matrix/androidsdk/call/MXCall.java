@@ -19,7 +19,9 @@ package org.matrix.androidsdk.call;
 import android.content.Context;
 import android.os.Handler;
 import android.text.TextUtils;
+
 import org.matrix.androidsdk.util.Log;
+
 import android.view.View;
 
 import com.google.gson.JsonElement;
@@ -33,14 +35,17 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Timer;
 
 /**
  * This class is the default implementation
  */
 public class MXCall implements IMXCall {
-    private static final String LOG_TAG = "MXCall";
+    private static final String LOG_TAG = MXCall.class.getSimpleName();
 
     // defines the call timeout
     public static final int CALL_TIMEOUT_MS = 60 * 1000;
@@ -75,7 +80,7 @@ public class MXCall implements IMXCall {
     /**
      * The call events listeners
      */
-    private final List<MXCallListener> mCallListeners = new ArrayList<>();
+    private final Set<IMXCallListener> mCallListeners = new HashSet<>();
 
     /**
      * the call id
@@ -137,6 +142,7 @@ public class MXCall implements IMXCall {
     }
 
     // actions (must be done after dispatchOnViewReady()
+
     /**
      * Start a call.
      */
@@ -145,52 +151,58 @@ public class MXCall implements IMXCall {
 
     /**
      * Prepare a call reception.
-     * @param aCallInviteParams the invitation Event content
-     * @param aCallId the call ID
+     *
+     * @param aCallInviteParams   the invitation Event content
+     * @param aCallId             the call ID
      * @param aLocalVideoPosition position of the local video attendee
      */
     public void prepareIncomingCall(JsonObject aCallInviteParams, String aCallId, VideoLayoutConfiguration aLocalVideoPosition) {
+        setIsIncoming(true);
     }
 
     /**
      * The call has been detected as an incoming one.
      * The application launched the dedicated activity and expects to launch the incoming call.
+     *
      * @param aLocalVideoPosition position of the local video attendee
      */
     public void launchIncomingCall(VideoLayoutConfiguration aLocalVideoPosition) {
     }
 
     @Override
-    public void updateLocalVideoRendererPosition(VideoLayoutConfiguration aLocalVideoPosition){
-        Log.w(LOG_TAG,"## updateLocalVideoRendererPosition(): not implemented");
+    public void updateLocalVideoRendererPosition(VideoLayoutConfiguration aLocalVideoPosition) {
+        Log.w(LOG_TAG, "## updateLocalVideoRendererPosition(): not implemented");
     }
 
     @Override
-    public boolean switchRearFrontCamera(){
-        Log.w(LOG_TAG,"## switchRearFrontCamera(): not implemented");
+    public boolean switchRearFrontCamera() {
+        Log.w(LOG_TAG, "## switchRearFrontCamera(): not implemented");
         return false;
     }
 
     @Override
     public boolean isCameraSwitched() {
-        Log.w(LOG_TAG,"## isCameraSwitched(): not implemented");
+        Log.w(LOG_TAG, "## isCameraSwitched(): not implemented");
         return false;
     }
 
     @Override
     public boolean isSwitchCameraSupported() {
-        Log.w(LOG_TAG,"## isSwitchCameraSupported(): not implemented");
+        Log.w(LOG_TAG, "## isSwitchCameraSupported(): not implemented");
         return false;
     }
     // events thread
+
     /**
      * Manage the call events.
+     *
      * @param event the call event.
      */
     public void handleCallEvent(Event event) {
     }
 
     // user actions
+
     /**
      * The call is accepted.
      */
@@ -203,6 +215,7 @@ public class MXCall implements IMXCall {
     public void onAnsweredElsewhere() {
 
     }
+
     /**
      * The call is hung up.
      */
@@ -210,6 +223,7 @@ public class MXCall implements IMXCall {
     }
 
     // getters / setters
+
     /**
      * @return the callId
      */
@@ -240,7 +254,8 @@ public class MXCall implements IMXCall {
 
     /**
      * Set the linked rooms.
-     * @param room the room where the conference take place
+     *
+     * @param room              the room where the conference take place
      * @param callSignalingRoom the call signaling room.
      */
     public void setRooms(Room room, Room callSignalingRoom) {
@@ -265,10 +280,9 @@ public class MXCall implements IMXCall {
     /**
      * @param isIncoming true if the call is an incoming one.
      */
-    public void setIsIncoming(boolean isIncoming) {
+    private void setIsIncoming(boolean isIncoming) {
         mIsIncoming = isIncoming;
     }
-
 
     /**
      * Defines the call type
@@ -321,6 +335,7 @@ public class MXCall implements IMXCall {
 
     /**
      * Set the callview visibility
+     *
      * @return true if the operation succeeds
      */
     public boolean setVisibility(int visibility) {
@@ -358,9 +373,10 @@ public class MXCall implements IMXCall {
 
     /**
      * Add a listener.
+     *
      * @param callListener the listener to add
      */
-    public void addListener(MXCallListener callListener) {
+    public void addListener(IMXCallListener callListener) {
         if (null != callListener) {
             synchronized (LOG_TAG) {
                 mCallListeners.add(callListener);
@@ -370,9 +386,10 @@ public class MXCall implements IMXCall {
 
     /**
      * Remove a listener
+     *
      * @param callListener the listener to remove
      */
-    public void removeListener(MXCallListener callListener) {
+    public void removeListener(IMXCallListener callListener) {
         if (null != callListener) {
             synchronized (LOG_TAG) {
                 mCallListeners.remove(callListener);
@@ -392,63 +409,65 @@ public class MXCall implements IMXCall {
     /**
      * @return the call listeners
      */
-    private List<MXCallListener> getCallListeners() {
-        ArrayList<MXCallListener> listeners;
+    private Collection<IMXCallListener> getCallListeners() {
+        Collection<IMXCallListener> listeners;
 
         synchronized (LOG_TAG) {
-            listeners = new ArrayList<>(mCallListeners);
+            listeners = new HashSet<>(mCallListeners);
         }
 
         return listeners;
     }
 
     /**
-     * Dispatch the onViewLoading event to the listeners.
-     * @param callView the callview
+     * Dispatch the onCallViewCreated event to the listeners.
+     *
+     * @param callView the call view
      */
-    protected void dispatchOnViewLoading(View callView) {
+    protected void dispatchOnCallViewCreated(View callView) {
         if (isCallEnded()) {
-            Log.d(LOG_TAG, "## dispatchOnViewLoading(): the call is ended");
+            Log.d(LOG_TAG, "## dispatchOnCallViewCreated(): the call is ended");
             return;
         }
 
-        Log.d(LOG_TAG, "## dispatchOnViewLoading()");
+        Log.d(LOG_TAG, "## dispatchOnCallViewCreated()");
 
-        List<MXCallListener> listeners = getCallListeners();
+        Collection<IMXCallListener> listeners = getCallListeners();
 
-        for (MXCallListener listener : listeners) {
+        for (IMXCallListener listener : listeners) {
             try {
-                listener.onViewLoading(callView);
+                listener.onCallViewCreated(callView);
             } catch (Exception e) {
-                Log.e(LOG_TAG,"## dispatchOnViewLoading(): Exception Msg="+e.getMessage());
-           }
+                Log.e(LOG_TAG, "## dispatchOnCallViewCreated(): Exception Msg=" + e.getMessage());
+            }
         }
     }
 
     /**
      * Dispatch the onViewReady event to the listeners.
      */
-    protected void dispatchOnViewReady() {
+    protected void dispatchOnReady() {
         if (isCallEnded()) {
-            Log.d(LOG_TAG, "## dispatchOnViewReady() : the call is ended");
+            Log.d(LOG_TAG, "## dispatchOnReady() : the call is ended");
             return;
         }
 
-        Log.d(LOG_TAG, "## dispatchOnViewReady()");
+        Log.d(LOG_TAG, "## dispatchOnReady()");
 
-        List<MXCallListener> listeners = getCallListeners();
+        Collection<IMXCallListener> listeners = getCallListeners();
 
-        for (MXCallListener listener : listeners) {
+        for (IMXCallListener listener : listeners) {
             try {
-                listener.onViewReady();
+                listener.onReady();
             } catch (Exception e) {
-                Log.e(LOG_TAG,"## dispatchOnViewReady(): Exception Msg="+e.getMessage());
+                Log.e(LOG_TAG, "## dispatchOnReady(): Exception Msg=" + e.getMessage());
             }
         }
     }
 
     /**
      * Dispatch the onCallError event to the listeners.
+     *
      * @param error error message
      */
     protected void dispatchOnCallError(String error) {
@@ -459,9 +478,9 @@ public class MXCall implements IMXCall {
 
         Log.d(LOG_TAG, "## dispatchOnCallError()");
 
-        List<MXCallListener> listeners = getCallListeners();
+        Collection<IMXCallListener> listeners = getCallListeners();
 
-        for (MXCallListener listener : listeners) {
+        for (IMXCallListener listener : listeners) {
             try {
                 listener.onCallError(error);
             } catch (Exception e) {
@@ -472,10 +491,11 @@ public class MXCall implements IMXCall {
 
     /**
      * Dispatch the onStateDidChange event to the listeners.
+     *
      * @param newState the new state
      */
     protected void dispatchOnStateDidChange(String newState) {
-    Log.d(LOG_TAG, "## dispatchOnCallErrorOnStateDidChange(): " + newState);
+        Log.d(LOG_TAG, "## dispatchOnCallErrorOnStateDidChange(): " + newState);
 
         // set the call start time
         if (TextUtils.equals(CALL_STATE_CONNECTED, newState) && (-1 == mStartTime)) {
@@ -487,13 +507,13 @@ public class MXCall implements IMXCall {
             mStartTime = -1;
         }
 
-        List<MXCallListener> listeners = getCallListeners();
+        Collection<IMXCallListener> listeners = getCallListeners();
 
-        for (MXCallListener listener : listeners) {
+        for (IMXCallListener listener : listeners) {
             try {
                 listener.onStateDidChange(newState);
             } catch (Exception e) {
-                Log.e(LOG_TAG,"## dispatchOnStateDidChange(): Exception Msg="+e.getMessage());
+                Log.e(LOG_TAG, "## dispatchOnStateDidChange(): Exception Msg=" + e.getMessage());
             }
         }
     }
@@ -504,31 +524,32 @@ public class MXCall implements IMXCall {
     protected void dispatchAnsweredElsewhere() {
         Log.d(LOG_TAG, "## dispatchAnsweredElsewhere()");
 
-        List<MXCallListener> listeners = getCallListeners();
+        Collection<IMXCallListener> listeners = getCallListeners();
 
-        for (MXCallListener listener : listeners) {
+        for (IMXCallListener listener : listeners) {
             try {
                 listener.onCallAnsweredElsewhere();
             } catch (Exception e) {
-                Log.e(LOG_TAG,"## dispatchAnsweredElsewhere(): Exception Msg="+e.getMessage());
+                Log.e(LOG_TAG, "## dispatchAnsweredElsewhere(): Exception Msg=" + e.getMessage());
             }
         }
     }
 
     /**
      * Dispatch the onCallEnd event to the listeners.
+     *
      * @param aEndCallReasonId the reason of the call ending
      */
     protected void dispatchOnCallEnd(int aEndCallReasonId) {
-        Log.d(LOG_TAG, "## dispatchOnCallEnd(): endReason="+aEndCallReasonId);
+        Log.d(LOG_TAG, "## dispatchOnCallEnd(): endReason=" + aEndCallReasonId);
 
-        List<MXCallListener> listeners = getCallListeners();
+        Collection<IMXCallListener> listeners = getCallListeners();
 
-        for (MXCallListener listener : listeners) {
+        for (IMXCallListener listener : listeners) {
             try {
                 listener.onCallEnd(aEndCallReasonId);
             } catch (Exception e) {
-                Log.e(LOG_TAG,"## dispatchOnCallEnd(): Exception Msg="+e.getMessage());
+                Log.e(LOG_TAG, "## dispatchOnCallEnd(): Exception Msg=" + e.getMessage());
             }
         }
     }
@@ -604,25 +625,27 @@ public class MXCall implements IMXCall {
 
     /**
      * Dispatch the onPreviewSizeChanged event to the listeners.
-     * @param width the preview width
+     *
+     * @param width  the preview width
      * @param height the preview height
      */
     protected void dispatchOnPreviewSizeChanged(int width, int height) {
         Log.d(LOG_TAG, "## dispatchOnPreviewSizeChanged(): width =" + width + " - height =" + height);
 
-        List<MXCallListener> listeners = getCallListeners();
+        Collection<IMXCallListener> listeners = getCallListeners();
 
-        for (MXCallListener listener : listeners) {
+        for (IMXCallListener listener : listeners) {
             try {
                 listener.onPreviewSizeChanged(width, height);
             } catch (Exception e) {
-                Log.e(LOG_TAG,"## dispatchOnPreviewSizeChanged(): Exception Msg="+e.getMessage());
+                Log.e(LOG_TAG, "## dispatchOnPreviewSizeChanged(): Exception Msg=" + e.getMessage());
             }
         }
     }
 
     /**
      * send an hang up event
+     *
      * @param reason the reason
      */
     protected void sendHangup(String reason) {
@@ -637,7 +660,7 @@ public class MXCall implements IMXCall {
 
         Event event = new Event(Event.EVENT_TYPE_CALL_HANGUP, hangupContent, mSession.getCredentials().userId, mCallSignalingRoom.getRoomId());
 
-		// local notification to indicate the end of call
+        // local notification to indicate the end of call
         mUIThreadHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -672,13 +695,13 @@ public class MXCall implements IMXCall {
     }
 
     @Override
-    public void muteVideoRecording(boolean isVideoMuted){
-        Log.w(LOG_TAG,"## muteVideoRecording(): not implemented");
+    public void muteVideoRecording(boolean isVideoMuted) {
+        Log.w(LOG_TAG, "## muteVideoRecording(): not implemented");
     }
 
     @Override
     public boolean isVideoRecordingMuted() {
-        Log.w(LOG_TAG,"## muteVideoRecording(): not implemented - default value = false");
+        Log.w(LOG_TAG, "## muteVideoRecording(): not implemented - default value = false");
         return false;
     }
 }

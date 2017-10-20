@@ -61,7 +61,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class MXWebRtcCall extends MXCall {
-    private static final String LOG_TAG = "MXWebRtcCall";
+    private static final String LOG_TAG = MXWebRtcCall.class.getSimpleName();
 
     private static final String VIDEO_TRACK_ID = "ARDAMSv0";
     private static final String AUDIO_TRACK_ID = "ARDAMSa0";
@@ -213,6 +213,8 @@ public class MXWebRtcCall extends MXCall {
      */
     @Override
     public void createCallView() {
+        super.createCallView();
+
         if ((null != mIsSupported) && mIsSupported) {
             Log.d(LOG_TAG, "++ createCallView()");
 
@@ -225,13 +227,13 @@ public class MXWebRtcCall extends MXCall {
                     mCallView.setBackgroundColor(ContextCompat.getColor(mContext, android.R.color.black));
                     mCallView.setVisibility(View.GONE);
 
-                    dispatchOnViewLoading(mCallView);
+                    dispatchOnCallViewCreated(mCallView);
 
                     mUIThreadHandler.post(new Runnable() {
                         @Override
                         public void run() {
-                            dispatchOnStateDidChange(CALL_STATE_FLEDGLING);
-                            dispatchOnViewReady();
+                            dispatchOnStateDidChange(CALL_STATE_READY);
+                            dispatchOnReady();
                         }
                     });
                 }
@@ -385,6 +387,7 @@ public class MXWebRtcCall extends MXCall {
 
     @Override
     public void updateLocalVideoRendererPosition(VideoLayoutConfiguration aConfigurationToApply) {
+        super.updateLocalVideoRendererPosition(aConfigurationToApply);
         try {
             updateWebRtcViewLayout(mPipRTCView, aConfigurationToApply);
         } catch (Exception e) {
@@ -876,7 +879,6 @@ public class MXWebRtcCall extends MXCall {
 
         // create the local renderer only if there is a camera on the device
         if (hasCameraDevice()) {
-
             try {
                 if (null != mFrontCameraName) {
                     mCameraVideoCapturer = createVideoCapturer(mFrontCameraName);
@@ -1126,11 +1128,12 @@ public class MXWebRtcCall extends MXCall {
     }
 
     /**
-     * Start a call.
+     * Start an outgoing call.
      */
     @Override
     public void placeCall(VideoLayoutConfiguration aLocalVideoPosition) {
         Log.d(LOG_TAG, "placeCall");
+        super.placeCall(aLocalVideoPosition);
 
         dispatchOnStateDidChange(IMXCall.CALL_STATE_WAIT_LOCAL_MEDIA);
         initCallUI(null, aLocalVideoPosition);
@@ -1201,12 +1204,11 @@ public class MXWebRtcCall extends MXCall {
      */
     @Override
     public void prepareIncomingCall(final JsonObject aCallInviteParams, final String aCallId, final VideoLayoutConfiguration aLocalVideoPosition) {
-
         Log.d(LOG_TAG, "## prepareIncomingCall : call state " + getCallState());
-
+        super.prepareIncomingCall(aCallInviteParams, aCallId, aLocalVideoPosition);
         mCallId = aCallId;
 
-        if (CALL_STATE_FLEDGLING.equals(getCallState())) {
+        if (CALL_STATE_READY.equals(getCallState())) {
             mIsIncoming = true;
 
             dispatchOnStateDidChange(CALL_STATE_WAIT_LOCAL_MEDIA);
@@ -1243,7 +1245,8 @@ public class MXWebRtcCall extends MXCall {
     public void launchIncomingCall(VideoLayoutConfiguration aLocalVideoPosition) {
         Log.d(LOG_TAG, "launchIncomingCall : call state " + getCallState());
 
-        if (CALL_STATE_FLEDGLING.equals(getCallState())) {
+        super.launchIncomingCall(aLocalVideoPosition);
+        if (CALL_STATE_READY.equals(getCallState())) {
             prepareIncomingCall(mCallInviteParams, mCallId, aLocalVideoPosition);
         }
     }
@@ -1409,6 +1412,8 @@ public class MXWebRtcCall extends MXCall {
      */
     @Override
     public void handleCallEvent(Event event) {
+        super.handleCallEvent(event);
+
         if (event.isCallEvent()) {
             String eventType = event.getType();
 
@@ -1468,6 +1473,7 @@ public class MXWebRtcCall extends MXCall {
      */
     @Override
     public void answer() {
+        super.answer();
         Log.d(LOG_TAG, "answer " + getCallState());
 
         if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mPeerConnection)) {
@@ -1560,6 +1566,8 @@ public class MXWebRtcCall extends MXCall {
      */
     @Override
     public void hangup(String reason) {
+        super.hangup(reason);
+
         Log.d(LOG_TAG, "## hangup(): reason=" + reason);
 
         if (!isCallEnded()) {
@@ -1619,6 +1627,8 @@ public class MXWebRtcCall extends MXCall {
      */
     @Override
     public void onAnsweredElsewhere() {
+        super.onAnsweredElsewhere();
+
         String state = getCallState();
 
         Log.d(LOG_TAG, "onAnsweredElsewhere in state " + state);

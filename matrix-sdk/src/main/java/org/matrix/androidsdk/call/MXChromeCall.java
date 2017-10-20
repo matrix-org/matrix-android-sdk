@@ -21,7 +21,9 @@ import android.content.Context;
 import android.graphics.Color;
 import android.os.Build;
 import android.text.TextUtils;
+
 import org.matrix.androidsdk.util.Log;
+
 import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
@@ -34,6 +36,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
@@ -43,7 +46,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class MXChromeCall extends MXCall {
-    private static final String LOG_TAG = "MXChromeCall";
+    private static final String LOG_TAG = MXChromeCall.class.getSimpleName();
 
     private WebView mWebView = null;
     private CallWebAppInterface mCallWebAppInterface = null;
@@ -84,6 +87,7 @@ public class MXChromeCall extends MXCall {
     @SuppressLint("NewApi")
     @Override
     public void createCallView() {
+        super.createCallView();
         mUIThreadHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -91,7 +95,7 @@ public class MXChromeCall extends MXCall {
                 mWebView.setBackgroundColor(Color.BLACK);
 
                 // warn that the webview must be added in an activity/fragment
-                dispatchOnViewLoading(mWebView);
+                dispatchOnCallViewCreated(mWebView);
 
                 mUIThreadHandler.post(new Runnable() {
                     @Override
@@ -146,15 +150,13 @@ public class MXChromeCall extends MXCall {
         });
     }
 
-
-    // actions (must be done after onViewReady()
-
     /**
      * Start a call.
      */
     @Override
     public void placeCall(VideoLayoutConfiguration aLocalVideoPosition) {
-        if (CALL_STATE_FLEDGLING.equals(getCallState())) {
+        super.placeCall(aLocalVideoPosition);
+        if (CALL_STATE_READY.equals(getCallState())) {
             mIsIncoming = false;
 
             mUIThreadHandler.post(new Runnable() {
@@ -168,15 +170,18 @@ public class MXChromeCall extends MXCall {
 
     /**
      * Prepare a call reception.
-     * @param aCallInviteParams the invitation Event content
-     * @param aCallId the call ID
+     *
+     * @param aCallInviteParams   the invitation Event content
+     * @param aCallId             the call ID
      * @param aLocalVideoPosition position of the local video attendee
      */
     @Override
     public void prepareIncomingCall(final JsonObject aCallInviteParams, final String aCallId, VideoLayoutConfiguration aLocalVideoPosition) {
+        Log.d(LOG_TAG, "## prepareIncomingCall : call state " + getCallState());
+        super.prepareIncomingCall(aCallInviteParams, aCallId, aLocalVideoPosition);
         mCallId = aCallId;
 
-        if (CALL_STATE_FLEDGLING.equals(getCallState())) {
+        if (CALL_STATE_READY.equals(getCallState())) {
             mIsIncoming = true;
 
             mUIThreadHandler.post(new Runnable() {
@@ -201,7 +206,7 @@ public class MXChromeCall extends MXCall {
                 JsonObject offer = mCallInviteParams.get("offer").getAsJsonObject();
                 JsonElement sdp = offer.get("sdp");
                 String sdpValue = sdp.getAsString();
-                setIsVideo(sdpValue.indexOf("m=video") >= 0);
+                setIsVideo(sdpValue.contains("m=video"));
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## prepareIncomingCall() ; " + e.getMessage());
             }
@@ -211,17 +216,20 @@ public class MXChromeCall extends MXCall {
     /**
      * The call has been detected as an incoming one.
      * The application launched the dedicated activity and expects to launch the incoming call.
+     *
      * @param aLocalVideoPosition local video position
      */
     @Override
     public void launchIncomingCall(VideoLayoutConfiguration aLocalVideoPosition) {
-        if (CALL_STATE_FLEDGLING.equals(getCallState())) {
+        super.launchIncomingCall(aLocalVideoPosition);
+        if (CALL_STATE_READY.equals(getCallState())) {
             prepareIncomingCall(mCallInviteParams, mCallId, null);
         }
     }
 
     /**
      * The callee accepts the call.
+     *
      * @param event the event
      */
     private void onCallAnswer(final Event event) {
@@ -237,6 +245,7 @@ public class MXChromeCall extends MXCall {
 
     /**
      * The other call member hangs up the call.
+     *
      * @param event the event
      */
     private void onCallHangup(final Event event) {
@@ -259,6 +268,7 @@ public class MXChromeCall extends MXCall {
 
     /**
      * A new Ice candidate is received
+     *
      * @param candidates the ice candidates
      */
     public void onNewCandidates(final JsonElement candidates) {
@@ -274,6 +284,7 @@ public class MXChromeCall extends MXCall {
 
     /**
      * Add ice candidates
+     *
      * @param candidates ic candidates
      */
     private void addCandidates(JsonArray candidates) {
@@ -298,12 +309,16 @@ public class MXChromeCall extends MXCall {
     }
 
     // events thread
+
     /**
      * Manage the call events.
+     *
      * @param event the call event.
      */
     @Override
     public void handleCallEvent(Event event) {
+        super.handleCallEvent(event);
+
         String eventType = event.getType();
 
         if (event.isCallEvent()) {
@@ -346,11 +361,13 @@ public class MXChromeCall extends MXCall {
     }
 
     // user actions
+
     /**
      * The call is accepted.
      */
     @Override
     public void answer() {
+        super.answer();
         if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mWebView)) {
             mUIThreadHandler.post(new Runnable() {
                 @Override
@@ -366,6 +383,8 @@ public class MXChromeCall extends MXCall {
      */
     @Override
     public void hangup(String reason) {
+        super.hangup(reason);
+
         if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mWebView)) {
             mUIThreadHandler.post(new Runnable() {
                 @Override
@@ -414,6 +433,7 @@ public class MXChromeCall extends MXCall {
 
     /**
      * Set the callview visibility
+     *
      * @return true if the operation succeeds
      */
     public boolean setVisibility(int visibility) {
@@ -426,6 +446,7 @@ public class MXChromeCall extends MXCall {
 
     @Override
     public void onAnsweredElsewhere() {
+        super.onAnsweredElsewhere();
         mUIThreadHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -441,7 +462,7 @@ public class MXChromeCall extends MXCall {
         public String mCallState = CALL_STATE_CREATING_CALL_VIEW;
         private Timer mCallTimeoutTimer = null;
 
-        CallWebAppInterface()  {
+        CallWebAppInterface() {
             if (null == mCallingRoom) {
                 throw new AssertionError("MXChromeCall : room cannot be null");
             }
@@ -483,11 +504,11 @@ public class MXChromeCall extends MXCall {
         }
 
         @JavascriptInterface
-        public void wOnStateUpdate(String jsstate)  {
+        public void wOnStateUpdate(String jsstate) {
             String nextState = null;
 
             if ("fledgling".equals(jsstate)) {
-                nextState = CALL_STATE_FLEDGLING;
+                nextState = CALL_STATE_READY;
             } else if ("wait_local_media".equals(jsstate)) {
                 nextState = CALL_STATE_WAIT_LOCAL_MEDIA;
             } else if ("create_offer".equals(jsstate)) {
@@ -530,12 +551,12 @@ public class MXChromeCall extends MXCall {
 
         @JavascriptInterface
         public void wOnLoaded() {
-            mCallState = CALL_STATE_FLEDGLING;
+            mCallState = CALL_STATE_READY;
 
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    dispatchOnViewReady();
+                    dispatchOnReady();
                 }
             });
         }
