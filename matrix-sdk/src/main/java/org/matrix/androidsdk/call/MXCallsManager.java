@@ -609,7 +609,7 @@ public class MXCallsManager {
      * @param roomId   the room roomId
      * @param callback the async callback
      */
-    public void createCallInRoom(final String roomId, final ApiCallback<IMXCall> callback) {
+    public void createCallInRoom(final String roomId, final boolean isVideo, final ApiCallback<IMXCall> callback) {
         Log.d(LOG_TAG, "createCallInRoom in " + roomId);
 
         final Room room = mSession.getDataHandler().getRoom(roomId);
@@ -637,6 +637,7 @@ public class MXCallsManager {
                                 public void onSuccess(Void anything) {
                                     final IMXCall call = getCallWithCallId(null, true);
                                     call.setRooms(room, room);
+                                    call.setIsVideo(isVideo);
                                     dispatchOnOutgoingCall(call);
 
                                     if (null != callback) {
@@ -672,6 +673,7 @@ public class MXCallsManager {
                             });
                         } else {
                             final IMXCall call = getCallWithCallId(null, true);
+                            call.setIsVideo(isVideo);
                             dispatchOnOutgoingCall(call);
                             call.setRooms(room, room);
 
@@ -701,6 +703,7 @@ public class MXCallsManager {
                                         final IMXCall call = getCallWithCallId(null, true);
                                         call.setRooms(room, conferenceRoom);
                                         call.setIsConference(true);
+                                        call.setIsVideo(isVideo);
                                         dispatchOnOutgoingCall(call);
 
                                         if (null != callback) {
