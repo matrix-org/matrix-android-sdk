@@ -21,7 +21,7 @@ import android.view.View;
 /**
  * This class tracks the call update.
  */
-interface IMXCallListener {
+public interface IMXCallListener {
 
     /**
      * Called when the call state change

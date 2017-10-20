@@ -21,7 +21,7 @@ import java.io.Serializable;
 /**
  * Defines the video call view layout.
  */
-class VideoLayoutConfiguration implements Serializable {
+public class VideoLayoutConfiguration implements Serializable {
     public final static int INVALID_VALUE = -1;
 
     @Override

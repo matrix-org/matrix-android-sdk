@@ -80,7 +80,7 @@ public class MXCallsManager {
     private final HashMap<String, IMXCall> mCallsByCallId = new HashMap<>();
 
     // listeners
-    private final Set<MXCallsManagerListener> mListeners = new HashSet<>();
+    private final Set<IMXCallsManagerListener> mListeners = new HashSet<>();
 
     // incoming calls
     private final Set<String> mxPendingIncomingCallId = new HashSet<>();
@@ -1127,7 +1127,7 @@ public class MXCallsManager {
      *
      * @param listener the listener to add
      */
-    public void addListener(MXCallsManagerListener listener) {
+    public void addListener(IMXCallsManagerListener listener) {
         if (null != listener) {
             synchronized (this) {
                 mListeners.add(listener);
@@ -1140,7 +1140,7 @@ public class MXCallsManager {
      *
      * @param listener the listener to remove
      */
-    public void removeListener(MXCallsManagerListener listener) {
+    public void removeListener(IMXCallsManagerListener listener) {
         if (null != listener) {
             synchronized (this) {
                 mListeners.remove(listener);
@@ -1151,8 +1151,8 @@ public class MXCallsManager {
     /**
      * @return a copy of the listeners
      */
-    private Collection<MXCallsManagerListener> getListeners() {
-        Collection<MXCallsManagerListener> listeners;
+    private Collection<IMXCallsManagerListener> getListeners() {
+        Collection<IMXCallsManagerListener> listeners;
 
         synchronized (this) {
             listeners = new HashSet<>(mListeners);
@@ -1170,9 +1170,9 @@ public class MXCallsManager {
     private void dispatchOnIncomingCall(IMXCall call, final MXUsersDevicesMap<MXDeviceInfo> unknownDevices) {
         Log.d(LOG_TAG, "dispatchOnIncomingCall " + call.getCallId());
 
-        Collection<MXCallsManagerListener> listeners = getListeners();
+        Collection<IMXCallsManagerListener> listeners = getListeners();
 
-        for (MXCallsManagerListener l : listeners) {
+        for (IMXCallsManagerListener l : listeners) {
             try {
                 l.onIncomingCall(call, unknownDevices);
             } catch (Exception e) {
@@ -1189,9 +1189,9 @@ public class MXCallsManager {
     private void dispatchOnOutgoingCall(IMXCall call) {
         Log.d(LOG_TAG, "dispatchOnOutgoingCall " + call.getCallId());
 
-        Collection<MXCallsManagerListener> listeners = getListeners();
+        Collection<IMXCallsManagerListener> listeners = getListeners();
 
-        for (MXCallsManagerListener l : listeners) {
+        for (IMXCallsManagerListener l : listeners) {
             try {
                 l.onOutgoingCall(call);
             } catch (Exception e) {
@@ -1208,9 +1208,9 @@ public class MXCallsManager {
     private void dispatchOnCallHangUp(IMXCall call) {
         Log.d(LOG_TAG, "dispatchOnCallHangUp");
 
-        Collection<MXCallsManagerListener> listeners = getListeners();
+        Collection<IMXCallsManagerListener> listeners = getListeners();
 
-        for (MXCallsManagerListener l : listeners) {
+        for (IMXCallsManagerListener l : listeners) {
             try {
                 l.onCallHangUp(call);
             } catch (Exception e) {
@@ -1227,9 +1227,9 @@ public class MXCallsManager {
     private void dispatchOnVoipConferenceStarted(String roomId) {
         Log.d(LOG_TAG, "dispatchOnVoipConferenceStarted : " + roomId);
 
-        Collection<MXCallsManagerListener> listeners = getListeners();
+        Collection<IMXCallsManagerListener> listeners = getListeners();
 
-        for (MXCallsManagerListener l : listeners) {
+        for (IMXCallsManagerListener l : listeners) {
             try {
                 l.onVoipConferenceStarted(roomId);
             } catch (Exception e) {
@@ -1246,9 +1246,9 @@ public class MXCallsManager {
     private void dispatchOnVoipConferenceFinished(String roomId) {
         Log.d(LOG_TAG, "onVoipConferenceFinished : " + roomId);
 
-        Collection<MXCallsManagerListener> listeners = getListeners();
+        Collection<IMXCallsManagerListener> listeners = getListeners();
 
-        for (MXCallsManagerListener l : listeners) {
+        for (IMXCallsManagerListener l : listeners) {
             try {
                 l.onVoipConferenceFinished(roomId);
             } catch (Exception e) {
