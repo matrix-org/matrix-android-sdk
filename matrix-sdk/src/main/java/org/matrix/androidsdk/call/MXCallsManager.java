@@ -61,7 +61,8 @@ public class MXCallsManager {
      * Defines the call classes.
      */
     public enum CallClass {
-        CHROME_CLASS,
+        // disabled because of https://github.com/vector-im/riot-android/issues/1660
+        //CHROME_CLASS,
         WEBRTC_CLASS,
         DEFAULT_CLASS
     }
@@ -158,7 +159,7 @@ public class MXCallsManager {
      * @return true if the call feature is supported
      */
     public boolean isSupported() {
-        return MXChromeCall.isSupported() || MXWebRtcCall.isSupported(mContext);
+        return /*MXChromeCall.isSupported() || */ MXWebRtcCall.isSupported(mContext);
     }
 
     /**
@@ -167,9 +168,9 @@ public class MXCallsManager {
     public Collection<CallClass> supportedClass() {
         ArrayList<CallClass> list = new ArrayList<>();
 
-        if (MXChromeCall.isSupported()) {
+        /*if (MXChromeCall.isSupported()) {
             list.add(CallClass.CHROME_CLASS);
-        }
+        }*/
 
         if (MXWebRtcCall.isSupported(mContext)) {
             list.add(CallClass.WEBRTC_CLASS);
@@ -188,9 +189,9 @@ public class MXCallsManager {
 
         boolean isUpdatable = false;
 
-        if (callClass == CallClass.CHROME_CLASS) {
+        /*if (callClass == CallClass.CHROME_CLASS) {
             isUpdatable = MXChromeCall.isSupported();
-        }
+        }*/
 
         if (callClass == CallClass.WEBRTC_CLASS) {
             isUpdatable = MXWebRtcCall.isSupported(mContext);
@@ -213,11 +214,11 @@ public class MXCallsManager {
         IMXCall call = null;
 
         // default
-        if (((CallClass.CHROME_CLASS == mPreferredCallClass) || (CallClass.DEFAULT_CLASS == mPreferredCallClass)) && MXChromeCall.isSupported()) {
+        /*if (((CallClass.CHROME_CLASS == mPreferredCallClass) || (CallClass.DEFAULT_CLASS == mPreferredCallClass)) && MXChromeCall.isSupported()) {
             call = new MXChromeCall(mSession, mContext, getTurnServer());
-        }
+        }*/
 
-        // Jingle
+        // webrtc
         if (null == call) {
             try {
                 call = new MXWebRtcCall(mSession, mContext, getTurnServer());
