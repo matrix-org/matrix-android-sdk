@@ -2019,25 +2019,13 @@ public class Room {
             }
 
             @Override
-            public void onEventEncrypting(Event event) {
+            public void onEventSentStateUpdated(Event event) {
                 // Filter out events for other rooms
                 if (TextUtils.equals(getRoomId(), event.roomId)) {
                     try {
-                        eventListener.onEventEncrypting(event);
+                        eventListener.onEventSentStateUpdated(event);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onEventEncrypting exception " + e.getMessage());
-                    }
-                }
-            }
-
-            @Override
-            public void onEventEncrypted(Event event) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(getRoomId(), event.roomId)) {
-                    try {
-                        eventListener.onEventEncrypted(event);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onEventEncrypted exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onEventSentStateUpdated exception " + e.getMessage());
                     }
                 }
             }
@@ -2067,18 +2055,6 @@ public class Room {
             }
 
             @Override
-            public void onFailedSendingEvent(Event event) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(getRoomId(), event.roomId)) {
-                    try {
-                        eventListener.onFailedSendingEvent(event);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onFailedSendingEvent exception " + e.getMessage());
-                    }
-                }
-            }
-
-            @Override
             public void onRoomInitialSyncComplete(String roomId) {
                 // Filter out events for other rooms
                 if (TextUtils.equals(getRoomId(), roomId)) {
@@ -2098,6 +2074,18 @@ public class Room {
                         eventListener.onRoomInternalUpdate(roomId);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onRoomInternalUpdate exception " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onNotificationCountUpdate(String roomId) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), roomId)) {
+                    try {
+                        eventListener.onNotificationCountUpdate(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onNotificationCountUpdate exception " + e.getMessage());
                     }
                 }
             }
@@ -2223,7 +2211,7 @@ public class Room {
     public void sendEvent(final Event event, final ApiCallback<Void> callback) {
         // wait that the room is synced before sending messages
         if (!mIsReady || !selfJoined()) {
-            event.mSentState = Event.SentState.WAITING_RETRY;
+            mDataHandler.updateEventState(event, Event.SentState.WAITING_RETRY);
             try {
                 callback.onNetworkError(null);
             } catch (Exception e) {
@@ -2244,9 +2232,9 @@ public class Room {
                 boolean isReadMarkerUpdated = TextUtils.equals(getReadMarkerEventId(), event.eventId);
 
                 // update the event with the server response
-                event.mSentState = Event.SentState.SENT;
                 event.eventId = serverResponseEvent.eventId;
                 event.originServerTs = System.currentTimeMillis();
+                mDataHandler.updateEventState(event, Event.SentState.SENT);
 
                 // the message echo is not yet echoed
                 if (!mStore.doesEventExist(serverResponseEvent.eventId, getRoomId())) {
@@ -2268,9 +2256,8 @@ public class Room {
 
             @Override
             public void onNetworkError(Exception e) {
-                event.mSentState = Event.SentState.UNDELIVERABLE;
                 event.unsentException = e;
-
+                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERABLE);
                 try {
                     callback.onNetworkError(e);
                 } catch (Exception anException) {
@@ -2280,8 +2267,8 @@ public class Room {
 
             @Override
             public void onMatrixError(MatrixError e) {
-                event.mSentState = Event.SentState.UNDELIVERABLE;
                 event.unsentMatrixError = e;
+                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERABLE);
 
                 if (TextUtils.equals(MatrixError.UNKNOWN_TOKEN, e.errcode)) {
                     mDataHandler.onInvalidToken();
@@ -2296,9 +2283,8 @@ public class Room {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                event.mSentState = Event.SentState.UNDELIVERABLE;
                 event.unsentException = e;
-
+                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERABLE);
                 try {
                     callback.onUnexpectedError(e);
                 } catch (Exception anException) {
@@ -2308,8 +2294,7 @@ public class Room {
         };
 
         if (isEncrypted() && (null != mDataHandler.getCrypto())) {
-            event.mSentState = Event.SentState.ENCRYPTING;
-            mDataHandler.onEventEncrypting(event);
+            mDataHandler.updateEventState(event, Event.SentState.ENCRYPTING);
 
             // Encrypt the content before sending
             mDataHandler.getCrypto().encryptEventContent(event.getContent().getAsJsonObject(), event.getType(), this, new ApiCallback<MXEncryptEventContentResult>() {
@@ -2320,18 +2305,15 @@ public class Room {
                     event.updateContent(encryptEventContentResult.mEventContent.getAsJsonObject());
                     mDataHandler.getCrypto().decryptEvent(event, null);
 
-                    // warn the upper layer
-                    mDataHandler.onEventEncrypted(event);
-
                     // sending in progress
-                    event.mSentState = Event.SentState.SENDING;
+                    mDataHandler.updateEventState(event, Event.SentState.SENDING);
                     mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(event.originServerTs + "", getRoomId(), encryptEventContentResult.mEventType, encryptEventContentResult.mEventContent.getAsJsonObject(), localCB);
                 }
 
                 @Override
                 public void onNetworkError(Exception e) {
-                    event.mSentState = Event.SentState.UNDELIVERABLE;
                     event.unsentException = e;
+                    mDataHandler.updateEventState(event, Event.SentState.UNDELIVERABLE);
 
                     if (null != callback) {
                         callback.onNetworkError(e);
@@ -2346,8 +2328,8 @@ public class Room {
                     } else {
                         event.mSentState = Event.SentState.UNDELIVERABLE;
                     }
-
                     event.unsentMatrixError = e;
+                    mDataHandler.onEventSentStateUpdated(event);
 
                     if (null != callback) {
                         callback.onMatrixError(e);
@@ -2356,8 +2338,8 @@ public class Room {
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    event.mSentState = Event.SentState.UNDELIVERABLE;
                     event.unsentException = e;
+                    mDataHandler.updateEventState(event, Event.SentState.UNDELIVERABLE);
 
                     if (null != callback) {
                         callback.onUnexpectedError(e);
@@ -2365,7 +2347,7 @@ public class Room {
                 }
             });
         } else {
-            event.mSentState = Event.SentState.SENDING;
+            mDataHandler.updateEventState(event, Event.SentState.SENDING);
 
             if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
                 mDataHandler.getDataRetriever().getRoomsRestClient().sendMessage(event.originServerTs + "", getRoomId(), JsonUtils.toMessage(event.getContent()), localCB);
@@ -2390,7 +2372,7 @@ public class Room {
                     (Event.SentState.ENCRYPTING == event.mSentState)) {
 
                 // the message cannot be sent anymore
-                event.mSentState = Event.SentState.UNDELIVERABLE;
+                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERABLE);
             }
 
             List<String> urls = event.getMediaUrls();

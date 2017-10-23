@@ -1691,30 +1691,20 @@ public class MXDataHandler implements IMXEventListener {
         });
     }
 
-    @Override
-    public void onEventEncrypting(final Event event) {
-        if (ignoreEvent(event.roomId)) {
-            return;
+    /**
+     * Update the event state and warn the listener if there is an update.
+     * @param event the event
+     * @param newState the new state
+     */
+    public void updateEventState(Event event, Event.SentState newState)  {
+        if ((null != event) && (event.mSentState != newState)) {
+            event.mSentState = newState;
+            onEventSentStateUpdated(event);
         }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onEventEncrypting(event);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onEventEncrypting " + e.getMessage());
-                    }
-                }
-            }
-        });
     }
 
     @Override
-    public void onEventEncrypted(final Event event) {
+    public void onEventSentStateUpdated(final Event event) {
         if (ignoreEvent(event.roomId)) {
             return;
         }
@@ -1726,9 +1716,9 @@ public class MXDataHandler implements IMXEventListener {
             public void run() {
                 for (IMXEventListener listener : eventListeners) {
                     try {
-                        listener.onEventEncrypted(event);
+                        listener.onEventSentStateUpdated(event);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onEventEncrypted " + e.getMessage());
+                        Log.e(LOG_TAG, "onEventSentStateUpdated " + e.getMessage());
                     }
                 }
             }
@@ -1755,32 +1745,6 @@ public class MXDataHandler implements IMXEventListener {
                         listener.onEventSent(event, prevEventId);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onEventSent " + e.getMessage());
-                    }
-                }
-            }
-        });
-    }
-
-    @Override
-    public void onFailedSendingEvent(final Event event) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onFailedSendingEvent(event);
-        }
-
-        if (ignoreEvent(event.roomId)) {
-            return;
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onFailedSendingEvent(event);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onFailedSendingEvent " + e.getMessage());
                     }
                 }
             }
@@ -1999,6 +1963,32 @@ public class MXDataHandler implements IMXEventListener {
                         listener.onRoomInternalUpdate(roomId);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onRoomInternalUpdate " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onNotificationCountUpdate(final String roomId) {
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onNotificationCountUpdate(roomId);
+        }
+
+        if (ignoreEvent(roomId)) {
+            return;
+        }
+
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onNotificationCountUpdate(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onNotificationCountUpdate " + e.getMessage());
                     }
                 }
             }

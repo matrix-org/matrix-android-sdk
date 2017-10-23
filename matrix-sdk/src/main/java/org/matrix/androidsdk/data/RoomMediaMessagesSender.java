@@ -154,7 +154,7 @@ class RoomMediaMessagesSender {
                     roomMediaMessage.setEvent(event);
                 }
 
-                roomMediaMessage.getEvent().mSentState = Event.SentState.UNSENT;
+                mDataHandler.updateEventState(roomMediaMessage.getEvent(), Event.SentState.UNSENT);
                 mRoom.storeOutgoingEvent(roomMediaMessage.getEvent());
                 mDataHandler.getStore().commit();
 
@@ -634,7 +634,7 @@ class RoomMediaMessagesSender {
                             mUiHandler.post(new Runnable() {
                                 @Override
                                 public void run() {
-                                    roomMediaMessage.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
+                                    mDataHandler.updateEventState(roomMediaMessage.getEvent(), Event.SentState.UNDELIVERABLE);
                                     mRoom.storeOutgoingEvent(roomMediaMessage.getEvent());
                                     mDataHandler.getStore().commit();
 
@@ -652,8 +652,7 @@ class RoomMediaMessagesSender {
                     return;
                 }
 
-                //
-                event.mSentState = Event.SentState.SENDING;
+                mDataHandler.updateEventState(roomMediaMessage.getEvent(), Event.SentState.SENDING);
 
                 final MXMediasCache mediasCache = mDataHandler.getMediasCache();
 
@@ -675,7 +674,7 @@ class RoomMediaMessagesSender {
                         mUiHandler.post(new Runnable() {
                             @Override
                             public void run() {
-                                event.mSentState = Event.SentState.UNDELIVERABLE;
+                                mDataHandler.updateEventState(roomMediaMessage.getEvent(), Event.SentState.UNDELIVERABLE);
 
                                 if (null != roomMediaMessage.getMediaUploadListener()) {
                                     roomMediaMessage.getMediaUploadListener().onUploadCancel(uploadId);
@@ -693,7 +692,7 @@ class RoomMediaMessagesSender {
                         mUiHandler.post(new Runnable() {
                             @Override
                             public void run() {
-                                event.mSentState = Event.SentState.UNDELIVERABLE;
+                                mDataHandler.updateEventState(roomMediaMessage.getEvent(), Event.SentState.UNDELIVERABLE);
 
                                 if (null != roomMediaMessage.getMediaUploadListener()) {
                                     roomMediaMessage.getMediaUploadListener().onUploadError(uploadId, serverResponseCode, serverErrorMessage);

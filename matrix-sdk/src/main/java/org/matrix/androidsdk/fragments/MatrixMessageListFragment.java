@@ -267,18 +267,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     private final IMXEventListener mEventsListener = new MXEventListener() {
-        @Override
-        public void onEventEncrypting(Event event) {
-            getUiHandler().post(new Runnable() {
-                @Override
-                public void run() {
-                    mAdapter.notifyDataSetChanged();
-                }
-            });
-        }
 
         @Override
-        public void onEventEncrypted(Event event) {
+        public void onEventSentStateUpdated(Event event) {
             getUiHandler().post(new Runnable() {
                 @Override
                 public void run() {

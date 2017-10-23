@@ -629,6 +629,7 @@ public class EventTimeline {
                     mState.setNotificationCount(notifCount);
                     mState.setHighlightCount(highlightCount);
                     mStore.storeLiveStateForRoom(mRoomId);
+                    mDataHandler.onNotificationCountUpdate(mRoomId);
                 }
 
                 // some users reported that the summary notification counts were sometimes invalid
@@ -641,6 +642,7 @@ public class EventTimeline {
                     summary.setNotificationCount(notifCount);
                     summary.setHighlightCount(highlightCount);
                     mStore.flushSummary(summary);
+                    mDataHandler.onNotificationCountUpdate(mRoomId);
                 }
             }
         }

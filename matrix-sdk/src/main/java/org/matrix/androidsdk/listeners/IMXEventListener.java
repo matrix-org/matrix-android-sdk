@@ -82,25 +82,10 @@ public interface IMXEventListener {
     void onBingEvent(Event event, RoomState roomState, BingRule bingRule);
 
     /**
-     * An event is encrypting.
-     *
-     * @param event the encrypting event
+     * The state of an event has been updated.
+     * @param event the event
      */
-    void onEventEncrypting(Event event);
-
-    /**
-     * An event has been successfully encrypted.
-     *
-     * @param event the encrypted event
-     */
-    void onEventEncrypted(Event event);
-
-    /**
-     * An event has been decrypted
-     *
-     * @param event the decrypted event
-     */
-    void onEventDecrypted(Event event);
+    void onEventSentStateUpdated(Event event);
 
     /**
      * An event has been sent.
@@ -112,11 +97,11 @@ public interface IMXEventListener {
     void onEventSent(Event event, String prevEventId);
 
     /**
-     * The event fails to be sent.
+     * An event has been decrypted
      *
-     * @param event the event
+     * @param event the decrypted event
      */
-    void onFailedSendingEvent(Event event);
+    void onEventDecrypted(Event event);
 
     /**
      * The bing rules have been updated
@@ -171,6 +156,13 @@ public interface IMXEventListener {
      * @param roomId the roomID
      */
     void onRoomInternalUpdate(String roomId);
+
+    /**
+     * The notification count of a dedicated room
+     * has been updated.
+     * @param roomId
+     */
+    void onNotificationCountUpdate(String roomId);
 
     /**
      * The user left the room.
