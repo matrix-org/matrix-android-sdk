@@ -250,6 +250,26 @@ public class Room {
                         }
                     }
                 } else if (Event.EVENT_TYPE_TYPING.equals(event.getType())) {
+                    JsonObject eventContent = event.getContentAsJsonObject();
+
+                    if (eventContent.has("user_ids")) {
+                        synchronized (Room.this) {
+                            mTypingUsers = null;
+
+                            try {
+                                mTypingUsers = (new Gson()).fromJson(eventContent.get("user_ids"), new TypeToken<List<String>>() {
+                                }.getType());
+                            } catch (Exception e) {
+                                Log.e(LOG_TAG, "## handleEphemeralEvents() : exception " + e.getMessage());
+                            }
+
+                            // avoid null list
+                            if (null == mTypingUsers) {
+                                mTypingUsers = new ArrayList<>();
+                            }
+                        }
+                    }
+
                     mDataHandler.onLiveEvent(event, getState());
                 }
             } catch (Exception e) {
@@ -1981,32 +2001,6 @@ public class Room {
             public void onLiveEvent(Event event, RoomState roomState) {
                 // Filter out events for other rooms and events while we are joining (before the room is ready)
                 if (TextUtils.equals(getRoomId(), event.roomId) && mIsReady) {
-
-                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_TYPING)) {
-                        // Typing notifications events are not room messages nor room state events
-                        // They are just volatile information
-
-                        JsonObject eventContent = event.getContentAsJsonObject();
-
-                        if (eventContent.has("user_ids")) {
-                            synchronized (Room.this) {
-                                mTypingUsers = null;
-
-                                try {
-                                    mTypingUsers = (new Gson()).fromJson(eventContent.get("user_ids"), new TypeToken<List<String>>() {
-                                    }.getType());
-                                } catch (Exception e) {
-                                    Log.e(LOG_TAG, "onLiveEvent exception " + e.getMessage());
-                                }
-
-                                // avoid null list
-                                if (null == mTypingUsers) {
-                                    mTypingUsers = new ArrayList<>();
-                                }
-                            }
-                        }
-                    }
-
                     try {
                         eventListener.onLiveEvent(event, roomState);
                     } catch (Exception e) {
