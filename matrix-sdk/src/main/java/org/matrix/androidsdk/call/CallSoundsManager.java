@@ -60,6 +60,13 @@ public class CallSoundsManager {
     }
 
     /**
+     * Track the audio configuration change (like speaker, micro and so on).
+     */
+    public interface OnAudioConfigurationUpdateListener {
+        void onAudioConfigurationUpdate();
+    }
+
+    /**
      * Track the media statuses.
      */
     public interface OnMediaListener {
@@ -104,6 +111,50 @@ public class CallSoundsManager {
         }
 
         return mSharedInstance;
+    }
+
+    //==============================================================================================================
+    // Audio configuration management
+    //==============================================================================================================
+    // audio focus management
+    private final Set<OnAudioConfigurationUpdateListener> mOnAudioConfigurationUpdateListener = new HashSet<>();
+
+    /**
+     * Add an audio configuration update listener.
+     *
+     * @param listener the listener.
+     */
+    public void addAudioConfigurationListener(OnAudioConfigurationUpdateListener listener) {
+        synchronized (LOG_TAG) {
+            mOnAudioConfigurationUpdateListener.add(listener);
+        }
+    }
+
+    /**
+     * Remove an audio configuration update listener.
+     *
+     * @param listener the listener.
+     */
+    public void removeAudioConfigurationListener(OnAudioConfigurationUpdateListener listener) {
+        synchronized (LOG_TAG) {
+            mOnAudioConfigurationUpdateListener.remove(listener);
+        }
+    }
+
+    /**
+     * Dispatch that the audio configuration has been updated.
+     */
+    private void dispatchAudioConfigurationUpdate() {
+        synchronized (LOG_TAG) {
+            // notify listeners
+            for (OnAudioConfigurationUpdateListener listener : mOnAudioConfigurationUpdateListener) {
+                try {
+                    listener.onAudioConfigurationUpdate();
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## dispatchAudioConfigurationUpdate() failed " + e.getMessage());
+                }
+            }
+        }
     }
 
     //==============================================================================================================
@@ -286,6 +337,8 @@ public class CallSoundsManager {
                     Log.w(LOG_TAG, "## getAudioFocus(): refused - focusResult=" + focusResult);
                 }
             }
+
+            dispatchAudioConfigurationUpdate();
         } else {
             Log.d(LOG_TAG, "## getAudioFocus(): already granted");
         }
@@ -315,6 +368,7 @@ public class CallSoundsManager {
 
             mIsFocusGranted = false;
             restoreAudioConfig();
+            dispatchAudioConfigurationUpdate();
         }
     }
 
@@ -566,7 +620,7 @@ public class CallSoundsManager {
 
     // save the audio statuses
     private Integer mAudioMode = null;
-    private Boolean mIsSpeakerOn = null;
+    private Boolean mIsSpeakerphoneOn = null;
 
     /**
      * Back up the current audio config.
@@ -576,7 +630,7 @@ public class CallSoundsManager {
             AudioManager audioManager = getAudioManager();
 
             mAudioMode = audioManager.getMode();
-            mIsSpeakerOn = audioManager.isSpeakerphoneOn();
+            mIsSpeakerphoneOn = audioManager.isSpeakerphoneOn();
         }
     }
 
@@ -585,7 +639,7 @@ public class CallSoundsManager {
      */
     private void restoreAudioConfig() {
         // ensure that something has been saved
-        if ((null != mAudioMode) && (null != mIsSpeakerOn)) {
+        if ((null != mAudioMode) && (null != mIsSpeakerphoneOn)) {
             Log.d(LOG_TAG, "## restoreAudioConfig() starts");
             AudioManager audioManager = getAudioManager();
 
@@ -594,9 +648,9 @@ public class CallSoundsManager {
                 audioManager.setMode(mAudioMode);
             }
 
-            if (mIsSpeakerOn != audioManager.isSpeakerphoneOn()) {
-                Log.d(LOG_TAG, "## restoreAudioConfig() : restore speaker " + mIsSpeakerOn);
-                audioManager.setSpeakerphoneOn(mIsSpeakerOn);
+            if (mIsSpeakerphoneOn != audioManager.isSpeakerphoneOn()) {
+                Log.d(LOG_TAG, "## restoreAudioConfig() : restore speaker " + mIsSpeakerphoneOn);
+                audioManager.setSpeakerphoneOn(mIsSpeakerphoneOn);
             }
 
             // stop the bluetooth
@@ -607,7 +661,7 @@ public class CallSoundsManager {
             }
 
             mAudioMode = null;
-            mIsSpeakerOn = null;
+            mIsSpeakerphoneOn = null;
 
             Log.d(LOG_TAG, "## restoreAudioConfig() done");
         }
@@ -667,6 +721,8 @@ public class CallSoundsManager {
             Log.e(LOG_TAG, "## setSpeakerphoneOn() failed " + e.getMessage());
             restoreAudioConfig();
         }
+
+        dispatchAudioConfigurationUpdate();
     }
 
     /**
@@ -690,12 +746,30 @@ public class CallSoundsManager {
                 Log.e(LOG_TAG, "## toggleSpeaker() failed " + e.getMessage());
             }
         }
+
+        dispatchAudioConfigurationUpdate();
     }
 
     /**
      * @return true if the speaker is turned on.
      */
-    public boolean isSpeakerOn() {
+    public boolean isSpeakerphoneOn() {
         return mAudioManager.isSpeakerphoneOn();
+    }
+
+    /**
+     * Mute the microphone.
+     * @param mute true to mute the microphone
+     */
+    public void setMicrophoneMute(boolean mute) {
+        getAudioManager().setMicrophoneMute(mute);
+        dispatchAudioConfigurationUpdate();
+    }
+
+    /**
+     * @return true if the microphone is mute.
+     */
+    public boolean isMicrophoneMute() {
+        return getAudioManager().isMicrophoneMute();
     }
 }
