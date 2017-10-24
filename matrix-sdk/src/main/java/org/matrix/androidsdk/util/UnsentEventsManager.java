@@ -102,32 +102,43 @@ public class UnsentEventsManager {
         /**
          * Resend the event after a delay.
          * @param delayMs the delay in milliseconds.
+         * @return true if the operation succeeds
          */
-        public void resendEventAfter(int delayMs) {
+        public boolean resendEventAfter(int delayMs) {
             stopTimer();
 
-            if (null != mEventDescription) {
-                Log.d(LOG_TAG, "Resend after " + delayMs + " [" +  mEventDescription + "]");
+            try {
+                if (null != mEventDescription) {
+                    Log.d(LOG_TAG, "Resend after " + delayMs + " [" + mEventDescription + "]");
+                }
+
+                mAutoResendTimer = new Timer();
+                mAutoResendTimer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        try {
+                            UnsentEventSnapshot.this.mIsResending = true;
+
+                            if (null != mEventDescription) {
+                                Log.d(LOG_TAG, "Resend [" + mEventDescription + "]");
+                            }
+
+                            mRequestRetryCallBack.onRetry();
+                        } catch (Exception e) {
+                            UnsentEventSnapshot.this.mIsResending = false;
+                            Log.e(LOG_TAG, "## resendEventAfter() : " + mEventDescription + " + onRetry failed " + e.getMessage());
+                        }
+                    }
+                }, delayMs);
+                return true;
+
+            } catch (OutOfMemoryError oom) {
+                Log.e(LOG_TAG, "## resendEventAfter failed " + oom.getMessage());
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## resendEventAfter failed " + e.getMessage());
             }
 
-            mAutoResendTimer = new Timer();
-            mAutoResendTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    try {
-                        UnsentEventSnapshot.this.mIsResending = true;
-
-                        if (null != mEventDescription) {
-                            Log.d(LOG_TAG, "Resend [" +  mEventDescription + "]");
-                        }
-
-                        mRequestRetryCallBack.onRetry();
-                    } catch (Exception e) {
-                        UnsentEventSnapshot.this.mIsResending = false;
-                        Log.e(LOG_TAG, "## resendEventAfter() : " + mEventDescription + " + onRetry failed " + e.getMessage());
-                    }
-                }
-            }, delayMs);
+            return false;
         }
 
         /**
@@ -483,7 +494,7 @@ public class UnsentEventsManager {
                         //
                         if (mbIsConnected) {
                             int jitterTime = ((int)Math.pow(2, snapshot.mRetryCount)) + (Math.abs(new Random(System.currentTimeMillis()).nextInt()) % RETRY_JITTER_MS);
-                            snapshot.resendEventAfter((matrixRetryTimeout > 0) ? matrixRetryTimeout : jitterTime);
+                            isManaged = snapshot.resendEventAfter((matrixRetryTimeout > 0) ? matrixRetryTimeout : jitterTime);
                         }
                     }
                 }
