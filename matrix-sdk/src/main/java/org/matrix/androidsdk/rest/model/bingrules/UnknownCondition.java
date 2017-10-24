@@ -15,11 +15,22 @@
  */
 package org.matrix.androidsdk.rest.model.bingrules;
 
-public class ContentRule extends BingRule {
-    public String pattern;
+import org.matrix.androidsdk.rest.model.Event;
 
-    public ContentRule(String ruleKind, String aPattern, boolean notify, boolean highlight, boolean sound) {
-        super(ruleKind, aPattern, notify, highlight, sound);
-        pattern = aPattern;
+public class UnknownCondition extends Condition {
+    public UnknownCondition() {
+        kind = Condition.KIND_UNKNOWN;
+    }
+
+    // unknown conditions: we previously matched all unknown conditions,
+    // but given that rules can be added to the base rules on a server,
+    // it's probably better to not match unknown conditions.
+    public boolean isSatisfied(Event event) {
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        return "UnknownCondition";
     }
 }

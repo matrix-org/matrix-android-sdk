@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.regex.Pattern;
 
 public class EventMatchCondition extends Condition {
+
     public String key;
     public String pattern;
 
@@ -42,6 +43,7 @@ public class EventMatchCondition extends Condition {
 
     /**
      * Returns whether the given event satisfies the condition.
+     *
      * @param event the event
      * @return true if the event satisfies the condition
      */
@@ -58,7 +60,7 @@ public class EventMatchCondition extends Condition {
             JsonObject eventJson = event.toJsonObject();
             fieldVal = extractField(eventJson, key);
         }
-        
+
         if (TextUtils.isEmpty(fieldVal)) {
             return false;
         }

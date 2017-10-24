@@ -34,6 +34,8 @@ public class PowerLevels implements java.io.Serializable {
 
     public int state_default = 50;
 
+    public Map<String, Object> notifications = new HashMap<>();
+
     public PowerLevels deepCopy() {
         PowerLevels copy = new PowerLevels();
         copy.ban = ban;
@@ -50,6 +52,8 @@ public class PowerLevels implements java.io.Serializable {
         copy.users.putAll(users);
 
         copy.state_default = state_default;
+
+        copy.notifications = new HashMap<>(notifications);
 
         return copy;
     }
@@ -133,5 +137,26 @@ public class PowerLevels implements java.io.Serializable {
         }
 
         return minimumPowerLevel;
+    }
+
+
+    /**
+     * Get the notification level for a dedicated key.
+     * @param key the notification key
+     * @return the level
+     */
+    public int notificationLevel(String key) {
+        if ((null != key) && notifications.containsKey(key)) {
+            Object valAsVoid = notifications.get(key);
+
+            // the first implementation was a string value
+            if (valAsVoid instanceof String) {
+                return Integer.parseInt((String)valAsVoid);
+            } else {
+                return (int)valAsVoid;
+            }
+        }
+
+        return users_default;
     }
 }

@@ -37,6 +37,7 @@ import org.matrix.androidsdk.rest.model.bingrules.ContainsDisplayNameCondition;
 import org.matrix.androidsdk.rest.model.bingrules.ContentRule;
 import org.matrix.androidsdk.rest.model.bingrules.EventMatchCondition;
 import org.matrix.androidsdk.rest.model.bingrules.RoomMemberCountCondition;
+import org.matrix.androidsdk.rest.model.bingrules.SenderNotificationPermissionCondition;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -423,8 +424,20 @@ public class BingRulesManager {
                                 return false;
                             }
                         }
+                    } else if (condition instanceof SenderNotificationPermissionCondition) {
+                        if (event.roomId != null) {
+                            Room room = mDataHandler.getRoom(event.roomId, false);
+
+                            if (!((SenderNotificationPermissionCondition) condition).isSatisfied(room.getLiveState().getPowerLevels(), event.sender)) {
+                                return false;
+                            }
+                        }
+                    } else {
+                        // unknown conditions: we previously matched all unknown conditions,
+                        // but given that rules can be added to the base rules on a server,
+                        // it's probably better to not match unknown conditions.
+                        return false;
                     }
-                    // FIXME: Handle device rules
                 }
             }
         } catch (Exception e) {
