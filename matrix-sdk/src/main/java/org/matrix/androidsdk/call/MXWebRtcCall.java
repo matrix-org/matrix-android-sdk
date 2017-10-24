@@ -310,11 +310,11 @@ public class MXWebRtcCall extends MXCall {
     private void sendInvite(final SessionDescription sessionDescription) {
         // check if the call has not been killed
         if (isCallEnded()) {
-            Log.d(LOG_TAG, "##sendInvite(): isCallEnded");
+            Log.d(LOG_TAG, "## sendInvite(): isCallEnded");
             return;
         }
 
-        Log.d(LOG_TAG, "##sendInvite()");
+        Log.d(LOG_TAG, "## sendInvite()");
 
         // build the invitation event
         JsonObject inviteContent = new JsonObject();
@@ -1646,7 +1646,7 @@ public class MXWebRtcCall extends MXCall {
         mCallState = newState;
 
         // call timeout management
-        if (CALL_STATE_CONNECTING.equals(mCallState) || CALL_STATE_CONNECTING.equals(mCallState)) {
+        if (CALL_STATE_CONNECTING.equals(mCallState) || CALL_STATE_CONNECTED.equals(mCallState)) {
             if (null != mCallTimeoutTimer) {
                 mCallTimeoutTimer.cancel();
                 mCallTimeoutTimer = null;
