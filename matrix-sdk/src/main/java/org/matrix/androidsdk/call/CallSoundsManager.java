@@ -367,9 +367,10 @@ public class CallSoundsManager {
             }
 
             mIsFocusGranted = false;
-            restoreAudioConfig();
-            dispatchAudioConfigurationUpdate();
         }
+
+        restoreAudioConfig();
+        dispatchAudioConfigurationUpdate();
     }
 
     /**
