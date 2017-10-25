@@ -518,9 +518,10 @@ public class MXOlmDevice {
      * @param roomId the id of the room in which this session will be used.
      * @param senderKey the base64-encoded curve25519 key of the sender.
      * @param keysClaimed Other keys the sender claims.
+     * @param exportFormat true if the megolm keys are in export format
      * @return true if the operation succeeds.
      */
-    public boolean addInboundGroupSession(String sessionId, String sessionKey, String roomId, String senderKey, Map<String, String> keysClaimed) {
+    public boolean addInboundGroupSession(String sessionId, String sessionKey, String roomId, String senderKey, Map<String, String> keysClaimed, boolean exportFormat) {
         if (null != getInboundGroupSession(sessionId, senderKey, roomId)) {
             // If we already have this session, consider updating it
             Log.e(LOG_TAG, "## addInboundGroupSession() : Update for megolm session " + senderKey + "/" + sessionId);
@@ -529,7 +530,7 @@ public class MXOlmDevice {
             return false;
         }
 
-        MXOlmInboundGroupSession2 session = new MXOlmInboundGroupSession2(sessionKey);
+        MXOlmInboundGroupSession2 session = new MXOlmInboundGroupSession2(sessionKey, exportFormat);
 
         // sanity check
         if (null == session.mSession) {

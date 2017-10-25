@@ -68,10 +68,15 @@ public class MXOlmInboundGroupSession2 implements Serializable {
     /**
      * Constructor
      * @param sessionKey the session key
+     *
      */
-    public MXOlmInboundGroupSession2(String sessionKey) {
+    public MXOlmInboundGroupSession2(String sessionKey, boolean isImported) {
         try {
-            mSession = new OlmInboundGroupSession(sessionKey);
+            if (!isImported) {
+                mSession = new OlmInboundGroupSession(sessionKey);
+            } else {
+                mSession = OlmInboundGroupSession.importSession(sessionKey);
+            }
         } catch (Exception e) {
             Log.e(LOG_TAG, "Cannot create : " + e.getMessage());
         }

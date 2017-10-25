@@ -25,6 +25,7 @@ import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.model.ForwardedRoomKeyContent;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomKeyRequestBody;
 import org.matrix.androidsdk.util.Log;
@@ -169,21 +170,43 @@ public class MXMegolmDecryption implements IMXDecrypting {
      */
     @Override
     public void onRoomKeyEvent(Event roomKeyEvent) {
+        boolean exportFormat = false;
         RoomKeyContent roomKeyContent = JsonUtils.toRoomKeyContent(roomKeyEvent.getContentAsJsonObject());
 
         String roomId = roomKeyContent.room_id;
         String sessionId = roomKeyContent.session_id;
         String sessionKey = roomKeyContent.session_key;
+        String senderKey = roomKeyEvent.senderKey();
+        Map<String, String> keysClaimed = new HashMap<>();
 
         if (TextUtils.isEmpty(roomId) || TextUtils.isEmpty(sessionId) || TextUtils.isEmpty(sessionKey)) {
             Log.e(LOG_TAG, "## onRoomKeyEvent() :  Key event is missing fields");
             return;
         }
 
-        Log.d(LOG_TAG, "## onRoomKeyEvent(), Adding key : roomId " + roomId + " sessionId " + sessionId + " sessionKey " + sessionKey); // from " + event);
+        if (TextUtils.equals(roomKeyEvent.getType(), Event.EVENT_TYPE_FORWARDED_ROOM_KEY)) {
+            Log.d(LOG_TAG, "## onRoomKeyEvent(), Adding key : roomId " + roomId + " sessionId " + sessionId + " sessionKey " + sessionKey); // from " + event);
+            ForwardedRoomKeyContent forwardedRoomKeyContent = JsonUtils.toForwardedRoomKeyContent(roomKeyEvent.getContentAsJsonObject());
 
-        mOlmDevice.addInboundGroupSession(sessionId, sessionKey, roomId, roomKeyEvent.senderKey(), roomKeyEvent.getKeysClaimed());
+            exportFormat = true;
+            senderKey = forwardedRoomKeyContent.sender_key;
+            if (null == senderKey) {
+                Log.e(LOG_TAG, "## onRoomKeyEvent() : forwarded_room_key event is missing sender_key field");
+                return;
+            }
+        } else {
+            Log.d(LOG_TAG, "## onRoomKeyEvent(), Adding key : roomId " + roomId + " sessionId " + sessionId + " sessionKey " + sessionKey); // from " + event);
 
+            if (null == senderKey) {
+                Log.e(LOG_TAG, "## onRoomKeyEvent() : key event has no sender key (not encrypted?)");
+                return;
+            }
+
+            // inherit the claimed ed25519 key from the setup message
+            keysClaimed = roomKeyEvent.getKeysClaimed();
+        }
+
+        mOlmDevice.addInboundGroupSession(sessionId, sessionKey, roomId, senderKey, keysClaimed, exportFormat);
         onNewSession(roomKeyEvent.senderKey(), sessionId);
     }
 
