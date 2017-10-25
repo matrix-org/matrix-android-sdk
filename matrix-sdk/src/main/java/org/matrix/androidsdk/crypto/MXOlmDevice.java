@@ -17,6 +17,8 @@
 package org.matrix.androidsdk.crypto;
 
 import android.text.TextUtils;
+import android.util.Pair;
+
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonParser;
@@ -774,5 +776,39 @@ public class MXOlmDevice {
             mInboundGroupSessionWithIdError = new MXCryptoError(MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_REASON, null);
         }
         return session;
+    }
+
+    /**
+     * Determine if we have the keys for a given megolm session.
+     *
+     * @param roomId room in which the message was received
+     * @param senderKey base64-encoded curve25519 key of the sender
+     * @param sessionId session identifier
+     * @return
+     */
+    public boolean hasInboundSessionKeys(String roomId, String senderKey, String sessionId) {
+        return null != getInboundGroupSession(sessionId, senderKey, roomId);
+    }
+
+
+    /**
+     * Extract the keys to a given megolm session, for sharing
+     * @param roomId  room in which the message was received
+     * @param senderKey Base64-encoded curve25519 key of the sender
+     * @param sessionId session identifier
+     * @return a Pair<chain_index, key is a base64-encoded megolm key in export format>
+     */
+    public Pair<Long, String> getInboundGroupSessionKey(String roomId, String senderKey, String sessionId) {
+        MXOlmInboundGroupSession2 session = getInboundGroupSession(sessionId, senderKey, roomId);
+
+        if (null != session) {
+            Long index = session.getFirstKnownIndex();
+
+            if (null != index) {
+                return new Pair<>(index, session.exportSession(index));
+            }
+        }
+
+        return null;
     }
 }

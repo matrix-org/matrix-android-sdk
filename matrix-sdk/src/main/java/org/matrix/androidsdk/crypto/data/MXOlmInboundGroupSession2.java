@@ -19,6 +19,7 @@ package org.matrix.androidsdk.crypto.data;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.crypto.MXCryptoAlgorithms;
+import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.olm.OlmInboundGroupSession;
@@ -115,5 +116,37 @@ public class MXOlmInboundGroupSession2 implements Serializable {
         }
 
         return map;
+    }
+
+    /**
+     * @return the first known message index
+     */
+    public Long getFirstKnownIndex() {
+        if (null != mSession) {
+            try {
+                return mSession.getFirstKnownIndex();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## getFirstKnownIndex() : getFirstKnownIndex failed " + e.getMessage());
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Export the session for a message index.
+     * @param messageIndex the message index
+     * @return the exported data
+     */
+    public String exportSession(long messageIndex) {
+        if (null != mSession) {
+            try {
+                return mSession.export(messageIndex);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## exportSession() : export failed " + e.getMessage());
+            }
+        }
+
+        return null;
     }
 }

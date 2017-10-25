@@ -17,8 +17,16 @@
 package org.matrix.androidsdk.crypto.algorithms.megolm;
 
 import android.text.TextUtils;
+import android.util.Pair;
 
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
+import org.matrix.androidsdk.crypto.MXCryptoAlgorithms;
+import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
+import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
+import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.RoomKeyRequestBody;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.MXSession;
@@ -32,14 +40,16 @@ import org.matrix.androidsdk.rest.model.RoomKeyContent;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 public class MXMegolmDecryption implements IMXDecrypting {
     private static final String LOG_TAG = "MXMegolmDecryption";
 
     /**
-     *  The olm device interface
+     * The olm device interface
      */
     private MXOlmDevice mOlmDevice;
 
@@ -51,10 +61,11 @@ public class MXMegolmDecryption implements IMXDecrypting {
      * senderKey|sessionId to timelines to list of MatrixEvents.
      */
     private HashMap<String, /* senderKey|sessionId */
-                HashMap<String /* timelineId */, ArrayList<Event>>> mPendingEvents;
+            HashMap<String /* timelineId */, ArrayList<Event>>> mPendingEvents;
 
     /**
      * Init the object fields
+     *
      * @param matrixSession the matrix session
      */
     @Override
@@ -120,7 +131,8 @@ public class MXMegolmDecryption implements IMXDecrypting {
     /**
      * Add an event to the list of those we couldn't decrypt the first time we
      * saw them.
-     * @param event the event to try to decrypt later
+     *
+     * @param event      the event to try to decrypt later
      * @param timelineId the timeline identifier
      */
     private void addEventToPendingList(Event event, String timelineId) {
@@ -152,6 +164,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
     /**
      * Handle a key event.
+     *
      * @param roomKeyEvent the key event.
      */
     @Override
@@ -176,6 +189,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
     /**
      * Check if the some messages can be decrypted with a new session
+     *
      * @param senderKey the session sender key
      * @param sessionId the session id
      */
@@ -212,11 +226,102 @@ public class MXMegolmDecryption implements IMXDecrypting {
     }
 
     @Override
-    public boolean hasKeysForKeyRequest(IncomingRoomKeyRequest request){
+    public boolean hasKeysForKeyRequest(IncomingRoomKeyRequest request) {
+        if ((null != request) && (null != request.mRequestBody)) {
+            return mOlmDevice.hasInboundSessionKeys(request.mRequestBody.room_id, request.mRequestBody.sender_key, request.mRequestBody.session_id);
+        }
+
         return false;
     }
 
     @Override
-    public void shareKeysWithDevice(IncomingRoomKeyRequest request) {
+    public void shareKeysWithDevice(final IncomingRoomKeyRequest request) {
+        // sanity checks
+        if ((null == request) || (null == request.mRequestBody)) {
+            return;
+        }
+
+        final String userId = request.mUserId;
+        final String deviceId = request.mDeviceId;
+        final MXDeviceInfo deviceInfo = mSession.getCrypto().mCryptoStore.getUserDevice(deviceId, userId);
+        final RoomKeyRequestBody body = request.mRequestBody;
+
+        HashMap<String, ArrayList<MXDeviceInfo>> devicesByUser = new HashMap<>();
+        devicesByUser.put(userId, new ArrayList<>(Arrays.asList(deviceInfo)));
+
+        mSession.getCrypto().ensureOlmSessionsForDevices(devicesByUser, new ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>>() {
+            @Override
+            public void onSuccess(MXUsersDevicesMap<MXOlmSessionResult> map) {
+                MXOlmSessionResult olmSessionResult = map.getObject(deviceId, userId);
+
+                if ((null == olmSessionResult) && (null == olmSessionResult.mSessionId)) {
+                    // no session with this device, probably because there
+                    // were no one-time keys.
+                    //
+                    // ensureOlmSessionsForUsers has already done the logging,
+                    // so just skip it.
+                    return;
+                }
+
+                Log.d(LOG_TAG, "## shareKeysWithDevice() : sharing keys for session " + body.sender_key + "|" + body.session_id + " with device " + userId + ":" + deviceId);
+
+                Pair<Long, String> key = mSession.getCrypto().getOlmDevice().getInboundGroupSessionKey(body.room_id, body.sender_key, body.session_id);
+
+                Map<String, Object> payloadJson = new HashMap<>();
+                payloadJson.put("type", Event.EVENT_TYPE_FORWARDED_ROOM_KEY);
+
+                Map<String, Object> contentMap = new HashMap<>();
+                payloadJson.put("content", contentMap);
+
+                contentMap.put("algorithm", MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM);
+                contentMap.put("room_id", body.room_id);
+                contentMap.put("sender_key", body.sender_key);
+                contentMap.put("session_id", body.session_id);
+                contentMap.put("session_key", key.second);
+                contentMap.put("chain_index", key.first);
+
+                Map<String, Object> encodedPayload = mSession.getCrypto().encryptMessage(payloadJson, Arrays.asList(deviceInfo));
+                MXUsersDevicesMap<Map<String, Object>> sendToDeviceMap = new MXUsersDevicesMap<>();
+                sendToDeviceMap.setObject(encodedPayload, userId, deviceId);
+
+                Log.d(LOG_TAG, "## shareKeysWithDevice() : sending to " + userId + ":" + deviceId);
+                mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, sendToDeviceMap, new ApiCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void info) {
+                        Log.d(LOG_TAG, "## shareKeysWithDevice() : sent to " + userId + ":" + deviceId);
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        Log.e(LOG_TAG, "## shareKeysWithDevice() : sendToDevice " + userId + ":" + deviceId + " failed " + e.getMessage());
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        Log.e(LOG_TAG, "## shareKeysWithDevice() : sendToDevice " + userId + ":" + deviceId + " failed " + e.getMessage());
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        Log.e(LOG_TAG, "## shareKeysWithDevice() : sendToDevice " + userId + ":" + deviceId + " failed " + e.getMessage());
+                    }
+                });
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                Log.e(LOG_TAG, "## shareKeysWithDevice() : ensureOlmSessionsForDevices " + userId + ":" + deviceId + " failed " + e.getMessage());
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                Log.e(LOG_TAG, "## shareKeysWithDevice() : ensureOlmSessionsForDevices " + userId + ":" + deviceId + " failed " + e.getMessage());
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                Log.e(LOG_TAG, "## shareKeysWithDevice() : ensureOlmSessionsForDevices " + userId + ":" + deviceId + " failed " + e.getMessage());
+            }
+        });
     }
 }
