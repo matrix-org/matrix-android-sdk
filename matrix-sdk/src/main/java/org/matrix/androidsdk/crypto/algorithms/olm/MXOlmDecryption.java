@@ -17,6 +17,8 @@
 package org.matrix.androidsdk.crypto.algorithms.olm;
 
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.Gson;
@@ -218,6 +220,15 @@ public class MXOlmDecryption implements IMXDecrypting {
     @Override
     public void onNewSession(String senderKey, String sessionId) {
         // No impact for olm
+    }
+
+    @Override
+    public boolean hasKeysForKeyRequest(IncomingRoomKeyRequest request){
+        return false;
+    }
+
+    @Override
+    public void shareKeysWithDevice(IncomingRoomKeyRequest request) {
     }
 
     /**

@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.crypto.algorithms;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
 import org.matrix.androidsdk.rest.model.Event;
 
 /**
@@ -49,4 +50,17 @@ public interface IMXDecrypting {
      * @param sessionId the session id
      */
     void onNewSession(String senderKey, String sessionId);
+
+    /**
+     * Determine if we have the keys necessary to respond to a room key request
+     * @param request keyRequest
+     * @return true if we have the keys and could (theoretically) share
+     */
+    boolean hasKeysForKeyRequest(IncomingRoomKeyRequest request);
+
+    /**
+     * Send the response to a room key request.
+     * @param request keyRequest
+     */
+    void shareKeysWithDevice(IncomingRoomKeyRequest request);
 }

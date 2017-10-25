@@ -17,6 +17,8 @@
 package org.matrix.androidsdk.crypto.algorithms.megolm;
 
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.MXSession;
@@ -209,4 +211,12 @@ public class MXMegolmDecryption implements IMXDecrypting {
         }
     }
 
+    @Override
+    public boolean hasKeysForKeyRequest(IncomingRoomKeyRequest request){
+        return false;
+    }
+
+    @Override
+    public void shareKeysWithDevice(IncomingRoomKeyRequest request) {
+    }
 }
