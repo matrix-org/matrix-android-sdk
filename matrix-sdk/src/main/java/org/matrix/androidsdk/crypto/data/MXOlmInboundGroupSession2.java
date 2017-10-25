@@ -26,7 +26,9 @@ import org.matrix.olm.OlmInboundGroupSession;
 
 import java.io.Serializable;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -53,6 +55,8 @@ public class MXOlmInboundGroupSession2 implements Serializable {
     // Other keys the sender claims.
     public Map<String, String> mKeysClaimed;
 
+    // Devices which forwarded this session to us (normally empty).
+    public List<String> mForwardingCurve25519KeyChain = new ArrayList<>();
 
     /**
      * Constructor
@@ -109,6 +113,12 @@ public class MXOlmInboundGroupSession2 implements Serializable {
         HashMap<String, Object> map = new HashMap<>();
 
         try {
+            if (null == mForwardingCurve25519KeyChain) {
+                mForwardingCurve25519KeyChain = new ArrayList<>();
+            }
+
+            map.put("sender_claimed_ed25519_key", mKeysClaimed.get("ed25519"));
+            map.put("forwardingCurve25519KeyChain", mForwardingCurve25519KeyChain);
             map.put("sender_key", mSenderKey);
             map.put("sender_claimed_keys", mKeysClaimed);
             map.put("room_id", mRoomId);

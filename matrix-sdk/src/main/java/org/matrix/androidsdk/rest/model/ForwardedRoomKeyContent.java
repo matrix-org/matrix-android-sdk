@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import java.util.List;
+
 /**
  * Class representing the forward room key request body content
  */
@@ -28,4 +30,8 @@ public class ForwardedRoomKeyContent implements java.io.Serializable {
     public String session_id;
 
     public String session_key;
+
+    public List<String> forwarding_curve25519_key_chain;
+
+    public String sender_claimed_ed25519_key;
 }

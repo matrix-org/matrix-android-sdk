@@ -22,6 +22,7 @@ import android.util.Pair;
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.MXCryptoAlgorithms;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
+import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -43,6 +44,7 @@ import org.matrix.androidsdk.util.JsonUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -178,6 +180,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
         String sessionKey = roomKeyContent.session_key;
         String senderKey = roomKeyEvent.senderKey();
         Map<String, String> keysClaimed = new HashMap<>();
+        List<String> forwarding_curve25519_key_chain = null;
 
         if (TextUtils.isEmpty(roomId) || TextUtils.isEmpty(sessionId) || TextUtils.isEmpty(sessionKey)) {
             Log.e(LOG_TAG, "## onRoomKeyEvent() :  Key event is missing fields");
@@ -188,12 +191,29 @@ public class MXMegolmDecryption implements IMXDecrypting {
             Log.d(LOG_TAG, "## onRoomKeyEvent(), Adding key : roomId " + roomId + " sessionId " + sessionId + " sessionKey " + sessionKey); // from " + event);
             ForwardedRoomKeyContent forwardedRoomKeyContent = JsonUtils.toForwardedRoomKeyContent(roomKeyEvent.getContentAsJsonObject());
 
+            if (null == forwarding_curve25519_key_chain) {
+                forwarding_curve25519_key_chain = new ArrayList<>();
+            } else {
+                forwarding_curve25519_key_chain = new ArrayList<>(forwardedRoomKeyContent.forwarding_curve25519_key_chain);
+            }
+
+            forwarding_curve25519_key_chain.add(senderKey);
+
             exportFormat = true;
             senderKey = forwardedRoomKeyContent.sender_key;
             if (null == senderKey) {
                 Log.e(LOG_TAG, "## onRoomKeyEvent() : forwarded_room_key event is missing sender_key field");
                 return;
             }
+
+            String ed25519Key = forwardedRoomKeyContent.sender_claimed_ed25519_key;
+
+            if (null == ed25519Key) {
+                Log.e(LOG_TAG , "## forwarded_room_key_event is missing sender_claimed_ed25519_key field");
+                return;
+            }
+
+            keysClaimed.put("ed25519", ed25519Key);
         } else {
             Log.d(LOG_TAG, "## onRoomKeyEvent(), Adding key : roomId " + roomId + " sessionId " + sessionId + " sessionKey " + sessionKey); // from " + event);
 
@@ -206,7 +226,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
             keysClaimed = roomKeyEvent.getKeysClaimed();
         }
 
-        mOlmDevice.addInboundGroupSession(sessionId, sessionKey, roomId, senderKey, keysClaimed, exportFormat);
+        mOlmDevice.addInboundGroupSession(sessionId, sessionKey, roomId, senderKey, forwarding_curve25519_key_chain, keysClaimed, exportFormat);
         onNewSession(roomKeyEvent.senderKey(), sessionId);
     }
 
@@ -288,20 +308,11 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
                 Log.d(LOG_TAG, "## shareKeysWithDevice() : sharing keys for session " + body.sender_key + "|" + body.session_id + " with device " + userId + ":" + deviceId);
 
-                Pair<Long, String> key = mSession.getCrypto().getOlmDevice().getInboundGroupSessionKey(body.room_id, body.sender_key, body.session_id);
+                MXOlmInboundGroupSession2 inboundGroupSession = mSession.getCrypto().getOlmDevice().getInboundGroupSession(body.room_id, body.sender_key, body.session_id);
 
                 Map<String, Object> payloadJson = new HashMap<>();
                 payloadJson.put("type", Event.EVENT_TYPE_FORWARDED_ROOM_KEY);
-
-                Map<String, Object> contentMap = new HashMap<>();
-                payloadJson.put("content", contentMap);
-
-                contentMap.put("algorithm", MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM);
-                contentMap.put("room_id", body.room_id);
-                contentMap.put("sender_key", body.sender_key);
-                contentMap.put("session_id", body.session_id);
-                contentMap.put("session_key", key.second);
-                contentMap.put("chain_index", key.first);
+                payloadJson.put("content", inboundGroupSession.exportKeys());
 
                 Map<String, Object> encodedPayload = mSession.getCrypto().encryptMessage(payloadJson, Arrays.asList(deviceInfo));
                 MXUsersDevicesMap<Map<String, Object>> sendToDeviceMap = new MXUsersDevicesMap<>();

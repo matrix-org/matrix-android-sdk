@@ -230,7 +230,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
         HashMap<String, String> keysClaimedMap = new HashMap<>();
         keysClaimedMap.put("ed25519", olmDevice.getDeviceEd25519Key());
 
-        olmDevice.addInboundGroupSession(sessionId, olmDevice.getSessionKey(sessionId), mRoomId, olmDevice.getDeviceCurve25519Key(), keysClaimedMap, false);
+        olmDevice.addInboundGroupSession(sessionId, olmDevice.getSessionKey(sessionId), mRoomId, olmDevice.getDeviceCurve25519Key(), new ArrayList<String>(), keysClaimedMap, false);
 
         return new MXOutboundSessionInfo(sessionId);
     }
