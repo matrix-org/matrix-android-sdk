@@ -128,6 +128,8 @@ public class MXCrypto {
 
     private final MXDeviceList mDevicesList;
 
+    private final MXOutgoingRoomKeyRequestManager mOutgoingRoomKeyRequestManager;
+
     private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
         @Override
         public void onNetworkConnectionUpdate(boolean isConnected) {
@@ -249,6 +251,8 @@ public class MXCrypto {
             // got some issues when upgrading from Riot < 0.6.4
             mDevicesList.handleDeviceListsChanges(Arrays.asList(mSession.getMyUserId()), null);
         }
+
+        mOutgoingRoomKeyRequestManager = new MXOutgoingRoomKeyRequestManager(mSession);
     }
 
     /**
@@ -440,6 +444,8 @@ public class MXCrypto {
                                                                     mIsStarting = false;
                                                                     mIsStarted = true;
 
+                                                                    mOutgoingRoomKeyRequestManager.start();
+
                                                                     synchronized (mInitializationCallbacks) {
                                                                         for (ApiCallback<Void> callback : mInitializationCallbacks) {
                                                                             final ApiCallback<Void> fCallback = callback;
@@ -557,6 +563,8 @@ public class MXCrypto {
                         mEncryptingHandlerThread.quit();
                         mEncryptingHandlerThread = null;
                     }
+
+                    mOutgoingRoomKeyRequestManager.stop();
                 }
             });
 
@@ -2742,5 +2750,15 @@ public class MXCrypto {
      */
     public void setRoomUnblacklistUnverifiedDevices(final String roomId, final ApiCallback<Void> callback) {
         setRoomBlacklistUnverifiedDevices(roomId, false, callback);
+    }
+
+    /**
+     * Send a request for some room keys, if we have not already done so.
+     *
+     * @param requestBody requestBody
+     * @param recipients recipients
+     */
+    public void requestRoomKey(Map<String, String> requestBody, List<Map<String, String>> recipients) {
+        mOutgoingRoomKeyRequestManager.sendRoomKeyRequest(requestBody, recipients);
     }
 }

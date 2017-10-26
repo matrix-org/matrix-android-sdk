@@ -21,6 +21,7 @@ import android.content.Context;
 import android.os.Looper;
 import android.text.TextUtils;
 
+import org.matrix.androidsdk.crypto.OutgoingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.util.Log;
 
@@ -80,6 +81,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE_TMP = "inboundGroupSessions.tmp";
     private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FOLDER = "inboundGroupSessionsFolder";
 
+    private static final String MXFILE_CRYPTO_STORE_OUTGOING_ROOM_KEY_REQUEST_FILE = "outgoingRoomKeyRequests";
+    private static final String MXFILE_CRYPTO_STORE_OUTGOING_ROOM_KEY_REQUEST_FILE_TMP = "outgoingRoomKeyRequests.tmp";
+
     // The credentials used for this store
     private Credentials mCredentials;
 
@@ -110,6 +114,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private final Object mInboundGroupSessionsLock = new Object();
 
 
+    private final Map<Map<String, String>, OutgoingRoomKeyRequest> mOutgoingRoomKeyRequests = new HashMap<>();
+
     // The path of the MXFileCryptoStore folder
     private File mStoreFile;
 
@@ -136,6 +142,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private File mInboundGroupSessionsFile;
     private File mInboundGroupSessionsFileTmp;
     private File mInboundGroupSessionsFolder;
+
+    private File mOutgoingRoomKeyRequestsFile;
+    private File mOutgoingRoomKeyRequestsFileTmp;
 
     // tell if the store is corrupted
     private boolean mIsCorrupted = false;
@@ -177,6 +186,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         mInboundGroupSessionsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE);
         mInboundGroupSessionsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE_TMP);
         mInboundGroupSessionsFolder = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FOLDER);
+
+        mOutgoingRoomKeyRequestsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_OUTGOING_ROOM_KEY_REQUEST_FILE);
+        mOutgoingRoomKeyRequestsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_OUTGOING_ROOM_KEY_REQUEST_FILE_TMP);
 
         // Build default metadata
         if ((null == mMetaData)
@@ -930,6 +942,107 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     /**
+     * save the outgoing room key requests.
+     */
+    private void saveOutgoingRoomKeyRequests() {
+        if (mOutgoingRoomKeyRequestsFileTmp.exists()) {
+            mOutgoingRoomKeyRequestsFileTmp.delete();
+        }
+
+        if (mOutgoingRoomKeyRequestsFile.exists()) {
+            mOutgoingRoomKeyRequestsFile.renameTo(mOutgoingRoomKeyRequestsFileTmp);
+        }
+
+        storeObject(mOutgoingRoomKeyRequests, mOutgoingRoomKeyRequestsFile, "saveOutgoingRoomKeyRequests");
+
+        if (mOutgoingRoomKeyRequestsFileTmp.exists()) {
+            mOutgoingRoomKeyRequestsFileTmp.delete();
+        }
+    }
+
+    @Override
+    public OutgoingRoomKeyRequest getOrAddOutgoingRoomKeyRequest(OutgoingRoomKeyRequest request) {
+        // sanity check
+        if ((null == request) || (null == request.mRequestBody)) {
+            return null;
+        }
+
+        // already known
+        if (mOutgoingRoomKeyRequests.containsKey(request.mRequestBody)) {
+            Log.d(LOG_TAG, "## getOrAddOutgoingRoomKeyRequest() : `already have key request outstanding for " + request.getRoomId() + " / " + request.getSessionId() + " not sending another");
+            return mOutgoingRoomKeyRequests.get(request.mRequestBody);
+        } else {
+            mOutgoingRoomKeyRequests.put(request.mRequestBody, request);
+            saveOutgoingRoomKeyRequests();
+            return request;
+        }
+    }
+
+    /**
+     * Retrieve a OutgoingRoomKeyRequest from a transaction id.
+     * @param txId the transaction id.
+     * @return the matched OutgoingRoomKeyRequest or null
+     */
+    private OutgoingRoomKeyRequest getOutgoingRoomKeyRequestByTxId(String txId) {
+        if (null != txId) {
+            Collection<OutgoingRoomKeyRequest> requests = mOutgoingRoomKeyRequests.values();
+
+            for(OutgoingRoomKeyRequest request : requests) {
+                if (TextUtils.equals(request.mRequestId, txId)) {
+                    return request;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Look for room key requests by state.
+     * @param state the state
+     * @return an OutgoingRoomKeyRequest or null
+     */
+    @Override
+    public OutgoingRoomKeyRequest getOutgoingRoomKeyRequestByState(OutgoingRoomKeyRequest.RequestState state) {
+        Collection<OutgoingRoomKeyRequest> requests = mOutgoingRoomKeyRequests.values();
+
+        for(OutgoingRoomKeyRequest request : requests) {
+            if (request.mState == state) {
+                return request;
+            }
+        }
+
+        return null;
+    }
+
+    @Override
+    public void updateOutgoingRoomKeyRequest(String transactionId, OutgoingRoomKeyRequest.RequestState expectedState,  OutgoingRoomKeyRequest.RequestState state) {
+        OutgoingRoomKeyRequest request = getOutgoingRoomKeyRequestByTxId(transactionId);
+
+        if (null != request) {
+            if (TextUtils.equals(request.mRequestId, transactionId)) {
+                if (expectedState != request.mState) {
+                    Log.d(LOG_TAG, "## updateOutgoingRoomKeyRequest() : Cannot update room key request from " + expectedState + " as it was already updated to " + request.mState);
+                    return;
+                }
+
+                request.mState = state;
+                saveOutgoingRoomKeyRequests();
+            }
+        }
+    }
+
+    @Override
+    public void deleteOutgoingRoomKeyRequest(String transactionId) {
+        OutgoingRoomKeyRequest request = getOutgoingRoomKeyRequestByTxId(transactionId);
+
+        if (null != request) {
+            mOutgoingRoomKeyRequests.remove(request.mRequestBody);
+            saveOutgoingRoomKeyRequests();
+        }
+    }
+
+    /**
      * Reset the crypto store data
      */
     private void resetData() {
@@ -1129,6 +1242,24 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 mTrackingStatuses = new HashMap<>((Map<String, Integer>) trackingStatusesAsVoid);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## preloadCryptoData() - invalid mTrackingStatuses " + e.getMessage());
+            }
+        }
+
+        File outgoingRequestFile;
+        if (mOutgoingRoomKeyRequestsFileTmp.exists()) {
+            outgoingRequestFile = mOutgoingRoomKeyRequestsFileTmp;
+        } else {
+            outgoingRequestFile = mOutgoingRoomKeyRequestsFile;
+        }
+
+        if (outgoingRequestFile.exists()) {
+            Object requestsAsVoid = loadObject(outgoingRequestFile, "get outgoing key request");
+            try {
+                if (null != requestsAsVoid) {
+                    mOutgoingRoomKeyRequests.putAll((Map<Map<String, String>, OutgoingRoomKeyRequest>) requestsAsVoid);
+                }
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## preloadCryptoData() : mOutgoingRoomKeyRequests init failed " + e.getMessage());
             }
         }
 

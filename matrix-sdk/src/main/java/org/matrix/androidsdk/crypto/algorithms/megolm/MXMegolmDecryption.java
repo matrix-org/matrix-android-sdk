@@ -19,6 +19,8 @@ package org.matrix.androidsdk.crypto.algorithms.megolm;
 import android.text.TextUtils;
 import android.util.Pair;
 
+import com.google.gson.JsonElement;
+
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.MXCryptoAlgorithms;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
@@ -80,6 +82,10 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
     @Override
     public boolean decryptEvent(Event event, String timeline) {
+        return decryptEvent(event, timeline, true);
+    }
+
+    public boolean decryptEvent(Event event, String timeline, boolean requestKeysOnFail) {
         // sanity check
         if (null == event) {
             Log.e(LOG_TAG, "## decryptEvent() : null event");
@@ -112,6 +118,10 @@ public class MXMegolmDecryption implements IMXDecrypting {
             if (result.mCryptoError.isOlmError()) {
                 if (TextUtils.equals("UNKNOWN_MESSAGE_INDEX", result.mCryptoError.error)) {
                     addEventToPendingList(event, timeline);
+
+                    if (requestKeysOnFail) {
+                        requestKeysForEvent(event);
+                    }
                 }
 
                 String reason = String.format(MXCryptoError.OLM_REASON, result.mCryptoError.error);
@@ -123,12 +133,48 @@ public class MXMegolmDecryption implements IMXDecrypting {
                         detailedReason);
             } else if (TextUtils.equals(result.mCryptoError.errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE)) {
                 addEventToPendingList(event, timeline);
+                if (requestKeysOnFail) {
+                    requestKeysForEvent(event);
+                }
             }
 
             event.setCryptoError(result.mCryptoError);
         }
 
         return null != event.getClearEvent();
+    }
+
+    /**
+     * Helper for the real decryptEvent and for _retryDecryption. If
+     * requestKeysOnFail is true, we'll send an m.room_key_request when we fail
+     * to decrypt the event due to missing megolm keys.
+     * @param event the event
+     */
+    private void requestKeysForEvent(Event event) {
+        String sender = event.getSender();
+        EncryptedEventContent wireContent = JsonUtils.toEncryptedEventContent(event.getWireContent());
+
+        List<Map<String, String>> recipients = new ArrayList<>();
+
+        Map<String, String> selfMap = new HashMap<>();
+        selfMap.put("userId", mSession.getMyUserId());
+        selfMap.put("deviceId", "*");
+        recipients.add(selfMap);
+
+        if (!TextUtils.equals(sender, mSession.getMyUserId())) {
+            Map<String, String> senderMap = new HashMap<>();
+            senderMap.put("userId", sender);
+            senderMap.put("deviceId", wireContent.device_id);
+            recipients.add(senderMap);
+        }
+
+        Map<String, String> requestBody = new HashMap<>();
+        requestBody.put("room_id", event.roomId);
+        requestBody.put("algorithm", wireContent.algorithm);
+        requestBody.put("sender_key", wireContent.sender_key);
+        requestBody.put("session_id", wireContent.session_id);
+
+        mSession.getCrypto().requestRoomKey(requestBody, recipients);
     }
 
     /**

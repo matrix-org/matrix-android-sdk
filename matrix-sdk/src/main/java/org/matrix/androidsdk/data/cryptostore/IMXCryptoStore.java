@@ -18,6 +18,7 @@ package org.matrix.androidsdk.data.cryptostore;
 
 import android.content.Context;
 
+import org.matrix.androidsdk.crypto.OutgoingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -224,4 +225,33 @@ public interface IMXCryptoStore {
      * @return the tracking status
      */
     int getDeviceTrackingStatus(String userId, int defaultValue);
+
+    /**
+     * Look for an existing outgoing room key request, and if none is found,
+     + add a new one.
+     * @param request the request
+     * @return either the same instance as passed in, or the existing one.
+     */
+    OutgoingRoomKeyRequest getOrAddOutgoingRoomKeyRequest(OutgoingRoomKeyRequest request);
+
+    /**
+     * Look for room key requests by state.
+     * @param state the state
+     * @return an OutgoingRoomKeyRequest or null
+     */
+    OutgoingRoomKeyRequest getOutgoingRoomKeyRequestByState(OutgoingRoomKeyRequest.RequestState state);
+
+    /**
+     * Update the outgoing key request state.
+     * @param transactionId the transaction id
+     * @param state the expected state
+     * @param state the new state
+     */
+    void updateOutgoingRoomKeyRequest(String transactionId, OutgoingRoomKeyRequest.RequestState expectedState, OutgoingRoomKeyRequest.RequestState state);
+
+    /**
+     * Delete an outgoing room key request.
+     * @param transactionId the transaction id.
+     */
+    void deleteOutgoingRoomKeyRequest(String transactionId);
 }

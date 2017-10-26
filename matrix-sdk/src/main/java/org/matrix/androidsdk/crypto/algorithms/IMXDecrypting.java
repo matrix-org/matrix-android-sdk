@@ -34,7 +34,7 @@ public interface IMXDecrypting {
      * Decrypt a message
      * @param event the raw event.
      * @param timeline the id of the timeline where the event is decrypted. It is used to prevent replay attack.
-     * @return true if the operation succceeds.
+     * @return true if the operation succeeds.
      */
     boolean decryptEvent(Event event, String timeline);
 
