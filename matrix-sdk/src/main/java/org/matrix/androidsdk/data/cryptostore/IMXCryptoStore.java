@@ -27,6 +27,7 @@ import org.matrix.olm.OlmSession;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * the crypto data store
@@ -228,6 +229,13 @@ public interface IMXCryptoStore {
 
     /**
      * Look for an existing outgoing room key request, and if none is found,
+     * @param requestBody the request body
+     * @return an OutgoingRoomKeyRequest instance or null
+     */
+    OutgoingRoomKeyRequest getOutgoingRoomKeyRequest(Map<String, String> requestBody);
+
+    /**
+     * Look for an existing outgoing room key request, and if none is found,
      + add a new one.
      * @param request the request
      * @return either the same instance as passed in, or the existing one.
@@ -236,18 +244,16 @@ public interface IMXCryptoStore {
 
     /**
      * Look for room key requests by state.
-     * @param state the state
+     * @param states the states
      * @return an OutgoingRoomKeyRequest or null
      */
-    OutgoingRoomKeyRequest getOutgoingRoomKeyRequestByState(OutgoingRoomKeyRequest.RequestState state);
+    OutgoingRoomKeyRequest getOutgoingRoomKeyRequestByState(Set<OutgoingRoomKeyRequest.RequestState> states);
 
     /**
-     * Update the outgoing key request state.
-     * @param transactionId the transaction id
-     * @param state the expected state
-     * @param state the new state
+     * Update an existing outgoing request.
+     * @param request the request
      */
-    void updateOutgoingRoomKeyRequest(String transactionId, OutgoingRoomKeyRequest.RequestState expectedState, OutgoingRoomKeyRequest.RequestState state);
+    void updateOutgoingRoomKeyRequest(OutgoingRoomKeyRequest request);
 
     /**
      * Delete an outgoing room key request.

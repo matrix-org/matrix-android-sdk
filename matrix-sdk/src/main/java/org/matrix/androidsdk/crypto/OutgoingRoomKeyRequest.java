@@ -25,12 +25,36 @@ import java.util.Map;
  */
 public class OutgoingRoomKeyRequest implements Serializable {
 
+    /** possible states for a room key request
+     *
+     * The state machine looks like:
+     *
+     *     |
+     *     V         (cancellation requested)
+     *   UNSENT  -----------------------------+
+     *     |                                  |
+     *     | (send successful)                |
+     *     V                                  |
+     *    SENT                                |
+     *     |                                  |
+     *     | (cancellation requested)         |
+     *     V                                  |
+     * CANCELLATION_PENDING                   |
+     *     |                                  |
+     *     | (cancellation sent)              |
+     *     V                                  |
+     * (deleted)  <---------------------------+
+     *
+     *
+     **/
+
     public enum RequestState {
         // request not yet sent
         UNSENT,
         // request sent, awaiting reply
         SENT,
-
+        // reply received, cancellation not yet sent
+        CANCELLATION_PENDING,
         // sending failed
         FAILED
     }

@@ -1803,7 +1803,7 @@ public class MXCrypto {
         }
 
         if (null != receivedRoomKeyRequests) {
-            for (IncomingRoomKeyRequest request : receivedRoomKeyRequests) {
+            for (final IncomingRoomKeyRequest request : receivedRoomKeyRequests) {
                 String userId = request.mUserId;
                 String deviceId = request.mDeviceId;
                 RoomKeyRequestBody body = request.mRequestBody;
@@ -1824,7 +1824,7 @@ public class MXCrypto {
                 // if we don't have a decryptor for this room/alg, we don't have
                 // the keys for the requested events, and can drop the requests.
 
-                IMXDecrypting decryptor = getRoomDecryptor(roomId, alg);
+                final IMXDecrypting decryptor = getRoomDecryptor(roomId, alg);
 
                 if (null == decryptor) {
                     Log.e(LOG_TAG, "## processReceivedRoomKeyRequests() : room key request for unknown " + alg + " in room " + roomId);
@@ -1845,7 +1845,19 @@ public class MXCrypto {
                     return;
                 }
 
-                // TODO this.emit("crypto.roomKeyRequest", req);
+                request.mShare = new Runnable() {
+                    @Override
+                    public void run() {
+                        getEncryptingThreadHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                decryptor.shareKeysWithDevice(request);
+                            }
+                        });
+                    }
+                };
+
+                onRoomKeyRequest(request);
             }
         }
 
@@ -1865,7 +1877,7 @@ public class MXCrypto {
                 // we should probably only notify the app of cancellations we told it
                 // about, but we don't currently have a record of that, so we just pass
                 // everything through.
-                // TODO this.emit("crypto.roomKeyRequestCancellation", cancellation);
+                onRoomKeyRequestCancellation(request);
             }
         }
     }
@@ -2758,7 +2770,99 @@ public class MXCrypto {
      * @param requestBody requestBody
      * @param recipients recipients
      */
-    public void requestRoomKey(Map<String, String> requestBody, List<Map<String, String>> recipients) {
-        mOutgoingRoomKeyRequestManager.sendRoomKeyRequest(requestBody, recipients);
+    public void requestRoomKey(final Map<String, String> requestBody, final List<Map<String, String>> recipients) {
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                mOutgoingRoomKeyRequestManager.sendRoomKeyRequest(requestBody, recipients);
+            }
+        });
+    }
+
+    /**
+     * Cancel any earlier room key request
+     *
+     * @param requestBody requestBody
+     */
+    public void cancelRoomKeyRequest(final Map<String, String> requestBody) {
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                mOutgoingRoomKeyRequestManager.cancelRoomKeyRequest(requestBody);
+            }
+        });
+    }
+
+    /**
+     * Room keys events listener
+     */
+    public interface IRoomKeysRequestListener {
+        /**
+         * An room key request has been received.
+         * @param request the request
+         */
+        void onRoomKeyRequest(IncomingRoomKeyRequest request);
+
+        /**
+         * A room key request cancellation has been received.
+         * @param request the cancellation request
+         */
+        void onRoomKeyRequestCancellation(IncomingRoomKeyRequestCancellation request);
+    }
+
+    // the listeners
+    public final Set<IRoomKeysRequestListener> mRoomKeysRequestListeners = new HashSet<>();
+
+    /**
+     * Add a IRoomKeysRequestListener listener.
+     * @param listener listener
+     */
+    public void addRoomKeysRequestListener(IRoomKeysRequestListener listener) {
+        synchronized (mRoomKeysRequestListeners) {
+            mRoomKeysRequestListeners.add(listener);
+        }
+    }
+
+    /**
+     * Add a IRoomKeysRequestListener listener.
+     * @param listener listener
+     */
+    public void removeRoomKeysRequestListener(IRoomKeysRequestListener listener) {
+        synchronized (mRoomKeysRequestListeners) {
+            mRoomKeysRequestListeners.remove(listener);
+        }
+    }
+
+    /**
+     * Dispatch onRoomKeyRequest
+     * @param request the request
+     */
+    private void onRoomKeyRequest(IncomingRoomKeyRequest request) {
+        synchronized (mRoomKeysRequestListeners) {
+            for(IRoomKeysRequestListener listener :  mRoomKeysRequestListeners) {
+                try {
+                    listener.onRoomKeyRequest(request);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## onRoomKeyRequest() failed " + e.getMessage());
+                }
+            }
+        }
+    }
+
+
+    /**
+     * A room key request cancellation has been received.
+     * @param request the cancellation request
+     */
+    private void onRoomKeyRequestCancellation(IncomingRoomKeyRequestCancellation request) {
+        synchronized (mRoomKeysRequestListeners) {
+            for(IRoomKeysRequestListener listener :  mRoomKeysRequestListeners) {
+                try {
+                    listener.onRoomKeyRequestCancellation(request);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## onRoomKeyRequestCancellation() failed " + e.getMessage());
+                }
+            }
+        }
     }
 }

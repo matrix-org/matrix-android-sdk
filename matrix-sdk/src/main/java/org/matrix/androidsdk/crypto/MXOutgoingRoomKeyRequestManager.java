@@ -23,11 +23,14 @@ import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.RoomKeyRequest;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -121,6 +124,35 @@ public class MXOutgoingRoomKeyRequestManager {
     }
 
     /**
+     * Cancel room key requests, if any match the given details
+     *
+     * @param requestBody requestBody
+     */
+    public void cancelRoomKeyRequest(final Map<String, String> requestBody) {
+        OutgoingRoomKeyRequest req = mCryptoStore.getOutgoingRoomKeyRequest(requestBody);
+
+        if (null == req) {
+            // no request was made for this key
+            return;
+        }
+
+        if (req.mState == OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING) {
+            // nothing to do here
+            return;
+        } else if ((req.mState == OutgoingRoomKeyRequest.RequestState.UNSENT) ||
+                (req.mState == OutgoingRoomKeyRequest.RequestState.FAILED)) {
+            Log.d(LOG_TAG, "## cancelRoomKeyRequest() : deleting unnecessary room key request for " + requestBody);
+            mCryptoStore.deleteOutgoingRoomKeyRequest(req.mRequestId);
+        } else if (req.mState == OutgoingRoomKeyRequest.RequestState.SENT) {
+            req.mState = OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING;
+            req.mCancellationTxnId = makeTxnId();
+            mCryptoStore.updateOutgoingRoomKeyRequest(req);
+            sendOutgoingRoomKeyRequestCancellation(req);
+        }
+    }
+
+
+    /**
      * Start the background timer to send queued requests, if the timer isn't already running.
      */
     private void startTimer() {
@@ -156,24 +188,27 @@ public class MXOutgoingRoomKeyRequestManager {
         }
 
         Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequests() :  Looking for queued outgoing room key requests");
-        OutgoingRoomKeyRequest outgoingRoomKeyRequest = mCryptoStore.getOutgoingRoomKeyRequestByState(OutgoingRoomKeyRequest.RequestState.UNSENT);
+        OutgoingRoomKeyRequest outgoingRoomKeyRequest = mCryptoStore.getOutgoingRoomKeyRequestByState(
+                new HashSet<>(Arrays.asList(OutgoingRoomKeyRequest.RequestState.UNSENT, OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING)));
 
         if (null == outgoingRoomKeyRequest) {
             Log.e(LOG_TAG, "## sendOutgoingRoomKeyRequests() : No more outgoing room key requests");
             return;
         }
 
-        sendOutgoingRoomKeyRequest(outgoingRoomKeyRequest);
+        if (OutgoingRoomKeyRequest.RequestState.UNSENT == outgoingRoomKeyRequest.mState) {
+            sendOutgoingRoomKeyRequest(outgoingRoomKeyRequest);
+        } else {
+            sendOutgoingRoomKeyRequestCancellation(outgoingRoomKeyRequest);
+        }
     }
-
-    // given a RoomKeyRequest, send it and update the request record
 
     /**
      * Send the outgoing key request.
      *
      * @param request the request
      */
-    private void sendOutgoingRoomKeyRequest(OutgoingRoomKeyRequest request) {
+    private void sendOutgoingRoomKeyRequest(final OutgoingRoomKeyRequest request) {
         Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequest() : Requesting keys " + request.mRequestBody + " from " + request.mRecipients + " id " + request.mRequestId);
 
         Map<String, Object> requestMessage = new HashMap<>();
@@ -182,31 +217,19 @@ public class MXOutgoingRoomKeyRequestManager {
         requestMessage.put("request_id", request.mRequestId);
         requestMessage.put("body", request.mRequestBody);
 
-        sendMessageToDevices(requestMessage, request.mRecipients, request.mRequestId);
-    }
-
-    /**
-     * Send a RoomKeyRequest to a list of recipients
-     *
-     * @param message
-     * @param recipients
-     * @param txnId
-     */
-    private void sendMessageToDevices(final Map<String, Object> message, final List<Map<String, String>> recipients, final String txnId) {
-        MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>();
-
-        for (Map<String, String> recipient : recipients) {
-            contentMap.setObject(message, recipient.get("userId"), recipient.get("deviceId"));
-        }
-
-        Log.d(LOG_TAG, "## sendMessageToDevices starts");
-        mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_ROOM_KEY_REQUEST, contentMap, new ApiCallback<Void>() {
-            private void onDone(final OutgoingRoomKeyRequest.RequestState state) {
+        sendMessageToDevices(requestMessage, request.mRecipients, request.mRequestId, new ApiCallback<Void>() {
+          private void onDone(final OutgoingRoomKeyRequest.RequestState state) {
                 mWorkingHandler.post(new Runnable() {
                     @Override
                     public void run() {
+                        if (request.mState != OutgoingRoomKeyRequest.RequestState.UNSENT) {
+                            Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequest() : Cannot update room key request from UNSENT as it was already updated to " + request.mState);
+                        } else {
+                            request.mState = state;
+                            mCryptoStore.updateOutgoingRoomKeyRequest(request);
+                        }
+
                         mSendOutgoingRoomKeyRequestsRunning = false;
-                        mCryptoStore.updateOutgoingRoomKeyRequest(txnId, OutgoingRoomKeyRequest.RequestState.UNSENT, state);
                         startTimer();
                     }
                 });
@@ -214,27 +237,96 @@ public class MXOutgoingRoomKeyRequestManager {
 
             @Override
             public void onSuccess(Void info) {
-                Log.d(LOG_TAG, "## sendMessageToDevices succeed");
+                Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequest succeed");
                 onDone(OutgoingRoomKeyRequest.RequestState.SENT);
             }
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## sendMessageToDevices failed " + e.getMessage());
+                Log.e(LOG_TAG, "## sendOutgoingRoomKeyRequest failed " + e.getMessage());
                 onDone(OutgoingRoomKeyRequest.RequestState.FAILED);
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "## sendMessageToDevices failed " + e.getMessage());
+                Log.e(LOG_TAG, "## sendOutgoingRoomKeyRequest failed " + e.getMessage());
                 onDone(OutgoingRoomKeyRequest.RequestState.FAILED);
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## sendMessageToDevices failed " + e.getMessage());
+                Log.e(LOG_TAG, "## sendOutgoingRoomKeyRequest failed " + e.getMessage());
                 onDone(OutgoingRoomKeyRequest.RequestState.FAILED);
             }
         });
+    }
+
+    /**
+     * Given a RoomKeyRequest, cancel it and delete the request record
+     * @param request the request
+     */
+    private void sendOutgoingRoomKeyRequestCancellation(final OutgoingRoomKeyRequest request) {
+        Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequestCancellation() : Sending cancellation for key request for " + request.mRequestBody
+                +  " to " + request.mRecipients
+                + " cancellation id  " + request.mCancellationTxnId);
+
+        Map<String, Object> requestMessageMap = new HashMap<>();
+        requestMessageMap.put("action", RoomKeyRequest.ACTION_REQUEST_CANCELLATION);
+        requestMessageMap.put("requesting_device_id", mCryptoStore.getDeviceId());
+        requestMessageMap.put("request_id", request.mCancellationTxnId);
+
+        sendMessageToDevices(requestMessageMap, request.mRecipients, request.mCancellationTxnId, new ApiCallback<Void>() {
+            private void onDone() {
+                mWorkingHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mCryptoStore.deleteOutgoingRoomKeyRequest(request.mRequestId);
+                        mSendOutgoingRoomKeyRequestsRunning = false;
+                        startTimer();
+                    }
+                });
+            }
+
+
+            @Override
+            public void onSuccess(Void info) {
+                Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequestCancellation() : done");
+                onDone();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                Log.e(LOG_TAG, "## sendOutgoingRoomKeyRequestCancellation failed " + e.getMessage());
+                onDone();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                Log.e(LOG_TAG, "## sendOutgoingRoomKeyRequestCancellation failed " + e.getMessage());
+                onDone();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                Log.e(LOG_TAG, "## sendOutgoingRoomKeyRequestCancellation failed " + e.getMessage());
+                onDone();
+            }
+        });
+    }
+
+
+    /**
+     * Send a RoomKeyRequest to a list of recipients
+     *
+     * @param message
+     */
+    private void sendMessageToDevices(final Map<String, Object> message, List<Map<String, String>> recipients, String transactionId, final ApiCallback<Void> callback) {
+        MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>();
+
+        for (Map<String, String> recipient : recipients) {
+            contentMap.setObject(message, recipient.get("userId"), recipient.get("deviceId"));
+        }
+
+        mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_ROOM_KEY_REQUEST, contentMap, transactionId, callback);
     }
 }

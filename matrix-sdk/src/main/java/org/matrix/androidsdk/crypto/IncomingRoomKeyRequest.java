@@ -30,6 +30,7 @@ public class IncomingRoomKeyRequest implements Serializable {
     public String mDeviceId;
     public String mRequestId;
     public RoomKeyRequestBody mRequestBody;
+    public Runnable mShare;
 
     public IncomingRoomKeyRequest(Event event) {
         mUserId = event.getSender();
@@ -39,5 +40,7 @@ public class IncomingRoomKeyRequest implements Serializable {
         mRequestId = roomKeyRequest.request_id;
         mRequestBody = (null != roomKeyRequest.body) ? roomKeyRequest.body : new RoomKeyRequestBody();
     }
+
+
 }
 

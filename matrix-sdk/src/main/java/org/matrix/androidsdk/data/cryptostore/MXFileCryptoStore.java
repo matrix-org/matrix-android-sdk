@@ -961,6 +961,15 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
+    public OutgoingRoomKeyRequest getOutgoingRoomKeyRequest(Map<String, String> requestBody) {
+        if (null != requestBody) {
+            return mOutgoingRoomKeyRequests.get(requestBody);
+        }
+
+        return null;
+    }
+
+    @Override
     public OutgoingRoomKeyRequest getOrAddOutgoingRoomKeyRequest(OutgoingRoomKeyRequest request) {
         // sanity check
         if ((null == request) || (null == request.mRequestBody)) {
@@ -999,15 +1008,15 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     /**
      * Look for room key requests by state.
-     * @param state the state
+     * @param states the states
      * @return an OutgoingRoomKeyRequest or null
      */
     @Override
-    public OutgoingRoomKeyRequest getOutgoingRoomKeyRequestByState(OutgoingRoomKeyRequest.RequestState state) {
+    public OutgoingRoomKeyRequest getOutgoingRoomKeyRequestByState(Set<OutgoingRoomKeyRequest.RequestState> states) {
         Collection<OutgoingRoomKeyRequest> requests = mOutgoingRoomKeyRequests.values();
 
         for(OutgoingRoomKeyRequest request : requests) {
-            if (request.mState == state) {
+            if (states.contains(request.mState)) {
                 return request;
             }
         }
@@ -1016,19 +1025,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public void updateOutgoingRoomKeyRequest(String transactionId, OutgoingRoomKeyRequest.RequestState expectedState,  OutgoingRoomKeyRequest.RequestState state) {
-        OutgoingRoomKeyRequest request = getOutgoingRoomKeyRequestByTxId(transactionId);
-
-        if (null != request) {
-            if (TextUtils.equals(request.mRequestId, transactionId)) {
-                if (expectedState != request.mState) {
-                    Log.d(LOG_TAG, "## updateOutgoingRoomKeyRequest() : Cannot update room key request from " + expectedState + " as it was already updated to " + request.mState);
-                    return;
-                }
-
-                request.mState = state;
-                saveOutgoingRoomKeyRequests();
-            }
+    public void updateOutgoingRoomKeyRequest(OutgoingRoomKeyRequest req) {
+        if (null != req) {
+            saveOutgoingRoomKeyRequests();
         }
     }
 
