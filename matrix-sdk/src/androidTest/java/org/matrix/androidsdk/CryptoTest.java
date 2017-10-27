@@ -1777,6 +1777,8 @@ public class CryptoTest {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
                     results.put("sam1", "sam1");
                     lock1.countDown();
+                }  else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
+                    lock1.countDown();
                 }
             }
         };
@@ -1804,14 +1806,13 @@ public class CryptoTest {
                 lock1.countDown();
             }
         });
-        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
-        assertTrue(results.containsKey("send1") && results.containsKey("bob1") && results.containsKey("sam1"));
+        lock1.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        assertTrue(results + "", results.containsKey("send1") && results.containsKey("bob1") && results.containsKey("sam1"));
 
         List<MXDeviceInfo> list = mBobSession.getCrypto().getUserDevices(mAliceSession.getMyUserId());
 
         assertTrue(null != list);
         assertTrue(list.size() > 0);
-
 
         final CountDownLatch lock1b = new CountDownLatch(1);
         mBobSession.getCrypto().setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED, list.get(0).deviceId, mAliceSession.getMyUserId(), new ApiCallback<Void>() {
