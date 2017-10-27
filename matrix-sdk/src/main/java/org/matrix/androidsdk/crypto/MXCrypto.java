@@ -252,7 +252,7 @@ public class MXCrypto {
             mDevicesList.handleDeviceListsChanges(Arrays.asList(mSession.getMyUserId()), null);
         }
 
-        mOutgoingRoomKeyRequestManager = new MXOutgoingRoomKeyRequestManager(mSession);
+        mOutgoingRoomKeyRequestManager = new MXOutgoingRoomKeyRequestManager(mSession, this);
     }
 
     /**

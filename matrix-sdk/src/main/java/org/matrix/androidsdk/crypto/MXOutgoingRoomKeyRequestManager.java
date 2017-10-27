@@ -66,9 +66,9 @@ public class MXOutgoingRoomKeyRequestManager {
      *
      * @param session the session
      */
-    public MXOutgoingRoomKeyRequestManager(MXSession session) {
+    public MXOutgoingRoomKeyRequestManager(MXSession session, MXCrypto crypto) {
         mSession = session;
-        mCrypto = mSession.getCrypto();
+        mCrypto = crypto;
         mWorkingHandler = mCrypto.getEncryptingThreadHandler();
         mCryptoStore = mCrypto.getCryptoStore();
     }
@@ -156,26 +156,27 @@ public class MXOutgoingRoomKeyRequestManager {
      * Start the background timer to send queued requests, if the timer isn't already running.
      */
     private void startTimer() {
-        if (mSendOutgoingRoomKeyRequestsRunning) {
-            return;
-        }
-
-        mWorkingHandler.postDelayed(new Runnable() {
+        mWorkingHandler.post(new Runnable() {
             @Override
             public void run() {
-                mWorkingHandler.post(new Runnable() {
+                if (mSendOutgoingRoomKeyRequestsRunning) {
+                    return;
+                }
+
+                mWorkingHandler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         if (mSendOutgoingRoomKeyRequestsRunning) {
-                            Log.e(LOG_TAG, "## startTimer() : RoomKeyRequestSend already in progress!");
+                            Log.d(LOG_TAG, "## startTimer() : RoomKeyRequestSend already in progress!");
+                            return;
                         }
 
                         mSendOutgoingRoomKeyRequestsRunning = true;
                         sendOutgoingRoomKeyRequests();
                     }
-                });
+                }, SEND_KEY_REQUESTS_DELAY_MS);
             }
-        }, SEND_KEY_REQUESTS_DELAY_MS);
+        });
     }
 
     // look for and send any queued requests. Runs itself recursively until
@@ -193,6 +194,7 @@ public class MXOutgoingRoomKeyRequestManager {
 
         if (null == outgoingRoomKeyRequest) {
             Log.e(LOG_TAG, "## sendOutgoingRoomKeyRequests() : No more outgoing room key requests");
+            mSendOutgoingRoomKeyRequestsRunning = false;
             return;
         }
 

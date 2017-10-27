@@ -279,10 +279,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         }
 
         @Override
-        public void onEventDecrypted(Event event) {
+        public void onEventDecrypted(final Event event) {
             getUiHandler().post(new Runnable() {
                 @Override
                 public void run() {
+                    Log.d(LOG_TAG, "## onEventDecrypted "+ event.eventId);
                     mAdapter.notifyDataSetChanged();
                 }
             });
