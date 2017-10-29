@@ -2,10 +2,7 @@ matrix-android-sdk
 ==================
 The [Matrix] SDK for Android wraps the Matrix REST API calls in asynchronous Java methods and provides basic structures for storing and handling data.
 
-It is an Android Studio (gradle) project containing two modules:
-
- * sdk - The SDK
- * app - The sample app using the SDK
+It is an Android Studio (gradle) project. You can find the sample app using the SDK at the [matrix-org/matrix-android-console](https://github.com/matrix-org/matrix-android-console) repo.
 
 Overview
 --------
