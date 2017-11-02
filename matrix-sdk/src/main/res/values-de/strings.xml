@@ -3,7 +3,7 @@
     <string name="matrix_sdk_app_name">Matrix-Android-SDK</string>
 
     <string name="summary_message">%1$s: %2$s</string>
-    <string name="summary_user_sent_image">%1$s hat ein Bild gesendet.</string>
+    <string name="summary_user_sent_image">%1$s hat ein Bild übermittelt.</string>
 
     <string name="notice_room_invite_no_invitee">%s\'s Einladung</string>
     <string name="notice_room_invite">%1$s hat %2$s eingeladen</string>
@@ -45,7 +45,7 @@
     <string name="notice_event_redacted_reason">  [Grund: %1$s]</string>
     <string name="notice_profile_change_redacted">%1$s hat das Benutzerprofil aktualisiert %2$s</string>
     <string name="notice_room_third_party_invite">%1$s hat eine Einladung an %2$s gesendet</string>
-    <string name="notice_room_third_party_registered_invite">%1$s akzeptierte die Einladung für %2$s</string>
+    <string name="notice_room_third_party_registered_invite">%1$s hat die Einladung für %2$s akzeptiert</string>
 
     <string name="notice_crypto_unable_to_decrypt">** Nicht entschlüsselbar: %s **</string>
     <string name="notice_crypto_error_unkwown_inbound_session_id">Das absendende Gerät hat uns keine Schlüssel für diese Nachricht übermittelt.</string>
