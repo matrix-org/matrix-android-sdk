@@ -732,6 +732,12 @@ public class MXWebRtcCall extends MXCall {
                     }
                 });
 
+        if (null == mPeerConnection) {
+            dispatchOnCallError(CALL_ERROR_ICE_FAILED);
+            hangup("cannot create peer connection");
+            return;
+        }
+
         // send our local video and audio stream to make it seen by the other part
         mPeerConnection.addStream(mLocalMediaStream);
 
