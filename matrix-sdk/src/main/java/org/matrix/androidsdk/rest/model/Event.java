@@ -43,6 +43,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
+import retrofit.RetrofitError;
+
 /**
  * Generic event class with all possible fields for events.
  */
@@ -910,7 +912,19 @@ public class Event implements Externalizable {
 
         output.writeBoolean(null != unsentException);
         if (null != unsentException) {
-            output.writeObject(unsentException);
+            if (unsentException instanceof RetrofitError) {
+                RetrofitError error = (RetrofitError) unsentException;
+
+                if (error.isNetworkError()) {
+                    output.writeObject(unsentException);
+                } else {
+                    // do not serialise the converter
+                    // because it triggers exception
+                    output.writeObject(new Exception(error.getMessage(), error.getCause()));
+                }
+            } else {
+                output.writeObject(unsentException);
+            }
         }
 
         output.writeBoolean(null != unsentMatrixError);
