@@ -66,6 +66,7 @@ public class VideoMessage extends MediaMessage {
     public void setThumbnailUrl(MXEncryptedAttachments.EncryptionResult encryptionResult, String url) {
         if (null != encryptionResult) {
             info.thumbnail_file = encryptionResult.mEncryptedFileInfo;
+            info.thumbnail_file.url = url;
             info.thumbnail_url = null;
         } else {
             info.thumbnail_url = url;
