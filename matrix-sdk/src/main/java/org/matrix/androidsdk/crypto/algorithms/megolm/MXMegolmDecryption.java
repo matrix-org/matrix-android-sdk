@@ -273,6 +273,14 @@ public class MXMegolmDecryption implements IMXDecrypting {
         }
 
         mOlmDevice.addInboundGroupSession(sessionId, sessionKey, roomId, senderKey, forwarding_curve25519_key_chain, keysClaimed, exportFormat);
+
+        Map<String, String> content = new HashMap<>();
+        content.put("algorithm", roomKeyContent.algorithm);
+        content.put("room_id", roomKeyContent.room_id);
+        content.put("session_id", roomKeyContent.session_id);
+        content.put("sender_key", senderKey);
+        mSession.getCrypto().cancelRoomKeyRequest(content);
+
         onNewSession(senderKey, sessionId);
     }
 
@@ -354,7 +362,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
                 Log.d(LOG_TAG, "## shareKeysWithDevice() : sharing keys for session " + body.sender_key + "|" + body.session_id + " with device " + userId + ":" + deviceId);
 
-                MXOlmInboundGroupSession2 inboundGroupSession = mSession.getCrypto().getOlmDevice().getInboundGroupSession(body.room_id, body.sender_key, body.session_id);
+                MXOlmInboundGroupSession2 inboundGroupSession = mSession.getCrypto().getOlmDevice().getInboundGroupSession(body.session_id, body.sender_key, body.room_id);
 
                 Map<String, Object> payloadJson = new HashMap<>();
                 payloadJson.put("type", Event.EVENT_TYPE_FORWARDED_ROOM_KEY);

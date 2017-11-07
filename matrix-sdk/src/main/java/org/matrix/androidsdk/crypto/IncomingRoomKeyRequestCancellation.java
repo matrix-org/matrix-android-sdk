@@ -19,6 +19,7 @@ package org.matrix.androidsdk.crypto;
 import org.matrix.androidsdk.rest.model.Event;
 
 public class IncomingRoomKeyRequestCancellation extends IncomingRoomKeyRequest {
+
     public IncomingRoomKeyRequestCancellation(Event event) {
         super(event);
         mRequestBody = null;
