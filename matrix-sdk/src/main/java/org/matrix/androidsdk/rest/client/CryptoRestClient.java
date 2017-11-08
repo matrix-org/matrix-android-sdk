@@ -179,14 +179,23 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
      * @param callback the asynchronous callback.
      */
     public void sendToDevice(final String eventType, final MXUsersDevicesMap<Map<String, Object>> contentMap, final ApiCallback<Void> callback) {
+        sendToDevice(eventType, contentMap, (new Random()).nextInt(Integer.MAX_VALUE) + "", callback);
+    }
+
+    /**
+     * Send an event to a specific list of devices
+     * @param eventType the type of event to send
+     * @param contentMap content to send. Map from user_id to device_id to content dictionary.
+     * @param transactionId the transactionId
+     * @param callback the asynchronous callback.
+     */
+    public void sendToDevice(final String eventType, final MXUsersDevicesMap<Map<String, Object>> contentMap, final String transactionId, final ApiCallback<Void> callback) {
         final String description = "sendToDevice " + eventType;
 
         HashMap<String, Object> content = new HashMap<>();
         content.put("messages", contentMap.getMap());
 
-        Random rand = new Random();
-
-        mApi.sendToDevice(eventType, rand.nextInt(Integer.MAX_VALUE), content, new RestAdapterCallback<Void>(description, null, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.sendToDevice(eventType, transactionId, content, new RestAdapterCallback<Void>(description, null, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 sendToDevice(eventType, contentMap, callback);

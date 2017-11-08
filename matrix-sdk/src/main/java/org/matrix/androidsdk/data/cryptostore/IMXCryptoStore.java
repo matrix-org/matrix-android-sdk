@@ -18,6 +18,7 @@ package org.matrix.androidsdk.data.cryptostore;
 
 import android.content.Context;
 
+import org.matrix.androidsdk.crypto.OutgoingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -26,6 +27,7 @@ import org.matrix.olm.OlmSession;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * the crypto data store
@@ -224,4 +226,38 @@ public interface IMXCryptoStore {
      * @return the tracking status
      */
     int getDeviceTrackingStatus(String userId, int defaultValue);
+
+    /**
+     * Look for an existing outgoing room key request, and if none is found,
+     * @param requestBody the request body
+     * @return an OutgoingRoomKeyRequest instance or null
+     */
+    OutgoingRoomKeyRequest getOutgoingRoomKeyRequest(Map<String, String> requestBody);
+
+    /**
+     * Look for an existing outgoing room key request, and if none is found,
+     + add a new one.
+     * @param request the request
+     * @return either the same instance as passed in, or the existing one.
+     */
+    OutgoingRoomKeyRequest getOrAddOutgoingRoomKeyRequest(OutgoingRoomKeyRequest request);
+
+    /**
+     * Look for room key requests by state.
+     * @param states the states
+     * @return an OutgoingRoomKeyRequest or null
+     */
+    OutgoingRoomKeyRequest getOutgoingRoomKeyRequestByState(Set<OutgoingRoomKeyRequest.RequestState> states);
+
+    /**
+     * Update an existing outgoing request.
+     * @param request the request
+     */
+    void updateOutgoingRoomKeyRequest(OutgoingRoomKeyRequest request);
+
+    /**
+     * Delete an outgoing room key request.
+     * @param transactionId the transaction id.
+     */
+    void deleteOutgoingRoomKeyRequest(String transactionId);
 }

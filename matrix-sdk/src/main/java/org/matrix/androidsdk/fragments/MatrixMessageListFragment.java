@@ -278,12 +278,30 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             });
         }
 
+        private boolean mRefreshAfterEventsDecryption;
+
         @Override
-        public void onEventDecrypted(Event event) {
+        public void onEventDecrypted(final Event event) {
             getUiHandler().post(new Runnable() {
                 @Override
                 public void run() {
-                    mAdapter.notifyDataSetChanged();
+                    // avoid refreshing the whole list for each event
+                    // they are often refreshed by bunches.
+                    if (mRefreshAfterEventsDecryption) {
+                        Log.d(LOG_TAG, "## onEventDecrypted "+ event.eventId + " : there is a pending refresh");
+                    } else {
+                        Log.d(LOG_TAG, "## onEventDecrypted "+ event.eventId);
+
+                        mRefreshAfterEventsDecryption = true;
+                        getUiHandler().postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                Log.d(LOG_TAG, "## onEventDecrypted : refresh the list");
+                                mRefreshAfterEventsDecryption = false;
+                                mAdapter.notifyDataSetChanged();
+                            }
+                        }, 500);
+                    }
                 }
             });
         }

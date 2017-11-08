@@ -17,6 +17,8 @@
 package org.matrix.androidsdk.crypto;
 
 import android.text.TextUtils;
+import android.util.Pair;
+
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonParser;
@@ -36,6 +38,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -515,10 +518,12 @@ public class MXOlmDevice {
      * @param sessionKey base64-encoded secret key.
      * @param roomId the id of the room in which this session will be used.
      * @param senderKey the base64-encoded curve25519 key of the sender.
+     * @param forwardingCurve25519KeyChain Devices involved in forwarding this session to us.
      * @param keysClaimed Other keys the sender claims.
+     * @param exportFormat true if the megolm keys are in export format
      * @return true if the operation succeeds.
      */
-    public boolean addInboundGroupSession(String sessionId, String sessionKey, String roomId, String senderKey, Map<String, String> keysClaimed) {
+    public boolean addInboundGroupSession(String sessionId, String sessionKey, String roomId, String senderKey, List<String> forwardingCurve25519KeyChain, Map<String, String> keysClaimed, boolean exportFormat) {
         if (null != getInboundGroupSession(sessionId, senderKey, roomId)) {
             // If we already have this session, consider updating it
             Log.e(LOG_TAG, "## addInboundGroupSession() : Update for megolm session " + senderKey + "/" + sessionId);
@@ -527,7 +532,7 @@ public class MXOlmDevice {
             return false;
         }
 
-        MXOlmInboundGroupSession2 session = new MXOlmInboundGroupSession2(sessionKey);
+        MXOlmInboundGroupSession2 session = new MXOlmInboundGroupSession2(sessionKey, exportFormat);
 
         // sanity check
         if (null == session.mSession) {
@@ -548,6 +553,7 @@ public class MXOlmDevice {
         session.mSenderKey = senderKey;
         session.mRoomId = roomId;
         session.mKeysClaimed = keysClaimed;
+        session.mForwardingCurve25519KeyChain = forwardingCurve25519KeyChain;
 
         mStore.storeInboundGroupSession(session);
 
@@ -756,7 +762,7 @@ public class MXOlmDevice {
      * @param senderKey the base64-encoded curve25519 key of the sender.
      * @return the inbound group session.
      */
-    private MXOlmInboundGroupSession2 getInboundGroupSession(String sessionId, String senderKey, String roomId) {
+    public MXOlmInboundGroupSession2 getInboundGroupSession(String sessionId, String senderKey, String roomId) {
         mInboundGroupSessionWithIdError = null;
 
         MXOlmInboundGroupSession2 session = mStore.getInboundGroupSession(sessionId, senderKey);
@@ -774,5 +780,17 @@ public class MXOlmDevice {
             mInboundGroupSessionWithIdError = new MXCryptoError(MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_REASON, null);
         }
         return session;
+    }
+
+    /**
+     * Determine if we have the keys for a given megolm session.
+     *
+     * @param roomId room in which the message was received
+     * @param senderKey base64-encoded curve25519 key of the sender
+     * @param sessionId session identifier
+     * @return
+     */
+    public boolean hasInboundSessionKeys(String roomId, String senderKey, String sessionId) {
+        return null != getInboundGroupSession(sessionId, senderKey, roomId);
     }
 }

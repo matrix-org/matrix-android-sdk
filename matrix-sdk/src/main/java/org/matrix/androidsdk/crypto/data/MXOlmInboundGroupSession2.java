@@ -19,13 +19,16 @@ package org.matrix.androidsdk.crypto.data;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.crypto.MXCryptoAlgorithms;
+import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.olm.OlmInboundGroupSession;
 
 import java.io.Serializable;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -52,6 +55,8 @@ public class MXOlmInboundGroupSession2 implements Serializable {
     // Other keys the sender claims.
     public Map<String, String> mKeysClaimed;
 
+    // Devices which forwarded this session to us (normally empty).
+    public List<String> mForwardingCurve25519KeyChain = new ArrayList<>();
 
     /**
      * Constructor
@@ -67,10 +72,15 @@ public class MXOlmInboundGroupSession2 implements Serializable {
     /**
      * Constructor
      * @param sessionKey the session key
+     *
      */
-    public MXOlmInboundGroupSession2(String sessionKey) {
+    public MXOlmInboundGroupSession2(String sessionKey, boolean isImported) {
         try {
-            mSession = new OlmInboundGroupSession(sessionKey);
+            if (!isImported) {
+                mSession = new OlmInboundGroupSession(sessionKey);
+            } else {
+                mSession = OlmInboundGroupSession.importSession(sessionKey);
+            }
         } catch (Exception e) {
             Log.e(LOG_TAG, "Cannot create : " + e.getMessage());
         }
@@ -103,6 +113,12 @@ public class MXOlmInboundGroupSession2 implements Serializable {
         HashMap<String, Object> map = new HashMap<>();
 
         try {
+            if (null == mForwardingCurve25519KeyChain) {
+                mForwardingCurve25519KeyChain = new ArrayList<>();
+            }
+
+            map.put("sender_claimed_ed25519_key", mKeysClaimed.get("ed25519"));
+            map.put("forwardingCurve25519KeyChain", mForwardingCurve25519KeyChain);
             map.put("sender_key", mSenderKey);
             map.put("sender_claimed_keys", mKeysClaimed);
             map.put("room_id", mRoomId);
@@ -115,5 +131,37 @@ public class MXOlmInboundGroupSession2 implements Serializable {
         }
 
         return map;
+    }
+
+    /**
+     * @return the first known message index
+     */
+    public Long getFirstKnownIndex() {
+        if (null != mSession) {
+            try {
+                return mSession.getFirstKnownIndex();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## getFirstKnownIndex() : getFirstKnownIndex failed " + e.getMessage());
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Export the session for a message index.
+     * @param messageIndex the message index
+     * @return the exported data
+     */
+    public String exportSession(long messageIndex) {
+        if (null != mSession) {
+            try {
+                return mSession.export(messageIndex);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## exportSession() : export failed " + e.getMessage());
+            }
+        }
+
+        return null;
     }
 }
