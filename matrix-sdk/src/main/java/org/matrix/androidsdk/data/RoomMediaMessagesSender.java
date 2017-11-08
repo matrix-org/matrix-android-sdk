@@ -710,7 +710,9 @@ class RoomMediaMessagesSender {
                         mUiHandler.post(new Runnable() {
                             @Override
                             public void run() {
-                                if (mediaMessage.isThumbnailLocalContent()) {
+                                boolean isThumbnailUpload = mediaMessage.isThumbnailLocalContent();
+
+                                if (isThumbnailUpload) {
                                     mediaMessage.setThumbnailUrl(encryptionResult, contentUri);
 
                                     if (null != encryptionResult) {
@@ -749,7 +751,10 @@ class RoomMediaMessagesSender {
 
                                 if (null != roomMediaMessage.getMediaUploadListener()) {
                                     roomMediaMessage.getMediaUploadListener().onUploadComplete(uploadId, contentUri);
-                                    roomMediaMessage.setMediaUploadListener(null);
+
+                                    if (!isThumbnailUpload) {
+                                        roomMediaMessage.setMediaUploadListener(null);
+                                    }
                                 }
                             }
                         });
