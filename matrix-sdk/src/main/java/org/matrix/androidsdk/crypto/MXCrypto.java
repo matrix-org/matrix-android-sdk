@@ -402,7 +402,7 @@ public class MXCrypto {
                         getUIHandler().postDelayed(new Runnable() {
                             @Override
                             public void run() {
-                                if( !isStarted()) {
+                                if (!isStarted()) {
                                     mIsStarting = false;
                                     start(isInitialSync, null);
                                 }
@@ -859,10 +859,9 @@ public class MXCrypto {
      * Configure a room to use encryption.
      * This method must be called in getEncryptingThreadHandler
      *
-     * @param roomId    the room id to enable encryption in.
-     * @param algorithm the encryption config for the room.
+     * @param roomId             the room id to enable encryption in.
+     * @param algorithm          the encryption config for the room.
      * @param inhibitDeviceQuery true to suppress device list query for users in the room (for now)
-     *
      * @return true if the operation succeeds.
      */
     private boolean setEncryptionInRoom(String roomId, String algorithm, boolean inhibitDeviceQuery) {
@@ -1883,8 +1882,8 @@ public class MXCrypto {
         }
 
         if (null != receivedRoomKeyRequestCancellations) {
-            for(IncomingRoomKeyRequestCancellation request : receivedRoomKeyRequestCancellations) {
-                Log.d(LOG_TAG, "## ## processReceivedRoomKeyRequests() : m.room_key_request cancellation for " + request.mUserId+ ":" + request.mDeviceId + " id " + request.mRequestId);
+            for (IncomingRoomKeyRequestCancellation request : receivedRoomKeyRequestCancellations) {
+                Log.d(LOG_TAG, "## ## processReceivedRoomKeyRequests() : m.room_key_request cancellation for " + request.mUserId + ":" + request.mDeviceId + " id " + request.mRequestId);
 
                 // we should probably only notify the app of cancellations we told it
                 // about, but we don't currently have a record of that, so we just pass
@@ -2780,7 +2779,7 @@ public class MXCrypto {
      * Send a request for some room keys, if we have not already done so.
      *
      * @param requestBody requestBody
-     * @param recipients recipients
+     * @param recipients  recipients
      */
     public void requestRoomKey(final Map<String, String> requestBody, final List<Map<String, String>> recipients) {
         getEncryptingThreadHandler().post(new Runnable() {
@@ -2811,12 +2810,14 @@ public class MXCrypto {
     public interface IRoomKeysRequestListener {
         /**
          * An room key request has been received.
+         *
          * @param request the request
          */
         void onRoomKeyRequest(IncomingRoomKeyRequest request);
 
         /**
          * A room key request cancellation has been received.
+         *
          * @param request the cancellation request
          */
         void onRoomKeyRequestCancellation(IncomingRoomKeyRequestCancellation request);
@@ -2827,6 +2828,7 @@ public class MXCrypto {
 
     /**
      * Add a IRoomKeysRequestListener listener.
+     *
      * @param listener listener
      */
     public void addRoomKeysRequestListener(IRoomKeysRequestListener listener) {
@@ -2837,6 +2839,7 @@ public class MXCrypto {
 
     /**
      * Add a IRoomKeysRequestListener listener.
+     *
      * @param listener listener
      */
     public void removeRoomKeysRequestListener(IRoomKeysRequestListener listener) {
@@ -2847,11 +2850,12 @@ public class MXCrypto {
 
     /**
      * Dispatch onRoomKeyRequest
+     *
      * @param request the request
      */
     private void onRoomKeyRequest(IncomingRoomKeyRequest request) {
         synchronized (mRoomKeysRequestListeners) {
-            for(IRoomKeysRequestListener listener :  mRoomKeysRequestListeners) {
+            for (IRoomKeysRequestListener listener : mRoomKeysRequestListeners) {
                 try {
                     listener.onRoomKeyRequest(request);
                 } catch (Exception e) {
@@ -2864,11 +2868,12 @@ public class MXCrypto {
 
     /**
      * A room key request cancellation has been received.
+     *
      * @param request the cancellation request
      */
     private void onRoomKeyRequestCancellation(IncomingRoomKeyRequestCancellation request) {
         synchronized (mRoomKeysRequestListeners) {
-            for(IRoomKeysRequestListener listener :  mRoomKeysRequestListeners) {
+            for (IRoomKeysRequestListener listener : mRoomKeysRequestListeners) {
                 try {
                     listener.onRoomKeyRequestCancellation(request);
                 } catch (Exception e) {

@@ -18,6 +18,9 @@ package org.matrix.androidsdk.crypto;
 
 import org.matrix.androidsdk.rest.model.Event;
 
+/**
+ * IncomingRoomKeyRequestCancellation describes the incoming room key cancellation.
+ */
 public class IncomingRoomKeyRequestCancellation extends IncomingRoomKeyRequest {
 
     public IncomingRoomKeyRequestCancellation(Event event) {

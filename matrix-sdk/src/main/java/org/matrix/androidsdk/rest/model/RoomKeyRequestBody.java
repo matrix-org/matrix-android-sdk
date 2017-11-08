@@ -16,10 +16,9 @@
 package org.matrix.androidsdk.rest.model;
 
 /**
- * Class representing an room key request bondy content
+ * Class representing an room key request body content
  */
 public class RoomKeyRequestBody implements java.io.Serializable {
-
     public String algorithm;
 
     public String room_id;

@@ -24,8 +24,10 @@ import org.matrix.androidsdk.util.JsonUtils;
 
 import java.io.Serializable;
 
+/**
+ * IncomingRoomKeyRequest class defines the incoming room keys request.
+ */
 public class IncomingRoomKeyRequest implements Serializable {
-
     public String mUserId;
     public String mDeviceId;
     public String mRequestId;
@@ -40,7 +42,5 @@ public class IncomingRoomKeyRequest implements Serializable {
         mRequestId = roomKeyRequest.request_id;
         mRequestBody = (null != roomKeyRequest.body) ? roomKeyRequest.body : new RoomKeyRequestBody();
     }
-
-
 }
 
