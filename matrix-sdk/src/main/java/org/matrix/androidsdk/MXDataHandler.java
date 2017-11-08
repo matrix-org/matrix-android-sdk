@@ -518,7 +518,7 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Update the missing data fields loaded from a permanent storage.
      */
-    public void checkPermanentStorageData() {
+    void checkPermanentStorageData() {
         if (!isAlive()) {
             Log.e(LOG_TAG, "checkPermanentStorageData : the session is not anymore active");
             return;

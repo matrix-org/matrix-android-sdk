@@ -223,6 +223,20 @@ public class MXSession {
 
         mDataHandler.getStore().addMXStoreListener(new MXStoreListener() {
             @Override
+            public void onStoreReady(String accountId) {
+                getDataHandler().checkPermanentStorageData();
+                getDataHandler().onStoreReady();
+            }
+
+            @Override
+            public void onStoreCorrupted(String accountId, String description) {
+                // nothing was saved
+                if (null == getDataHandler().getStore()) {
+                    getDataHandler().onStoreReady();
+                }
+            }
+
+            @Override
             public void postProcess(String accountId) {
                 // test if the crypto instance has already been created
                 if (null == mCrypto) {
