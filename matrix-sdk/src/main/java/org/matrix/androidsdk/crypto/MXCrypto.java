@@ -1836,18 +1836,8 @@ public class MXCrypto {
                     continue;
                 }
 
-
-                if (TextUtils.equals(deviceId, getMyDevice().deviceId)) {
+                if (TextUtils.equals(deviceId, getMyDevice().deviceId) && TextUtils.equals(mSession.getMyUserId(), userId)) {
                     Log.d(LOG_TAG, "## processReceivedRoomKeyRequests() : oneself device - ignored");
-                    continue;
-                }
-
-                // if the device is is verified already, share the keys
-                MXDeviceInfo device = mCryptoStore.getUserDevice(userId, deviceId);
-
-                if ((null != device) && device.isVerified()) {
-                    Log.d(LOG_TAG, "## processReceivedRoomKeyRequests() : device is already verified: sharing keys");
-                    decryptor.shareKeysWithDevice(request);
                     continue;
                 }
 
@@ -1862,6 +1852,22 @@ public class MXCrypto {
                         });
                     }
                 };
+
+                // if the device is is verified already, share the keys
+                MXDeviceInfo device = mCryptoStore.getUserDevice(deviceId, userId);
+
+                if (null != device) {
+                    if (device.isVerified()) {
+                        Log.d(LOG_TAG, "## processReceivedRoomKeyRequests() : device is already verified: sharing keys");
+                        request.mShare.run();
+                        continue;
+                    }
+
+                    if (device.isBlocked()) {
+                        Log.d(LOG_TAG, "## processReceivedRoomKeyRequests() : device is blocked -> ignored");
+                        continue;
+                    }
+                }
 
                 onRoomKeyRequest(request);
             }
