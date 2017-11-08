@@ -29,6 +29,7 @@ import android.text.TextUtils;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.util.Log;
+
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 
@@ -47,6 +48,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.RejectedExecutionException;
 
@@ -88,8 +90,8 @@ public class MXMediasCache {
         File[] files = directory.listFiles();
 
         if (null != files) {
-            for(int i=0; i<files.length; i++) {
-                if(!files[i].isDirectory()) {
+            for (int i = 0; i < files.length; i++) {
+                if (!files[i].isDirectory()) {
                     String fileName = files[i].getName();
 
                     // remove standard medias 
@@ -103,10 +105,11 @@ public class MXMediasCache {
 
     /**
      * Constructor
-     * @param contentManager the content manager.
+     *
+     * @param contentManager              the content manager.
      * @param networkConnectivityReceiver the network connectivity receiver
-     * @param userID the account user Id.
-     * @param context the context
+     * @param userID                      the account user Id.
+     * @param context                     the context
      */
     public MXMediasCache(ContentManager contentManager, NetworkConnectivityReceiver networkConnectivityReceiver, String userID, Context context) {
         mContentManager = contentManager;
@@ -182,7 +185,7 @@ public class MXMediasCache {
     /**
      * Compute the medias cache size
      *
-     * @param context the context
+     * @param context  the context
      * @param callback the asynchronous callback
      */
     public static void getCachesSize(final Context context, final SimpleApiCallback<Long> callback) {
@@ -210,7 +213,8 @@ public class MXMediasCache {
 
     /**
      * Remove medias older than ts
-     * @param ts the ts
+     *
+     * @param ts             the ts
      * @param filePathToKeep set of files to keep
      * @return length of deleted files
      */
@@ -225,8 +229,9 @@ public class MXMediasCache {
 
     /**
      * Recursive method to remove older messages
-     * @param folder the base folder
-     * @param aTs the ts
+     *
+     * @param folder         the base folder
+     * @param aTs            the ts
      * @param filePathToKeep set of files to keep
      * @return length of deleted files
      */
@@ -284,9 +289,9 @@ public class MXMediasCache {
     /**
      * Convert matrix url into http one.
      *
-     * @param url     the matrix url
-     * @param width   the expected image width
-     * @param height  the expected image height
+     * @param url    the matrix url
+     * @param width  the expected image width
+     * @param height the expected image height
      * @return the URL to access the described resource.
      */
     private String downloadableUrl(String url, int width, int height) {
@@ -304,7 +309,8 @@ public class MXMediasCache {
 
     /**
      * Provide the thumbnail file.
-     * @param url the thumbnail url/
+     *
+     * @param url  the thumbnail url/
      * @param size the thumbnail size.
      * @return the File if it exits.
      */
@@ -331,6 +337,7 @@ public class MXMediasCache {
 
     /**
      * Return the cache file name for a media defined by its URL and its mimetype.
+     *
      * @param url      the media url
      * @param mimeType the mime type
      * @return the media file it is found
@@ -341,9 +348,10 @@ public class MXMediasCache {
 
     /**
      * Return the cache file name for a media defined by its URL and its mimetype.
-     * @param url the media URL
-     * @param width the media width
-     * @param height the media height
+     *
+     * @param url      the media URL
+     * @param width    the media width
+     * @param height   the media height
      * @param mimeType the media mime type
      * @return the media file it is found
      */
@@ -431,7 +439,7 @@ public class MXMediasCache {
 
                 if (null == extension) {
                     if (mimeType.lastIndexOf("/") >= 0) {
-                        extension = mimeType.substring(mimeType.lastIndexOf("/") +1);
+                        extension = mimeType.substring(mimeType.lastIndexOf("/") + 1);
                     }
                 }
 
@@ -506,11 +514,11 @@ public class MXMediasCache {
      * Copy or Replace a media cache by a file content.
      * MediaUrl is the same model as the one used in loadBitmap.
      *
-     * @param mediaUrl the mediaUrl
-     * @param fileUrl  the file which replaces the cached media.
-     * @param width    the expected image width
-     * @param height   the expected image height
-     * @param mimeType the mimeType.
+     * @param mediaUrl   the mediaUrl
+     * @param fileUrl    the file which replaces the cached media.
+     * @param width      the expected image width
+     * @param height     the expected image height
+     * @param mimeType   the mimeType.
      * @param keepSource keep the source file
      */
     public void saveFileMediaForUrl(String mediaUrl, String fileUrl, int width, int height, String mimeType, boolean keepSource) {
@@ -557,11 +565,11 @@ public class MXMediasCache {
      * Load an avatar thumbnail.
      * The imageView image is updated when the bitmap is loaded or downloaded.
      *
-     * @param hsConfig the home server config.
+     * @param hsConfig  the home server config.
      * @param imageView Ihe imageView to update with the image.
      * @param url       the image url
      * @param side      the avatar thumbnail side
-     * @return a download identifier if the image is not cached.
+     * @return a download identifier if the image is not cached else null.
      */
     public String loadAvatarThumbnail(HomeServerConnectionConfig hsConfig, ImageView imageView, String url, int side) {
         return loadBitmap(imageView.getContext(), hsConfig, imageView, url, side, side, 0, ExifInterface.ORIENTATION_UNDEFINED, null, getThumbnailsFolderFile(), null);
@@ -571,12 +579,12 @@ public class MXMediasCache {
      * Load an avatar thumbnail.
      * The imageView image is updated when the bitmap is loaded or downloaded.
      *
-     * @param hsConfig the home server config.
-     * @param imageView Ihe imageView to update with the image.
-     * @param url       the image url
-     * @param side      the avatar thumbnail side
+     * @param hsConfig       the home server config.
+     * @param imageView      Ihe imageView to update with the image.
+     * @param url            the image url
+     * @param side           the avatar thumbnail side
      * @param aDefaultAvatar the avatar to use when the Url is not reachable.
-     * @return a download identifier if the image is not cached.
+     * @return a download identifier if the image is not cached else null.
      */
     public String loadAvatarThumbnail(HomeServerConnectionConfig hsConfig, ImageView imageView, String url, int side, Bitmap aDefaultAvatar) {
         return loadBitmap(imageView.getContext(), hsConfig, imageView, url, side, side, 0, ExifInterface.ORIENTATION_UNDEFINED, null, getThumbnailsFolderFile(), aDefaultAvatar, null);
@@ -584,6 +592,7 @@ public class MXMediasCache {
 
     /**
      * Tells if the avatar is cached
+     *
      * @param url the avatar url to test
      * @return true if the avatar bitmap is cached.
      */
@@ -593,6 +602,7 @@ public class MXMediasCache {
 
     /**
      * Tells if the media URL is unreachable.
+     *
      * @param url the url to test.
      * @return true if the media URL is unreachable.
      */
@@ -604,14 +614,14 @@ public class MXMediasCache {
      * Load a bitmap from the url.
      * The imageView image is updated when the bitmap is loaded or downloaded.
      *
-     * @param hsConfig      The home server config.
-     * @param imageView     The imageView to update with the image.
-     * @param url           the image url
-     * @param rotationAngle the rotation angle (degrees)
-     * @param orientation   the orientation (ExifInterface.ORIENTATION_XXX value)
-     * @param mimeType      the mimeType.
+     * @param hsConfig       The home server config.
+     * @param imageView      The imageView to update with the image.
+     * @param url            the image url
+     * @param rotationAngle  the rotation angle (degrees)
+     * @param orientation    the orientation (ExifInterface.ORIENTATION_XXX value)
+     * @param mimeType       the mimeType.
      * @param encryptionInfo the encryption file info
-     * @return a download identifier if the image is not cached.
+     * @return a download identifier if the image is not cached else null.
      */
     public String loadBitmap(HomeServerConnectionConfig hsConfig, ImageView imageView, String url, int rotationAngle, int orientation, String mimeType, EncryptedFileInfo encryptionInfo) {
         return loadBitmap(hsConfig, imageView, url, -1, -1, rotationAngle, orientation, mimeType, encryptionInfo);
@@ -621,12 +631,12 @@ public class MXMediasCache {
      * Load a bitmap from the url.
      * The imageView image is updated when the bitmap is loaded or downloaded.
      *
-     * @param hsConfig      The home server config.
-     * @param context       The context
-     * @param url           the image url
-     * @param rotationAngle the rotation angle (degrees)
-     * @param orientation   the orientation (ExifInterface.ORIENTATION_XXX value)
-     * @param mimeType      the mimeType.
+     * @param hsConfig       The home server config.
+     * @param context        The context
+     * @param url            the image url
+     * @param rotationAngle  the rotation angle (degrees)
+     * @param orientation    the orientation (ExifInterface.ORIENTATION_XXX value)
+     * @param mimeType       the mimeType.
      * @param encryptionInfo the encryption file info
      * @return a download identifier if the image is not cached.
      */
@@ -640,44 +650,66 @@ public class MXMediasCache {
      * The width/height parameters are optional. If they are > 0, download a thumbnail.
      * rotationAngle is set to Integer.MAX_VALUE when undefined : the EXIF metadata must be checked.
      *
-     * @param hsConfig      The home server config.
-     * @param imageView     The imageView to fill when the image is downloaded
-     * @param url           the image url
-     * @param width         the expected image width
-     * @param height        the expected image height
-     * @param rotationAngle the rotation angle (degrees)
-     * @param orientation   the orientation (ExifInterface.ORIENTATION_XXX value)
-     * @param mimeType      the mimeType.
+     * @param hsConfig       The home server config.
+     * @param imageView      The imageView to fill when the image is downloaded
+     * @param url            the image url
+     * @param width          the expected image width
+     * @param height         the expected image height
+     * @param rotationAngle  the rotation angle (degrees)
+     * @param orientation    the orientation (ExifInterface.ORIENTATION_XXX value)
+     * @param mimeType       the mimeType.
      * @param encryptionInfo the encryption file info
      * @return a download identifier if the image is not cached
      */
-    public String loadBitmap(HomeServerConnectionConfig hsConfig, ImageView imageView, String url, int width, int height, int rotationAngle,  int orientation, String mimeType, EncryptedFileInfo encryptionInfo) {
+    public String loadBitmap(HomeServerConnectionConfig hsConfig, ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, EncryptedFileInfo encryptionInfo) {
         return loadBitmap(imageView.getContext(), hsConfig, imageView, url, width, height, rotationAngle, orientation, mimeType, getFolderFile(mimeType), encryptionInfo);
     }
 
     // some tasks have been stacked because there are too many running ones.
-    private final ArrayList<MXMediaDownloadWorkerTask> mSuspendedTasks = new ArrayList<>();
+    private final List<MXMediaDownloadWorkerTask> mSuspendedTasks = new ArrayList<>();
 
     /**
      * Returns the download ID from the media URL.
      *
-     * @param url      the media url
-     * @return the download ID
+     * @param url the media url
+     * @return the download ID if there is a pending download or null
      */
     public String downloadIdFromUrl(String url) {
-        return downloadableUrl(url, -1, -1);
+        String downloadId = downloadableUrl(url, -1, -1);
+
+        if (null != MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadId)) {
+            return downloadId;
+        }
+
+        return null;
     }
 
     /**
      * Download a media.
-     * @param context  the application context
-     * @param hsConfig the home server config.
-     * @param url      the media url
-     * @param mimeType the media mimetype
+     *
+     * @param context        the application context
+     * @param hsConfig       the home server config.
+     * @param url            the media url
+     * @param mimeType       the media mimetype
      * @param encryptionInfo the encryption information
-     * @return the download identifier.
+     * @return the download identifier if there is a pending download else null
      */
     public String downloadMedia(Context context, HomeServerConnectionConfig hsConfig, String url, String mimeType, EncryptedFileInfo encryptionInfo) {
+        return downloadMedia(context, hsConfig, url, mimeType, encryptionInfo, null);
+    }
+
+    /**
+     * Download a media.
+     *
+     * @param context        the application context
+     * @param hsConfig       the home server config.
+     * @param url            the media url
+     * @param mimeType       the media mimetype
+     * @param encryptionInfo the encryption information
+     * @param listener       the encryption information
+     * @return the download identifier if there is a pending download else null
+     */
+    public String downloadMedia(Context context, HomeServerConnectionConfig hsConfig, String url, String mimeType, EncryptedFileInfo encryptionInfo, IMXMediaDownloadListener listener) {
         // sanity checks
         if ((null == mimeType) || (null == url) || (null == context)) {
             return null;
@@ -690,17 +722,22 @@ public class MXMediasCache {
 
         String downloadableUrl = downloadableUrl(url, -1, -1);
 
+        // download it in background
+        MXMediaDownloadWorkerTask task = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadableUrl);
+
         // is the media downloading  ?
-        if (null != MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadableUrl)) {
+        if (null != task) {
+            task.addDownloadListener(listener);
             return downloadableUrl;
         }
 
         // download it in background
-        MXMediaDownloadWorkerTask task = new MXMediaDownloadWorkerTask(context, hsConfig, mNetworkConnectivityReceiver, getFolderFile(mimeType), downloadableUrl, mimeType, encryptionInfo);
+        task = new MXMediaDownloadWorkerTask(context, hsConfig, mNetworkConnectivityReceiver, getFolderFile(mimeType), downloadableUrl, mimeType, encryptionInfo);
+        task.addDownloadListener(listener);
 
         // avoid crash if there are too many running task
         try {
-            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Integer[])null);
+            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Integer[]) null);
         } catch (RejectedExecutionException e) {
             // too many tasks have been launched
             synchronized (mSuspendedTasks) {
@@ -710,7 +747,7 @@ public class MXMediasCache {
                 mSuspendedTasks.add(task);
                 // privacy
                 //Log.e(LOG_TAG, "Suspend the task " + task.getUrl());
-                Log.e(LOG_TAG, "Suspend the task " );
+                Log.e(LOG_TAG, "Suspend the task ");
             }
 
         } catch (Exception e) {
@@ -727,8 +764,7 @@ public class MXMediasCache {
      * Start any suspended task
      */
     private void launchSuspendedTask() {
-        synchronized (mSuspendedTasks)
-        {
+        synchronized (mSuspendedTasks) {
             // some task have been suspended because there were too many running ones ?
             if (mSuspendedTasks.size() > 0) {
 
@@ -741,7 +777,7 @@ public class MXMediasCache {
 
                     // avoid crash if there are too many running task
                     try {
-                        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Integer[])null);
+                        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Integer[]) null);
                         mSuspendedTasks.remove(task);
                     } catch (RejectedExecutionException e) {
                         task.cancel(true);
@@ -782,17 +818,16 @@ public class MXMediasCache {
      * If rotationAngle is set to Integer.MAX_VALUE, check the orientation is defined to a valid value.
      * If the orientation is defined, request the properly oriented image to the server
      *
-     *
-     * @param context the context
-     * @param hsConfig the home server config
-     * @param imageView the imageView to fill when the image is downloaded
-     * @param url the image url
-     * @param width the expected image width
-     * @param height the expected image height
-     * @param rotationAngle the rotation angle (degrees)
-     * @param orientation   the orientation (ExifInterface.ORIENTATION_XXX value)
-     * @param mimeType the mimeType.
-     * @param folderFile the folder where the media should be stored
+     * @param context        the context
+     * @param hsConfig       the home server config
+     * @param imageView      the imageView to fill when the image is downloaded
+     * @param url            the image url
+     * @param width          the expected image width
+     * @param height         the expected image height
+     * @param rotationAngle  the rotation angle (degrees)
+     * @param orientation    the orientation (ExifInterface.ORIENTATION_XXX value)
+     * @param mimeType       the mimeType.
+     * @param folderFile     the folder where the media should be stored
      * @param encryptionInfo the encryption file information.
      * @return a download identifier if the image is not cached
      */
@@ -809,17 +844,16 @@ public class MXMediasCache {
      * If rotationAngle is set to Integer.MAX_VALUE, check the orientation is defined to a valid value.
      * If the orientation is defined, request the properly oriented image to the server
      *
-     *
-     * @param context the context
-     * @param hsConfig the home server config
-     * @param imageView the imageView to fill when the image is downloaded
-     * @param url the image url
-     * @param width the expected image width
-     * @param height the expected image height
-     * @param rotationAngle the rotation angle (degrees)
-     * @param orientation   the orientation (ExifInterface.ORIENTATION_XXX value)
-     * @param mimeType the mimeType.
-     * @param folderFile the folder where the media should be stored
+     * @param context        the context
+     * @param hsConfig       the home server config
+     * @param imageView      the imageView to fill when the image is downloaded
+     * @param url            the image url
+     * @param width          the expected image width
+     * @param height         the expected image height
+     * @param rotationAngle  the rotation angle (degrees)
+     * @param orientation    the orientation (ExifInterface.ORIENTATION_XXX value)
+     * @param mimeType       the mimeType.
+     * @param folderFile     the folder where the media should be stored
      * @param aDefaultBitmap the default bitmap to use when the url media cannot be retrieved.
      * @param encryptionInfo the file encryption info
      * @return a download identifier if the image is not cached
@@ -925,7 +959,7 @@ public class MXMediasCache {
 
                 // avoid crash if there are too many running task
                 try {
-                    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Integer[])null);
+                    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Integer[]) null);
                 } catch (RejectedExecutionException e) {
                     // too many tasks have been launched
                     synchronized (mSuspendedTasks) {
@@ -949,6 +983,7 @@ public class MXMediasCache {
 
     /**
      * Returns the download progress (percentage).
+     *
      * @param downloadId the downloadId provided by loadBitmap;
      * @return the download progress
      */
@@ -963,6 +998,7 @@ public class MXMediasCache {
 
     /**
      * Returns the download  stats for a dedicated download id.
+     *
      * @param downloadId the downloadId provided by loadBitmap;
      * @return the download stats
      */
@@ -978,8 +1014,9 @@ public class MXMediasCache {
 
     /**
      * Add a download listener for an downloadId.
+     *
      * @param downloadId The uploadId.
-     * @param listener the download listener.
+     * @param listener   the download listener.
      */
     public void addDownloadListener(String downloadId, IMXMediaDownloadListener listener) {
         MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadId);
@@ -991,6 +1028,7 @@ public class MXMediasCache {
 
     /**
      * Cancel a download.
+     *
      * @param downloadId the download id.
      */
     public void cancelDownload(String downloadId) {
@@ -1003,15 +1041,16 @@ public class MXMediasCache {
 
     /**
      * Upload a file
+     *
      * @param contentStream the stream to upload
-     * @param filename the dst fileanme
-     * @param mimeType the mimetype
-     * @param uploadId the upload id
-     * @param listener the upload progress listener
+     * @param filename      the dst fileanme
+     * @param mimeType      the mimetype
+     * @param uploadId      the upload id
+     * @param listener      the upload progress listener
      */
     public void uploadContent(InputStream contentStream, String filename, String mimeType, String uploadId, IMXMediaUploadListener listener) {
         try {
-             new MXMediaUploadWorkerTask(mContentManager, contentStream, mimeType, uploadId, filename, listener).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            new MXMediaUploadWorkerTask(mContentManager, contentStream, mimeType, uploadId, filename, listener).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } catch (Exception e) {
             // cannot start the task
             if (null != listener) {
@@ -1022,6 +1061,7 @@ public class MXMediasCache {
 
     /**
      * Returns the upload progress (percentage) for a dedicated uploadId
+     *
      * @param uploadId The uploadId.
      * @return the upload percentage. -1 means there is no pending upload.
      */
@@ -1037,6 +1077,7 @@ public class MXMediasCache {
 
     /**
      * Returns the upload stats for a dedicated uploadId
+     *
      * @param uploadId The uploadId.
      * @return the upload stats
      */
@@ -1053,6 +1094,7 @@ public class MXMediasCache {
 
     /**
      * Add an upload listener for an uploadId.
+     *
      * @param uploadId The uploadId.
      * @param listener the upload listener
      */
@@ -1066,6 +1108,7 @@ public class MXMediasCache {
 
     /**
      * Cancel an upload.
+     *
      * @param uploadId the upload Id
      */
     public void cancelUpload(String uploadId) {

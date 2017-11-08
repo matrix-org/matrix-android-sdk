@@ -548,7 +548,9 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      * @param listener the listener to add.
      */
     public void addDownloadListener(IMXMediaDownloadListener listener) {
-        mDownloadListeners.add(listener);
+        if (null != listener) {
+            mDownloadListeners.add(listener);
+        }
     }
 
     /**
