@@ -19,6 +19,7 @@ package org.matrix.androidsdk.call;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Camera;
 import android.os.Build;
 import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
@@ -139,6 +140,51 @@ public class MXWebRtcCall extends MXCall {
      */
     private static boolean useCamera2(Context context) {
         return Camera2Enumerator.isSupported(context);
+    }
+
+    /**
+     * Test if the camera is not used by another app.
+     * It is used to prevent crashes at org.webrtc.Camera1Session.create(Camera1Session.java:80)
+     * when the front camera is not available.
+     * @param context the context
+     * @param isFrontOne true if the camera is the
+     * @return true if the camera is used.
+     */
+    private static boolean isCameraInUse(Context context, boolean isFrontOne) {
+        boolean isUsed = false;
+
+        if (!useCamera2(context)) {
+            int cameraId = -1;
+            int numberOfCameras = android.hardware.Camera.getNumberOfCameras();
+            for (int i = 0; i < numberOfCameras; i++) {
+                android.hardware.Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
+                android.hardware.Camera.getCameraInfo(i, info);
+
+                if ((info.facing == android.hardware.Camera.CameraInfo.CAMERA_FACING_FRONT) && isFrontOne) {
+                    cameraId = i;
+                    break;
+                } else if ((info.facing == android.hardware.Camera.CameraInfo.CAMERA_FACING_BACK) && !isFrontOne) {
+                    cameraId = i;
+                    break;
+                }
+            }
+
+            if (cameraId >= 0) {
+                android.hardware.Camera c = null;
+                try {
+                    c = android.hardware.Camera.open(cameraId);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## isCameraInUse() : failed " + e.getMessage());
+                } finally {
+                    isUsed = (null == c);
+                    if (c != null) {
+                        c.release();
+                    }
+                }
+            }
+        }
+
+        return isUsed;
     }
 
     /**
@@ -825,20 +871,17 @@ public class MXWebRtcCall extends MXCall {
 
         mBackCameraName = mFrontCameraName = null;
 
-
         if (null != deviceNames) {
-
             for (String deviceName : deviceNames) {
-                if (enumerator.isFrontFacing(deviceName)) {
+                if (enumerator.isFrontFacing(deviceName) && !isCameraInUse(mContext, true)) {
                     mFrontCameraName = deviceName;
-                } else if (enumerator.isBackFacing(deviceName)) {
+                } else if (enumerator.isBackFacing(deviceName) && !isCameraInUse(mContext, false)) {
                     mBackCameraName = deviceName;
                 }
             }
 
             cameraCount = deviceNames.length;
         }
-
 
         Log.d(LOG_TAG, "hasCameraDevice():  camera number= " + cameraCount);
         Log.d(LOG_TAG, "hasCameraDevice():  frontCameraName=" + mFrontCameraName + " backCameraName=" + mBackCameraName);
