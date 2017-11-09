@@ -19,7 +19,6 @@ package org.matrix.androidsdk.call;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.graphics.Camera;
 import android.os.Build;
 import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
@@ -119,12 +118,7 @@ public class MXWebRtcCall extends MXCall {
      */
     public static boolean isSupported(Context context) {
         if (null == mIsSupported) {
-            mIsSupported = Build.VERSION.SDK_INT > Build.VERSION_CODES.ICE_CREAM_SANDWICH;
-
-            // the call initialisation is not yet done
-            if (mIsSupported) {
-                initializeAndroidGlobals(context.getApplicationContext());
-            }
+            initializeAndroidGlobals(context.getApplicationContext());
 
             Log.d(LOG_TAG, "isSupported " + mIsSupported);
         }
@@ -150,6 +144,7 @@ public class MXWebRtcCall extends MXCall {
      * @param isFrontOne true if the camera is the
      * @return true if the camera is used.
      */
+    @SuppressLint("Deprecation")
     private static boolean isCameraInUse(Context context, boolean isFrontOne) {
         boolean isUsed = false;
 

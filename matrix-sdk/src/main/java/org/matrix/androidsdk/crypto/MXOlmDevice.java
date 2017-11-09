@@ -17,7 +17,6 @@
 package org.matrix.androidsdk.crypto;
 
 import android.text.TextUtils;
-import android.util.Pair;
 
 import org.matrix.androidsdk.util.Log;
 
@@ -788,7 +787,7 @@ public class MXOlmDevice {
      * @param roomId room in which the message was received
      * @param senderKey base64-encoded curve25519 key of the sender
      * @param sessionId session identifier
-     * @return
+     * @return true if the unbound session keys are known.
      */
     public boolean hasInboundSessionKeys(String roomId, String senderKey, String sessionId) {
         return null != getInboundGroupSession(sessionId, senderKey, roomId);

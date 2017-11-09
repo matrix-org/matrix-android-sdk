@@ -84,8 +84,8 @@ public class MXChromeCall extends MXCall {
         mTurnServer = turnServer;
     }
 
-    @SuppressLint("NewApi")
     @Override
+    @SuppressLint("NewApi")
     public void createCallView() {
         super.createCallView();
         mUIThreadHandler.post(new Runnable() {

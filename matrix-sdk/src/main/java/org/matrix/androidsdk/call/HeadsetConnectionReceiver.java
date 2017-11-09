@@ -16,6 +16,7 @@
 
 package org.matrix.androidsdk.call;
 
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothProfile;
@@ -212,6 +213,7 @@ public class HeadsetConnectionReceiver extends BroadcastReceiver {
     /**
      * @return true if the headset is plugged
      */
+    @SuppressLint("Deprecation")
     public static boolean isHeadsetPlugged(Context context) {
         if (null == mIsHeadsetPlugged) {
             AudioManager audioManager = getAudioManager(context);

@@ -19,7 +19,6 @@ package org.matrix.androidsdk.crypto.data;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.crypto.MXCryptoAlgorithms;
-import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.olm.OlmInboundGroupSession;

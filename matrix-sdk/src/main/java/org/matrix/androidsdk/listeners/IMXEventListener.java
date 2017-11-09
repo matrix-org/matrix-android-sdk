@@ -160,7 +160,7 @@ public interface IMXEventListener {
     /**
      * The notification count of a dedicated room
      * has been updated.
-     * @param roomId
+     * @param roomId the room ID
      */
     void onNotificationCountUpdate(String roomId);
 

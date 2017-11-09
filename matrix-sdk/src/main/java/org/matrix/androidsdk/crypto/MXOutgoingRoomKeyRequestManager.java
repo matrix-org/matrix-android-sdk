@@ -42,9 +42,6 @@ public class MXOutgoingRoomKeyRequestManager {
     // the linked session
     private MXSession mSession;
 
-    // crypto
-    private MXCrypto mCrypto;
-
     // working handler (should not be the UI thread)
     private Handler mWorkingHandler;
 
@@ -68,9 +65,8 @@ public class MXOutgoingRoomKeyRequestManager {
      */
     public MXOutgoingRoomKeyRequestManager(MXSession session, MXCrypto crypto) {
         mSession = session;
-        mCrypto = crypto;
-        mWorkingHandler = mCrypto.getEncryptingThreadHandler();
-        mCryptoStore = mCrypto.getCryptoStore();
+        mWorkingHandler = crypto.getEncryptingThreadHandler();
+        mCryptoStore = crypto.getCryptoStore();
     }
 
     /**
@@ -316,11 +312,12 @@ public class MXOutgoingRoomKeyRequestManager {
         });
     }
 
-
     /**
      * Send a RoomKeyRequest to a list of recipients
-     *
-     * @param message
+     * @param message the message
+     * @param recipients the recipients.
+     * @param transactionId the transaction id
+     * @param callback the asynchronous callback.
      */
     private void sendMessageToDevices(final Map<String, Object> message, List<Map<String, String>> recipients, String transactionId, final ApiCallback<Void> callback) {
         MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>();

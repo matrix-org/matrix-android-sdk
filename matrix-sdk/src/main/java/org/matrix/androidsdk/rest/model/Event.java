@@ -1113,7 +1113,7 @@ public class Event implements Externalizable {
     /**
      * The keys that must have been owned by the sender of this encrypted event.
      *
-     * @discussion These don't necessarily have to come from this event itself, but may be
+     * These don't necessarily have to come from this event itself, but may be
      * implied by the cryptographic session.
      */
     private transient Map<String, String> mKeysProved;
@@ -1121,7 +1121,7 @@ public class Event implements Externalizable {
     /**
      * The additional keys the sender of this encrypted event claims to possess.
      *
-     * @discussion These don't necessarily have to come from this event itself, but may be
+     * These don't necessarily have to come from this event itself, but may be
      * implied by the cryptographic session.
      * For example megolm messages don't claim keys directly, but instead
      * inherit a claim from the olm message that established the session.
