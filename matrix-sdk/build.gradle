@@ -12,7 +12,6 @@ android {
         exclude 'META-INF/NOTICE'
     }
 
-
     defaultConfig {
         minSdkVersion 16
         targetSdkVersion 25
@@ -39,17 +38,24 @@ android {
         }
     }
 
-    task javadoc(type: Javadoc) {
-        source = android.sourceSets.main.java.srcDirs
-        classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-        destinationDir = file("../docs/javadoc/")
-        delete "../docs/"
+    android.libraryVariants.all { variant ->
+        task("${variant.name}Docs", type: Javadoc) {
+            source = variant.javaCompile.source
+            classpath = files(((Object) android.bootClasspath.join(File.pathSeparator)))
+            classpath += files(variant.javaCompile.classpath.files)
 
-        options.links("http://docs.oracle.com/javase/7/docs/api/");
-        options.links("http://developer.android.com/reference/");
-        exclude '**/BuildConfig.java'
-        exclude '**/R.java'
-        failOnError false
+            destinationDir = file("../docs/javadoc/")
+            delete "../docs/"
+
+            options.windowTitle("Matrix Android SDK")
+            options.docTitle("Matrix Android SDK")
+            options.header("<b>Matrix Android SDK</b>")
+            options.bottom("&copy; 2017 Vector Creations Ltd All rights reserved.")
+
+            exclude '**/BuildConfig.java'
+            exclude '**/R.java'
+            failOnError false
+        }
     }
 
     buildTypes {

@@ -122,7 +122,7 @@ public class MXEventListener implements IMXEventListener {
     @Override
     public void onIgnoredUsersListUpdate() {
     }
-    
+
     @Override
     public void onToDeviceEvent(Event event) {
     }

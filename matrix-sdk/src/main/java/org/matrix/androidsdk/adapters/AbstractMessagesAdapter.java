@@ -48,7 +48,7 @@ public abstract class AbstractMessagesAdapter extends ArrayAdapter<MessageRow> {
     /**
      * Add a message row to the top.
      *
-     * @param row     the row to append
+     * @param row the row to append
      */
     public abstract void addToFront(MessageRow row);
 
@@ -157,7 +157,8 @@ public abstract class AbstractMessagesAdapter extends ArrayAdapter<MessageRow> {
     /**
      * Specify the last read message (to display read marker line)
      *
-     * @param readMarkerEventId the read marker event id.
+     * @param readMarkerEventId  the read marker event id.
+     * @param readReceiptEventId the read receipt event id.
      */
     public abstract void updateReadMarker(final String readMarkerEventId, final String readReceiptEventId);
 

@@ -35,7 +35,8 @@ import java.util.Set;
 public interface IMXCryptoStore {
     /**
      * Init a crypto store for the passed credentials.
-     * @param context the application context
+     *
+     * @param context     the application context
      * @param credentials the credentials of the account.
      */
     void initWithCredentials(Context context, Credentials credentials);
@@ -47,6 +48,7 @@ public interface IMXCryptoStore {
 
     /**
      * Indicate if the store contains data for the passed account.
+     *
      * @return true means that the user enabled the crypto in a previous session
      */
     boolean hasData();
@@ -68,6 +70,7 @@ public interface IMXCryptoStore {
 
     /**
      * Store the device id.
+     *
      * @param deviceId the device id
      */
     void storeDeviceId(String deviceId);
@@ -79,6 +82,7 @@ public interface IMXCryptoStore {
 
     /**
      * Store the end to end account for the logged-in user.
+     *
      * @param account the account to save
      */
     void storeAccount(OlmAccount account);
@@ -100,6 +104,7 @@ public interface IMXCryptoStore {
 
     /**
      * Store a device for a user.
+     *
      * @param userId The user's id.
      * @param device the device to store.
      */
@@ -107,14 +112,16 @@ public interface IMXCryptoStore {
 
     /**
      * Retrieve a device for a user.
+     *
      * @param deviceId The device id.
-     * @param userId The user's id.
+     * @param userId   The user's id.
      * @return A map from device id to 'MXDevice' object for the device.
      */
     MXDeviceInfo getUserDevice(String deviceId, String userId);
 
     /**
      * Store the known devices for a user.
+     *
      * @param userId  The user's id.
      * @param devices A map from device id to 'MXDevice' object for the device.
      */
@@ -122,20 +129,23 @@ public interface IMXCryptoStore {
 
     /**
      * Retrieve the known devices for a user.
+     *
      * @param userId The user's id.
      * @return The devices map if some devices are known, else null
      */
     Map<String, MXDeviceInfo> getUserDevices(String userId);
 
     /**
-     *  Store the crypto algorithm for a room.
-     * @param roomId the id of the room.
+     * Store the crypto algorithm for a room.
+     *
+     * @param roomId    the id of the room.
      * @param algorithm the algorithm.
      */
     void storeRoomAlgorithm(String roomId, String algorithm);
 
     /**
      * Provides the algorithm used in a dedicated room.
+     *
      * @param roomId the room id
      * @return the algorithm, null is the room is not encrypted
      */
@@ -143,7 +153,8 @@ public interface IMXCryptoStore {
 
     /**
      * Store a session between the logged-in user and another device.
-     * @param session the end-to-end session.
+     *
+     * @param session   the end-to-end session.
      * @param deviceKey the public key of the other device.
      */
     void storeSession(OlmSession session, String deviceKey);
@@ -151,19 +162,22 @@ public interface IMXCryptoStore {
     /**
      * Retrieve the end-to-end sessions between the logged-in user and another
      * device.
+     *
      * @param deviceKey the public key of the other device.
-     * @return  A map from sessionId to Base64 end-to-end session.
+     * @return A map from sessionId to Base64 end-to-end session.
      */
     Map<String, OlmSession> getDeviceSessions(String deviceKey);
 
     /**
      * Store an inbound group session.
+     *
      * @param session the inbound group session and its context.
      */
     void storeInboundGroupSession(MXOlmInboundGroupSession2 session);
 
     /**
      * Retrieve an inbound group session.
+     *
      * @param sessionId the session identifier.
      * @param senderKey the base64-encoded curve25519 key of the sender.
      * @return an inbound group session.
@@ -172,12 +186,14 @@ public interface IMXCryptoStore {
 
     /**
      * Retrieve the known inbound group sessions.
+     *
      * @return an inbound group session.
      */
     List<MXOlmInboundGroupSession2> getInboundGroupSessions();
 
     /**
      * Remove an inbound group session
+     *
      * @param sessionId the session identifier.
      * @param senderKey the base64-encoded curve25519 key of the sender.
      */
@@ -188,6 +204,7 @@ public interface IMXCryptoStore {
      * messages to unverified devices.
      * If false, it can still be overridden per-room.
      * If true, it overrides the per-room settings.
+     *
      * @param block true to unilaterally blacklist all
      */
     void setGlobalBlacklistUnverifiedDevices(boolean block);
@@ -199,12 +216,14 @@ public interface IMXCryptoStore {
 
     /**
      * Updates the rooms ids list in which the messages are not encrypted for the unverified devices.
+     *
      * @param roomIds the room ids list
      */
     void setRoomsListBlacklistUnverifiedDevices(List<String> roomIds);
 
     /**
      * Provides the rooms ids list in which the messages are not encrypted for the unverified devices.
+     *
      * @return the room Ids list
      */
     List<String> getRoomsListBlacklistUnverifiedDevices();
@@ -216,12 +235,15 @@ public interface IMXCryptoStore {
 
     /**
      * Save the device statuses
+     *
+     * @param deviceTrackingStatuses the device tracking statuses
      */
     void saveDeviceTrackingStatuses(Map<String, Integer> deviceTrackingStatuses);
 
     /**
      * Get the tracking status of a specified userId devices.
-     * @param userId the user id
+     *
+     * @param userId       the user id
      * @param defaultValue the default avlue
      * @return the tracking status
      */
@@ -229,6 +251,7 @@ public interface IMXCryptoStore {
 
     /**
      * Look for an existing outgoing room key request, and if none is found,
+     *
      * @param requestBody the request body
      * @return an OutgoingRoomKeyRequest instance or null
      */
@@ -236,7 +259,8 @@ public interface IMXCryptoStore {
 
     /**
      * Look for an existing outgoing room key request, and if none is found,
-     + add a new one.
+     * + add a new one.
+     *
      * @param request the request
      * @return either the same instance as passed in, or the existing one.
      */
@@ -244,6 +268,7 @@ public interface IMXCryptoStore {
 
     /**
      * Look for room key requests by state.
+     *
      * @param states the states
      * @return an OutgoingRoomKeyRequest or null
      */
@@ -251,12 +276,14 @@ public interface IMXCryptoStore {
 
     /**
      * Update an existing outgoing request.
+     *
      * @param request the request
      */
     void updateOutgoingRoomKeyRequest(OutgoingRoomKeyRequest request);
 
     /**
      * Delete an outgoing room key request.
+     *
      * @param transactionId the transaction id.
      */
     void deleteOutgoingRoomKeyRequest(String transactionId);

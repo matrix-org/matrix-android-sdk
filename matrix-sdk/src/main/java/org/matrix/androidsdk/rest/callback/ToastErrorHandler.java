@@ -17,6 +17,7 @@ package org.matrix.androidsdk.rest.callback;
 
 import android.content.Context;
 import android.widget.Toast;
+
 import org.matrix.androidsdk.rest.model.MatrixError;
 
 /**
@@ -29,7 +30,8 @@ public class ToastErrorHandler implements ApiFailureCallback {
 
     /**
      * Constructor with context for the toast messages and a common prefix for messages.
-     * @param context the context - needed for toast
+     *
+     * @param context   the context - needed for toast
      * @param msgPrefix the message prefix
      */
     public ToastErrorHandler(Context context, String msgPrefix) {

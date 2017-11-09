@@ -18,15 +18,16 @@ package org.matrix.androidsdk.rest.model;
 import java.io.Serializable;
 import java.util.List;
 
-public class EncryptedFileKey implements Serializable{
+public class EncryptedFileKey implements Serializable {
     public String alg;
     public Boolean ext;
     public List<String> key_ops;
     public String kty;
     public String k;
-    
+
     /**
      * Make a deep copy.
+     *
      * @return the copy
      */
     public EncryptedFileKey deepCopy() {

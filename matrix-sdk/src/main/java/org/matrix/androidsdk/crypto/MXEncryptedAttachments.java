@@ -18,6 +18,7 @@ package org.matrix.androidsdk.crypto;
 
 import android.text.TextUtils;
 import android.util.Base64;
+
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.rest.model.EncryptedFileInfo;
@@ -39,7 +40,7 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 public class MXEncryptedAttachments implements Serializable {
-    private static final String LOG_TAG = "MXEncryptAtt";
+    private static final String LOG_TAG = MXEncryptedAttachments.class.getSimpleName();
 
     private static final int CRYPTO_BUFFER_SIZE = 32 * 1024;
     private static final String CIPHER_ALGORITHM = "AES/CTR/NoPadding";
@@ -60,6 +61,7 @@ public class MXEncryptedAttachments implements Serializable {
     /***
      * Encrypt an attachment stream.
      * @param attachmentStream the attachment stream
+     * @param mimetype the mime type
      * @return the encryption file info
      */
     public static EncryptionResult encryptAttachment(InputStream attachmentStream, String mimetype) {
@@ -67,11 +69,11 @@ public class MXEncryptedAttachments implements Serializable {
         SecureRandom secureRandom = new SecureRandom();
 
         // generate a random iv key
-	    // Half of the IV is random, the lower order bits are zeroed
-	    // such that the counter never wraps.
-	    // See https://github.com/matrix-org/matrix-ios-kit/blob/3dc0d8e46b4deb6669ed44f72ad79be56471354c/MatrixKit/Models/Room/MXEncryptedAttachments.m#L75
+        // Half of the IV is random, the lower order bits are zeroed
+        // such that the counter never wraps.
+        // See https://github.com/matrix-org/matrix-ios-kit/blob/3dc0d8e46b4deb6669ed44f72ad79be56471354c/MatrixKit/Models/Room/MXEncryptedAttachments.m#L75
         byte[] initVectorBytes = new byte[16];
-        Arrays.fill(initVectorBytes, (byte)0);
+        Arrays.fill(initVectorBytes, (byte) 0);
 
         byte[] ivRandomPart = new byte[8];
         secureRandom.nextBytes(ivRandomPart);
@@ -143,7 +145,8 @@ public class MXEncryptedAttachments implements Serializable {
 
     /**
      * Decrypt an attachment
-     * @param attachmentStream the attahcment stream
+     *
+     * @param attachmentStream  the attahcment stream
      * @param encryptedFileInfo the encryption file info
      * @return the decrypted attachment stream
      */
@@ -185,7 +188,7 @@ public class MXEncryptedAttachments implements Serializable {
 
         try {
             byte[] key = Base64.decode(base64UrlToBase64(encryptedFileInfo.key.k), Base64.DEFAULT);
-            byte[] initVectorBytes =  Base64.decode(encryptedFileInfo.iv, Base64.DEFAULT);
+            byte[] initVectorBytes = Base64.decode(encryptedFileInfo.iv, Base64.DEFAULT);
 
             Cipher decryptCipher = Cipher.getInstance(CIPHER_ALGORITHM);
             SecretKeySpec secretKeySpec = new SecretKeySpec(key, SECRET_KEY_SPEC_ALGORITHM);
@@ -216,7 +219,7 @@ public class MXEncryptedAttachments implements Serializable {
                 return null;
             }
 
-            InputStream decryptedStream =  new ByteArrayInputStream(outStream.toByteArray());
+            InputStream decryptedStream = new ByteArrayInputStream(outStream.toByteArray());
             outStream.close();
 
             Log.d(LOG_TAG, "Decrypt in " + (System.currentTimeMillis() - t0) + " ms");

@@ -53,7 +53,7 @@ import java.util.List;
  * pagination. For a UI implementation of this, see {@link MatrixMessageListFragment}.
  */
 public class MatrixMessagesFragment extends Fragment {
-    private static final String LOG_TAG = "MatrixMessagesFragment";
+    private static final String LOG_TAG = MatrixMessagesFragment.class.getSimpleName();
 
     /**
      * The room ID to get messages for.

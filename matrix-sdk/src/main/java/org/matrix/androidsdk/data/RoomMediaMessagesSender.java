@@ -398,6 +398,7 @@ class RoomMediaMessagesSender {
 
     /**
      * Retrieve the media Url.
+     *
      * @param roomMediaMessage the room media message
      * @return the media URL
      */

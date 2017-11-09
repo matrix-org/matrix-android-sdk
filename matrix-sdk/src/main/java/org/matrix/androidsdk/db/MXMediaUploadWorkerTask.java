@@ -18,6 +18,7 @@ package org.matrix.androidsdk.db;
 
 import android.os.AsyncTask;
 import android.os.Looper;
+
 import org.matrix.androidsdk.util.Log;
 
 import org.json.JSONException;
@@ -49,7 +50,7 @@ import javax.net.ssl.HttpsURLConnection;
  */
 public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListener.UploadStats, String> {
 
-    private static final String LOG_TAG = "MXMediaUploadWorkerTask";
+    private static final String LOG_TAG = MXMediaUploadWorkerTask.class.getSimpleName();
 
     // upload ID -> task
     private static final HashMap<String, MXMediaUploadWorkerTask> mPendingUploadByUploadId = new HashMap<>();
@@ -114,13 +115,14 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
 
     /**
      * Check if there is a pending download for the url.
+     *
      * @param uploadId The id to check the existence
      * @return the dedicated BitmapWorkerTask if it exists.
      */
     public static MXMediaUploadWorkerTask getMediaDUploadWorkerTask(String uploadId) {
-        if ((uploadId != null) &&  mPendingUploadByUploadId.containsKey(uploadId)) {
+        if ((uploadId != null) && mPendingUploadByUploadId.containsKey(uploadId)) {
             MXMediaUploadWorkerTask task;
-            synchronized(mPendingUploadByUploadId) {
+            synchronized (mPendingUploadByUploadId) {
                 task = mPendingUploadByUploadId.get(uploadId);
             }
             return task;
@@ -136,7 +138,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
         Collection<MXMediaUploadWorkerTask> tasks = mPendingUploadByUploadId.values();
 
         // cancels the running task
-        for(MXMediaUploadWorkerTask task : tasks) {
+        for (MXMediaUploadWorkerTask task : tasks) {
             try {
                 task.cancelUpload();
                 task.cancel(true);
@@ -150,12 +152,13 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
 
     /**
      * Constructor
+     *
      * @param contentManager the content manager
-     * @param contentStream the stream to upload
-     * @param mimeType the mime type
-     * @param uploadId the upload id
-     * @param filename the dest filename
-     * @param listener the upload listener
+     * @param contentStream  the stream to upload
+     * @param mimeType       the mime type
+     * @param uploadId       the upload id
+     * @param filename       the dest filename
+     * @param listener       the upload listener
      */
     public MXMediaUploadWorkerTask(ContentManager contentManager, InputStream contentStream, String mimeType, String uploadId, String filename, IMXMediaUploadListener listener) {
         try {
@@ -180,6 +183,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
 
     /**
      * Add an upload listener
+     *
      * @param aListener the listener to add.
      */
     public void addListener(IMXMediaUploadListener aListener) {
@@ -223,7 +227,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
      * refresh the progress info
      */
     private void publishProgress(long startUploadTime) {
-        mUploadStats.mElapsedTime = (int)((System.currentTimeMillis() - startUploadTime) / 1000);
+        mUploadStats.mElapsedTime = (int) ((System.currentTimeMillis() - startUploadTime) / 1000);
 
         if (0 != mUploadStats.mFileSize) {
             // Uploading data is 90% of the job
@@ -233,7 +237,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
 
         // avoid zero div
         if (System.currentTimeMillis() != startUploadTime) {
-            mUploadStats.mBitRate = (int)(((long)mUploadStats.mUploadedSize)  * 1000 / (System.currentTimeMillis() - startUploadTime) / 1024);
+            mUploadStats.mBitRate = (int) (((long) mUploadStats.mUploadedSize) * 1000 / (System.currentTimeMillis() - startUploadTime) / 1024);
         } else {
             mUploadStats.mBitRate = 0;
         }
@@ -264,7 +268,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
 
         if (null != mFilename) {
             try {
-                String utf8Filename =  URLEncoder.encode(mFilename, "utf-8");
+                String utf8Filename = URLEncoder.encode(mFilename, "utf-8");
                 urlString += "&filename=" + utf8Filename;
             } catch (Exception e) {
                 Log.e(LOG_TAG, "doInBackground " + e.getMessage());
@@ -430,9 +434,9 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
 
         return serverResponse;
     }
-    
+
     @Override
-    protected void onProgressUpdate(IMXMediaUploadListener.UploadStats ... progress) {
+    protected void onProgressUpdate(IMXMediaUploadListener.UploadStats... progress) {
         super.onProgressUpdate(progress);
 
         Log.d(LOG_TAG, "Upload " + this + " : " + mUploadStats.mProgress);
@@ -442,6 +446,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
 
     /**
      * Dispatch the result to the callbacks
+     *
      * @param serverResponse the server response
      */
     private void dispatchResult(final String serverResponse) {
@@ -487,7 +492,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
      * Dispatch Upload start
      */
     private void dispatchOnUploadStart() {
-        for(IMXMediaUploadListener listener : mUploadListeners) {
+        for (IMXMediaUploadListener listener : mUploadListeners) {
             try {
                 listener.onUploadStart(mUploadId);
 
@@ -499,10 +504,11 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
 
     /**
      * Dispatch Upload start
+     *
      * @param stats the upload stats
      */
     private void dispatchOnUploadProgress(IMXMediaUploadListener.UploadStats stats) {
-        for(IMXMediaUploadListener listener : mUploadListeners) {
+        for (IMXMediaUploadListener listener : mUploadListeners) {
             try {
                 listener.onUploadProgress(mUploadId, stats);
             } catch (Exception e) {
@@ -515,7 +521,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
      * Dispatch Upload cancel.
      */
     private void dispatchOnUploadCancel() {
-        for(IMXMediaUploadListener listener : mUploadListeners) {
+        for (IMXMediaUploadListener listener : mUploadListeners) {
             try {
                 listener.onUploadCancel(mUploadId);
             } catch (Exception e) {
@@ -526,11 +532,12 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
 
     /**
      * Dispatch Upload error.
+     *
      * @param serverResponseCode the server response code.
      * @param serverErrorMessage the server error message
      */
     private void dispatchOnUploadError(int serverResponseCode, String serverErrorMessage) {
-        for(IMXMediaUploadListener listener : mUploadListeners) {
+        for (IMXMediaUploadListener listener : mUploadListeners) {
             try {
                 listener.onUploadError(mUploadId, serverResponseCode, serverErrorMessage);
             } catch (Exception e) {
@@ -541,10 +548,11 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
 
     /**
      * Dispatch Upload complete.
+     *
      * @param contentUri the media uri.
      */
     private void dispatchOnUploadComplete(String contentUri) {
-        for(IMXMediaUploadListener listener : mUploadListeners) {
+        for (IMXMediaUploadListener listener : mUploadListeners) {
             try {
                 listener.onUploadComplete(mUploadId, contentUri);
             } catch (Exception e) {

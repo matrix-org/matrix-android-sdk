@@ -169,16 +169,22 @@ public interface IMXCall {
 
     /**
      * The call is hung up.
+     *
+     * @param reason the reason
      */
     void hangup(String reason);
 
     /**
      * Add a listener to the call manager.
+     *
+     * @param callListener the call listener
      */
     void addListener(IMXCallListener callListener);
 
     /**
      * Remove a listener from the call manager.
+     *
+     * @param callListener the call listener
      */
     void removeListener(IMXCallListener callListener);
 
@@ -191,6 +197,8 @@ public interface IMXCall {
 
     /**
      * Set the callId
+     *
+     * @param callId the call id
      */
     void setCallId(String callId);
 
@@ -236,6 +244,8 @@ public interface IMXCall {
 
     /**
      * Defines the call conference status
+     *
+     * @param isConference the conference status
      */
     void setIsConference(boolean isConference);
 
@@ -262,6 +272,7 @@ public interface IMXCall {
     /**
      * Set the callview visibility
      *
+     * @param visibility true to make the callview visible
      * @return true if the operation succeeds
      */
     boolean setVisibility(int visibility);

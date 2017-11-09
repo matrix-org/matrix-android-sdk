@@ -45,7 +45,7 @@ import java.util.List;
 import java.util.Map;
 
 public class MXMegolmEncryption implements IMXEncrypting {
-    private static final String LOG_TAG = "MXMegolmEncryption";
+    private static final String LOG_TAG = MXMegolmEncryption.class.getSimpleName();
 
     private MXSession mSession;
     private MXCrypto mCrypto;

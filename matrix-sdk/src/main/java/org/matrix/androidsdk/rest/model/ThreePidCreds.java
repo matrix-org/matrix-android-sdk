@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 package org.matrix.androidsdk.rest.model;
+
 /**
  * 3 pid credentials
  */

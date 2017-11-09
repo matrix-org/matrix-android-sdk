@@ -56,9 +56,10 @@ public class RestAdapterCallback<T> implements Callback<T> {
 
     /**
      * Constructor with unsent events management
-     * @param description the event description
-     * @param unsentEventsManager the unsent events manager
-     * @param apiCallback the callback
+     *
+     * @param description          the event description
+     * @param unsentEventsManager  the unsent events manager
+     * @param apiCallback          the callback
      * @param requestRetryCallBack the retry callback
      */
     public RestAdapterCallback(String description, UnsentEventsManager unsentEventsManager, ApiCallback apiCallback, RequestRetryCallBack requestRetryCallBack) {
@@ -67,13 +68,14 @@ public class RestAdapterCallback<T> implements Callback<T> {
 
     /**
      * Constructor with unsent events management
-     * @param description the event description
+     *
+     * @param description                the event description
      * @param ignoreEventTimeLifeOffline true to ignore the event time when resending the event.
-     * @param unsentEventsManager the unsent events manager
-     * @param apiCallback the callback
-     * @param requestRetryCallBack the retry callback
+     * @param unsentEventsManager        the unsent events manager
+     * @param apiCallback                the callback
+     * @param requestRetryCallBack       the retry callback
      */
-    public RestAdapterCallback(String description, UnsentEventsManager unsentEventsManager, boolean ignoreEventTimeLifeOffline, ApiCallback apiCallback, RequestRetryCallBack requestRetryCallBack)  {
+    public RestAdapterCallback(String description, UnsentEventsManager unsentEventsManager, boolean ignoreEventTimeLifeOffline, ApiCallback apiCallback, RequestRetryCallBack requestRetryCallBack) {
         if (null != description) {
             Log.d(LOG_TAG, "Trigger the event [" + description + "]");
         }
@@ -132,6 +134,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
 
     /**
      * Default failure implementation that calls the right error handler
+     *
      * @param error the retrofit error
      */
     @Override
@@ -164,8 +167,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
                     //Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage() + " while managing " + error.getUrl());
                     Log.e(LOG_TAG, "## failure():  NetworkError " + e.getMessage());
                 }
-            }
-            else {
+            } else {
                 // Try to convert this into a Matrix error
                 MatrixError mxError;
                 try {
@@ -182,16 +184,15 @@ public class RestAdapterCallback<T> implements Callback<T> {
 
                         try {
                             if (body instanceof TypedByteArray) {
-                                mxError.mErrorBodyAsString = new String(((TypedByteArray)body).getBytes());
+                                mxError.mErrorBodyAsString = new String(((TypedByteArray) body).getBytes());
                             } else {
-                                mxError.mErrorBodyAsString = (String)error.getBodyAs(String.class);
+                                mxError.mErrorBodyAsString = (String) error.getBodyAs(String.class);
                             }
                         } catch (Exception castException) {
                             Log.e(LOG_TAG, "## failure(): MatrixError cannot cast the response body" + castException.getMessage());
                         }
                     }
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     mxError = null;
                 }
                 if (mxError != null) {
@@ -210,8 +211,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
                             Log.e(LOG_TAG, "## failure():  MatrixError " + e.getMessage());
                         }
                     }
-                }
-                else {
+                } else {
                     try {
                         if (null != mApiCallback) {
                             mApiCallback.onUnexpectedError(error);

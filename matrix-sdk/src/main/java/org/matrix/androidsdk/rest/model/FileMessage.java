@@ -20,10 +20,11 @@ import android.text.TextUtils;
 
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.util.Log;
+
 import android.webkit.MimeTypeMap;
 
 public class FileMessage extends MediaMessage {
-    private static final String LOG_TAG = "FileMessage";
+    private static final String LOG_TAG = FileMessage.class.getSimpleName();
 
     public FileInfo info;
     public String url;
@@ -60,6 +61,7 @@ public class FileMessage extends MediaMessage {
 
     /**
      * Make a deep copy of this VideoMessage.
+     *
      * @return the copy
      */
     public FileMessage deepCopy() {
@@ -87,7 +89,7 @@ public class FileMessage extends MediaMessage {
             // it should be fixed on application side but we need to patch it on client side.
             if ((TextUtils.isEmpty(info.mimetype) || ClipDescription.MIMETYPE_TEXT_URILIST.equals(info.mimetype)) && (body.indexOf('.') > 0)) {
                 // the body should contain the filename so try to extract the mimetype from the extension
-                String extension =  body.substring(body.lastIndexOf('.') + 1, body.length());
+                String extension = body.substring(body.lastIndexOf('.') + 1, body.length());
 
                 try {
                     info.mimetype = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.toLowerCase());

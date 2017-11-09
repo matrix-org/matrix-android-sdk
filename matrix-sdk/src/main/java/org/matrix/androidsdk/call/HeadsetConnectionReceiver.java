@@ -36,6 +36,7 @@ import java.util.Set;
 
 // this class detect if the headset is plugged / unplugged
 public class HeadsetConnectionReceiver extends BroadcastReceiver {
+
     private static final String LOG_TAG = HeadsetConnectionReceiver.class.getSimpleName();
 
     private static Boolean mIsHeadsetPlugged = null;
@@ -69,6 +70,7 @@ public class HeadsetConnectionReceiver extends BroadcastReceiver {
     }
 
     /**
+     * @param context the application context
      * @return the shared instance
      */
     public static HeadsetConnectionReceiver getSharedInstance(Context context) {
@@ -211,6 +213,7 @@ public class HeadsetConnectionReceiver extends BroadcastReceiver {
 
 
     /**
+     * @param context the context
      * @return true if the headset is plugged
      */
     @SuppressLint("Deprecation")

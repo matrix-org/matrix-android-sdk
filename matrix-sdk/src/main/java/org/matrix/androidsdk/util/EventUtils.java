@@ -29,12 +29,13 @@ import java.util.regex.Pattern;
  * Utility methods for events.
  */
 public class EventUtils {
-    private static final String LOG_TAG = "EventUtils";
+    private static final String LOG_TAG = EventUtils.class.getSimpleName();
 
     /**
      * Whether the given event should be highlighted in its chat room.
+     *
      * @param session the session.
-     * @param event the event
+     * @param event   the event
      * @return whether the event is important and should be highlighted
      */
     public static boolean shouldHighlight(MXSession session, Event event) {
@@ -61,8 +62,9 @@ public class EventUtils {
 
     /**
      * Whether the given event should trigger a notification.
-     * @param session the current matrix session
-     * @param event the event
+     *
+     * @param session      the current matrix session
+     * @param event        the event
      * @param activeRoomID the RoomID of disaplyed roomActivity
      * @return true if the event should trigger a notification
      */
@@ -99,7 +101,8 @@ public class EventUtils {
 
     /**
      * Returns whether a string contains an occurrence of another, as a standalone word, regardless of case.
-     * @param subString the string to search for
+     *
+     * @param subString  the string to search for
      * @param longString the string to search in
      * @return whether a match was found
      */

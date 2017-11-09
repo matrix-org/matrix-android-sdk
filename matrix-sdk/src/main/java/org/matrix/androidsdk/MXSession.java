@@ -103,7 +103,7 @@ import java.util.regex.Pattern;
  * There can potentially be multiple sessions for handling multiple accounts.
  */
 public class MXSession {
-    private static final String LOG_TAG = "MXSession";
+    private static final String LOG_TAG = MXSession.class.getSimpleName();
 
     private DataRetriever mDataRetriever;
     private MXDataHandler mDataHandler;
@@ -341,6 +341,9 @@ public class MXSession {
     }
 
     /**
+     * Provides the lib version.
+     *
+     * @param longFormat true to have a long format i.e with date and time.
      * @return the SDK version.
      */
     public String getVersion(boolean longFormat) {
@@ -362,6 +365,10 @@ public class MXSession {
     }
 
     /**
+     * Provides the crypto lib version.
+     *
+     * @param context    the context
+     * @param longFormat true to have a long version (with date and time)
      * @return the crypto lib version
      */
     public String getCryptoVersion(Context context, boolean longFormat) {
@@ -552,7 +559,7 @@ public class MXSession {
     /**
      * Provides the application caches size.
      *
-     * @param context the context
+     * @param context  the context
      * @param callback the asynchronous callback
      */
     public static void getApplicationSizeCaches(final Context context, final SimpleApiCallback<Long> callback) {
@@ -682,6 +689,7 @@ public class MXSession {
     /**
      * Remove the medias older than the provided timestamp.
      *
+     * @param context   the context
      * @param timestamp the timestamp (in seconds)
      */
     public void removeMediasBefore(final Context context, final long timestamp) {
@@ -692,7 +700,7 @@ public class MXSession {
 
         Collection<Room> rooms = store.getRooms();
 
-        for(Room room : rooms) {
+        for (Room room : rooms) {
             Collection<Event> events = store.getRoomMessages(room.getRoomId());
             if (null != events) {
                 for (Event event : events) {
@@ -701,7 +709,7 @@ public class MXSession {
                             Message message = JsonUtils.toMessage(event.getContent());
 
                             if (message instanceof MediaMessage) {
-                                MediaMessage mediaMessage = (MediaMessage)message;
+                                MediaMessage mediaMessage = (MediaMessage) message;
 
                                 if (mediaMessage.isThumbnailLocalContent()) {
                                     filesToKeep.add(Uri.parse(mediaMessage.getThumbnailUrl()).getPath());
@@ -914,7 +922,7 @@ public class MXSession {
     }
 
     /**
-     * Tell if the client is seen as "online"
+     * @return true if the client is seen as "online"
      */
     public boolean isOnline() {
         return mIsOnline;
@@ -960,6 +968,7 @@ public class MXSession {
 
     /**
      * Update the data save mode
+     *
      * @param enabled true to enable the data save mode
      */
     public void setUseDataSaveMode(boolean enabled) {
@@ -1018,7 +1027,7 @@ public class MXSession {
 
     /**
      * Refresh the network connection information.
-     * On android >= 6.0, the doze mode might have killed the network connection.
+     * On android version older than 6.0, the doze mode might have killed the network connection.
      */
     public void refreshNetworkConnection() {
         if (null != mNetworkConnectivityReceiver) {
@@ -1899,8 +1908,9 @@ public class MXSession {
      * 2- oldest invited room member
      * 3- the user himself
      *
-     * @param roomId   the room roomId
-     * @param callback the asynchronous callback
+     * @param roomId             the room roomId
+     * @param aParticipantUserId the participant user id
+     * @param callback           the asynchronous callback
      */
     public void toggleDirectChatRoom(String roomId, String aParticipantUserId, ApiCallback<Void> callback) {
         IMXStore store = getDataHandler().getStore();
@@ -2329,9 +2339,10 @@ public class MXSession {
     }
 
     /**
-     * Enable / disable the crypto
+     * Enable / disable the crypto.
      *
      * @param cryptoEnabled true to enable the crypto
+     * @param callback      the asynchronous callback called when the action has been done
      */
     public void enableCrypto(boolean cryptoEnabled, final ApiCallback<Void> callback) {
         if (cryptoEnabled != isCryptoEnabled()) {
@@ -2526,6 +2537,7 @@ public class MXSession {
      * Gets a bearer token from the homeserver that the user can
      * present to a third party in order to prove their ownership
      * of the Matrix account they are logged into.
+     *
      * @param callback the asynchronous callback called when finished
      */
     public void openIdToken(final ApiCallback<Map<Object, Object>> callback) {

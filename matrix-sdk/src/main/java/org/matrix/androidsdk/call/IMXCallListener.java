@@ -25,11 +25,15 @@ public interface IMXCallListener {
 
     /**
      * Called when the call state change
+     *
+     * @param state the new call state
      */
     void onStateDidChange(String state);
 
     /**
-     * Called when the call fails
+     * Called when the call fails.
+     *
+     * @param error the failure reason
      */
     void onCallError(String error);
 

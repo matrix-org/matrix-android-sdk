@@ -48,6 +48,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+
 /**
  * RoomMediaMessage encapsulates the media information to be sent.
  */
@@ -71,7 +72,7 @@ public class RoomMediaMessage implements Parcelable {
          * The event creation failed.
          *
          * @param roomMediaMessage the room media message.
-         * @param errorMessage the failure reason
+         * @param errorMessage     the failure reason
          */
         void onEventCreationFailed(RoomMediaMessage roomMediaMessage, String errorMessage);
 
@@ -147,7 +148,7 @@ public class RoomMediaMessage implements Parcelable {
     /**
      * Constructor from a media Uri/
      *
-     * @param uri the media uri
+     * @param uri      the media uri
      * @param filename the media file name
      */
     public RoomMediaMessage(Uri uri, String filename) {
@@ -193,13 +194,13 @@ public class RoomMediaMessage implements Parcelable {
     public java.lang.String toString() {
         String description = "";
 
-        description +="mUri " + mUri;
-        description +=" -- mMimeType " + mMimeType;
-        description +=" -- mEvent " + mEvent;
-        description +=" -- mClipDataItem " + mClipDataItem;
-        description +=" -- mFileName " + mFileName;
-        description +=" -- mMessageType " + mMessageType;
-        description +=" -- mThumbnailSize " + mThumbnailSize;
+        description += "mUri " + mUri;
+        description += " -- mMimeType " + mMimeType;
+        description += " -- mEvent " + mEvent;
+        description += " -- mClipDataItem " + mClipDataItem;
+        description += " -- mFileName " + mFileName;
+        description += " -- mMessageType " + mMessageType;
+        description += " -- mThumbnailSize " + mThumbnailSize;
 
         return description;
     }
@@ -409,6 +410,8 @@ public class RoomMediaMessage implements Parcelable {
 
     /**
      * Retrieve the raw text contained in this Item.
+     *
+     * @return the raw text
      */
     public CharSequence getText() {
         if (null != mClipDataItem) {
@@ -419,6 +422,8 @@ public class RoomMediaMessage implements Parcelable {
 
     /**
      * Retrieve the raw HTML text contained in this Item.
+     *
+     * @return the raw HTML text
      */
     public String getHtmlText() {
         if (null != mClipDataItem) {
@@ -429,7 +434,9 @@ public class RoomMediaMessage implements Parcelable {
     }
 
     /**
-     * Retrieve the raw Intent contained in this Item.
+     * Retrieve the Intent contained in this Item.
+     *
+     * @return the intent
      */
     public Intent getIntent() {
         if (null != mClipDataItem) {
@@ -440,7 +447,9 @@ public class RoomMediaMessage implements Parcelable {
     }
 
     /**
-     * Retrieve the raw URI contained in this Item.
+     * Retrieve the URI contained in this Item.
+     *
+     * @return the Uri
      */
     public Uri getUri() {
         if (null != mUri) {
@@ -548,6 +557,7 @@ public class RoomMediaMessage implements Parcelable {
     }
 
     /**
+     * @param context the context
      * @return the filename
      */
     public String getFileName(Context context) {
@@ -747,6 +757,7 @@ public class RoomMediaMessage implements Parcelable {
      * List the item provided in an intent.
      *
      * @param intent the intent.
+     * @param loader the class loader.
      * @return the room list
      */
     public static List<RoomMediaMessage> listRoomMediaMessages(Intent intent, ClassLoader loader) {

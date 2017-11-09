@@ -98,6 +98,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * Get the public rooms count.
      * The count can be null.
      *
+     * @param server   the server url
      * @param callback the asynchronous callback
      */
     public void getPublicRoomsCount(final String server, final ApiCallback<Integer> callback) {
@@ -108,6 +109,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * Get the public rooms count.
      * The count can be null.
      *
+     * @param server               the server url
      * @param thirdPartyInstanceId the third party instance id (optional)
      * @param includeAllNetworks   true to search in all the connected network
      * @param callback             the asynchronous callback
@@ -534,8 +536,9 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
     /**
      * Retrieve the URL preview information.
-     * @param URL the URL
-     * @param ts the timestamp
+     *
+     * @param URL      the URL
+     * @param ts       the timestamp
      * @param callback the asynchronous callback
      */
     public void getURLPreview(final String URL, final long ts, final ApiCallback<URLPreview> callback) {

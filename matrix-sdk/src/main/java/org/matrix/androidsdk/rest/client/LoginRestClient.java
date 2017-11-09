@@ -54,6 +54,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
 
     /**
      * Public constructor.
+     *
      * @param hsConfig the home server connection config
      */
     public LoginRestClient(HomeServerConnectionConfig hsConfig) {
@@ -63,6 +64,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
     /**
      * Retrieve the login supported flows.
      * It should be done to check before displaying a default login form.
+     *
      * @param callback the callback success and failure callback
      */
     public void getSupportedLoginFlows(final ApiCallback<List<LoginFlow>> callback) {
@@ -86,7 +88,8 @@ public class LoginRestClient extends RestClient<LoginApi> {
 
     /**
      * Request an account creation
-     * @param params the registration parameters
+     *
+     * @param params   the registration parameters
      * @param callback the callbacks
      */
     public void register(final RegistrationParams params, final ApiCallback<Credentials> callback) {
@@ -137,10 +140,10 @@ public class LoginRestClient extends RestClient<LoginApi> {
     /**
      * Attempt to login with username/password
      *
-     * @param user     the username
-     * @param password the password
+     * @param user       the username
+     * @param password   the password
      * @param deviceName the device name
-     * @param callback the callback success and failure callback
+     * @param callback   the callback success and failure callback
      */
     public void loginWithUser(final String user, final String password, final String deviceName, final ApiCallback<Credentials> callback) {
         final String description = "loginWithUser : " + user;
@@ -167,11 +170,11 @@ public class LoginRestClient extends RestClient<LoginApi> {
     /**
      * Attempt to login with 3pid/password
      *
-     * @param medium   the medium of the 3pid
-     * @param address  the address of the 3pid
-     * @param password the password
+     * @param medium     the medium of the 3pid
+     * @param address    the address of the 3pid
+     * @param password   the password
      * @param deviceName the device name
-     * @param callback the callback success and failure callback
+     * @param callback   the callback success and failure callback
      */
     public void loginWith3Pid(final String medium, final String address, final String password, final String deviceName, final ApiCallback<Credentials> callback) {
         final String description = "loginWith3pid : " + address;
@@ -201,7 +204,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param phoneNumber the phone number
      * @param countryCode the ISO country code
      * @param password    the password
-     * @param deviceName the device name
+     * @param deviceName  the device name
      * @param callback    the callback success and failure callback
      */
     public void loginWithPhoneNumber(final String phoneNumber, final String countryCode, final String password, final String deviceName, final ApiCallback<Credentials> callback) {
@@ -217,8 +220,8 @@ public class LoginRestClient extends RestClient<LoginApi> {
     /**
      * Make login request
      *
-     * @param params login params
-     * @param callback the asynchronous callback
+     * @param params      login params
+     * @param callback    the asynchronous callback
      * @param description the request description
      */
     private void login(final PasswordLoginParams params, final ApiCallback<Credentials> callback, final String description) {
@@ -243,20 +246,24 @@ public class LoginRestClient extends RestClient<LoginApi> {
 
     /**
      * Attempt a user/token log in.
-     * @param user the user name
-     * @param token the token
-     * @param callback the callback success and failure callback
+     *
+     * @param user       the user name
+     * @param token      the token
+     * @param deviceName the device name
+     * @param callback   the callback success and failure callback
      */
     public void loginWithToken(final String user, final String token, final String deviceName, final ApiCallback<Credentials> callback) {
-         loginWithToken(user, token, UUID.randomUUID().toString(), deviceName, callback);
+        loginWithToken(user, token, UUID.randomUUID().toString(), deviceName, callback);
     }
 
     /**
      * Attempt a user/token log in.
-     * @param user the user name
-     * @param token the token
-     * @param txn_id the client transactio id to include in the request
-     * @param callback the callback success and failure callback
+     *
+     * @param user       the user name
+     * @param token      the token
+     * @param txn_id     the client transaction id to include in the request
+     * @param deviceName the device name
+     * @param callback   the callback success and failure callback
      */
     public void loginWithToken(final String user, final String token, final String txn_id, String deviceName, final ApiCallback<Credentials> callback) {
         // privacy
@@ -295,6 +302,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
 
     /**
      * Invalidate the access token, so that it can no longer be used for authorization.
+     *
      * @param callback the callback success and failure callback
      */
     public void logout(final ApiCallback<JsonObject> callback) {

@@ -76,7 +76,7 @@ import java.util.concurrent.CountDownLatch;
  * Specially, it tracks all room membership changes events in order to do keys updates.
  */
 public class MXCrypto {
-    private static final String LOG_TAG = "MXCrypto";
+    private static final String LOG_TAG = MXCrypto.class.getSimpleName();
 
     // max number of keys to upload at once
     // Creating keys can be an expensive operation so we limit the
@@ -371,7 +371,8 @@ public class MXCrypto {
      * and, then, if this is the first time, this new device will be announced to all other users
      * devices.
      *
-     * @param aCallback the asynchronous callback
+     * @param isInitialSync true if it starts from an initial sync
+     * @param aCallback     the asynchronous callback
      */
     public void start(final boolean isInitialSync, final ApiCallback<Void> aCallback) {
         synchronized (mInitializationCallbacks) {
@@ -793,11 +794,12 @@ public class MXCrypto {
     }
 
     /**
-     * Update the blocked/verified state of the given device
+     * Update the blocked/verified state of the given device.
      *
-     * @param verificationStatus the new verification status.
+     * @param verificationStatus the new verification status
      * @param deviceId           the unique identifier for the device.
-     * @param userId             the owner of the device.
+     * @param userId             the owner of the device
+     * @param callback           the asynchronous callback
      */
     public void setDeviceVerification(final int verificationStatus, final String deviceId, final String userId, final ApiCallback<Void> callback) {
         if (hasBeenReleased()) {

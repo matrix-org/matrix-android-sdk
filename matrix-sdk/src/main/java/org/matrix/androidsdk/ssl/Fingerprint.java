@@ -29,10 +29,10 @@ import java.util.Arrays;
  * Represents a X509 Certificate fingerprint.
  */
 public class Fingerprint {
-    public enum HashType { SHA1, SHA256 }
+    public enum HashType {SHA1, SHA256}
 
     private final byte[] mBytes;
-    private final  HashType mHashType;
+    private final HashType mHashType;
     private String mDisplayableHexRepr;
 
     public Fingerprint(byte[] bytes, HashType hashType) {

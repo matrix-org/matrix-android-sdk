@@ -315,8 +315,9 @@ public class MXCallsManager {
     }
 
     /**
-     * Tell if a call is in progress
+     * Tell if a call is in progress.
      *
+     * @param call the call
      * @return true if the call is in progress
      */
     public static boolean isCallInProgress(IMXCall call) {
@@ -608,6 +609,7 @@ public class MXCallsManager {
      * ----> and the call is started
      *
      * @param roomId   the room roomId
+     * @param isVideo  true to start a video call
      * @param callback the async callback
      */
     public void createCallInRoom(final String roomId, final boolean isVideo, final ApiCallback<IMXCall> callback) {

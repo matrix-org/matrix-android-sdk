@@ -114,6 +114,7 @@ public class MXWebRtcCall extends MXCall {
     private boolean mIsAnswered = false;
 
     /**
+     * @param context the context
      * @return true if this stack can perform calls.
      */
     public static boolean isSupported(Context context) {
@@ -140,7 +141,8 @@ public class MXWebRtcCall extends MXCall {
      * Test if the camera is not used by another app.
      * It is used to prevent crashes at org.webrtc.Camera1Session.create(Camera1Session.java:80)
      * when the front camera is not available.
-     * @param context the context
+     *
+     * @param context    the context
      * @param isFrontOne true if the camera is the
      * @return true if the camera is used.
      */

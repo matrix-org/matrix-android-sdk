@@ -23,6 +23,7 @@ import android.media.ExifInterface;
 import android.net.Uri;
 import android.provider.MediaStore;
 import android.text.TextUtils;
+
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.db.MXMediasCache;
@@ -35,13 +36,13 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class ImageUtils {
-
-    private static final String LOG_TAG = "ImageUtils";
+    private static final String LOG_TAG = ImageUtils.class.getSimpleName();
 
     /**
      * Gets the bitmap rotation angle from the {@link android.media.ExifInterface}.
+     *
      * @param context Application context for the content resolver.
-     * @param uri The URI to find the orientation for.  Must be local.
+     * @param uri     The URI to find the orientation for.  Must be local.
      * @return The orientation value, which may be {@link android.media.ExifInterface#ORIENTATION_UNDEFINED}.
      */
     public static int getRotationAngleForBitmap(Context context, Uri uri) {
@@ -52,7 +53,7 @@ public class ImageUtils {
         if (ExifInterface.ORIENTATION_ROTATE_90 == orientation) {
             rotationAngle = 90;
         } else if (ExifInterface.ORIENTATION_ROTATE_180 == orientation) {
-            rotationAngle = 180 ;
+            rotationAngle = 180;
         } else if (ExifInterface.ORIENTATION_ROTATE_270 == orientation) {
             rotationAngle = 270;
         }
@@ -62,8 +63,9 @@ public class ImageUtils {
 
     /**
      * Gets the {@link ExifInterface} value for the orientation for this local bitmap Uri.
+     *
      * @param context Application context for the content resolver.
-     * @param uri The URI to find the orientation for.  Must be local.
+     * @param uri     The URI to find the orientation for.  Must be local.
      * @return The orientation value, which may be {@link ExifInterface#ORIENTATION_UNDEFINED}.
      */
     public static int getOrientationForBitmap(Context context, Uri uri) {
@@ -74,10 +76,10 @@ public class ImageUtils {
         }
 
         if (TextUtils.equals(uri.getScheme(), "content")) {
-            String [] proj= {MediaStore.Images.Media.DATA};
+            String[] proj = {MediaStore.Images.Media.DATA};
             Cursor cursor = null;
             try {
-                cursor = context.getContentResolver().query( uri, proj, null, null, null);
+                cursor = context.getContentResolver().query(uri, proj, null, null, null);
                 if (cursor != null && cursor.getCount() > 0) {
                     cursor.moveToFirst();
                     int idxData = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
@@ -89,25 +91,21 @@ public class ImageUtils {
                     ExifInterface exif = new ExifInterface(path);
                     orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
                 }
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 // eg SecurityException from com.google.android.apps.photos.content.GooglePhotosImageProvider URIs
                 // eg IOException from trying to parse the returned path as a file when it is an http uri.
                 Log.e(LOG_TAG, "Cannot get orientation for bitmap: " + e.getMessage());
-            }
-            finally {
+            } finally {
                 if (cursor != null) {
                     cursor.close();
                 }
             }
-        }
-        else if (TextUtils.equals(uri.getScheme(), "file")) {
+        } else if (TextUtils.equals(uri.getScheme(), "file")) {
             try {
                 ExifInterface exif = new ExifInterface(uri.getPath());
                 orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
-            }
-            catch (Exception e) {
-                Log.e(LOG_TAG, "Cannot get EXIF for file uri "+uri+" because " + e.getMessage());
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "Cannot get EXIF for file uri " + uri + " because " + e.getMessage());
             }
         }
 
@@ -223,17 +221,17 @@ public class ImageUtils {
     /**
      * Apply rotation to the cached image (stored at imageURL).
      * The rotated image replaces the genuine one.
-     * @param context the application
-     * @param imageURL the genuine image URL.
+     *
+     * @param context       the application
+     * @param imageURL      the genuine image URL.
      * @param rotationAngle angle in degrees
-     * @param mediasCache the used media cache
+     * @param mediasCache   the used media cache
      * @return the rotated bitmap
      */
     public static Bitmap rotateImage(Context context, String imageURL, int rotationAngle, MXMediasCache mediasCache) {
         Bitmap rotatedBitmap = null;
 
-        try
-        {
+        try {
             Uri imageUri = Uri.parse(imageURL);
 
             // there is one
@@ -280,21 +278,21 @@ public class ImageUtils {
     /**
      * Apply exif rotation to the cached image (stored at imageURL).
      * The rotated image replaces the genuine one.
-     * @param context the application
-     * @param imageURL the genuine image URL.
+     *
+     * @param context     the application
+     * @param imageURL    the genuine image URL.
      * @param mediasCache the used media cache
      * @return the rotated bitmap if the operation succeeds.
      */
     public static Bitmap applyExifRotation(Context context, String imageURL, MXMediasCache mediasCache) {
         Bitmap rotatedBitmap = null;
 
-        try
-        {
+        try {
             Uri imageUri = Uri.parse(imageURL);
             // get the exif rotation angle
             final int rotationAngle = ImageUtils.getRotationAngleForBitmap(context, imageUri);
 
-            if (0 !=  rotationAngle) {
+            if (0 != rotationAngle) {
                 rotatedBitmap = rotateImage(context, imageURL, rotationAngle, mediasCache);
             }
 
@@ -307,9 +305,13 @@ public class ImageUtils {
 
     /**
      * Scale and apply exif rotation to an image defines by its stream.
-     * @param context the context.
-     * @param maxSide reduce the image to this square side.
-     * @param mediasCache the media cache.
+     *
+     * @param context       the context
+     * @param stream        the image stream
+     * @param mimeType      the mime type
+     * @param maxSide       reduce the image to this square side.
+     * @param rotationAngle the rotation angle
+     * @param mediasCache   the media cache.
      * @return the media url
      */
     public static String scaleAndRotateImage(Context context, InputStream stream, String mimeType, int maxSide, int rotationAngle, MXMediasCache mediasCache) {

@@ -20,19 +20,19 @@ import java.util.List;
 /**
  * subclass representing a search API response
  */
-public class SearchGroupContent  {
+public class SearchGroupContent {
     /**
-     Which results are in this group.
+     * Which results are in this group.
      */
     public List<String> results;
 
     /**
-     Key that can be used to order different groups.
+     * Key that can be used to order different groups.
      */
     public Integer order;
 
     /**
-     Token that can be used to get the next batch of results in the group, if exists.
+     * Token that can be used to get the next batch of results in the group, if exists.
      */
     public String nextBatch;
 }

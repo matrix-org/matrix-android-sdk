@@ -21,6 +21,7 @@ public class FileInfo {
 
     /**
      * Make a deep copy.
+     *
      * @return the copy
      */
     public FileInfo deepCopy() {

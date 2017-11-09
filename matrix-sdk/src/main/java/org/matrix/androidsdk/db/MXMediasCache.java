@@ -54,7 +54,7 @@ import java.util.concurrent.RejectedExecutionException;
 
 public class MXMediasCache {
 
-    private static final String LOG_TAG = "MXMediasCache";
+    private static final String LOG_TAG = MXMediasCache.class.getSimpleName();
 
     /**
      * The medias folders.
@@ -281,6 +281,8 @@ public class MXMediasCache {
      * because many sessions share the same thumbnails.
      * This method must be called when performing an application logout
      * i.e. logging out of all sessions.
+     *
+     * @param applicationContext the application context
      */
     public static void clearThumbnailsCache(Context applicationContext) {
         ContentUtils.deleteDirectory(new File(new File(applicationContext.getApplicationContext().getFilesDir(), MXMediasCache.MXMEDIA_STORE_FOLDER), MXMEDIA_STORE_MEMBER_THUMBNAILS_FOLDER));
@@ -593,7 +595,8 @@ public class MXMediasCache {
     /**
      * Tells if the avatar is cached
      *
-     * @param url the avatar url to test
+     * @param url  the avatar url to test
+     * @param side the thumbnail side
      * @return true if the avatar bitmap is cached.
      */
     public boolean isAvatarThumbnailCached(String url, int side) {
@@ -647,7 +650,7 @@ public class MXMediasCache {
     /**
      * Load a bitmap from an url.
      * The imageView image is updated when the bitmap is loaded or downloaded.
-     * The width/height parameters are optional. If they are > 0, download a thumbnail.
+     * The width/height parameters are optional. If they are positive, download a thumbnail.
      * rotationAngle is set to Integer.MAX_VALUE when undefined : the EXIF metadata must be checked.
      *
      * @param hsConfig       The home server config.
@@ -812,8 +815,8 @@ public class MXMediasCache {
     /**
      * Load a bitmap from an url.
      * The imageView image is updated when the bitmap is loaded or downloaded.
-     * The width/height parameters are optional. If they are > 0, download a thumbnail.
-     *
+     * The width/height parameters are optional. If they are positive, download a thumbnail.
+     * <p>
      * The rotation angle is checked first.
      * If rotationAngle is set to Integer.MAX_VALUE, check the orientation is defined to a valid value.
      * If the orientation is defined, request the properly oriented image to the server
@@ -838,8 +841,8 @@ public class MXMediasCache {
     /**
      * Load a bitmap from an url.
      * The imageView image is updated when the bitmap is loaded or downloaded.
-     * The width/height parameters are optional. If they are > 0, download a thumbnail.
-     *
+     * The width/height parameters are optional. If they are positive, download a thumbnail.
+     * <p>
      * The rotation angle is checked first.
      * If rotationAngle is set to Integer.MAX_VALUE, check the orientation is defined to a valid value.
      * If the orientation is defined, request the properly oriented image to the server

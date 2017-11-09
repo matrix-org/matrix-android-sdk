@@ -107,32 +107,56 @@ public class HomeServerConnectionConfig {
     }
 
     /**
-     * Getters / setters
+     * Update the home server URI.
+     *
+     * @param uri the new HS uri
      */
     public void setHomeserverUri(Uri uri) {
         mHsUri = uri;
     }
 
+    /**
+     * @return the home server uri
+     */
     public Uri getHomeserverUri() {
         return mHsUri;
     }
 
+    /**
+     * Update the identity server uri.
+     *
+     * @param uri the new identity server uri
+     */
     public void setIdentityServerUri(Uri uri) {
         mIdentityServerUri = uri;
     }
 
+    /**
+     * @return the identity server uri
+     */
     public Uri getIdentityServerUri() {
         return (null == mIdentityServerUri) ? mHsUri : mIdentityServerUri;
     }
 
+    /**
+     * @return the allowed fingerprints.
+     */
     public List<Fingerprint> getAllowedFingerprints() {
         return mAllowedFingerprints;
     }
 
+    /**
+     * @return the credentials
+     */
     public Credentials getCredentials() {
         return mCredentials;
     }
 
+    /**
+     * Update the credentials.
+     *
+     * @param credentials the new credentials
+     */
     public void setCredentials(Credentials credentials) {
         this.mCredentials = credentials;
     }
@@ -158,6 +182,7 @@ public class HomeServerConnectionConfig {
 
     /**
      * Convert the object instance into a JSon object
+     *
      * @return the JSon representation
      * @throws JSONException the JSON conversion failure reason
      */
@@ -185,6 +210,7 @@ public class HomeServerConnectionConfig {
 
     /**
      * Create an object instance from the json object.
+     *
      * @param jsonObject the json object
      * @return a HomeServerConnectionConfig instance
      * @throws JSONException the conversion failure reason

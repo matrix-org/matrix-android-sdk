@@ -65,8 +65,9 @@ public interface IMXEventListener {
 
     /**
      * The live events from a chunk are performed.
+     *
      * @param fromToken the start sync token
-     * @param toToken the up-to sync token
+     * @param toToken   the up-to sync token
      */
     void onLiveEventsChunkProcessed(String fromToken, String toToken);
 
@@ -83,6 +84,7 @@ public interface IMXEventListener {
 
     /**
      * The state of an event has been updated.
+     *
      * @param event the event
      */
     void onEventSentStateUpdated(Event event);
@@ -91,7 +93,7 @@ public interface IMXEventListener {
      * An event has been sent.
      * prevEventId defines the event id set before getting the server new one.
      *
-     * @param event the event
+     * @param event       the event
      * @param prevEventId the previous eventId
      */
     void onEventSent(Event event, String prevEventId);
@@ -110,6 +112,7 @@ public interface IMXEventListener {
 
     /**
      * The initial sync is complete and the store can be queried for current state.
+     *
      * @param toToken the up-to sync token
      */
     void onInitialSyncComplete(String toToken);
@@ -160,6 +163,7 @@ public interface IMXEventListener {
     /**
      * The notification count of a dedicated room
      * has been updated.
+     *
      * @param roomId the room ID
      */
     void onNotificationCountUpdate(String roomId);

@@ -16,6 +16,7 @@
 package org.matrix.androidsdk.rest.model.bingrules;
 
 import android.text.TextUtils;
+
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
@@ -28,11 +29,11 @@ import java.util.List;
 
 public class BingRule {
 
-    private static final String LOG_TAG = "BingRule";
+    private static final String LOG_TAG = BingRule.class.getSimpleName();
 
     public static final String RULE_ID_DISABLE_ALL = ".m.rule.master";
-    public static final String RULE_ID_CONTAIN_USER_NAME= ".m.rule.contains_user_name";
-    public static final String RULE_ID_CONTAIN_DISPLAY_NAME= ".m.rule.contains_display_name";
+    public static final String RULE_ID_CONTAIN_USER_NAME = ".m.rule.contains_user_name";
+    public static final String RULE_ID_CONTAIN_DISPLAY_NAME = ".m.rule.contains_display_name";
     public static final String RULE_ID_ONE_TO_ONE_ROOM = ".m.rule.room_one_to_one";
     public static final String RULE_ID_INVITE_ME = ".m.rule.invite_for_me";
     public static final String RULE_ID_PEOPLE_JOIN_LEAVE = ".m.rule.member_event";
@@ -101,11 +102,12 @@ public class BingRule {
 
     /**
      * Bing rule creator
-     * @param ruleKind the rule kind
-     * @param aPattern the pattern to check the conditon
-     * @param notify true to notify
+     *
+     * @param ruleKind  the rule kind
+     * @param aPattern  the pattern to check the conditon
+     * @param notify    true to notify
      * @param highlight true to highlight
-     * @param sound true to play sound
+     * @param sound     true to play sound
      */
     public BingRule(String ruleKind, String aPattern, boolean notify, boolean highlight, boolean sound) {
         //
@@ -138,6 +140,7 @@ public class BingRule {
 
     /**
      * Add a condition to the rule.
+     *
      * @param condition the condition to add.
      */
     public void addCondition(Condition condition) {
@@ -149,6 +152,7 @@ public class BingRule {
 
     /**
      * Search a JsonElement from its tweak name
+     *
      * @param tweak the tweak name.
      * @return the json element. null if not found.
      */
@@ -178,6 +182,7 @@ public class BingRule {
 
     /**
      * Search a JsonPrimitive from its value.
+     *
      * @param value the jsonPrimitive value.
      * @return the json primitive. null if not found.
      */
@@ -205,6 +210,7 @@ public class BingRule {
 
     /**
      * Check if the sound type is the default notification sound.
+     *
      * @param sound the sound name.
      * @return true if the sound is the default notification sound.
      */
@@ -214,6 +220,7 @@ public class BingRule {
 
     /**
      * Check if the sound type is the call ring.
+     *
      * @param sound the sound name.
      * @return true if the sound is the call ring.
      */
@@ -241,6 +248,7 @@ public class BingRule {
 
     /**
      * Return true if the rule should highlight the event.
+     *
      * @return true if the rule should play sound
      */
     public boolean shouldHighlight() {
@@ -264,6 +272,7 @@ public class BingRule {
 
     /**
      * Return true if the rule should highlight the event.
+     *
      * @return true if the rule should play sound
      */
     public boolean shouldNotify() {
@@ -276,6 +285,7 @@ public class BingRule {
 
     /**
      * Return true if the rule should not highlight the event.
+     *
      * @return true if the rule should not play sound
      */
     public boolean shouldNotNotify() {

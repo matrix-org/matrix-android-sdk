@@ -31,7 +31,7 @@ public class KeysQueryResponse {
     public Map<String, Map<String, MXDeviceInfo>> deviceKeys;
 
     /**
-     *  The failures sorted by homeservers.
+     * The failures sorted by homeservers.
      */
     public Map<String, Map<String, Object>> failures;
 }

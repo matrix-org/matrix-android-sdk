@@ -20,7 +20,7 @@ import java.util.List;
 /**
  * represents the response to the /context request.
  */
-public class EventContext  {
+public class EventContext {
 
     /**
      * The event on which /context has been requested.
@@ -39,18 +39,18 @@ public class EventContext  {
     public List<Event> eventsBefore;
 
     /**
-     A list of room events that happened just after the requested event.
-     The order is chronological.
+     * A list of room events that happened just after the requested event.
+     * The order is chronological.
      */
     public List<Event> eventsAfter;
 
     /**
-     A token that can be used to paginate forwards with.
+     * A token that can be used to paginate forwards with.
      */
     public String end;
 
     /**
-     The state of the room at the last event returned.
+     * The state of the room at the last event returned.
      */
     public List<Event> state;
 }

@@ -82,7 +82,7 @@ import java.util.Set;
  * </ul>
  */
 public class MXDataHandler implements IMXEventListener {
-    private static final String LOG_TAG = "MXData";
+    private static final String LOG_TAG = MXDataHandler.class.getSimpleName();
 
     private static final String LEFT_ROOMS_FILTER = "{\"room\":{\"timeline\":{\"limit\":1},\"include_leave\":true}}";
 
@@ -94,6 +94,8 @@ public class MXDataHandler implements IMXEventListener {
 
         /**
          * Call when the requests are rejected after a SSL update
+         *
+         * @param exception the exception
          */
         void onSSLCertificateError(UnrecognizedCertificateException exception);
     }
@@ -151,7 +153,9 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Default constructor.
-     * @param store the data storage implementation.
+     *
+     * @param store       the data storage implementation.
+     * @param credentials the credentials
      */
     public MXDataHandler(IMXStore store, Credentials credentials) {
         mStore = store;
@@ -166,47 +170,93 @@ public class MXDataHandler implements IMXEventListener {
         mLeftRoomsStore = new MXMemoryStore(credentials, store.getContext());
     }
 
+    /**
+     * Set the network error listener.
+     *
+     * @param requestNetworkErrorListener the network error listener
+     */
     public void setRequestNetworkErrorListener(RequestNetworkErrorListener requestNetworkErrorListener) {
         mRequestNetworkErrorListener = requestNetworkErrorListener;
     }
 
+    /**
+     * @return the credentials
+     */
     public Credentials getCredentials() {
         return mCredentials;
     }
 
-    // setters / getters
+    /**
+     * Update the profile Rest client.
+     *
+     * @param profileRestClient the REST client
+     */
     public void setProfileRestClient(ProfileRestClient profileRestClient) {
         mProfileRestClient = profileRestClient;
     }
 
+    /**
+     * @return the profile REST client
+     */
     public ProfileRestClient getProfileRestClient() {
         return mProfileRestClient;
     }
 
+    /**
+     * Update the presence Rest client.
+     *
+     * @param presenceRestClient the REST client
+     */
     public void setPresenceRestClient(PresenceRestClient presenceRestClient) {
         mPresenceRestClient = presenceRestClient;
     }
 
+    /**
+     * @return the presence REST client
+     */
     public PresenceRestClient getPresenceRestClient() {
         return mPresenceRestClient;
     }
 
+    /**
+     * Update the thirdPid Rest client.
+     *
+     * @param thirdPidRestClient the REST client
+     */
     public void setThirdPidRestClient(ThirdPidRestClient thirdPidRestClient) {
         mThirdPidRestClient = thirdPidRestClient;
     }
 
+    /**
+     * @return the ThirdPid REST client
+     */
     public ThirdPidRestClient getThirdPidRestClient() {
         return mThirdPidRestClient;
     }
 
+    /**
+     * Update the rooms Rest client.
+     *
+     * @param roomsRestClient the rooms client
+     */
     public void setRoomsRestClient(RoomsRestClient roomsRestClient) {
         mRoomsRestClient = roomsRestClient;
     }
 
+    /**
+     * Update the events Rest client.
+     *
+     * @param eventsRestClient the events client
+     */
     public void setEventsRestClient(EventsRestClient eventsRestClient) {
         mEventsRestClient = eventsRestClient;
     }
 
+    /**
+     * Update the network connectivity receiver.
+     *
+     * @param networkConnectivityReceiver the network connectivity receiver
+     */
     public void setNetworkConnectivityReceiver(NetworkConnectivityReceiver networkConnectivityReceiver) {
         mNetworkConnectivityReceiver = networkConnectivityReceiver;
 
@@ -215,10 +265,18 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
+    /**
+     * @return the crypto engine
+     */
     public MXCrypto getCrypto() {
         return mCrypto;
     }
 
+    /**
+     * Update the crypto engine.
+     *
+     * @param crypto the crypto engine
+     */
     public void setCrypto(MXCrypto crypto) {
         mCrypto = crypto;
     }
@@ -233,6 +291,7 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Provide the list of user Ids to ignore.
      * The result cannot be null.
+     *
      * @return the user Ids list
      */
     public List<String> getIgnoredUserIds() {
@@ -266,6 +325,7 @@ public class MXDataHandler implements IMXEventListener {
      * Tell if the current instance is still active.
      * When the session is closed, many objects keep a reference to this class
      * to dispatch events : isAlive() should be called before calling a method of this class.
+     *
      * @return true if it is active.
      */
     public boolean isAlive() {
@@ -284,7 +344,9 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
-     * Call when the requests are rejected after a SSL update
+     * Call when the requests are rejected after a SSL update.
+     *
+     * @param exception the SSL certificate exception
      */
     public void onSSLCertificateError(UnrecognizedCertificateException exception) {
         if (null != mRequestNetworkErrorListener) {
@@ -294,6 +356,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Get the session's current user. The MyUser object provides methods for updating user properties which are not possible for other users.
+     *
      * @return the session's MyUser object
      */
     public MyUser getMyUser() {
@@ -356,6 +419,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Update the dataRetriever.
+     *
      * @param dataRetriever the dataRetriever.
      */
     public void setDataRetriever(DataRetriever dataRetriever) {
@@ -365,6 +429,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Update the push rules manager.
+     *
      * @param bingRulesManager the new push rules manager.
      */
     public void setPushRulesManager(BingRulesManager bingRulesManager) {
@@ -382,6 +447,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Update the calls manager.
+     *
      * @param callsManager the new calls manager.
      */
     public void setCallsManager(MXCallsManager callsManager) {
@@ -399,6 +465,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Update the medias cache.
+     *
      * @param mediasCache the new medias cache.
      */
     public void setMediasCache(MXMediasCache mediasCache) {
@@ -408,6 +475,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Retrieve the medias cache.
+     *
      * @return the used mediasCache
      */
     public MXMediasCache getMediasCache() {
@@ -450,6 +518,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Set the crypto events listener
+     *
      * @param listener the listener
      */
     public void setCryptoEventsListener(IMXEventListener listener) {
@@ -458,6 +527,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Add a listener to the listeners list.
+     *
      * @param listener the listener to add.
      */
     public void addListener(IMXEventListener listener) {
@@ -474,6 +544,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Remove a listener from the listeners list.
+     *
      * @param listener to remove.
      */
     public void removeListener(IMXEventListener listener) {
@@ -530,14 +601,14 @@ public class MXDataHandler implements IMXEventListener {
             // They are used to retrieve some data
             // so add the missing links.
 
-            Collection<Room> rooms =  mStore.getRooms();
+            Collection<Room> rooms = mStore.getRooms();
 
-            for(Room room : rooms) {
+            for (Room room : rooms) {
                 room.init(mStore, room.getRoomId(), this);
             }
 
             Collection<RoomSummary> summaries = mStore.getSummaries();
-            for(RoomSummary summary : summaries) {
+            for (RoomSummary summary : summaries) {
                 if (null != summary.getLatestRoomState()) {
                     summary.getLatestRoomState().setDataHandler(this);
                 }
@@ -558,7 +629,9 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
-     * Provides the store in which the room is stored
+     * Provides the store in which the room is stored.
+     *
+     * @param roomId the room id
      * @return the used store
      */
     public IMXStore getStore(String roomId) {
@@ -580,8 +653,9 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Returns the member with userID;
+     *
      * @param members the members List
-     * @param userID the user ID
+     * @param userID  the user ID
      * @return the roomMember if it exists.
      */
     public RoomMember getMember(Collection<RoomMember> members, String userID) {
@@ -599,6 +673,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Check a room exists with the dedicated roomId
+     *
      * @param roomId the room ID
      * @return true it exists.
      */
@@ -615,6 +690,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Get the room object for the corresponding room id. Creates and initializes the object if there is none.
+     *
      * @param roomId the room id
      * @return the corresponding room
      */
@@ -625,6 +701,7 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Get the room object for the corresponding room id.
      * The left rooms are not included.
+     *
      * @param roomId the room id
      * @param create create the room it does not exist.
      * @return the corresponding room
@@ -636,9 +713,10 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Get the room object for the corresponding room id.
      * By default, the left rooms are not included.
-     * @param roomId the room id
+     *
+     * @param roomId        the room id
      * @param testLeftRooms true to test if the room is a left room
-     * @param create create the room it does not exist.
+     * @param create        create the room it does not exist.
      * @return the corresponding room
      */
     public Room getRoom(String roomId, boolean testLeftRooms, boolean create) {
@@ -661,7 +739,8 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Get the room object from the corresponding room id.
-     * @param store the dedicated store
+     *
+     * @param store  the dedicated store
      * @param roomId the room id
      * @param create create the room it does not exist.
      * @return the corresponding room
@@ -676,7 +755,7 @@ public class MXDataHandler implements IMXEventListener {
         if (TextUtils.isEmpty(roomId)) {
             return null;
         }
-        
+
         Room room;
 
         synchronized (this) {
@@ -702,6 +781,7 @@ public class MXDataHandler implements IMXEventListener {
      * Checks if the room is properly initialized.
      * GA reported us that some room fields are not initialized.
      * But, i really don't know how it is possible.
+     *
      * @param room the room check
      */
     public void checkRoom(Room room) {
@@ -719,6 +799,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Provides the room summaries list.
+     *
      * @param withLeftOnes set to true to include the left rooms
      * @return the room summaries
      */
@@ -736,15 +817,16 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Retrieve a room Id by its alias.
+     *
      * @param roomAlias the room alias
-     * @param callback the asynchronous callback
+     * @param callback  the asynchronous callback
      */
     public void roomIdByAlias(final String roomAlias, final ApiCallback<String> callback) {
         String roomId = null;
 
         Collection<Room> rooms = getStore().getRooms();
 
-        for(Room room : rooms) {
+        for (Room room : rooms) {
             if (TextUtils.equals(room.getState().alias, roomAlias)) {
                 roomId = room.getRoomId();
                 break;
@@ -752,7 +834,7 @@ public class MXDataHandler implements IMXEventListener {
                 // getAliases cannot be null
                 List<String> aliases = room.getState().getAliases();
 
-                for(String alias : aliases) {
+                for (String alias : aliases) {
                     if (TextUtils.equals(alias, roomAlias)) {
                         roomId = room.getRoomId();
                         break;
@@ -805,6 +887,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Delete an event.
+     *
      * @param event The event to be stored.
      */
     public void deleteRoomEvent(Event event) {
@@ -832,7 +915,7 @@ public class MXDataHandler implements IMXEventListener {
                 }
 
                 mStore.storeSummary(summary);
-             }
+            }
         } else {
             Log.e(LOG_TAG, "deleteRoomEvent : the session is not anymore active");
         }
@@ -840,6 +923,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Return an user from his id.
+     *
      * @param userId the user id;.
      * @return the user.
      */
@@ -864,7 +948,8 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Manage the sync accountData field
-     * @param accountData the account data
+     *
+     * @param accountData   the account data
      * @param isInitialSync true if it is an initial sync response
      */
     private void manageAccountData(Map<String, Object> accountData, boolean isInitialSync) {
@@ -888,6 +973,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Refresh the push rules from the account data events list
+     *
      * @param events the account data events.
      */
     private void managePushRulesUpdate(List<Map<String, Object>> events) {
@@ -918,6 +1004,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Check if the ignored users list is updated
+     *
      * @param events the account data events list
      */
     private void manageIgnoredUsers(List<Map<String, Object>> events, boolean isInitialSync) {
@@ -979,6 +1066,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Extract the direct chat rooms list from the dedicated events.
+     *
      * @param events the account data events list.
      */
     private void manageDirectChatRooms(List<Map<String, Object>> events, boolean isInitialSync) {
@@ -1011,6 +1099,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Handle a presence event.
+     *
      * @param presenceEvent teh presence event.
      */
     private void handlePresenceEvent(Event presenceEvent) {
@@ -1028,8 +1117,7 @@ public class MXDataHandler implements IMXEventListener {
             if (user == null) {
                 user = userPresence;
                 user.setDataHandler(this);
-            }
-            else {
+            } else {
                 user.currently_active = userPresence.currently_active;
                 user.presence = userPresence.presence;
                 user.lastActiveAgo = userPresence.lastActiveAgo;
@@ -1054,8 +1142,9 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Manage a syncResponse.
+     *
      * @param syncResponse the syncResponse to manage.
-     * @param fromToken the start sync token
+     * @param fromToken    the start sync token
      * @param isCatchingUp true when there is a pending catch-up
      */
     public void onSyncResponse(final SyncResponse syncResponse, final String fromToken, final boolean isCatchingUp) {
@@ -1064,7 +1153,7 @@ public class MXDataHandler implements IMXEventListener {
         mSyncHandler.post(new Runnable() {
             @Override
             public void run() {
-               manageResponse(syncResponse, fromToken, isCatchingUp);
+                manageResponse(syncResponse, fromToken, isCatchingUp);
             }
         });
     }
@@ -1072,6 +1161,7 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Delete a room from its room id.
      * The room data is copied into the left rooms store.
+     *
      * @param roomId the room id
      */
     public void deleteRoom(String roomId) {
@@ -1117,8 +1207,9 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Manage the sync response in the UI thread.
+     *
      * @param syncResponse the syncResponse to manage.
-     * @param fromToken the start sync token
+     * @param fromToken    the start sync token
      * @param isCatchingUp true when there is a pending catch-up
      */
     private void manageResponse(final SyncResponse syncResponse, final String fromToken, final boolean isCatchingUp) {
@@ -1166,7 +1257,7 @@ public class MXDataHandler implements IMXEventListener {
                         } catch (Exception e) {
                             Log.e(LOG_TAG, "## manageResponse() : handleJoinedRoomSync failed " + e.getMessage() + " for room " + roomId);
                         }
-                   }
+                    }
 
                     isEmptyResponse = false;
                 }
@@ -1347,6 +1438,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Retrieve the historical rooms
+     *
      * @param callback the asynchronous callback.
      */
     public void retrieveLeftRooms(ApiCallback<Void> callback) {
@@ -1476,7 +1568,8 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Decrypt an encrypted event
-     * @param event the event to decrypt
+     *
+     * @param event      the event to decrypt
      * @param timelineId the timeline identifier
      * @return true if the event has been decrypted
      */
@@ -1495,6 +1588,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Reset replay attack data for the given timeline.
+     *
      * @param timelineId the timeline id
      */
     public void resetReplayAttackCheckInTimeline(String timelineId) {
@@ -1596,6 +1690,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Tell if a room Id event should be ignored
+     *
      * @param roomId the room id
      * @return true to do not dispatch the event.
      */
@@ -1612,7 +1707,7 @@ public class MXDataHandler implements IMXEventListener {
         if (ignoreEvent(event.roomId)) {
             return;
         }
-        
+
         String type = event.getType();
 
         if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type) && !TextUtils.equals(Event.EVENT_TYPE_RECEIPT, type) && !TextUtils.equals(Event.EVENT_TYPE_TYPING, type)) {
@@ -1668,7 +1763,7 @@ public class MXDataHandler implements IMXEventListener {
     @Override
     public void onBingEvent(final Event event, final RoomState roomState, final BingRule bingRule) {
         if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onBingEvent(event,roomState, bingRule);
+            mCryptoEventsListener.onBingEvent(event, roomState, bingRule);
         }
 
         if (ignoreEvent(event.roomId)) {
@@ -1693,10 +1788,11 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Update the event state and warn the listener if there is an update.
-     * @param event the event
+     *
+     * @param event    the event
      * @param newState the new state
      */
-    public void updateEventState(Event event, Event.SentState newState)  {
+    public void updateEventState(Event event, Event.SentState newState) {
         if ((null != event) && (event.mSentState != newState)) {
             event.mSentState = newState;
             onEventSentStateUpdated(event);

@@ -87,7 +87,7 @@ public interface IMXMediaDownloadListener {
      * The download stats have been updated.
      *
      * @param downloadId the download Identifier
-     * @param stats the download stats
+     * @param stats      the download stats
      */
     void onDownloadProgress(String downloadId, DownloadStats stats);
 
@@ -100,6 +100,7 @@ public interface IMXMediaDownloadListener {
 
     /**
      * The download failed.
+     *
      * @param downloadId  the download Identifier
      * @param jsonElement the error
      */
@@ -107,7 +108,8 @@ public interface IMXMediaDownloadListener {
 
     /**
      * The download has been cancelled.
-     * @param downloadId  the download Identifier
+     *
+     * @param downloadId the download Identifier
      */
     void onDownloadCancel(String downloadId);
 }

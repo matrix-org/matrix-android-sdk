@@ -19,10 +19,10 @@ package org.matrix.androidsdk.rest.model.Search;
 /**
  * subclass representing a search API response
  */
-public class SearchCategories  {
+public class SearchCategories {
 
     /**
-     Mapping of category name to search criteria.
+     * Mapping of category name to search criteria.
      */
     public SearchRoomEventResults roomEvents;
 }

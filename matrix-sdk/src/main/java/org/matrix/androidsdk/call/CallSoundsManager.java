@@ -374,7 +374,10 @@ public class CallSoundsManager {
     }
 
     /**
-     * Start the ringing sound
+     * Start the ringing sound.
+     *
+     * @param resId    the ring sound id
+     * @param filename the filename to save the ringtone
      */
     public void startRinging(int resId, String filename) {
         Log.d(LOG_TAG, "startRinging");
@@ -424,6 +427,10 @@ public class CallSoundsManager {
 
     /**
      * Start a sound.
+     *
+     * @param resId     the sound resource id
+     * @param isLooping true to loop
+     * @param listener  the listener
      */
     public void startSound(int resId, boolean isLooping, final OnMediaListener listener) {
         Log.d(LOG_TAG, "startSound");
@@ -760,6 +767,7 @@ public class CallSoundsManager {
 
     /**
      * Mute the microphone.
+     *
      * @param mute true to mute the microphone
      */
     public void setMicrophoneMute(boolean mute) {

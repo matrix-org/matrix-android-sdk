@@ -680,8 +680,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
-     * return true to display all the events.
-     * else the unknown events will be hidden.
+     * @return true to display all the events else the unknown events will be hidden.
      */
     public boolean isDisplayAllEvents() {
         return true;

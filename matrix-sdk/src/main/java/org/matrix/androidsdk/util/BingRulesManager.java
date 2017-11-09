@@ -51,7 +51,7 @@ import java.util.regex.Pattern;
  * Object that gets and processes bing rules from the server.
  */
 public class BingRulesManager {
-    private static final String LOG_TAG = "BingRulesManager";
+    private static final String LOG_TAG = BingRulesManager.class.getSimpleName();
 
     /**
      * Bing rule listener
@@ -64,6 +64,7 @@ public class BingRulesManager {
 
         /**
          * The manager fails to update the bingrule enable status.
+         *
          * @param errorMessage the error message.
          */
         void onBingRuleUpdateFailure(String errorMessage);
@@ -72,7 +73,7 @@ public class BingRulesManager {
     /**
      * Bing rules update
      */
-    public interface onBingRulesUpdateListener  {
+    public interface onBingRulesUpdateListener {
         /**
          * Warn that some bing rules have been updated
          */
@@ -110,7 +111,8 @@ public class BingRulesManager {
 
     /**
      * Constructor
-     * @param session the session
+     *
+     * @param session                     the session
      * @param networkConnectivityReceiver the network events listener
      */
     public BingRulesManager(MXSession session, NetworkConnectivityReceiver networkConnectivityReceiver) {
@@ -155,6 +157,7 @@ public class BingRulesManager {
 
     /**
      * Add a listener
+     *
      * @param listener the listener
      */
     public void addBingRulesUpdateListener(onBingRulesUpdateListener listener) {
@@ -165,6 +168,7 @@ public class BingRulesManager {
 
     /**
      * remove a listener
+     *
      * @param listener the listener
      */
     public void removeBingRulesUpdateListener(onBingRulesUpdateListener listener) {
@@ -177,7 +181,7 @@ public class BingRulesManager {
      * Some rules have been updated.
      */
     private void onBingRulesUpdate() {
-        for(onBingRulesUpdateListener listener : mBingRulesUpdateListeners) {
+        for (onBingRulesUpdateListener listener : mBingRulesUpdateListeners) {
             try {
                 listener.onBingRulesUpdate();
             } catch (Exception e) {
@@ -188,6 +192,7 @@ public class BingRulesManager {
 
     /**
      * Load the bing rules from the server.
+     *
      * @param callback an async callback called when the rules are loaded
      */
     public void loadRules(final ApiCallback<Void> callback) {
@@ -234,9 +239,10 @@ public class BingRulesManager {
 
     /**
      * Update the rule enable status.
-     * @param kind the rule kind.
-     * @param ruleId the rule ID.
-     * @param status the new enable status.
+     *
+     * @param kind     the rule kind.
+     * @param ruleId   the rule ID.
+     * @param status   the new enable status.
      * @param callback an async callback.
      */
     public void updateEnableRuleStatus(String kind, String ruleId, boolean status, final ApiCallback<Void> callback) {
@@ -245,7 +251,8 @@ public class BingRulesManager {
 
     /**
      * Returns whether a string contains an occurrence of another, as a standalone word, regardless of case.
-     * @param subString the string to search for
+     *
+     * @param subString  the string to search for
      * @param longString the string to search in
      * @return whether a match was found
      */
@@ -269,6 +276,7 @@ public class BingRulesManager {
 
     /**
      * Returns the first highlighted notifiable bing rule which fulfills its condition with this event.
+     *
      * @param event the event
      * @return the first matched bing rule, null if none
      */
@@ -278,6 +286,7 @@ public class BingRulesManager {
 
     /**
      * Returns the first notifiable bing rule which fulfills its condition with this event.
+     *
      * @param event the event
      * @return the first matched bing rule, null if none
      */
@@ -287,7 +296,8 @@ public class BingRulesManager {
 
     /**
      * Returns the first notifiable bing rule which fulfills its condition with this event.
-     * @param event the event
+     *
+     * @param event             the event
      * @param highlightRuleOnly true to only check the highlight rule
      * @return the first matched bing rule, null if none
      */
@@ -369,7 +379,7 @@ public class BingRulesManager {
                             isFullfilled = caseInsensitiveFind(pattern, message.body);
                         }
                     }
-                }  else if (BingRule.RULE_ID_FALLBACK.equals(bingRule.ruleId)) {
+                } else if (BingRule.RULE_ID_FALLBACK.equals(bingRule.ruleId)) {
                     isFullfilled = true;
                 } else {
                     // some default rules define conditions
@@ -391,7 +401,8 @@ public class BingRulesManager {
 
     /**
      * Check if an event matches a conditions set
-     * @param event the evnt to test
+     *
+     * @param event      the evnt to test
      * @param conditions the conditions set
      * @return true if the event matches all the conditions set.
      */
@@ -449,6 +460,7 @@ public class BingRulesManager {
 
     /**
      * Build the internal build rules
+     *
      * @param bingRulesResponse the server request response.
      */
     public void buildRules(BingRulesResponse bingRulesResponse) {
@@ -467,6 +479,7 @@ public class BingRulesManager {
 
     /**
      * Update mRulesSet with the new one.
+     *
      * @param ruleSet the new ruleSet to apply
      */
     private void updateRules(BingRuleSet ruleSet) {
@@ -545,6 +558,7 @@ public class BingRulesManager {
 
     /**
      * Create a content EventMatchConditions list from a ContentRules list
+     *
      * @param rules the ContentRules list
      */
     private void addContentRules(List<ContentRule> rules) {
@@ -565,6 +579,7 @@ public class BingRulesManager {
 
     /**
      * Create a room EventMatchConditions list from a BingRule list
+     *
      * @param rules the BingRule list
      */
     private void addRoomRules(List<BingRule> rules) {
@@ -584,6 +599,7 @@ public class BingRulesManager {
 
     /**
      * Create a sender EventMatchConditions list from a BingRule list
+     *
      * @param rules the BingRule list
      */
     private void addSenderRules(List<BingRule> rules) {
@@ -603,7 +619,8 @@ public class BingRulesManager {
 
     /**
      * Toogle a rule.
-     * @param rule the bing rule to toggle.
+     *
+     * @param rule     the bing rule to toggle.
      * @param listener the rule update listener.
      * @return the matched bing rule or null it doesn't exist.
      */
@@ -648,7 +665,7 @@ public class BingRulesManager {
                  * @param e the Matrix error
                  */
                 @Override
-                public void onMatrixError(MatrixError e)  {
+                public void onMatrixError(MatrixError e) {
                     onError(e.getLocalizedMessage());
                 }
 
@@ -668,10 +685,11 @@ public class BingRulesManager {
 
     /**
      * Delete the rule.
-     * @param rule the rule to delete.
+     *
+     * @param rule     the rule to delete.
      * @param listener the rule update listener.
      */
-    public void deleteRule(final BingRule rule, final onBingRuleUpdateListener listener)  {
+    public void deleteRule(final BingRule rule, final onBingRuleUpdateListener listener) {
         // null case
         if (null == rule) {
             if (listener != null) {
@@ -725,7 +743,7 @@ public class BingRulesManager {
              * @param e the Matrix error
              */
             @Override
-            public void onMatrixError(MatrixError e)  {
+            public void onMatrixError(MatrixError e) {
                 onError(e.getLocalizedMessage());
             }
 
@@ -742,7 +760,8 @@ public class BingRulesManager {
 
     /**
      * Delete a rules list.
-     * @param rules the rules to delete
+     *
+     * @param rules    the rules to delete
      * @param listener the listener when the rules are deleted
      */
     public void deleteRules(final List<BingRule> rules, final onBingRuleUpdateListener listener) {
@@ -751,8 +770,9 @@ public class BingRulesManager {
 
     /**
      * Recursive rules deletion method.
-     * @param rules the rules to delete
-     * @param index the rule index
+     *
+     * @param rules    the rules to delete
+     * @param index    the rule index
      * @param listener the listener when the rules are deleted
      */
     private void deleteRules(final List<BingRule> rules, final int index, final onBingRuleUpdateListener listener) {
@@ -774,7 +794,7 @@ public class BingRulesManager {
         deleteRule(rules.get(index), new onBingRuleUpdateListener() {
             @Override
             public void onBingRuleUpdateSuccess() {
-                deleteRules(rules, index+1, listener);
+                deleteRules(rules, index + 1, listener);
             }
 
             @Override
@@ -792,7 +812,8 @@ public class BingRulesManager {
 
     /**
      * Add a rule.
-     * @param rule the rule to delete.
+     *
+     * @param rule     the rule to delete.
      * @param listener the rule update listener.
      */
     public void addRule(final BingRule rule, final onBingRuleUpdateListener listener) {
@@ -867,6 +888,7 @@ public class BingRulesManager {
 
     /**
      * Search the push rules for the room id
+     *
      * @param roomId the room id
      * @return the room rules list
      */
@@ -903,6 +925,7 @@ public class BingRulesManager {
 
     /**
      * Tell whether the regular notifications are disabled for the room.
+     *
      * @param roomId the room id
      * @return true if the regular notifications are disabled (mention only)
      */
@@ -938,6 +961,7 @@ public class BingRulesManager {
 
     /**
      * Test if the room has a dedicated rule which disables notification.
+     *
      * @param roomId the roomId
      * @return true if there is a rule to disable notifications.
      */
@@ -945,7 +969,7 @@ public class BingRulesManager {
         List<BingRule> roomRules = getPushRulesForRoomId(roomId);
 
         if (0 != roomRules.size()) {
-            for(BingRule rule : roomRules) {
+            for (BingRule rule : roomRules) {
                 if (!rule.shouldNotify() && rule.isEnabled) {
                     return true;
                 }
@@ -959,8 +983,8 @@ public class BingRulesManager {
      * Mute / unmute the room notifications.
      * Only the room rules are checked.
      *
-     * @param roomId the room id to mute / unmute.
-     * @param isMuted set to true to mute the notification
+     * @param roomId   the room id to mute / unmute.
+     * @param isMuted  set to true to mute the notification
      * @param listener the listener.
      */
     public void muteRoomNotifications(final String roomId, final boolean isMuted, final onBingRuleUpdateListener listener) {

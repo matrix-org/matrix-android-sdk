@@ -28,7 +28,7 @@ import java.io.InputStream;
  * Static resource utility methods.
  */
 public class ResourceUtils {
-    private static final String LOG_TAG = "ResourceUtils";
+    private static final String LOG_TAG = ResourceUtils.class.getSimpleName();
 
     /**
      * Mime types
@@ -67,6 +67,7 @@ public class ResourceUtils {
 
         /**
          * Tells if the opened resource is a jpeg one.
+         *
          * @return true if the opened resource is a jpeg one.
          */
         public boolean isJpegResource() {
@@ -77,8 +78,8 @@ public class ResourceUtils {
     /**
      * Get a resource stream and metadata about it given its URI returned from onActivityResult.
      *
-     * @param context the context.
-     * @param uri     the URI
+     * @param context  the context.
+     * @param uri      the URI
      * @param mimetype the mimetype
      * @return a {@link Resource} encapsulating the opened resource stream and associated metadata
      * or {@code null} if opening the resource stream failed.
@@ -112,9 +113,9 @@ public class ResourceUtils {
     /**
      * Creates a thumbnail bitmap from a media Uri
      *
-     * @param context  the context
-     * @param mediaUri the media Uri
-     * @param maxThumbWidth max thumbnail width
+     * @param context        the context
+     * @param mediaUri       the media Uri
+     * @param maxThumbWidth  max thumbnail width
      * @param maxThumbHeight max thumbnail height
      * @return the bitmap.
      */
@@ -128,7 +129,7 @@ public class ResourceUtils {
         }
 
         try {
-             // need to decompress the high res image
+            // need to decompress the high res image
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inPreferredConfig = Bitmap.Config.ARGB_8888;
             resource = ResourceUtils.openResource(context, mediaUri, null);

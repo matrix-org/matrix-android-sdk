@@ -35,8 +35,9 @@ public class MXEncryptEventContentResult implements Serializable {
 
     /**
      * Constructor
+     *
      * @param eventContent the eventContent
-     * @param eventType the eventType
+     * @param eventType    the eventType
      */
     public MXEncryptEventContentResult(JsonElement eventContent, String eventType) {
         mEventContent = eventContent;

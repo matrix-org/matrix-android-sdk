@@ -62,6 +62,7 @@ public class MXOutgoingRoomKeyRequestManager {
      * Constructor
      *
      * @param session the session
+     * @param crypto  the crypto engine
      */
     public MXOutgoingRoomKeyRequestManager(MXSession session, MXCrypto crypto) {
         mSession = session;
@@ -216,7 +217,7 @@ public class MXOutgoingRoomKeyRequestManager {
         requestMessage.put("body", request.mRequestBody);
 
         sendMessageToDevices(requestMessage, request.mRecipients, request.mRequestId, new ApiCallback<Void>() {
-          private void onDone(final OutgoingRoomKeyRequest.RequestState state) {
+            private void onDone(final OutgoingRoomKeyRequest.RequestState state) {
                 mWorkingHandler.post(new Runnable() {
                     @Override
                     public void run() {
@@ -261,11 +262,12 @@ public class MXOutgoingRoomKeyRequestManager {
 
     /**
      * Given a RoomKeyRequest, cancel it and delete the request record
+     *
      * @param request the request
      */
     private void sendOutgoingRoomKeyRequestCancellation(final OutgoingRoomKeyRequest request) {
         Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequestCancellation() : Sending cancellation for key request for " + request.mRequestBody
-                +  " to " + request.mRecipients
+                + " to " + request.mRecipients
                 + " cancellation id  " + request.mCancellationTxnId);
 
         Map<String, Object> requestMessageMap = new HashMap<>();
@@ -314,10 +316,11 @@ public class MXOutgoingRoomKeyRequestManager {
 
     /**
      * Send a RoomKeyRequest to a list of recipients
-     * @param message the message
-     * @param recipients the recipients.
+     *
+     * @param message       the message
+     * @param recipients    the recipients.
      * @param transactionId the transaction id
-     * @param callback the asynchronous callback.
+     * @param callback      the asynchronous callback.
      */
     private void sendMessageToDevices(final Map<String, Object> message, List<Map<String, String>> recipients, String transactionId, final ApiCallback<Void> callback) {
         MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>();

@@ -59,6 +59,7 @@ public class MXOlmInboundGroupSession2 implements Serializable {
 
     /**
      * Constructor
+     *
      * @param prevFormatSession the previous session format
      */
     public MXOlmInboundGroupSession2(MXOlmInboundGroupSession prevFormatSession) {
@@ -70,8 +71,9 @@ public class MXOlmInboundGroupSession2 implements Serializable {
 
     /**
      * Constructor
-     * @param sessionKey the session key
      *
+     * @param sessionKey the session key
+     * @param isImported true if it is an imported session key
      */
     public MXOlmInboundGroupSession2(String sessionKey, boolean isImported) {
         try {
@@ -87,18 +89,21 @@ public class MXOlmInboundGroupSession2 implements Serializable {
 
     /**
      * Create a new instance from the provided keys map.
+     *
+     * @param map the map
+     * @throws Exception if the data are invalid
      */
     public MXOlmInboundGroupSession2(Map<String, Object> map) throws Exception {
         try {
-            mSession = OlmInboundGroupSession.importSession((String)map.get("session_key"));
+            mSession = OlmInboundGroupSession.importSession((String) map.get("session_key"));
 
-            if (!TextUtils.equals(mSession.sessionIdentifier(), (String)map.get("session_id"))) {
+            if (!TextUtils.equals(mSession.sessionIdentifier(), (String) map.get("session_id"))) {
                 throw new Exception("Mismatched group session Id");
             }
 
-            mSenderKey = (String)map.get("sender_key");
-            mKeysClaimed = (Map<String, String>)map.get("sender_claimed_keys");
-            mRoomId = (String)map.get("room_id");
+            mSenderKey = (String) map.get("sender_key");
+            mKeysClaimed = (Map<String, String>) map.get("sender_claimed_keys");
+            mRoomId = (String) map.get("room_id");
         } catch (Exception e) {
             throw new Exception(e.getMessage());
         }
@@ -106,6 +111,7 @@ public class MXOlmInboundGroupSession2 implements Serializable {
 
     /**
      * Export the inbound group session keys
+     *
      * @return the inbound group session as map if the operation succeeds
      */
     public Map<String, Object> exportKeys() {
@@ -149,6 +155,7 @@ public class MXOlmInboundGroupSession2 implements Serializable {
 
     /**
      * Export the session for a message index.
+     *
      * @param messageIndex the message index
      * @return the exported data
      */

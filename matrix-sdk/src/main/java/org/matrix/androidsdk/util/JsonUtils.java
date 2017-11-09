@@ -58,8 +58,7 @@ import java.util.TreeSet;
  * Static methods for converting json into objects.
  */
 public class JsonUtils {
-
-    private static final String LOG_TAG = "JsonUtils";
+    private static final String LOG_TAG = JsonUtils.class.getSimpleName();
 
     /**
      * Based on FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES.
@@ -414,6 +413,7 @@ public class JsonUtils {
 
     /**
      * Create a canonicalized json string for an object
+     *
      * @param object the object to convert
      * @return the canonicalized string
      */
@@ -422,7 +422,7 @@ public class JsonUtils {
 
         if (null != object) {
             if (object instanceof JsonElement) {
-                canonicalizedJsonString = gsonWithoutHtmlEscaping.toJson(canonicalize((JsonElement)object));
+                canonicalizedJsonString = gsonWithoutHtmlEscaping.toJson(canonicalize((JsonElement) object));
             } else {
                 canonicalizedJsonString = gsonWithoutHtmlEscaping.toJson(canonicalize(gsonWithoutHtmlEscaping.toJsonTree(object)));
             }
@@ -437,6 +437,7 @@ public class JsonUtils {
 
     /**
      * Canonicalize a JsonElement element
+     *
      * @param src the src
      * @return the canonicalize element
      */
@@ -474,6 +475,7 @@ public class JsonUtils {
 
     /**
      * Convert a string from an UTF8 String
+     *
      * @param s the string to convert
      * @return the utf-16 string
      */
@@ -494,6 +496,7 @@ public class JsonUtils {
 
     /**
      * Convert a string to an UTF8 String
+     *
      * @param s the string to convert
      * @return the utf-8 string
      */

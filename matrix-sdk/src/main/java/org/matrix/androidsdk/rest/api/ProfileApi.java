@@ -139,6 +139,7 @@ public interface ProfileApi {
      * Note: Proxies the identity server API validate/email/requestToken, but first checks that
      * the given email address is not already associated with an account on this Home Server.
      *
+     * @param params   the parameters
      * @param callback the asynchronous callback
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/account/3pid/email/requestToken")
@@ -149,6 +150,7 @@ public interface ProfileApi {
      * Note: Proxies the identity server API validate/email/requestToken, but first checks that
      * the given email address is not already associated with an account on this Home Server.
      *
+     * @param params   the parameters
      * @param callback the asynchronous callback
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/register/email/requestToken")
@@ -159,6 +161,7 @@ public interface ProfileApi {
      * Note: Proxies the identity server API validate/msisdn/requestToken, but first checks that
      * the given phone number is not already associated with an account on this Home Server.
      *
+     * @param params   the parameters
      * @param callback the asynchronous callback
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/account/3pid/msisdn/requestToken")
@@ -169,6 +172,7 @@ public interface ProfileApi {
      * Note: Proxies the identity server API validate/msisdn/requestToken, but first checks that
      * the given phone number is not already associated with an account on this Home Server.
      *
+     * @param params   the parameters
      * @param callback the asynchronous callback
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/register/msisdn/requestToken")

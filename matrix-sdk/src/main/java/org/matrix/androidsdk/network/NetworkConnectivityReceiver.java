@@ -36,7 +36,7 @@ import java.util.Set;
 
 public class NetworkConnectivityReceiver extends BroadcastReceiver {
 
-    private static final String LOG_TAG = "NetworkReceiver";
+    private static final String LOG_TAG = NetworkConnectivityReceiver.class.getSimpleName();
 
     // any network state listener
     private final List<IMXNetworkEventListener> mNetworkEventListeners = new ArrayList<>();
@@ -264,6 +264,7 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
 
     /**
      * Tells if the connection is a wifi one
+     *
      * @return true if a wifi connection is used
      */
     public boolean useWifiConnection() {
@@ -287,7 +288,7 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
         float scale;
 
         synchronized (LOG_TAG) {
-            switch(mNetworkSubType) {
+            switch (mNetworkSubType) {
                 case TelephonyManager.NETWORK_TYPE_GPRS:
                     scale = 3.0f;
                     break;

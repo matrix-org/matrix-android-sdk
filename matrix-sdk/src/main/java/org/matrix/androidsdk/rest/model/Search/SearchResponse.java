@@ -19,10 +19,10 @@ package org.matrix.androidsdk.rest.model.Search;
 /**
  * subclass representing a search API response
  */
-public class SearchResponse  {
+public class SearchResponse {
 
     /**
-     Categories to search in and their criteria..
+     * Categories to search in and their criteria..
      */
     public SearchCategories searchCategories;
 }

@@ -51,7 +51,7 @@ import java.util.zip.GZIPOutputStream;
  * the crypto data store
  */
 public class MXFileCryptoStore implements IMXCryptoStore {
-    private static final String LOG_TAG = "MXFileCryptoStore";
+    private static final String LOG_TAG = MXFileCryptoStore.class.getSimpleName();
 
     private static final int MXFILE_CRYPTO_VERSION = 1;
 
@@ -989,6 +989,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     /**
      * Retrieve a OutgoingRoomKeyRequest from a transaction id.
+     *
      * @param txId the transaction id.
      * @return the matched OutgoingRoomKeyRequest or null
      */
@@ -996,7 +997,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         if (null != txId) {
             Collection<OutgoingRoomKeyRequest> requests = mOutgoingRoomKeyRequests.values();
 
-            for(OutgoingRoomKeyRequest request : requests) {
+            for (OutgoingRoomKeyRequest request : requests) {
                 if (TextUtils.equals(request.mRequestId, txId)) {
                     return request;
                 }
@@ -1008,6 +1009,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     /**
      * Look for room key requests by state.
+     *
      * @param states the states
      * @return an OutgoingRoomKeyRequest or null
      */
@@ -1015,7 +1017,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     public OutgoingRoomKeyRequest getOutgoingRoomKeyRequestByState(Set<OutgoingRoomKeyRequest.RequestState> states) {
         Collection<OutgoingRoomKeyRequest> requests = mOutgoingRoomKeyRequests.values();
 
-        for(OutgoingRoomKeyRequest request : requests) {
+        for (OutgoingRoomKeyRequest request : requests) {
             if (states.contains(request.mState)) {
                 return request;
             }

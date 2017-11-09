@@ -45,7 +45,7 @@ import retrofit.client.Response;
 
 public class CryptoRestClient extends RestClient<CryptoApi> {
 
-    private static final String LOG_TAG = "CryptoRestClient";
+    private static final String LOG_TAG = CryptoRestClient.class.getSimpleName();
 
     /**
      * {@inheritDoc}
@@ -56,10 +56,11 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
 
     /**
      * Upload device and/or one-time keys.
-     * @param deviceKeys the device keys to send.
+     *
+     * @param deviceKeys  the device keys to send.
      * @param oneTimeKeys the one-time keys to send.
-     * @param deviceId he explicit device_id to use for upload (default is to use the same as that used during auth).
-     * @param callback the asynchronous callback
+     * @param deviceId    he explicit device_id to use for upload (default is to use the same as that used during auth).
+     * @param callback    the asynchronous callback
      */
     public void uploadKeys(final Map<String, Object> deviceKeys, final Map<String, Object> oneTimeKeys, final String deviceId, final ApiCallback<KeysUploadResponse> callback) {
         final String description = "uploadKeys";
@@ -94,8 +95,9 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
 
     /**
      * Download device keys.
-     * @param userIds list of users to get keys for.
-     * @param token the up-to token
+     *
+     * @param userIds  list of users to get keys for.
+     * @param token    the up-to token
      * @param callback the asynchronous callback
      */
     public void downloadKeysForUsers(final List<String> userIds, final String token, final ApiCallback<KeysQueryResponse> callback) {
@@ -104,7 +106,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
         HashMap<String, Map<String, Object>> downloadQuery = new HashMap<>();
 
         if (null != userIds) {
-            for(String userId : userIds) {
+            for (String userId : userIds) {
                 downloadQuery.put(userId, new HashMap<String, Object>());
             }
         }
@@ -126,10 +128,11 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
 
     /**
      * Claim one-time keys.
+     *
      * @param usersDevicesKeyTypesMap a list of users, devices and key types to retrieve keys for.
-     * @param callback the asynchronous callback
+     * @param callback                the asynchronous callback
      */
-    public void claimOneTimeKeysForUsersDevices(final MXUsersDevicesMap<String> usersDevicesKeyTypesMap , final ApiCallback<MXUsersDevicesMap<MXKey>> callback) {
+    public void claimOneTimeKeysForUsersDevices(final MXUsersDevicesMap<String> usersDevicesKeyTypesMap, final ApiCallback<MXUsersDevicesMap<MXKey>> callback) {
         final String description = "claimOneTimeKeysForUsersDevices";
 
         HashMap<String, Object> params = new HashMap<>();
@@ -148,12 +151,12 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
                 HashMap<String, Map<String, MXKey>> map = new HashMap();
 
                 if (null != keysClaimResponse.oneTimeKeys) {
-                    for(String userId : keysClaimResponse.oneTimeKeys.keySet()) {
+                    for (String userId : keysClaimResponse.oneTimeKeys.keySet()) {
                         Map<String, Map<String, Map<String, Object>>> mapByUserId = keysClaimResponse.oneTimeKeys.get(userId);
 
                         HashMap<String, MXKey> keysMap = new HashMap<>();
 
-                        for(String deviceId : mapByUserId.keySet()) {
+                        for (String deviceId : mapByUserId.keySet()) {
                             try {
                                 keysMap.put(deviceId, new MXKey(mapByUserId.get(deviceId)));
                             } catch (Exception e) {
@@ -174,9 +177,10 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
 
     /**
      * Send an event to a specific list of devices
-     * @param eventType the type of event to send
+     *
+     * @param eventType  the type of event to send
      * @param contentMap content to send. Map from user_id to device_id to content dictionary.
-     * @param callback the asynchronous callback.
+     * @param callback   the asynchronous callback.
      */
     public void sendToDevice(final String eventType, final MXUsersDevicesMap<Map<String, Object>> contentMap, final ApiCallback<Void> callback) {
         sendToDevice(eventType, contentMap, (new Random()).nextInt(Integer.MAX_VALUE) + "", callback);
@@ -184,10 +188,11 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
 
     /**
      * Send an event to a specific list of devices
-     * @param eventType the type of event to send
-     * @param contentMap content to send. Map from user_id to device_id to content dictionary.
+     *
+     * @param eventType     the type of event to send
+     * @param contentMap    content to send. Map from user_id to device_id to content dictionary.
      * @param transactionId the transactionId
-     * @param callback the asynchronous callback.
+     * @param callback      the asynchronous callback.
      */
     public void sendToDevice(final String eventType, final MXUsersDevicesMap<Map<String, Object>> contentMap, final String transactionId, final ApiCallback<Void> callback) {
         final String description = "sendToDevice " + eventType;
@@ -205,6 +210,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
 
     /**
      * Retrieves the devices informaty
+     *
      * @param callback the asynchronous callback.
      */
     public void getDevices(final ApiCallback<DevicesListResponse> callback) {
@@ -220,8 +226,9 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
 
     /**
      * Delete a device.
+     *
      * @param deviceId the device id
-     * @param params the deletion parameters
+     * @param params   the deletion parameters
      * @param callback the asynchronous callback
      */
     public void deleteDevice(final String deviceId, final DeleteDeviceParams params, final ApiCallback<Void> callback) {
@@ -237,9 +244,10 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
 
     /**
      * Set a device name.
-     * @param deviceId the device id
+     *
+     * @param deviceId   the device id
      * @param deviceName the device name
-     * @param callback the asynchronous callback
+     * @param callback   the asynchronous callback
      */
     public void setDeviceName(final String deviceId, final String deviceName, final ApiCallback<Void> callback) {
         final String description = "setDeviceName";
@@ -257,8 +265,9 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
 
     /**
      * Get the update devices list from two sync token.
-     * @param from the start token.
-     * @param to the up-to token.
+     *
+     * @param from     the start token.
+     * @param to       the up-to token.
      * @param callback the asynchronous callback
      */
     public void getKeyChanges(final String from, final String to, final ApiCallback<KeyChangesResponse> callback) {

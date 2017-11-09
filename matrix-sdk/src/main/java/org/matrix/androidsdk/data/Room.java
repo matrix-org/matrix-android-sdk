@@ -88,7 +88,7 @@ import java.util.Map;
  */
 public class Room {
 
-    private static final String LOG_TAG = "Room";
+    private static final String LOG_TAG = Room.class.getSimpleName();
 
     // Account data
     private RoomAccountData mAccountData = new RoomAccountData();
@@ -1232,6 +1232,7 @@ public class Room {
      * It also move the read marker to the latest known messages
      *
      * @param aRespCallback the asynchronous callback
+     * @return true if the request is sent, false otherwise
      */
     public boolean markAllAsRead(final ApiCallback<Void> aRespCallback) {
         return markAllAsRead(true, aRespCallback);
@@ -1243,6 +1244,7 @@ public class Room {
      *
      * @param updateReadMarker true to move the read marker to the latest known event
      * @param aRespCallback    the asynchronous callback
+     * @return true if the request is sent, false otherwise
      */
     private boolean markAllAsRead(boolean updateReadMarker, final ApiCallback<Void> aRespCallback) {
         final Event lastEvent = mStore.getLatestEvent(getRoomId());
@@ -1543,6 +1545,7 @@ public class Room {
      *
      * @param isTyping typing status
      * @param timeout  the typing timeout
+     * @param callback asynchronous callback
      */
     public void sendTypingNotification(boolean isTyping, int timeout, ApiCallback<Void> callback) {
         // send the event only if the user has joined the room.
@@ -1683,11 +1686,13 @@ public class Room {
 
 
     /**
-     * Define ImageInfo for an image uri
+     * Update or create an ImageInfo for an image uri.
      *
-     * @param context  Application context for the content resolver.
-     * @param imageUri The full size image uri.
-     * @param mimeType The image mimeType
+     * @param context     Application context for the content resolver.
+     * @param anImageInfo the imageInfo to fill, null to create a new one
+     * @param imageUri    The full size image uri.
+     * @param mimeType    The image mimeType
+     * @return the filled image info
      */
     public static ImageInfo getImageInfo(Context context, ImageInfo anImageInfo, Uri imageUri, String mimeType) {
         ImageInfo imageInfo = (null == anImageInfo) ? new ImageInfo() : anImageInfo;
@@ -2430,6 +2435,8 @@ public class Room {
      * Redact an event from the room.
      *
      * @param eventId  the event's id
+     * @param score    the score
+     * @param reason   the redaction reason
      * @param callback the callback with the created event
      */
     public void report(String eventId, int score, String reason, ApiCallback<Void> callback) {
@@ -2840,9 +2847,12 @@ public class Room {
     }
 
     /**
-     * Send an media message asynchronously
+     * Send an media message asynchronously.
      *
-     * @param roomMediaMessage the media message
+     * @param roomMediaMessage   the media message to send.
+     * @param maxThumbnailWidth  the max thumbnail width
+     * @param maxThumbnailHeight the max thumbnail height
+     * @param listener           the event creation listener
      */
     public void sendMediaMessage(final RoomMediaMessage roomMediaMessage, final int maxThumbnailWidth, final int maxThumbnailHeight, final RoomMediaMessage.EventCreationListener listener) {
         initRoomDataItemsSender();

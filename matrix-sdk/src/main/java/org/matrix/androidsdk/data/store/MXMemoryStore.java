@@ -52,7 +52,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class MXMemoryStore implements IMXStore {
 
-    private static final String LOG_TAG = "MXMemoryStore";
+    private static final String LOG_TAG = MXMemoryStore.class.getSimpleName();
 
     protected Map<String, Room> mRooms;
     protected Map<String, User> mUsers;
@@ -136,6 +136,7 @@ public class MXMemoryStore implements IMXStore {
      * Default constructor
      *
      * @param credentials the expected credentials
+     * @param context     the context
      */
     public MXMemoryStore(Credentials credentials, Context context) {
         initCommon();
@@ -225,6 +226,7 @@ public class MXMemoryStore implements IMXStore {
     /**
      * Warn that the store data are corrupted.
      * It might append if an update request failed.
+     *
      * @param reason the corruption reason
      */
     @Override
@@ -997,7 +999,7 @@ public class MXMemoryStore implements IMXStore {
     public Collection<RoomSummary> getSummaries() {
         List<RoomSummary> summaries = new ArrayList<>();
 
-        for(String roomId : mRoomSummaries.keySet()) {
+        for (String roomId : mRoomSummaries.keySet()) {
             Room room = mRooms.get(roomId);
             if (null != room) {
                 if (null == room.getMember(mCredentials.userId)) {
@@ -1324,7 +1326,7 @@ public class MXMemoryStore implements IMXStore {
                 }
             }
         }
-        
+
         return events;
     }
 
@@ -1439,7 +1441,8 @@ public class MXMemoryStore implements IMXStore {
     /**
      * Dispatch that the store is corrupted
      *
-     * @param accountId the account id
+     * @param accountId   the account id
+     * @param description the error description
      */
     protected void dispatchOnStoreCorrupted(String accountId, String description) {
         List<IMXStoreListener> listeners = getListeners();
@@ -1450,7 +1453,9 @@ public class MXMemoryStore implements IMXStore {
     }
 
     /**
-     * Called when the store fails to save some data
+     * Dispatch an out of memory error.
+     *
+     * @param e the out of memory error
      */
     protected void dispatchOOM(OutOfMemoryError e) {
         List<IMXStoreListener> listeners = getListeners();
@@ -1462,6 +1467,8 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Dispatch the read receipts loading.
+     *
+     * @param roomId the room id.
      */
     protected void dispatchOnReadReceiptsLoaded(String roomId) {
         List<IMXStoreListener> listeners = getListeners();
@@ -1470,7 +1477,6 @@ public class MXMemoryStore implements IMXStore {
             listener.onReadReceiptsLoaded(roomId);
         }
     }
-
 
     /**
      * Provides the store preload time in milliseconds.
@@ -1492,6 +1498,7 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Start a runnable from the store thread
+     *
      * @param runnable the runnable to call
      */
     public void post(Runnable runnable) {

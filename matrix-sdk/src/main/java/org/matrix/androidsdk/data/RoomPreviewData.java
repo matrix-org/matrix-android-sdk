@@ -36,7 +36,7 @@ import java.util.Map;
  */
 public class RoomPreviewData {
 
-    private static final String LOG_TAG = "RoomPreviewData";
+    private static final String LOG_TAG = RoomPreviewData.class.getSimpleName();
 
     // The id of the room to preview.
     private String mRoomId;
@@ -66,9 +66,11 @@ public class RoomPreviewData {
 
     /**
      * Create an RoomPreviewData instance
-     * @param session the session.
-     * @param roomId the room Id to preview
-     * @param eventId the event Id to preview (optional)
+     *
+     * @param session               the session.
+     * @param roomId                the room Id to preview
+     * @param eventId               the event Id to preview (optional)
+     * @param roomAlias             the room alias (optional)
      * @param emailInvitationParams the email invitation parameters (optional)
      */
     public RoomPreviewData(MXSession session, String roomId, String eventId, String roomAlias, Map<String, String> emailInvitationParams) {
@@ -93,6 +95,7 @@ public class RoomPreviewData {
 
     /**
      * Update the room state.
+     *
      * @param roomState the new roomstate
      */
     public void setRoomState(RoomState roomState) {
@@ -114,6 +117,7 @@ public class RoomPreviewData {
 
     /**
      * Set the room name.
+     *
      * @param aRoomName the new room name
      */
     public void setRoomName(String aRoomName) {
@@ -175,6 +179,7 @@ public class RoomPreviewData {
 
     /**
      * Attempt to get more information from the homeserver about the room.
+     *
      * @param apiCallback the callback when the operation is done.
      */
     public void fetchPreviewData(final ApiCallback<Void> apiCallback) {
@@ -190,7 +195,7 @@ public class RoomPreviewData {
                         mRoomState = new RoomState();
                         mRoomState.roomId = mRoomId;
 
-                        for(Event event : roomResponse.state) {
+                        for (Event event : roomResponse.state) {
                             mRoomState.applyState(null, event, EventTimeline.Direction.FORWARDS);
                         }
 

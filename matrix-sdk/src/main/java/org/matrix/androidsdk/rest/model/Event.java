@@ -49,8 +49,8 @@ import retrofit.RetrofitError;
  * Generic event class with all possible fields for events.
  */
 public class Event implements Externalizable {
+    private static final String LOG_TAG = Event.class.getSimpleName();
 
-    private static final String LOG_TAG = "Event";
     private static final long serialVersionUID = -1431845331022808337L;
 
     public enum SentState {
@@ -652,7 +652,7 @@ public class Event implements Externalizable {
                 if (null != imageMessage.getThumbnailUrl()) {
                     urls.add(imageMessage.getThumbnailUrl());
                 }
-            } else if (Message.MSGTYPE_FILE.equals(msgType) || Message.MSGTYPE_AUDIO.equals(msgType) ) {
+            } else if (Message.MSGTYPE_FILE.equals(msgType) || Message.MSGTYPE_AUDIO.equals(msgType)) {
                 FileMessage fileMessage = JsonUtils.toFileMessage(getContent());
 
                 if (null != fileMessage.getUrl()) {
@@ -812,7 +812,7 @@ public class Event implements Externalizable {
         }
 
         if (input.readBoolean()) {
-            unsigned = (UnsignedData)input.readObject();
+            unsigned = (UnsignedData) input.readObject();
         }
 
         if (input.readBoolean()) {
@@ -828,7 +828,7 @@ public class Event implements Externalizable {
         }
 
         if (input.readBoolean()) {
-            unsentMatrixError = (MatrixError)input.readObject();
+            unsentMatrixError = (MatrixError) input.readObject();
         }
 
         mSentState = (SentState) input.readObject();
@@ -1112,7 +1112,7 @@ public class Event implements Externalizable {
 
     /**
      * The keys that must have been owned by the sender of this encrypted event.
-     *
+     * <p>
      * These don't necessarily have to come from this event itself, but may be
      * implied by the cryptographic session.
      */
@@ -1120,7 +1120,7 @@ public class Event implements Externalizable {
 
     /**
      * The additional keys the sender of this encrypted event claims to possess.
-     *
+     * <p>
      * These don't necessarily have to come from this event itself, but may be
      * implied by the cryptographic session.
      * For example megolm messages don't claim keys directly, but instead
@@ -1133,14 +1133,14 @@ public class Event implements Externalizable {
     private MXCryptoError mCryptoError;
 
     /**
-     * True if this event is encrypted.
+     * @return true if this event is encrypted.
      */
     public boolean isEncrypted() {
         return TextUtils.equals(getWireType(), EVENT_TYPE_MESSAGE_ENCRYPTED);
     }
 
     /**
-     * The curve25519 key that sent this event.
+     * @return The curve25519 key that sent this event.
      */
     public String senderKey() {
         if (null != getKeysProved()) {

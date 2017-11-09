@@ -45,8 +45,10 @@ public class AccountDataRestClient extends RestClient<AccountDataApi> {
 
     /**
      * Set some account_data for the client.
-     * @param userId the user id
-     * @param params the put params.
+     *
+     * @param userId   the user id
+     * @param type     the account data type.
+     * @param params   the put params.
      * @param callback the asynchronous callback called when finished
      */
     public void setAccountData(final String userId, final String type, final Map<String, Object> params, final ApiCallback<Void> callback) {
@@ -66,7 +68,8 @@ public class AccountDataRestClient extends RestClient<AccountDataApi> {
      * Gets a bearer token from the homeserver that the user can
      * present to a third party in order to prove their ownership
      * of the Matrix account they are logged into.
-     * @param userId the user id
+     *
+     * @param userId   the user id
      * @param callback the asynchronous callback called when finished
      */
     public void openIdToken(final String userId, final ApiCallback<Map<Object, Object>> callback) {

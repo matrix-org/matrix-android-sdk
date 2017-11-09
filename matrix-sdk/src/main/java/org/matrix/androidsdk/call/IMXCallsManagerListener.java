@@ -25,31 +25,36 @@ import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 public interface IMXCallsManagerListener {
     /**
      * Called when there is an incoming call within the room.
-     * @param call the incoming call
+     *
+     * @param call           the incoming call
      * @param unknownDevices the unknown e2e devices list
      */
     void onIncomingCall(IMXCall call, MXUsersDevicesMap<MXDeviceInfo> unknownDevices);
 
     /**
      * An outgoing call is started.
+     *
      * @param call the outgoing call
      */
     void onOutgoingCall(IMXCall call);
 
     /**
      * Called when a called has been hung up
+     *
      * @param call the incoming call
      */
     void onCallHangUp(IMXCall call);
 
     /**
      * A voip conference started in a room.
+     *
      * @param roomId the room id
      */
     void onVoipConferenceStarted(String roomId);
 
     /**
      * A voip conference finished in a room.
+     *
      * @param roomId the room id
      */
     void onVoipConferenceFinished(String roomId);

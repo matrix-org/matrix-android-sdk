@@ -77,26 +77,30 @@ public interface IMXMediaUploadListener {
 
     /**
      * The upload starts.
+     *
      * @param uploadId the upload Identifier
      */
     void onUploadStart(String uploadId);
 
     /**
      * The media upload is in progress.
-     * @param uploadId the upload Identifier
+     *
+     * @param uploadId    the upload Identifier
      * @param uploadStats the upload stats
      */
     void onUploadProgress(String uploadId, UploadStats uploadStats);
 
     /**
      * The upload has been cancelled.
+     *
      * @param uploadId the upload Identifier
      */
     void onUploadCancel(String uploadId);
 
     /**
      * The upload fails.
-     * @param uploadId the upload identifier
+     *
+     * @param uploadId           the upload identifier
      * @param serverResponseCode the server response code
      * @param serverErrorMessage the server error message.
      */
@@ -104,7 +108,8 @@ public interface IMXMediaUploadListener {
 
     /**
      * The upload failed.
-     * @param uploadId the upload identifier
+     *
+     * @param uploadId   the upload identifier
      * @param contentUri the media URI on server.
      */
     void onUploadComplete(String uploadId, String contentUri);

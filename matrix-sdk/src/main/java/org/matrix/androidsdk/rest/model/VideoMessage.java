@@ -40,6 +40,7 @@ public class VideoMessage extends MediaMessage {
             return null;
         }
     }
+
     @Override
     public void setUrl(MXEncryptedAttachments.EncryptionResult encryptionResult, String contentUrl) {
         if (null != encryptionResult) {
@@ -55,7 +56,7 @@ public class VideoMessage extends MediaMessage {
     public String getThumbnailUrl() {
         if ((null != info) && (null != info.thumbnail_url)) {
             return info.thumbnail_url;
-        } else if ((null != info) &&  (null != info.thumbnail_file)) {
+        } else if ((null != info) && (null != info.thumbnail_file)) {
             return info.thumbnail_file.url;
         }
 
@@ -75,6 +76,7 @@ public class VideoMessage extends MediaMessage {
 
     /**
      * Make a deep copy of this VideoMessage.
+     *
      * @return the copy
      */
     public VideoMessage deepCopy() {

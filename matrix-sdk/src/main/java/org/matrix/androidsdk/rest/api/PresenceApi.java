@@ -27,7 +27,8 @@ import retrofit.http.Path;
 public interface PresenceApi {
     /**
      * Get a user's presence state.
-     * @param userId the user id
+     *
+     * @param userId   the user id
      * @param callback the asynchronous callback called with the response
      */
     @GET("/presence/{userId}/status")

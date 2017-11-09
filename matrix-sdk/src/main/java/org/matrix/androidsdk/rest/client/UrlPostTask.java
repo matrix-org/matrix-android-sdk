@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.os.AsyncTask;
+
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonObject;
@@ -36,7 +37,7 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
 
     public interface IPostTaskListener {
         /**
-         * The post succceeds.
+         * The post succeeds.
          *
          * @param object the object retrieves in the response.
          */
@@ -44,6 +45,7 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
 
         /**
          * The post failed
+         *
          * @param errorMessage thr error message
          */
         void onError(String errorMessage);
@@ -77,6 +79,7 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
 
     /**
      * Set the post listener
+     *
      * @param listener the listener
      */
     public void setListener(IPostTaskListener listener) {
@@ -85,6 +88,7 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
 
     /**
      * Convert a stream to a string
+     *
      * @param is the input stream to convert
      * @return the string
      */

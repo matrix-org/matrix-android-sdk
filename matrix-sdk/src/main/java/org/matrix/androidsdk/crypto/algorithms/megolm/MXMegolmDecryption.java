@@ -47,7 +47,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class MXMegolmDecryption implements IMXDecrypting {
-    private static final String LOG_TAG = "MXMegolmDecryption";
+    private static final String LOG_TAG = MXMegolmDecryption.class.getSimpleName();
 
     /**
      * The olm device interface
@@ -144,6 +144,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
      * Helper for the real decryptEvent and for _retryDecryption. If
      * requestKeysOnFail is true, we'll send an m.room_key_request when we fail
      * to decrypt the event due to missing megolm keys.
+     *
      * @param event the event
      */
     private void requestKeysForEvent(Event event) {
@@ -251,7 +252,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
             String ed25519Key = forwardedRoomKeyContent.sender_claimed_ed25519_key;
 
             if (null == ed25519Key) {
-                Log.e(LOG_TAG , "## forwarded_room_key_event is missing sender_claimed_ed25519_key field");
+                Log.e(LOG_TAG, "## forwarded_room_key_event is missing sender_claimed_ed25519_key field");
                 return;
             }
 

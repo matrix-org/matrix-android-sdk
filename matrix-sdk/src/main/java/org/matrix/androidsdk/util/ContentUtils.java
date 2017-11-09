@@ -37,7 +37,7 @@ import java.lang.reflect.Method;
  * Static content utility methods.
  */
 public class ContentUtils {
-    private static final String LOG_TAG = "ContentUtils";
+    private static final String LOG_TAG = ContentUtils.class.getSimpleName();
 
     /**
      * Build an ImageInfo object based on the image at the given path.
@@ -102,8 +102,8 @@ public class ContentUtils {
     /**
      * Recursive method to compute a directory size
      *
-     * @param context the context
-     * @param directory the directory
+     * @param context      the context
+     * @param directory    the directory
      * @param logPathDepth the depth to log
      * @return the directory size
      */
@@ -118,7 +118,7 @@ public class ContentUtils {
         }
 
         if (blockSize < 0) {
-        	   blockSize = 1;
+            blockSize = 1;
         }
 
         return getDirectorySize(context, directory, logPathDepth, blockSize);
@@ -127,10 +127,10 @@ public class ContentUtils {
     /**
      * Recursive method to compute a directory size
      *
-     * @param context the context
-     * @param directory the directory
+     * @param context      the context
+     * @param directory    the directory
      * @param logPathDepth the depth to log
-     * @param blockSize the filesystem block size
+     * @param blockSize    the filesystem block size
      * @return the directory size
      */
     public static long getDirectorySize(Context context, File directory, int logPathDepth, long blockSize) {
@@ -145,7 +145,7 @@ public class ContentUtils {
                 if (!file.isDirectory()) {
                     size += (file.length() / blockSize + 1) * blockSize;
                 } else {
-                    size += getDirectorySize(context, file, logPathDepth-1);
+                    size += getDirectorySize(context, file, logPathDepth - 1);
                 }
             }
         }

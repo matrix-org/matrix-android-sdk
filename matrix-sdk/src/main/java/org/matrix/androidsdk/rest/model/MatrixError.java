@@ -52,7 +52,7 @@ public class MatrixError implements java.io.Serializable {
 
     // extracted from the error response
     public Integer mStatus;
-    public String  mReason;
+    public String mReason;
     public TypedInput mErrorBody;
     public String mErrorBodyAsString;
     public String mErrorBodyMimeType;
@@ -65,8 +65,9 @@ public class MatrixError implements java.io.Serializable {
 
     /**
      * Creator with error description
+     *
      * @param anErrcode the error code.
-     * @param anError the error message.
+     * @param anError   the error message.
      */
     public MatrixError(String anErrcode, String anError) {
         errcode = anErrcode;
@@ -98,8 +99,8 @@ public class MatrixError implements java.io.Serializable {
     /**
      * @return true if the error code is a supported one
      */
-    public boolean isSupportedErrorCode () {
-       return   MatrixError.FORBIDDEN.equals(errcode) ||
+    public boolean isSupportedErrorCode() {
+        return MatrixError.FORBIDDEN.equals(errcode) ||
                 MatrixError.UNKNOWN_TOKEN.equals(errcode) ||
                 MatrixError.BAD_JSON.equals(errcode) ||
                 MatrixError.NOT_JSON.equals(errcode) ||
