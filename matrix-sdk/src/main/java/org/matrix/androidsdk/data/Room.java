@@ -305,7 +305,7 @@ public class Room {
 
         // the user joined the room
         // With V2 sync, the server sends the events to init the room.
-        if (null != mOnInitialSyncCallback) {
+        if ((null != mOnInitialSyncCallback) && !isWaitingInitialSync()) {
             Log.d(LOG_TAG, "handleJoinedRoomSync " + getRoomId() + " :  the initial sync is done");
             final ApiCallback<Void> fOnInitialSyncCallback = mOnInitialSyncCallback;
 
@@ -670,14 +670,8 @@ public class Room {
             @Override
             public void onSuccess(final RoomResponse aResponse) {
                 try {
-                    boolean isRoomMember;
-
-                    synchronized (this) {
-                        isRoomMember = (getState().getMember(mMyUserId) != null);
-                    }
-
                     // the join request did not get the room initial history
-                    if (!isRoomMember) {
+                    if (isWaitingInitialSync()) {
                         Log.d(LOG_TAG, "the room " + getRoomId() + " is joined but wait after initial sync");
 
                         // wait the server sends the events chunk before calling the callback
@@ -735,6 +729,14 @@ public class Room {
 
         // send the event only if the user has joined the room.
         return ((null != roomMember) && RoomMember.MEMBERSHIP_JOIN.equals(roomMember.membership));
+    }
+
+    /**
+     * @return true if the user is not yet an active member of the room
+     */
+    public boolean isWaitingInitialSync() {
+        RoomMember roomMember = getMember(mMyUserId);
+        return ((null == roomMember) || RoomMember.MEMBERSHIP_INVITE.equals(roomMember.membership));
     }
 
     //================================================================================

@@ -1332,11 +1332,9 @@ public class MXSession {
                 public void onSuccess(final RoomResponse roomResponse) {
                     final String roomId = roomResponse.roomId;
                     Room joinedRoom = mDataHandler.getRoom(roomId);
-                    RoomMember member = joinedRoom.getState().getMember(mCredentials.userId);
-                    String state = (null != member) ? member.membership : null;
 
                     // wait until the initial sync is done
-                    if ((state == null) || TextUtils.equals(state, RoomMember.MEMBERSHIP_INVITE)) {
+                    if (joinedRoom.isWaitingInitialSync()) {
                         joinedRoom.setOnInitialSyncCallback(new ApiCallback<Void>() {
                             @Override
                             public void onSuccess(Void info) {
