@@ -1102,7 +1102,11 @@ public class MXWebRtcCall extends MXCall {
                 Log.e(LOG_TAG, "## initCallUI(): Exception Msg =" + e.getMessage());
             }
 
-            mCallView.setVisibility(View.VISIBLE);
+            // reported gy google analytics
+            // it should never happens
+            if (null != mCallView) {
+                mCallView.setVisibility(View.VISIBLE);
+            }
 
         } else {
             Log.d(LOG_TAG, "## initCallUI(): build audio call");
