@@ -52,6 +52,7 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
@@ -68,6 +69,9 @@ import org.matrix.androidsdk.util.MXOsHandler;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -116,6 +120,7 @@ public class MXDataHandler implements IMXEventListener {
     private ThirdPidRestClient mThirdPidRestClient;
     private RoomsRestClient mRoomsRestClient;
     private EventsRestClient mEventsRestClient;
+    private AccountDataRestClient mAccountDataRestClient;
 
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
 
@@ -250,6 +255,15 @@ public class MXDataHandler implements IMXEventListener {
      */
     public void setEventsRestClient(EventsRestClient eventsRestClient) {
         mEventsRestClient = eventsRestClient;
+    }
+
+    /**
+     * Update the account data Rest client.
+     *
+     * @param accountDataRestClient the account data client
+     */
+    public void setAccountDataRestClient(AccountDataRestClient accountDataRestClient) {
+        mAccountDataRestClient = accountDataRestClient;
     }
 
     /**
@@ -1237,6 +1251,13 @@ public class MXDataHandler implements IMXEventListener {
                 }
             }
 
+            // Handle account data before the room events
+            // to be able to update direct chats dictionary during invites handling.
+            if (null != syncResponse.accountData) {
+                Log.d(LOG_TAG, "Received " + syncResponse.accountData.size() + " accountData events");
+                manageAccountData(syncResponse.accountData, isInitialSync);
+            }
+
             // sanity check
             if (null != syncResponse.rooms) {
                 // joined rooms events
@@ -1277,7 +1298,76 @@ public class MXDataHandler implements IMXEventListener {
                                 mLeftRoomsStore.deleteRoom(roomId);
                             }
 
-                            getRoom(roomId).handleInvitedRoomSync(syncResponse.rooms.invite.get(roomId));
+                            Room room = getRoom(roomId);
+                            InvitedRoomSync invitedRoomSync = syncResponse.rooms.invite.get(roomId);
+
+                            room.handleInvitedRoomSync(invitedRoomSync);
+
+                            // Handle here the invites to a direct chat.
+                            if (room.isDirectChatInvitation()) {
+                                // Retrieve the inviter user id.
+                                String participantUserId = null;
+                                for(Event event : invitedRoomSync.inviteState.events) {
+                                    if (null != event.sender) {
+                                        participantUserId = event.sender;
+                                        break;
+                                    }
+                                }
+
+                                if (null != participantUserId) {
+                                    // Consider the current dictionary.
+                                    HashMap<String, List<String>> params;
+                                    if (null != this.getStore().getDirectChatRoomsDict()) {
+                                        params = new HashMap<>(this.getStore().getDirectChatRoomsDict());
+                                    } else {
+                                        params = new HashMap<>();
+                                    }
+
+                                    ArrayList<String> roomIdsList;
+                                    if (params.containsKey(participantUserId)) {
+                                        roomIdsList = new ArrayList<>(params.get(participantUserId));
+                                    } else {
+                                        roomIdsList = new ArrayList<>();
+                                    }
+
+                                    // Check whether the room was not yet seen as direct chat
+                                    if (roomIdsList.indexOf(roomId) < 0) {
+                                        Log.d(LOG_TAG, "## manageResponse() : add this new invite in direct chats");
+
+                                        roomIdsList.add(roomId); // update room list with the new room
+                                        params.put(participantUserId, roomIdsList);
+
+                                        HashMap<String, Object> requestParams = new HashMap<>();
+                                        Collection<String> userIds = params.keySet();
+
+                                        for (String userId : userIds) {
+                                            requestParams.put(userId, params.get(userId));
+                                        }
+
+                                        mAccountDataRestClient.setAccountData(mCredentials.userId, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, requestParams, new ApiCallback<Void>() {
+                                            @Override
+                                            public void onSuccess(Void info) {
+                                            }
+
+                                            @Override
+                                            public void onNetworkError(Exception e) {
+                                                Log.d(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
+                                                // TODO: we have to add again this invite in direct chats.
+                                            }
+
+                                            @Override
+                                            public void onMatrixError(MatrixError e) {
+                                                Log.d(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
+                                            }
+
+                                            @Override
+                                            public void onUnexpectedError(Exception e) {
+                                                Log.d(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
+                                            }
+                                        });
+                                    }
+                                }
+                            }
                         } catch (Exception e) {
                             Log.e(LOG_TAG, "## manageResponse() : handleInvitedRoomSync failed " + e.getMessage() + " for room " + roomId);
                         }
@@ -1341,12 +1431,6 @@ public class MXDataHandler implements IMXEventListener {
                 for (Event presenceEvent : syncResponse.presence.events) {
                     handlePresenceEvent(presenceEvent);
                 }
-            }
-
-            // account data
-            if (null != syncResponse.accountData) {
-                Log.d(LOG_TAG, "Received " + syncResponse.accountData.size() + " accountData events");
-                manageAccountData(syncResponse.accountData, isInitialSync);
             }
 
             if (null != mCrypto) {
