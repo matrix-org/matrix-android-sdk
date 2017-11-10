@@ -25,7 +25,6 @@
         android:paddingRight="8dp"
         android:singleLine="true"
         android:text = "A text here"
-        android:textColor="@android:color/white"
-        style="@style/Base.TextAppearance.AppCompat.Subhead"/>
+        android:textColor="@android:color/white"/>
 
 </LinearLayout>
