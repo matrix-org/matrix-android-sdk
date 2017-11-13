@@ -125,9 +125,9 @@ public class UnsentEventsManager {
                             }
 
                             mRequestRetryCallBack.onRetry();
-                        } catch (Exception e) {
+                        } catch (Throwable throwable) {
                             UnsentEventSnapshot.this.mIsResending = false;
-                            Log.e(LOG_TAG, "## resendEventAfter() : " + mEventDescription + " + onRetry failed " + e.getMessage());
+                            Log.e(LOG_TAG, "## resendEventAfter() : " + mEventDescription + " + onRetry failed " + throwable.getMessage());
                         }
                     }
                 }, delayMs);
