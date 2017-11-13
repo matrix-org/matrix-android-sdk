@@ -270,6 +270,7 @@ public class MXSession {
         mDataHandler.setThirdPidRestClient(mThirdPidRestClient);
         mDataHandler.setRoomsRestClient(mRoomsRestClient);
         mDataHandler.setEventsRestClient(mEventsRestClient);
+        mDataHandler.setAccountDataRestClient(mAccountDataRestClient);
 
         // application context
         mAppContent = appContext;
