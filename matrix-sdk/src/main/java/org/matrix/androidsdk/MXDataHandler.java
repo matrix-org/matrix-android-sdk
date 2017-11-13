@@ -1289,6 +1289,9 @@ public class MXDataHandler implements IMXEventListener {
 
                     Set<String> roomIds = syncResponse.rooms.invite.keySet();
 
+                    HashMap<String, List<String>> updatedDirectChatRoomsDict = null;
+                    boolean hasChanged = false;
+
                     for (String roomId : roomIds) {
                         try {
                             Log.d(LOG_TAG, "## manageResponse() : the user has been invited to " + roomId);
@@ -1315,17 +1318,19 @@ public class MXDataHandler implements IMXEventListener {
                                 }
 
                                 if (null != participantUserId) {
-                                    // Consider the current dictionary.
-                                    HashMap<String, List<String>> params;
-                                    if (null != this.getStore().getDirectChatRoomsDict()) {
-                                        params = new HashMap<>(this.getStore().getDirectChatRoomsDict());
-                                    } else {
-                                        params = new HashMap<>();
+                                    // Prepare the updated dictionary.
+                                    if (null == updatedDirectChatRoomsDict) {
+                                        if (null != this.getStore().getDirectChatRoomsDict()) {
+                                            // Consider the current dictionary.
+                                            updatedDirectChatRoomsDict = new HashMap<>(this.getStore().getDirectChatRoomsDict());
+                                        } else {
+                                            updatedDirectChatRoomsDict = new HashMap<>();
+                                        }
                                     }
 
                                     ArrayList<String> roomIdsList;
-                                    if (params.containsKey(participantUserId)) {
-                                        roomIdsList = new ArrayList<>(params.get(participantUserId));
+                                    if (updatedDirectChatRoomsDict.containsKey(participantUserId)) {
+                                        roomIdsList = new ArrayList<>(updatedDirectChatRoomsDict.get(participantUserId));
                                     } else {
                                         roomIdsList = new ArrayList<>();
                                     }
@@ -1335,36 +1340,8 @@ public class MXDataHandler implements IMXEventListener {
                                         Log.d(LOG_TAG, "## manageResponse() : add this new invite in direct chats");
 
                                         roomIdsList.add(roomId); // update room list with the new room
-                                        params.put(participantUserId, roomIdsList);
-
-                                        HashMap<String, Object> requestParams = new HashMap<>();
-                                        Collection<String> userIds = params.keySet();
-
-                                        for (String userId : userIds) {
-                                            requestParams.put(userId, params.get(userId));
-                                        }
-
-                                        mAccountDataRestClient.setAccountData(mCredentials.userId, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, requestParams, new ApiCallback<Void>() {
-                                            @Override
-                                            public void onSuccess(Void info) {
-                                            }
-
-                                            @Override
-                                            public void onNetworkError(Exception e) {
-                                                Log.d(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
-                                                // TODO: we have to add again this invite in direct chats.
-                                            }
-
-                                            @Override
-                                            public void onMatrixError(MatrixError e) {
-                                                Log.d(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
-                                            }
-
-                                            @Override
-                                            public void onUnexpectedError(Exception e) {
-                                                Log.d(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
-                                            }
-                                        });
+                                        updatedDirectChatRoomsDict.put(participantUserId, roomIdsList);
+                                        hasChanged = true;
                                     }
                                 }
                             }
@@ -1374,6 +1351,38 @@ public class MXDataHandler implements IMXEventListener {
                     }
 
                     isEmptyResponse = false;
+
+                    if (true == hasChanged) {
+                        // Upload the updated direct chats dictionary.
+                        HashMap<String, Object> requestParams = new HashMap<>();
+                        Collection<String> userIds = updatedDirectChatRoomsDict.keySet();
+
+                        for (String userId : userIds) {
+                            requestParams.put(userId, updatedDirectChatRoomsDict.get(userId));
+                        }
+
+                        mAccountDataRestClient.setAccountData(mCredentials.userId, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, requestParams, new ApiCallback<Void>() {
+                            @Override
+                            public void onSuccess(Void info) {
+                            }
+
+                            @Override
+                            public void onNetworkError(Exception e) {
+                                Log.d(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
+                                // TODO: we should try again.
+                            }
+
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                                Log.d(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
+                            }
+
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+                                Log.d(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
+                            }
+                        });
+                    }
                 }
 
                 // left room management
