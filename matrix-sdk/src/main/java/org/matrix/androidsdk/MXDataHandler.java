@@ -1352,7 +1352,7 @@ public class MXDataHandler implements IMXEventListener {
 
                     isEmptyResponse = false;
 
-                    if (true == hasChanged) {
+                    if (hasChanged) {
                         // Upload the updated direct chats dictionary.
                         HashMap<String, Object> requestParams = new HashMap<>();
                         Collection<String> userIds = updatedDirectChatRoomsDict.keySet();
