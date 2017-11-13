@@ -643,24 +643,32 @@ public class MXChromeCall extends MXCall {
 
                                 // the calleee has 30s to answer to call
                                 if (TextUtils.equals(eventType, Event.EVENT_TYPE_CALL_INVITE)) {
-                                    mCallTimeoutTimer = new Timer();
-                                    mCallTimeoutTimer.schedule(new TimerTask() {
-                                        @Override
-                                        public void run() {
-                                            try {
-                                                if (getCallState().equals(IMXCall.CALL_STATE_RINGING) || getCallState().equals(IMXCall.CALL_STATE_INVITE_SENT)) {
-                                                    dispatchOnCallError(CALL_ERROR_USER_NOT_RESPONDING);
-                                                    hangup(null);
-                                                }
+                                    try {
+                                        mCallTimeoutTimer = new Timer();
+                                        mCallTimeoutTimer.schedule(new TimerTask() {
+                                            @Override
+                                            public void run() {
+                                                try {
+                                                    if (getCallState().equals(IMXCall.CALL_STATE_RINGING) || getCallState().equals(IMXCall.CALL_STATE_INVITE_SENT)) {
+                                                        dispatchOnCallError(CALL_ERROR_USER_NOT_RESPONDING);
+                                                        hangup(null);
+                                                    }
 
-                                                // cancel the timer
-                                                mCallTimeoutTimer.cancel();
-                                                mCallTimeoutTimer = null;
-                                            } catch (Exception e) {
-                                                Log.e(LOG_TAG, "## wSendEvent() ; " + e.getMessage());
+                                                    // cancel the timer
+                                                    mCallTimeoutTimer.cancel();
+                                                    mCallTimeoutTimer = null;
+                                                } catch (Exception e) {
+                                                    Log.e(LOG_TAG, "## wSendEvent() ; " + e.getMessage());
+                                                }
                                             }
+                                        }, CALL_TIMEOUT_MS);
+                                    } catch (Throwable throwable) {
+                                        if (null != mCallTimeoutTimer) {
+                                            mCallTimeoutTimer.cancel();
+                                            mCallTimeoutTimer = null;
                                         }
-                                    }, CALL_TIMEOUT_MS);
+                                        Log.e(LOG_TAG, "## wSendEvent() ; " + throwable.getMessage());
+                                    }
                                 }
                             }
                         }

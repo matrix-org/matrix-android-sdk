@@ -873,18 +873,28 @@ public class MXCallsManager {
                                 mTurnServerTimer.cancel();
                             }
 
-                            mTurnServerTimer = new Timer();
-                            mTurnServerTimer.schedule(new TimerTask() {
-                                @Override
-                                public void run() {
-                                    if (mTurnServerTimer != null) {
-                                        mTurnServerTimer.cancel();
-                                        mTurnServerTimer = null;
-                                    }
+                            try {
+                                mTurnServerTimer = new Timer();
+                                mTurnServerTimer.schedule(new TimerTask() {
+                                    @Override
+                                    public void run() {
+                                        if (mTurnServerTimer != null) {
+                                            mTurnServerTimer.cancel();
+                                            mTurnServerTimer = null;
+                                        }
 
-                                    refreshTurnServer();
+                                        refreshTurnServer();
+                                    }
+                                }, msDelay);
+                            } catch (Throwable e) {
+                                Log.e(LOG_TAG, "## refreshTurnServer() failed to start the timer");
+
+                                if (null != mTurnServerTimer) {
+                                    mTurnServerTimer.cancel();
+                                    mTurnServerTimer = null;
                                 }
-                            }, msDelay);
+                                refreshTurnServer();
+                            }
                         }
                     }
 

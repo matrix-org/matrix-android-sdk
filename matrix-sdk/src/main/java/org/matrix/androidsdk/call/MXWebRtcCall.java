@@ -373,25 +373,34 @@ public class MXWebRtcCall extends MXCall {
         Event event = new Event(Event.EVENT_TYPE_CALL_INVITE, inviteContent, mSession.getCredentials().userId, mCallSignalingRoom.getRoomId());
 
         mPendingEvents.add(event);
-        mCallTimeoutTimer = new Timer();
-        mCallTimeoutTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                try {
-                    if (getCallState().equals(IMXCall.CALL_STATE_RINGING) || getCallState().equals(IMXCall.CALL_STATE_INVITE_SENT)) {
-                        Log.d(LOG_TAG, "sendInvite : CALL_ERROR_USER_NOT_RESPONDING");
-                        dispatchOnCallError(CALL_ERROR_USER_NOT_RESPONDING);
-                        hangup(null);
-                    }
 
-                    // cancel the timer
-                    mCallTimeoutTimer.cancel();
-                    mCallTimeoutTimer = null;
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## sendInvite(): Exception Msg= " + e.getMessage());
+        try {
+            mCallTimeoutTimer = new Timer();
+            mCallTimeoutTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    try {
+                        if (getCallState().equals(IMXCall.CALL_STATE_RINGING) || getCallState().equals(IMXCall.CALL_STATE_INVITE_SENT)) {
+                            Log.d(LOG_TAG, "sendInvite : CALL_ERROR_USER_NOT_RESPONDING");
+                            dispatchOnCallError(CALL_ERROR_USER_NOT_RESPONDING);
+                            hangup(null);
+                        }
+
+                        // cancel the timer
+                        mCallTimeoutTimer.cancel();
+                        mCallTimeoutTimer = null;
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## sendInvite(): Exception Msg= " + e.getMessage());
+                    }
                 }
+            }, CALL_TIMEOUT_MS);
+        } catch (Throwable throwable) {
+            Log.e(LOG_TAG, "## sendInvite(): failed " + throwable.getMessage());
+            if (null != mCallTimeoutTimer) {
+                mCallTimeoutTimer.cancel();
+                mCallTimeoutTimer = null;
             }
-        }, CALL_TIMEOUT_MS);
+        }
 
         sendNextEvent();
     }

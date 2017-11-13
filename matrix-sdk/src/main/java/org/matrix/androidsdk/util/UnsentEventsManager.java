@@ -447,40 +447,57 @@ public class UnsentEventsManager {
                     } else {
                         snapshot = new UnsentEventSnapshot();
 
-                        snapshot.mAge = ignoreEventTimeLifeInOffline ? -1 : System.currentTimeMillis();
-                        snapshot.mRequestRetryCallBack = requestRetryCallBack;
-                        snapshot.mRetryCount = 1;
-                        snapshot.mEventDescription = eventDescription;
-                        mUnsentEventsMap.put(apiCallback, snapshot);
-                        mUnsentEvents.add(snapshot);
+                        try {
+                            snapshot.mAge = ignoreEventTimeLifeInOffline ? -1 : System.currentTimeMillis();
+                            snapshot.mRequestRetryCallBack = requestRetryCallBack;
+                            snapshot.mRetryCount = 1;
+                            snapshot.mEventDescription = eventDescription;
+                            mUnsentEventsMap.put(apiCallback, snapshot);
+                            mUnsentEvents.add(snapshot);
 
-                        if (mbIsConnected || !ignoreEventTimeLifeInOffline) {
-                            // the event has a life time
-                            final UnsentEventSnapshot fSnapshot = snapshot;
-                            fSnapshot.mLifeTimeTimer = new Timer();
-                            fSnapshot.mLifeTimeTimer.schedule(new TimerTask() {
-                                @Override
-                                public void run() {
-                                    try {
+                            if (mbIsConnected || !ignoreEventTimeLifeInOffline) {
+                                // the event has a life time
+                                final UnsentEventSnapshot fSnapshot = snapshot;
+                                fSnapshot.mLifeTimeTimer = new Timer();
+                                fSnapshot.mLifeTimeTimer.schedule(new TimerTask() {
+                                    @Override
+                                    public void run() {
+                                        try {
 
-                                        if (null != eventDescription) {
-                                            Log.d(LOG_TAG, "Cancel to send [" + eventDescription + "]");
+                                            if (null != eventDescription) {
+                                                Log.d(LOG_TAG, "Cancel to send [" + eventDescription + "]");
+                                            }
+
+                                            fSnapshot.stopTimers();
+                                            synchronized (mUnsentEventsMap) {
+                                                mUnsentEventsMap.remove(apiCallback);
+                                                mUnsentEvents.remove(fSnapshot);
+                                            }
+
+                                            triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
+                                        } catch (Exception e) {
+                                            Log.e(LOG_TAG, "## onEventSendingFailed() : failure Msg=" + e.getMessage());
                                         }
-
-                                        fSnapshot.stopTimers();
-                                        synchronized (mUnsentEventsMap) {
-                                            mUnsentEventsMap.remove(apiCallback);
-                                            mUnsentEvents.remove(fSnapshot);
-                                        }
-
-                                        triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
-                                    } catch (Exception e) {
-                                        Log.e(LOG_TAG, "## onEventSendingFailed() : failure Msg=" + e.getMessage());
                                     }
-                                }
-                            }, MAX_MESSAGE_LIFETIME_MS);
-                        } else if (ignoreEventTimeLifeInOffline) {
-                            Log.d(LOG_TAG, "The request " + eventDescription + " will be sent when a network will be available");
+                                }, MAX_MESSAGE_LIFETIME_MS);
+                            } else if (ignoreEventTimeLifeInOffline) {
+                                Log.d(LOG_TAG, "The request " + eventDescription + " will be sent when a network will be available");
+                            }
+                        } catch (Throwable throwable) {
+                            Log.e(LOG_TAG, "## snapshot creation failed " + throwable.getMessage());
+
+                            if (null != snapshot.mLifeTimeTimer) {
+                                snapshot.mLifeTimeTimer.cancel();
+                            }
+
+                            mUnsentEventsMap.remove(apiCallback);
+                            mUnsentEvents.remove(snapshot);
+
+                            try {
+                                triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
+                            } catch (Exception e) {
+                                Log.e(LOG_TAG, "## onEventSendingFailed() : failure Msg=" + e.getMessage());
+                            }
                         }
 
                         isManaged = true;

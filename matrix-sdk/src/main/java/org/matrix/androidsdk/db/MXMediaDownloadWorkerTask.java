@@ -722,19 +722,23 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                 uiHandler.post(new Runnable() {
                     @Override
                     public void run() {
-                        refreshTimer.scheduleAtFixedRate(new TimerTask() {
-                            @Override
-                            public void run() {
-                                uiHandler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        if (!mIsDone) {
-                                            publishProgress(startDownloadTime);
+                        try {
+                            refreshTimer.scheduleAtFixedRate(new TimerTask() {
+                                @Override
+                                public void run() {
+                                    uiHandler.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            if (!mIsDone) {
+                                                publishProgress(startDownloadTime);
+                                            }
                                         }
-                                    }
-                                });
-                            }
-                        }, new java.util.Date(), 100);
+                                    });
+                                }
+                            }, new java.util.Date(), 100);
+                        } catch (Throwable throwable) {
+                            Log.e(LOG_TAG, "scheduleAtFixedRate failed " + throwable.getMessage());
+                        }
                     }
                 });
 

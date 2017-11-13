@@ -1083,24 +1083,28 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         if (serverResponseCode == 500) {
             messageRow.getEvent().mSentState = Event.SentState.WAITING_RETRY;
 
-            Timer relaunchTimer = new Timer();
-            mPendingRelaunchTimersByEventId.put(messageRow.getEvent().eventId, relaunchTimer);
-            relaunchTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    if (mPendingRelaunchTimersByEventId.containsKey(messageRow.getEvent().eventId)) {
-                        mPendingRelaunchTimersByEventId.remove(messageRow.getEvent().eventId);
+            try {
+                Timer relaunchTimer = new Timer();
+                relaunchTimer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        if (mPendingRelaunchTimersByEventId.containsKey(messageRow.getEvent().eventId)) {
+                            mPendingRelaunchTimersByEventId.remove(messageRow.getEvent().eventId);
 
-                        Handler handler = new Handler(Looper.getMainLooper());
-                        handler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                resend(messageRow.getEvent());
-                            }
-                        });
+                            Handler handler = new Handler(Looper.getMainLooper());
+                            handler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    resend(messageRow.getEvent());
+                                }
+                            });
+                        }
                     }
-                }
-            }, 1000);
+                }, 1000);
+                mPendingRelaunchTimersByEventId.put(messageRow.getEvent().eventId, relaunchTimer);
+            } catch (Throwable throwable) {
+                Log.e(LOG_TAG, "relaunchTimer.schedule failed " + throwable.getMessage());
+            }
         } else {
             messageRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
             onMessageSendingFailed(messageRow.getEvent());

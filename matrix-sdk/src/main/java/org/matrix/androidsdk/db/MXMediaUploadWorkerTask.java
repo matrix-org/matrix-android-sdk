@@ -335,20 +335,23 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
             uiHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    refreshTimer.scheduleAtFixedRate(new TimerTask() {
-                        @Override
-                        public void run() {
-                            uiHandler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    if (!mIsDone) {
-                                        publishProgress(startUploadTime);
+                    try {
+                        refreshTimer.scheduleAtFixedRate(new TimerTask() {
+                            @Override
+                            public void run() {
+                                uiHandler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        if (!mIsDone) {
+                                            publishProgress(startUploadTime);
+                                        }
                                     }
-                                }
-                            });
-                        }
-                    }, new java.util.Date(), 100);
-
+                                });
+                            }
+                        }, new java.util.Date(), 100);
+                    } catch (Throwable throwable) {
+                        Log.e(LOG_TAG, "scheduleAtFixedRate failed " + throwable.getMessage());
+                    }
                 }
             });
 
