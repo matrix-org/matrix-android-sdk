@@ -307,6 +307,11 @@ public class MXWebRtcCall extends MXCall {
             isPeerConnectionFactoryAllowed = true;
         }
 
+        if (null != mCameraVideoCapturer) {
+            mCameraVideoCapturer.dispose();
+            mCameraVideoCapturer = null;
+        }
+
         if (null != mVideoSource) {
             mVideoSource.dispose();
             mVideoSource = null;
@@ -935,6 +940,11 @@ public class MXWebRtcCall extends MXCall {
         // create the local renderer only if there is a camera on the device
         if (hasCameraDevice()) {
             try {
+                if (null != mCameraVideoCapturer) {
+                    mCameraVideoCapturer.dispose();
+                    mCameraVideoCapturer = null;
+                }
+
                 if (null != mFrontCameraName) {
                     mCameraVideoCapturer = createVideoCapturer(mFrontCameraName);
 
