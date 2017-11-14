@@ -28,12 +28,36 @@ import java.io.Serializable;
  * IncomingRoomKeyRequest class defines the incoming room keys request.
  */
 public class IncomingRoomKeyRequest implements Serializable {
+    /**
+     * The user id
+     */
     public String mUserId;
-    public String mDeviceId;
-    public String mRequestId;
-    public RoomKeyRequestBody mRequestBody;
-    public Runnable mShare;
 
+    /**
+     * The device id
+     */
+    public String mDeviceId;
+
+    /**
+     * The request id
+     */
+    public String mRequestId;
+
+    /**
+     * The request body
+     */
+    public RoomKeyRequestBody mRequestBody;
+
+    /**
+     * The runnable to call to accept to share the keys
+     */
+    public transient Runnable mShare;
+
+    /**
+     * Constructor
+     *
+     * @param event the event
+     */
     public IncomingRoomKeyRequest(Event event) {
         mUserId = event.getSender();
 
