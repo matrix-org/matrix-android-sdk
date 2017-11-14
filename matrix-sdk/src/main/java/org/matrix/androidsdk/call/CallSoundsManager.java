@@ -297,6 +297,8 @@ public class CallSoundsManager {
             if (mMediaPlayer.isPlaying()) {
                 mMediaPlayer.stop();
             }
+
+            mMediaPlayer.release();
             mMediaPlayer = null;
         }
 
@@ -465,6 +467,11 @@ public class CallSoundsManager {
                         listener.onMediaCompleted();
                     }
                     mPlayingSound = -1;
+
+                    if (null != mMediaPlayer) {
+                        mMediaPlayer.release();
+                        mMediaPlayer = null;
+                    }
                 }
             });
 
