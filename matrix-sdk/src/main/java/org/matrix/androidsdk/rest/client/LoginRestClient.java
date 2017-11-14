@@ -29,6 +29,7 @@ import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.LoginFlow;
 import org.matrix.androidsdk.rest.model.login.LoginFlowResponse;
+import org.matrix.androidsdk.rest.model.login.LoginParams;
 import org.matrix.androidsdk.rest.model.login.PasswordLoginParams;
 import org.matrix.androidsdk.rest.model.login.RegistrationParams;
 import org.matrix.androidsdk.rest.model.login.TokenLoginParams;
@@ -218,13 +219,23 @@ public class LoginRestClient extends RestClient<LoginApi> {
     }
 
     /**
+     * Make a login request.
+     *
+     * @param params   custom login params
+     * @param callback the asynchronous callback
+     */
+    public void login(LoginParams params, final ApiCallback<Credentials> callback) {
+        login(params, callback, "login with a " + params.getClass().getSimpleName() + " object");
+    }
+
+    /**
      * Make login request
      *
      * @param params      login params
      * @param callback    the asynchronous callback
      * @param description the request description
      */
-    private void login(final PasswordLoginParams params, final ApiCallback<Credentials> callback, final String description) {
+    private void login(final LoginParams params, final ApiCallback<Credentials> callback, final String description) {
         mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
 
                 new RestAdapterCallback.RequestRetryCallBack() {
@@ -243,7 +254,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
             }
         });
     }
-
+    
     /**
      * Attempt a user/token log in.
      *
