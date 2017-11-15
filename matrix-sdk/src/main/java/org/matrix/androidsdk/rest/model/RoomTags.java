@@ -19,5 +19,5 @@ package org.matrix.androidsdk.rest.model;
 import java.util.HashMap;
 
 public class RoomTags implements java.io.Serializable {
-    public HashMap<String,HashMap<String, Double>> tags;
+    public HashMap<String, HashMap<String, Double>> tags;
 }

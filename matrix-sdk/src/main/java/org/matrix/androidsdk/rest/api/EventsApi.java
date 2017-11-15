@@ -72,6 +72,7 @@ public interface EventsApi {
      * Perform a search.
      *
      * @param searchParams the search params.
+     * @param nextBatch    the next batch token
      * @param callback     The search result.
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/search")

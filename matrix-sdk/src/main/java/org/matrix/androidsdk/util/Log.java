@@ -58,6 +58,7 @@ public class Log {
     
     /**
      * Initialises the logger. Should be called AFTER {@link Log#setLogDirectory(File)}.
+     * @param fileName the base file name
      */
     public static void init(String fileName) {
         try {

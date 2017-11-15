@@ -98,6 +98,7 @@ public interface IMXStore {
     /**
      * Warn that the store data are corrupted.
      * It might append if an update request failed.
+     *
      * @param reason the corruption reason
      */
     void setCorrupted(String reason);
@@ -138,14 +139,15 @@ public interface IMXStore {
     void removeMXStoreListener(IMXStoreListener listener);
 
     /**
-     * profile information
+     * @return the display name
      */
     String displayName();
 
     /**
      * Update the user display name
+     *
      * @param displayName the displayname
-     * @param ts the timestamp update
+     * @param ts          the timestamp update
      * @return true if there is an update
      */
     boolean setDisplayName(String displayName, long ts);
@@ -157,42 +159,94 @@ public interface IMXStore {
 
     /**
      * Update the avatar URL
+     *
      * @param avatarURL the new URL
-     * @param ts the timestamp update
+     * @param ts        the timestamp update
      * @return true if there is an update
      */
     boolean setAvatarURL(String avatarURL, long ts);
 
+    /**
+     * @return the third party identifiers list
+     */
     List<ThirdPartyIdentifier> thirdPartyIdentifiers();
 
+    /**
+     * Update the third party identifiers list.
+     *
+     * @param identifiers the identifiers list
+     */
     void setThirdPartyIdentifiers(List<ThirdPartyIdentifier> identifiers);
 
+    /**
+     * Update the ignored user ids list.
+     *
+     * @param users the user ids list
+     */
     void setIgnoredUserIdsList(List<String> users);
 
+    /**
+     * Update the direct chat rooms list
+     *
+     * @param directChatRoomsDict the direct chats map
+     */
     void setDirectChatRoomsDict(Map<String, List<String>> directChatRoomsDict);
 
     /**
-     * getters.
+     * @return the known rooms list
      */
     Collection<Room> getRooms();
 
+    /**
+     * Retrieve a room from its room id
+     *
+     * @param roomId the room id
+     * @return the room if it exists
+     */
     Room getRoom(String roomId);
 
+    /**
+     * @return the known users lists
+     */
     Collection<User> getUsers();
 
+    /**
+     * Retrieves an user by its user id.
+     *
+     * @param userId the user id
+     * @return the user
+     */
     User getUser(String userId);
 
+    /**
+     * @return the ignored user ids list
+     */
     List<String> getIgnoredUserIdsList();
 
+    /**
+     * @return the direct chats rooms list
+     */
     Map<String, List<String>> getDirectChatRoomsDict();
 
     /**
-     * flush methods
+     * Flush an updated user.
+     *
+     * @param user the user
      */
     void storeUser(User user);
 
+    /**
+     * Flush an user from a room member.
+     *
+     * @param roomMember the room member
+     */
     void updateUserWithRoomMemberEvent(RoomMember roomMember);
 
+    /**
+     * Flush a room.
+     *
+     * @param room the room
+     */
     void storeRoom(Room room);
 
     /**
@@ -253,7 +307,7 @@ public interface IMXStore {
     /**
      * Flush the room events.
      *
-     * @param roomId     the id of the room.
+     * @param roomId the id of the room.
      */
     void flushRoomEvents(String roomId);
 
@@ -350,7 +404,9 @@ public interface IMXStore {
     void flushSummaries();
 
     /**
-     * store a new summary
+     * Store a new summary.
+     *
+     * @param summary the summary
      */
     void storeSummary(RoomSummary summary);
 
@@ -366,14 +422,14 @@ public interface IMXStore {
      * The room states are built with several events.
      *
      * @param roomId the room id
-     * @param event the event
+     * @param event  the event
      */
     void storeRoomStateEvent(String roomId, Event event);
 
     /**
      * Retrieve the room state creation events
      *
-     * @param roomId the room id
+     * @param roomId   the room id
      * @param callback the asynchronous callback
      */
     void getRoomStateEvents(String roomId, SimpleApiCallback<List<Event>> callback);
@@ -478,6 +534,7 @@ public interface IMXStore {
 
     /**
      * Start a runnable from the store thread
+     *
      * @param runnable the runnable to call
      */
     void post(Runnable runnable);

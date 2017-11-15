@@ -60,15 +60,11 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
-    public void onEventEncrypted(Event event) {
+    public void onEventSentStateUpdated(Event event) {
     }
 
     @Override
     public void onEventDecrypted(Event event) {
-    }
-
-    @Override
-    public void onFailedSendingEvent(Event event) {
     }
 
     @Override
@@ -100,6 +96,10 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
+    public void onNotificationCountUpdate(String roomId) {
+    }
+
+    @Override
     public void onLeaveRoom(String roomId) {
     }
 
@@ -122,7 +122,7 @@ public class MXEventListener implements IMXEventListener {
     @Override
     public void onIgnoredUsersListUpdate() {
     }
-    
+
     @Override
     public void onToDeviceEvent(Event event) {
     }

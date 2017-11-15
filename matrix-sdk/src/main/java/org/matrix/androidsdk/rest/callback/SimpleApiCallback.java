@@ -17,7 +17,9 @@ package org.matrix.androidsdk.rest.callback;
 
 import android.app.Activity;
 import android.content.Context;
+
 import org.matrix.androidsdk.util.Log;
+
 import android.view.View;
 import android.widget.Toast;
 
@@ -49,6 +51,7 @@ public class SimpleApiCallback<T> implements ApiCallback<T> {
 
     /**
      * Constructor
+     *
      * @param activity The context.
      */
     public SimpleApiCallback(Activity activity) {
@@ -57,7 +60,9 @@ public class SimpleApiCallback<T> implements ApiCallback<T> {
 
     /**
      * Constructor
-     * @param context The context.
+     *
+     * @param context    The context.
+     * @param postOnView the view to post the code to execute
      */
     public SimpleApiCallback(Context context, View postOnView) {
         mContext = context;
@@ -67,6 +72,7 @@ public class SimpleApiCallback<T> implements ApiCallback<T> {
     /**
      * Constructor to delegate failure callback to another object. This allows us to stack failure callback implementations
      * in a decorator-type approach.
+     *
      * @param failureCallback the failure callback implementation to delegate to
      */
     public SimpleApiCallback(ApiFailureCallback failureCallback) {
@@ -79,7 +85,7 @@ public class SimpleApiCallback<T> implements ApiCallback<T> {
         if (failureCallback instanceof ApiCallback) {
             try {
                 ((ApiCallback) failureCallback).onSuccess(info);
-            }  catch (Exception exception) {
+            } catch (Exception exception) {
                 Log.e(LOG_TAG, "## onSuccess() failed" + exception.getMessage());
             }
         }
@@ -108,7 +114,7 @@ public class SimpleApiCallback<T> implements ApiCallback<T> {
         if (failureCallback != null) {
             try {
                 failureCallback.onNetworkError(e);
-            }catch (Exception exception) {
+            } catch (Exception exception) {
                 Log.e(LOG_TAG, "## onNetworkError() failed" + exception.getMessage());
             }
         } else {

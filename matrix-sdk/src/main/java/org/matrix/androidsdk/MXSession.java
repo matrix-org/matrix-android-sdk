@@ -25,7 +25,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.call.MXCallsManager;
@@ -57,15 +56,13 @@ import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
-import org.matrix.androidsdk.rest.model.AudioMessage;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.DeleteDeviceAuth;
 import org.matrix.androidsdk.rest.model.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.DevicesListResponse;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.FileMessage;
-import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.MediaMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -73,7 +70,6 @@ import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchUsersResponse;
 import org.matrix.androidsdk.rest.model.User;
-import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
@@ -100,7 +96,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
 /**
@@ -108,7 +103,7 @@ import java.util.regex.Pattern;
  * There can potentially be multiple sessions for handling multiple accounts.
  */
 public class MXSession {
-    private static final String LOG_TAG = "MXSession";
+    private static final String LOG_TAG = MXSession.class.getSimpleName();
 
     private DataRetriever mDataRetriever;
     private MXDataHandler mDataHandler;
@@ -222,6 +217,20 @@ public class MXSession {
 
         mDataHandler.getStore().addMXStoreListener(new MXStoreListener() {
             @Override
+            public void onStoreReady(String accountId) {
+                getDataHandler().checkPermanentStorageData();
+                getDataHandler().onStoreReady();
+            }
+
+            @Override
+            public void onStoreCorrupted(String accountId, String description) {
+                // nothing was saved
+                if (null == getDataHandler().getStore()) {
+                    getDataHandler().onStoreReady();
+                }
+            }
+
+            @Override
             public void postProcess(String accountId) {
                 // test if the crypto instance has already been created
                 if (null == mCrypto) {
@@ -261,6 +270,7 @@ public class MXSession {
         mDataHandler.setThirdPidRestClient(mThirdPidRestClient);
         mDataHandler.setRoomsRestClient(mRoomsRestClient);
         mDataHandler.setEventsRestClient(mEventsRestClient);
+        mDataHandler.setAccountDataRestClient(mAccountDataRestClient);
 
         // application context
         mAppContent = appContext;
@@ -332,6 +342,9 @@ public class MXSession {
     }
 
     /**
+     * Provides the lib version.
+     *
+     * @param longFormat true to have a long format i.e with date and time.
      * @return the SDK version.
      */
     public String getVersion(boolean longFormat) {
@@ -353,6 +366,10 @@ public class MXSession {
     }
 
     /**
+     * Provides the crypto lib version.
+     *
+     * @param context    the context
+     * @param longFormat true to have a long version (with date and time)
      * @return the crypto lib version
      */
     public String getCryptoVersion(Context context, boolean longFormat) {
@@ -543,7 +560,7 @@ public class MXSession {
     /**
      * Provides the application caches size.
      *
-     * @param context the context
+     * @param context  the context
      * @param callback the asynchronous callback
      */
     public static void getApplicationSizeCaches(final Context context, final SimpleApiCallback<Long> callback) {
@@ -586,7 +603,11 @@ public class MXSession {
         mDataHandler.clear();
 
         // network event will not be listened anymore
-        mAppContent.unregisterReceiver(mNetworkConnectivityReceiver);
+        try {
+            mAppContent.unregisterReceiver(mNetworkConnectivityReceiver);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## clearApplicationCaches() : unregisterReceiver failed " + e.getMessage());
+        }
         mNetworkConnectivityReceiver.removeListeners();
 
         // auto resent messages will not be resent
@@ -669,6 +690,7 @@ public class MXSession {
     /**
      * Remove the medias older than the provided timestamp.
      *
+     * @param context   the context
      * @param timestamp the timestamp (in seconds)
      */
     public void removeMediasBefore(final Context context, final long timestamp) {
@@ -679,47 +701,23 @@ public class MXSession {
 
         Collection<Room> rooms = store.getRooms();
 
-        for(Room room : rooms) {
+        for (Room room : rooms) {
             Collection<Event> events = store.getRoomMessages(room.getRoomId());
             if (null != events) {
                 for (Event event : events) {
                     try {
                         if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE, event.getType())) {
-                            JsonElement msgtypeAsVoid = event.getContentAsJsonObject().get("msgtype");
+                            Message message = JsonUtils.toMessage(event.getContent());
 
-                            if (null != msgtypeAsVoid) {
-                                String msgtype = msgtypeAsVoid.getAsString();
+                            if (message instanceof MediaMessage) {
+                                MediaMessage mediaMessage = (MediaMessage) message;
 
-                                if (TextUtils.equals(Message.MSGTYPE_IMAGE, msgtype)) {
-                                    ImageMessage imageMessage = (ImageMessage) JsonUtils.toMessage(event.getContent());
+                                if (mediaMessage.isThumbnailLocalContent()) {
+                                    filesToKeep.add(Uri.parse(mediaMessage.getThumbnailUrl()).getPath());
+                                }
 
-                                    if (null != imageMessage) {
-                                        if (imageMessage.isThumbnailLocalContent()) {
-                                            filesToKeep.add(Uri.parse(imageMessage.thumbnailUrl).getPath());
-                                        }
-
-                                        if (imageMessage.isLocalContent()) {
-                                            filesToKeep.add(Uri.parse(imageMessage.url).getPath());
-                                        }
-                                    }
-                                } else if (TextUtils.equals(Message.MSGTYPE_VIDEO, msgtype)) {
-                                    VideoMessage videoMessage = (VideoMessage) JsonUtils.toMessage(event.getContent());
-
-                                    if ((null != videoMessage) && videoMessage.isLocalContent()) {
-                                        filesToKeep.add(Uri.parse(videoMessage.url).getPath());
-                                    }
-                                } else if (TextUtils.equals(Message.MSGTYPE_FILE, msgtype)) {
-                                    FileMessage fileMessage = (FileMessage) JsonUtils.toMessage(event.getContent());
-
-                                    if ((null != fileMessage) && fileMessage.isLocalContent()) {
-                                        filesToKeep.add(Uri.parse(fileMessage.url).getPath());
-                                    }
-                                } else if (TextUtils.equals(Message.MSGTYPE_AUDIO, msgtype)) {
-                                    AudioMessage audioMessage = (AudioMessage) JsonUtils.toMessage(event.getContent());
-
-                                    if ((null != audioMessage) && audioMessage.isLocalContent()) {
-                                        filesToKeep.add(Uri.parse(audioMessage.url).getPath());
-                                    }
+                                if (mediaMessage.isLocalContent()) {
+                                    filesToKeep.add(Uri.parse(mediaMessage.getUrl()).getPath());
                                 }
                             }
                         }
@@ -925,7 +923,7 @@ public class MXSession {
     }
 
     /**
-     * Tell if the client is seen as "online"
+     * @return true if the client is seen as "online"
      */
     public boolean isOnline() {
         return mIsOnline;
@@ -971,6 +969,7 @@ public class MXSession {
 
     /**
      * Update the data save mode
+     *
      * @param enabled true to enable the data save mode
      */
     public void setUseDataSaveMode(boolean enabled) {
@@ -1029,7 +1028,7 @@ public class MXSession {
 
     /**
      * Refresh the network connection information.
-     * On android >= 6.0, the doze mode might have killed the network connection.
+     * On android version older than 6.0, the doze mode might have killed the network connection.
      */
     public void refreshNetworkConnection() {
         if (null != mNetworkConnectivityReceiver) {
@@ -1334,11 +1333,9 @@ public class MXSession {
                 public void onSuccess(final RoomResponse roomResponse) {
                     final String roomId = roomResponse.roomId;
                     Room joinedRoom = mDataHandler.getRoom(roomId);
-                    RoomMember member = joinedRoom.getState().getMember(mCredentials.userId);
-                    String state = (null != member) ? member.membership : null;
 
                     // wait until the initial sync is done
-                    if ((state == null) || TextUtils.equals(state, RoomMember.MEMBERSHIP_INVITE)) {
+                    if (joinedRoom.isWaitingInitialSync()) {
                         joinedRoom.setOnInitialSyncCallback(new ApiCallback<Void>() {
                             @Override
                             public void onSuccess(Void info) {
@@ -1910,8 +1907,9 @@ public class MXSession {
      * 2- oldest invited room member
      * 3- the user himself
      *
-     * @param roomId   the room roomId
-     * @param callback the asynchronous callback
+     * @param roomId             the room roomId
+     * @param aParticipantUserId the participant user id
+     * @param callback           the asynchronous callback
      */
     public void toggleDirectChatRoom(String roomId, String aParticipantUserId, ApiCallback<Void> callback) {
         IMXStore store = getDataHandler().getStore();
@@ -2340,9 +2338,10 @@ public class MXSession {
     }
 
     /**
-     * Enable / disable the crypto
+     * Enable / disable the crypto.
      *
      * @param cryptoEnabled true to enable the crypto
+     * @param callback      the asynchronous callback called when the action has been done
      */
     public void enableCrypto(boolean cryptoEnabled, final ApiCallback<Void> callback) {
         if (cryptoEnabled != isCryptoEnabled()) {
@@ -2537,6 +2536,7 @@ public class MXSession {
      * Gets a bearer token from the homeserver that the user can
      * present to a third party in order to prove their ownership
      * of the Matrix account they are logged into.
+     *
      * @param callback the asynchronous callback called when finished
      */
     public void openIdToken(final ApiCallback<Map<Object, Object>> callback) {

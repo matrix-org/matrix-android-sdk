@@ -46,6 +46,8 @@ import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.NewDeviceContent;
 import org.matrix.androidsdk.rest.model.RoomKeyContent;
+import org.matrix.androidsdk.rest.model.RoomKeyRequest;
+import org.matrix.androidsdk.rest.model.RoomKeyRequestBody;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
@@ -74,7 +76,7 @@ import java.util.concurrent.CountDownLatch;
  * Specially, it tracks all room membership changes events in order to do keys updates.
  */
 public class MXCrypto {
-    private static final String LOG_TAG = "MXCrypto";
+    private static final String LOG_TAG = MXCrypto.class.getSimpleName();
 
     // max number of keys to upload at once
     // Creating keys can be an expensive operation so we limit the
@@ -126,6 +128,8 @@ public class MXCrypto {
 
     private final MXDeviceList mDevicesList;
 
+    private final MXOutgoingRoomKeyRequestManager mOutgoingRoomKeyRequestManager;
+
     private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
         @Override
         public void onNetworkConnectionUpdate(boolean isConnected) {
@@ -163,6 +167,11 @@ public class MXCrypto {
 
     // last OTK check timestamp
     private long mLastOneTimeKeyCheck = 0;
+
+    // list of IncomingRoomKeyRequests/IncomingRoomKeyRequestCancellations
+    // we received in the current sync.
+    private final List<IncomingRoomKeyRequest> mReceivedRoomKeyRequests = new ArrayList<>();
+    private final List<IncomingRoomKeyRequest> mReceivedRoomKeyRequestCancellations = new ArrayList<>();
 
     /**
      * Constructor
@@ -242,6 +251,8 @@ public class MXCrypto {
             // got some issues when upgrading from Riot < 0.6.4
             mDevicesList.handleDeviceListsChanges(Arrays.asList(mSession.getMyUserId()), null);
         }
+
+        mOutgoingRoomKeyRequestManager = new MXOutgoingRoomKeyRequestManager(mSession, this);
     }
 
     /**
@@ -360,7 +371,8 @@ public class MXCrypto {
      * and, then, if this is the first time, this new device will be announced to all other users
      * devices.
      *
-     * @param aCallback the asynchronous callback
+     * @param isInitialSync true if it starts from an initial sync
+     * @param aCallback     the asynchronous callback
      */
     public void start(final boolean isInitialSync, final ApiCallback<Void> aCallback) {
         synchronized (mInitializationCallbacks) {
@@ -391,7 +403,7 @@ public class MXCrypto {
                         getUIHandler().postDelayed(new Runnable() {
                             @Override
                             public void run() {
-                                if( !isStarted()) {
+                                if (!isStarted()) {
                                     mIsStarting = false;
                                     start(isInitialSync, null);
                                 }
@@ -432,6 +444,8 @@ public class MXCrypto {
 
                                                                     mIsStarting = false;
                                                                     mIsStarted = true;
+
+                                                                    mOutgoingRoomKeyRequestManager.start();
 
                                                                     synchronized (mInitializationCallbacks) {
                                                                         for (ApiCallback<Void> callback : mInitializationCallbacks) {
@@ -550,6 +564,8 @@ public class MXCrypto {
                         mEncryptingHandlerThread.quit();
                         mEncryptingHandlerThread = null;
                     }
+
+                    mOutgoingRoomKeyRequestManager.stop();
                 }
             });
 
@@ -594,6 +610,8 @@ public class MXCrypto {
 
                 if (!isCatchingUp && isStarted()) {
                     maybeUploadOneTimeKeys();
+
+                    processReceivedRoomKeyRequests();
                 }
             }
         });
@@ -776,11 +794,12 @@ public class MXCrypto {
     }
 
     /**
-     * Update the blocked/verified state of the given device
+     * Update the blocked/verified state of the given device.
      *
-     * @param verificationStatus the new verification status.
+     * @param verificationStatus the new verification status
      * @param deviceId           the unique identifier for the device.
-     * @param userId             the owner of the device.
+     * @param userId             the owner of the device
+     * @param callback           the asynchronous callback
      */
     public void setDeviceVerification(final int verificationStatus, final String deviceId, final String userId, final ApiCallback<Void> callback) {
         if (hasBeenReleased()) {
@@ -842,10 +861,9 @@ public class MXCrypto {
      * Configure a room to use encryption.
      * This method must be called in getEncryptingThreadHandler
      *
-     * @param roomId    the room id to enable encryption in.
-     * @param algorithm the encryption config for the room.
+     * @param roomId             the room id to enable encryption in.
+     * @param algorithm          the encryption config for the room.
      * @param inhibitDeviceQuery true to suppress device list query for users in the room (for now)
-     *
      * @return true if the operation succeeds.
      */
     private boolean setEncryptionInRoom(String roomId, String algorithm, boolean inhibitDeviceQuery) {
@@ -1654,11 +1672,19 @@ public class MXCrypto {
      * @param event the event
      */
     private void onToDeviceEvent(final Event event) {
-        if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_ROOM_KEY)) {
+        if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_ROOM_KEY) ||
+                TextUtils.equals(event.getType(), Event.EVENT_TYPE_FORWARDED_ROOM_KEY)) {
             getDecryptingThreadHandler().post(new Runnable() {
                 @Override
                 public void run() {
                     onRoomKeyEvent(event);
+                }
+            });
+        } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_ROOM_KEY_REQUEST)) {
+            getEncryptingThreadHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    onRoomKeyRequestEvent(event);
                 }
             });
         } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_NEW_DEVICE)) {
@@ -1730,6 +1756,143 @@ public class MXCrypto {
         }
 
         mDevicesList.handleDeviceListsChanges(Arrays.asList(userId), null);
+    }
+
+    /**
+     * Called when we get an m.room_key_request event
+     * This method must be called on getEncryptingThreadHandler() thread.
+     *
+     * @param event the announcement event.
+     */
+    private void onRoomKeyRequestEvent(final Event event) {
+        RoomKeyRequest roomKeyRequest = JsonUtils.toRoomKeyRequest(event.getContentAsJsonObject());
+
+        if (null != roomKeyRequest.action) {
+            switch (roomKeyRequest.action) {
+                case RoomKeyRequest.ACTION_REQUEST: {
+                    synchronized (mReceivedRoomKeyRequests) {
+                        mReceivedRoomKeyRequests.add(new IncomingRoomKeyRequest(event));
+                    }
+                    break;
+                }
+
+                case RoomKeyRequest.ACTION_REQUEST_CANCELLATION: {
+                    synchronized (mReceivedRoomKeyRequestCancellations) {
+                        mReceivedRoomKeyRequestCancellations.add(new IncomingRoomKeyRequestCancellation(event));
+                    }
+                    break;
+                }
+
+                default:
+                    Log.e(LOG_TAG, "## onRoomKeyRequestEvent() : unsupported action " + roomKeyRequest.action);
+            }
+        }
+    }
+
+    /**
+     * Process any m.room_key_request events which were queued up during the
+     * current sync.
+     */
+    private void processReceivedRoomKeyRequests() {
+        List<IncomingRoomKeyRequest> receivedRoomKeyRequests = null;
+
+        synchronized (mReceivedRoomKeyRequests) {
+            if (!mReceivedRoomKeyRequests.isEmpty()) {
+                receivedRoomKeyRequests = new ArrayList(mReceivedRoomKeyRequests);
+                mReceivedRoomKeyRequests.clear();
+            }
+        }
+
+        if (null != receivedRoomKeyRequests) {
+            for (final IncomingRoomKeyRequest request : receivedRoomKeyRequests) {
+                String userId = request.mUserId;
+                String deviceId = request.mDeviceId;
+                RoomKeyRequestBody body = request.mRequestBody;
+                String roomId = body.room_id;
+                String alg = body.algorithm;
+
+                Log.d(LOG_TAG, "m.room_key_request from " + userId + ":" + deviceId + " for " + roomId + " / " + body.session_id + " id " + request.mRequestId);
+
+                if (!TextUtils.equals(mSession.getMyUserId(), userId)) {
+                    // TODO: determine if we sent this device the keys already: in
+                    Log.e(LOG_TAG, "## processReceivedRoomKeyRequests() : Ignoring room key request from other user for now");
+                    return;
+                }
+
+                // todo: should we queue up requests we don't yet have keys for,
+                // in case they turn up later?
+
+                // if we don't have a decryptor for this room/alg, we don't have
+                // the keys for the requested events, and can drop the requests.
+
+                final IMXDecrypting decryptor = getRoomDecryptor(roomId, alg);
+
+                if (null == decryptor) {
+                    Log.e(LOG_TAG, "## processReceivedRoomKeyRequests() : room key request for unknown " + alg + " in room " + roomId);
+                    continue;
+                }
+
+                if (!decryptor.hasKeysForKeyRequest(request)) {
+                    Log.e(LOG_TAG, "## processReceivedRoomKeyRequests() : room key request for unknown session " + body.session_id);
+                    continue;
+                }
+
+                if (TextUtils.equals(deviceId, getMyDevice().deviceId) && TextUtils.equals(mSession.getMyUserId(), userId)) {
+                    Log.d(LOG_TAG, "## processReceivedRoomKeyRequests() : oneself device - ignored");
+                    continue;
+                }
+
+                request.mShare = new Runnable() {
+                    @Override
+                    public void run() {
+                        getEncryptingThreadHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                decryptor.shareKeysWithDevice(request);
+                            }
+                        });
+                    }
+                };
+
+                // if the device is is verified already, share the keys
+                MXDeviceInfo device = mCryptoStore.getUserDevice(deviceId, userId);
+
+                if (null != device) {
+                    if (device.isVerified()) {
+                        Log.d(LOG_TAG, "## processReceivedRoomKeyRequests() : device is already verified: sharing keys");
+                        request.mShare.run();
+                        continue;
+                    }
+
+                    if (device.isBlocked()) {
+                        Log.d(LOG_TAG, "## processReceivedRoomKeyRequests() : device is blocked -> ignored");
+                        continue;
+                    }
+                }
+
+                onRoomKeyRequest(request);
+            }
+        }
+
+        List<IncomingRoomKeyRequestCancellation> receivedRoomKeyRequestCancellations = null;
+
+        synchronized (mReceivedRoomKeyRequestCancellations) {
+            if (!mReceivedRoomKeyRequestCancellations.isEmpty()) {
+                receivedRoomKeyRequestCancellations = new ArrayList(mReceivedRoomKeyRequestCancellations);
+                mReceivedRoomKeyRequestCancellations.clear();
+            }
+        }
+
+        if (null != receivedRoomKeyRequestCancellations) {
+            for (IncomingRoomKeyRequestCancellation request : receivedRoomKeyRequestCancellations) {
+                Log.d(LOG_TAG, "## ## processReceivedRoomKeyRequests() : m.room_key_request cancellation for " + request.mUserId + ":" + request.mDeviceId + " id " + request.mRequestId);
+
+                // we should probably only notify the app of cancellations we told it
+                // about, but we don't currently have a record of that, so we just pass
+                // everything through.
+                onRoomKeyRequestCancellation(request);
+            }
+        }
     }
 
     /**
@@ -2612,5 +2775,113 @@ public class MXCrypto {
      */
     public void setRoomUnblacklistUnverifiedDevices(final String roomId, final ApiCallback<Void> callback) {
         setRoomBlacklistUnverifiedDevices(roomId, false, callback);
+    }
+
+    /**
+     * Send a request for some room keys, if we have not already done so.
+     *
+     * @param requestBody requestBody
+     * @param recipients  recipients
+     */
+    public void requestRoomKey(final Map<String, String> requestBody, final List<Map<String, String>> recipients) {
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                mOutgoingRoomKeyRequestManager.sendRoomKeyRequest(requestBody, recipients);
+            }
+        });
+    }
+
+    /**
+     * Cancel any earlier room key request
+     *
+     * @param requestBody requestBody
+     */
+    public void cancelRoomKeyRequest(final Map<String, String> requestBody) {
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                mOutgoingRoomKeyRequestManager.cancelRoomKeyRequest(requestBody);
+            }
+        });
+    }
+
+    /**
+     * Room keys events listener
+     */
+    public interface IRoomKeysRequestListener {
+        /**
+         * An room key request has been received.
+         *
+         * @param request the request
+         */
+        void onRoomKeyRequest(IncomingRoomKeyRequest request);
+
+        /**
+         * A room key request cancellation has been received.
+         *
+         * @param request the cancellation request
+         */
+        void onRoomKeyRequestCancellation(IncomingRoomKeyRequestCancellation request);
+    }
+
+    // the listeners
+    public final Set<IRoomKeysRequestListener> mRoomKeysRequestListeners = new HashSet<>();
+
+    /**
+     * Add a IRoomKeysRequestListener listener.
+     *
+     * @param listener listener
+     */
+    public void addRoomKeysRequestListener(IRoomKeysRequestListener listener) {
+        synchronized (mRoomKeysRequestListeners) {
+            mRoomKeysRequestListeners.add(listener);
+        }
+    }
+
+    /**
+     * Add a IRoomKeysRequestListener listener.
+     *
+     * @param listener listener
+     */
+    public void removeRoomKeysRequestListener(IRoomKeysRequestListener listener) {
+        synchronized (mRoomKeysRequestListeners) {
+            mRoomKeysRequestListeners.remove(listener);
+        }
+    }
+
+    /**
+     * Dispatch onRoomKeyRequest
+     *
+     * @param request the request
+     */
+    private void onRoomKeyRequest(IncomingRoomKeyRequest request) {
+        synchronized (mRoomKeysRequestListeners) {
+            for (IRoomKeysRequestListener listener : mRoomKeysRequestListeners) {
+                try {
+                    listener.onRoomKeyRequest(request);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## onRoomKeyRequest() failed " + e.getMessage());
+                }
+            }
+        }
+    }
+
+
+    /**
+     * A room key request cancellation has been received.
+     *
+     * @param request the cancellation request
+     */
+    private void onRoomKeyRequestCancellation(IncomingRoomKeyRequestCancellation request) {
+        synchronized (mRoomKeysRequestListeners) {
+            for (IRoomKeysRequestListener listener : mRoomKeysRequestListeners) {
+                try {
+                    listener.onRoomKeyRequestCancellation(request);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## onRoomKeyRequestCancellation() failed " + e.getMessage());
+                }
+            }
+        }
     }
 }

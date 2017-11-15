@@ -47,6 +47,7 @@ public class RoomThirdPartyInvite implements java.io.Serializable {
 
     /**
      * Set the original used to create this class
+     *
      * @param eventId the event id
      */
     public void setOriginalEventid(String eventId) {
@@ -55,6 +56,7 @@ public class RoomThirdPartyInvite implements java.io.Serializable {
 
     /**
      * Provides the even used to create this class
+     *
      * @return the event uses to create this class
      */
     public String getOriginalEventId() {

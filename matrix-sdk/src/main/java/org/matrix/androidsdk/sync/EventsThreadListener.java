@@ -24,8 +24,9 @@ import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 public interface EventsThreadListener {
     /**
      * Call when a sync request has been performed with the API V2.
-     * @param response the response (can be null)
-     * @param fromToken the start token
+     *
+     * @param response     the response (can be null)
+     * @param fromToken    the start token
      * @param isCatchingUp true if a catchup is on progress
      */
     void onSyncResponse(SyncResponse response, String fromToken, boolean isCatchingUp);

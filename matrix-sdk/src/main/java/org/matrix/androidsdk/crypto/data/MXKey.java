@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.crypto.data;
 
 import android.text.TextUtils;
+
 import org.matrix.androidsdk.util.Log;
 
 import java.io.Serializable;
@@ -50,7 +51,7 @@ public class MXKey implements Serializable {
     public String value;
 
     /**
-     * signature user Id -> [deviceid][signature]
+     * signature user Id to [deviceid][signature]
      */
     public Map<String, Map<String, String>> signatures;
 
@@ -62,6 +63,7 @@ public class MXKey implements Serializable {
 
     /**
      * Convert a map to a MXKey
+     *
      * @param map the map to convert
      */
     public MXKey(Map<String, Map<String, Object>> map) {
@@ -72,8 +74,8 @@ public class MXKey implements Serializable {
             setKeyFullId(firstEntry);
 
             Map<String, Object> params = map.get(firstEntry);
-            value = (String)params.get("key");
-            signatures = (Map<String, Map<String, String>>)params.get("signatures");
+            value = (String) params.get("key");
+            signatures = (Map<String, Map<String, String>>) params.get("signatures");
         }
     }
 
@@ -86,6 +88,7 @@ public class MXKey implements Serializable {
 
     /**
      * Update the key fields with a key full id
+     *
      * @param keyFullId the key full id
      */
     private void setKeyFullId(String keyFullId) {
@@ -118,11 +121,12 @@ public class MXKey implements Serializable {
 
     /**
      * Returns a signature for an user Id and a signkey
-     * @param userId the user id
+     *
+     * @param userId  the user id
      * @param signkey the sign key
      * @return the signature
      */
-    public String signatureForUserId(String userId, String signkey){
+    public String signatureForUserId(String userId, String signkey) {
         // sanity checks
         if (!TextUtils.isEmpty(userId) && !TextUtils.isEmpty(signkey)) {
             if ((null != signatures) && signatures.containsKey(userId)) {

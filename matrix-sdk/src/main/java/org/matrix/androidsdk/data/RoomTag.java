@@ -29,13 +29,12 @@ import java.util.HashMap;
  */
 public class RoomTag implements java.io.Serializable {
     private static final long serialVersionUID = 5172602958896551204L;
-    private static final String LOG_TAG = "RoomTag";
+    private static final String LOG_TAG = RoomTag.class.getSimpleName();
 
     //
     public static final String ROOM_TAG_FAVOURITE = "m.favourite";
     public static final String ROOM_TAG_LOW_PRIORITY = "m.lowpriority";
     public static final String ROOM_TAG_NO_TAG = "m.recent";
-
 
     /**
      * The name of a tag.

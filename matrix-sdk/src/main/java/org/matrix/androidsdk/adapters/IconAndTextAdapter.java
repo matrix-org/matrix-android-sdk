@@ -23,6 +23,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
+
 import org.matrix.androidsdk.R;
 
 /**
@@ -48,7 +49,8 @@ public class IconAndTextAdapter extends ArrayAdapter<IconAndTextAdapter.Entry> {
 
     /**
      * Construct an adapter which will display a list of entries
-     * @param context Activity context
+     *
+     * @param context          Activity context
      * @param layoutResourceId The resource ID of the layout for each item. Must have TextViews with
      *                         the IDs: roomMembersAdapter_name, roomMembersAdapter_membership, and
      *                         an ImageView with the ID avatar_img.
@@ -62,15 +64,17 @@ public class IconAndTextAdapter extends ArrayAdapter<IconAndTextAdapter.Entry> {
 
     /**
      * Add a new entry in the adapter
+     *
      * @param iconResourceId the entry icon identifier
      * @param textResourceId the entry text resourceId
      */
-    public void add(int iconResourceId, int textResourceId ) {
+    public void add(int iconResourceId, int textResourceId) {
         this.add(new Entry(iconResourceId, textResourceId));
     }
 
     /**
      * Set the background color of the cell.
+     *
      * @param color the background color.
      */
     public void setBackgroundColor(Integer color) {
@@ -79,6 +83,7 @@ public class IconAndTextAdapter extends ArrayAdapter<IconAndTextAdapter.Entry> {
 
     /**
      * Set the cell text color.
+     *
      * @param color the text color.
      */
     public void setTextColor(Integer color) {
@@ -101,7 +106,7 @@ public class IconAndTextAdapter extends ArrayAdapter<IconAndTextAdapter.Entry> {
             textView.setTextColor(mTextColor);
         }
 
-        ImageView imageView =  (ImageView) convertView.findViewById(R.id.imageView_icon_and_text);
+        ImageView imageView = (ImageView) convertView.findViewById(R.id.imageView_icon_and_text);
         imageView.setImageResource(entry.mIconResId);
 
         if (null != mBackgroundColor) {

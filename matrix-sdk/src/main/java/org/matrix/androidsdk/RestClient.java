@@ -45,8 +45,7 @@ import retrofit.converter.GsonConverter;
  * Class for making Matrix API calls.
  */
 public class RestClient<T> {
-
-    private static final String LOG_TAG = "RestClient";
+    private static final String LOG_TAG = RestClient.class.getSimpleName();
 
     public static final String URI_API_PREFIX_PATH_MEDIA_R0 = "/_matrix/media/r0";
     public static final String URI_API_PREFIX_PATH_R0 = "/_matrix/client/r0";
@@ -89,7 +88,11 @@ public class RestClient<T> {
     /**
      * Public constructor.
      *
-     * @param hsConfig The homeserver connection config.
+     * @param hsConfig              the home server configuration.
+     * @param type                  the REST type
+     * @param uriPrefix             the URL request prefix
+     * @param withNullSerialization true to serialise class member with null value
+     * @param useIdentityServer     true to use the identity server URL as base request
      */
     public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization, boolean useIdentityServer) {
         // The JSON -> object mapper
@@ -225,6 +228,7 @@ public class RestClient<T> {
 
     /**
      * Update the connection timeout
+     *
      * @param aTimeoutMs the connection timeout
      */
     protected void setConnectionTimeout(int aTimeoutMs) {
@@ -249,6 +253,7 @@ public class RestClient<T> {
 
     /**
      * Set the unsentEvents manager.
+     *
      * @param unsentEventsManager The unsentEvents manager.
      */
     public void setUnsentEventsManager(UnsentEventsManager unsentEventsManager) {
@@ -268,6 +273,7 @@ public class RestClient<T> {
 
     /**
      * Get the user's credentials. Typically for saving them somewhere persistent.
+     *
      * @return the user credentials
      */
     public Credentials getCredentials() {
@@ -276,6 +282,7 @@ public class RestClient<T> {
 
     /**
      * Provide the user's credentials. To be called after login or registration.
+     *
      * @param credentials the user credentials
      */
     public void setCredentials(Credentials credentials) {
@@ -290,6 +297,7 @@ public class RestClient<T> {
 
     /**
      * Protected setter for injection by unit tests.
+     *
      * @param api the api object
      */
     protected void setApi(T api) {

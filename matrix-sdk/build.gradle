@@ -2,8 +2,8 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 23
-    buildToolsVersion '23.0.3'
+    compileSdkVersion 25
+    buildToolsVersion '25.0.2'
 
     packagingOptions {
         exclude 'LICENSE.txt'
@@ -12,14 +12,13 @@ android {
         exclude 'META-INF/NOTICE'
     }
 
-
     defaultConfig {
         minSdkVersion 16
-        targetSdkVersion 23
+        targetSdkVersion 25
         // use version to define a version code.
-        versionCode 803
-        version "0.8.03"
-        versionName "0.8.03"
+        versionCode 804
+        version "0.8.04"
+        versionName "0.8.04"
         resValue "string", "flavor_description", "SDKApp"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
      }
@@ -39,17 +38,24 @@ android {
         }
     }
 
-    task javadoc(type: Javadoc) {
-        source = android.sourceSets.main.java.srcDirs
-        classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-        destinationDir = file("../docs/javadoc/")
-        delete "../docs/"
+    android.libraryVariants.all { variant ->
+        task("${variant.name}Docs", type: Javadoc) {
+            source = variant.javaCompile.source
+            classpath = files(((Object) android.bootClasspath.join(File.pathSeparator)))
+            classpath += files(variant.javaCompile.classpath.files)
 
-        options.links("http://docs.oracle.com/javase/7/docs/api/");
-        options.links("http://developer.android.com/reference/");
-        exclude '**/BuildConfig.java'
-        exclude '**/R.java'
-        failOnError false
+            destinationDir = file("../docs/javadoc/")
+            delete "../docs/"
+
+            options.windowTitle("Matrix Android SDK")
+            options.docTitle("Matrix Android SDK")
+            options.header("<b>Matrix Android SDK</b>")
+            options.bottom("&copy; 2017 Vector Creations Ltd All rights reserved.")
+
+            exclude '**/BuildConfig.java'
+            exclude '**/R.java'
+            failOnError false
+        }
     }
 
     buildTypes {
@@ -82,6 +88,7 @@ android {
     lintOptions {
         disable 'InvalidPackage'
         disable 'MissingTranslation'
+        disable 'RestrictedApi'
     }
 
     repositories {
@@ -108,7 +115,7 @@ def gitRevisionDate() {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:23.3.0'
+    compile 'com.android.support:appcompat-v7:25.3.1'
     compile 'com.squareup.retrofit:retrofit:1.6.1'
     compile 'com.google.code.gson:gson:2.3'
     compile 'com.squareup.okhttp:okhttp-urlconnection:2.2.0'

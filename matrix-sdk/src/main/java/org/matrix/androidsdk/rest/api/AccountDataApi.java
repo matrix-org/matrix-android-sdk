@@ -24,10 +24,13 @@ import retrofit.http.PUT;
 import retrofit.http.Path;
 
 public interface AccountDataApi {
+
     /**
      * Set some account_data for the client.
-     * @param userId the user id
-     * @param params the put params.
+     *
+     * @param userId   the user id
+     * @param type     the type
+     * @param params   the put params
      * @param callback the asynchronous callback called when finished
      */
     @PUT("/user/{userId}/account_data/{type}")
@@ -37,8 +40,9 @@ public interface AccountDataApi {
      * Gets a bearer token from the homeserver that the user can
      * present to a third party in order to prove their ownership
      * of the Matrix account they are logged into.
-     * @param userId the user id
-     * @param body the body content
+     *
+     * @param userId   the user id
+     * @param body     the body content
      * @param callback the asynchronous callback called when finished
      */
     @POST("/user/{userId}/openid/request_token")

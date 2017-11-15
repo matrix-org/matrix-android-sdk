@@ -36,7 +36,7 @@ public class MXFileStoreMetaData implements java.io.Serializable {
     public int mVersion = -1;
 
     /**
-     User information
+     * User information
      */
     public String mUserDisplayName = null;
     public String mUserAvatarUrl = null;

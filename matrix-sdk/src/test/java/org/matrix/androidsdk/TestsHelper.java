@@ -46,7 +46,7 @@ public class TestsHelper {
      * @param password the password
      * @param startSession true to perform an initial sync
      * @param callback the callback
-     * @throws Exception
+     * @throws Exception an exception if the account cannot be created
      */
     public static void createAccountAndSync(Context context, String userName, String password, boolean startSession, ApiCallback<MXSession> callback) throws Exception {
         RestClient.mUseMXExececutor = true;

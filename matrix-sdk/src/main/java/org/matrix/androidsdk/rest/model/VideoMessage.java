@@ -1,5 +1,5 @@
 /* 
- * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,12 +15,9 @@
  */
 package org.matrix.androidsdk.rest.model;
 
-import android.net.Uri;
-import org.matrix.androidsdk.util.Log;
+import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 
-import java.io.File;
-public class VideoMessage extends Message {
-    private static final String LOG_TAG = "VideoMessage";
+public class VideoMessage extends MediaMessage {
 
     public VideoInfo info;
     public String url;
@@ -33,9 +30,7 @@ public class VideoMessage extends Message {
         msgtype = MSGTYPE_VIDEO;
     }
 
-    /**
-     * @return the media url
-     */
+    @Override
     public String getUrl() {
         if (null != url) {
             return url;
@@ -46,21 +41,42 @@ public class VideoMessage extends Message {
         }
     }
 
-    /**
-     * @return the thumbnail url
-     */
+    @Override
+    public void setUrl(MXEncryptedAttachments.EncryptionResult encryptionResult, String contentUrl) {
+        if (null != encryptionResult) {
+            file = encryptionResult.mEncryptedFileInfo;
+            file.url = contentUrl;
+            url = null;
+        } else {
+            url = contentUrl;
+        }
+    }
+
+    @Override
     public String getThumbnailUrl() {
         if ((null != info) && (null != info.thumbnail_url)) {
             return info.thumbnail_url;
-        } else if ((null != info) &&  (null != info.thumbnail_file)) {
+        } else if ((null != info) && (null != info.thumbnail_file)) {
             return info.thumbnail_file.url;
         }
 
         return null;
     }
 
+    @Override
+    public void setThumbnailUrl(MXEncryptedAttachments.EncryptionResult encryptionResult, String url) {
+        if (null != encryptionResult) {
+            info.thumbnail_file = encryptionResult.mEncryptedFileInfo;
+            info.thumbnail_file.url = url;
+            info.thumbnail_url = null;
+        } else {
+            info.thumbnail_url = url;
+        }
+    }
+
     /**
      * Make a deep copy of this VideoMessage.
+     *
      * @return the copy
      */
     public VideoMessage deepCopy() {
@@ -80,53 +96,12 @@ public class VideoMessage extends Message {
         return copy;
     }
 
-    public boolean isThumbnailLocalContent() {
-        return (null != info) && (null != info.thumbnail_url) && (info.thumbnail_url.startsWith("file://"));
-    }
-
-    public boolean isLocalContent() {
-        return (null != url) && (url.startsWith("file://"));
-    }
-
-    /**
-     * @return The video mimetype. null is not defined.
-     */
-    public String getVideoMimeType() {
+    @Override
+    public String getMimeType() {
         if (null != info) {
             return info.mimetype;
         } else {
             return null;
-        }
-    }
-
-    /**
-     * Checks if the media Urls are still valid.
-     * The media Urls could define a file path.
-     * They could have been deleted after a media cache cleaning.
-     */
-    public void checkMediaUrls() {
-        if ((null != info) && (info.thumbnail_url != null) && info.thumbnail_url.startsWith("file://")) {
-            try {
-                File file = new File(Uri.parse(info.thumbnail_url).getPath());
-
-                if (!file.exists()) {
-                    info.thumbnail_url = null;
-                }
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## checkMediaUrls() failed" + e.getMessage());
-            }
-        }
-
-        if ((url != null) && url.startsWith("file://")) {
-            try {
-                File file = new File(Uri.parse(url).getPath());
-
-                if (!file.exists()) {
-                    url = null;
-                }
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## checkMediaUrls() failed" + e.getMessage());
-            }
         }
     }
 }

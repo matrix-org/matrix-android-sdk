@@ -1,5 +1,5 @@
 /* 
- * Copyright 2014 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,10 +25,13 @@ public class ImageInfo {
     // ExifInterface.ORIENTATION_XX values
     public Integer orientation;
 
+    public ThumbnailInfo thumbnailInfo;
+    public String thumbnailUrl;
     public EncryptedFileInfo thumbnail_file;
 
     /**
      * Make a deep copy.
+     *
      * @return the copy
      */
     public ImageInfo deepCopy() {
@@ -44,6 +47,11 @@ public class ImageInfo {
             copy.thumbnail_file = thumbnail_file.deepCopy();
         }
 
+        copy.thumbnailUrl = thumbnailUrl;
+
+        if (null != thumbnailInfo) {
+            copy.thumbnailInfo = thumbnailInfo.deepCopy();
+        }
 
         return copy;
     }

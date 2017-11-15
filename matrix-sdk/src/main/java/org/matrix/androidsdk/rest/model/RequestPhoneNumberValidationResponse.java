@@ -16,7 +16,7 @@
 package org.matrix.androidsdk.rest.model;
 
 /**
- *  Response to a request an phone number validation request
+ * Response to a request an phone number validation request
  */
 public class RequestPhoneNumberValidationResponse {
 

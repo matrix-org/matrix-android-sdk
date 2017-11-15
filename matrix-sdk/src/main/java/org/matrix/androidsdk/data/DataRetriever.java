@@ -34,7 +34,7 @@ import java.util.HashMap;
  * Layer for retrieving data either from the storage implementation, or from the server if the information is not available.
  */
 public class DataRetriever {
-    private static final String LOG_TAG = "DataRetriever";
+    private static final String LOG_TAG = DataRetriever.class.getSimpleName();
 
     private RoomsRestClient mRestClient;
 
@@ -52,7 +52,8 @@ public class DataRetriever {
 
     /**
      * Provides the cached messages for a dedicated roomId
-     * @param store the store.
+     *
+     * @param store  the store.
      * @param roomId the roomId
      * @return the events list, null if the room does not exist
      */
@@ -62,6 +63,7 @@ public class DataRetriever {
 
     /**
      * Cancel any history requests for a dedicated room
+     *
      * @param roomId the room id.
      */
     public void cancelHistoryRequest(String roomId) {
@@ -73,6 +75,7 @@ public class DataRetriever {
 
     /**
      * Cancel any request history requests for a dedicated room
+     *
      * @param roomId the room id.
      */
     public void cancelRemoteHistoryRequest(String roomId) {
@@ -84,13 +87,14 @@ public class DataRetriever {
     /**
      * Trigger a back pagination for a dedicated room from Token.
      *
-     * @param roomId            the room Id
-     * @param token             the start token.
-     * @param limit             the maximum number of messages to retrieve
-     * @param callback          the callback
+     * @param store    the store to use
+     * @param roomId   the room Id
+     * @param token    the start token.
+     * @param limit    the maximum number of messages to retrieve
+     * @param callback the callback
      */
     public void backPaginate(final IMXStore store, final String roomId, final String token,
-                              final int limit, final ApiCallback<TokensChunkResponse<Event>> callback) {
+                             final int limit, final ApiCallback<TokensChunkResponse<Event>> callback) {
         // reach the marker end
         if (TextUtils.equals(token, Event.PAGINATE_BACK_TOKEN_END)) {
             // nothing more to provide
@@ -149,8 +153,7 @@ public class DataRetriever {
 
             Thread t = new Thread(r);
             t.start();
-        }
-        else {
+        } else {
             Log.d(LOG_TAG, "## backPaginate() : trigger a remote request");
             mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.BACKWARDS, limit, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
                 @Override
@@ -189,8 +192,8 @@ public class DataRetriever {
                     }
                 }
 
-                private void logErrorMessage(String expectedToken , String errorMessage) {
-                    Log.e(LOG_TAG, "## backPaginate() failed : roomId " + roomId + " token " + token + " expected " +  expectedToken + " with " + errorMessage);
+                private void logErrorMessage(String expectedToken, String errorMessage) {
+                    Log.e(LOG_TAG, "## backPaginate() failed : roomId " + roomId + " token " + token + " expected " + expectedToken + " with " + errorMessage);
                 }
 
                 @Override
@@ -234,8 +237,10 @@ public class DataRetriever {
 
     /**
      * Trigger a forward pagination for a dedicated room from Token.
-     * @param roomId the room Id
-     * @param token the start token.
+     *
+     * @param store    the store to use
+     * @param roomId   the room Id
+     * @param token    the start token.
      * @param callback the callback
      */
     private void forwardPaginate(final IMXStore store, final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
@@ -255,27 +260,30 @@ public class DataRetriever {
 
     /**
      * Request messages than the given token. These will come from storage if available, from the server otherwise.
-     * @param roomId the room id
-     * @param token the token to go back from. Null to start from live.
+     *
+     * @param store     the store to use
+     * @param roomId    the room id
+     * @param token     the token to go back from. Null to start from live.
      * @param direction the pagination direction
-     * @param callback the onComplete callback
+     * @param callback  the onComplete callback
      */
     public void paginate(final IMXStore store, final String roomId, final String token,
                          final EventTimeline.Direction direction, final ApiCallback<TokensChunkResponse<Event>> callback) {
-       if (direction == EventTimeline.Direction.BACKWARDS) {
-           backPaginate(store, roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, callback);
-       } else {
-           forwardPaginate(store, roomId, token, callback);
-       }
+        if (direction == EventTimeline.Direction.BACKWARDS) {
+            backPaginate(store, roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, callback);
+        } else {
+            forwardPaginate(store, roomId, token, callback);
+        }
     }
 
     /**
      * Request events to the server. The local cache is not used.
      * The events will not be saved in the local storage.
-     * @param roomId the room id
-     * @param token the token to go back from.
+     *
+     * @param roomId          the room id
+     * @param token           the token to go back from.
      * @param paginationCount the number of events to retrieve.
-     * @param callback the onComplete callback
+     * @param callback        the onComplete callback
      */
     public void requestServerRoomHistory(final String roomId, final String token, final int paginationCount, final ApiCallback<TokensChunkResponse<Event>> callback) {
         putPendingToken(mPendingRemoteRequestTokenByRoomId, roomId, token);
@@ -284,7 +292,7 @@ public class DataRetriever {
             @Override
             public void onSuccess(TokensChunkResponse<Event> info) {
 
-                if (TextUtils.equals(getPendingToken(mPendingRemoteRequestTokenByRoomId, roomId), token)){
+                if (TextUtils.equals(getPendingToken(mPendingRemoteRequestTokenByRoomId, roomId), token)) {
                     if (info.chunk.size() != 0) {
                         info.chunk.get(0).mToken = info.start;
                         info.chunk.get(info.chunk.size() - 1).mToken = info.end;
@@ -303,7 +311,8 @@ public class DataRetriever {
 
     /**
      * Clear token for a dedicated room
-     * @param dict the token cache
+     *
+     * @param dict   the token cache
      * @param roomId the room id
      */
     private void clearPendingToken(HashMap<String, String> dict, String roomId) {
@@ -318,7 +327,8 @@ public class DataRetriever {
 
     /**
      * Get the pending token for a dedicated room
-     * @param dict the token cache
+     *
+     * @param dict   the token cache
      * @param roomId the room Id
      * @return the token
      */
@@ -327,7 +337,7 @@ public class DataRetriever {
 
         synchronized (dict) {
             // token == null is a valid value
-            if(dict.containsKey(roomId)) {
+            if (dict.containsKey(roomId)) {
                 expectedToken = dict.get(roomId);
 
                 if (TextUtils.isEmpty(expectedToken)) {
@@ -342,9 +352,10 @@ public class DataRetriever {
 
     /**
      * Store a token for a dedicated room
-     * @param dict the token cache
+     *
+     * @param dict   the token cache
      * @param roomId the room id
-     * @param token the token
+     * @param token  the token
      */
     private void putPendingToken(HashMap<String, String> dict, String roomId, String token) {
         Log.d(LOG_TAG, "## putPendingToken() : roomId " + roomId + " token " + token);

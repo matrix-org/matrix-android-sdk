@@ -36,7 +36,8 @@ public class PresenceRestClient extends RestClient<PresenceApi> {
 
     /**
      * Get a user's presence state.
-     * @param userId the user id
+     *
+     * @param userId   the user id
      * @param callback on success callback containing a User object with populated presence and statusMsg fields
      */
     public void getPresence(final String userId, final ApiCallback<User> callback) {

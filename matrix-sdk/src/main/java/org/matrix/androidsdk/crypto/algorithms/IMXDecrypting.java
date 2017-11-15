@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.crypto.algorithms;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
 import org.matrix.androidsdk.rest.model.Event;
 
 /**
@@ -25,28 +26,47 @@ import org.matrix.androidsdk.rest.model.Event;
 public interface IMXDecrypting {
     /**
      * Init the object fields
+     *
      * @param matrixSession the session
      */
     void initWithMatrixSession(MXSession matrixSession);
 
     /**
      * Decrypt a message
-     * @param event the raw event.
+     *
+     * @param event    the raw event.
      * @param timeline the id of the timeline where the event is decrypted. It is used to prevent replay attack.
-     * @return true if the operation succceeds.
+     * @return true if the operation succeeds.
      */
     boolean decryptEvent(Event event, String timeline);
 
     /**
      * Handle a key event.
+     *
      * @param event the key event.
      */
     void onRoomKeyEvent(Event event);
 
     /**
      * Check if the some messages can be decrypted with a new session
+     *
      * @param senderKey the session sender key
      * @param sessionId the session id
      */
     void onNewSession(String senderKey, String sessionId);
+
+    /**
+     * Determine if we have the keys necessary to respond to a room key request
+     *
+     * @param request keyRequest
+     * @return true if we have the keys and could (theoretically) share
+     */
+    boolean hasKeysForKeyRequest(IncomingRoomKeyRequest request);
+
+    /**
+     * Send the response to a room key request.
+     *
+     * @param request keyRequest
+     */
+    void shareKeysWithDevice(IncomingRoomKeyRequest request);
 }

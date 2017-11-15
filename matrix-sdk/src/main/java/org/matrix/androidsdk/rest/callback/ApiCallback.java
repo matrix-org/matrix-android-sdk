@@ -17,12 +17,14 @@ package org.matrix.androidsdk.rest.callback;
 
 /**
  * Generic callback interface for asynchronously returning information.
+ *
  * @param <T> the type of information to return on success
  */
 public interface ApiCallback<T> extends ApiFailureCallback {
 
     /**
      * Called if the API call is successful.
+     *
      * @param info the returned information
      */
     void onSuccess(T info);

@@ -20,15 +20,23 @@ package org.matrix.androidsdk.rest.model;
  */
 public class ForgetPasswordParams {
 
-    /** The email address **/
+    /**
+     * The email address
+     **/
     public String email;
 
-    /** Client-generated secret string used to protect this session **/
+    /**
+     * Client-generated secret string used to protect this session
+     **/
     public String client_secret;
 
-    /** Used to distinguish protocol level retries from requests to re-send the email. **/
+    /**
+     * Used to distinguish protocol level retries from requests to re-send the email.
+     **/
     public Integer send_attempt;
 
-    /** The ID server to send the onward request to as a hostname with an appended colon and port number if the port is not the default. **/
+    /**
+     * The ID server to send the onward request to as a hostname with an appended colon and port number if the port is not the default.
+     **/
     public String id_server;
 }

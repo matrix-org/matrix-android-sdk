@@ -44,9 +44,10 @@ public class MXFileCryptoStoreMetaData2 implements java.io.Serializable {
 
     /**
      * Default constructor
-     * @param userId the user id
+     *
+     * @param userId   the user id
      * @param deviceId the device id
-     * @param version the version
+     * @param version  the version
      */
     public MXFileCryptoStoreMetaData2(String userId, String deviceId, int version) {
         mUserId = new String(userId);
@@ -59,6 +60,7 @@ public class MXFileCryptoStoreMetaData2 implements java.io.Serializable {
 
     /**
      * Constructor with the genuine metadata format data.
+     *
      * @param metadata the genuine metadata format data.
      */
     public MXFileCryptoStoreMetaData2(MXFileCryptoStoreMetaData metadata) {

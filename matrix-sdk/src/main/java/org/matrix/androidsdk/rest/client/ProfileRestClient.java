@@ -51,7 +51,7 @@ import retrofit.client.Response;
  * Class used to make requests to the profile API.
  */
 public class ProfileRestClient extends RestClient<ProfileApi> {
-    private static final String LOG_TAG = "ProfileRestClient";
+    private static final String LOG_TAG = ProfileRestClient.class.getSimpleName();
 
     /**
      * {@inheritDoc}

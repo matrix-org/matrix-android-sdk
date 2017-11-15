@@ -19,11 +19,11 @@ package org.matrix.androidsdk.rest.model.crypto;
 import java.util.Map;
 
 /**
- This class represents the response to /keys/query request made by claimOneTimeKeysForUsersDevices.
+ * This class represents the response to /keys/query request made by claimOneTimeKeysForUsersDevices.
  */
 public class KeysClaimResponse {
     /**
-     The requested keys ordered by device by user.
+     * The requested keys ordered by device by user.
      */
     public Map<String, Map<String, Map<String, Map<String, Object>>>> oneTimeKeys;
 }

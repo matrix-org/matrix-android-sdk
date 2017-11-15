@@ -18,9 +18,7 @@
 package org.matrix.androidsdk.data.store;
 
 import android.content.Context;
-import android.os.Handler;
 import android.os.HandlerThread;
-import android.os.Looper;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -61,7 +59,7 @@ import java.util.zip.GZIPOutputStream;
  * An in-file IMXStore.
  */
 public class MXFileStore extends MXMemoryStore {
-    private static final String LOG_TAG = "MXFileStore";
+    private static final String LOG_TAG = MXFileStore.class.getSimpleName();
 
     // some constant values
     private static final int MXFILE_VERSION = 15;
@@ -402,7 +400,7 @@ public class MXFileStore extends MXMemoryStore {
                                         // check also if the user is a member of the room
                                         // https://github.com/vector-im/riot-android/issues/1302
 
-                                        for(String roomId : mRoomSummaries.keySet()) {
+                                        for (String roomId : mRoomSummaries.keySet()) {
                                             Room room = getRoom(roomId);
 
                                             if (null == room) {
@@ -467,7 +465,7 @@ public class MXFileStore extends MXMemoryStore {
                                     Log.d(LOG_TAG, "++ store stats");
                                     Set<String> roomIds = mRoomEvents.keySet();
 
-                                    for(String roomId : roomIds) {
+                                    for (String roomId : roomIds) {
                                         Room room = getRoom(roomId);
 
                                         if ((null != room) && (null != room.getLiveState())) {
@@ -1070,7 +1068,8 @@ public class MXFileStore extends MXMemoryStore {
         // if some messages are received, the token is stored in the event.
         if (eventsList.size() > MAX_STORED_MESSAGES_COUNT) {
             // search backward the first known token
-            for (startIndex = eventsList.size() - MAX_STORED_MESSAGES_COUNT; !eventsList.get(startIndex).hasToken() && (startIndex > 0); startIndex--);
+            for (startIndex = eventsList.size() - MAX_STORED_MESSAGES_COUNT; !eventsList.get(startIndex).hasToken() && (startIndex > 0); startIndex--)
+                ;
 
             if (startIndex > 0) {
                 Log.d(LOG_TAG, "## getSavedEveventsMap() : " + roomId + " reduce the number of messages " + eventsList.size() + " -> " + (eventsList.size() - startIndex));
@@ -2359,6 +2358,7 @@ public class MXFileStore extends MXMemoryStore {
 
     /**
      * Start a runnable from the store thread
+     *
      * @param runnable the runnable to call
      */
     public void post(Runnable runnable) {

@@ -24,32 +24,32 @@ import java.util.List;
 /**
  * Class representing a search API response
  */
-public class SearchRoomEventResults  {
+public class SearchRoomEventResults {
     /**
-     Total number of results found.
+     * Total number of results found.
      */
     public Integer count;
 
     /**
-     List of results in the requested order.
+     * List of results in the requested order.
      */
     public List<SearchResult> results;
 
     /**
-     The current state for every room in the results.
-     This is included if the request had the include_state key set with a value of true.
-     The key is the roomId, the value its state. (TODO_SEARCH: right?)
+     * The current state for every room in the results.
+     * This is included if the request had the include_state key set with a value of true.
+     * The key is the roomId, the value its state. (TODO_SEARCH: right?)
      */
     public HashMap<String, List<Event>> state;
 
     /**
-     Any groups that were requested.
-     The key is the group id (TODO_SEARCH).
+     * Any groups that were requested.
+     * The key is the group id (TODO_SEARCH).
      */
     public HashMap<String, SearchGroup> groups;
 
     /**
-     Token that can be used to get the next batch of results in the group, if exists.
+     * Token that can be used to get the next batch of results in the group, if exists.
      */
     public String nextBatch;
 }

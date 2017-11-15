@@ -84,6 +84,8 @@ public class User implements java.io.Serializable {
 
     /**
      * Tells if this user has been created from a room member event
+     *
+     * @return true if this user has been created from a room member event
      */
     public boolean isRetrievedFromRoomMember() {
         return mIsRetrievedFromRoomMember;

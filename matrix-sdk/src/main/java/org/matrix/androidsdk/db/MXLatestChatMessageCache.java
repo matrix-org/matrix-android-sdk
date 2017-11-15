@@ -18,6 +18,7 @@ package org.matrix.androidsdk.db;
 
 import android.content.Context;
 import android.text.TextUtils;
+
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.util.ContentUtils;
@@ -30,8 +31,7 @@ import java.io.ObjectOutputStream;
 import java.util.HashMap;
 
 public class MXLatestChatMessageCache {
-
-    private static final String LOG_TAG = "CLstChatMessageCache";
+    private static final String LOG_TAG = MXLatestChatMessageCache.class.getSimpleName();
     private static final String FILENAME = "ConsoleLatestChatMessageCache";
 
     final String MXLATESTMESSAGES_STORE_FOLDER = "MXLatestMessagesStore";
@@ -42,6 +42,9 @@ public class MXLatestChatMessageCache {
     private File mLatestMessagesFile = null;
 
     /**
+     * Constructor
+     *
+     * @param userId the user id
      */
     public MXLatestChatMessageCache(String userId) {
         mUserId = userId;
@@ -49,6 +52,7 @@ public class MXLatestChatMessageCache {
 
     /**
      * Clear the text caches.
+     *
      * @param context The application context to use.
      */
     public void clearCache(Context context) {
@@ -58,6 +62,7 @@ public class MXLatestChatMessageCache {
 
     /**
      * Open the texts cache file.
+     *
      * @param context the context.
      */
     private void openLatestMessagesDict(Context context) {
@@ -69,8 +74,7 @@ public class MXLatestChatMessageCache {
 
         mLatestMesssageByRoomId = new HashMap<>();
 
-        try
-        {
+        try {
             mLatestMessagesDirectory = new File(context.getApplicationContext().getFilesDir(), MXLATESTMESSAGES_STORE_FOLDER);
             mLatestMessagesDirectory = new File(mLatestMessagesDirectory, mUserId);
 
@@ -96,15 +100,16 @@ public class MXLatestChatMessageCache {
                 ois.close();
                 fis.close();
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             Log.e(LOG_TAG, "## openLatestMessagesDict failed " + e.getMessage());
         }
     }
 
     /**
      * Get the latest written text for a dedicated room.
+     *
      * @param context the context.
-     * @param roomId the roomId
+     * @param roomId  the roomId
      * @return the latest message
      */
     public String getLatestText(Context context, String roomId) {
@@ -125,25 +130,26 @@ public class MXLatestChatMessageCache {
 
     /**
      * Update the latest message dictionnary.
+     *
      * @param context the context.
      */
     private void saveLatestMessagesDict(Context context) {
-        try
-        {
+        try {
             FileOutputStream fos = new FileOutputStream(mLatestMessagesFile);
             ObjectOutputStream oos = new ObjectOutputStream(fos);
             oos.writeObject(mLatestMesssageByRoomId);
             oos.close();
             fos.close();
-        } catch(Exception e) {
+        } catch (Exception e) {
             Log.e(LOG_TAG, "## saveLatestMessagesDict() failed " + e.getMessage());
         }
     }
 
     /**
      * Update the latest message for a dedicated roomId.
+     *
      * @param context the context.
-     * @param roomId the roomId.
+     * @param roomId  the roomId.
      * @param message the message.
      */
     public void updateLatestMessage(Context context, String roomId, String message) {

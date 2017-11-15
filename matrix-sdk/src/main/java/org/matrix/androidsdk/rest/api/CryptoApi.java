@@ -37,7 +37,8 @@ public interface CryptoApi {
 
     /**
      * Upload device and/or one-time keys.
-     * @param params the params.
+     *
+     * @param params   the params.
      * @param callback the asynchronous callback
      */
     @POST("/keys/upload")
@@ -45,8 +46,9 @@ public interface CryptoApi {
 
     /**
      * Upload device and/or one-time keys.
+     *
      * @param deviceId the deviceId
-     * @param params the params.
+     * @param params   the params.
      * @param callback the asynchronous callback
      */
     @POST("/keys/upload/{deviceId}")
@@ -54,7 +56,8 @@ public interface CryptoApi {
 
     /**
      * Download device keys.
-     * @param params the params.
+     *
+     * @param params   the params.
      * @param callback the asynchronous callback
      */
     @POST("/keys/query")
@@ -62,7 +65,8 @@ public interface CryptoApi {
 
     /**
      * Claim one-time keys.
-     * @param params the params.
+     *
+     * @param params   the params.
      * @param callback the asynchronous callback
      */
     @POST("/keys/claim")
@@ -70,40 +74,46 @@ public interface CryptoApi {
 
     /**
      * Send an event to a specific list of devices
-     * @param eventType the type of event to send
-     * @param randomTransactionId the random path item
-     * @param params the params
-     * @param callback the asynchronous callback
+     *
+     * @param eventType     the type of event to send
+     * @param transactionId the random path item
+     * @param params        the params
+     * @param callback      the asynchronous callback
      */
     @PUT("/sendToDevice/{eventType}/{random}")
-    void sendToDevice(@Path("eventType") String eventType, @Path("random") int randomTransactionId, @Body Map<String, Object> params, Callback<Void> callback);
+    void sendToDevice(@Path("eventType") String eventType, @Path("random") String transactionId, @Body Map<String, Object> params, Callback<Void> callback);
 
     /**
      * Get the devices list
+     *
+     * @param callback the asynchronous callback
      */
     @GET("/devices")
     void getDevices(Callback<DevicesListResponse> callback);
 
     /**
      * Delete a device.
+     *
      * @param deviceId the device id
-     * @param params the deletion parameters
+     * @param params   the deletion parameters
      * @param callback the callback
      */
     @RetrofitDeleteWithBody("/devices/{device_id}")
-    void deleteDevice(@Path("device_id")String deviceId, @Body DeleteDeviceParams params, Callback<Void> callback);
+    void deleteDevice(@Path("device_id") String deviceId, @Body DeleteDeviceParams params, Callback<Void> callback);
 
     /**
      * Update the device information.
+     *
      * @param deviceId the device id
-     * @param params the params
+     * @param params   the params
      * @param callback the asynchronous callback
      */
     @PUT("/devices/{device_id}")
-    void updateDeviceInfo(@Path("device_id")String deviceId, @Body Map<String, String> params, Callback<Void> callback);
+    void updateDeviceInfo(@Path("device_id") String deviceId, @Body Map<String, String> params, Callback<Void> callback);
 
     /**
      * Get the update devices list from two sync token.
+     *
      * @param oldToken the start token.
      * @param newToken the up-to token.
      * @param callback the asynchronous callback

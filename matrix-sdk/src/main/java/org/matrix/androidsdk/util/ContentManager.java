@@ -16,15 +16,13 @@
 
 package org.matrix.androidsdk.util;
 
-import org.matrix.androidsdk.util.Log;
-
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 
 /**
  * Class for accessing content from the current session.
  */
 public class ContentManager {
-    private static final String LOG_TAG = "ContentManager";
+    private static final String LOG_TAG = ContentManager.class.getSimpleName();
 
     public static final String MATRIX_CONTENT_URI_SCHEME = "mxc://";
 
@@ -41,7 +39,9 @@ public class ContentManager {
 
     /**
      * Default constructor.
-     * @param hsConfig the HomeserverConnectionConfig to use
+     *
+     * @param hsConfig            the HomeserverConnectionConfig to use
+     * @param unsentEventsManager the unsent events manager
      */
     public ContentManager(HomeServerConnectionConfig hsConfig, UnsentEventsManager unsentEventsManager) {
         mHsConfig = hsConfig;
@@ -64,6 +64,7 @@ public class ContentManager {
 
     /**
      * Compute the identificon URL for an userId.
+     *
      * @param userId the user id.
      * @return the url
      */
@@ -85,6 +86,7 @@ public class ContentManager {
 
     /**
      * Get an actual URL for accessing the full-size image of the given content URI.
+     *
      * @param contentUrl the mxc:// content URI
      * @return the URL to access the described resource
      */
@@ -93,18 +95,18 @@ public class ContentManager {
         if (contentUrl.startsWith(MATRIX_CONTENT_URI_SCHEME)) {
             String mediaServerAndId = contentUrl.substring(MATRIX_CONTENT_URI_SCHEME.length());
             return mHsConfig.getHomeserverUri().toString() + URI_PREFIX_CONTENT_API + "/download/" + mediaServerAndId;
-        }
-        else {
+        } else {
             return contentUrl;
         }
     }
 
     /**
      * Get an actual URL for accessing the thumbnail image of the given content URI.
+     *
      * @param contentUrl the mxc:// content URI
-     * @param width the desired width
-     * @param height the desired height
-     * @param method the desired scale method (METHOD_CROP or METHOD_SCALE)
+     * @param width      the desired width
+     * @param height     the desired height
+     * @param method     the desired scale method (METHOD_CROP or METHOD_SCALE)
      * @return the URL to access the described resource
      */
     public String getDownloadableThumbnailUrl(String contentUrl, int width, int height, String method) {
@@ -124,13 +126,12 @@ public class ContentManager {
                 url += "thumbnail/";
             }
 
-            url +=  mediaServerAndId;
+            url += mediaServerAndId;
             url += "?width=" + width;
             url += "&height=" + height;
             url += "&method=" + method;
             return url;
-        }
-        else {
+        } else {
             return contentUrl;
         }
     }

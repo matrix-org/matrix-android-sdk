@@ -65,8 +65,9 @@ public interface IMXEventListener {
 
     /**
      * The live events from a chunk are performed.
+     *
      * @param fromToken the start sync token
-     * @param toToken the up-to sync token
+     * @param toToken   the up-to sync token
      */
     void onLiveEventsChunkProcessed(String fromToken, String toToken);
 
@@ -82,11 +83,20 @@ public interface IMXEventListener {
     void onBingEvent(Event event, RoomState roomState, BingRule bingRule);
 
     /**
-     * An event has been successfully encrypted.
+     * The state of an event has been updated.
      *
-     * @param event the encrypted event
+     * @param event the event
      */
-    void onEventEncrypted(Event event);
+    void onEventSentStateUpdated(Event event);
+
+    /**
+     * An event has been sent.
+     * prevEventId defines the event id set before getting the server new one.
+     *
+     * @param event       the event
+     * @param prevEventId the previous eventId
+     */
+    void onEventSent(Event event, String prevEventId);
 
     /**
      * An event has been decrypted
@@ -96,28 +106,13 @@ public interface IMXEventListener {
     void onEventDecrypted(Event event);
 
     /**
-     * An event has been sent.
-     * prevEventId defines the event id set before getting the server new one.
-     *
-     * @param event the event
-     * @param prevEventId the previous eventId
-     */
-    void onEventSent(Event event, String prevEventId);
-
-    /**
-     * The event fails to be sent.
-     *
-     * @param event the event
-     */
-    void onFailedSendingEvent(Event event);
-
-    /**
      * The bing rules have been updated
      */
     void onBingRulesUpdate();
 
     /**
      * The initial sync is complete and the store can be queried for current state.
+     *
      * @param toToken the up-to sync token
      */
     void onInitialSyncComplete(String toToken);
@@ -164,6 +159,14 @@ public interface IMXEventListener {
      * @param roomId the roomID
      */
     void onRoomInternalUpdate(String roomId);
+
+    /**
+     * The notification count of a dedicated room
+     * has been updated.
+     *
+     * @param roomId the room ID
+     */
+    void onNotificationCountUpdate(String roomId);
 
     /**
      * The user left the room.

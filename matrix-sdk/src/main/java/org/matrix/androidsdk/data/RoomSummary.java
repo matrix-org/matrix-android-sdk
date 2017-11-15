@@ -32,7 +32,7 @@ import org.matrix.androidsdk.util.Log;
  * Stores summarised information about the room.
  */
 public class RoomSummary implements java.io.Serializable {
-    private static final String LOG_TAG = "RoomSummary";
+    private static final String LOG_TAG = RoomSummary.class.getSimpleName();
 
     private static final long serialVersionUID = -3683013938626566489L;
 
@@ -336,14 +336,14 @@ public class RoomSummary implements java.io.Serializable {
     /**
      * Set the latest tracked event (e.g. the latest m.room.message)
      *
-     * @param event The most-recent event.
+     * @param event     The most-recent event.
      * @param roomState The room state
      * @return This summary for chaining calls.
      */
     public RoomSummary setLatestReceivedEvent(Event event, RoomState roomState) {
         setLatestReceivedEvent(event);
         setLatestRoomState(roomState);
-        
+
         if (null != roomState) {
             setName(roomState.getDisplayName(getMatrixId()));
             setTopic(roomState.topic);

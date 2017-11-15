@@ -20,7 +20,7 @@ import java.util.List;
 /**
  * A Login flow.
  */
-public class LoginFlow  implements java.io.Serializable {
+public class LoginFlow implements java.io.Serializable {
     public String type;
     public List<String> stages;
 }

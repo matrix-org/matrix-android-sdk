@@ -21,20 +21,20 @@ import org.matrix.androidsdk.rest.model.Event;
 /**
  * subclass representing a search API response
  */
-public class SearchResult  {
+public class SearchResult {
 
     /**
-     The event that matched.
+     * The event that matched.
      */
     public Event result;
 
     /**
-     A number that describes how closely this result matches the search. Higher is closer.
+     * A number that describes how closely this result matches the search. Higher is closer.
      */
     public Double rank;
 
     /**
-     Context for result, if requested.
+     * Context for result, if requested.
      */
     public SearchEventContext context;
 }

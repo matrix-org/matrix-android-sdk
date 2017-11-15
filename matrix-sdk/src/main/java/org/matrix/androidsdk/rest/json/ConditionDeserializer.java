@@ -26,30 +26,49 @@ import org.matrix.androidsdk.rest.model.bingrules.ContainsDisplayNameCondition;
 import org.matrix.androidsdk.rest.model.bingrules.DeviceCondition;
 import org.matrix.androidsdk.rest.model.bingrules.EventMatchCondition;
 import org.matrix.androidsdk.rest.model.bingrules.RoomMemberCountCondition;
+import org.matrix.androidsdk.rest.model.bingrules.SenderNotificationPermissionCondition;
+import org.matrix.androidsdk.rest.model.bingrules.UnknownCondition;
+import org.matrix.androidsdk.util.Log;
 
 import java.lang.reflect.Type;
 
 public class ConditionDeserializer implements JsonDeserializer<Condition> {
+    private static final String LOG_TAG = ConditionDeserializer.class.getSimpleName();
+
     @Override
     public Condition deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+        Condition condition = null;
+
         JsonObject jsonObject = json.getAsJsonObject();
         JsonElement kindElement = jsonObject.get("kind");
-        if (kindElement != null) {
+
+        if (null != kindElement) {
             String kind = kindElement.getAsString();
 
-            if (Condition.KIND_EVENT_MATCH.equals(kind)) {
-                return context.deserialize(json, EventMatchCondition.class);
-            }
-            if (Condition.KIND_DEVICE.equals(kind)) {
-                return context.deserialize(json, DeviceCondition.class);
-            }
-            if (Condition.KIND_CONTAINS_DISPLAY_NAME.equals(kind)) {
-                return context.deserialize(json, ContainsDisplayNameCondition.class);
-            }
-            if (Condition.KIND_ROOM_MEMBER_COUNT.equals(kind)) {
-                return context.deserialize(json, RoomMemberCountCondition.class);
+            if (null != kind) {
+                switch (kind) {
+                    case Condition.KIND_EVENT_MATCH:
+                        condition = context.deserialize(json, EventMatchCondition.class);
+                        break;
+                    case Condition.KIND_DEVICE:
+                        condition = context.deserialize(json, DeviceCondition.class);
+                        break;
+                    case Condition.KIND_CONTAINS_DISPLAY_NAME:
+                        condition = context.deserialize(json, ContainsDisplayNameCondition.class);
+                        break;
+                    case Condition.KIND_ROOM_MEMBER_COUNT:
+                        condition = context.deserialize(json, RoomMemberCountCondition.class);
+                        break;
+                    case Condition.KIND_SENDER_NOTIFICATION_PERMISSION:
+                        condition = context.deserialize(json, SenderNotificationPermissionCondition.class);
+                        break;
+                    default:
+                        Log.e(LOG_TAG, "## deserialize() : unsupported kind " + kind + " with value " + json);
+                        condition = context.deserialize(json, UnknownCondition.class);
+                        break;
+                }
             }
         }
-        return null;
+        return condition;
     }
 }

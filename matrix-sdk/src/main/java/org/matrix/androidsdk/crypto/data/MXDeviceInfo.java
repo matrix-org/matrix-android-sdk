@@ -58,18 +58,18 @@ public class MXDeviceInfo implements Serializable {
     public List<String> algorithms;
 
     /**
-     * A map from <key type>:<id> -> <base64-encoded key>>.
+     * A map from <key type>:<id> to <base64-encoded key>>.
      */
     public Map<String, String> keys;
 
     /**
      * The signature of this MXDeviceInfo.
-     * A map from <key type>:<device_id> -> <base64-encoded key>>.
+     * A map from <key type>:<device_id> to <base64-encoded key>>.
      */
     public Map<String, Map<String, String>> signatures;
 
     /*
-     * Additional data from the homeserver.
+     * Additional data from the home server.
      */
     public Map<String, Object> unsigned;
 

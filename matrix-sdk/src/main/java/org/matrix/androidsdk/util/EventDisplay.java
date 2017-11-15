@@ -24,6 +24,7 @@ import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
+
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
@@ -45,8 +46,7 @@ import org.matrix.androidsdk.rest.model.RoomThirdPartyInvite;
  * Class helper to stringify an event
  */
 public class EventDisplay {
-
-    private static final String LOG_TAG = "EventDisplay";
+    private static final String LOG_TAG = EventDisplay.class.getSimpleName();
 
     // members
     protected final Event mEvent;
@@ -63,10 +63,12 @@ public class EventDisplay {
         mEvent = event;
         mRoomState = roomState;
     }
+
     /**
      * <p>Prepend the text with the author's name if they have not been mentioned in the text.</p>
      * This will prepend text messages with the author's name. This will NOT prepend things like
      * emote, room topic changes, etc which already mention the author's name in the message.
+     *
      * @param prepend true to prepend the message author.
      */
     public void setPrependMessagesWithAuthor(boolean prepend) {
@@ -75,7 +77,8 @@ public class EventDisplay {
 
     /**
      * Compute an "human readable" name for an user Id.
-     * @param userId the user id
+     *
+     * @param userId    the user id
      * @param roomState the room state
      * @return the user display name
      */
@@ -89,6 +92,7 @@ public class EventDisplay {
 
     /**
      * Stringify the linked event.
+     *
      * @return The text or null if it isn't possible.
      */
     public CharSequence getTextualDisplay() {
@@ -97,6 +101,7 @@ public class EventDisplay {
 
     /**
      * Stringify the linked event.
+     *
      * @param displayNameColor the display name highlighted color.
      * @return The text or null if it isn't possible.
      */
@@ -178,15 +183,15 @@ public class EventDisplay {
                 if (TextUtils.equals(msgtype, Message.MSGTYPE_IMAGE) && TextUtils.isEmpty(text)) {
                     text = mContext.getString(R.string.summary_user_sent_image, userDisplayName);
                 } else if (TextUtils.equals(msgtype, Message.MSGTYPE_EMOTE)) {
-                    text = "* " + userDisplayName +  " " + text;
+                    text = "* " + userDisplayName + " " + text;
                 } else if (TextUtils.isEmpty(text)) {
                     text = "";
                 } else if (mPrependAuthor) {
                     text = new SpannableStringBuilder(mContext.getString(R.string.summary_message, userDisplayName, text));
 
                     if (null != displayNameColor) {
-                        ((SpannableStringBuilder)text).setSpan(new ForegroundColorSpan(displayNameColor), 0, userDisplayName.length()+1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        ((SpannableStringBuilder)text).setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, userDisplayName.length()+1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        ((SpannableStringBuilder) text).setSpan(new ForegroundColorSpan(displayNameColor), 0, userDisplayName.length() + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        ((SpannableStringBuilder) text).setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, userDisplayName.length() + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
                 }
             } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
@@ -245,10 +250,9 @@ public class EventDisplay {
                 } else {
                     text = mContext.getString(R.string.notice_room_topic_removed, userDisplayName);
                 }
-            }
-            else if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType)) {
+            } else if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType)) {
                 JsonPrimitive nameAsJson = jsonEventContent.getAsJsonPrimitive("name");
-                String roomName = (null == nameAsJson) ? null  : nameAsJson.getAsString();
+                String roomName = (null == nameAsJson) ? null : nameAsJson.getAsString();
 
                 if (mEvent.isRedacted()) {
                     String redactedInfo = EventDisplay.getRedactionMessage(mContext, mEvent, mRoomState);
@@ -265,8 +269,7 @@ public class EventDisplay {
                 } else {
                     text = mContext.getString(R.string.notice_room_name_removed, userDisplayName);
                 }
-            }
-            else if (Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(eventType)) {
+            } else if (Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(eventType)) {
                 RoomThirdPartyInvite invite = JsonUtils.toRoomThirdPartyInvite(mEvent.getContent());
                 String displayName = invite.display_name;
 
@@ -280,13 +283,11 @@ public class EventDisplay {
                     displayName = redactedInfo;
                 }
 
-                text =  mContext.getString(R.string.notice_room_third_party_invite, userDisplayName, displayName);
-            }
-            else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
+                text = mContext.getString(R.string.notice_room_third_party_invite, userDisplayName, displayName);
+            } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
                 text = getMembershipNotice(mContext, mEvent, mRoomState);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Log.e(LOG_TAG, "getTextualDisplay() " + e.getMessage());
         }
 
@@ -295,8 +296,9 @@ public class EventDisplay {
 
     /**
      * Compute the redact text for an event.
-     * @param context the context
-     * @param event the event
+     *
+     * @param context   the context
+     * @param event     the event
      * @param roomState the room state
      * @return the redacted event text
      */
@@ -321,29 +323,29 @@ public class EventDisplay {
             if (!TextUtils.isEmpty(redactedReason)) {
                 if (!TextUtils.isEmpty(redactedBy)) {
                     redactedBy = context.getString(R.string.notice_event_redacted_by, redactedBy) + context.getString(R.string.notice_event_redacted_reason, redactedReason);
-                }
-                else {
+                } else {
                     redactedBy = context.getString(R.string.notice_event_redacted_reason, redactedReason);
                 }
-            }
-            else if (!TextUtils.isEmpty(redactedBy)) {
+            } else if (!TextUtils.isEmpty(redactedBy)) {
                 redactedBy = context.getString(R.string.notice_event_redacted_by, redactedBy);
             }
 
             redactedInfo = context.getString(R.string.notice_event_redacted, redactedBy);
         }
 
-        return  redactedInfo;
+        return redactedInfo;
     }
 
     /**
      * Compute the sender display name
-     * @param event the event
-     * @param eventContent the event content
-     * @param roomState the room state
+     *
+     * @param event            the event
+     * @param eventContent     the event content
+     * @param prevEventContent the prev event content
+     * @param roomState        the room state
      * @return the "human readable" display name
      */
-    protected static String senderDisplayNameForEvent(Event event, EventContent eventContent, EventContent prevEventContent,  RoomState roomState) {
+    protected static String senderDisplayNameForEvent(Event event, EventContent eventContent, EventContent prevEventContent, RoomState roomState) {
         String senderDisplayName = event.getSender();
 
         if (!event.isRedacted()) {
@@ -369,8 +371,9 @@ public class EventDisplay {
 
     /**
      * Build a membership notice text from its dedicated event.
-     * @param context the context.
-     * @param event the event.
+     *
+     * @param context   the context.
+     * @param event     the event.
      * @param roomState the room state.
      * @return the membership text.
      */
@@ -450,14 +453,13 @@ public class EventDisplay {
                     if (!TextUtils.isEmpty(displayText)) {
                         displayText = displayText + " " + context.getString(R.string.notice_avatar_changed_too);
                     } else {
-                        displayText =  context.getString(R.string.notice_avatar_url_changed, senderDisplayName);
+                        displayText = context.getString(R.string.notice_avatar_url_changed, senderDisplayName);
                     }
                 }
 
                 return displayText;
             }
-        }
-        else if (RoomMember.MEMBERSHIP_INVITE.equals(eventContent.membership)) {
+        } else if (RoomMember.MEMBERSHIP_INVITE.equals(eventContent.membership)) {
             if (null != eventContent.third_party_invite) {
                 return context.getString(R.string.notice_room_third_party_registered_invite, targetDisplayName, eventContent.third_party_invite.display_name);
             } else {
@@ -482,16 +484,14 @@ public class EventDisplay {
 
                 return context.getString(R.string.notice_room_invite, senderDisplayName, targetDisplayName);
             }
-        }
-        else if (RoomMember.MEMBERSHIP_JOIN.equals(eventContent.membership)) {
+        } else if (RoomMember.MEMBERSHIP_JOIN.equals(eventContent.membership)) {
             // conference call case
             if (TextUtils.equals(event.sender, MXCallsManager.getConferenceUserId(event.roomId))) {
                 return context.getString(R.string.notice_voip_started);
             }
 
             return context.getString(R.string.notice_room_join, senderDisplayName);
-        }
-        else if (RoomMember.MEMBERSHIP_LEAVE.equals(eventContent.membership)) {
+        } else if (RoomMember.MEMBERSHIP_LEAVE.equals(eventContent.membership)) {
             // conference call case
             if (TextUtils.equals(event.sender, MXCallsManager.getConferenceUserId(event.roomId))) {
                 return context.getString(R.string.notice_voip_finished);
@@ -520,11 +520,9 @@ public class EventDisplay {
                     return context.getString(R.string.notice_room_unban, senderDisplayName, targetDisplayName);
                 }
             }
-        }
-        else if (RoomMember.MEMBERSHIP_BAN.equals(eventContent.membership)) {
+        } else if (RoomMember.MEMBERSHIP_BAN.equals(eventContent.membership)) {
             return context.getString(R.string.notice_room_ban, senderDisplayName, targetDisplayName);
-        }
-        else {
+        } else {
             // eh?
             Log.e(LOG_TAG, "Unknown membership: " + eventContent.membership);
         }

@@ -30,7 +30,7 @@ import java.util.Comparator;
  * Class representing a room member: a user with membership information.
  */
 public class RoomMember implements Externalizable {
-    private static final String LOG_TAG = "RoomMember";
+    private static final String LOG_TAG = RoomMember.class.getSimpleName();
 
     public static final String MEMBERSHIP_JOIN = "join";
     public static final String MEMBERSHIP_INVITE = "invite";

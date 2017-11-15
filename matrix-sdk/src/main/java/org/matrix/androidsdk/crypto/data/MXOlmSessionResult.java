@@ -32,7 +32,8 @@ public class MXOlmSessionResult implements Serializable {
 
     /**
      * Constructor
-     * @param device the device
+     *
+     * @param device    the device
      * @param sessionId the olm session id
      */
     public MXOlmSessionResult(MXDeviceInfo device, String sessionId) {

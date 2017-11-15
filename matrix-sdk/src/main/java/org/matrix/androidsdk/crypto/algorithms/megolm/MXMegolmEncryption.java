@@ -45,7 +45,7 @@ import java.util.List;
 import java.util.Map;
 
 public class MXMegolmEncryption implements IMXEncrypting {
-    private static final String LOG_TAG = "MXMegolmEncryption";
+    private static final String LOG_TAG = MXMegolmEncryption.class.getSimpleName();
 
     private MXSession mSession;
     private MXCrypto mCrypto;
@@ -230,7 +230,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
         HashMap<String, String> keysClaimedMap = new HashMap<>();
         keysClaimedMap.put("ed25519", olmDevice.getDeviceEd25519Key());
 
-        olmDevice.addInboundGroupSession(sessionId, olmDevice.getSessionKey(sessionId), mRoomId, olmDevice.getDeviceCurve25519Key(), keysClaimedMap);
+        olmDevice.addInboundGroupSession(sessionId, olmDevice.getSessionKey(sessionId), mRoomId, olmDevice.getDeviceCurve25519Key(), new ArrayList<String>(), keysClaimedMap, false);
 
         return new MXOutboundSessionInfo(sessionId);
     }
@@ -438,7 +438,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                     @Override
                     public void run() {
                         Log.d(LOG_TAG, "## shareUserDevicesKey() : ensureOlmSessionsForDevices succeeds after " + (System.currentTimeMillis() - t0) + " ms");
-                        MXUsersDevicesMap<Map<String, Object>> mContentMap = new MXUsersDevicesMap<>();
+                        MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>();
 
                         boolean haveTargets = false;
                         List<String> userIds = results.getUserIds();
@@ -468,7 +468,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
                                 Log.d(LOG_TAG, "## shareUserDevicesKey() : Sharing keys with device " + userId + ":" + deviceID);
                                 //noinspection ArraysAsListWithZeroOrOneArgument,ArraysAsListWithZeroOrOneArgument
-                                mContentMap.setObject(mCrypto.encryptMessage(payload, Arrays.asList(sessionResult.mDevice)), userId, deviceID);
+                                contentMap.setObject(mCrypto.encryptMessage(payload, Arrays.asList(sessionResult.mDevice)), userId, deviceID);
                                 haveTargets = true;
                             }
                         }
@@ -477,7 +477,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                             final long t0 = System.currentTimeMillis();
                             Log.d(LOG_TAG, "## shareUserDevicesKey() : has target");
 
-                            mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, mContentMap, new ApiCallback<Void>() {
+                            mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, contentMap, new ApiCallback<Void>() {
                                 @Override
                                 public void onSuccess(Void info) {
                                     mCrypto.getEncryptingThreadHandler().post(new Runnable() {

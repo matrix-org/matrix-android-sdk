@@ -23,30 +23,30 @@ import java.util.List;
 /**
  * subclass representing a search API response
  */
-public class SearchEventContext  {
+public class SearchEventContext {
     /**
-     Pagination token for the start of the chunk.
+     * Pagination token for the start of the chunk.
      */
     public String start;
 
     /**
-     Pagination token for the end of the chunk.
+     * Pagination token for the end of the chunk.
      */
     public String end;
 
     /**
-     Events just before the result.
+     * Events just before the result.
      */
     public List<Event> eventsBefore;
 
     /**
-     Events just after the result.
+     * Events just after the result.
      */
     public List<Event> eventsAfter;
 
     /**
-     The historic profile information of the users that sent the events returned.
-     The key is the user id, the value the user profile.
+     * The historic profile information of the users that sent the events returned.
+     * The key is the user id, the value the user profile.
      */
     public HashMap<String, SearchUserProfile> profileInfo;
 }
