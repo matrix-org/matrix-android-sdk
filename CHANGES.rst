@@ -1,3 +1,26 @@
+Changes to Matrix Android SDK in 0.8.04 (2017-11-15)
+=======================================================
+
+Features:
+
+* Add the e2e keys sharing.
+
+Improvements:
+
+* Refactor the calls management and fix many audio path issues.
+* Sanitise the functions description to generate a better javadocs.
+
+Bugfixes:
+
+* Fix many issues reported by google analytics.
+* Fix the encrypting messages colour
+* Fix a battery draining issue after ending a video call
+* #119 : Notifications: implement @room notifications on mobile
+* #207 : RoomState - updateRoomName: the provided string `name` is not checked correctly
+* #208 : Attached image: `thumbnail_info` and `thumbnail_url` must be moved in `content.info` dictionary
+* #1659 : Created a room with only me inside. After writing "test" I left it but it is still on my list with no way of deleting it.
+* #1678 : cannot join #Furnet_#S:spydar007.com
+
 Changes to Matrix Android SDK in 0.8.03 (2017-10-05)
 =======================================================
 
