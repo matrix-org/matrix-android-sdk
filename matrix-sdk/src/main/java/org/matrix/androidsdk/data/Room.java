@@ -1388,7 +1388,7 @@ public class Room {
 
         final String readReceiptEventId = (null == aReadReceiptEventId) ? lastEvent.eventId : aReadReceiptEventId;
         // check if the read receipt event id is already read
-        if (!getDataHandler().getStore().isEventRead(getRoomId(), getDataHandler().getUserId(), readReceiptEventId)) {
+        if ((null != getDataHandler()) && !getDataHandler().getStore().isEventRead(getRoomId(), getDataHandler().getUserId(), readReceiptEventId)) {
             // check if the event id update is allowed
             if (handleReceiptData(new ReceiptData(mMyUserId, readReceiptEventId, System.currentTimeMillis()))) {
                 // Clear the unread counters if the latest message is displayed
