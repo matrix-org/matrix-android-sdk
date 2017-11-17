@@ -466,7 +466,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         String roomId = args.getString(ARG_ROOM_ID);
 
         View v = inflater.inflate(args.getInt(ARG_LAYOUT_ID), container, false);
-        mMessageListView = ((AutoScrollDownListView) v.findViewById(R.id.listView_messages));
+        mMessageListView = v.findViewById(R.id.listView_messages);
         mIsScrollListenerSet = false;
 
         if (mAdapter == null) {

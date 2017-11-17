@@ -98,7 +98,7 @@ public class TestsHelper {
             }
         });
 
-        mLock.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        mLock.await(1000, TimeUnit.MILLISECONDS);
 
         String session = (String)params.get("session");
 
@@ -138,7 +138,7 @@ public class TestsHelper {
             }
         });
 
-        mLock.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        mLock.await(1000, TimeUnit.MILLISECONDS);
 
         Credentials credentials = (Credentials)params.get("credentials");
 
@@ -171,7 +171,7 @@ public class TestsHelper {
             }
         });
 
-        mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        mLock.await(10000, TimeUnit.MILLISECONDS);
 
         if (params.containsKey("isInit")) {
             callback.onSuccess(mxSession);
