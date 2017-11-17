@@ -77,4 +77,10 @@ public class AutoScrollDownListView extends ListView {
             Log.e(LOG_TAG, "## layoutChildren() failed " + e.getMessage());
         }
     }
+
+    @Override
+    // require to avoid lint errors with MatrixMessageListFragment
+    public void setSelectionFromTop(int position, int y) {
+        super.setSelectionFromTop(position, y);
+    }
 }
