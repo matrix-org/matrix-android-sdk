@@ -72,6 +72,7 @@ import org.matrix.androidsdk.rest.model.Search.SearchUsersResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.rest.model.login.LoginFlow;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 import org.matrix.androidsdk.sync.DefaultEventsThreadListener;
 import org.matrix.androidsdk.sync.EventsThread;
@@ -2432,9 +2433,7 @@ public class MXSession {
      * @param callback the asynchronous callback.
      */
     public void deleteDevice(final String deviceId, final String password, final ApiCallback<Void> callback) {
-        DeleteDeviceParams dummyparams = new DeleteDeviceParams();
-
-        mCryptoRestClient.deleteDevice(deviceId, dummyparams, new ApiCallback<Void>() {
+        mCryptoRestClient.deleteDevice(deviceId, new DeleteDeviceParams(), new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 // should never happen
@@ -2466,16 +2465,76 @@ public class MXSession {
                     Log.d(LOG_TAG, "## deleteDevice(): Received not expected status 401 =" + matrixError.mStatus);
                 }
 
-                // check if the server response can be casted
-                if (null != registrationFlowResponse) {
-                    DeleteDeviceParams params = new DeleteDeviceParams();
+                List<String> stages = new ArrayList<>();
 
+                // check if the server response can be casted
+                if ((null != registrationFlowResponse)
+                        && (null != registrationFlowResponse.flows)
+                        && !registrationFlowResponse.flows.isEmpty()) {
+                    for (LoginFlow flow : registrationFlowResponse.flows) {
+                        if (null != flow.stages) {
+                            stages.addAll(flow.stages);
+                        }
+                    }
+                }
+
+                if (!stages.isEmpty()) {
+                    DeleteDeviceParams params = new DeleteDeviceParams();
                     params.auth = new DeleteDeviceAuth();
                     params.auth.session = registrationFlowResponse.session;
-                    params.auth.type = "m.login.password";
                     params.auth.user = mCredentials.userId;
                     params.auth.password = password;
-                    mCryptoRestClient.deleteDevice(deviceId, params, callback);
+
+                    deleteDevice(deviceId, params, stages, callback);
+                } else {
+                    if (null != callback) {
+                        callback.onMatrixError(matrixError);
+                    }
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+        });
+    }
+
+    /**
+     * Delete a device.
+     *
+     * @param deviceId the device id.
+     * @param params   the delete device params
+     * @param stages   the supported stages
+     * @param callback the asynchronous callback
+     */
+    private void deleteDevice(final String deviceId, final DeleteDeviceParams params, final List<String> stages, final ApiCallback<Void> callback) {
+        // test the first one
+        params.auth.type = stages.get(0);
+        stages.remove(0);
+
+        mCryptoRestClient.deleteDevice(deviceId, params, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                if (null != callback) {
+                    callback.onSuccess(null);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError matrixError) {
+                // failed, try next flow type
+                if ((null != matrixError.mStatus) && (matrixError.mStatus == 401) && !stages.isEmpty()) {
+                    deleteDevice(deviceId, params, stages, callback);
                 } else {
                     if (null != callback) {
                         callback.onMatrixError(matrixError);
