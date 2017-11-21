@@ -1118,7 +1118,26 @@ public class MXSession {
      * @param callback the async callback once the room is ready
      */
     public void createRoom(String name, String topic, String alias, final ApiCallback<String> callback) {
-        createRoom(name, topic, RoomState.DIRECTORY_VISIBILITY_PRIVATE, alias, RoomState.GUEST_ACCESS_CAN_JOIN, RoomState.HISTORY_VISIBILITY_SHARED, callback);
+        createRoom(name, topic, RoomState.DIRECTORY_VISIBILITY_PRIVATE, alias, RoomState.GUEST_ACCESS_CAN_JOIN, RoomState.HISTORY_VISIBILITY_SHARED, null, callback);
+    }
+
+    /**
+     * Add the crypto algo to the room creation parameters.
+     *
+     * @param params the room creation parameters
+     * @param algorithm the algorithm
+     */
+    private static void addCryptoAlgorithm(CreateRoomParams params, String algorithm) {
+        if (!TextUtils.isEmpty(algorithm)) {
+            Event algoEvent = new Event();
+            algoEvent.type = Event.EVENT_TYPE_MESSAGE_ENCRYPTION;
+
+            Map<String, String> contentMap = new HashMap<>();
+            contentMap.put("algorithm", algorithm);
+            algoEvent.content = JsonUtils.getGson(false).toJsonTree(contentMap);
+
+            params.initial_state = Arrays.asList(algoEvent);
+        }
     }
 
     /**
@@ -1130,9 +1149,10 @@ public class MXSession {
      * @param alias             the room alias
      * @param guestAccess       the guest access rule (see {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN})
      * @param historyVisibility the history visibility
+     * @param algorithm the crypto algorithm
      * @param callback          the async callback once the room is ready
      */
-    public void createRoom(String name, String topic, String visibility, String alias, String guestAccess, String historyVisibility, final ApiCallback<String> callback) {
+    public void createRoom(String name, String topic, String visibility, String alias, String guestAccess, String historyVisibility, String algorithm, final ApiCallback<String> callback) {
         checkIfAlive();
 
         CreateRoomParams params = new CreateRoomParams();
@@ -1142,6 +1162,7 @@ public class MXSession {
         params.roomAliasName = !TextUtils.isEmpty(alias) ? alias : null;
         params.guest_access = !TextUtils.isEmpty(guestAccess) ? guestAccess : null;
         params.history_visibility = !TextUtils.isEmpty(historyVisibility) ? historyVisibility : null;
+        addCryptoAlgorithm(params, algorithm);
 
         createRoom(params, callback);
     }
@@ -1154,16 +1175,7 @@ public class MXSession {
      */
     public void createEncryptedRoom(String algorithm, final ApiCallback<String> callback) {
         CreateRoomParams params = new CreateRoomParams();
-
-        Event algoEvent = new Event();
-        algoEvent.type = Event.EVENT_TYPE_MESSAGE_ENCRYPTION;
-
-        Map<String, String> contentMap = new HashMap<>();
-        contentMap.put("algorithm", algorithm);
-        algoEvent.content = JsonUtils.getGson(false).toJsonTree(contentMap);
-
-        params.initial_state = Arrays.asList(algoEvent);
-
+        addCryptoAlgorithm(params, algorithm);
         createRoom(params, callback);
     }
 
@@ -1177,11 +1189,28 @@ public class MXSession {
      * @return true if the invite was performed, false otherwise
      */
     public boolean createDirectMessageRoom(final String aParticipantUserId, final ApiCallback<String> aCreateRoomCallBack) {
+        return createDirectMessageRoom(aParticipantUserId, null, aCreateRoomCallBack);
+    }
+
+    /**
+     * Create a direct message room with one participant.<br>
+     * The participant can be a user ID or mail address. Once the room is created, on success, the room
+     * is set as a "direct message" with the participant.
+     *
+     * @param aParticipantUserId  user ID (or user mail) to be invited in the direct message room
+     * @param algorithm the crypto algorithm
+     * @param aCreateRoomCallBack async call back response
+     * @return true if the invite was performed, false otherwise
+     */
+    public boolean createDirectMessageRoom(final String aParticipantUserId, final String algorithm, final ApiCallback<String> aCreateRoomCallBack) {
         boolean retCode = false;
 
         if (!TextUtils.isEmpty(aParticipantUserId)) {
             retCode = true;
             CreateRoomParams params = new CreateRoomParams();
+
+            addCryptoAlgorithm(params, algorithm);
+
             params.preset = CreateRoomParams.PRESET_TRUSTED_PRIVATE_CHAT;
             params.is_direct = true;
 
@@ -1281,7 +1310,7 @@ public class MXSession {
                 final Room createdRoom = mDataHandler.getRoom(roomId);
 
                 // the creation events are not be called during the creation
-                if (createdRoom.getState().getMember(mCredentials.userId) == null) {
+                if (createdRoom.isWaitingInitialSync()) {
                     createdRoom.setOnInitialSyncCallback(new ApiCallback<Void>() {
                         @Override
                         public void onSuccess(Void info) {
@@ -1818,7 +1847,7 @@ public class MXSession {
     /**
      * Return the direct chat room list for retro compatibility with 1:1 rooms.
      *
-     * @param aStore                         strore instance
+     * @param aStore                         store instance
      * @param aDirectChatRoomIdsListRetValue the other participants in the 1:1 room
      */
     private void getDirectChatRoomIdsListRetroCompat(IMXStore aStore, ArrayList<RoomIdsListRetroCompat> aDirectChatRoomIdsListRetValue) {
