@@ -21,6 +21,7 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.BannedUser;
+import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContext;
@@ -294,20 +295,11 @@ public interface RoomsApi {
     /**
      * Create a room.
      *
-     * @param roomState object containing the initial room state (name, topic, visibility, ...)
+     * @param createRoomRequest the creation room request
      * @param callback  the asynchronous callback called with the response
      */
     @POST("/createRoom")
-    void createRoom(@Body RoomState roomState, Callback<CreateRoomResponse> callback);
-
-    /**
-     * Create a room.
-     *
-     * @param params   parameters to create the room
-     * @param callback the asynchronous callback called with the response
-     */
-    @POST("/createRoom")
-    void createRoom(@Body Map<String, Object> params, Callback<CreateRoomResponse> callback);
+    void createRoom(@Body CreateRoomParams createRoomRequest, Callback<CreateRoomResponse> callback);
 
     /**
      * Get a list of messages starting from a reference..

@@ -56,11 +56,13 @@ import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
+import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.DeleteDeviceAuth;
 import org.matrix.androidsdk.rest.model.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.DevicesListResponse;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.Invite3Pid;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.MediaMessage;
 import org.matrix.androidsdk.rest.model.Message;
@@ -69,6 +71,7 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchUsersResponse;
+import org.matrix.androidsdk.rest.model.ThreePid;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -1098,6 +1101,73 @@ public class MXSession {
     }
 
     /**
+     * Create a new room.
+     *
+     * @param callback the async callback once the room is ready
+     */
+    public void createRoom(final ApiCallback<String> callback) {
+        createRoom(null, null, null, callback);
+    }
+
+    /**
+     * Create a new room with given properties. Needs the data handler.
+     *
+     * @param name     the room name
+     * @param topic    the room topic
+     * @param alias    the room alias
+     * @param callback the async callback once the room is ready
+     */
+    public void createRoom(String name, String topic, String alias, final ApiCallback<String> callback) {
+        createRoom(name, topic, RoomState.DIRECTORY_VISIBILITY_PRIVATE, alias, RoomState.GUEST_ACCESS_CAN_JOIN, RoomState.HISTORY_VISIBILITY_SHARED, callback);
+    }
+
+    /**
+     * Create a new room with given properties. Needs the data handler.
+     *
+     * @param name              the room name
+     * @param topic             the room topic
+     * @param visibility        the room visibility
+     * @param alias             the room alias
+     * @param guestAccess       the guest access rule (see {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN})
+     * @param historyVisibility the history visibility
+     * @param callback          the async callback once the room is ready
+     */
+    public void createRoom(String name, String topic, String visibility, String alias, String guestAccess, String historyVisibility, final ApiCallback<String> callback) {
+        checkIfAlive();
+
+        CreateRoomParams params = new CreateRoomParams();
+        params.name = !TextUtils.isEmpty(name) ? name : null;
+        params.topic = !TextUtils.isEmpty(topic) ? topic : null;
+        params.visibility = !TextUtils.isEmpty(visibility) ? visibility : null;
+        params.roomAliasName = !TextUtils.isEmpty(alias) ? alias : null;
+        params.guest_access = !TextUtils.isEmpty(guestAccess) ? guestAccess : null;
+        params.history_visibility = !TextUtils.isEmpty(historyVisibility) ? historyVisibility : null;
+
+        createRoom(params, callback);
+    }
+
+    /**
+     * Create an encrypted room.
+     *
+     * @param algorithm the encryption algorithm.
+     * @param callback  the async callback once the room is ready
+     */
+    public void createEncryptedRoom(String algorithm, final ApiCallback<String> callback) {
+        CreateRoomParams params = new CreateRoomParams();
+
+        Event algoEvent = new Event();
+        algoEvent.type = Event.EVENT_TYPE_MESSAGE_ENCRYPTION;
+
+        Map<String, String> contentMap = new HashMap<>();
+        contentMap.put("algorithm", algorithm);
+        algoEvent.content = JsonUtils.getGson(false).toJsonTree(contentMap);
+
+        params.initial_state = Arrays.asList(algoEvent);
+
+        createRoom(params, callback);
+    }
+
+    /**
      * Create a direct message room with one participant.<br>
      * The participant can be a user ID or mail address. Once the room is created, on success, the room
      * is set as a "direct message" with the participant.
@@ -1106,27 +1176,26 @@ public class MXSession {
      * @param aCreateRoomCallBack async call back response
      * @return true if the invite was performed, false otherwise
      */
-    public boolean createRoomDirectMessage(final String aParticipantUserId, final ApiCallback<String> aCreateRoomCallBack) {
+    public boolean createDirectMessageRoom(final String aParticipantUserId, final ApiCallback<String> aCreateRoomCallBack) {
         boolean retCode = false;
 
         if (!TextUtils.isEmpty(aParticipantUserId)) {
             retCode = true;
-            HashMap<String, Object> params = new HashMap<>();
-            params.put("preset", "trusted_private_chat");
-            params.put("is_direct", true);
+            CreateRoomParams params = new CreateRoomParams();
+            params.preset = CreateRoomParams.PRESET_TRUSTED_PRIVATE_CHAT;
+            params.is_direct = true;
 
             if (android.util.Patterns.EMAIL_ADDRESS.matcher(aParticipantUserId).matches()) {
-                // build the invite third party object
-                HashMap<String, String> parameters = new HashMap<>();
-                parameters.put("id_server", mHsConfig.getIdentityServerUri().getHost());
-                parameters.put("medium", "email");
-                parameters.put("address", aParticipantUserId);
+                Invite3Pid pid = new Invite3Pid();
+                pid.id_server = mHsConfig.getIdentityServerUri().getHost();
+                pid.medium = ThreePid.MEDIUM_EMAIL;
+                pid.address = aParticipantUserId;
 
-                params.put("invite_3pid", Arrays.asList(parameters));
+                params.invite_3pid = Arrays.asList(pid);
             } else {
                 if (!aParticipantUserId.equals(getMyUserId())) {
                     // send invite only if the participant ID is not the user ID
-                    params.put("invite", Arrays.asList(aParticipantUserId));
+                    params.invite = Arrays.asList(aParticipantUserId);
                 }
             }
 
@@ -1134,7 +1203,6 @@ public class MXSession {
                 @Override
                 public void onSuccess(String roomId) {
                     final String fRoomId = roomId;
-
                     toggleDirectChatRoom(roomId, aParticipantUserId, new ApiCallback<Void>() {
                         @Override
                         public void onSuccess(Void info) {
@@ -1200,87 +1268,13 @@ public class MXSession {
 
 
     /**
-     * Create a new room.
-     *
-     * @param callback the async callback once the room is ready
-     */
-    public void createRoom(final ApiCallback<String> callback) {
-        createRoom(null, null, null, callback);
-    }
-
-    /**
      * Create a new room with given properties.
      *
      * @param params   the creation parameters.
      * @param callback the async callback once the room is ready
      */
-    public void createRoom(final Map<String, Object> params, final ApiCallback<String> callback) {
+    public void createRoom(final CreateRoomParams params, final ApiCallback<String> callback) {
         mRoomsRestClient.createRoom(params, new SimpleApiCallback<CreateRoomResponse>(callback) {
-            @Override
-            public void onSuccess(CreateRoomResponse info) {
-                final String roomId = info.roomId;
-                final Room createdRoom = mDataHandler.getRoom(roomId);
-
-                // the creation events are not be called during the creation
-                if (createdRoom.getState().getMember(mCredentials.userId) == null) {
-                    createdRoom.setOnInitialSyncCallback(new ApiCallback<Void>() {
-                        @Override
-                        public void onSuccess(Void info) {
-                            createdRoom.markAllAsRead(null);
-                            callback.onSuccess(roomId);
-                        }
-
-                        @Override
-                        public void onNetworkError(Exception e) {
-                            callback.onNetworkError(e);
-                        }
-
-                        @Override
-                        public void onMatrixError(MatrixError e) {
-                            callback.onMatrixError(e);
-                        }
-
-                        @Override
-                        public void onUnexpectedError(Exception e) {
-                            callback.onUnexpectedError(e);
-                        }
-                    });
-                } else {
-                    createdRoom.markAllAsRead(null);
-                    callback.onSuccess(roomId);
-                }
-            }
-        });
-
-    }
-
-    /**
-     * Create a new room with given properties. Needs the data handler.
-     *
-     * @param name     the room name
-     * @param topic    the room topic
-     * @param alias    the room alias
-     * @param callback the async callback once the room is ready
-     */
-    public void createRoom(String name, String topic, String alias, final ApiCallback<String> callback) {
-        createRoom(name, topic, RoomState.DIRECTORY_VISIBILITY_PRIVATE, alias, RoomState.GUEST_ACCESS_CAN_JOIN, RoomState.HISTORY_VISIBILITY_SHARED, callback);
-    }
-
-    /**
-     * Create a new room with given properties. Needs the data handler.
-     *
-     * @param name              the room name
-     * @param topic             the room topic
-     * @param visibility        the room visibility
-     * @param alias             the room alias
-     * @param guestAccess       the guest access rule (see {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN})
-     * @param historyVisibility the history visibility
-     * @param callback          the async callback once the room is ready
-     */
-    public void createRoom(String name, String topic, String visibility, String alias, String guestAccess, String historyVisibility, final ApiCallback<String> callback) {
-        checkIfAlive();
-
-        mRoomsRestClient.createRoom(name, topic, visibility, alias, guestAccess, historyVisibility, new SimpleApiCallback<CreateRoomResponse>(callback) {
             @Override
             public void onSuccess(CreateRoomResponse info) {
                 final String roomId = info.roomId;
