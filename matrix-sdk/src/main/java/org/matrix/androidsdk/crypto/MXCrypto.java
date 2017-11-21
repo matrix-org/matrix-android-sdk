@@ -2376,11 +2376,11 @@ public class MXCrypto {
      * Export the crypto keys
      *
      * @param password         the password
-     * @param anIterationCount the encryption iteration count
+     * @param anIterationCount the encryption iteration count (0 means no encryption)
      * @param callback         the exported keys
      */
     public void exportRoomKeys(final String password, int anIterationCount, final ApiCallback<byte[]> callback) {
-        final int iterationCount = Math.max(1, anIterationCount);
+        final int iterationCount = Math.max(0, anIterationCount);
 
         getDecryptingThreadHandler().post(new Runnable() {
             @Override
