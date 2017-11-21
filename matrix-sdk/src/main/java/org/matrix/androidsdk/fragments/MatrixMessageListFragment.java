@@ -1964,8 +1964,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         mAdapter.updateReadMarker(closestRowBefore.getEvent().eventId, null);
                     }
 
-                    mMessageListView.lockSelectionOnResize();
                     mAdapter.notifyDataSetChanged();
+                    mMessageListView.setAdapter(mAdapter);
 
                     if (closestRowBefore != null) {
                         scrollToRow(closestRowBefore, true);
@@ -1977,8 +1977,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         }
                     }
 
-                    mMessageListView.lockSelectionOnResize();
                     mAdapter.notifyDataSetChanged();
+                    mMessageListView.setAdapter(mAdapter);
 
                     // center the message
                     if (mAdapter.isUnreadViewMode()) {
