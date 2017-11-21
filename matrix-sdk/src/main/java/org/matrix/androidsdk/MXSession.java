@@ -1124,7 +1124,7 @@ public class MXSession {
     /**
      * Add the crypto algo to the room creation parameters.
      *
-     * @param params the room creation parameters
+     * @param params    the room creation parameters
      * @param algorithm the algorithm
      */
     private static void addCryptoAlgorithm(CreateRoomParams params, String algorithm) {
@@ -1149,7 +1149,7 @@ public class MXSession {
      * @param alias             the room alias
      * @param guestAccess       the guest access rule (see {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN})
      * @param historyVisibility the history visibility
-     * @param algorithm the crypto algorithm
+     * @param algorithm         the crypto algorithm (null to create an unencrypted room)
      * @param callback          the async callback once the room is ready
      */
     public void createRoom(String name, String topic, String visibility, String alias, String guestAccess, String historyVisibility, String algorithm, final ApiCallback<String> callback) {
@@ -1198,7 +1198,7 @@ public class MXSession {
      * is set as a "direct message" with the participant.
      *
      * @param aParticipantUserId  user ID (or user mail) to be invited in the direct message room
-     * @param algorithm the crypto algorithm
+     * @param algorithm           the crypto algorithm (null to create an unencrypted room)
      * @param aCreateRoomCallBack async call back response
      * @return true if the invite was performed, false otherwise
      */
