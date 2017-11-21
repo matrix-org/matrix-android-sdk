@@ -43,6 +43,9 @@ public class MXMegolmExportEncryption {
     // terribly well with large arrays.
     private static final int LINE_LENGTH = (72 * 4 / 3);
 
+    // default iteration count to export the e2e keys
+    public static final int DEFAULT_ITERATION_COUNT = 500000;
+
     /**
      * Convert a signed byte to a int value
      *
@@ -150,7 +153,7 @@ public class MXMegolmExportEncryption {
      * @throws Exception the failure reason
      */
     public static byte[] encryptMegolmKeyFile(String data, String password) throws Exception {
-        return encryptMegolmKeyFile(data, password, 500000);
+        return encryptMegolmKeyFile(data, password, DEFAULT_ITERATION_COUNT);
     }
 
     /**
