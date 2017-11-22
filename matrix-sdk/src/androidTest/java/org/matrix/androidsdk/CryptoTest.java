@@ -3319,7 +3319,7 @@ public class CryptoTest {
         mBobSession.getCrypto().setWarnOnUnknownDevices(false);
 
         final CountDownLatch lock0 = new CountDownLatch(1);
-        mAliceSession.createRoom(null, null, RoomState.DIRECTORY_VISIBILITY_PUBLIC, null, RoomState.GUEST_ACCESS_CAN_JOIN, RoomState.HISTORY_VISIBILITY_SHARED, new ApiCallback<String>() {
+        mAliceSession.createRoom(null, null, RoomState.DIRECTORY_VISIBILITY_PUBLIC, null, RoomState.GUEST_ACCESS_CAN_JOIN, RoomState.HISTORY_VISIBILITY_SHARED, null, new ApiCallback<String>() {
             @Override
             public void onSuccess(String roomId) {
                 results.put("roomId", roomId);
@@ -4127,7 +4127,7 @@ public class CryptoTest {
         mBobSession.getCrypto().setWarnOnUnknownDevices(false);
 
         final CountDownLatch lock0 = new CountDownLatch(1);
-        mAliceSession.createRoom(null, null, RoomState.DIRECTORY_VISIBILITY_PUBLIC, null, RoomState.GUEST_ACCESS_CAN_JOIN, RoomState.HISTORY_VISIBILITY_SHARED, new ApiCallback<String>() {
+        mAliceSession.createRoom(null, null, RoomState.DIRECTORY_VISIBILITY_PUBLIC, null, RoomState.GUEST_ACCESS_CAN_JOIN, RoomState.HISTORY_VISIBILITY_SHARED, null, new ApiCallback<String>() {
             @Override
             public void onSuccess(String roomId) {
                 results.put("roomId", roomId);
@@ -4337,7 +4337,7 @@ public class CryptoTest {
 
         // - Alice and Bob start sharing a room again
         final CountDownLatch lock3 = new CountDownLatch(1);
-        aliceSession2.createRoom(null, null, RoomState.DIRECTORY_VISIBILITY_PUBLIC, null, RoomState.GUEST_ACCESS_CAN_JOIN, RoomState.HISTORY_VISIBILITY_SHARED, new ApiCallback<String>() {
+        aliceSession2.createRoom(null, null, RoomState.DIRECTORY_VISIBILITY_PUBLIC, null, RoomState.GUEST_ACCESS_CAN_JOIN, RoomState.HISTORY_VISIBILITY_SHARED, null, new ApiCallback<String>() {
             @Override
             public void onSuccess(String info) {
                 mRoomId = info;

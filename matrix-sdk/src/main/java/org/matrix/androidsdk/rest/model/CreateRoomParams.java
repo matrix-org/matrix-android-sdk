@@ -13,9 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.matrix.androidsdk.rest.model;
 
+import android.text.TextUtils;
+
+import org.matrix.androidsdk.HomeServerConnectionConfig;
+import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.util.JsonUtils;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class CreateRoomParams {
 
@@ -99,4 +110,67 @@ public class CreateRoomParams {
      * See Direct Messaging for more information.
      */
     public Boolean is_direct;
+
+    /**
+     * Add the crypto algorithm to the room creation parameters.
+     *
+     * @param algorithm the algorithm
+     */
+    public void addCryptoAlgorithm(String algorithm) {
+        if (!TextUtils.isEmpty(algorithm)) {
+            Event algoEvent = new Event();
+            algoEvent.type = Event.EVENT_TYPE_MESSAGE_ENCRYPTION;
+
+            Map<String, String> contentMap = new HashMap<>();
+            contentMap.put("algorithm", algorithm);
+            algoEvent.content = JsonUtils.getGson(false).toJsonTree(contentMap);
+
+            if (null == initial_state) {
+                initial_state = Arrays.asList(algoEvent);
+            } else {
+                initial_state.add(algoEvent);
+            }
+        }
+    }
+
+    /**
+     * Mark as a direct message room.
+     */
+    public void setDirectMessage() {
+        preset = CreateRoomParams.PRESET_TRUSTED_PRIVATE_CHAT;
+        is_direct = true;
+    }
+
+    /**
+     * Add some ids to the room creation
+     * They might be a matrix id or an email address.
+     *
+     * @param ids the participant ids to add.
+     */
+    public void addParticipantsIds(HomeServerConnectionConfig hsConfig, List<String> ids) {
+        for (String id : ids) {
+            if (android.util.Patterns.EMAIL_ADDRESS.matcher(id).matches()) {
+                if (null == invite_3pid) {
+                    invite_3pid = new ArrayList<>();
+                }
+
+                Invite3Pid pid = new Invite3Pid();
+                pid.id_server = hsConfig.getIdentityServerUri().getHost();
+                pid.medium = ThreePid.MEDIUM_EMAIL;
+                pid.address = id;
+
+                invite_3pid.add(pid);
+            } else if (MXSession.isUserId(id)) {
+                // do not invite oneself
+                if (!TextUtils.equals(hsConfig.getCredentials().userId, id)) {
+                    if (null == invite) {
+                        invite = new ArrayList<>();
+                    }
+
+                    invite.add(id);
+                }
+
+            } // TODO add phonenumbers when it will be available
+        }
+    }
 }

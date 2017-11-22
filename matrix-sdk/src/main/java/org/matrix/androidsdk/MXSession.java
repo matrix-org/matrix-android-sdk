@@ -1126,25 +1126,6 @@ public class MXSession {
     }
 
     /**
-     * Add the crypto algo to the room creation parameters.
-     *
-     * @param params    the room creation parameters
-     * @param algorithm the algorithm
-     */
-    private static void addCryptoAlgorithm(CreateRoomParams params, String algorithm) {
-        if (!TextUtils.isEmpty(algorithm)) {
-            Event algoEvent = new Event();
-            algoEvent.type = Event.EVENT_TYPE_MESSAGE_ENCRYPTION;
-
-            Map<String, String> contentMap = new HashMap<>();
-            contentMap.put("algorithm", algorithm);
-            algoEvent.content = JsonUtils.getGson(false).toJsonTree(contentMap);
-
-            params.initial_state = Arrays.asList(algoEvent);
-        }
-    }
-
-    /**
      * Create a new room with given properties. Needs the data handler.
      *
      * @param name              the room name
@@ -1166,7 +1147,7 @@ public class MXSession {
         params.roomAliasName = !TextUtils.isEmpty(alias) ? alias : null;
         params.guest_access = !TextUtils.isEmpty(guestAccess) ? guestAccess : null;
         params.history_visibility = !TextUtils.isEmpty(historyVisibility) ? historyVisibility : null;
-        addCryptoAlgorithm(params, algorithm);
+        params.addCryptoAlgorithm(algorithm);
 
         createRoom(params, callback);
     }
@@ -1179,7 +1160,7 @@ public class MXSession {
      */
     public void createEncryptedRoom(String algorithm, final ApiCallback<String> callback) {
         CreateRoomParams params = new CreateRoomParams();
-        addCryptoAlgorithm(params, algorithm);
+        params.addCryptoAlgorithm(algorithm);
         createRoom(params, callback);
     }
 
@@ -1213,24 +1194,9 @@ public class MXSession {
             retCode = true;
             CreateRoomParams params = new CreateRoomParams();
 
-            addCryptoAlgorithm(params, algorithm);
-
-            params.preset = CreateRoomParams.PRESET_TRUSTED_PRIVATE_CHAT;
-            params.is_direct = true;
-
-            if (android.util.Patterns.EMAIL_ADDRESS.matcher(aParticipantUserId).matches()) {
-                Invite3Pid pid = new Invite3Pid();
-                pid.id_server = mHsConfig.getIdentityServerUri().getHost();
-                pid.medium = ThreePid.MEDIUM_EMAIL;
-                pid.address = aParticipantUserId;
-
-                params.invite_3pid = Arrays.asList(pid);
-            } else {
-                if (!aParticipantUserId.equals(getMyUserId())) {
-                    // send invite only if the participant ID is not the user ID
-                    params.invite = Arrays.asList(aParticipantUserId);
-                }
-            }
+            params.addCryptoAlgorithm(algorithm);
+            params.setDirectMessage();
+            params.addParticipantsIds(mHsConfig, Arrays.asList(aParticipantUserId));
 
             createRoom(params, new ApiCallback<String>() {
                 @Override
