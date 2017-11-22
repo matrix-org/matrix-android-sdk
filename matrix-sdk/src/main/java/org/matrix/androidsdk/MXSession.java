@@ -1196,7 +1196,7 @@ public class MXSession {
 
             params.addCryptoAlgorithm(algorithm);
             params.setDirectMessage();
-            params.addParticipantsIds(mHsConfig, Arrays.asList(aParticipantUserId));
+            params.addParticipantIds(mHsConfig, Arrays.asList(aParticipantUserId));
 
             createRoom(params, new ApiCallback<String>() {
                 @Override

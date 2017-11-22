@@ -143,11 +143,11 @@ public class CreateRoomParams {
 
     /**
      * Add some ids to the room creation
-     * They might be a matrix id or an email address.
+     * ids might be a matrix id or an email address.
      *
      * @param ids the participant ids to add.
      */
-    public void addParticipantsIds(HomeServerConnectionConfig hsConfig, List<String> ids) {
+    public void addParticipantIds(HomeServerConnectionConfig hsConfig, List<String> ids) {
         for (String id : ids) {
             if (android.util.Patterns.EMAIL_ADDRESS.matcher(id).matches()) {
                 if (null == invite_3pid) {
