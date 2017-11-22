@@ -609,26 +609,26 @@ public class MXDataHandler implements IMXEventListener {
             return;
         }
 
-        if (mStore.isPermanent()) {
-            // When the data are extracted from a persistent storage,
-            // some fields are not retrieved :
-            // They are used to retrieve some data
-            // so add the missing links.
+        // When the data are extracted from a persistent storage,
+        // some fields are not retrieved :
+        // They are used to retrieve some data
+        // so add the missing links.
 
-            Collection<Room> rooms = mStore.getRooms();
+        Collection<Room> rooms = mStore.getRooms();
 
-            for (Room room : rooms) {
-                room.init(mStore, room.getRoomId(), this);
-            }
+        for (Room room : rooms) {
+            room.init(mStore, room.getRoomId(), this);
+        }
 
-            Collection<RoomSummary> summaries = mStore.getSummaries();
-            for (RoomSummary summary : summaries) {
-                if (null != summary.getLatestRoomState()) {
-                    summary.getLatestRoomState().setDataHandler(this);
-                }
+        Collection<RoomSummary> summaries = mStore.getSummaries();
+        for (RoomSummary summary : summaries) {
+            if (null != summary.getLatestRoomState()) {
+                summary.getLatestRoomState().setDataHandler(this);
             }
         }
     }
+
+
 
     /**
      * @return the used store.
