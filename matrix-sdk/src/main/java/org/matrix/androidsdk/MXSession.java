@@ -62,7 +62,6 @@ import org.matrix.androidsdk.rest.model.DeleteDeviceAuth;
 import org.matrix.androidsdk.rest.model.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.DevicesListResponse;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.Invite3Pid;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.MediaMessage;
 import org.matrix.androidsdk.rest.model.Message;
@@ -71,7 +70,6 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchUsersResponse;
-import org.matrix.androidsdk.rest.model.ThreePid;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -1198,73 +1196,59 @@ public class MXSession {
             params.setDirectMessage();
             params.addParticipantIds(mHsConfig, Arrays.asList(aParticipantUserId));
 
-            createRoom(params, new ApiCallback<String>() {
-                @Override
-                public void onSuccess(String roomId) {
-                    final String fRoomId = roomId;
-                    toggleDirectChatRoom(roomId, aParticipantUserId, new ApiCallback<Void>() {
-                        @Override
-                        public void onSuccess(Void info) {
-                            Room room = getDataHandler().getRoom(fRoomId);
-
-                            if (null != room) {
-                                room.markAllAsRead(null);
-                            }
-
-                            if (null != aCreateRoomCallBack) {
-                                aCreateRoomCallBack.onSuccess(fRoomId);
-                            }
-                        }
-
-                        @Override
-                        public void onNetworkError(Exception e) {
-                            if (null != aCreateRoomCallBack) {
-                                aCreateRoomCallBack.onNetworkError(e);
-                            }
-                        }
-
-                        @Override
-                        public void onMatrixError(MatrixError e) {
-                            if (null != aCreateRoomCallBack) {
-                                aCreateRoomCallBack.onMatrixError(e);
-                            }
-                        }
-
-                        @Override
-                        public void onUnexpectedError(Exception e) {
-                            if (null != aCreateRoomCallBack) {
-                                aCreateRoomCallBack.onUnexpectedError(e);
-                            }
-                        }
-                    });
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    if (null != aCreateRoomCallBack) {
-                        aCreateRoomCallBack.onNetworkError(e);
-                    }
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    if (null != aCreateRoomCallBack) {
-                        aCreateRoomCallBack.onMatrixError(e);
-                    }
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    if (null != aCreateRoomCallBack) {
-                        aCreateRoomCallBack.onUnexpectedError(e);
-                    }
-                }
-            });
+            createRoom(params, aCreateRoomCallBack);
         }
 
         return retCode;
     }
 
+    /**
+     * Set the created room as a direct message one.
+     *
+     * @param roomId   the room id
+     * @param userIds  the user ids list
+     * @param callback the asynchronous callback
+     */
+    private void setDirectMessageRoom(final String roomId, final List<String> userIds, final ApiCallback<String> callback) {
+        final String fRoomId = roomId;
+        final String userId = ((null != userIds) && !userIds.isEmpty()) ? userIds.get(0) : null;
+
+        toggleDirectChatRoom(roomId, userId, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                Room room = getDataHandler().getRoom(fRoomId);
+
+                if (null != room) {
+                    room.markAllAsRead(null);
+                }
+
+                if (null != callback) {
+                    callback.onSuccess(fRoomId);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        });
+    }
 
     /**
      * Create a new room with given properties.
@@ -1285,7 +1269,12 @@ public class MXSession {
                         @Override
                         public void onSuccess(Void info) {
                             createdRoom.markAllAsRead(null);
-                            callback.onSuccess(roomId);
+
+                            if (params.isDirect()) {
+                                setDirectMessageRoom(roomId, params.invite, callback);
+                            } else {
+                                callback.onSuccess(roomId);
+                            }
                         }
 
                         @Override
@@ -1305,7 +1294,12 @@ public class MXSession {
                     });
                 } else {
                     createdRoom.markAllAsRead(null);
-                    callback.onSuccess(roomId);
+
+                    if (params.isDirect()) {
+                        setDirectMessageRoom(roomId, params.invite, callback);
+                    } else {
+                        callback.onSuccess(roomId);
+                    }
                 }
             }
         });
@@ -1675,7 +1669,7 @@ public class MXSession {
     public List<String> roomIdsWithTag(final String tag) {
         List<Room> roomsWithTag = roomsWithTag(tag);
 
-        ArrayList<String> roomIdsList = new ArrayList<>();
+        List<String> roomIdsList = new ArrayList<>();
 
         for (Room room : roomsWithTag) {
             roomIdsList.add(room.getRoomId());
@@ -1742,7 +1736,7 @@ public class MXSession {
      */
     public List<String> getDirectChatRoomIdsList() {
         IMXStore store = getDataHandler().getStore();
-        ArrayList<String> directChatRoomIdsList = new ArrayList<>();
+        List<String> directChatRoomIdsList = new ArrayList<>();
 
         if (null == store) {
             Log.e(LOG_TAG, "## getDirectChatRoomIdsList() : null store");
@@ -1919,16 +1913,16 @@ public class MXSession {
             }
 
             // if the room was not yet seen as direct chat
-            if (getDirectChatRoomIdsList().indexOf(roomId) < 0) {
-                ArrayList<String> roomIdsList = new ArrayList<>();
+            if (!getDirectChatRoomIdsList().contains(roomId)) {
+                List<String> roomIdsList = new ArrayList<>();
                 RoomMember directChatMember = null;
                 String chosenUserId;
 
                 if (null == aParticipantUserId) {
-                    ArrayList<RoomMember> members = new ArrayList<>(room.getActiveMembers());
+                    List<RoomMember> members = new ArrayList<>(room.getActiveMembers());
 
                     // should never happen but it was reported by a GA issue
-                    if (0 == members.size()) {
+                    if (members.isEmpty()) {
                         return;
                     }
 
@@ -2009,7 +2003,11 @@ public class MXSession {
                 }
             }
 
-            HashMap<String, Object> requestParams = new HashMap<>();
+            // update the store value
+            // do not wait the server request echo to update the store
+            getDataHandler().getStore().setDirectChatRoomsDict(params);
+
+            Map<String, Object> requestParams = new HashMap<>();
             Collection<String> userIds = params.keySet();
 
             for (String userId : userIds) {
