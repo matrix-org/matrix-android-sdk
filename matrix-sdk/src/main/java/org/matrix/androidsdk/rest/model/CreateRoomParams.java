@@ -151,6 +151,17 @@ public class CreateRoomParams {
     }
 
     /**
+     * @return the first invited user id
+     */
+    public String getFirstInvitedUserId() {
+        if ((null != invite) && !invite.isEmpty()) {
+            return invite.get(0);
+        }
+
+        return null;
+    }
+
+    /**
      * Add some ids to the room creation
      * ids might be a matrix id or an email address.
      *

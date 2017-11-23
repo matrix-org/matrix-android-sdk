@@ -1203,15 +1203,14 @@ public class MXSession {
     }
 
     /**
-     * Set the created room as a direct message one.
+     * Finalise the created room as a direct chat one.
      *
      * @param roomId   the room id
-     * @param userIds  the user ids list
+     * @param userId   the user id
      * @param callback the asynchronous callback
      */
-    private void setDirectMessageRoom(final String roomId, final List<String> userIds, final ApiCallback<String> callback) {
+    private void finalizeDMRoomCreation(final String roomId, String userId, final ApiCallback<String> callback) {
         final String fRoomId = roomId;
-        final String userId = ((null != userIds) && !userIds.isEmpty()) ? userIds.get(0) : null;
 
         toggleDirectChatRoom(roomId, userId, new ApiCallback<Void>() {
             @Override
@@ -1271,7 +1270,7 @@ public class MXSession {
                             createdRoom.markAllAsRead(null);
 
                             if (params.isDirect()) {
-                                setDirectMessageRoom(roomId, params.invite, callback);
+                                finalizeDMRoomCreation(roomId, params.getFirstInvitedUserId(), callback);
                             } else {
                                 callback.onSuccess(roomId);
                             }
@@ -1296,7 +1295,7 @@ public class MXSession {
                     createdRoom.markAllAsRead(null);
 
                     if (params.isDirect()) {
-                        setDirectMessageRoom(roomId, params.invite, callback);
+                        finalizeDMRoomCreation(roomId, params.getFirstInvitedUserId(), callback);
                     } else {
                         callback.onSuccess(roomId);
                     }
