@@ -2007,14 +2007,7 @@ public class MXSession {
             // do not wait the server request echo to update the store
             getDataHandler().getStore().setDirectChatRoomsDict(params);
 
-            Map<String, Object> requestParams = new HashMap<>();
-            Collection<String> userIds = params.keySet();
-
-            for (String userId : userIds) {
-                requestParams.put(userId, params.get(userId));
-            }
-
-            mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, requestParams, callback);
+            mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, params, callback);
         }
     }
 
@@ -2025,12 +2018,11 @@ public class MXSession {
      * @param aRoomParticipantUserIdList the couple direct chat rooms ID / user IDs
      * @param callback                   the asynchronous response callback
      */
-    public void forceDirectChatRoomValue(ArrayList<RoomIdsListRetroCompat> aRoomParticipantUserIdList, ApiCallback<Void> callback) {
-        HashMap<String, List<String>> params = new HashMap<>();
-        ArrayList<String> roomIdsList;
+    private void forceDirectChatRoomValue(List<RoomIdsListRetroCompat> aRoomParticipantUserIdList, ApiCallback<Void> callback) {
+        Map<String, List<String>> params = new HashMap<>();
+        List<String> roomIdsList;
 
         if (null != aRoomParticipantUserIdList) {
-
             for (RoomIdsListRetroCompat item : aRoomParticipantUserIdList) {
                 if (params.containsKey(item.mParticipantUserId)) {
                     roomIdsList = new ArrayList<>(params.get(item.mParticipantUserId));
@@ -2042,14 +2034,7 @@ public class MXSession {
                 params.put(item.mParticipantUserId, roomIdsList);
             }
 
-            HashMap<String, Object> requestParams = new HashMap<>();
-
-            Collection<String> userIds = params.keySet();
-            for (String userId : userIds) {
-                requestParams.put(userId, params.get(userId));
-            }
-
-            mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, requestParams, callback);
+            mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, params, callback);
         }
     }
 
@@ -2082,13 +2067,13 @@ public class MXSession {
      * @param callback the callback
      */
     private void updateUsers(ArrayList<String> userIds, ApiCallback<Void> callback) {
-        HashMap<String, Object> ignoredUsersDict = new HashMap<>();
+        Map<String, Object> ignoredUsersDict = new HashMap<>();
 
         for (String userId : userIds) {
             ignoredUsersDict.put(userId, new ArrayList<>());
         }
 
-        HashMap<String, Object> params = new HashMap<>();
+        Map<String, Object> params = new HashMap<>();
         params.put(AccountDataRestClient.ACCOUNT_DATA_KEY_IGNORED_USERS, ignoredUsersDict);
 
         mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_IGNORED_USER_LIST, params, callback);

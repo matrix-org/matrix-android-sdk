@@ -51,7 +51,7 @@ public class AccountDataRestClient extends RestClient<AccountDataApi> {
      * @param params   the put params.
      * @param callback the asynchronous callback called when finished
      */
-    public void setAccountData(final String userId, final String type, final Map<String, Object> params, final ApiCallback<Void> callback) {
+    public void setAccountData(final String userId, final String type, final Object params, final ApiCallback<Void> callback) {
         // privacy
         //final String description = "setAccountData userId : " + userId + " type " + type + " params " + params;
         final String description = "setAccountData userId : " + userId + " type " + type;
