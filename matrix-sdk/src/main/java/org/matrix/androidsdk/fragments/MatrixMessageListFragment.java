@@ -1761,7 +1761,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
-    public void onEventSent(Event event, String prevEventId) {
+    public void onEventSent(final Event event, final String prevEventId) {
         // detect if a message was sent but not yet added to the adapter
         // For example, the quick reply does not use the fragment to send messages
         // Thus, the messages are not added to the adapter.
@@ -1785,6 +1785,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     // Inform adapter of the new read marker position
                     mAdapter.updateReadMarker(event.eventId, readReceiptEventId);
                 }
+            }
+        } else {
+            MessageRow row = mAdapter.getMessageRow(prevEventId);
+            if (null != row) {
+                mAdapter.remove(row);
             }
         }
     }
