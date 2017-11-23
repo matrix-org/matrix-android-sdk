@@ -62,7 +62,6 @@ import org.matrix.androidsdk.rest.model.DeleteDeviceAuth;
 import org.matrix.androidsdk.rest.model.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.DevicesListResponse;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.Invite3Pid;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.MediaMessage;
 import org.matrix.androidsdk.rest.model.Message;
@@ -71,7 +70,6 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchUsersResponse;
-import org.matrix.androidsdk.rest.model.ThreePid;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -1198,73 +1196,58 @@ public class MXSession {
             params.setDirectMessage();
             params.addParticipantIds(mHsConfig, Arrays.asList(aParticipantUserId));
 
-            createRoom(params, new ApiCallback<String>() {
-                @Override
-                public void onSuccess(String roomId) {
-                    final String fRoomId = roomId;
-                    toggleDirectChatRoom(roomId, aParticipantUserId, new ApiCallback<Void>() {
-                        @Override
-                        public void onSuccess(Void info) {
-                            Room room = getDataHandler().getRoom(fRoomId);
-
-                            if (null != room) {
-                                room.markAllAsRead(null);
-                            }
-
-                            if (null != aCreateRoomCallBack) {
-                                aCreateRoomCallBack.onSuccess(fRoomId);
-                            }
-                        }
-
-                        @Override
-                        public void onNetworkError(Exception e) {
-                            if (null != aCreateRoomCallBack) {
-                                aCreateRoomCallBack.onNetworkError(e);
-                            }
-                        }
-
-                        @Override
-                        public void onMatrixError(MatrixError e) {
-                            if (null != aCreateRoomCallBack) {
-                                aCreateRoomCallBack.onMatrixError(e);
-                            }
-                        }
-
-                        @Override
-                        public void onUnexpectedError(Exception e) {
-                            if (null != aCreateRoomCallBack) {
-                                aCreateRoomCallBack.onUnexpectedError(e);
-                            }
-                        }
-                    });
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    if (null != aCreateRoomCallBack) {
-                        aCreateRoomCallBack.onNetworkError(e);
-                    }
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    if (null != aCreateRoomCallBack) {
-                        aCreateRoomCallBack.onMatrixError(e);
-                    }
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    if (null != aCreateRoomCallBack) {
-                        aCreateRoomCallBack.onUnexpectedError(e);
-                    }
-                }
-            });
+            createRoom(params, aCreateRoomCallBack);
         }
 
         return retCode;
     }
 
+    /**
+     * Finalise the created room as a direct chat one.
+     *
+     * @param roomId   the room id
+     * @param userId   the user id
+     * @param callback the asynchronous callback
+     */
+    private void finalizeDMRoomCreation(final String roomId, String userId, final ApiCallback<String> callback) {
+        final String fRoomId = roomId;
+
+        toggleDirectChatRoom(roomId, userId, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                Room room = getDataHandler().getRoom(fRoomId);
+
+                if (null != room) {
+                    room.markAllAsRead(null);
+                }
+
+                if (null != callback) {
+                    callback.onSuccess(fRoomId);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        });
+    }
 
     /**
      * Create a new room with given properties.
@@ -1285,7 +1268,12 @@ public class MXSession {
                         @Override
                         public void onSuccess(Void info) {
                             createdRoom.markAllAsRead(null);
-                            callback.onSuccess(roomId);
+
+                            if (params.isDirect()) {
+                                finalizeDMRoomCreation(roomId, params.getFirstInvitedUserId(), callback);
+                            } else {
+                                callback.onSuccess(roomId);
+                            }
                         }
 
                         @Override
@@ -1305,7 +1293,12 @@ public class MXSession {
                     });
                 } else {
                     createdRoom.markAllAsRead(null);
-                    callback.onSuccess(roomId);
+
+                    if (params.isDirect()) {
+                        finalizeDMRoomCreation(roomId, params.getFirstInvitedUserId(), callback);
+                    } else {
+                        callback.onSuccess(roomId);
+                    }
                 }
             }
         });
@@ -1675,7 +1668,7 @@ public class MXSession {
     public List<String> roomIdsWithTag(final String tag) {
         List<Room> roomsWithTag = roomsWithTag(tag);
 
-        ArrayList<String> roomIdsList = new ArrayList<>();
+        List<String> roomIdsList = new ArrayList<>();
 
         for (Room room : roomsWithTag) {
             roomIdsList.add(room.getRoomId());
@@ -1742,7 +1735,7 @@ public class MXSession {
      */
     public List<String> getDirectChatRoomIdsList() {
         IMXStore store = getDataHandler().getStore();
-        ArrayList<String> directChatRoomIdsList = new ArrayList<>();
+        List<String> directChatRoomIdsList = new ArrayList<>();
 
         if (null == store) {
             Log.e(LOG_TAG, "## getDirectChatRoomIdsList() : null store");
@@ -1919,16 +1912,16 @@ public class MXSession {
             }
 
             // if the room was not yet seen as direct chat
-            if (getDirectChatRoomIdsList().indexOf(roomId) < 0) {
-                ArrayList<String> roomIdsList = new ArrayList<>();
+            if (!getDirectChatRoomIdsList().contains(roomId)) {
+                List<String> roomIdsList = new ArrayList<>();
                 RoomMember directChatMember = null;
                 String chosenUserId;
 
                 if (null == aParticipantUserId) {
-                    ArrayList<RoomMember> members = new ArrayList<>(room.getActiveMembers());
+                    List<RoomMember> members = new ArrayList<>(room.getActiveMembers());
 
                     // should never happen but it was reported by a GA issue
-                    if (0 == members.size()) {
+                    if (members.isEmpty()) {
                         return;
                     }
 
@@ -2009,14 +2002,11 @@ public class MXSession {
                 }
             }
 
-            HashMap<String, Object> requestParams = new HashMap<>();
-            Collection<String> userIds = params.keySet();
+            // update the store value
+            // do not wait the server request echo to update the store
+            getDataHandler().getStore().setDirectChatRoomsDict(params);
 
-            for (String userId : userIds) {
-                requestParams.put(userId, params.get(userId));
-            }
-
-            mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, requestParams, callback);
+            mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, params, callback);
         }
     }
 
@@ -2027,12 +2017,11 @@ public class MXSession {
      * @param aRoomParticipantUserIdList the couple direct chat rooms ID / user IDs
      * @param callback                   the asynchronous response callback
      */
-    public void forceDirectChatRoomValue(ArrayList<RoomIdsListRetroCompat> aRoomParticipantUserIdList, ApiCallback<Void> callback) {
-        HashMap<String, List<String>> params = new HashMap<>();
-        ArrayList<String> roomIdsList;
+    private void forceDirectChatRoomValue(List<RoomIdsListRetroCompat> aRoomParticipantUserIdList, ApiCallback<Void> callback) {
+        Map<String, List<String>> params = new HashMap<>();
+        List<String> roomIdsList;
 
         if (null != aRoomParticipantUserIdList) {
-
             for (RoomIdsListRetroCompat item : aRoomParticipantUserIdList) {
                 if (params.containsKey(item.mParticipantUserId)) {
                     roomIdsList = new ArrayList<>(params.get(item.mParticipantUserId));
@@ -2044,14 +2033,7 @@ public class MXSession {
                 params.put(item.mParticipantUserId, roomIdsList);
             }
 
-            HashMap<String, Object> requestParams = new HashMap<>();
-
-            Collection<String> userIds = params.keySet();
-            for (String userId : userIds) {
-                requestParams.put(userId, params.get(userId));
-            }
-
-            mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, requestParams, callback);
+            mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, params, callback);
         }
     }
 
@@ -2084,13 +2066,13 @@ public class MXSession {
      * @param callback the callback
      */
     private void updateUsers(ArrayList<String> userIds, ApiCallback<Void> callback) {
-        HashMap<String, Object> ignoredUsersDict = new HashMap<>();
+        Map<String, Object> ignoredUsersDict = new HashMap<>();
 
         for (String userId : userIds) {
             ignoredUsersDict.put(userId, new ArrayList<>());
         }
 
-        HashMap<String, Object> params = new HashMap<>();
+        Map<String, Object> params = new HashMap<>();
         params.put(AccountDataRestClient.ACCOUNT_DATA_KEY_IGNORED_USERS, ignoredUsersDict);
 
         mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_IGNORED_USER_LIST, params, callback);

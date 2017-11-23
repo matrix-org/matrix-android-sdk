@@ -142,6 +142,26 @@ public class CreateRoomParams {
     }
 
     /**
+     * Tells if the created room can be a direct chat one.
+     *
+     * @return if it is a direct chat
+     */
+    public boolean isDirect() {
+        return TextUtils.equals(preset, CreateRoomParams.PRESET_TRUSTED_PRIVATE_CHAT) && (null != is_direct) && is_direct && (null != invite) && (1 == invite.size());
+    }
+
+    /**
+     * @return the first invited user id
+     */
+    public String getFirstInvitedUserId() {
+        if ((null != invite) && !invite.isEmpty()) {
+            return invite.get(0);
+        }
+
+        return null;
+    }
+
+    /**
      * Add some ids to the room creation
      * ids might be a matrix id or an email address.
      *
