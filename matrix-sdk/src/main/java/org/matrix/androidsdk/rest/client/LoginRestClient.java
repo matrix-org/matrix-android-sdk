@@ -71,20 +71,24 @@ public class LoginRestClient extends RestClient<LoginApi> {
     public void getSupportedLoginFlows(final ApiCallback<List<LoginFlow>> callback) {
         final String description = "geLoginSupportedFlows";
 
-        mApi.login(new RestAdapterCallback<LoginFlowResponse>(description, mUnsentEventsManager, callback,
-                new RestAdapterCallback.RequestRetryCallBack() {
-                    @Override
-                    public void onRetry() {
-                        getSupportedLoginFlows(callback);
+        try {
+            mApi.login(new RestAdapterCallback<LoginFlowResponse>(description, mUnsentEventsManager, callback,
+                    new RestAdapterCallback.RequestRetryCallBack() {
+                        @Override
+                        public void onRetry() {
+                            getSupportedLoginFlows(callback);
+                        }
                     }
+            ) {
+                @Override
+                public void success(LoginFlowResponse loginFlowResponse, Response response) {
+                    onEventSent();
+                    callback.onSuccess(loginFlowResponse.flows);
                 }
-        ) {
-            @Override
-            public void success(LoginFlowResponse loginFlowResponse, Response response) {
-                onEventSent();
-                callback.onSuccess(loginFlowResponse.flows);
-            }
-        });
+            });
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     /**
@@ -110,21 +114,25 @@ public class LoginRestClient extends RestClient<LoginApi> {
             params.x_show_msisdn = true;
         }
 
-        mApi.register(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
-                new RestAdapterCallback.RequestRetryCallBack() {
-                    @Override
-                    public void onRetry() {
-                        register(params, callback);
+        try {
+            mApi.register(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
+                    new RestAdapterCallback.RequestRetryCallBack() {
+                        @Override
+                        public void onRetry() {
+                            register(params, callback);
+                        }
                     }
+            ) {
+                @Override
+                public void success(JsonObject jsonObject, Response response) {
+                    onEventSent();
+                    mCredentials = gson.fromJson(jsonObject, Credentials.class);
+                    callback.onSuccess(mCredentials);
                 }
-        ) {
-            @Override
-            public void success(JsonObject jsonObject, Response response) {
-                onEventSent();
-                mCredentials = gson.fromJson(jsonObject, Credentials.class);
-                callback.onSuccess(mCredentials);
-            }
-        });
+            });
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     /**
@@ -236,23 +244,27 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param description the request description
      */
     private void login(final LoginParams params, final ApiCallback<Credentials> callback, final String description) {
-        mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
+        try {
+            mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
 
-                new RestAdapterCallback.RequestRetryCallBack() {
-                    @Override
-                    public void onRetry() {
-                        login(params, callback, description);
+                    new RestAdapterCallback.RequestRetryCallBack() {
+                        @Override
+                        public void onRetry() {
+                            login(params, callback, description);
+                        }
                     }
-                }
 
-        ) {
-            @Override
-            public void success(JsonObject jsonObject, Response response) {
-                onEventSent();
-                mCredentials = gson.fromJson(jsonObject, Credentials.class);
-                callback.onSuccess(mCredentials);
-            }
-        });
+            ) {
+                @Override
+                public void success(JsonObject jsonObject, Response response) {
+                    onEventSent();
+                    mCredentials = gson.fromJson(jsonObject, Credentials.class);
+                    callback.onSuccess(mCredentials);
+                }
+            });
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
     
     /**
@@ -292,23 +304,27 @@ public class LoginRestClient extends RestClient<LoginApi> {
             params.initial_device_display_name = Build.MODEL.trim();
         }
 
-        mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
+        try {
+            mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
 
-                new RestAdapterCallback.RequestRetryCallBack() {
-                    @Override
-                    public void onRetry() {
-                        loginWithToken(user, token, txn_id, callback);
+                    new RestAdapterCallback.RequestRetryCallBack() {
+                        @Override
+                        public void onRetry() {
+                            loginWithToken(user, token, txn_id, callback);
+                        }
                     }
-                }
 
-        ) {
-            @Override
-            public void success(JsonObject jsonObject, Response response) {
-                onEventSent();
-                mCredentials = gson.fromJson(jsonObject, Credentials.class);
-                callback.onSuccess(mCredentials);
-            }
-        });
+            ) {
+                @Override
+                public void success(JsonObject jsonObject, Response response) {
+                    onEventSent();
+                    mCredentials = gson.fromJson(jsonObject, Credentials.class);
+                    callback.onSuccess(mCredentials);
+                }
+            });
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     /**
@@ -320,14 +336,17 @@ public class LoginRestClient extends RestClient<LoginApi> {
         // privacy
         final String description = "logout user";
 
-        mApi.logout(new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
-                new RestAdapterCallback.RequestRetryCallBack() {
-                    @Override
-                    public void onRetry() {
-                        logout(callback);
+        try {
+            mApi.logout(new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
+                    new RestAdapterCallback.RequestRetryCallBack() {
+                        @Override
+                        public void onRetry() {
+                            logout(callback);
+                        }
                     }
-                }
-        ));
+            ));
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
-
 }
