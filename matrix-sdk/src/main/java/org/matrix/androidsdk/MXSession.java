@@ -2508,7 +2508,9 @@ public class MXSession {
             @Override
             public void onMatrixError(MatrixError matrixError) {
                 // failed, try next flow type
-                if ((null != matrixError.mStatus) && (matrixError.mStatus == 401) && !stages.isEmpty()) {
+                if ((null != matrixError.mStatus) &&
+                        ((matrixError.mStatus == 401) || TextUtils.equals(matrixError.errcode, MatrixError.FORBIDDEN))
+                        && !stages.isEmpty()) {
                     deleteDevice(deviceId, params, stages, callback);
                 } else {
                     if (null != callback) {
