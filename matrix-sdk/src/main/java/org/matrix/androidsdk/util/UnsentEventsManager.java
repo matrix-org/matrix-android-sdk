@@ -133,10 +133,8 @@ public class UnsentEventsManager {
                 }, delayMs);
                 return true;
 
-            } catch (OutOfMemoryError oom) {
-                Log.e(LOG_TAG, "## resendEventAfter failed " + oom.getMessage());
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## resendEventAfter failed " + e.getMessage());
+            } catch (Throwable t) {
+                Log.e(LOG_TAG, "## resendEventAfter failed " + t.getMessage());
             }
 
             return false;
