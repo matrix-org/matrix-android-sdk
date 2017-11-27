@@ -2460,6 +2460,8 @@ public class MXSession {
                     params.auth.user = mCredentials.userId;
                     params.auth.password = password;
 
+                    Log.d(LOG_TAG, "## deleteDevice() : supported stages " + stages);
+
                     deleteDevice(deviceId, params, stages, callback);
                 } else {
                     if (null != callback) {
@@ -2507,10 +2509,11 @@ public class MXSession {
 
             @Override
             public void onMatrixError(MatrixError matrixError) {
+                boolean has401Error = (null != matrixError.mStatus) && (matrixError.mStatus == 401);
+
                 // failed, try next flow type
-                if ((null != matrixError.mStatus) &&
-                        ((matrixError.mStatus == 401) || TextUtils.equals(matrixError.errcode, MatrixError.FORBIDDEN))
-                        && !stages.isEmpty()) {
+                if ((has401Error || TextUtils.equals(matrixError.errcode, MatrixError.FORBIDDEN))
+                    && !stages.isEmpty()) {
                     deleteDevice(deviceId, params, stages, callback);
                 } else {
                     if (null != callback) {
