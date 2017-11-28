@@ -36,17 +36,21 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
     }
 
     public void getAllBingRules(final ApiCallback<BingRulesResponse> callback) {
-        mApi.getAllBingRules(new Callback<BingRulesResponse>() {
-            @Override
-            public void success(BingRulesResponse bingRulesResponse, Response response) {
-                callback.onSuccess(bingRulesResponse);
-            }
+        try {
+            mApi.getAllBingRules(new Callback<BingRulesResponse>() {
+                @Override
+                public void success(BingRulesResponse bingRulesResponse, Response response) {
+                    callback.onSuccess(bingRulesResponse);
+                }
 
-            @Override
-            public void failure(RetrofitError error) {
-                callback.onUnexpectedError(error);
-            }
-        });
+                @Override
+                public void failure(RetrofitError error) {
+                    callback.onUnexpectedError(error);
+                }
+            });
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     public BingRulesResponse getAllBingRules() {
@@ -54,45 +58,56 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
     }
 
     public void updateEnableRuleStatus(String Kind, String ruleId, boolean status, final ApiCallback<Void> callback) {
-        mApi.updateEnableRuleStatus(Kind, ruleId, status, new Callback<Void>() {
-            @Override
-            public void success(Void voidObject, Response response) {
-                callback.onSuccess(voidObject);
-            }
+        try {
+            mApi.updateEnableRuleStatus(Kind, ruleId, status, new Callback<Void>() {
+                @Override
+                public void success(Void voidObject, Response response) {
+                    callback.onSuccess(voidObject);
+                }
 
-            @Override
-            public void failure(RetrofitError error) {
-                callback.onUnexpectedError(error);
-            }
-        });
+                @Override
+                public void failure(RetrofitError error) {
+                    callback.onUnexpectedError(error);
+                }
+            });
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     public void deleteRule(String Kind, String ruleId, final ApiCallback<Void> callback) {
-        mApi.deleteRule(Kind, ruleId, new Callback<Void>() {
-            @Override
-            public void success(Void voidObject, Response response) {
-                callback.onSuccess(voidObject);
-            }
+        try {
+            mApi.deleteRule(Kind, ruleId, new Callback<Void>() {
+                @Override
+                public void success(Void voidObject, Response response) {
+                    callback.onSuccess(voidObject);
+                }
 
-            @Override
-            public void failure(RetrofitError error) {
-                callback.onUnexpectedError(error);
-            }
-        });
+                @Override
+                public void failure(RetrofitError error) {
+                    callback.onUnexpectedError(error);
+                }
+            });
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     public void addRule(BingRule rule, final ApiCallback<Void> callback) {
-        mApi.addRule(rule.kind, rule.ruleId, rule, new Callback<Void>() {
-            @Override
-            public void success(Void voidObject, Response response) {
-                callback.onSuccess(voidObject);
-            }
+        try {
+            mApi.addRule(rule.kind, rule.ruleId, rule, new Callback<Void>() {
+                @Override
+                public void success(Void voidObject, Response response) {
+                    callback.onSuccess(voidObject);
+                }
 
-            @Override
-            public void failure(RetrofitError error) {
-                callback.onUnexpectedError(error);
-            }
-        });
+                @Override
+                public void failure(RetrofitError error) {
+                    callback.onUnexpectedError(error);
+                }
+            });
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
-
 }

@@ -64,6 +64,7 @@ import org.matrix.androidsdk.rest.model.Search.SearchResult;
 import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
+import org.matrix.androidsdk.view.AutoScrollDownListView;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -178,7 +179,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     private MatrixMessagesFragment mMatrixMessagesFragment;
     protected AbstractMessagesAdapter mAdapter;
-    public ListView mMessageListView;
+    public AutoScrollDownListView mMessageListView;
     protected Handler mUiHandler;
     protected MXSession mSession;
     protected String mMatrixId;
@@ -399,9 +400,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
             // store the current Y pos to jump to the right pos when backpaginating
             mFirstVisibleRowY = UNDEFINED_VIEW_Y_POS;
-            View v = mMessageListView.getChildAt(firstVisibleItem);
+            View v = mMessageListView.getChildAt((visibleItemCount == mMessageListView.getChildCount()) ? 0 : firstVisibleItem);
+
             if (null != v) {
-                mFirstVisibleRowY = v.getTop();
+               mFirstVisibleRowY = v.getTop();
             }
 
             if ((firstVisibleItem < 10) && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
@@ -464,7 +466,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         String roomId = args.getString(ARG_ROOM_ID);
 
         View v = inflater.inflate(args.getInt(ARG_LAYOUT_ID), container, false);
-        mMessageListView = ((ListView) v.findViewById(R.id.listView_messages));
+        mMessageListView = v.findViewById(R.id.listView_messages);
         mIsScrollListenerSet = false;
 
         if (mAdapter == null) {
@@ -1406,9 +1408,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 // retrieve
                 if (0 != count) {
-                    mAdapter.notifyDataSetChanged();
                     // trick to avoid that the list jump to the latest item.
-                    mMessageListView.setAdapter(mMessageListView.getAdapter());
+                    mMessageListView.lockSelectionOnResize();
+                    mAdapter.notifyDataSetChanged();
 
                     // keep the first position while refreshing the list
                     mMessageListView.setSelection(firstPos);
@@ -1524,21 +1526,18 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                         mLockFwdPagination = true;
 
                         final int countDiff = mAdapter.getCount() - countBeforeUpdate;
+                        final int firstVisiblePosition = mMessageListView.getFirstVisiblePosition();
 
                         Log.d(LOG_TAG, "backPaginate : ends with " + countDiff + " new items (total : " + mAdapter.getCount() + ")");
 
                         // check if some messages have been added
                         if (0 != countDiff) {
-                            mAdapter.notifyDataSetChanged();
-
                             // trick to avoid that the list jump to the latest item.
-                            mMessageListView.setAdapter(mMessageListView.getAdapter());
+                            mMessageListView.lockSelectionOnResize();
+                            mAdapter.notifyDataSetChanged();
+                            final int expectedPos = fillHistory ? (mAdapter.getCount() - 1) : (firstVisiblePosition + countDiff);
 
-                            final int expectedPos = fillHistory ? (mAdapter.getCount() - 1) : (mMessageListView.getFirstVisiblePosition() + countDiff);
-
-                            Log.d(LOG_TAG, "backPaginate : jump to " + expectedPos);
-
-                            //private int mFirstVisibleRowY  = INVALID_VIEW_Y_POS;
+                            Log.d(LOG_TAG, "backPaginate : expect to jump to " + expectedPos);
 
                             if (fillHistory || (UNDEFINED_VIEW_Y_POS == mFirstVisibleRowY)) {
                                 // do not use count because some messages are not displayed
@@ -1547,6 +1546,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             } else {
                                 mMessageListView.setSelectionFromTop(expectedPos, -mFirstVisibleRowY);
                             }
+
+                            mMessageListView.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Log.d(LOG_TAG, "backPaginate : jump to " + mMessageListView.getFirstVisiblePosition());
+                                }
+                            });
                         }
 
                         // Test if a back pagination can be done.
@@ -1755,7 +1761,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     @Override
-    public void onEventSent(Event event, String prevEventId) {
+    public void onEventSent(final Event event, final String prevEventId) {
         // detect if a message was sent but not yet added to the adapter
         // For example, the quick reply does not use the fragment to send messages
         // Thus, the messages are not added to the adapter.
@@ -1779,6 +1785,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     // Inform adapter of the new read marker position
                     mAdapter.updateReadMarker(event.eventId, readReceiptEventId);
                 }
+            }
+        } else {
+            MessageRow row = mAdapter.getMessageRow(prevEventId);
+            if (null != row) {
+                mAdapter.remove(row);
             }
         }
     }
@@ -1957,6 +1968,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     if (closestRowBefore != null) {
                         mAdapter.updateReadMarker(closestRowBefore.getEvent().eventId, null);
                     }
+
                     mAdapter.notifyDataSetChanged();
                     mMessageListView.setAdapter(mAdapter);
 
@@ -1971,7 +1983,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     }
 
                     mAdapter.notifyDataSetChanged();
-
                     mMessageListView.setAdapter(mAdapter);
 
                     // center the message
@@ -2071,9 +2082,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             public void run() {
                                 final int expectedFirstPos = firstPos + (mAdapter.getCount() - countBeforeUpdate);
 
-                                mAdapter.notifyDataSetChanged();
                                 // trick to avoid that the list jump to the latest item.
-                                mMessageListView.setAdapter(mMessageListView.getAdapter());
+                                mMessageListView.lockSelectionOnResize();
+                                mAdapter.notifyDataSetChanged();
 
                                 // do not use count because some messages are not displayed
                                 // so we compute the new pos

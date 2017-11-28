@@ -609,26 +609,26 @@ public class MXDataHandler implements IMXEventListener {
             return;
         }
 
-        if (mStore.isPermanent()) {
-            // When the data are extracted from a persistent storage,
-            // some fields are not retrieved :
-            // They are used to retrieve some data
-            // so add the missing links.
+        // When the data are extracted from a persistent storage,
+        // some fields are not retrieved :
+        // They are used to retrieve some data
+        // so add the missing links.
 
-            Collection<Room> rooms = mStore.getRooms();
+        Collection<Room> rooms = mStore.getRooms();
 
-            for (Room room : rooms) {
-                room.init(mStore, room.getRoomId(), this);
-            }
+        for (Room room : rooms) {
+            room.init(mStore, room.getRoomId(), this);
+        }
 
-            Collection<RoomSummary> summaries = mStore.getSummaries();
-            for (RoomSummary summary : summaries) {
-                if (null != summary.getLatestRoomState()) {
-                    summary.getLatestRoomState().setDataHandler(this);
-                }
+        Collection<RoomSummary> summaries = mStore.getSummaries();
+        for (RoomSummary summary : summaries) {
+            if (null != summary.getLatestRoomState()) {
+                summary.getLatestRoomState().setDataHandler(this);
             }
         }
     }
+
+
 
     /**
      * @return the used store.
@@ -1353,33 +1353,26 @@ public class MXDataHandler implements IMXEventListener {
                     isEmptyResponse = false;
 
                     if (hasChanged) {
-                        // Upload the updated direct chats dictionary.
-                        HashMap<String, Object> requestParams = new HashMap<>();
-                        Collection<String> userIds = updatedDirectChatRoomsDict.keySet();
-
-                        for (String userId : userIds) {
-                            requestParams.put(userId, updatedDirectChatRoomsDict.get(userId));
-                        }
-
-                        mAccountDataRestClient.setAccountData(mCredentials.userId, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, requestParams, new ApiCallback<Void>() {
+                        mAccountDataRestClient.setAccountData(mCredentials.userId, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, updatedDirectChatRoomsDict, new ApiCallback<Void>() {
                             @Override
                             public void onSuccess(Void info) {
+                                Log.d(LOG_TAG, "## manageResponse() : succeeds");
                             }
 
                             @Override
                             public void onNetworkError(Exception e) {
-                                Log.d(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
+                                Log.e(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
                                 // TODO: we should try again.
                             }
 
                             @Override
                             public void onMatrixError(MatrixError e) {
-                                Log.d(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
+                                Log.e(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
                             }
 
                             @Override
                             public void onUnexpectedError(Exception e) {
-                                Log.d(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
+                                Log.e(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
                             }
                         });
                     }

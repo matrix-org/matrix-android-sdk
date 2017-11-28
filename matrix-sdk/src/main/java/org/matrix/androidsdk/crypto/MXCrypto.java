@@ -2362,7 +2362,6 @@ public class MXCrypto {
         return alg;
     }
 
-
     /**
      * Export the crypto keys
      *
@@ -2370,6 +2369,19 @@ public class MXCrypto {
      * @param callback the exported keys
      */
     public void exportRoomKeys(final String password, final ApiCallback<byte[]> callback) {
+        exportRoomKeys(password, MXMegolmExportEncryption.DEFAULT_ITERATION_COUNT, callback);
+    }
+
+    /**
+     * Export the crypto keys
+     *
+     * @param password         the password
+     * @param anIterationCount the encryption iteration count (0 means no encryption)
+     * @param callback         the exported keys
+     */
+    public void exportRoomKeys(final String password, int anIterationCount, final ApiCallback<byte[]> callback) {
+        final int iterationCount = Math.max(0, anIterationCount);
+
         getDecryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
@@ -2398,8 +2410,7 @@ public class MXCrypto {
                 final byte[] encryptedRoomKeys;
 
                 try {
-                    String allo = JsonUtils.getGson(false).toJsonTree(exportedSessions).toString();
-                    encryptedRoomKeys = MXMegolmExportEncryption.encryptMegolmKeyFile(allo, password);
+                    encryptedRoomKeys = MXMegolmExportEncryption.encryptMegolmKeyFile(JsonUtils.getGson(false).toJsonTree(exportedSessions).toString(), password, iterationCount);
                 } catch (Exception e) {
                     callback.onUnexpectedError(e);
                     return;

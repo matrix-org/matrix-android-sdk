@@ -52,17 +52,21 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
      * @param callback the 3rd party callback
      */
     public void lookup3Pid(String address, String medium, final ApiCallback<String> callback) {
-        mApi.lookup3Pid(address, medium, new Callback<PidResponse>() {
-            @Override
-            public void success(PidResponse pidResponse, Response response) {
-                callback.onSuccess((null == pidResponse.mxid) ? "" : pidResponse.mxid);
-            }
+        try {
+            mApi.lookup3Pid(address, medium, new Callback<PidResponse>() {
+                @Override
+                public void success(PidResponse pidResponse, Response response) {
+                    callback.onSuccess((null == pidResponse.mxid) ? "" : pidResponse.mxid);
+                }
 
-            @Override
-            public void failure(RetrofitError error) {
-                callback.onUnexpectedError(error);
-            }
-        });
+                @Override
+                public void failure(RetrofitError error) {
+                    callback.onUnexpectedError(error);
+                }
+            });
+        }  catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     /**
@@ -75,22 +79,25 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
      * @param callback asynchronous callback response
      */
     public void submitValidationToken(final String medium, final String token, final String clientSecret, final String sid, final ApiCallback<Boolean> callback) {
-
-        mApi.requestOwnershipValidation(medium, token, clientSecret, sid, new Callback<Map<String,Object>> () {
-            @Override
-            public void success (Map<String,Object> aDataRespMap, Response response){
-                if (aDataRespMap.containsKey(KEY_SUBMIT_TOKEN_SUCCESS)) {
-                    callback.onSuccess((Boolean) aDataRespMap.get(KEY_SUBMIT_TOKEN_SUCCESS));
-                } else {
-                    callback.onSuccess(false);
+        try {
+            mApi.requestOwnershipValidation(medium, token, clientSecret, sid, new Callback<Map<String, Object>>() {
+                @Override
+                public void success(Map<String, Object> aDataRespMap, Response response) {
+                    if (aDataRespMap.containsKey(KEY_SUBMIT_TOKEN_SUCCESS)) {
+                        callback.onSuccess((Boolean) aDataRespMap.get(KEY_SUBMIT_TOKEN_SUCCESS));
+                    } else {
+                        callback.onSuccess(false);
+                    }
                 }
-            }
 
-            @Override
-            public void failure (RetrofitError error){
-                callback.onUnexpectedError(error);
-            }
-        });
+                @Override
+                public void failure(RetrofitError error) {
+                    callback.onUnexpectedError(error);
+                }
+            });
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     /**
@@ -122,38 +129,42 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
 
         threePidsParams.threepids = list;
 
-        mApi.bulkLookup(threePidsParams, new Callback<BulkLookupResponse>() {
-            @Override
-            public void success(BulkLookupResponse bulkLookupResponse, Response response) {
-                HashMap<String, String> mxidByAddress = new HashMap<>();
+        try {
+            mApi.bulkLookup(threePidsParams, new Callback<BulkLookupResponse>() {
+                @Override
+                public void success(BulkLookupResponse bulkLookupResponse, Response response) {
+                    HashMap<String, String> mxidByAddress = new HashMap<>();
 
-                if (null != bulkLookupResponse.threepids) {
-                    for (int i = 0; i < bulkLookupResponse.threepids.size(); i++) {
-                        List<String> items = bulkLookupResponse.threepids.get(i);
-                        // [0] : medium
-                        // [1] : address
-                        // [2] : matrix id
-                        mxidByAddress.put(items.get(1), items.get(2));
+                    if (null != bulkLookupResponse.threepids) {
+                        for (int i = 0; i < bulkLookupResponse.threepids.size(); i++) {
+                            List<String> items = bulkLookupResponse.threepids.get(i);
+                            // [0] : medium
+                            // [1] : address
+                            // [2] : matrix id
+                            mxidByAddress.put(items.get(1), items.get(2));
+                        }
                     }
+
+                    ArrayList<String> matrixIds = new ArrayList<>();
+
+                    for (String address : addresses) {
+                        if (mxidByAddress.containsKey(address)) {
+                            matrixIds.add(mxidByAddress.get(address));
+                        } else {
+                            matrixIds.add("");
+                        }
+                    }
+
+                    callback.onSuccess(matrixIds);
                 }
 
-                ArrayList<String> matrixIds = new ArrayList<>();
-
-                for(String address : addresses) {
-                    if (mxidByAddress.containsKey(address)) {
-                        matrixIds.add(mxidByAddress.get(address));
-                    } else {
-                        matrixIds.add("");
-                    }
+                @Override
+                public void failure(RetrofitError error) {
+                    callback.onUnexpectedError(error);
                 }
-
-                callback.onSuccess(matrixIds);
-            }
-
-            @Override
-            public void failure(RetrofitError error) {
-                callback.onUnexpectedError(error);
-            }
-        });
+            });
+        }  catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 }

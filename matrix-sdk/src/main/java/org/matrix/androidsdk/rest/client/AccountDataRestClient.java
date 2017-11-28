@@ -51,17 +51,21 @@ public class AccountDataRestClient extends RestClient<AccountDataApi> {
      * @param params   the put params.
      * @param callback the asynchronous callback called when finished
      */
-    public void setAccountData(final String userId, final String type, final Map<String, Object> params, final ApiCallback<Void> callback) {
+    public void setAccountData(final String userId, final String type, final Object params, final ApiCallback<Void> callback) {
         // privacy
         //final String description = "setAccountData userId : " + userId + " type " + type + " params " + params;
         final String description = "setAccountData userId : " + userId + " type " + type;
 
-        mApi.setAccountData(userId, type, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                setAccountData(userId, type, params, callback);
-            }
-        }));
+        try {
+            mApi.setAccountData(userId, type, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    setAccountData(userId, type, params, callback);
+                }
+            }));
+        } catch (Throwable e) {
+            callback.onUnexpectedError(new Exception(e));
+        }
     }
 
     /**
@@ -75,11 +79,15 @@ public class AccountDataRestClient extends RestClient<AccountDataApi> {
     public void openIdToken(final String userId, final ApiCallback<Map<Object, Object>> callback) {
         final String description = "openIdToken userId : " + userId;
 
-        mApi.openIdToken(userId, new HashMap<>(), new RestAdapterCallback<Map<Object, Object>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                openIdToken(userId, callback);
-            }
-        }));
+        try {
+            mApi.openIdToken(userId, new HashMap<>(), new RestAdapterCallback<Map<Object, Object>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    openIdToken(userId, callback);
+                }
+            }));
+        } catch (Throwable e) {
+            callback.onUnexpectedError(new Exception(e));
+        }
     }
 }

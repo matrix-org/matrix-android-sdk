@@ -135,7 +135,7 @@ public class IconAndTextDialogFragment extends DialogFragment {
      * @param v the dialog view.
      */
     void initView(View v) {
-        mListView = ((ListView) v.findViewById(R.id.listView_icon_and_text));
+        mListView = v.findViewById(R.id.listView_icon_and_text);
         IconAndTextAdapter adapter = new IconAndTextAdapter(getActivity(), R.layout.adapter_item_icon_and_text);
 
         for (int index = 0; index < mIconResourcesList.size(); index++) {

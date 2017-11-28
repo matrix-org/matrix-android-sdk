@@ -37,6 +37,7 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.CallRestClient;
+import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.MatrixError;
@@ -1095,9 +1096,9 @@ public class MXCallsManager {
         } else {
             Log.d(LOG_TAG, "getConferenceUserRoom : create the room");
 
-            HashMap<String, Object> params = new HashMap<>();
-            params.put("preset", "private_chat");
-            params.put("invite", Arrays.asList(conferenceUserId));
+            CreateRoomParams params = new CreateRoomParams();
+            params.preset = CreateRoomParams.PRESET_PRIVATE_CHAT;
+            params.invite = Arrays.asList(conferenceUserId);
 
             mSession.createRoom(params, new ApiCallback<String>() {
                 @Override

@@ -2,8 +2,8 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion '25.0.2'
+    compileSdkVersion 26
+    buildToolsVersion '26.0.2'
 
     packagingOptions {
         exclude 'LICENSE.txt'
@@ -14,11 +14,11 @@ android {
 
     defaultConfig {
         minSdkVersion 16
-        targetSdkVersion 25
+        targetSdkVersion 26
         // use version to define a version code.
-        versionCode 804
-        version "0.8.04"
-        versionName "0.8.04"
+        versionCode 805
+        version "0.8.05"
+        versionName "0.8.05"
         resValue "string", "flavor_description", "SDKApp"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
      }
@@ -115,7 +115,7 @@ def gitRevisionDate() {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:25.3.1'
+    compile 'com.android.support:appcompat-v7:26.+'
     compile 'com.squareup.retrofit:retrofit:1.6.1'
     compile 'com.google.code.gson:gson:2.3'
     compile 'com.squareup.okhttp:okhttp-urlconnection:2.2.0'

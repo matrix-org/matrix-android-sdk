@@ -1,3 +1,17 @@
+Changes to Matrix Android SDK in 0.8.05 (2017-11-28)
+=======================================================
+
+Improvements:
+
+* Improve the room creation methods.
+
+Bugfixes:
+
+* Fix many issues reported by google analytics.
+* #1700 : Jump to first unread message didn't jump anywhere, just stayed at the same position where it was before, although there are more unread messages.
+* #1722 : duplicated messages in history 
+* #1756 : Scrolling breaks badly if there is some server lag
+
 Changes to Matrix Android SDK in 0.8.04 (2017-11-15)
 =======================================================
 

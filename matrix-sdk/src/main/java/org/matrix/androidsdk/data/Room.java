@@ -168,6 +168,16 @@ public class Room {
      * @return the store in which the room is stored
      */
     public IMXStore getStore() {
+        if (null == mStore) {
+            if (null != mDataHandler) {
+                mStore = mDataHandler.getStore(getRoomId());
+            }
+
+            if (null == mStore) {
+                Log.e(LOG_TAG, "## getStore() : cannot retrieve the store of " + getRoomId());
+            }
+        }
+
         return mStore;
     }
 
@@ -699,7 +709,7 @@ public class Room {
                 if (MatrixError.UNKNOWN.equals(e.errcode) && TextUtils.equals("No known servers", e.error)) {
                     // minging kludge until https://matrix.org/jira/browse/SYN-678 is fixed
                     // 'Error when trying to join an empty room should be more explicit
-                    e.error = mStore.getContext().getString(org.matrix.androidsdk.R.string.room_error_join_failed_empty_room);
+                    e.error = getStore().getContext().getString(org.matrix.androidsdk.R.string.room_error_join_failed_empty_room);
                 }
 
                 // if the alias is not found
@@ -759,7 +769,7 @@ public class Room {
 
         @Override
         public void onSuccess(T info) {
-            mStore.storeLiveStateForRoom(getRoomId());
+            getStore().storeLiveStateForRoom(getRoomId());
 
             if (null != mCallback) {
                 mCallback.onSuccess(info);
@@ -1118,18 +1128,18 @@ public class Room {
      * @return true if there a store update.
      */
     public boolean handleReceiptData(ReceiptData receiptData) {
-        if (!TextUtils.equals(receiptData.userId, getCallConferenceUserId())) {
-            boolean isUpdated = mStore.storeReceipt(receiptData, getRoomId());
+        if (!TextUtils.equals(receiptData.userId, getCallConferenceUserId()) && (null != getStore())) {
+            boolean isUpdated = getStore().storeReceipt(receiptData, getRoomId());
 
             // check oneself receipts
             // if there is an update, it means that the messages have been read from another client
             // it requires to update the summary to display valid information.
             if (isUpdated && TextUtils.equals(mMyUserId, receiptData.userId)) {
-                RoomSummary summary = mStore.getSummary(getRoomId());
+                RoomSummary summary = getStore().getSummary(getRoomId());
 
                 if (null != summary) {
                     summary.setReadReceiptEventId(receiptData.eventId);
-                    mStore.flushSummary(summary);
+                    getStore().flushSummary(summary);
                 }
 
                 refreshUnreadCounter();
@@ -1203,24 +1213,31 @@ public class Room {
         // reset the notification count
         getLiveState().setHighlightCount(0);
         getLiveState().setNotificationCount(0);
-        mStore.storeLiveStateForRoom(getRoomId());
 
-        // flush the summary
-        if (null != summary) {
-            summary.setUnreadEventsCount(0);
-            summary.setHighlightCount(0);
-            summary.setNotificationCount(0);
-            mStore.flushSummary(summary);
+        if (null != getStore()) {
+            getStore().storeLiveStateForRoom(getRoomId());
+
+            // flush the summary
+            if (null != summary) {
+                summary.setUnreadEventsCount(0);
+                summary.setHighlightCount(0);
+                summary.setNotificationCount(0);
+                getStore().flushSummary(summary);
+            }
+
+            getStore().commit();
         }
-
-        mStore.commit();
     }
 
     /**
      * @return the read marker event id
      */
     public String getReadMarkerEventId() {
-        RoomSummary summary = mStore.getSummary(getRoomId());
+        if (null == getStore()) {
+            return null;
+        }
+
+        RoomSummary summary = getStore().getSummary(getRoomId());
 
         if (null != summary) {
             return (null != summary.getReadMarkerEventId()) ? summary.getReadMarkerEventId() : summary.getReadReceiptEventId();
@@ -1249,11 +1266,11 @@ public class Room {
      * @return true if the request is sent, false otherwise
      */
     private boolean markAllAsRead(boolean updateReadMarker, final ApiCallback<Void> aRespCallback) {
-        final Event lastEvent = mStore.getLatestEvent(getRoomId());
+        final Event lastEvent = (null != getStore()) ? getStore().getLatestEvent(getRoomId()) : null;
         boolean res = sendReadMarkers(updateReadMarker ? ((null != lastEvent) ? lastEvent.eventId : null) : getReadMarkerEventId(), null, aRespCallback);
 
         if (!res) {
-            RoomSummary summary = mDataHandler.getStore().getSummary(getRoomId());
+            RoomSummary summary = (null != getStore()) ? getStore().getSummary(getRoomId()) : null;
 
             if (null != summary) {
                 if ((0 != summary.getUnreadEventsCount()) ||
@@ -1261,7 +1278,7 @@ public class Room {
                         (0 != summary.getNotificationCount())) {
                     Log.e(LOG_TAG, "## markAllAsRead() : the summary events counters should be cleared for " + getRoomId() + " should have been cleared");
 
-                    Event latestEvent = mDataHandler.getStore().getLatestEvent(getRoomId());
+                    Event latestEvent = getStore().getLatestEvent(getRoomId());
                     summary.setLatestReceivedEvent(latestEvent);
 
                     if (null != latestEvent) {
@@ -1273,7 +1290,7 @@ public class Room {
                     summary.setUnreadEventsCount(0);
                     summary.setHighlightCount(0);
                     summary.setNotificationCount(0);
-                    mDataHandler.getStore().flushSummary(summary);
+                    getStore().flushSummary(summary);
                 }
             } else {
                 Log.e(LOG_TAG, "## sendReadReceipt() : no summary for " + getRoomId());
@@ -1285,7 +1302,9 @@ public class Room {
                 getLiveState().setNotificationCount(0);
                 getLiveState().setHighlightCount(0);
 
-                mDataHandler.getStore().storeLiveStateForRoom(getRoomId());
+                if (null != getStore()) {
+                    getStore().storeLiveStateForRoom(getRoomId());
+                }
             }
         }
 
@@ -1298,7 +1317,7 @@ public class Room {
      * @param readMarkerEventId the read marker even id
      */
     public void setReadMakerEventId(final String readMarkerEventId) {
-        RoomSummary summary = mStore.getSummary(getRoomId());
+        RoomSummary summary = (null != getStore()) ? getStore().getSummary(getRoomId()) : null;
         if (summary != null && !readMarkerEventId.equals(summary.getReadMarkerEventId())) {
             sendReadMarkers(readMarkerEventId, summary.getReadReceiptEventId(), null);
         }
@@ -1331,12 +1350,15 @@ public class Room {
      * @param callback the asynchronous callback
      */
     public void forgetReadMarker(final ApiCallback<Void> callback) {
-        final RoomSummary summary = mStore.getSummary(getRoomId());
-        final String currentReadReceipt = summary.getReadReceiptEventId();
+        final RoomSummary summary = (null != getStore()) ? getStore().getSummary(getRoomId()) : null;
+        final String currentReadReceipt = (null != summary) ? summary.getReadReceiptEventId() : null;
 
-        Log.d(LOG_TAG, "## forgetReadMarker() : update the read marker to " + currentReadReceipt + " in room " + getRoomId());
-        summary.setReadMarkerEventId(currentReadReceipt);
-        mStore.flushSummary(summary);
+        if (null != summary) {
+            Log.d(LOG_TAG, "## forgetReadMarker() : update the read marker to " + currentReadReceipt + " in room " + getRoomId());
+            summary.setReadMarkerEventId(currentReadReceipt);
+            getStore().flushSummary(summary);
+        }
+
         setReadMarkers(currentReadReceipt, currentReadReceipt, callback);
     }
 
@@ -1349,7 +1371,7 @@ public class Room {
      * @return true if the request is sent, false otherwise
      */
     public boolean sendReadMarkers(final String aReadMarkerEventId, final String aReadReceiptEventId, final ApiCallback<Void> aRespCallback) {
-        final Event lastEvent = mStore.getLatestEvent(getRoomId());
+        final Event lastEvent = (null != getStore()) ? getStore().getLatestEvent(getRoomId()) : null;
 
         // reported by GA
         if (null == lastEvent) {
@@ -1369,17 +1391,17 @@ public class Room {
                 readMarkerEventId = null;
             } else {
                 // Check if the read marker is updated
-                RoomSummary summary = mStore.getSummary(getRoomId());
+                RoomSummary summary = getStore().getSummary(getRoomId());
                 if ((null != summary) && !TextUtils.equals(readMarkerEventId, summary.getReadMarkerEventId())) {
                     // Make sure the new read marker event is newer than the current one
-                    final Event newReadMarkerEvent = mStore.getEvent(readMarkerEventId, getRoomId());
-                    final Event currentReadMarkerEvent = mStore.getEvent(summary.getReadMarkerEventId(), getRoomId());
+                    final Event newReadMarkerEvent = getStore().getEvent(readMarkerEventId, getRoomId());
+                    final Event currentReadMarkerEvent = getStore().getEvent(summary.getReadMarkerEventId(), getRoomId());
                     if (newReadMarkerEvent == null || currentReadMarkerEvent == null
                             || newReadMarkerEvent.getOriginServerTs() > currentReadMarkerEvent.getOriginServerTs()) {
                         // Event is not in store (assume it is in the past), or is older than current one
                         Log.d(LOG_TAG, "## sendReadMarkers(): set new read marker event id " + readMarkerEventId + " in room " + getRoomId());
                         summary.setReadMarkerEventId(readMarkerEventId);
-                        mStore.flushSummary(summary);
+                        getStore().flushSummary(summary);
                         hasUpdate = true;
                     }
                 }
@@ -1388,7 +1410,7 @@ public class Room {
 
         final String readReceiptEventId = (null == aReadReceiptEventId) ? lastEvent.eventId : aReadReceiptEventId;
         // check if the read receipt event id is already read
-        if (!getDataHandler().getStore().isEventRead(getRoomId(), getDataHandler().getUserId(), readReceiptEventId)) {
+        if ((null != getStore()) && !getStore().isEventRead(getRoomId(), getDataHandler().getUserId(), readReceiptEventId)) {
             // check if the event id update is allowed
             if (handleReceiptData(new ReceiptData(mMyUserId, readReceiptEventId, System.currentTimeMillis()))) {
                 // Clear the unread counters if the latest message is displayed
@@ -1399,7 +1421,7 @@ public class Room {
                 // The read receipts will be sent later
                 // (asap there is a valid network connection)
                 if (TextUtils.equals(lastEvent.eventId, readReceiptEventId)) {
-                    clearUnreadCounters(mStore.getSummary(getRoomId()));
+                    clearUnreadCounters(getStore().getSummary(getRoomId()));
                 }
                 hasUpdate = true;
             }
@@ -1476,7 +1498,11 @@ public class Room {
      * @return true if the message has been read
      */
     public boolean isEventRead(String eventId) {
-        return mStore.isEventRead(getRoomId(), mMyUserId, eventId);
+        if (null != getStore()) {
+            return getStore().isEventRead(getRoomId(), mMyUserId, eventId);
+        } else {
+            return false;
+        }
     }
 
     //================================================================================
@@ -1503,15 +1529,15 @@ public class Room {
     public void refreshUnreadCounter() {
         // avoid refreshing the unread counter while processing a bunch of messages.
         if (!mIsSyncing) {
-            RoomSummary summary = mStore.getSummary(getRoomId());
+            RoomSummary summary = (null != getStore()) ? getStore().getSummary(getRoomId()) : null;
 
             if (null != summary) {
                 int prevValue = summary.getUnreadEventsCount();
-                int newValue = mStore.eventsCountAfter(getRoomId(), summary.getReadReceiptEventId());
+                int newValue = getStore().eventsCountAfter(getRoomId(), summary.getReadReceiptEventId());
 
                 if (prevValue != newValue) {
                     summary.setUnreadEventsCount(newValue);
-                    mStore.flushSummary(summary);
+                    getStore().flushSummary(summary);
                 }
             }
         } else {
@@ -1847,7 +1873,7 @@ public class Room {
                 String eventType = accountDataEvent.getType();
 
                 if (eventType.equals(Event.EVENT_TYPE_READ_MARKER)) {
-                    RoomSummary summary = mStore.getSummary(getRoomId());
+                    RoomSummary summary = (null != getStore()) ? getStore().getSummary(getRoomId()) : null;
 
                     if (null != summary) {
                         Event event = JsonUtils.toEvent(accountDataEvent.getContent());
@@ -1861,7 +1887,7 @@ public class Room {
 
                             summary.setReadMarkerEventId(event.eventId);
 
-                            mStore.flushSummary(summary);
+                            getStore().flushSummary(summary);
                             mDataHandler.onReadMarkerEvent(getRoomId());
                         }
                     }
@@ -1878,7 +1904,9 @@ public class Room {
                 }
             }
 
-            mStore.storeAccountData(getRoomId(), mAccountData);
+            if (null != getStore()) {
+                getStore().storeAccountData(getRoomId(), mAccountData);
+            }
         }
     }
 
@@ -2224,8 +2252,10 @@ public class Room {
         final ApiCallback<Event> localCB = new ApiCallback<Event>() {
             @Override
             public void onSuccess(final Event serverResponseEvent) {
-                // remove the tmp event
-                mStore.deleteEvent(event);
+                if (null != getStore()) {
+                    // remove the tmp event
+                    getStore().deleteEvent(event);
+                }
 
                 // replace the tmp event id by the final one
                 boolean isReadMarkerUpdated = TextUtils.equals(getReadMarkerEventId(), event.eventId);
@@ -2236,14 +2266,16 @@ public class Room {
                 mDataHandler.updateEventState(event, Event.SentState.SENT);
 
                 // the message echo is not yet echoed
-                if (!mStore.doesEventExist(serverResponseEvent.eventId, getRoomId())) {
-                    mStore.storeLiveRoomEvent(event);
+                if ((null != getStore()) && !getStore().doesEventExist(serverResponseEvent.eventId, getRoomId())) {
+                    getStore().storeLiveRoomEvent(event);
                 }
 
                 // send the dedicated read receipt asap
                 markAllAsRead(isReadMarkerUpdated, null);
 
-                mStore.commit();
+                if (null != getStore()) {
+                    getStore().commit();
+                }
                 mDataHandler.onEventSent(event, prevEventId);
 
                 try {
@@ -2394,15 +2426,15 @@ public class Room {
         mDataHandler.getDataRetriever().getRoomsRestClient().redactEvent(getRoomId(), eventId, new ApiCallback<Event>() {
             @Override
             public void onSuccess(Event event) {
-                Event redactedEvent = mStore.getEvent(eventId, getRoomId());
+                Event redactedEvent = (null != getStore()) ? getStore().getEvent(eventId, getRoomId()) : null;
 
                 // test if the redacted event has been echoed
                 // it it was not echoed, the event must be pruned to remove useless data
                 // the room summary will be updated when the server will echo the redacted event
                 if ((null != redactedEvent) && ((null == redactedEvent.unsigned) || (null == redactedEvent.unsigned.redacted_because))) {
                     redactedEvent.prune(null);
-                    mStore.storeLiveRoomEvent(redactedEvent);
-                    mStore.commit();
+                    getStore().storeLiveRoomEvent(redactedEvent);
+                    getStore().commit();
                 }
 
                 if (null != callback) {
@@ -2555,8 +2587,11 @@ public class Room {
 
                     // delete references to the room
                     mDataHandler.deleteRoom(getRoomId());
-                    Log.d(LOG_TAG, "leave : commit");
-                    mStore.commit();
+
+                    if (null != getStore()) {
+                        Log.d(LOG_TAG, "leave : commit");
+                        getStore().commit();
+                    }
 
                     try {
                         callback.onSuccess(info);
@@ -2630,7 +2665,7 @@ public class Room {
 
                     if (null != store) {
                         store.deleteRoom(getRoomId());
-                        mStore.commit();
+                        store.commit();
                     }
 
                     try {
@@ -2802,7 +2837,7 @@ public class Room {
      */
     private void initRoomDataItemsSender() {
         if (null == mRoomMediaMessagesSender) {
-            mRoomMediaMessagesSender = new RoomMediaMessagesSender(mDataHandler.getStore().getContext(), mDataHandler, this);
+            mRoomMediaMessagesSender = new RoomMediaMessagesSender(getStore().getContext(), mDataHandler, this);
         }
     }
 
@@ -2877,15 +2912,17 @@ public class Room {
     public List<Event> getUnsentEvents() {
         List<Event> unsent = new ArrayList<>();
 
-        List<Event> undeliverableEvents = mDataHandler.getStore().getUndeliverableEvents(getRoomId());
-        List<Event> unknownDeviceEvents = mDataHandler.getStore().getUnknownDeviceEvents(getRoomId());
+        if (null != getStore()) {
+            List<Event> undeliverableEvents = getStore().getUndeliverableEvents(getRoomId());
+            List<Event> unknownDeviceEvents = getStore().getUnknownDeviceEvents(getRoomId());
 
-        if (null != undeliverableEvents) {
-            unsent.addAll(undeliverableEvents);
-        }
+            if (null != undeliverableEvents) {
+                unsent.addAll(undeliverableEvents);
+            }
 
-        if (null != unknownDeviceEvents) {
-            unsent.addAll(unknownDeviceEvents);
+            if (null != unknownDeviceEvents) {
+                unsent.addAll(unknownDeviceEvents);
+            }
         }
 
         return unsent;
@@ -2897,21 +2934,19 @@ public class Room {
      * @param events the events list
      */
     public void deleteEvents(List<Event> events) {
-        if ((null != events) && events.size() > 0) {
-            IMXStore store = mDataHandler.getStore();
-
+        if ((null != getStore()) && (null != events) && events.size() > 0) {
             // reset the timestamp
             for (Event event : events) {
-                store.deleteEvent(event);
+                getStore().deleteEvent(event);
             }
 
             // update the summary
-            Event latestEvent = store.getLatestEvent(getRoomId());
+            Event latestEvent = getStore().getLatestEvent(getRoomId());
 
             // if there is an oldest event, use it to set a summary
             if (latestEvent != null) {
                 if (RoomSummary.isSupportedEvent(latestEvent)) {
-                    RoomSummary summary = store.getSummary(getRoomId());
+                    RoomSummary summary = getStore().getSummary(getRoomId());
 
                     if (null != summary) {
                         summary.setLatestReceivedEvent(latestEvent, getState());
@@ -2919,11 +2954,11 @@ public class Room {
                         summary = new RoomSummary(null, latestEvent, getState(), mDataHandler.getUserId());
                     }
 
-                    store.storeSummary(summary);
+                    getStore().storeSummary(summary);
                 }
             }
 
-            store.commit();
+            getStore().commit();
         }
     }
 }

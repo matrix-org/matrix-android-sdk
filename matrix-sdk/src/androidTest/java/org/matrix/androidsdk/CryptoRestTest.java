@@ -110,7 +110,7 @@ public class CryptoRestTest {
                 lock0.countDown();
             }
         });
-        lock0.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock0.await(1000, TimeUnit.MILLISECONDS);
 
         KeysUploadResponse keysUploadResponse = (KeysUploadResponse)results.get("keysUploadResponse");
 
@@ -144,7 +144,7 @@ public class CryptoRestTest {
             }
         });
 
-        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock1.await(1000, TimeUnit.MILLISECONDS);
         KeysQueryResponse keysQueryResponse = (KeysQueryResponse)results.get("keysQueryResponse");
 
         assertTrue (null != keysQueryResponse);
@@ -202,7 +202,7 @@ public class CryptoRestTest {
                 lock1.countDown();
             }
         });
-        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock1.await(1000, TimeUnit.MILLISECONDS);
 
         KeysUploadResponse keysUploadResponse = (KeysUploadResponse)results.get("keysUploadResponse");
         assertTrue (null != keysUploadResponse);
@@ -275,7 +275,7 @@ public class CryptoRestTest {
             }
         });
 
-        lock1.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock1.await(1000, TimeUnit.MILLISECONDS);
 
         KeysUploadResponse bobKeysUploadResponse = (KeysUploadResponse)results.get("keysUploadResponse");
         assertTrue (null != bobKeysUploadResponse);
@@ -307,7 +307,7 @@ public class CryptoRestTest {
             }
         });
 
-        lock2.await(1000, TimeUnit.DAYS.MILLISECONDS);
+        lock2.await(1000, TimeUnit.MILLISECONDS);
 
         MXUsersDevicesMap<MXKey> oneTimeKeys = (MXUsersDevicesMap<MXKey>)results.get("usersDevicesMap");
         assertTrue (null != oneTimeKeys);

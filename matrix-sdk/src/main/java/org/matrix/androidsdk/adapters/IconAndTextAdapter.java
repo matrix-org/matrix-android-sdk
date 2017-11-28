@@ -99,14 +99,14 @@ public class IconAndTextAdapter extends ArrayAdapter<IconAndTextAdapter.Entry> {
         Entry entry = getItem(position);
 
         // text value
-        TextView textView = (TextView) convertView.findViewById(R.id.textView_icon_and_text);
+        TextView textView = convertView.findViewById(R.id.textView_icon_and_text);
         textView.setText(mContext.getString(entry.mTextResId));
 
         if (null != mTextColor) {
             textView.setTextColor(mTextColor);
         }
 
-        ImageView imageView = (ImageView) convertView.findViewById(R.id.imageView_icon_and_text);
+        ImageView imageView = convertView.findViewById(R.id.imageView_icon_and_text);
         imageView.setImageResource(entry.mIconResId);
 
         if (null != mBackgroundColor) {
