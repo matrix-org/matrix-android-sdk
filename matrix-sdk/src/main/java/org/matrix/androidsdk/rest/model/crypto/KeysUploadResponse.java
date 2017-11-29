@@ -48,5 +48,15 @@ public class KeysUploadResponse {
 
         return res;
     }
+
+    /**
+     * Tells if there is a oneTimeKeys for a dedicated algorithm.
+     *
+     * @param algorithm the algorithm
+     * @return true if it is found
+     */
+    public boolean hasOneTimeKeyCountsForAlgorithm(String algorithm) {
+        return (null != oneTimeKeyCounts) && (null != algorithm) && oneTimeKeyCounts.containsKey(algorithm);
+    }
 }
 

@@ -53,4 +53,9 @@ public class SyncResponse implements java.io.Serializable {
      * Devices list update
      */
     public DeviceListResponse deviceLists;
+
+    /**
+     * One time keys management
+     */
+    public DeviceOneTimeKeysCountSyncResponse deviceOneTimeKeysCount;
 }
