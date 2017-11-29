@@ -93,16 +93,6 @@ public interface IMXCryptoStore {
     OlmAccount getAccount();
 
     /**
-     * Store a flag indicating that we have announced the new device.
-     */
-    void storeDeviceAnnounced();
-
-    /**
-     * @return the "device announced" flag is set.
-     */
-    boolean deviceAnnounced();
-
-    /**
      * Store a device for a user.
      *
      * @param userId The user's id.

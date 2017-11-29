@@ -277,10 +277,12 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     && (null != mCredentials.userId)
                     && (null != mCredentials.accessToken)) {
                 mMetaData = new MXFileCryptoStoreMetaData2(mCredentials.userId, mCredentials.deviceId, MXFILE_CRYPTO_VERSION);
+                mIsReady = true;
+                // flush the metadata
                 saveMetaData();
+            } else {
+                mIsReady = true;
             }
-
-            mIsReady = true;
         }
     }
 
@@ -428,27 +430,6 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         }
 
         return mOlmAccount;
-    }
-
-    @Override
-    public void storeDeviceAnnounced() {
-        if (!mIsReady) {
-            Log.e(LOG_TAG, "## storeDeviceAnnounced() : the store is not ready");
-            return;
-        }
-
-        mMetaData.mDeviceAnnounced = true;
-        saveMetaData();
-    }
-
-    @Override
-    public boolean deviceAnnounced() {
-        if (!mIsReady) {
-            Log.e(LOG_TAG, "## deviceAnnounced() : the store is not ready");
-            return false;
-        }
-
-        return mMetaData.mDeviceAnnounced;
     }
 
     /**

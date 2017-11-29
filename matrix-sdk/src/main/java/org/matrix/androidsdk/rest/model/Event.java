@@ -77,7 +77,6 @@ public class Event implements Externalizable {
     public static final String EVENT_TYPE_REDACTION = "m.room.redaction";
     public static final String EVENT_TYPE_RECEIPT = "m.receipt";
     public static final String EVENT_TYPE_TAGS = "m.tag";
-    public static final String EVENT_TYPE_NEW_DEVICE = "m.new_device";
     public static final String EVENT_TYPE_ROOM_KEY = "m.room_key";
     public static final String EVENT_TYPE_READ_MARKER = "m.fully_read";
     public static final String EVENT_TYPE_ROOM_PLUMBING = "m.room.plumbing";
