@@ -434,62 +434,38 @@ public class MXCrypto {
                                                     getEncryptingThreadHandler().post(new Runnable() {
                                                         @Override
                                                         public void run() {
-                                                            // Make sure we process to-device messages before generating new one-time-keys #2782
-                                                            checkDeviceAnnounced(new ApiCallback<Void>() {
-                                                                @Override
-                                                                public void onSuccess(Void info) {
-                                                                    if (null != mNetworkConnectivityReceiver) {
-                                                                        mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
-                                                                    }
+                                                            if (null != mNetworkConnectivityReceiver) {
+                                                                mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
+                                                            }
 
-                                                                    mIsStarting = false;
-                                                                    mIsStarted = true;
+                                                            mIsStarting = false;
+                                                            mIsStarted = true;
 
-                                                                    mOutgoingRoomKeyRequestManager.start();
+                                                            mOutgoingRoomKeyRequestManager.start();
 
-                                                                    synchronized (mInitializationCallbacks) {
-                                                                        for (ApiCallback<Void> callback : mInitializationCallbacks) {
-                                                                            final ApiCallback<Void> fCallback = callback;
-                                                                            getUIHandler().post(new Runnable() {
-                                                                                @Override
-                                                                                public void run() {
-                                                                                    fCallback.onSuccess(null);
-                                                                                }
-                                                                            });
+                                                            synchronized (mInitializationCallbacks) {
+                                                                for (ApiCallback<Void> callback : mInitializationCallbacks) {
+                                                                    final ApiCallback<Void> fCallback = callback;
+                                                                    getUIHandler().post(new Runnable() {
+                                                                        @Override
+                                                                        public void run() {
+                                                                            fCallback.onSuccess(null);
                                                                         }
-                                                                        mInitializationCallbacks.clear();
+                                                                    });
+                                                                }
+                                                                mInitializationCallbacks.clear();
+                                                            }
+
+                                                            if (isInitialSync) {
+                                                                getEncryptingThreadHandler().post(new Runnable() {
+                                                                    @Override
+                                                                    public void run() {
+                                                                        // refresh the devices list for each known room members
+                                                                        getDeviceList().invalidateAllDeviceLists();
+                                                                        mDevicesList.refreshOutdatedDeviceLists();
                                                                     }
-
-                                                                    if (isInitialSync) {
-                                                                        getEncryptingThreadHandler().post(new Runnable() {
-                                                                            @Override
-                                                                            public void run() {
-                                                                                // refresh the devices list for each known room members
-                                                                                getDeviceList().invalidateAllDeviceLists();
-                                                                                mDevicesList.refreshOutdatedDeviceLists();
-                                                                            }
-                                                                        });
-                                                                    }
-                                                                }
-
-                                                                @Override
-                                                                public void onNetworkError(Exception e) {
-                                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
-                                                                    onError();
-                                                                }
-
-                                                                @Override
-                                                                public void onMatrixError(MatrixError e) {
-                                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
-                                                                    onError();
-                                                                }
-
-                                                                @Override
-                                                                public void onUnexpectedError(Exception e) {
-                                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
-                                                                    onError();
-                                                                }
-                                                            });
+                                                                });
+                                                            }
                                                         }
                                                     });
                                                 }
@@ -1535,136 +1511,7 @@ public class MXCrypto {
         return new ArrayList<>(list);
     }
 
-    /**
-     * Announce the device to the server.
-     * This method must be called from the getCryptoHandler() thread.
-     * The callback is called in the UI thread.
-     *
-     * @param callback the asynchronous callback.
-     */
-    private void checkDeviceAnnounced(final ApiCallback<Void> callback) {
-        if (mCryptoStore.deviceAnnounced()) {
-            // Catch up on any m.new_device events which arrived during the initial sync.
-            mDevicesList.refreshOutdatedDeviceLists();
 
-            if (null != callback) {
-                getUIHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        callback.onSuccess(null);
-                    }
-                });
-            }
-            return;
-        }
-
-        // Catch up on any m.new_device events which arrived during the initial sync.
-        // And force download all devices keys  the user already has.
-        mDevicesList.handleDeviceListsChanges(Arrays.asList(mMyDevice.userId), null);
-        mDevicesList.refreshOutdatedDeviceLists();
-
-        // We need to tell all the devices in all the rooms we are members of that
-        // we have arrived.
-        // Build a list of rooms for each user.
-        HashMap<String, ArrayList<String>> roomsByUser = new HashMap<>();
-
-        List<Room> rooms = getE2eRooms();
-
-        for (Room room : rooms) {
-            // Ignore any rooms which we have left
-            RoomMember me = room.getMember(mSession.getMyUserId());
-
-            if ((null == me) || (!TextUtils.equals(me.membership, RoomMember.MEMBERSHIP_JOIN) && !TextUtils.equals(me.membership, RoomMember.MEMBERSHIP_INVITE))) {
-                continue;
-            }
-
-            Collection<RoomMember> members = room.getLiveState().getMembers();
-
-            for (RoomMember r : members) {
-                ArrayList<String> roomIds = roomsByUser.get(r.getUserId());
-
-                if (null == roomIds) {
-                    roomIds = new ArrayList<>();
-                    roomsByUser.put(r.getUserId(), roomIds);
-                }
-
-                roomIds.add(room.getRoomId());
-            }
-        }
-
-        // Build a per-device message for each user
-        MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>();
-
-        for (String userId : roomsByUser.keySet()) {
-            HashMap<String, Map<String, Object>> map = new HashMap<>();
-
-            HashMap<String, Object> submap = new HashMap<>();
-            submap.put("device_id", mMyDevice.deviceId);
-            submap.put("rooms", roomsByUser.get(userId));
-
-            map.put("*", submap);
-
-            contentMap.setObjects(map, userId);
-        }
-
-        if (contentMap.getUserIds().size() > 0) {
-            mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_NEW_DEVICE, contentMap, new ApiCallback<Void>() {
-                @Override
-                public void onSuccess(Void info) {
-                    getEncryptingThreadHandler().post(new Runnable() {
-                        @Override
-                        public void run() {
-                            Log.d(LOG_TAG, "## checkDeviceAnnounced Annoucements done");
-                            mCryptoStore.storeDeviceAnnounced();
-
-                            if (null != callback) {
-                                getUIHandler().post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        callback.onSuccess(null);
-                                    }
-                                });
-                            }
-                        }
-                    });
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    Log.e(LOG_TAG, "## checkDeviceAnnounced() : failed " + e.getMessage());
-                    if (null != callback) {
-                        callback.onNetworkError(e);
-                    }
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    Log.e(LOG_TAG, "## checkDeviceAnnounced() : failed " + e.getMessage());
-                    if (null != callback) {
-                        callback.onMatrixError(e);
-                    }
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    Log.e(LOG_TAG, "## checkDeviceAnnounced() : failed " + e.getMessage());
-                    if (null != callback) {
-                        callback.onUnexpectedError(e);
-                    }
-                }
-            });
-        }
-
-        mCryptoStore.storeDeviceAnnounced();
-        if (null != callback) {
-            getUIHandler().post(new Runnable() {
-                @Override
-                public void run() {
-                    callback.onSuccess(null);
-                }
-            });
-        }
-    }
 
     /**
      * Handle the 'toDevice' event
@@ -1685,13 +1532,6 @@ public class MXCrypto {
                 @Override
                 public void run() {
                     onRoomKeyRequestEvent(event);
-                }
-            });
-        } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_NEW_DEVICE)) {
-            getEncryptingThreadHandler().post(new Runnable() {
-                @Override
-                public void run() {
-                    onNewDeviceEvent(event);
                 }
             });
         }
@@ -1728,34 +1568,6 @@ public class MXCrypto {
         }
 
         alg.onRoomKeyEvent(event);
-    }
-
-    /**
-     * Called when a new device announces itself.
-     * This method must be called on getEncryptingThreadHandler() thread.
-     *
-     * @param event the announcement event.
-     */
-    private void onNewDeviceEvent(final Event event) {
-        String userId = event.getSender();
-        final NewDeviceContent newDeviceContent = JsonUtils.toNewDeviceContent(event.getContent());
-
-        if ((null == newDeviceContent.rooms) || (null == newDeviceContent.deviceId)) {
-            Log.e(LOG_TAG, "## onNewDeviceEvent() : new_device event missing keys");
-            return;
-        }
-
-        String deviceId = newDeviceContent.deviceId;
-        List<String> rooms = newDeviceContent.rooms;
-
-        Log.d(LOG_TAG, "## onNewDeviceEvent() m.new_device event from " + userId + ":" + deviceId + " for rooms " + rooms);
-
-        if (null != mCryptoStore.getUserDevice(deviceId, userId)) {
-            Log.e(LOG_TAG, "## onNewDeviceEvent() : known device; ignoring");
-            return;
-        }
-
-        mDevicesList.handleDeviceListsChanges(Arrays.asList(userId), null);
     }
 
     /**

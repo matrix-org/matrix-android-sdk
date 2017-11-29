@@ -34,6 +34,7 @@ public class MXFileCryptoStoreMetaData2 implements java.io.Serializable {
     public int mVersion;
 
     // flag to tell if the device is announced
+    // not anymore used
     public boolean mDeviceAnnounced;
 
     // flag to tell if the unverified devices are blacklisted for any room.
