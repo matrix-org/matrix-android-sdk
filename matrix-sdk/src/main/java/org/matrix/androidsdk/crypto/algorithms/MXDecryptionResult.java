@@ -47,9 +47,4 @@ public class MXDecryptionResult {
      * Devices which forwarded this session to us (normally empty).
      */
     public List<String> mForwardingCurve25519KeyChain;
-
-    /**
-     * The decryption error description
-     */
-    public MXCryptoError mCryptoError;
 }

@@ -100,11 +100,18 @@ public class MXMegolmDecryption implements IMXDecrypting {
             throw new MXDecryptionException(new MXCryptoError(MXCryptoError.MISSING_FIELDS_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, MXCryptoError.MISSING_FIELDS_REASON));
         }
 
-        MXDecryptionResult decryptGroupMessageResult = mOlmDevice.decryptGroupMessage(ciphertext, event.roomId, timeline, sessionId, senderKey);
         MXEventDecryptionResult eventDecryptionResult = null;
+        MXCryptoError cryptoError = null;
+        MXDecryptionResult decryptGroupMessageResult = null;
+
+        try {
+            decryptGroupMessageResult = mOlmDevice.decryptGroupMessage(ciphertext, event.roomId, timeline, sessionId, senderKey);
+        } catch (MXDecryptionException e) {
+            cryptoError = e.getCryptoError();
+        }
 
         // the decryption succeeds
-        if ((null != decryptGroupMessageResult) && (null != decryptGroupMessageResult.mPayload) && (null == decryptGroupMessageResult.mCryptoError)) {
+        if ((null != decryptGroupMessageResult) && (null != decryptGroupMessageResult.mPayload) && (null == cryptoError)) {
             eventDecryptionResult = new MXEventDecryptionResult();
             eventDecryptionResult.mClearEvent = decryptGroupMessageResult.mPayload;
             eventDecryptionResult.mSenderCurve25519Key = decryptGroupMessageResult.mSenderKey;
@@ -114,9 +121,9 @@ public class MXMegolmDecryption implements IMXDecrypting {
             }
 
             eventDecryptionResult.mForwardingCurve25519KeyChain = decryptGroupMessageResult.mForwardingCurve25519KeyChain;
-        } else if ((null != decryptGroupMessageResult) && (null != decryptGroupMessageResult.mCryptoError)) {
-            if (decryptGroupMessageResult.mCryptoError.isOlmError()) {
-                if (TextUtils.equals("UNKNOWN_MESSAGE_INDEX", decryptGroupMessageResult.mCryptoError.error)) {
+        } else if (null != cryptoError) {
+            if (cryptoError.isOlmError()) {
+                if (TextUtils.equals("UNKNOWN_MESSAGE_INDEX", cryptoError.error)) {
                     addEventToPendingList(event, timeline);
 
                     if (requestKeysOnFail) {
@@ -124,21 +131,21 @@ public class MXMegolmDecryption implements IMXDecrypting {
                     }
                 }
 
-                String reason = String.format(MXCryptoError.OLM_REASON, decryptGroupMessageResult.mCryptoError.error);
-                String detailedReason = String.format(MXCryptoError.DETAILLED_OLM_REASON, ciphertext, decryptGroupMessageResult.mCryptoError.error);
+                String reason = String.format(MXCryptoError.OLM_REASON, cryptoError.error);
+                String detailedReason = String.format(MXCryptoError.DETAILLED_OLM_REASON, ciphertext, cryptoError.error);
 
                 throw new MXDecryptionException(new MXCryptoError(
                         MXCryptoError.OLM_ERROR_CODE,
                         reason,
                         detailedReason));
-            } else if (TextUtils.equals(decryptGroupMessageResult.mCryptoError.errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE)) {
+            } else if (TextUtils.equals(cryptoError.errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE)) {
                 addEventToPendingList(event, timeline);
                 if (requestKeysOnFail) {
                     requestKeysForEvent(event);
                 }
             }
 
-            throw new MXDecryptionException(decryptGroupMessageResult.mCryptoError);
+            throw new MXDecryptionException(cryptoError);
         }
 
         return eventDecryptionResult;
