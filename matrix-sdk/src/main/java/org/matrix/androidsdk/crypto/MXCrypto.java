@@ -44,7 +44,6 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.NewDeviceContent;
 import org.matrix.androidsdk.rest.model.RoomKeyContent;
 import org.matrix.androidsdk.rest.model.RoomKeyRequest;
 import org.matrix.androidsdk.rest.model.RoomKeyRequestBody;
@@ -628,7 +627,7 @@ public class MXCrypto {
      * Stores the current one_time_key count which will be handled later (in a call of
      * _onSyncCompleted). The count is e.g. coming from a /sync response.
      *
-     * @param currentCount
+     * @param currentCount the new count
      */
     private void updateOneTimeKeyCount(int currentCount) {
         mOneTimeKeyCount = currentCount;
@@ -1335,47 +1334,44 @@ public class MXCrypto {
      * @param timeline the id of the timeline where the event is decrypted. It is used to prevent replay attack.
      * @return true if the decryption was successful.
      */
-    public boolean decryptEvent(final Event event, final String timeline) {
+    public MXEventDecryptionResult decryptEvent(final Event event, final String timeline) throws MXDecryptionException {
         if (null == event) {
             Log.e(LOG_TAG, "## decryptEvent : null event");
-            return false;
+            return null;
         }
 
         final EventContent eventContent = event.getWireEventContent();
 
         if (null == eventContent) {
             Log.e(LOG_TAG, "## decryptEvent : empty event content");
-            return false;
+            return null;
         }
 
-        final ArrayList<Boolean> results = new ArrayList<>();
+        final List<MXEventDecryptionResult> results = new ArrayList<>();
         final CountDownLatch lock = new CountDownLatch(1);
+        final List<MXDecryptionException> exceptions = new ArrayList<>();
 
         getDecryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
-                boolean result = false;
-
+                MXEventDecryptionResult result = null;
                 IMXDecrypting alg = getRoomDecryptor(event.roomId, eventContent.algorithm);
 
                 if (null == alg) {
                     String reason = String.format(MXCryptoError.UNABLE_TO_DECRYPT_REASON, event.eventId, eventContent.algorithm);
-
                     Log.e(LOG_TAG, "## decryptEvent() : " + reason);
-
-                    event.setCryptoError(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason));
+                    exceptions.add(new MXDecryptionException(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason)));
                 } else {
-                    result = alg.decryptEvent(event, timeline);
+                    try {
+                        result = alg.decryptEvent(event, timeline);
+                    } catch (MXDecryptionException decryptionException) {
+                        exceptions.add(decryptionException);
+                    }
 
-                    if (!result) {
-                        if (event.getCryptoError() != null) {
-                            Log.e(LOG_TAG, "## decryptEvent() : failed " + event.getCryptoError().getDetailedErrorDescription());
-                        } else {
-                            Log.e(LOG_TAG, "## decryptEvent() : failed, crypto error is null");
-                        }
+                    if (null != result) {
+                        results.add(result);
                     }
                 }
-                results.add(result);
                 lock.countDown();
             }
         });
@@ -1386,7 +1382,15 @@ public class MXCrypto {
             Log.e(LOG_TAG, "## decryptEvent() : failed " + e.getMessage());
         }
 
-        return (results.size() > 0) && results.get(0);
+        if (!exceptions.isEmpty()) {
+            throw exceptions.get(0);
+        }
+
+        if (!results.isEmpty()) {
+            return results.get(0);
+        }
+
+        return null;
     }
 
     /**

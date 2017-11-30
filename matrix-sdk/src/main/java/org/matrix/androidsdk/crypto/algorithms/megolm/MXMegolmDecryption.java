@@ -19,6 +19,8 @@ package org.matrix.androidsdk.crypto.algorithms.megolm;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
+import org.matrix.androidsdk.crypto.MXDecryptionException;
+import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
@@ -77,15 +79,15 @@ public class MXMegolmDecryption implements IMXDecrypting {
     }
 
     @Override
-    public boolean decryptEvent(Event event, String timeline) {
+    public MXEventDecryptionResult decryptEvent(Event event, String timeline) throws MXDecryptionException {
         return decryptEvent(event, timeline, true);
     }
 
-    public boolean decryptEvent(Event event, String timeline, boolean requestKeysOnFail) {
+    public MXEventDecryptionResult decryptEvent(Event event, String timeline, boolean requestKeysOnFail) throws MXDecryptionException {
         // sanity check
         if (null == event) {
             Log.e(LOG_TAG, "## decryptEvent() : null event");
-            return false;
+            return null;
         }
 
         EncryptedEventContent encryptedEventContent = JsonUtils.toEncryptedEventContent(event.getWireContent().getAsJsonObject());
@@ -95,24 +97,26 @@ public class MXMegolmDecryption implements IMXDecrypting {
         String sessionId = encryptedEventContent.session_id;
 
         if (TextUtils.isEmpty(senderKey) || TextUtils.isEmpty(sessionId) || TextUtils.isEmpty(ciphertext)) {
-            event.setCryptoError(new MXCryptoError(MXCryptoError.MISSING_FIELDS_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, MXCryptoError.MISSING_FIELDS_REASON));
-            return false;
+            throw new MXDecryptionException(new MXCryptoError(MXCryptoError.MISSING_FIELDS_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, MXCryptoError.MISSING_FIELDS_REASON));
         }
 
-        event.setClearEvent(null);
-        event.setCryptoError(null);
-
-        MXDecryptionResult result = mOlmDevice.decryptGroupMessage(ciphertext, event.roomId, timeline, sessionId, senderKey);
+        MXDecryptionResult decryptGroupMessageResult = mOlmDevice.decryptGroupMessage(ciphertext, event.roomId, timeline, sessionId, senderKey);
+        MXEventDecryptionResult eventDecryptionResult = null;
 
         // the decryption succeeds
-        if ((null != result) && (null != result.mPayload) && (null == result.mCryptoError)) {
-            Event clearedEvent = JsonUtils.toEvent(result.mPayload);
-            clearedEvent.setKeysProved(result.mKeysProved);
-            clearedEvent.setKeysClaimed(result.mKeysClaimed);
-            event.setClearEvent(clearedEvent);
-        } else if ((null != result) && (null != result.mCryptoError)) {
-            if (result.mCryptoError.isOlmError()) {
-                if (TextUtils.equals("UNKNOWN_MESSAGE_INDEX", result.mCryptoError.error)) {
+        if ((null != decryptGroupMessageResult) && (null != decryptGroupMessageResult.mPayload) && (null == decryptGroupMessageResult.mCryptoError)) {
+            eventDecryptionResult = new MXEventDecryptionResult();
+            eventDecryptionResult.mClearEvent = decryptGroupMessageResult.mPayload;
+            eventDecryptionResult.mSenderCurve25519Key = decryptGroupMessageResult.mSenderKey;
+
+            if (null != decryptGroupMessageResult.mKeysClaimed) {
+                eventDecryptionResult.mClaimedEd25519Key = decryptGroupMessageResult.mKeysClaimed.get("ed25519");
+            }
+
+            eventDecryptionResult.mForwardingCurve25519KeyChain = decryptGroupMessageResult.mForwardingCurve25519KeyChain;
+        } else if ((null != decryptGroupMessageResult) && (null != decryptGroupMessageResult.mCryptoError)) {
+            if (decryptGroupMessageResult.mCryptoError.isOlmError()) {
+                if (TextUtils.equals("UNKNOWN_MESSAGE_INDEX", decryptGroupMessageResult.mCryptoError.error)) {
                     addEventToPendingList(event, timeline);
 
                     if (requestKeysOnFail) {
@@ -120,24 +124,24 @@ public class MXMegolmDecryption implements IMXDecrypting {
                     }
                 }
 
-                String reason = String.format(MXCryptoError.OLM_REASON, result.mCryptoError.error);
-                String detailedReason = String.format(MXCryptoError.DETAILLED_OLM_REASON, ciphertext, result.mCryptoError.error);
+                String reason = String.format(MXCryptoError.OLM_REASON, decryptGroupMessageResult.mCryptoError.error);
+                String detailedReason = String.format(MXCryptoError.DETAILLED_OLM_REASON, ciphertext, decryptGroupMessageResult.mCryptoError.error);
 
-                result.mCryptoError = new MXCryptoError(
+                throw new MXDecryptionException(new MXCryptoError(
                         MXCryptoError.OLM_ERROR_CODE,
                         reason,
-                        detailedReason);
-            } else if (TextUtils.equals(result.mCryptoError.errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE)) {
+                        detailedReason));
+            } else if (TextUtils.equals(decryptGroupMessageResult.mCryptoError.errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE)) {
                 addEventToPendingList(event, timeline);
                 if (requestKeysOnFail) {
                     requestKeysForEvent(event);
                 }
             }
 
-            event.setCryptoError(result.mCryptoError);
+            throw new MXDecryptionException(decryptGroupMessageResult.mCryptoError);
         }
 
-        return null != event.getClearEvent();
+        return eventDecryptionResult;
     }
 
     /**
@@ -234,7 +238,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
             Log.d(LOG_TAG, "## onRoomKeyEvent(), Adding key : roomId " + roomId + " sessionId " + sessionId + " sessionKey " + sessionKey); // from " + event);
             ForwardedRoomKeyContent forwardedRoomKeyContent = JsonUtils.toForwardedRoomKeyContent(roomKeyEvent.getContentAsJsonObject());
 
-            if (null == forwarding_curve25519_key_chain) {
+            if (null == forwardedRoomKeyContent.forwarding_curve25519_key_chain) {
                 forwarding_curve25519_key_chain = new ArrayList<>();
             } else {
                 forwarding_curve25519_key_chain = new ArrayList<>(forwardedRoomKeyContent.forwarding_curve25519_key_chain);
@@ -302,17 +306,26 @@ public class MXMegolmDecryption implements IMXDecrypting {
                 ArrayList<Event> events = pending.get(timelineId);
 
                 for (Event event : events) {
-                    if (decryptEvent(event, TextUtils.isEmpty(timelineId) ? null : timelineId)) {
+                    MXEventDecryptionResult result = null;
+
+                    try {
+                        result = decryptEvent(event, TextUtils.isEmpty(timelineId) ? null : timelineId);
+                    } catch (MXDecryptionException e) {
+                        Log.e(LOG_TAG, "## onNewSession() : Still can't decrypt " + event.eventId + ". Error " + e.getMessage());
+                        event.setCryptoError(e.getCryptoError());
+                    }
+
+                    if (null != result) {
                         final Event fEvent = event;
+                        final MXEventDecryptionResult fResut = result;
                         mSession.getCrypto().getUIHandler().post(new Runnable() {
                             @Override
                             public void run() {
+                                fEvent.setClearData(fResut);
                                 mSession.getDataHandler().onEventDecrypted(fEvent);
                             }
                         });
                         Log.d(LOG_TAG, "## onNewSession() : successful re-decryption of " + event.eventId);
-                    } else {
-                        Log.e(LOG_TAG, "## onNewSession() : Still can't decrypt " + event.eventId + ". Error " + event.getCryptoError().getMessage());
                     }
                 }
             }
@@ -321,11 +334,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
     @Override
     public boolean hasKeysForKeyRequest(IncomingRoomKeyRequest request) {
-        if ((null != request) && (null != request.mRequestBody)) {
-            return mOlmDevice.hasInboundSessionKeys(request.mRequestBody.room_id, request.mRequestBody.sender_key, request.mRequestBody.session_id);
-        }
-
-        return false;
+        return (null != request) && (null != request.mRequestBody) && mOlmDevice.hasInboundSessionKeys(request.mRequestBody.room_id, request.mRequestBody.sender_key, request.mRequestBody.session_id);
     }
 
     @Override
@@ -348,7 +357,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
             public void onSuccess(MXUsersDevicesMap<MXOlmSessionResult> map) {
                 MXOlmSessionResult olmSessionResult = map.getObject(deviceId, userId);
 
-                if ((null == olmSessionResult) && (null == olmSessionResult.mSessionId)) {
+                if ((null == olmSessionResult) || (null == olmSessionResult.mSessionId)) {
                     // no session with this device, probably because there
                     // were no one-time keys.
                     //

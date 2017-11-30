@@ -698,12 +698,8 @@ public class MXOlmDevice {
                     }
 
                     result.mKeysClaimed = session.mKeysClaimed;
-
-                    // The sender must have had the senderKey to persuade us to save the
-                    // session.
-                    HashMap<String, String> map = new HashMap<>();
-                    map.put("curve25519", senderKey);
-                    result.mKeysProved = map;
+                    result.mSenderKey = senderKey;
+                    result.mForwardingCurve25519KeyChain = session.mForwardingCurve25519KeyChain;
                 } else {
                     result.mCryptoError = new MXCryptoError(MXCryptoError.OLM_ERROR_CODE, errorMessage, null);
                     Log.e(LOG_TAG, "## decryptGroupMessage() : failed to decode the message");

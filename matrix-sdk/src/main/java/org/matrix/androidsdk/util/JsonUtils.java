@@ -37,6 +37,7 @@ import org.matrix.androidsdk.rest.model.LocationMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.NewDeviceContent;
+import org.matrix.androidsdk.rest.model.OlmEventContent;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomKeyContent;
 import org.matrix.androidsdk.rest.model.RoomKeyRequest;
@@ -259,6 +260,16 @@ public class JsonUtils {
         }
 
         return new EncryptedEventContent();
+    }
+
+    public static OlmEventContent toOlmEventContent(JsonElement jsonObject) {
+        try {
+            return gson.fromJson(jsonObject, OlmEventContent.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toOlmEventContent failed " + e.getMessage());
+        }
+
+        return new OlmEventContent();
     }
 
     public static EventContent toEventContent(JsonElement jsonObject) {

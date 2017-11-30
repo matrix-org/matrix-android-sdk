@@ -20,6 +20,7 @@ import com.google.gson.JsonElement;
 
 import org.matrix.androidsdk.crypto.MXCryptoError;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -38,10 +39,14 @@ public class MXDecryptionResult {
     public Map<String, String> mKeysClaimed;
 
     /**
-     * The keys that the sender of the event is known to have ownership of:
-     * map from key type to base64-encoded key.
+     * The curve25519 key that the sender of the event is known to have ownership of.
      */
-    public Map<String, String> mKeysProved;
+    public String mSenderKey;
+
+    /**
+     * Devices which forwarded this session to us (normally empty).
+     */
+    public List<String> mForwardingCurve25519KeyChain;
 
     /**
      * The decryption error description
