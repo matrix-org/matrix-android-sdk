@@ -18,21 +18,31 @@ package org.matrix.androidsdk.rest.model;
 import java.util.Map;
 
 /**
- * Class representing an encrypted event content
+ * Class representing the OLM payload content
  */
-public class OlmEventContent implements java.io.Serializable {
+public class OlmPayloadContent implements java.io.Serializable {
     /**
-     *
+     * The room id
      */
-    public Map<String, Object> ciphertext;
+    public String room_id;
 
     /**
-     * The device id
+     * The sender
      */
-    //public String device_id;
+    public String sender;
 
     /**
-     * the sender key
+     * The receipient
      */
-    public String sender_key;
+    public String recipient;
+
+    /**
+     * the recipient keys
+     */
+    public Map<String, String> recipient_keys;
+
+    /**
+     * The keys
+     */
+    public Map<String, String> keys;
 }
