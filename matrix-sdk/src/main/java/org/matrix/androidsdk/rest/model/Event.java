@@ -18,6 +18,7 @@ package org.matrix.androidsdk.rest.model;
 
 import android.text.TextUtils;
 
+import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
@@ -37,6 +38,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -1059,8 +1061,6 @@ public class Event implements Externalizable {
             allowedKeys = new ArrayList<>(Arrays.asList("type", "target_event_id"));
         } else if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, type)) {
             mClearEvent = null;
-            mKeysProved = null;
-            mKeysClaimed = null;
             allowedKeys = null;
         } else {
             allowedKeys = null;
@@ -1110,25 +1110,26 @@ public class Event implements Externalizable {
     private transient Event mClearEvent;
 
     /**
-     * The keys that must have been owned by the sender of this encrypted event.
-     * <p>
-     * These don't necessarily have to come from this event itself, but may be
-     * implied by the cryptographic session.
+     * Curve25519 key which we believe belongs to the sender of the event.
+     * See `senderKey` property.
      */
-    private transient Map<String, String> mKeysProved;
+    private transient String mSenderCurve25519Key;
 
     /**
-     * The additional keys the sender of this encrypted event claims to possess.
-     * <p>
-     * These don't necessarily have to come from this event itself, but may be
-     * implied by the cryptographic session.
-     * For example megolm messages don't claim keys directly, but instead
-     * inherit a claim from the olm message that established the session.
-     * The keys that must have been owned by the sender of this encrypted event.
+     * Ed25519 key which the sender of this event (for olm) or the creator of the megolm session (for megolm) claims to own.
+     * See `claimedEd25519Key` property.
      */
-    private transient Map<String, String> mKeysClaimed;
+    private transient String mClaimedEd25519Key;
 
-    // linked crypto error
+    /**
+     * Curve25519 keys of devices involved in telling us about the senderCurve25519Key and claimedEd25519Key.
+     * See `forwardingCurve25519KeyChain` property.
+     */
+    private transient List<String> mForwardingCurve25519KeyChain = new ArrayList<>();
+
+    /**
+     * Decryption error
+     */
     private MXCryptoError mCryptoError;
 
     /**
@@ -1139,63 +1140,82 @@ public class Event implements Externalizable {
     }
 
     /**
+     * Update the clear data on this event.
+     * This is used after decrypting an event; it should not be used by applications.
+     * It fires kMXEventDidDecryptNotification.
+     *
+     * @param decryptionResult the decryption result, including the plaintext and some key info.
+     */
+    public void setClearData(MXEventDecryptionResult decryptionResult) {
+        mClearEvent = null;
+
+        if (null != decryptionResult) {
+            if (null != decryptionResult.mClearEvent) {
+                mClearEvent = JsonUtils.toEvent(decryptionResult.mClearEvent);
+            }
+
+            if (null != mClearEvent) {
+                mClearEvent.mSenderCurve25519Key = decryptionResult.mSenderCurve25519Key;
+                mClearEvent.mClaimedEd25519Key = decryptionResult.mClaimedEd25519Key;
+
+                if (null != decryptionResult.mForwardingCurve25519KeyChain) {
+                    mClearEvent.mForwardingCurve25519KeyChain = decryptionResult.mForwardingCurve25519KeyChain;
+                } else {
+                    mClearEvent.mForwardingCurve25519KeyChain = new ArrayList<>();
+                }
+            }
+
+            mCryptoError = null;
+        }
+    }
+
+    /**
      * @return The curve25519 key that sent this event.
      */
     public String senderKey() {
-        if (null != getKeysProved()) {
-            return getKeysProved().get("curve25519");
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * @return the keys proved
-     */
-    public Map<String, String> getKeysProved() {
         if (null != mClearEvent) {
-            return mClearEvent.mKeysProved;
-        }
-
-        return mKeysProved;
-    }
-
-    /**
-     * Update the key proved
-     *
-     * @param keysProved the keys proved
-     */
-    public void setKeysProved(Map<String, String> keysProved) {
-        if (null != mClearEvent) {
-            mClearEvent.mKeysProved = keysProved;
+            return mClearEvent.mSenderCurve25519Key;
         } else {
-            mKeysProved = keysProved;
+            return mSenderCurve25519Key;
         }
     }
 
     /**
-     * @return the keys claimed map
+     * @return The additional keys the sender of this encrypted event claims to possess.
      */
     public Map<String, String> getKeysClaimed() {
-        if (null != mClearEvent) {
-            return mClearEvent.mKeysClaimed;
+        Map<String, String> res = new HashMap<>();
+
+        if (null != mClaimedEd25519Key) {
+            res.put("ed25519", mClaimedEd25519Key);
         }
 
-        return mKeysClaimed;
+        return res;
     }
 
     /**
-     * Update tke ley claimed
-     *
-     * @param keysClaimed the new key claimed map
+     * @return the claimed Ed25519 key
      */
-    public void setKeysClaimed(Map<String, String> keysClaimed) {
+    /*public String getClaimedEd25519Key() {
         if (null != mClearEvent) {
-            mClearEvent.mKeysClaimed = keysClaimed;
+            return mClearEvent.mClaimedEd25519Key;
         } else {
-            mKeysClaimed = keysClaimed;
+            return mClaimedEd25519Key;
         }
-    }
+    }*/
+
+    /**
+     * @return Get the curve25519 keys of the devices which were involved in telling us about the claimedEd25519Key and sender curve25519 key.
+     */
+    /*public List<String> getForwardingCurve25519KeyChain() {
+        List<String> res = (null != mClearEvent) ? mClearEvent.mForwardingCurve25519KeyChain : mForwardingCurve25519KeyChain;
+
+        if (null == res) {
+            res = new ArrayList<>();
+        }
+
+        return res;
+    }*/
 
     /**
      * @return the linked crypto error
@@ -1211,15 +1231,9 @@ public class Event implements Externalizable {
      */
     public void setCryptoError(MXCryptoError error) {
         mCryptoError = error;
-    }
-
-    /**
-     * Update the clear event
-     *
-     * @param aClearEvent the clean event.
-     */
-    public void setClearEvent(Event aClearEvent) {
-        mClearEvent = aClearEvent;
+        if (null != error) {
+            mClearEvent = null;
+        }
     }
 
     /**

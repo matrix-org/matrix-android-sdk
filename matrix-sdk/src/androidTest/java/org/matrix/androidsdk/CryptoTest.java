@@ -1999,7 +1999,7 @@ public class CryptoTest {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), mBobSession.getMyUserId())) {
                     results.put("bobEcho", event);
 
-                    event.setClearEvent(null);
+                    event.setClearData(null);
 
                     mBobSession.getDataHandler().decryptEvent(event, roomFromBobPOV.getLiveTimeLine().getTimelineId());
                     results.put("decrypted", event);
@@ -2136,9 +2136,7 @@ public class CryptoTest {
         // We still must be able to decrypt the event
         // ie, the implementation must have ignored the new room key with the advanced outbound group
         // session key
-        event.setClearEvent(null);
-        event.setKeysClaimed(null);
-        event.setKeysProved(null);
+        event.setClearData(null);
 
         mBobSession.getDataHandler().decryptEvent(event, null);
         assertTrue(checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession));
@@ -2222,9 +2220,7 @@ public class CryptoTest {
         // remove the session
         mBobSession.getCrypto().getOlmDevice().removeInboundGroupSession(sessionId, senderKey);
 
-        event.setClearEvent(null);
-        event.setKeysClaimed(null);
-        event.setKeysProved(null);
+        event.setClearData(null);
 
         // check that the message cannot be decrypted
         assertTrue(!mBobSession.getDataHandler().decryptEvent(event, null));
@@ -2243,9 +2239,7 @@ public class CryptoTest {
             }
         });
 
-        event.setClearEvent(null);
-        event.setKeysClaimed(null);
-        event.setKeysProved(null);
+        event.setClearData(null);
 
         // reinject the session key
         mBobSession.getDataHandler().onToDeviceEvent(toDeviceEvent);

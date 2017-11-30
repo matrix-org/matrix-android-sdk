@@ -28,6 +28,8 @@ import com.google.gson.JsonElement;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCrypto;
 import org.matrix.androidsdk.crypto.MXCryptoError;
+import org.matrix.androidsdk.crypto.MXDecryptionException;
+import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
@@ -69,8 +71,6 @@ import org.matrix.androidsdk.util.MXOsHandler;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -627,7 +627,6 @@ public class MXDataHandler implements IMXEventListener {
             }
         }
     }
-
 
 
     /**
@@ -1310,7 +1309,7 @@ public class MXDataHandler implements IMXEventListener {
                             if (room.isDirectChatInvitation()) {
                                 // Retrieve the inviter user id.
                                 String participantUserId = null;
-                                for(Event event : invitedRoomSync.inviteState.events) {
+                                for (Event event : invitedRoomSync.inviteState.events) {
                                     if (null != event.sender) {
                                         participantUserId = event.sender;
                                         break;
@@ -1662,9 +1661,18 @@ public class MXDataHandler implements IMXEventListener {
     public boolean decryptEvent(Event event, String timelineId) {
         if ((null != event) && TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
             if (null != getCrypto()) {
-                return getCrypto().decryptEvent(event, timelineId);
+                MXEventDecryptionResult result = null;
+                try {
+                    result = getCrypto().decryptEvent(event, timelineId);
+                } catch (MXDecryptionException exception) {
+                    event.setCryptoError(exception.getCryptoError());
+                }
+
+                if (null != result) {
+                    event.setClearData(result);
+                    return true;
+                }
             } else {
-                event.setClearEvent(null);
                 event.setCryptoError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLED_ERROR_CODE, MXCryptoError.ENCRYPTING_NOT_ENABLED_REASON, null));
             }
         }

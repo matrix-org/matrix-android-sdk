@@ -18,6 +18,8 @@ package org.matrix.androidsdk.crypto.algorithms;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
+import org.matrix.androidsdk.crypto.MXDecryptionException;
+import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
 import org.matrix.androidsdk.rest.model.Event;
 
 /**
@@ -36,9 +38,10 @@ public interface IMXDecrypting {
      *
      * @param event    the raw event.
      * @param timeline the id of the timeline where the event is decrypted. It is used to prevent replay attack.
-     * @return true if the operation succeeds.
+     * @return the decryption information
+     * @throws MXDecryptionException the decryption failure reason
      */
-    boolean decryptEvent(Event event, String timeline);
+    MXEventDecryptionResult decryptEvent(Event event, String timeline) throws MXDecryptionException;
 
     /**
      * Handle a key event.

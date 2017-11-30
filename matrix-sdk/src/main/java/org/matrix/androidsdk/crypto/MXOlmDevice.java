@@ -646,7 +646,7 @@ public class MXOlmDevice {
      * @param senderKey the base64-encoded curve25519 key of the sender.
      * @return the decrypting result. Nil if the sessionId is unknown.
      */
-    public MXDecryptionResult decryptGroupMessage(String body, String roomId, String timeline, String sessionId, String senderKey) {
+    public MXDecryptionResult decryptGroupMessage(String body, String roomId, String timeline, String sessionId, String senderKey) throws MXDecryptionException {
         MXDecryptionResult result = new MXDecryptionResult();
         MXOlmInboundGroupSession2 session = getInboundGroupSession(sessionId, senderKey, roomId);
 
@@ -672,12 +672,9 @@ public class MXOlmDevice {
                         String messageIndexKey = senderKey + "|" + sessionId + "|" + decryptResult.mIndex;
 
                         if (null != mInboundGroupSessionMessageIndexes.get(timeline).get(messageIndexKey)) {
-
                             String reason = String.format(MXCryptoError.DUPLICATE_MESSAGE_INDEX_REASON, decryptResult.mIndex);
-
                             Log.e(LOG_TAG, "## decryptGroupMessage() : " + reason);
-                            result.mCryptoError = new MXCryptoError(MXCryptoError.DUPLICATED_MESSAGE_INDEX_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason);
-                            return result;
+                            throw new MXDecryptionException(new MXCryptoError(MXCryptoError.DUPLICATED_MESSAGE_INDEX_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason));
                         }
 
                         mInboundGroupSessionMessageIndexes.get(timeline).put(messageIndexKey, true);
@@ -698,24 +695,20 @@ public class MXOlmDevice {
                     }
 
                     result.mKeysClaimed = session.mKeysClaimed;
-
-                    // The sender must have had the senderKey to persuade us to save the
-                    // session.
-                    HashMap<String, String> map = new HashMap<>();
-                    map.put("curve25519", senderKey);
-                    result.mKeysProved = map;
+                    result.mSenderKey = senderKey;
+                    result.mForwardingCurve25519KeyChain = session.mForwardingCurve25519KeyChain;
                 } else {
-                    result.mCryptoError = new MXCryptoError(MXCryptoError.OLM_ERROR_CODE, errorMessage, null);
                     Log.e(LOG_TAG, "## decryptGroupMessage() : failed to decode the message");
+                    throw new MXDecryptionException(new MXCryptoError(MXCryptoError.OLM_ERROR_CODE, errorMessage, null));
                 }
             } else {
                 String reason = String.format(MXCryptoError.INBOUND_SESSION_MISMATCH_ROOM_ID_REASON, roomId, session.mRoomId);
                 Log.e(LOG_TAG, "## decryptGroupMessage() : " + reason);
-                result.mCryptoError = new MXCryptoError(MXCryptoError.INBOUND_SESSION_MISMATCH_ROOM_ID_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason);
+                throw new MXDecryptionException(new MXCryptoError(MXCryptoError.INBOUND_SESSION_MISMATCH_ROOM_ID_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason));
             }
         } else {
-            result.mCryptoError = mInboundGroupSessionWithIdError;
             Log.e(LOG_TAG, "## decryptGroupMessage() : Cannot retrieve inbound group session " + sessionId);
+            throw new MXDecryptionException(mInboundGroupSessionWithIdError);
         }
 
         return result;

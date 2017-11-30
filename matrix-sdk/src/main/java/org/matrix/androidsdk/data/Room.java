@@ -2334,7 +2334,7 @@ public class Room {
                     // update the event content with the encrypted data
                     event.type = encryptEventContentResult.mEventType;
                     event.updateContent(encryptEventContentResult.mEventContent.getAsJsonObject());
-                    mDataHandler.getCrypto().decryptEvent(event, null);
+                    mDataHandler.decryptEvent(event, null);
 
                     // sending in progress
                     mDataHandler.updateEventState(event, Event.SentState.SENDING);
