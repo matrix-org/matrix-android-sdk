@@ -243,7 +243,7 @@ public class MXWebRtcCall extends MXCall {
 
                 mIsSupported = true;
                 Log.d(LOG_TAG, "## initializeAndroidGlobals(): mIsInitialized=" + mIsInitialized);
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 Log.e(LOG_TAG, "## initializeAndroidGlobals(): Exception Msg=" + e.getMessage());
                 mIsInitialized = true;
                 mIsSupported = false;
