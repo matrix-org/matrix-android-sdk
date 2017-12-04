@@ -17,6 +17,10 @@ package org.matrix.androidsdk.util;
 
 import android.text.TextUtils;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.reflect.TypeToken;
+
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.MyUser;
@@ -39,6 +43,7 @@ import org.matrix.androidsdk.rest.model.bingrules.EventMatchCondition;
 import org.matrix.androidsdk.rest.model.bingrules.RoomMemberCountCondition;
 import org.matrix.androidsdk.rest.model.bingrules.SenderNotificationPermissionCondition;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -46,6 +51,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+
+import retrofit.http.PUT;
 
 /**
  * Object that gets and processes bing rules from the server.
@@ -223,30 +230,30 @@ public class BingRulesManager {
             @Override
             public void onNetworkError(Exception e) {
                 onError(e.getMessage());
+
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
                 onError(e.getMessage());
+
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
                 onError(e.getMessage());
+
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
             }
         });
-    }
-
-    /**
-     * Update the rule enable status.
-     *
-     * @param kind     the rule kind.
-     * @param ruleId   the rule ID.
-     * @param status   the new enable status.
-     * @param callback an async callback.
-     */
-    public void updateEnableRuleStatus(String kind, String ruleId, boolean status, final ApiCallback<Void> callback) {
-        mApiClient.updateEnableRuleStatus(kind, ruleId, status, callback);
     }
 
     /**
@@ -465,7 +472,7 @@ public class BingRulesManager {
      */
     public void buildRules(BingRulesResponse bingRulesResponse) {
         if (null != bingRulesResponse) {
-            updateRules(bingRulesResponse.global);
+            updateRulesSet(bingRulesResponse.global);
             onBingRulesUpdate();
         }
     }
@@ -482,7 +489,7 @@ public class BingRulesManager {
      *
      * @param ruleSet the new ruleSet to apply
      */
-    private void updateRules(BingRuleSet ruleSet) {
+    private void updateRulesSet(BingRuleSet ruleSet) {
         synchronized (this) {
             // clear the rules list
             // it is
@@ -618,73 +625,116 @@ public class BingRulesManager {
     }
 
     /**
-     * Toogle a rule.
+     * Force to refresh the rules.
+     * The listener is called when the rules are refreshed.
      *
-     * @param rule     the bing rule to toggle.
-     * @param listener the rule update listener.
-     * @return the matched bing rule or null it doesn't exist.
+     * @param errorMsg the error message to dispatch.
+     * @param listener the asynchronous listener
      */
-    public BingRule toggleRule(final BingRule rule, final onBingRuleUpdateListener listener) {
-        if (null != rule) {
-            updateEnableRuleStatus(rule.kind, rule.ruleId, !rule.isEnabled, new SimpleApiCallback<Void>() {
+    private void forceRulesRefresh(final String errorMsg, final onBingRuleUpdateListener listener) {
+        // refresh only there is a listener
+        if (null != listener) {
+            loadRules(new ApiCallback<Void>() {
+                private void onDone(String error) {
+                    try {
+                        if (TextUtils.isEmpty(error) && TextUtils.isEmpty(errorMsg)) {
+                            listener.onBingRuleUpdateSuccess();
+                        } else {
+                            listener.onBingRuleUpdateFailure(TextUtils.isEmpty(errorMsg) ? error : errorMsg);
+                        }
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## forceRulesRefresh() : failed " + e.getMessage());
+                    }
+                }
+
                 @Override
                 public void onSuccess(Void info) {
-                    rule.isEnabled = !rule.isEnabled;
-                    updateRules(mRulesSet);
-                    onBingRulesUpdate();
-                    if (listener != null) {
-                        try {
-                            listener.onBingRuleUpdateSuccess();
-                        } catch (Exception e) {
-                            Log.e(LOG_TAG, "## toggleRule : onBingRuleUpdateSuccess failed " + e.getMessage());
-                        }
-                    }
+                    onDone(null);
                 }
 
-                private void onError(String message) {
-                    if (null != listener) {
-                        try {
-                            listener.onBingRuleUpdateFailure(message);
-                        } catch (Exception e) {
-                            Log.e(LOG_TAG, "## onError : onBingRuleUpdateFailure failed " + e.getMessage());
-                        }
-                    }
-                }
-
-                /**
-                 * Called if there is a network error.
-                 * @param e the exception
-                 */
                 @Override
                 public void onNetworkError(Exception e) {
-                    onError(e.getLocalizedMessage());
+                    onDone(e.getLocalizedMessage());
                 }
 
-                /**
-                 * Called in case of a Matrix error.
-                 * @param e the Matrix error
-                 */
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    onError(e.getLocalizedMessage());
+                    onDone(e.getLocalizedMessage());
                 }
 
-                /**
-                 * Called for some other type of error.
-                 * @param e the exception
-                 */
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    onError(e.getLocalizedMessage());
+                    onDone(e.getLocalizedMessage());
                 }
             });
         }
+    }
 
-        return rule;
+    /**
+     * Get the rules update callback.
+     *
+     * @param listener the listener
+     * @return the asynchronous callback
+     */
+    private ApiCallback<Void> getUpdateCallback(final onBingRuleUpdateListener listener) {
+        return new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                forceRulesRefresh(null, listener);
+            }
+
+            private void onError(String message) {
+                forceRulesRefresh(message, listener);
+            }
+
+            /**
+             * Called if there is a network error.
+             *
+             * @param e the exception
+             */
+            @Override
+            public void onNetworkError(Exception e) {
+                onError(e.getLocalizedMessage());
+            }
+
+            /**
+             * Called in case of a Matrix error.
+             *
+             * @param e the Matrix error
+             */
+            @Override
+            public void onMatrixError(MatrixError e) {
+                onError(e.getLocalizedMessage());
+            }
+
+            /**
+             * Called for some other type of error.
+             *
+             * @param e the exception
+             */
+            @Override
+            public void onUnexpectedError(Exception e) {
+                onError(e.getLocalizedMessage());
+            }
+        };
+    }
+
+    /**
+     * Update the rule enable status.
+     * The rules lits are refreshed when the listener is called.
+     *
+     * @param rule     the bing rule to toggle.
+     * @param listener the rule update listener.
+     */
+    public void updateEnableRuleStatus(final BingRule rule, final boolean isEnabled, final onBingRuleUpdateListener listener) {
+        if (null != rule) {
+            mApiClient.updateEnableRuleStatus(rule.kind, rule.ruleId, isEnabled, getUpdateCallback(listener));
+        }
     }
 
     /**
      * Delete the rule.
+     * The rules lists are refreshed when the listener is called.
      *
      * @param rule     the rule to delete.
      * @param listener the rule update listener.
@@ -702,64 +752,12 @@ public class BingRulesManager {
             return;
         }
 
-        mApiClient.deleteRule(rule.kind, rule.ruleId, new SimpleApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                if (null != mRulesSet) {
-                    mRulesSet.remove(rule);
-                    updateRules(mRulesSet);
-                    onBingRulesUpdate();
-                }
-                if (listener != null) {
-                    try {
-                        listener.onBingRuleUpdateSuccess();
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "## deleteRule : onBingRuleUpdateSuccess failed " + e.getMessage());
-                    }
-                }
-            }
-
-            private void onError(String message) {
-                if (null != listener) {
-                    try {
-                        listener.onBingRuleUpdateFailure(message);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "## onError : onBingRuleUpdateFailure failed " + e.getMessage());
-                    }
-                }
-            }
-
-            /**
-             * Called if there is a network error.
-             * @param e the exception
-             */
-            @Override
-            public void onNetworkError(Exception e) {
-                onError(e.getLocalizedMessage());
-            }
-
-            /**
-             * Called in case of a Matrix error.
-             * @param e the Matrix error
-             */
-            @Override
-            public void onMatrixError(MatrixError e) {
-                onError(e.getLocalizedMessage());
-            }
-
-            /**
-             * Called for some other type of error.
-             * @param e the exception
-             */
-            @Override
-            public void onUnexpectedError(Exception e) {
-                onError(e.getLocalizedMessage());
-            }
-        });
+        mApiClient.deleteRule(rule.kind, rule.ruleId, getUpdateCallback(listener));
     }
 
     /**
      * Delete a rules list.
+     * The rules lists are refreshed when the listener is called.
      *
      * @param rules    the rules to delete
      * @param listener the listener when the rules are deleted
@@ -812,6 +810,7 @@ public class BingRulesManager {
 
     /**
      * Add a rule.
+     * The rules lists are refreshed when the listener is called.
      *
      * @param rule     the rule to delete.
      * @param listener the rule update listener.
@@ -829,61 +828,108 @@ public class BingRulesManager {
             return;
         }
 
-        mApiClient.addRule(rule, new SimpleApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                if (null != mRulesSet) {
-                    mRulesSet.addAtTop(rule);
-                    updateRules(mRulesSet);
-                    onBingRulesUpdate();
+        mApiClient.addRule(rule, getUpdateCallback(listener));
+    }
+
+    /**
+     * Update a bing rule.
+     * The rules list are updated when the callback is called.
+     *
+     * @param source   the source
+     * @param target   the target
+     * @param listener the listener
+     */
+    public void updateRule(final BingRule source, final BingRule target, final onBingRuleUpdateListener listener) {
+        if (null == source) {
+            addRule(target, listener);
+            return;
+        }
+
+        if (null == target) {
+            deleteRule(source, listener);
+            return;
+        }
+
+        if (source.isEnabled != target.isEnabled) {
+            mApiClient.updateEnableRuleStatus(target.kind, target.ruleId, target.isEnabled, new ApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    source.isEnabled = target.isEnabled;
+                    updateRule(source, target, listener);
                 }
 
-                if (listener != null) {
-                    try {
-                        listener.onBingRuleUpdateSuccess();
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "## addRule : onBingRuleUpdateSuccess failed " + e.getMessage());
-                    }
+                @Override
+                public void onNetworkError(Exception e) {
+                    forceRulesRefresh(e.getLocalizedMessage(), listener);
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    forceRulesRefresh(e.getLocalizedMessage(), listener);
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    forceRulesRefresh(e.getLocalizedMessage(), listener);
+                }
+            });
+
+            return;
+        }
+
+        if (source.actions != target.actions) {
+            Map<String, Object> map = new HashMap<>();
+            List<Object> sortedActions = new ArrayList<>();
+
+            // the webclient needs to have them sorted
+            if (null != target.actions) {
+                if (target.actions.contains(BingRule.ACTION_NOTIFY)) {
+                    sortedActions.add(BingRule.ACTION_NOTIFY);
+                }
+
+                if (target.actions.contains(BingRule.ACTION_DONT_NOTIFY)) {
+                    sortedActions.add(BingRule.ACTION_DONT_NOTIFY);
+                }
+
+                if (null != target.getActionMap(BingRule.ACTION_SET_TWEAK_SOUND_VALUE)) {
+                    sortedActions.add(target.getActionMap(BingRule.ACTION_SET_TWEAK_SOUND_VALUE));
+                }
+
+                if (null != target.getActionMap(BingRule.ACTION_SET_TWEAK_HIGHTLIGHT_VALUE)) {
+                    sortedActions.add(target.getActionMap(BingRule.ACTION_SET_TWEAK_HIGHTLIGHT_VALUE));
                 }
             }
 
-            private void onError(String message) {
-                if (null != listener) {
-                    try {
-                        listener.onBingRuleUpdateFailure(message);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "## addRule : onBingRuleUpdateFailure failed " + e.getMessage());
-                    }
+            map.put("actions", sortedActions);
+
+            mApiClient.updateRuleActions(target.kind, target.ruleId, map, new SimpleApiCallback<Void>() {
+                @Override
+                public void onSuccess(Void info) {
+                    source.actions = target.actions;
+                    updateRule(source, target, listener);
                 }
-            }
 
-            /**
-             * Called if there is a network error.
-             * @param e the exception
-             */
-            @Override
-            public void onNetworkError(Exception e) {
-                onError(e.getLocalizedMessage());
-            }
+                @Override
+                public void onNetworkError(Exception e) {
+                    forceRulesRefresh(e.getLocalizedMessage(), listener);
+                }
 
-            /**
-             * Called in case of a Matrix error.
-             * @param e the Matrix error
-             */
-            @Override
-            public void onMatrixError(MatrixError e) {
-                onError(e.getLocalizedMessage());
-            }
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    forceRulesRefresh(e.getLocalizedMessage(), listener);
+                }
 
-            /**
-             * Called for some other type of error.
-             * @param e the exception
-             */
-            @Override
-            public void onUnexpectedError(Exception e) {
-                onError(e.getLocalizedMessage());
-            }
-        });
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    forceRulesRefresh(e.getLocalizedMessage(), listener);
+                }
+            });
+
+            return;
+        }
+
+        // the update succeeds
+        forceRulesRefresh(null, listener);
     }
 
     /**

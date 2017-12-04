@@ -44,6 +44,19 @@ public interface BingRulesApi {
     @PUT("/pushrules/global/{kind}/{ruleId}/enabled")
     void updateEnableRuleStatus(@Path("kind") String kind, @Path("ruleId") String ruleId, @Body Boolean enable, Callback<Void> callback);
 
+
+    /**
+     * Update the ruleID enable status
+     *
+     * @param kind     the notification kind (sender, room...)
+     * @param ruleId   the ruleId
+     * @param actions  the actions
+     * @param callback the callback
+     */
+    @PUT("/pushrules/global/{kind}/{ruleId}/actions")
+    void updateRuleActions(@Path("kind") String kind, @Path("ruleId") String ruleId, @Body Object actions, Callback<Void> callback);
+
+
     /**
      * Update the ruleID enable status
      *
@@ -64,6 +77,4 @@ public interface BingRulesApi {
      */
     @PUT("/pushrules/global/{kind}/{ruleId}")
     void addRule(@Path("kind") String kind, @Path("ruleId") String ruleId, @Body BingRule rule, Callback<Void> callback);
-
-
 }
