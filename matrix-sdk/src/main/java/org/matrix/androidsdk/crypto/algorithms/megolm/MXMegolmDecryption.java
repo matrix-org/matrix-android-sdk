@@ -242,7 +242,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
         }
 
         if (TextUtils.equals(roomKeyEvent.getType(), Event.EVENT_TYPE_FORWARDED_ROOM_KEY)) {
-            Log.d(LOG_TAG, "## onRoomKeyEvent(), Adding key : roomId " + roomId + " sessionId " + sessionId + " sessionKey " + sessionKey); // from " + event);
+            Log.d(LOG_TAG, "## onRoomKeyEvent(), forward adding key : roomId " + roomId + " sessionId " + sessionId + " sessionKey " + sessionKey); // from " + event);
             ForwardedRoomKeyContent forwardedRoomKeyContent = JsonUtils.toForwardedRoomKeyContent(roomKeyEvent.getContentAsJsonObject());
 
             if (null == forwardedRoomKeyContent.forwarding_curve25519_key_chain) {
