@@ -322,6 +322,9 @@ public class Room {
             new Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override
                 public void run() {
+                    // to initialise the notification counters
+                    markAllAsRead(null);
+
                     try {
                         fOnInitialSyncCallback.onSuccess(null);
                     } catch (Exception e) {
@@ -332,8 +335,7 @@ public class Room {
 
             mOnInitialSyncCallback = null;
 
-            // to initialise the notification counters
-            markAllAsRead(null);
+
         }
 
         mIsSyncing = false;
