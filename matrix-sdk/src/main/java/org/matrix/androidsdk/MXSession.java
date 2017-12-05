@@ -2428,7 +2428,7 @@ public class MXSession {
 
             @Override
             public void onMatrixError(MatrixError matrixError) {
-                Log.d(LOG_TAG, "## checkNameAvailability(): The registration continues");
+                Log.d(LOG_TAG, "## deleteDevice() : onMatrixError " + matrixError.getMessage());
                 RegistrationFlowResponse registrationFlowResponse = null;
 
                 // expected status code is 401
