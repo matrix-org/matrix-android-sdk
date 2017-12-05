@@ -113,7 +113,7 @@ public class BingRule {
         setNotify(notify);
         setHighlight(highlight);
         if (sound) {
-            setNotificationSound(ACTION_SET_TWEAK_SOUND_VALUE);
+            setNotificationSound();
         }
     }
 
