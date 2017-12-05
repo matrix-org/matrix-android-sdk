@@ -1345,6 +1345,8 @@ public class MXSession {
                             }
                         });
                     } else {
+                        // to initialise the notification counters
+                        joinedRoom.markAllAsRead(null);
                         callback.onSuccess(roomId);
                     }
                 }

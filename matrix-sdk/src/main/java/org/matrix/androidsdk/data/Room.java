@@ -331,6 +331,9 @@ public class Room {
             });
 
             mOnInitialSyncCallback = null;
+
+            // to initialise the notification counters
+            markAllAsRead(null);
         }
 
         mIsSyncing = false;
@@ -688,6 +691,8 @@ public class Room {
                         setOnInitialSyncCallback(callback);
                     } else {
                         Log.d(LOG_TAG, "the room " + getRoomId() + " is joined : the initial sync has been done");
+                        // to initialise the notification counters
+                        markAllAsRead(null);
                         // already got the initial sync
                         callback.onSuccess(null);
                     }
