@@ -479,15 +479,15 @@ public class MXFileStore extends MXMemoryStore {
                                     Log.d(LOG_TAG, "-- store stats");
                                 }
 
+                                // post processing
+                                Log.d(LOG_TAG, "## open() : post processing.");
+                                dispatchPostProcess(mCredentials.userId);
+                                mIsPostProcessingDone = true;
+
                                 synchronized (this) {
                                     mIsReady = true;
                                 }
                                 mIsOpening = false;
-
-                                // post processing
-                                Log.e(LOG_TAG, "## open() : post processing.");
-                                dispatchPostProcess(mCredentials.userId);
-                                mIsPostProcessingDone = true;
 
                                 if (!succeed && !mIsNewStorage) {
                                     Log.e(LOG_TAG, "The store is corrupted.");
