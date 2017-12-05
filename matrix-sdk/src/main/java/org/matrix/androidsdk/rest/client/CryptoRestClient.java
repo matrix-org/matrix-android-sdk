@@ -51,7 +51,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
      * {@inheritDoc}
      */
     public CryptoRestClient(HomeServerConnectionConfig hsConfig) {
-        super(hsConfig, CryptoApi.class, URI_API_PREFIX_PATH_R0, false, false);
+        super(hsConfig, CryptoApi.class, URI_API_PREFIX_PATH_UNSTABLE, false, false);
     }
 
     /**
