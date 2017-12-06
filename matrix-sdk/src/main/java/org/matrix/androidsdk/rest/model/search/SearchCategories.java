@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.rest.model.Search;
+package org.matrix.androidsdk.rest.model.search;
 
 /**
  * subclass representing a search API response

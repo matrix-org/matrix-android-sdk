@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.rest.model.Sync;
+package org.matrix.androidsdk.rest.model.sync;
 
 import org.matrix.androidsdk.rest.model.Event;
 

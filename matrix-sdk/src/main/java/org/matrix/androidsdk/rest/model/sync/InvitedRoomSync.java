@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest.model.Sync;
+package org.matrix.androidsdk.rest.model.sync;
 
 // InvitedRoomSync represents a room invitation during server sync v2.
 public class InvitedRoomSync implements java.io.Serializable {

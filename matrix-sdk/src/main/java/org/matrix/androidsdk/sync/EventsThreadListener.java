@@ -16,7 +16,7 @@
  */
 package org.matrix.androidsdk.sync;
 
-import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
+import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 
 /**
  * Interface to implement to listen to the event thread.
