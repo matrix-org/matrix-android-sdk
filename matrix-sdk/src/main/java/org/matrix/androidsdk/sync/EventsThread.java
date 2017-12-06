@@ -132,6 +132,13 @@ public class EventsThread extends Thread {
     }
 
     /**
+     * @return the current sync token
+     */
+    public String getCurrentSyncToken() {
+        return mCurrentToken;
+    }
+
+    /**
      * Update the data save mode
      *
      * @param enabled true to enable the data save mode

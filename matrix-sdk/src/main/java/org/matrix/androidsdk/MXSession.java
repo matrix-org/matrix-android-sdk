@@ -986,6 +986,18 @@ public class MXSession {
     }
 
     /**
+     * Refresh the network connection information.
+     * On android version older than 6.0, the doze mode might have killed the network connection.
+     */
+    public void refreshNetworkConnection() {
+        if (null != mNetworkConnectivityReceiver) {
+            // mNetworkConnectivityReceiver is a broadcastReceiver
+            // but some users reported that the network updates were not dispatched
+            mNetworkConnectivityReceiver.checkNetworkConnection(mAppContent);
+        }
+    }
+
+    /**
      * Shorthand for {@link #startEventStream(EventsThreadListener, NetworkConnectivityReceiver, String)} with no eventListener
      * using a DataHandler and no specific failure callback.
      *
@@ -1033,15 +1045,10 @@ public class MXSession {
     }
 
     /**
-     * Refresh the network connection information.
-     * On android version older than 6.0, the doze mode might have killed the network connection.
+     * @return the current sync token
      */
-    public void refreshNetworkConnection() {
-        if (null != mNetworkConnectivityReceiver) {
-            // mNetworkConnectivityReceiver is a broadcastReceiver
-            // but some users reported that the network updates were not dispatched
-            mNetworkConnectivityReceiver.checkNetworkConnection(mAppContent);
-        }
+    public String getCurrentSyncToken() {
+        return (null != mEventsThread) ? mEventsThread.getCurrentSyncToken() : null;
     }
 
     /**
@@ -2515,7 +2522,7 @@ public class MXSession {
 
                 // failed, try next flow type
                 if ((has401Error || TextUtils.equals(matrixError.errcode, MatrixError.FORBIDDEN) || TextUtils.equals(matrixError.errcode, MatrixError.UNKNOWN))
-                    && !stages.isEmpty()) {
+                        && !stages.isEmpty()) {
                     deleteDevice(deviceId, params, stages, callback);
                 } else {
                     if (null != callback) {
