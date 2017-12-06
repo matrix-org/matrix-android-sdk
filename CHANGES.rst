@@ -1,3 +1,16 @@
+Changes to Matrix Android SDK in 0.8.06 (2017-12-06)
+=======================================================
+
+Improvements:
+
+* Report some e2e codes from JS.
+* Refactor the Bingrule class.
+
+Bugfixes:
+
+* Fix many issues reported by google analytics.
+* Call Room.MarkAllAsRead() after joining a room else the notification counts won't be incremented.
+
 Changes to Matrix Android SDK in 0.8.05 (2017-11-28)
 =======================================================
 
