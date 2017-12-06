@@ -733,7 +733,12 @@ public class MXDeviceList {
                 // best off sticking with the original keys.
                 //
                 // Should we warn the user about it somehow?
-                Log.e(LOG_TAG, "## validateDeviceKeys() : WARNING:Ed25519 key for device " + userId + ":" + deviceKeys.deviceId + " has changed");
+                Log.e(LOG_TAG, "## validateDeviceKeys() : WARNING:Ed25519 key for device " + userId + ":" + deviceKeys.deviceId + " has changed : "
+                        + previouslyStoredDeviceKeys.fingerprint() + " -> " +  signKey);
+
+                Log.e(LOG_TAG, "## validateDeviceKeys() : " + previouslyStoredDeviceKeys + " -> " + deviceKeys);
+                Log.e(LOG_TAG, "## validateDeviceKeys() : " + previouslyStoredDeviceKeys.keys + " -> " + deviceKeys.keys);
+
                 return false;
             }
         }
