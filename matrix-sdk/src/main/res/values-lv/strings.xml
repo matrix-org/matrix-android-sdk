@@ -24,7 +24,7 @@
     <string name="notice_placed_voice_call">%s nolika balss zvanu.</string>
     <string name="notice_answered_call">%s atbildēja balss zvanam.</string>
     <string name="notice_ended_call">%s beidza zvanu.</string>
-    <string name="notice_made_future_room_visibility">"%1$s padarīja istabas nākamo ziņu vēsturi redzamu  %2$s"</string>
+    <string name="notice_made_future_room_visibility">%1$s padarīja istabas nākamo ziņu vēsturi redzamu  %2$s</string>
     <string name="notice_room_visibility_invited">visi istabas biedri no brīža, kad tika uzaicināti.</string>
     <string name="notice_room_visibility_joined">visi istabas biedri no brīža, kad tika pievienojušies.</string>
     <string name="notice_room_visibility_shared">visi istabas biedri.</string>
