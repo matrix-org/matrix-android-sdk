@@ -33,6 +33,7 @@ public interface LoginApi {
 
     /**
      * Get the different login flows supported by the server.
+     *
      * @param callback the asynchronous callback called with the response
      */
     @GET("/login")
@@ -40,6 +41,8 @@ public interface LoginApi {
 
     /**
      * Try to create an account
+     *
+     * @param params   the registration params
      * @param callback the asynchronous callback called with the response
      */
     @POST("/register")
@@ -47,14 +50,16 @@ public interface LoginApi {
 
     /**
      * Pass params to the server for the current login phase.
+     *
      * @param loginParams the login parameters
-     * @param callback the asynchronous callback called with the response
+     * @param callback    the asynchronous callback called with the response
      */
     @POST("/login")
     void login(@Body LoginParams loginParams, Callback<JsonObject> callback);
 
     /**
      * Invalidate the access token, so that it can no longer be used for authorization.
+     *
      * @param callback the asynchronous callback called with the response
      */
     @POST("/logout")

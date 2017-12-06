@@ -37,6 +37,10 @@ public class Condition {
 
     /* */
     public static final String KIND_DEVICE = "device";
-        
+
+    public static final String KIND_SENDER_NOTIFICATION_PERMISSION = "sender_notification_permission";
+
+    public static final String KIND_UNKNOWN = "unknown_condition";
+
     public String kind;
 }

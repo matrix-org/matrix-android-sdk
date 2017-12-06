@@ -93,7 +93,7 @@ public class ConditionDeserializerTest {
         String conditionJson = "{'kind': 'strange_unknown_kind'}";
         Condition condition = gson.fromJson(conditionJson, Condition.class);
 
-        assertNull(condition);
+        assertNotNull(condition);
     }
 
     @Test

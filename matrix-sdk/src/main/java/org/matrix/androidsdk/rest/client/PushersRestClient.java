@@ -30,7 +30,7 @@ import java.util.HashMap;
  * REST client for the Pushers API.
  */
 public class PushersRestClient extends RestClient<PushersApi> {
-    private static final String LOG_TAG = "PushersRestClient";
+    private static final String LOG_TAG = PushersRestClient.class.getSimpleName();
 
     private static final String PUSHER_KIND_HTTP = "http";
     private static final String DATA_KEY_HTTP_URL = "url";
@@ -39,16 +39,19 @@ public class PushersRestClient extends RestClient<PushersApi> {
         super(hsConfig, PushersApi.class, RestClient.URI_API_PREFIX_PATH_R0, true);
     }
 
-    /** Add a new HTTP pusher.
-     * @param pushkey the pushkey
-     * @param appId the application id
-     * @param profileTag the profile tag
-     * @param lang the language
-     * @param appDisplayName a human-readable application name
+    /**
+     * Add a new HTTP pusher.
+     *
+     * @param pushkey           the pushkey
+     * @param appId             the application id
+     * @param profileTag        the profile tag
+     * @param lang              the language
+     * @param appDisplayName    a human-readable application name
      * @param deviceDisplayName a human-readable device name
-     * @param url the URL that should be used to send notifications
-     * @param append append the pusher
-     * @param withEventIdOnly true to limit the push content
+     * @param url               the URL that should be used to send notifications
+     * @param append            append the pusher
+     * @param withEventIdOnly   true to limit the push content
+     * @param callback          the asynchronous callback
      */
     public void addHttpPusher(
             final String pushkey, final String appId,
@@ -58,14 +61,17 @@ public class PushersRestClient extends RestClient<PushersApi> {
         manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, append, withEventIdOnly, true, callback);
     }
 
-    /** remove a new HTTP pusher.
-     * @param pushkey the pushkey
-     * @param appId the application id
-     * @param profileTag the profile tag
-     * @param lang the language
-     * @param appDisplayName a human-readable application name
+    /**
+     * remove a new HTTP pusher.
+     *
+     * @param pushkey           the pushkey
+     * @param appId             the application id
+     * @param profileTag        the profile tag
+     * @param lang              the language
+     * @param appDisplayName    a human-readable application name
      * @param deviceDisplayName a human-readable device name
-     * @param url the URL that should be used to send notifications
+     * @param url               the URL that should be used to send notifications
+     * @param callback          the asynchronous callback
      */
     public void removeHttpPusher(
             final String pushkey, final String appId,
@@ -76,16 +82,19 @@ public class PushersRestClient extends RestClient<PushersApi> {
     }
 
 
-    /** add/remove a new HTTP pusher.
-     * @param pushkey the pushkey
-     * @param appId the appplication id
-     * @param profileTag the profile tag
-     * @param lang the language
-     * @param appDisplayName a human-readable application name
+    /**
+     * add/remove a new HTTP pusher.
+     *
+     * @param pushkey           the pushkey
+     * @param appId             the appplication id
+     * @param profileTag        the profile tag
+     * @param lang              the language
+     * @param appDisplayName    a human-readable application name
      * @param deviceDisplayName a human-readable device name
-     * @param url the URL that should be used to send notifications
-     * @param withEventIdOnly true to limit the push content
-     * @param addPusher true to add the pusher / false to remove it
+     * @param url               the URL that should be used to send notifications
+     * @param withEventIdOnly   true to limit the push content
+     * @param addPusher         true to add the pusher / false to remove it
+     * @param callback          the asynchronous callback
      */
     private void manageHttpPusher(
             final String pushkey, final String appId,
@@ -99,7 +108,7 @@ public class PushersRestClient extends RestClient<PushersApi> {
         pusher.profileTag = profileTag;
         pusher.lang = lang;
         pusher.kind = addPusher ? PUSHER_KIND_HTTP : null;
-        pusher.appDisplayName= appDisplayName;
+        pusher.appDisplayName = appDisplayName;
         pusher.deviceDisplayName = deviceDisplayName;
         pusher.data = new HashMap<>();
         pusher.data.put(DATA_KEY_HTTP_URL, url);
@@ -114,26 +123,35 @@ public class PushersRestClient extends RestClient<PushersApi> {
 
         final String description = "manageHttpPusher";
 
-        mApi.set(pusher, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, append, withEventIdOnly, addPusher, callback);
-            }
-        }));
+        try {
+            mApi.set(pusher, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, append, withEventIdOnly, addPusher, callback);
+                }
+            }));
+        }  catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     /**
      * Retrieve the pushers list
+     *
      * @param callback the callback
      */
     public void getPushers(final ApiCallback<PushersResponse> callback) {
         final String description = "getPushers";
 
-        mApi.get(new RestAdapterCallback<PushersResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                getPushers(callback);
-            }
-        }));
+        try {
+            mApi.get(new RestAdapterCallback<PushersResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    getPushers(callback);
+                }
+            }));
+        }  catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 }

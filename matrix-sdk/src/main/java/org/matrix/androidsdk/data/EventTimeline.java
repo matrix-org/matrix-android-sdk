@@ -50,21 +50,22 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- *  A `EventTimeline` instance represents a contiguous sequence of events in a room.
- *
+ * A `EventTimeline` instance represents a contiguous sequence of events in a room.
+ * <p>
  * There are two kinds of timeline:
- *
+ * <p>
  * - live timelines: they receive live events from the events stream. You can paginate
  * backwards but not forwards.
  * All (live or backwards) events they receive are stored in the store of the current
  * MXSession.
- *
+ * <p>
  * - past timelines: they start in the past from an `initialEventId`. They are filled
  * with events on calls of [MXEventTimeline paginate] in backwards or forwards direction.
  * Events are stored in a in-memory store (MXMemoryStore).
  */
 public class EventTimeline {
-    private static final String LOG_TAG = "EventTimeline";
+    private static final String LOG_TAG = EventTimeline.class.getSimpleName();
+
     /**
      * The direction from which an incoming event is considered.
      */
@@ -86,7 +87,8 @@ public class EventTimeline {
 
         /**
          * Call when an event has been handled in the timeline.
-         * @param event the event.
+         *
+         * @param event     the event.
          * @param direction the direction.
          * @param roomState the room state
          */
@@ -174,7 +176,8 @@ public class EventTimeline {
 
     /**
      * Constructor from room.
-     * @param room the linked room.
+     *
+     * @param room   the linked room.
      * @param isLive true if it is a live EventTimeline
      */
     public EventTimeline(Room room, boolean isLive) {
@@ -184,8 +187,9 @@ public class EventTimeline {
 
     /**
      * Constructor from a room Id
+     *
      * @param dataHandler the data handler
-     * @param roomId the room Id
+     * @param roomId      the room Id
      */
     public EventTimeline(MXDataHandler dataHandler, String roomId) {
         this(dataHandler, roomId, null);
@@ -193,9 +197,10 @@ public class EventTimeline {
 
     /**
      * Constructor from room and event Id
+     *
      * @param dataHandler the data handler
-     * @param roomId the room Id
-     * @param eventId the event id.
+     * @param roomId      the room Id
+     * @param eventId     the event id.
      */
     public EventTimeline(MXDataHandler dataHandler, String roomId, String eventId) {
         mInitialEventId = eventId;
@@ -213,6 +218,7 @@ public class EventTimeline {
 
     /**
      * Defines that the current timeline is an historical one
+     *
      * @param isHistorical true when the current timeline is an historical one
      */
     public void setIsHistorical(boolean isHistorical) {
@@ -265,6 +271,7 @@ public class EventTimeline {
 
     /**
      * Set the room Id
+     *
      * @param roomId the new room id.
      */
     public void setRoomId(String roomId) {
@@ -275,10 +282,11 @@ public class EventTimeline {
 
     /**
      * Set the data handler.
-     * @param store the store
+     *
+     * @param store       the store
      * @param dataHandler the data handler.
      */
-    public void setDataHandler(IMXStore store,  MXDataHandler dataHandler) {
+    public void setDataHandler(IMXStore store, MXDataHandler dataHandler) {
         mStore = store;
         mDataHandler = dataHandler;
         mState.setDataHandler(dataHandler);
@@ -305,6 +313,7 @@ public class EventTimeline {
 
     /**
      * Init the history with a list of stateEvents
+     *
      * @param stateEvents the state events
      */
     private void initHistory(List<Event> stateEvents) {
@@ -339,6 +348,7 @@ public class EventTimeline {
 
     /**
      * Update the state.
+     *
      * @param state the new state.
      */
     public void setState(RoomState state) {
@@ -354,6 +364,7 @@ public class EventTimeline {
 
     /**
      * Make a deep copy or the dedicated state.
+     *
      * @param direction the room state direction to deep copy.
      */
     private void deepCopyState(Direction direction) {
@@ -366,12 +377,13 @@ public class EventTimeline {
 
     /**
      * Process a state event to keep the internal live and back states up to date.
-     * @param event the state event
+     *
+     * @param event     the state event
      * @param direction the direction; ie. forwards for live state, backwards for back state
      * @return true if the event has been processed.
      */
     private boolean processStateEvent(Event event, Direction direction) {
-        RoomState affectedState = (direction ==  Direction.FORWARDS) ? mState : mBackState;
+        RoomState affectedState = (direction == Direction.FORWARDS) ? mState : mBackState;
         boolean isProcessed = affectedState.applyState(getStore(), event, direction);
 
         if ((isProcessed) && (direction == Direction.FORWARDS)) {
@@ -383,13 +395,14 @@ public class EventTimeline {
 
     /**
      * Handle the invitation room events
+     *
      * @param invitedRoomSync the invitation room events.
      */
     public void handleInvitedRoomSync(InvitedRoomSync invitedRoomSync) {
         // Handle the state events as live events (the room state will be updated, and the listeners (if any) will be notified).
         if ((null != invitedRoomSync) && (null != invitedRoomSync.inviteState) && (null != invitedRoomSync.inviteState.events)) {
 
-            for(Event event : invitedRoomSync.inviteState.events) {
+            for (Event event : invitedRoomSync.inviteState.events) {
                 // Add a fake event id if none in order to be able to store the event
                 if (null == event.eventId) {
                     event.eventId = mRoomId + "-" + System.currentTimeMillis() + "-" + event.hashCode();
@@ -404,10 +417,11 @@ public class EventTimeline {
 
     /**
      * Manage the joined room events.
-     * @param roomSync the roomSync.
-     * @param isInitialSync true if the sync has been triggered by a global initial sync
+     *
+     * @param roomSync            the roomSync.
+     * @param isGlobalInitialSync true if the sync has been triggered by a global initial sync
      */
-    public void handleJoinedRoomSync(RoomSync roomSync, boolean isInitialSync) {
+    public void handleJoinedRoomSync(RoomSync roomSync, boolean isGlobalInitialSync) {
         String membership = null;
         String myUserId = mDataHandler.getMyUser().user_id;
         RoomSummary currentSummary = null;
@@ -520,7 +534,7 @@ public class EventTimeline {
                         boolean isLimited = (null != roomSync.timeline) && roomSync.timeline.limited;
 
                         // digest the forward event
-                        handleLiveEvent(event, !isLimited && !isInitialSync, !isInitialSync && !isRoomInitialSync);
+                        handleLiveEvent(event, !isLimited && !isGlobalInitialSync, !isGlobalInitialSync && !isRoomInitialSync);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "timeline event failed " + e.getMessage());
                     }
@@ -622,13 +636,14 @@ public class EventTimeline {
                 if (null != roomSync.unreadNotifications.notificationCount) {
                     notifCount = roomSync.unreadNotifications.notificationCount;
                 }
-                
+
                 if ((notifCount != mState.getNotificationCount()) || (mState.getHighlightCount() != highlightCount)) {
                     Log.d(LOG_TAG, "## handleJoinedRoomSync() : update room state notifs count for room id " + getRoom().getRoomId() + ": highlightCount " + highlightCount + " - notifCount " + notifCount);
 
                     mState.setNotificationCount(notifCount);
                     mState.setHighlightCount(highlightCount);
                     mStore.storeLiveStateForRoom(mRoomId);
+                    mDataHandler.onNotificationCountUpdate(mRoomId);
                 }
 
                 // some users reported that the summary notification counts were sometimes invalid
@@ -641,6 +656,7 @@ public class EventTimeline {
                     summary.setNotificationCount(notifCount);
                     summary.setHighlightCount(highlightCount);
                     mStore.flushSummary(summary);
+                    mDataHandler.onNotificationCountUpdate(mRoomId);
                 }
             }
         }
@@ -648,6 +664,7 @@ public class EventTimeline {
 
     /**
      * Store an outgoing event.
+     *
      * @param event the event to store
      */
     public void storeOutgoingEvent(Event event) {
@@ -658,6 +675,7 @@ public class EventTimeline {
 
     /**
      * Store the event and update the dedicated room summary
+     *
      * @param event the event to store
      */
     private void storeEvent(Event event) {
@@ -697,7 +715,8 @@ public class EventTimeline {
 
     /**
      * Store a live room event.
-     * @param event The event to be stored.
+     *
+     * @param event                   The event to be stored.
      * @param checkRedactedStateEvent true to check if this event redacts a state event
      */
     private void storeLiveRoomEvent(Event event, boolean checkRedactedStateEvent) {
@@ -736,7 +755,7 @@ public class EventTimeline {
                             // Decrypt event if necessary
                             if (TextUtils.equals(anEvent.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
                                 if (null != mDataHandler.getCrypto()) {
-                                    mDataHandler.getCrypto().decryptEvent(anEvent, getTimelineId());
+                                    mDataHandler.decryptEvent(anEvent, getTimelineId());
                                 }
                             }
 
@@ -758,7 +777,7 @@ public class EventTimeline {
                     }
                 }
             }
-        }  else {
+        } else {
             // the candidate events are not stored.
             store = !event.isCallEvent() || !Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.getType());
 
@@ -797,6 +816,7 @@ public class EventTimeline {
 
     /**
      * Trigger a push if there is a dedicated push rules which implies it.
+     *
      * @param event the event
      */
     private void triggerPush(Event event) {
@@ -849,10 +869,11 @@ public class EventTimeline {
 
     /**
      * Handle events coming down from the event stream.
-     * @param event the live event
+     *
+     * @param event                   the live event
      * @param checkRedactedStateEvent set to true to check if it triggers a state event redaction
-     * @param withPush set to true to trigger pushes when it is required
-     * */
+     * @param withPush                set to true to trigger pushes when it is required
+     */
     private void handleLiveEvent(Event event, boolean checkRedactedStateEvent, boolean withPush) {
         MyUser myUser = mDataHandler.getMyUser();
 
@@ -891,14 +912,11 @@ public class EventTimeline {
                     mStore.deleteEvent(storedEvent);
                     mStore.storeLiveRoomEvent(event);
                     mStore.commit();
-
                     Log.d(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " has been echoed");
-
                 } else {
                     Log.d(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " already exist.");
+                    return;
                 }
-
-                return;
             }
 
             // Room event
@@ -926,13 +944,13 @@ public class EventTimeline {
                         if (!TextUtils.equals(eventContent.displayname, myUser.displayname)) {
                             hasAccountInfoUpdated = true;
                             myUser.displayname = eventContent.displayname;
-                            mStore.setDisplayName(myUser.displayname);
+                            mStore.setDisplayName(myUser.displayname, event.getOriginServerTs());
                         }
 
                         if (!TextUtils.equals(eventContent.avatar_url, myUser.getAvatarUrl())) {
                             hasAccountInfoUpdated = true;
                             myUser.setAvatarUrl(eventContent.avatar_url);
-                            mStore.setAvatarURL(myUser.avatar_url);
+                            mStore.setAvatarURL(myUser.avatar_url, event.getOriginServerTs());
                         }
 
                         if (hasAccountInfoUpdated) {
@@ -999,8 +1017,9 @@ public class EventTimeline {
 
     /**
      * Send MAX_EVENT_COUNT_PER_PAGINATION events to the caller.
+     *
      * @param maxEventCount the max event count
-     * @param callback the callback.
+     * @param callback      the callback.
      */
     private void manageBackEvents(int maxEventCount, final ApiCallback<Integer> callback) {
         // check if the SDK was not logged out
@@ -1014,7 +1033,7 @@ public class EventTimeline {
 
         Event latestSupportedEvent = null;
 
-        for(int i = 0; i < count; i++) {
+        for (int i = 0; i < count; i++) {
             SnapshotEvent snapshotedEvent = mSnapshotEvents.get(0);
 
             // in some cases, there is no displayed summary
@@ -1055,7 +1074,8 @@ public class EventTimeline {
 
     /**
      * Add some events in a dedicated direction.
-     * @param events the events list
+     *
+     * @param events    the events list
      * @param direction the direction
      */
     private void addPaginationEvents(List<Event> events, Direction direction) {
@@ -1081,7 +1101,7 @@ public class EventTimeline {
                     if (mIsLiveTimeline) {
                         // update the summary is the event has been received after the oldest known event
                         // it might happen after a timeline update (hole in the chat history)
-                        if ((null != summary) && ((null == summary.getLatestReceivedEvent()) || ((summary.getLatestReceivedEvent().originServerTs < event.originServerTs) && RoomSummary.isSupportedEvent(event)))) {
+                        if ((null != summary) && ((null == summary.getLatestReceivedEvent()) || (event.isValidOriginServerTs() && (summary.getLatestReceivedEvent().originServerTs < event.originServerTs) && RoomSummary.isSupportedEvent(event)))) {
                             summary.setLatestReceivedEvent(event, getState());
                             mStore.storeSummary(summary);
                             shouldCommitStore = true;
@@ -1100,9 +1120,10 @@ public class EventTimeline {
 
     /**
      * Add some events in a dedicated direction.
-     * @param events the events list
+     *
+     * @param events    the events list
      * @param direction the direction
-     * @param callback the callback.
+     * @param callback  the callback.
      */
     private void addPaginationEvents(final List<Event> events, final Direction direction, final ApiCallback<Integer> callback) {
         AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
@@ -1117,10 +1138,10 @@ public class EventTimeline {
                 if (direction == Direction.BACKWARDS) {
                     manageBackEvents(MAX_EVENT_COUNT_PER_PAGINATION, callback);
                 } else {
-                    for(Event event : events) {
+                    for (Event event : events) {
                         onEvent(event, Direction.FORWARDS, getState());
                     }
-                        
+
                     if (null != callback) {
                         callback.onSuccess(events.size());
                     }
@@ -1147,6 +1168,7 @@ public class EventTimeline {
 
     /**
      * Tells if a back pagination can be triggered.
+     *
      * @return true if a back pagination can be triggered.
      */
     public boolean canBackPaginate() {
@@ -1157,14 +1179,17 @@ public class EventTimeline {
     }
 
     /**
-     * See {@link #backPaginate(int, ApiCallback)}
+     * Request older messages.
+     *
+     * @param callback the asynchronous callback
+     * @return true if request starts
      */
     public boolean backPaginate(final ApiCallback<Integer> callback) {
         return backPaginate(MAX_EVENT_COUNT_PER_PAGINATION, callback);
     }
 
     /**
-     * Request older messages. They will come down the onBackEvent callback.
+     * Request older messages.
      *
      * @param eventCount number of events we want to retrieve
      * @param callback   callback to implement to be informed that the pagination request has been completed. Can be null.
@@ -1175,11 +1200,11 @@ public class EventTimeline {
     }
 
     /**
-     * Request older messages. They will come down the onBackEvent callback.
+     * Request older messages.
      *
-     * @param eventCount number of events we want to retrieve
+     * @param eventCount    number of events we want to retrieve
      * @param useCachedOnly to use the cached events list only (i.e no request will be triggered)
-     * @param callback   callback to implement to be informed that the pagination request has been completed. Can be null.
+     * @param callback      callback to implement to be informed that the pagination request has been completed. Can be null.
      * @return true if request starts
      */
     public boolean backPaginate(final int eventCount, final boolean useCachedOnly, final ApiCallback<Integer> callback) {
@@ -1319,7 +1344,8 @@ public class EventTimeline {
     }
 
     /**
-     * Request older messages. They will come down the onBackEvent callback.
+     * Request older messages.
+     *
      * @param callback callback to implement to be informed that the pagination request has been completed. Can be null.
      * @return true if request starts
      */
@@ -1329,7 +1355,7 @@ public class EventTimeline {
             return false;
         }
 
-        if (mIsForwardPaginating || mHasReachedHomeServerForwardsPaginationEnd)  {
+        if (mIsForwardPaginating || mHasReachedHomeServerForwardsPaginationEnd) {
             Log.d(LOG_TAG, "forwardPaginate " + mIsForwardPaginating + " mHasReachedHomeServerForwardsPaginationEnd " + mHasReachedHomeServerForwardsPaginationEnd);
             return false;
         }
@@ -1389,8 +1415,9 @@ public class EventTimeline {
 
     /**
      * Trigger a pagination in the expected direction.
+     *
      * @param direction the direction.
-     * @param callback the callback.
+     * @param callback  the callback.
      * @return true if the operation succeeds
      */
     public boolean paginate(Direction direction, final ApiCallback<Integer> callback) {
@@ -1417,7 +1444,8 @@ public class EventTimeline {
     /**
      * Reset the pagination timelime and start loading the context around its `initialEventId`.
      * The retrieved (backwards and forwards) events will be sent to registered listeners.
-     * @param limit the maximum number of messages to get around the initial event.
+     *
+     * @param limit    the maximum number of messages to get around the initial event.
      * @param callback the operation callback
      */
     public void resetPaginationAroundInitialEvent(final int limit, final ApiCallback<Void> callback) {
@@ -1437,7 +1465,7 @@ public class EventTimeline {
                     @Override
                     protected Void doInBackground(Void... params) {
                         // the state is the one after the latest event of the chunk i.e. the last message of eventContext.eventsAfter
-                        for(Event event : eventContext.state) {
+                        for (Event event : eventContext.state) {
                             processStateEvent(event, Direction.FORWARDS);
                         }
 
@@ -1469,7 +1497,7 @@ public class EventTimeline {
                         Collections.reverse(nextSnapshotEvents);
 
                         // send them one by one
-                        for(SnapshotEvent snapshotEvent : nextSnapshotEvents) {
+                        for (SnapshotEvent snapshotEvent : nextSnapshotEvents) {
                             mSnapshotEvents.remove(snapshotEvent);
                             onEvent(snapshotEvent.mEvent, Direction.FORWARDS, snapshotEvent.mState);
                         }
@@ -1547,6 +1575,7 @@ public class EventTimeline {
     /**
      * Redact an event might require to reload the timeline
      * because the room states has to be been updated.
+     *
      * @param event the redacted event
      */
     private void checkStateEventRedaction(final Event event) {
@@ -1601,6 +1630,7 @@ public class EventTimeline {
     /**
      * Redact an event might require to reload the timeline
      * because the room states has to be been updated.
+     *
      * @param eventId the redacted event id
      */
     private void checkStateEventRedaction(String eventId) {
@@ -1619,6 +1649,7 @@ public class EventTimeline {
                         Log.d(LOG_TAG, "checkStateEventRedaction : the event is a not state event -> job is done");
                     }
                 }
+
                 @Override
                 public void onNetworkError(Exception e) {
                     Log.e(LOG_TAG, "checkStateEventRedaction :  onNetworkError " + e.getMessage() + "-> get a refreshed roomState");
@@ -1689,6 +1720,7 @@ public class EventTimeline {
 
     /**
      * Add an events listener.
+     *
      * @param listener the listener to add.
      */
     public void addEventTimelineListener(EventTimelineListener listener) {
@@ -1703,6 +1735,7 @@ public class EventTimeline {
 
     /**
      * Remove an events listener.
+     *
      * @param listener the listener to remove.
      */
     public void removeEventTimelineListener(EventTimelineListener listener) {
@@ -1715,7 +1748,8 @@ public class EventTimeline {
 
     /**
      * Dispatch the onEvent callback.
-     * @param event the event.
+     *
+     * @param event     the event.
      * @param direction the direction.
      * @param roomState the roomState.
      */

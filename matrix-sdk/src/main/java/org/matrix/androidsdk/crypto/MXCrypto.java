@@ -44,8 +44,9 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.NewDeviceContent;
 import org.matrix.androidsdk.rest.model.RoomKeyContent;
+import org.matrix.androidsdk.rest.model.RoomKeyRequest;
+import org.matrix.androidsdk.rest.model.RoomKeyRequestBody;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
@@ -74,7 +75,7 @@ import java.util.concurrent.CountDownLatch;
  * Specially, it tracks all room membership changes events in order to do keys updates.
  */
 public class MXCrypto {
-    private static final String LOG_TAG = "MXCrypto";
+    private static final String LOG_TAG = MXCrypto.class.getSimpleName();
 
     // max number of keys to upload at once
     // Creating keys can be an expensive operation so we limit the
@@ -124,7 +125,11 @@ public class MXCrypto {
 
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
 
+    private Integer mOneTimeKeyCount;
+
     private final MXDeviceList mDevicesList;
+
+    private final MXOutgoingRoomKeyRequestManager mOutgoingRoomKeyRequestManager;
 
     private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
         @Override
@@ -163,6 +168,11 @@ public class MXCrypto {
 
     // last OTK check timestamp
     private long mLastOneTimeKeyCheck = 0;
+
+    // list of IncomingRoomKeyRequests/IncomingRoomKeyRequestCancellations
+    // we received in the current sync.
+    private final List<IncomingRoomKeyRequest> mReceivedRoomKeyRequests = new ArrayList<>();
+    private final List<IncomingRoomKeyRequest> mReceivedRoomKeyRequestCancellations = new ArrayList<>();
 
     /**
      * Constructor
@@ -242,6 +252,8 @@ public class MXCrypto {
             // got some issues when upgrading from Riot < 0.6.4
             mDevicesList.handleDeviceListsChanges(Arrays.asList(mSession.getMyUserId()), null);
         }
+
+        mOutgoingRoomKeyRequestManager = new MXOutgoingRoomKeyRequestManager(mSession, this);
     }
 
     /**
@@ -360,7 +372,8 @@ public class MXCrypto {
      * and, then, if this is the first time, this new device will be announced to all other users
      * devices.
      *
-     * @param aCallback the asynchronous callback
+     * @param isInitialSync true if it starts from an initial sync
+     * @param aCallback     the asynchronous callback
      */
     public void start(final boolean isInitialSync, final ApiCallback<Void> aCallback) {
         synchronized (mInitializationCallbacks) {
@@ -391,7 +404,7 @@ public class MXCrypto {
                         getUIHandler().postDelayed(new Runnable() {
                             @Override
                             public void run() {
-                                if( !isStarted()) {
+                                if (!isStarted()) {
                                     mIsStarting = false;
                                     start(isInitialSync, null);
                                 }
@@ -422,60 +435,38 @@ public class MXCrypto {
                                                     getEncryptingThreadHandler().post(new Runnable() {
                                                         @Override
                                                         public void run() {
-                                                            // Make sure we process to-device messages before generating new one-time-keys #2782
-                                                            checkDeviceAnnounced(new ApiCallback<Void>() {
-                                                                @Override
-                                                                public void onSuccess(Void info) {
-                                                                    if (null != mNetworkConnectivityReceiver) {
-                                                                        mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
-                                                                    }
+                                                            if (null != mNetworkConnectivityReceiver) {
+                                                                mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
+                                                            }
 
-                                                                    mIsStarting = false;
-                                                                    mIsStarted = true;
+                                                            mIsStarting = false;
+                                                            mIsStarted = true;
 
-                                                                    synchronized (mInitializationCallbacks) {
-                                                                        for (ApiCallback<Void> callback : mInitializationCallbacks) {
-                                                                            final ApiCallback<Void> fCallback = callback;
-                                                                            getUIHandler().post(new Runnable() {
-                                                                                @Override
-                                                                                public void run() {
-                                                                                    fCallback.onSuccess(null);
-                                                                                }
-                                                                            });
+                                                            mOutgoingRoomKeyRequestManager.start();
+
+                                                            synchronized (mInitializationCallbacks) {
+                                                                for (ApiCallback<Void> callback : mInitializationCallbacks) {
+                                                                    final ApiCallback<Void> fCallback = callback;
+                                                                    getUIHandler().post(new Runnable() {
+                                                                        @Override
+                                                                        public void run() {
+                                                                            fCallback.onSuccess(null);
                                                                         }
-                                                                        mInitializationCallbacks.clear();
+                                                                    });
+                                                                }
+                                                                mInitializationCallbacks.clear();
+                                                            }
+
+                                                            if (isInitialSync) {
+                                                                getEncryptingThreadHandler().post(new Runnable() {
+                                                                    @Override
+                                                                    public void run() {
+                                                                        // refresh the devices list for each known room members
+                                                                        getDeviceList().invalidateAllDeviceLists();
+                                                                        mDevicesList.refreshOutdatedDeviceLists();
                                                                     }
-
-                                                                    if (isInitialSync) {
-                                                                        getEncryptingThreadHandler().post(new Runnable() {
-                                                                            @Override
-                                                                            public void run() {
-                                                                                // refresh the devices list for each known room members
-                                                                                getDeviceList().invalidateAllDeviceLists();
-                                                                                mDevicesList.refreshOutdatedDeviceLists();
-                                                                            }
-                                                                        });
-                                                                    }
-                                                                }
-
-                                                                @Override
-                                                                public void onNetworkError(Exception e) {
-                                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
-                                                                    onError();
-                                                                }
-
-                                                                @Override
-                                                                public void onMatrixError(MatrixError e) {
-                                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
-                                                                    onError();
-                                                                }
-
-                                                                @Override
-                                                                public void onUnexpectedError(Exception e) {
-                                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
-                                                                    onError();
-                                                                }
-                                                            });
+                                                                });
+                                                            }
                                                         }
                                                     });
                                                 }
@@ -550,6 +541,8 @@ public class MXCrypto {
                         mEncryptingHandlerThread.quit();
                         mEncryptingHandlerThread = null;
                     }
+
+                    mOutgoingRoomKeyRequestManager.stop();
                 }
             });
 
@@ -587,6 +580,11 @@ public class MXCrypto {
                     getDeviceList().handleDeviceListsChanges(syncResponse.deviceLists.changed, syncResponse.deviceLists.left);
                 }
 
+                if (null != syncResponse.deviceOneTimeKeysCount) {
+                    int currentCount = (null != syncResponse.deviceOneTimeKeysCount.signed_curve25519) ? syncResponse.deviceOneTimeKeysCount.signed_curve25519 : 0;
+                    updateOneTimeKeyCount(currentCount);
+                }
+
                 if (isStarted()) {
                     // Make sure we process to-device messages before generating new one-time-keys #2782
                     mDevicesList.refreshOutdatedDeviceLists();
@@ -594,6 +592,8 @@ public class MXCrypto {
 
                 if (!isCatchingUp && isStarted()) {
                     maybeUploadOneTimeKeys();
+
+                    processReceivedRoomKeyRequests();
                 }
             }
         });
@@ -621,6 +621,16 @@ public class MXCrypto {
                 }
             }
         });
+    }
+
+    /**
+     * Stores the current one_time_key count which will be handled later (in a call of
+     * _onSyncCompleted). The count is e.g. coming from a /sync response.
+     *
+     * @param currentCount the new count
+     */
+    private void updateOneTimeKeyCount(int currentCount) {
+        mOneTimeKeyCount = currentCount;
     }
 
     /**
@@ -776,11 +786,12 @@ public class MXCrypto {
     }
 
     /**
-     * Update the blocked/verified state of the given device
+     * Update the blocked/verified state of the given device.
      *
-     * @param verificationStatus the new verification status.
+     * @param verificationStatus the new verification status
      * @param deviceId           the unique identifier for the device.
-     * @param userId             the owner of the device.
+     * @param userId             the owner of the device
+     * @param callback           the asynchronous callback
      */
     public void setDeviceVerification(final int verificationStatus, final String deviceId, final String userId, final ApiCallback<Void> callback) {
         if (hasBeenReleased()) {
@@ -842,10 +853,9 @@ public class MXCrypto {
      * Configure a room to use encryption.
      * This method must be called in getEncryptingThreadHandler
      *
-     * @param roomId    the room id to enable encryption in.
-     * @param algorithm the encryption config for the room.
+     * @param roomId             the room id to enable encryption in.
+     * @param algorithm          the encryption config for the room.
      * @param inhibitDeviceQuery true to suppress device list query for users in the room (for now)
-     *
      * @return true if the operation succeeds.
      */
     private boolean setEncryptionInRoom(String roomId, String algorithm, boolean inhibitDeviceQuery) {
@@ -1324,47 +1334,44 @@ public class MXCrypto {
      * @param timeline the id of the timeline where the event is decrypted. It is used to prevent replay attack.
      * @return true if the decryption was successful.
      */
-    public boolean decryptEvent(final Event event, final String timeline) {
+    public MXEventDecryptionResult decryptEvent(final Event event, final String timeline) throws MXDecryptionException {
         if (null == event) {
             Log.e(LOG_TAG, "## decryptEvent : null event");
-            return false;
+            return null;
         }
 
         final EventContent eventContent = event.getWireEventContent();
 
         if (null == eventContent) {
             Log.e(LOG_TAG, "## decryptEvent : empty event content");
-            return false;
+            return null;
         }
 
-        final ArrayList<Boolean> results = new ArrayList<>();
+        final List<MXEventDecryptionResult> results = new ArrayList<>();
         final CountDownLatch lock = new CountDownLatch(1);
+        final List<MXDecryptionException> exceptions = new ArrayList<>();
 
         getDecryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
-                boolean result = false;
-
+                MXEventDecryptionResult result = null;
                 IMXDecrypting alg = getRoomDecryptor(event.roomId, eventContent.algorithm);
 
                 if (null == alg) {
                     String reason = String.format(MXCryptoError.UNABLE_TO_DECRYPT_REASON, event.eventId, eventContent.algorithm);
-
                     Log.e(LOG_TAG, "## decryptEvent() : " + reason);
-
-                    event.setCryptoError(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason));
+                    exceptions.add(new MXDecryptionException(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason)));
                 } else {
-                    result = alg.decryptEvent(event, timeline);
+                    try {
+                        result = alg.decryptEvent(event, timeline);
+                    } catch (MXDecryptionException decryptionException) {
+                        exceptions.add(decryptionException);
+                    }
 
-                    if (!result) {
-                        if (event.getCryptoError() != null) {
-                            Log.e(LOG_TAG, "## decryptEvent() : failed " + event.getCryptoError().getDetailedErrorDescription());
-                        } else {
-                            Log.e(LOG_TAG, "## decryptEvent() : failed, crypto error is null");
-                        }
+                    if (null != result) {
+                        results.add(result);
                     }
                 }
-                results.add(result);
                 lock.countDown();
             }
         });
@@ -1375,7 +1382,15 @@ public class MXCrypto {
             Log.e(LOG_TAG, "## decryptEvent() : failed " + e.getMessage());
         }
 
-        return (results.size() > 0) && results.get(0);
+        if (!exceptions.isEmpty()) {
+            throw exceptions.get(0);
+        }
+
+        if (!results.isEmpty()) {
+            return results.get(0);
+        }
+
+        return null;
     }
 
     /**
@@ -1517,136 +1532,6 @@ public class MXCrypto {
         return new ArrayList<>(list);
     }
 
-    /**
-     * Announce the device to the server.
-     * This method must be called from the getCryptoHandler() thread.
-     * The callback is called in the UI thread.
-     *
-     * @param callback the asynchronous callback.
-     */
-    private void checkDeviceAnnounced(final ApiCallback<Void> callback) {
-        if (mCryptoStore.deviceAnnounced()) {
-            // Catch up on any m.new_device events which arrived during the initial sync.
-            mDevicesList.refreshOutdatedDeviceLists();
-
-            if (null != callback) {
-                getUIHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        callback.onSuccess(null);
-                    }
-                });
-            }
-            return;
-        }
-
-        // Catch up on any m.new_device events which arrived during the initial sync.
-        // And force download all devices keys  the user already has.
-        mDevicesList.handleDeviceListsChanges(Arrays.asList(mMyDevice.userId), null);
-        mDevicesList.refreshOutdatedDeviceLists();
-
-        // We need to tell all the devices in all the rooms we are members of that
-        // we have arrived.
-        // Build a list of rooms for each user.
-        HashMap<String, ArrayList<String>> roomsByUser = new HashMap<>();
-
-        List<Room> rooms = getE2eRooms();
-
-        for (Room room : rooms) {
-            // Ignore any rooms which we have left
-            RoomMember me = room.getMember(mSession.getMyUserId());
-
-            if ((null == me) || (!TextUtils.equals(me.membership, RoomMember.MEMBERSHIP_JOIN) && !TextUtils.equals(me.membership, RoomMember.MEMBERSHIP_INVITE))) {
-                continue;
-            }
-
-            Collection<RoomMember> members = room.getLiveState().getMembers();
-
-            for (RoomMember r : members) {
-                ArrayList<String> roomIds = roomsByUser.get(r.getUserId());
-
-                if (null == roomIds) {
-                    roomIds = new ArrayList<>();
-                    roomsByUser.put(r.getUserId(), roomIds);
-                }
-
-                roomIds.add(room.getRoomId());
-            }
-        }
-
-        // Build a per-device message for each user
-        MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>();
-
-        for (String userId : roomsByUser.keySet()) {
-            HashMap<String, Map<String, Object>> map = new HashMap<>();
-
-            HashMap<String, Object> submap = new HashMap<>();
-            submap.put("device_id", mMyDevice.deviceId);
-            submap.put("rooms", roomsByUser.get(userId));
-
-            map.put("*", submap);
-
-            contentMap.setObjects(map, userId);
-        }
-
-        if (contentMap.getUserIds().size() > 0) {
-            mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_NEW_DEVICE, contentMap, new ApiCallback<Void>() {
-                @Override
-                public void onSuccess(Void info) {
-                    getEncryptingThreadHandler().post(new Runnable() {
-                        @Override
-                        public void run() {
-                            Log.d(LOG_TAG, "## checkDeviceAnnounced Annoucements done");
-                            mCryptoStore.storeDeviceAnnounced();
-
-                            if (null != callback) {
-                                getUIHandler().post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        callback.onSuccess(null);
-                                    }
-                                });
-                            }
-                        }
-                    });
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    Log.e(LOG_TAG, "## checkDeviceAnnounced() : failed " + e.getMessage());
-                    if (null != callback) {
-                        callback.onNetworkError(e);
-                    }
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    Log.e(LOG_TAG, "## checkDeviceAnnounced() : failed " + e.getMessage());
-                    if (null != callback) {
-                        callback.onMatrixError(e);
-                    }
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    Log.e(LOG_TAG, "## checkDeviceAnnounced() : failed " + e.getMessage());
-                    if (null != callback) {
-                        callback.onUnexpectedError(e);
-                    }
-                }
-            });
-        }
-
-        mCryptoStore.storeDeviceAnnounced();
-        if (null != callback) {
-            getUIHandler().post(new Runnable() {
-                @Override
-                public void run() {
-                    callback.onSuccess(null);
-                }
-            });
-        }
-    }
 
     /**
      * Handle the 'toDevice' event
@@ -1654,18 +1539,19 @@ public class MXCrypto {
      * @param event the event
      */
     private void onToDeviceEvent(final Event event) {
-        if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_ROOM_KEY)) {
+        if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_ROOM_KEY) ||
+                TextUtils.equals(event.getType(), Event.EVENT_TYPE_FORWARDED_ROOM_KEY)) {
             getDecryptingThreadHandler().post(new Runnable() {
                 @Override
                 public void run() {
                     onRoomKeyEvent(event);
                 }
             });
-        } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_NEW_DEVICE)) {
+        } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_ROOM_KEY_REQUEST)) {
             getEncryptingThreadHandler().post(new Runnable() {
                 @Override
                 public void run() {
-                    onNewDeviceEvent(event);
+                    onRoomKeyRequestEvent(event);
                 }
             });
         }
@@ -1705,31 +1591,140 @@ public class MXCrypto {
     }
 
     /**
-     * Called when a new device announces itself.
+     * Called when we get an m.room_key_request event
      * This method must be called on getEncryptingThreadHandler() thread.
      *
      * @param event the announcement event.
      */
-    private void onNewDeviceEvent(final Event event) {
-        String userId = event.getSender();
-        final NewDeviceContent newDeviceContent = JsonUtils.toNewDeviceContent(event.getContent());
+    private void onRoomKeyRequestEvent(final Event event) {
+        RoomKeyRequest roomKeyRequest = JsonUtils.toRoomKeyRequest(event.getContentAsJsonObject());
 
-        if ((null == newDeviceContent.rooms) || (null == newDeviceContent.deviceId)) {
-            Log.e(LOG_TAG, "## onNewDeviceEvent() : new_device event missing keys");
-            return;
+        if (null != roomKeyRequest.action) {
+            switch (roomKeyRequest.action) {
+                case RoomKeyRequest.ACTION_REQUEST: {
+                    synchronized (mReceivedRoomKeyRequests) {
+                        mReceivedRoomKeyRequests.add(new IncomingRoomKeyRequest(event));
+                    }
+                    break;
+                }
+
+                case RoomKeyRequest.ACTION_REQUEST_CANCELLATION: {
+                    synchronized (mReceivedRoomKeyRequestCancellations) {
+                        mReceivedRoomKeyRequestCancellations.add(new IncomingRoomKeyRequestCancellation(event));
+                    }
+                    break;
+                }
+
+                default:
+                    Log.e(LOG_TAG, "## onRoomKeyRequestEvent() : unsupported action " + roomKeyRequest.action);
+            }
+        }
+    }
+
+    /**
+     * Process any m.room_key_request events which were queued up during the
+     * current sync.
+     */
+    private void processReceivedRoomKeyRequests() {
+        List<IncomingRoomKeyRequest> receivedRoomKeyRequests = null;
+
+        synchronized (mReceivedRoomKeyRequests) {
+            if (!mReceivedRoomKeyRequests.isEmpty()) {
+                receivedRoomKeyRequests = new ArrayList(mReceivedRoomKeyRequests);
+                mReceivedRoomKeyRequests.clear();
+            }
         }
 
-        String deviceId = newDeviceContent.deviceId;
-        List<String> rooms = newDeviceContent.rooms;
+        if (null != receivedRoomKeyRequests) {
+            for (final IncomingRoomKeyRequest request : receivedRoomKeyRequests) {
+                String userId = request.mUserId;
+                String deviceId = request.mDeviceId;
+                RoomKeyRequestBody body = request.mRequestBody;
+                String roomId = body.room_id;
+                String alg = body.algorithm;
 
-        Log.d(LOG_TAG, "## onNewDeviceEvent() m.new_device event from " + userId + ":" + deviceId + " for rooms " + rooms);
+                Log.d(LOG_TAG, "m.room_key_request from " + userId + ":" + deviceId + " for " + roomId + " / " + body.session_id + " id " + request.mRequestId);
 
-        if (null != mCryptoStore.getUserDevice(deviceId, userId)) {
-            Log.e(LOG_TAG, "## onNewDeviceEvent() : known device; ignoring");
-            return;
+                if (!TextUtils.equals(mSession.getMyUserId(), userId)) {
+                    // TODO: determine if we sent this device the keys already: in
+                    Log.e(LOG_TAG, "## processReceivedRoomKeyRequests() : Ignoring room key request from other user for now");
+                    return;
+                }
+
+                // todo: should we queue up requests we don't yet have keys for,
+                // in case they turn up later?
+
+                // if we don't have a decryptor for this room/alg, we don't have
+                // the keys for the requested events, and can drop the requests.
+
+                final IMXDecrypting decryptor = getRoomDecryptor(roomId, alg);
+
+                if (null == decryptor) {
+                    Log.e(LOG_TAG, "## processReceivedRoomKeyRequests() : room key request for unknown " + alg + " in room " + roomId);
+                    continue;
+                }
+
+                if (!decryptor.hasKeysForKeyRequest(request)) {
+                    Log.e(LOG_TAG, "## processReceivedRoomKeyRequests() : room key request for unknown session " + body.session_id);
+                    continue;
+                }
+
+                if (TextUtils.equals(deviceId, getMyDevice().deviceId) && TextUtils.equals(mSession.getMyUserId(), userId)) {
+                    Log.d(LOG_TAG, "## processReceivedRoomKeyRequests() : oneself device - ignored");
+                    continue;
+                }
+
+                request.mShare = new Runnable() {
+                    @Override
+                    public void run() {
+                        getEncryptingThreadHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                decryptor.shareKeysWithDevice(request);
+                            }
+                        });
+                    }
+                };
+
+                // if the device is is verified already, share the keys
+                MXDeviceInfo device = mCryptoStore.getUserDevice(deviceId, userId);
+
+                if (null != device) {
+                    if (device.isVerified()) {
+                        Log.d(LOG_TAG, "## processReceivedRoomKeyRequests() : device is already verified: sharing keys");
+                        request.mShare.run();
+                        continue;
+                    }
+
+                    if (device.isBlocked()) {
+                        Log.d(LOG_TAG, "## processReceivedRoomKeyRequests() : device is blocked -> ignored");
+                        continue;
+                    }
+                }
+
+                onRoomKeyRequest(request);
+            }
         }
 
-        mDevicesList.handleDeviceListsChanges(Arrays.asList(userId), null);
+        List<IncomingRoomKeyRequestCancellation> receivedRoomKeyRequestCancellations = null;
+
+        synchronized (mReceivedRoomKeyRequestCancellations) {
+            if (!mReceivedRoomKeyRequestCancellations.isEmpty()) {
+                receivedRoomKeyRequestCancellations = new ArrayList(mReceivedRoomKeyRequestCancellations);
+                mReceivedRoomKeyRequestCancellations.clear();
+            }
+        }
+
+        if (null != receivedRoomKeyRequestCancellations) {
+            for (IncomingRoomKeyRequestCancellation request : receivedRoomKeyRequestCancellations) {
+                Log.d(LOG_TAG, "## ## processReceivedRoomKeyRequests() : m.room_key_request cancellation for " + request.mUserId + ":" + request.mDeviceId + " id " + request.mRequestId);
+
+                // we should probably only notify the app of cancellations we told it
+                // about, but we don't currently have a record of that, so we just pass
+                // everything through.
+                onRoomKeyRequestCancellation(request);
+            }
+        }
     }
 
     /**
@@ -1812,11 +1807,12 @@ public class MXCrypto {
     /**
      * OTK upload loop
      *
-     * @param numberToGenerate the number of key to generate
-     * @param callback         the asynchronous callback
+     * @param keyCount the number of key to generate
+     * @param keyLimit the limit
+     * @param callback the asynchronous callback
      */
-    private void uploadLoop(final int numberToGenerate, final ApiCallback<Void> callback) {
-        if (numberToGenerate <= 0) {
+    private void uploadLoop(final int keyCount, final int keyLimit, final ApiCallback<Void> callback) {
+        if (keyLimit <= keyCount) {
             // If we don't need to generate any more keys then we are done.
             if (null != callback) {
                 getUIHandler().post(new Runnable() {
@@ -1829,16 +1825,27 @@ public class MXCrypto {
             return;
         }
 
-        final int keysThisLoop = Math.min(numberToGenerate, ONE_TIME_KEY_GENERATION_MAX_NUMBER);
+        final int keysThisLoop = Math.min(keyLimit - keyCount, ONE_TIME_KEY_GENERATION_MAX_NUMBER);
+
         getOlmDevice().generateOneTimeKeys(keysThisLoop);
 
         uploadOneTimeKeys(new ApiCallback<KeysUploadResponse>() {
             @Override
-            public void onSuccess(KeysUploadResponse Response) {
+            public void onSuccess(final KeysUploadResponse response) {
                 getEncryptingThreadHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        uploadLoop(numberToGenerate - keysThisLoop, callback);
+                        if (response.hasOneTimeKeyCountsForAlgorithm("signed_curve25519")) {
+                            uploadLoop(response.oneTimeKeyCountsForAlgorithm("signed_curve25519"), keyLimit, callback);
+                        } else {
+                            Log.e(LOG_TAG, "## uploadLoop() : response for uploading keys does not contain one_time_key_counts.signed_curve25519");
+                            getUIHandler().post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    callback.onUnexpectedError(new Exception("response for uploading keys does not contain one_time_key_counts.signed_curve25519"));
+                                }
+                            });
+                        }
                     }
                 });
             }
@@ -1908,108 +1915,124 @@ public class MXCrypto {
 
         mOneTimeKeyCheckInProgress = true;
 
-        // ask the server how many keys we have
-        mSession.getCryptoRestClient().uploadKeys(null, null, mMyDevice.deviceId, new ApiCallback<KeysUploadResponse>() {
+        // We then check how many keys we can store in the Account object.
+        final long maxOneTimeKeys = getOlmDevice().getMaxNumberOfOneTimeKeys();
 
+        // Try to keep at most half that number on the server. This leaves the
+        // rest of the slots free to hold keys that have been claimed from the
+        // server but we haven't recevied a message for.
+        // If we run out of slots when generating new keys then olm will
+        // discard the oldest private keys first. This will eventually clean
+        // out stale private keys that won't receive a message.
+        final int keyLimit = (int) Math.floor(maxOneTimeKeys / 2.0);
+
+        if (null != mOneTimeKeyCount) {
+            uploadOTK(mOneTimeKeyCount, keyLimit, callback);
+        } else {
+            // ask the server how many keys we have
+            mSession.getCryptoRestClient().uploadKeys(null, null, mMyDevice.deviceId, new ApiCallback<KeysUploadResponse>() {
+                private void onFailed(String errorMessage) {
+                    if (null != errorMessage) {
+                        Log.e(LOG_TAG, "## uploadKeys() : failed " + errorMessage);
+                    }
+                    mOneTimeKeyCount = null;
+                    mOneTimeKeyCheckInProgress = false;
+                }
+
+                @Override
+                public void onSuccess(final KeysUploadResponse keysUploadResponse) {
+                    getEncryptingThreadHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (!hasBeenReleased()) {
+                                // We need to keep a pool of one time public keys on the server so that
+                                // other devices can start conversations with us. But we can only store
+                                // a finite number of private keys in the olm Account object.
+                                // To complicate things further then can be a delay between a device
+                                // claiming a public one time key from the server and it sending us a
+                                // message. We need to keep the corresponding private key locally until
+                                // we receive the message.
+                                // But that message might never arrive leaving us stuck with duff
+                                // private keys clogging up our local storage.
+                                // So we need some kind of enginering compromise to balance all of
+                                // these factors.
+                                int keyCount = keysUploadResponse.oneTimeKeyCountsForAlgorithm("signed_curve25519");
+                                uploadOTK(keyCount, keyLimit, callback);
+                            }
+                        }
+                    });
+                }
+
+                @Override
+                public void onNetworkError(final Exception e) {
+                    onFailed(e.getMessage());
+
+                    getUIHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (null != callback) {
+                                callback.onNetworkError(e);
+                            }
+                        }
+                    });
+                }
+
+                @Override
+                public void onMatrixError(final MatrixError e) {
+                    onFailed(e.getMessage());
+                    getUIHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (null != callback) {
+                                callback.onMatrixError(e);
+                            }
+                        }
+                    });
+                }
+
+                @Override
+                public void onUnexpectedError(final Exception e) {
+                    onFailed(e.getMessage());
+                    getUIHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (null != callback) {
+                                callback.onUnexpectedError(e);
+                            }
+                        }
+                    });
+                }
+            });
+        }
+    }
+
+    /**
+     * Upload some the OTKs.
+     *
+     * @param keyCount the key count
+     * @param keyLimit the limit
+     * @param callback the asynchronous callback
+     */
+    private void uploadOTK(int keyCount, int keyLimit, final ApiCallback<Void> callback) {
+        uploadLoop(keyCount, keyLimit, new ApiCallback<Void>() {
             private void uploadKeysDone(String errorMessage) {
                 if (null != errorMessage) {
                     Log.e(LOG_TAG, "## maybeUploadOneTimeKeys() : failed " + errorMessage);
                 }
+                mOneTimeKeyCount = null;
                 mOneTimeKeyCheckInProgress = false;
             }
 
             @Override
-            public void onSuccess(final KeysUploadResponse keysUploadResponse) {
-                getEncryptingThreadHandler().post(new Runnable() {
+            public void onSuccess(Void info) {
+                Log.d(LOG_TAG, "## maybeUploadOneTimeKeys() : succeeded");
+                uploadKeysDone(null);
+
+                getUIHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        if (!hasBeenReleased()) {
-                            // We need to keep a pool of one time public keys on the server so that
-                            // other devices can start conversations with us. But we can only store
-                            // a finite number of private keys in the olm Account object.
-                            // To complicate things further then can be a delay between a device
-                            // claiming a public one time key from the server and it sending us a
-                            // message. We need to keep the corresponding private key locally until
-                            // we receive the message.
-                            // But that message might never arrive leaving us stuck with duff
-                            // private keys clogging up our local storage.
-                            // So we need some kind of enginering compromise to balance all of
-                            // these factors.
-                            long keyCount = keysUploadResponse.oneTimeKeyCountsForAlgorithm("signed_curve25519");
-
-                            // We then check how many keys we can store in the Account object.
-                            long maxOneTimeKeys = getOlmDevice().getMaxNumberOfOneTimeKeys();
-
-                            // Try to keep at most half that number on the server. This leaves the
-                            // rest of the slots free to hold keys that have been claimed from the
-                            // server but we haven't recevied a message for.
-                            // If we run out of slots when generating new keys then olm will
-                            // discard the oldest private keys first. This will eventually clean
-                            // out stale private keys that won't receive a message.
-                            int keyLimit = (int) Math.floor(maxOneTimeKeys / 2.0);
-
-                            // We work out how many new keys we need to create to top up the server
-                            // If there are too many keys on the server then we don't need to
-                            // create any more keys.
-                            int numberToGenerate = (int) Math.max(keyLimit - keyCount, 0);
-
-                            uploadLoop(numberToGenerate, new ApiCallback<Void>() {
-                                @Override
-                                public void onSuccess(Void info) {
-                                    Log.d(LOG_TAG, "## maybeUploadOneTimeKeys() : succeeded");
-                                    uploadKeysDone(null);
-
-                                    getUIHandler().post(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            if (null != callback) {
-                                                callback.onSuccess(null);
-                                            }
-                                        }
-                                    });
-                                }
-
-                                @Override
-                                public void onNetworkError(final Exception e) {
-                                    uploadKeysDone(e.getMessage());
-
-                                    getUIHandler().post(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            if (null != callback) {
-                                                callback.onNetworkError(e);
-                                            }
-                                        }
-                                    });
-                                }
-
-                                @Override
-                                public void onMatrixError(final MatrixError e) {
-                                    uploadKeysDone(e.getMessage());
-
-                                    getUIHandler().post(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            if (null != callback) {
-                                                callback.onMatrixError(e);
-                                            }
-                                        }
-                                    });
-                                }
-
-                                @Override
-                                public void onUnexpectedError(final Exception e) {
-                                    uploadKeysDone(e.getMessage());
-                                    getUIHandler().post(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            if (null != callback) {
-                                                callback.onUnexpectedError(e);
-                                            }
-                                        }
-                                    });
-                                }
-                            });
+                        if (null != callback) {
+                            callback.onSuccess(null);
                         }
                     }
                 });
@@ -2032,6 +2055,7 @@ public class MXCrypto {
             @Override
             public void onMatrixError(final MatrixError e) {
                 uploadKeysDone(e.getMessage());
+
                 getUIHandler().post(new Runnable() {
                     @Override
                     public void run() {
@@ -2045,7 +2069,6 @@ public class MXCrypto {
             @Override
             public void onUnexpectedError(final Exception e) {
                 uploadKeysDone(e.getMessage());
-
                 getUIHandler().post(new Runnable() {
                     @Override
                     public void run() {
@@ -2056,6 +2079,7 @@ public class MXCrypto {
                 });
             }
         });
+
     }
 
     /**
@@ -2199,7 +2223,6 @@ public class MXCrypto {
         return alg;
     }
 
-
     /**
      * Export the crypto keys
      *
@@ -2207,6 +2230,19 @@ public class MXCrypto {
      * @param callback the exported keys
      */
     public void exportRoomKeys(final String password, final ApiCallback<byte[]> callback) {
+        exportRoomKeys(password, MXMegolmExportEncryption.DEFAULT_ITERATION_COUNT, callback);
+    }
+
+    /**
+     * Export the crypto keys
+     *
+     * @param password         the password
+     * @param anIterationCount the encryption iteration count (0 means no encryption)
+     * @param callback         the exported keys
+     */
+    public void exportRoomKeys(final String password, int anIterationCount, final ApiCallback<byte[]> callback) {
+        final int iterationCount = Math.max(0, anIterationCount);
+
         getDecryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
@@ -2235,8 +2271,7 @@ public class MXCrypto {
                 final byte[] encryptedRoomKeys;
 
                 try {
-                    String allo = JsonUtils.getGson(false).toJsonTree(exportedSessions).toString();
-                    encryptedRoomKeys = MXMegolmExportEncryption.encryptMegolmKeyFile(allo, password);
+                    encryptedRoomKeys = MXMegolmExportEncryption.encryptMegolmKeyFile(JsonUtils.getGson(false).toJsonTree(exportedSessions).toString(), password, iterationCount);
                 } catch (Exception e) {
                     callback.onUnexpectedError(e);
                     return;
@@ -2612,5 +2647,113 @@ public class MXCrypto {
      */
     public void setRoomUnblacklistUnverifiedDevices(final String roomId, final ApiCallback<Void> callback) {
         setRoomBlacklistUnverifiedDevices(roomId, false, callback);
+    }
+
+    /**
+     * Send a request for some room keys, if we have not already done so.
+     *
+     * @param requestBody requestBody
+     * @param recipients  recipients
+     */
+    public void requestRoomKey(final Map<String, String> requestBody, final List<Map<String, String>> recipients) {
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                mOutgoingRoomKeyRequestManager.sendRoomKeyRequest(requestBody, recipients);
+            }
+        });
+    }
+
+    /**
+     * Cancel any earlier room key request
+     *
+     * @param requestBody requestBody
+     */
+    public void cancelRoomKeyRequest(final Map<String, String> requestBody) {
+        getEncryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                mOutgoingRoomKeyRequestManager.cancelRoomKeyRequest(requestBody);
+            }
+        });
+    }
+
+    /**
+     * Room keys events listener
+     */
+    public interface IRoomKeysRequestListener {
+        /**
+         * An room key request has been received.
+         *
+         * @param request the request
+         */
+        void onRoomKeyRequest(IncomingRoomKeyRequest request);
+
+        /**
+         * A room key request cancellation has been received.
+         *
+         * @param request the cancellation request
+         */
+        void onRoomKeyRequestCancellation(IncomingRoomKeyRequestCancellation request);
+    }
+
+    // the listeners
+    public final Set<IRoomKeysRequestListener> mRoomKeysRequestListeners = new HashSet<>();
+
+    /**
+     * Add a IRoomKeysRequestListener listener.
+     *
+     * @param listener listener
+     */
+    public void addRoomKeysRequestListener(IRoomKeysRequestListener listener) {
+        synchronized (mRoomKeysRequestListeners) {
+            mRoomKeysRequestListeners.add(listener);
+        }
+    }
+
+    /**
+     * Add a IRoomKeysRequestListener listener.
+     *
+     * @param listener listener
+     */
+    public void removeRoomKeysRequestListener(IRoomKeysRequestListener listener) {
+        synchronized (mRoomKeysRequestListeners) {
+            mRoomKeysRequestListeners.remove(listener);
+        }
+    }
+
+    /**
+     * Dispatch onRoomKeyRequest
+     *
+     * @param request the request
+     */
+    private void onRoomKeyRequest(IncomingRoomKeyRequest request) {
+        synchronized (mRoomKeysRequestListeners) {
+            for (IRoomKeysRequestListener listener : mRoomKeysRequestListeners) {
+                try {
+                    listener.onRoomKeyRequest(request);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## onRoomKeyRequest() failed " + e.getMessage());
+                }
+            }
+        }
+    }
+
+
+    /**
+     * A room key request cancellation has been received.
+     *
+     * @param request the cancellation request
+     */
+    private void onRoomKeyRequestCancellation(IncomingRoomKeyRequestCancellation request) {
+        synchronized (mRoomKeysRequestListeners) {
+            for (IRoomKeysRequestListener listener : mRoomKeysRequestListeners) {
+                try {
+                    listener.onRoomKeyRequestCancellation(request);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## onRoomKeyRequestCancellation() failed " + e.getMessage());
+                }
+            }
+        }
     }
 }

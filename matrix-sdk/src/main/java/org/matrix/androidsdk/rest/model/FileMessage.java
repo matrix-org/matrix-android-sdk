@@ -16,15 +16,15 @@
 package org.matrix.androidsdk.rest.model;
 
 import android.content.ClipDescription;
-import android.net.Uri;
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.util.Log;
+
 import android.webkit.MimeTypeMap;
 
-import java.io.File;
-
-public class FileMessage extends Message {
-    private static final String LOG_TAG = "FileMessage";
+public class FileMessage extends MediaMessage {
+    private static final String LOG_TAG = FileMessage.class.getSimpleName();
 
     public FileInfo info;
     public String url;
@@ -37,9 +37,7 @@ public class FileMessage extends Message {
         msgtype = MSGTYPE_FILE;
     }
 
-    /**
-     * @return the file url
-     */
+    @Override
     public String getUrl() {
         if (null != url) {
             return url;
@@ -50,8 +48,20 @@ public class FileMessage extends Message {
         }
     }
 
+    @Override
+    public void setUrl(MXEncryptedAttachments.EncryptionResult encryptionResult, String contentUrl) {
+        if (null != encryptionResult) {
+            file = encryptionResult.mEncryptedFileInfo;
+            file.url = contentUrl;
+            url = null;
+        } else {
+            url = contentUrl;
+        }
+    }
+
     /**
      * Make a deep copy of this VideoMessage.
+     *
      * @return the copy
      */
     public FileMessage deepCopy() {
@@ -71,10 +81,7 @@ public class FileMessage extends Message {
         return copy;
     }
 
-    public boolean isLocalContent() {
-        return (null != url) && (url.startsWith("file://"));
-    }
-
+    @Override
     public String getMimeType() {
         if (null != info) {
             // the mimetype was not provided or it's invalid
@@ -82,7 +89,7 @@ public class FileMessage extends Message {
             // it should be fixed on application side but we need to patch it on client side.
             if ((TextUtils.isEmpty(info.mimetype) || ClipDescription.MIMETYPE_TEXT_URILIST.equals(info.mimetype)) && (body.indexOf('.') > 0)) {
                 // the body should contain the filename so try to extract the mimetype from the extension
-                String extension =  body.substring(body.lastIndexOf('.') + 1, body.length());
+                String extension = body.substring(body.lastIndexOf('.') + 1, body.length());
 
                 try {
                     info.mimetype = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.toLowerCase());
@@ -98,25 +105,6 @@ public class FileMessage extends Message {
             return info.mimetype;
         } else {
             return null;
-        }
-    }
-
-    /**
-     * Checks if the media Urls are still valid.
-     * The media Urls could define a file path.
-     * They could have been deleted after a media cache cleaning.
-     */
-    public void checkMediaUrls() {
-        if ((url != null) && url.startsWith("file://")) {
-            try {
-                File file = new File(Uri.parse(url).getPath());
-
-                if (!file.exists()) {
-                    url = null;
-                }
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## checkMediaUrls() failed " + e.getMessage());
-            }
         }
     }
 }

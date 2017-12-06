@@ -61,7 +61,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class MXWebRtcCall extends MXCall {
-    private static final String LOG_TAG = "MXWebRtcCall";
+    private static final String LOG_TAG = MXWebRtcCall.class.getSimpleName();
 
     private static final String VIDEO_TRACK_ID = "ARDAMSv0";
     private static final String AUDIO_TRACK_ID = "ARDAMSa0";
@@ -114,16 +114,12 @@ public class MXWebRtcCall extends MXCall {
     private boolean mIsAnswered = false;
 
     /**
+     * @param context the context
      * @return true if this stack can perform calls.
      */
     public static boolean isSupported(Context context) {
         if (null == mIsSupported) {
-            mIsSupported = Build.VERSION.SDK_INT > Build.VERSION_CODES.ICE_CREAM_SANDWICH;
-
-            // the call initialisation is not yet done
-            if (mIsSupported) {
-                initializeAndroidGlobals(context.getApplicationContext());
-            }
+            initializeAndroidGlobals(context.getApplicationContext());
 
             Log.d(LOG_TAG, "isSupported " + mIsSupported);
         }
@@ -139,6 +135,53 @@ public class MXWebRtcCall extends MXCall {
      */
     private static boolean useCamera2(Context context) {
         return Camera2Enumerator.isSupported(context);
+    }
+
+    /**
+     * Test if the camera is not used by another app.
+     * It is used to prevent crashes at org.webrtc.Camera1Session.create(Camera1Session.java:80)
+     * when the front camera is not available.
+     *
+     * @param context    the context
+     * @param isFrontOne true if the camera is the
+     * @return true if the camera is used.
+     */
+    @SuppressLint("Deprecation")
+    private static boolean isCameraInUse(Context context, boolean isFrontOne) {
+        boolean isUsed = false;
+
+        if (!useCamera2(context)) {
+            int cameraId = -1;
+            int numberOfCameras = android.hardware.Camera.getNumberOfCameras();
+            for (int i = 0; i < numberOfCameras; i++) {
+                android.hardware.Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
+                android.hardware.Camera.getCameraInfo(i, info);
+
+                if ((info.facing == android.hardware.Camera.CameraInfo.CAMERA_FACING_FRONT) && isFrontOne) {
+                    cameraId = i;
+                    break;
+                } else if ((info.facing == android.hardware.Camera.CameraInfo.CAMERA_FACING_BACK) && !isFrontOne) {
+                    cameraId = i;
+                    break;
+                }
+            }
+
+            if (cameraId >= 0) {
+                android.hardware.Camera c = null;
+                try {
+                    c = android.hardware.Camera.open(cameraId);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## isCameraInUse() : failed " + e.getMessage());
+                } finally {
+                    isUsed = (null == c);
+                    if (c != null) {
+                        c.release();
+                    }
+                }
+            }
+        }
+
+        return isUsed;
     }
 
     /**
@@ -200,7 +243,7 @@ public class MXWebRtcCall extends MXCall {
 
                 mIsSupported = true;
                 Log.d(LOG_TAG, "## initializeAndroidGlobals(): mIsInitialized=" + mIsInitialized);
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 Log.e(LOG_TAG, "## initializeAndroidGlobals(): Exception Msg=" + e.getMessage());
                 mIsInitialized = true;
                 mIsSupported = false;
@@ -213,6 +256,8 @@ public class MXWebRtcCall extends MXCall {
      */
     @Override
     public void createCallView() {
+        super.createCallView();
+
         if ((null != mIsSupported) && mIsSupported) {
             Log.d(LOG_TAG, "++ createCallView()");
 
@@ -225,13 +270,13 @@ public class MXWebRtcCall extends MXCall {
                     mCallView.setBackgroundColor(ContextCompat.getColor(mContext, android.R.color.black));
                     mCallView.setVisibility(View.GONE);
 
-                    dispatchOnViewLoading(mCallView);
+                    dispatchOnCallViewCreated(mCallView);
 
                     mUIThreadHandler.post(new Runnable() {
                         @Override
                         public void run() {
-                            dispatchOnStateDidChange(CALL_STATE_FLEDGLING);
-                            dispatchOnViewReady();
+                            dispatchOnStateDidChange(CALL_STATE_READY);
+                            dispatchOnReady();
                         }
                     });
                 }
@@ -260,6 +305,11 @@ public class MXWebRtcCall extends MXCall {
             mPeerConnection = null;
             // the call has been initialized so mPeerConnectionFactory can be released
             isPeerConnectionFactoryAllowed = true;
+        }
+
+        if (null != mCameraVideoCapturer) {
+            mCameraVideoCapturer.dispose();
+            mCameraVideoCapturer = null;
         }
 
         if (null != mVideoSource) {
@@ -308,11 +358,11 @@ public class MXWebRtcCall extends MXCall {
     private void sendInvite(final SessionDescription sessionDescription) {
         // check if the call has not been killed
         if (isCallEnded()) {
-            Log.d(LOG_TAG, "##sendInvite(): isCallEnded");
+            Log.d(LOG_TAG, "## sendInvite(): isCallEnded");
             return;
         }
 
-        Log.d(LOG_TAG, "##sendInvite()");
+        Log.d(LOG_TAG, "## sendInvite()");
 
         // build the invitation event
         JsonObject inviteContent = new JsonObject();
@@ -328,25 +378,34 @@ public class MXWebRtcCall extends MXCall {
         Event event = new Event(Event.EVENT_TYPE_CALL_INVITE, inviteContent, mSession.getCredentials().userId, mCallSignalingRoom.getRoomId());
 
         mPendingEvents.add(event);
-        mCallTimeoutTimer = new Timer();
-        mCallTimeoutTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                try {
-                    if (getCallState().equals(IMXCall.CALL_STATE_RINGING) || getCallState().equals(IMXCall.CALL_STATE_INVITE_SENT)) {
-                        Log.d(LOG_TAG, "sendInvite : CALL_ERROR_USER_NOT_RESPONDING");
-                        dispatchOnCallError(CALL_ERROR_USER_NOT_RESPONDING);
-                        hangup(null);
-                    }
 
-                    // cancel the timer
-                    mCallTimeoutTimer.cancel();
-                    mCallTimeoutTimer = null;
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## sendInvite(): Exception Msg= " + e.getMessage());
+        try {
+            mCallTimeoutTimer = new Timer();
+            mCallTimeoutTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    try {
+                        if (getCallState().equals(IMXCall.CALL_STATE_RINGING) || getCallState().equals(IMXCall.CALL_STATE_INVITE_SENT)) {
+                            Log.d(LOG_TAG, "sendInvite : CALL_ERROR_USER_NOT_RESPONDING");
+                            dispatchOnCallError(CALL_ERROR_USER_NOT_RESPONDING);
+                            hangup(null);
+                        }
+
+                        // cancel the timer
+                        mCallTimeoutTimer.cancel();
+                        mCallTimeoutTimer = null;
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## sendInvite(): Exception Msg= " + e.getMessage());
+                    }
                 }
+            }, CALL_TIMEOUT_MS);
+        } catch (Throwable throwable) {
+            Log.e(LOG_TAG, "## sendInvite(): failed " + throwable.getMessage());
+            if (null != mCallTimeoutTimer) {
+                mCallTimeoutTimer.cancel();
+                mCallTimeoutTimer = null;
             }
-        }, CALL_TIMEOUT_MS);
+        }
 
         sendNextEvent();
     }
@@ -385,6 +444,7 @@ public class MXWebRtcCall extends MXCall {
 
     @Override
     public void updateLocalVideoRendererPosition(VideoLayoutConfiguration aConfigurationToApply) {
+        super.updateLocalVideoRendererPosition(aConfigurationToApply);
         try {
             updateWebRtcViewLayout(mPipRTCView, aConfigurationToApply);
         } catch (Exception e) {
@@ -729,6 +789,12 @@ public class MXWebRtcCall extends MXCall {
                     }
                 });
 
+        if (null == mPeerConnection) {
+            dispatchOnCallError(CALL_ERROR_ICE_FAILED);
+            hangup("cannot create peer connection");
+            return;
+        }
+
         // send our local video and audio stream to make it seen by the other part
         mPeerConnection.addStream(mLocalMediaStream);
 
@@ -816,20 +882,17 @@ public class MXWebRtcCall extends MXCall {
 
         mBackCameraName = mFrontCameraName = null;
 
-
         if (null != deviceNames) {
-
             for (String deviceName : deviceNames) {
-                if (enumerator.isFrontFacing(deviceName)) {
+                if (enumerator.isFrontFacing(deviceName) && !isCameraInUse(mContext, true)) {
                     mFrontCameraName = deviceName;
-                } else if (enumerator.isBackFacing(deviceName)) {
+                } else if (enumerator.isBackFacing(deviceName) && !isCameraInUse(mContext, false)) {
                     mBackCameraName = deviceName;
                 }
             }
 
             cameraCount = deviceNames.length;
         }
-
 
         Log.d(LOG_TAG, "hasCameraDevice():  camera number= " + cameraCount);
         Log.d(LOG_TAG, "hasCameraDevice():  frontCameraName=" + mFrontCameraName + " backCameraName=" + mBackCameraName);
@@ -876,8 +939,12 @@ public class MXWebRtcCall extends MXCall {
 
         // create the local renderer only if there is a camera on the device
         if (hasCameraDevice()) {
-
             try {
+                if (null != mCameraVideoCapturer) {
+                    mCameraVideoCapturer.dispose();
+                    mCameraVideoCapturer = null;
+                }
+
                 if (null != mFrontCameraName) {
                     mCameraVideoCapturer = createVideoCapturer(mFrontCameraName);
 
@@ -1054,7 +1121,11 @@ public class MXWebRtcCall extends MXCall {
                 Log.e(LOG_TAG, "## initCallUI(): Exception Msg =" + e.getMessage());
             }
 
-            mCallView.setVisibility(View.VISIBLE);
+            // reported gy google analytics
+            // it should never happens
+            if (null != mCallView) {
+                mCallView.setVisibility(View.VISIBLE);
+            }
 
         } else {
             Log.d(LOG_TAG, "## initCallUI(): build audio call");
@@ -1126,11 +1197,12 @@ public class MXWebRtcCall extends MXCall {
     }
 
     /**
-     * Start a call.
+     * Start an outgoing call.
      */
     @Override
     public void placeCall(VideoLayoutConfiguration aLocalVideoPosition) {
         Log.d(LOG_TAG, "placeCall");
+        super.placeCall(aLocalVideoPosition);
 
         dispatchOnStateDidChange(IMXCall.CALL_STATE_WAIT_LOCAL_MEDIA);
         initCallUI(null, aLocalVideoPosition);
@@ -1201,12 +1273,11 @@ public class MXWebRtcCall extends MXCall {
      */
     @Override
     public void prepareIncomingCall(final JsonObject aCallInviteParams, final String aCallId, final VideoLayoutConfiguration aLocalVideoPosition) {
-
         Log.d(LOG_TAG, "## prepareIncomingCall : call state " + getCallState());
-
+        super.prepareIncomingCall(aCallInviteParams, aCallId, aLocalVideoPosition);
         mCallId = aCallId;
 
-        if (CALL_STATE_FLEDGLING.equals(getCallState())) {
+        if (CALL_STATE_READY.equals(getCallState())) {
             mIsIncoming = true;
 
             dispatchOnStateDidChange(CALL_STATE_WAIT_LOCAL_MEDIA);
@@ -1243,7 +1314,8 @@ public class MXWebRtcCall extends MXCall {
     public void launchIncomingCall(VideoLayoutConfiguration aLocalVideoPosition) {
         Log.d(LOG_TAG, "launchIncomingCall : call state " + getCallState());
 
-        if (CALL_STATE_FLEDGLING.equals(getCallState())) {
+        super.launchIncomingCall(aLocalVideoPosition);
+        if (CALL_STATE_READY.equals(getCallState())) {
             prepareIncomingCall(mCallInviteParams, mCallId, aLocalVideoPosition);
         }
     }
@@ -1409,6 +1481,8 @@ public class MXWebRtcCall extends MXCall {
      */
     @Override
     public void handleCallEvent(Event event) {
+        super.handleCallEvent(event);
+
         if (event.isCallEvent()) {
             String eventType = event.getType();
 
@@ -1468,6 +1542,7 @@ public class MXWebRtcCall extends MXCall {
      */
     @Override
     public void answer() {
+        super.answer();
         Log.d(LOG_TAG, "answer " + getCallState());
 
         if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mPeerConnection)) {
@@ -1560,6 +1635,8 @@ public class MXWebRtcCall extends MXCall {
      */
     @Override
     public void hangup(String reason) {
+        super.hangup(reason);
+
         Log.d(LOG_TAG, "## hangup(): reason=" + reason);
 
         if (!isCallEnded()) {
@@ -1619,6 +1696,8 @@ public class MXWebRtcCall extends MXCall {
      */
     @Override
     public void onAnsweredElsewhere() {
+        super.onAnsweredElsewhere();
+
         String state = getCallState();
 
         Log.d(LOG_TAG, "onAnsweredElsewhere in state " + state);
@@ -1626,7 +1705,6 @@ public class MXWebRtcCall extends MXCall {
         if (!isCallEnded() && !mIsAnswered) {
             dispatchAnsweredElsewhere();
             terminate(IMXCall.END_CALL_REASON_UNDEFINED);
-
         }
     }
 
@@ -1637,7 +1715,7 @@ public class MXWebRtcCall extends MXCall {
         mCallState = newState;
 
         // call timeout management
-        if (CALL_STATE_CONNECTING.equals(mCallState) || CALL_STATE_CONNECTING.equals(mCallState)) {
+        if (CALL_STATE_CONNECTING.equals(mCallState) || CALL_STATE_CONNECTED.equals(mCallState)) {
             if (null != mCallTimeoutTimer) {
                 mCallTimeoutTimer.cancel();
                 mCallTimeoutTimer = null;

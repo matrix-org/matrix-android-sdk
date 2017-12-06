@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.crypto;
 
 import android.text.TextUtils;
+
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.crypto.algorithms.IMXDecrypting;
@@ -28,7 +29,7 @@ import java.util.List;
 
 public class MXCryptoAlgorithms {
 
-    private static final String LOG_TAG = "MXCryptoAlgorithms";
+    private static final String LOG_TAG = MXCryptoAlgorithms.class.getSimpleName();
 
     /**
      * Matrix algorithm tag for olm.
@@ -67,13 +68,13 @@ public class MXCryptoAlgorithms {
         // encryptos
         mEncryptors = new HashMap<>();
         try {
-            mEncryptors.put(MXCRYPTO_ALGORITHM_MEGOLM, (Class<IMXEncrypting>)Class.forName("org.matrix.androidsdk.crypto.algorithms.megolm.MXMegolmEncryption"));
+            mEncryptors.put(MXCRYPTO_ALGORITHM_MEGOLM, (Class<IMXEncrypting>) Class.forName("org.matrix.androidsdk.crypto.algorithms.megolm.MXMegolmEncryption"));
         } catch (Exception e) {
             Log.e(LOG_TAG, "## MXCryptoAlgorithms() : fails to add MXCRYPTO_ALGORITHM_MEGOLM " + e.getMessage());
         }
 
         try {
-            mEncryptors.put(MXCRYPTO_ALGORITHM_OLM, (Class<IMXEncrypting>)Class.forName("org.matrix.androidsdk.crypto.algorithms.olm.MXOlmEncryption"));
+            mEncryptors.put(MXCRYPTO_ALGORITHM_OLM, (Class<IMXEncrypting>) Class.forName("org.matrix.androidsdk.crypto.algorithms.olm.MXOlmEncryption"));
         } catch (Exception e) {
             Log.e(LOG_TAG, "## MXCryptoAlgorithms() : fails to add MXCRYPTO_ALGORITHM_OLM " + e.getMessage());
         }
@@ -94,6 +95,7 @@ public class MXCryptoAlgorithms {
 
     /**
      * Get the class implementing encryption for the provided algorithm.
+     *
      * @param algorithm the algorithm tag.
      * @return A class implementing 'IMXEncrypting'.
      */
@@ -107,6 +109,7 @@ public class MXCryptoAlgorithms {
 
     /**
      * Get the class implementing decryption for the provided algorithm.
+     *
      * @param algorithm the algorithm tag.
      * @return A class implementing 'IMXDecrypting'.
      */

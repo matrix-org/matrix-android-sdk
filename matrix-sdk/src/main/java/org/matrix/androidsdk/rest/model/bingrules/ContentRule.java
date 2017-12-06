@@ -18,7 +18,7 @@ package org.matrix.androidsdk.rest.model.bingrules;
 public class ContentRule extends BingRule {
     public String pattern;
 
-    public ContentRule(String ruleKind, String aPattern, boolean notify, boolean highlight, boolean sound)  {
+    public ContentRule(String ruleKind, String aPattern, boolean notify, boolean highlight, boolean sound) {
         super(ruleKind, aPattern, notify, highlight, sound);
         pattern = aPattern;
     }

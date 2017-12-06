@@ -17,9 +17,14 @@
 package org.matrix.androidsdk.crypto.algorithms.olm;
 
 import android.text.TextUtils;
+
+import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
+import org.matrix.androidsdk.crypto.MXDecryptionException;
+import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
+import org.matrix.androidsdk.rest.model.OlmEventContent;
+import org.matrix.androidsdk.rest.model.OlmPayloadContent;
 import org.matrix.androidsdk.util.Log;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -33,7 +38,6 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -56,162 +60,98 @@ public class MXOlmDecryption implements IMXDecrypting {
     }
 
     @Override
-    public boolean decryptEvent(Event event, String timeline) {
+    public MXEventDecryptionResult decryptEvent(Event event, String timeline) throws MXDecryptionException {
         // sanity check
         if (null == event) {
             Log.e(LOG_TAG, "## decryptEvent() : null event");
-            return false;
+            return null;
         }
 
-        try {
-            JsonObject eventContent = event.getContentAsJsonObject();
-            Gson gson = JsonUtils.getGson(false);
+        OlmEventContent olmEventContent = JsonUtils.toOlmEventContent(event.getWireContent().getAsJsonObject());
+        String deviceKey = olmEventContent.sender_key;
+        Map<String, Object> ciphertext = olmEventContent.ciphertext;
 
-            String deviceKey = null;
-            
-            try {
-                deviceKey = eventContent.get("sender_key").getAsString();
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## decryptEvent() Failed to get sender_key " + e.getMessage());
-            }
-
-            Map<String, Object> ciphertext = null;
-
-            try {
-                ciphertext = gson.fromJson(eventContent.get("ciphertext"), new TypeToken<Map<String, Object>>() {
-                }.getType());
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## decryptEvent() Failed to get ciphertext " + e.getMessage());
-            }
-
-            if (null == ciphertext) {
-                Log.e(LOG_TAG, "## decryptEvent() : missing cipher text");
-                event.setCryptoError(new MXCryptoError(MXCryptoError.MISSING_CIPHER_TEXT_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, MXCryptoError.MISSING_CIPHER_TEXT_REASON));
-                return false;
-            }
-
-            if (!ciphertext.containsKey(mOlmDevice.getDeviceCurve25519Key())) {
-                Log.e(LOG_TAG, "## decryptEvent() : our device " + mOlmDevice.getDeviceCurve25519Key() + " is not included in recipients. Event " + event.getContentAsJsonObject());
-                event.setCryptoError(new MXCryptoError(MXCryptoError.NOT_INCLUDE_IN_RECIPIENTS_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, MXCryptoError.NOT_INCLUDED_IN_RECIPIENT_REASON));
-                return false;
-            }
-
-            // The message for myUser
-            Map<String, Object> message = (Map<String, Object>) ciphertext.get(mOlmDevice.getDeviceCurve25519Key());
-            String payloadString = decryptMessage(message, deviceKey);
-
-            if (null == payloadString) {
-                Log.e(LOG_TAG, "## decryptEvent() Failed to decrypt Olm event (id= " + event.eventId + " ) from " + deviceKey);
-                event.setCryptoError(new MXCryptoError(MXCryptoError.BAD_ENCRYPTED_MESSAGE_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, MXCryptoError.BAD_ENCRYPTED_MESSAGE_REASON));
-                return false;
-            }
-
-            JsonElement payload = new JsonParser().parse(JsonUtils.convertFromUTF8(payloadString));
-
-            if (null != payload) {
-                JsonObject payloadAsJSon = payload.getAsJsonObject();
-
-                if (!payloadAsJSon.has("recipient")) {
-                    String reason = String.format(MXCryptoError.ERROR_MISSING_PROPERTY_REASON, "recipient");
-                    Log.e(LOG_TAG, "## decryptEvent() : " + reason);
-                    event.setCryptoError(new MXCryptoError(MXCryptoError.MISSING_PROPERTY_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason));
-                    return false;
-                } else {
-                    String recipient = null;
-                    try {
-                        recipient = payloadAsJSon.get("recipient").getAsString();
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "## decryptEvent() : failed to get recipient " + e.getMessage());
-                    }
-
-                    if (!TextUtils.equals(recipient, mSession.getMyUserId())) {
-                        Log.e(LOG_TAG, "## decryptEvent() : Event " + event.eventId + ": Intended recipient " + recipient + " does not match our id " + mSession.getMyUserId());
-                        event.setCryptoError(new MXCryptoError(MXCryptoError.BAD_RECIPIENT_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, String.format(MXCryptoError.BAD_RECIPIENT_REASON, recipient)));
-                        return false;
-                    }
-                }
-
-                if (!payloadAsJSon.has("recipient_keys")) {
-                    Log.e(LOG_TAG,  "## decryptEvent() : Olm event (id=" + event.eventId + ") contains no " +"'recipient_keys' property; cannot prevent unknown-key attack");
-                    event.setCryptoError(new MXCryptoError(MXCryptoError.MISSING_PROPERTY_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, String.format(MXCryptoError.ERROR_MISSING_PROPERTY_REASON, "recipient_keys")));
-                    return false;
-                } else {
-                    String ed25519 = null;
-
-                    try {
-                        ed25519 =  payloadAsJSon.getAsJsonObject("recipient_keys").get("ed25519").getAsString();
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "## decryptEvent() : failed to get recipient_keys" + e.getMessage());
-                    }
-
-                    if (!TextUtils.equals(ed25519, mOlmDevice.getDeviceEd25519Key())) {
-                        Log.e(LOG_TAG, "## decryptEvent() : Event " + event.eventId + ": Intended recipient ed25519 key " + ed25519 + " did not match ours");
-                        event.setCryptoError(new MXCryptoError(MXCryptoError.BAD_RECIPIENT_KEY_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, MXCryptoError.BAD_RECIPIENT_KEY_REASON));
-                        return false;
-                    }
-                }
-
-                if (!payloadAsJSon.has("sender")) {
-                    Log.e(LOG_TAG, "## decryptEvent() : Olm event (id=" + event.eventId + ") contains no " + "'sender' property; cannot prevent unknown-key attack");
-                    event.setCryptoError(new MXCryptoError(MXCryptoError.MISSING_PROPERTY_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, String.format(MXCryptoError.ERROR_MISSING_PROPERTY_REASON, "sender")));
-                    return false;
-                } else {
-                    String sender = null;
-
-                    try {
-                        sender = payloadAsJSon.get("sender").getAsString();
-                    }
-                    catch (Exception e) {
-                        Log.e(LOG_TAG, "## decryptEvent() : failed to get sender " + e.getMessage());
-                    }
-
-                    if (!TextUtils.equals(sender, event.getSender())) {
-                        Log.e(LOG_TAG, "Event " + event.eventId + ": original sender " + sender + " does not match reported sender " + event.getSender());
-                        event.setCryptoError(new MXCryptoError(MXCryptoError.FORWARDED_MESSAGE_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, String.format(MXCryptoError.FORWARDED_MESSAGE_REASON, sender)));
-                        return false;
-                    }
-                }
-
-                String expectedRoomId = null;
-
-                if (payloadAsJSon.has("room_id")) {
-                    try {
-                        expectedRoomId = payloadAsJSon.get("room_id").getAsString();
-                    }
-                    catch (Exception e) {
-                        Log.e(LOG_TAG, "## decryptEvent() : " + e.getMessage());
-                    }
-                }
-
-                if (!TextUtils.equals(event.roomId, expectedRoomId)) {
-                    Log.e(LOG_TAG, "## decryptEvent() : Event " + event.eventId + ": original room " + expectedRoomId + " does not match reported room " + event.roomId);
-                    event.setCryptoError(new MXCryptoError(MXCryptoError.BAD_ROOM_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, String.format(MXCryptoError.BAD_ROOM_REASON, expectedRoomId)));
-                    return false;
-                }
-            }
-
-            Event clearEvent = JsonUtils.toEvent(payload);
-
-            HashMap<String, String> keysProved = new HashMap<>();
-            keysProved.put("curve25519", deviceKey);
-            clearEvent.setKeysProved(keysProved);
-
-            Map<String, String> keysClaimed = gson.fromJson(payload.getAsJsonObject().get("keys"), new TypeToken<Map<String, String>>() {
-            }.getType());
-            clearEvent.setKeysClaimed(keysClaimed);
-
-            event.setClearEvent(clearEvent);
-            event.setCryptoError(null);
-        } catch (Exception e) {
-            event.setCryptoError(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, MXCryptoError.MISSING_CIPHER_TEXT_REASON));
-            Log.e(LOG_TAG, "## decryptEvent failed " + e.getMessage());
+        if (null == ciphertext) {
+            Log.e(LOG_TAG, "## decryptEvent() : missing cipher text");
+            throw new MXDecryptionException(new MXCryptoError(MXCryptoError.MISSING_CIPHER_TEXT_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, MXCryptoError.MISSING_CIPHER_TEXT_REASON));
         }
 
-        return (null != event.getClearEvent());
+        if (!ciphertext.containsKey(mOlmDevice.getDeviceCurve25519Key())) {
+            Log.e(LOG_TAG, "## decryptEvent() : our device " + mOlmDevice.getDeviceCurve25519Key() + " is not included in recipients. Event " + event.getContentAsJsonObject());
+            throw new MXDecryptionException(new MXCryptoError(MXCryptoError.NOT_INCLUDE_IN_RECIPIENTS_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, MXCryptoError.NOT_INCLUDED_IN_RECIPIENT_REASON));
+        }
+
+        // The message for myUser
+        Map<String, Object> message = (Map<String, Object>) ciphertext.get(mOlmDevice.getDeviceCurve25519Key());
+        String payloadString = decryptMessage(message, deviceKey);
+
+        if (null == payloadString) {
+            Log.e(LOG_TAG, "## decryptEvent() Failed to decrypt Olm event (id= " + event.eventId + " ) from " + deviceKey);
+            throw new MXDecryptionException(new MXCryptoError(MXCryptoError.BAD_ENCRYPTED_MESSAGE_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, MXCryptoError.BAD_ENCRYPTED_MESSAGE_REASON));
+        }
+
+        JsonElement payload = new JsonParser().parse(JsonUtils.convertFromUTF8(payloadString));
+
+        if (null == payload) {
+            Log.e(LOG_TAG, "## decryptEvent failed : null payload");
+            throw new MXDecryptionException(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, MXCryptoError.MISSING_CIPHER_TEXT_REASON));
+        }
+
+        OlmPayloadContent olmPayloadContent = JsonUtils.toOlmPayloadContent(payload);
+
+        if (TextUtils.isEmpty(olmPayloadContent.recipient)) {
+            String reason = String.format(MXCryptoError.ERROR_MISSING_PROPERTY_REASON, "recipient");
+            Log.e(LOG_TAG, "## decryptEvent() : " + reason);
+            throw new MXDecryptionException(new MXCryptoError(MXCryptoError.MISSING_PROPERTY_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason));
+        }
+
+        if (!TextUtils.equals(olmPayloadContent.recipient, mSession.getMyUserId())) {
+            Log.e(LOG_TAG, "## decryptEvent() : Event " + event.eventId + ": Intended recipient " + olmPayloadContent.recipient + " does not match our id " + mSession.getMyUserId());
+            throw new MXDecryptionException(new MXCryptoError(MXCryptoError.BAD_RECIPIENT_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, String.format(MXCryptoError.BAD_RECIPIENT_REASON, olmPayloadContent.recipient)));
+        }
+
+        if (null == olmPayloadContent.recipient_keys) {
+            Log.e(LOG_TAG, "## decryptEvent() : Olm event (id=" + event.eventId + ") contains no " + "'recipient_keys' property; cannot prevent unknown-key attack");
+            throw new MXDecryptionException(new MXCryptoError(MXCryptoError.MISSING_PROPERTY_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, String.format(MXCryptoError.ERROR_MISSING_PROPERTY_REASON, "recipient_keys")));
+        }
+
+        String ed25519 = olmPayloadContent.recipient_keys.get("ed25519");
+
+        if (!TextUtils.equals(ed25519, mOlmDevice.getDeviceEd25519Key())) {
+            Log.e(LOG_TAG, "## decryptEvent() : Event " + event.eventId + ": Intended recipient ed25519 key " + ed25519 + " did not match ours");
+            throw new MXDecryptionException(new MXCryptoError(MXCryptoError.BAD_RECIPIENT_KEY_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, MXCryptoError.BAD_RECIPIENT_KEY_REASON));
+        }
+
+        if (TextUtils.isEmpty(olmPayloadContent.sender)) {
+            Log.e(LOG_TAG, "## decryptEvent() : Olm event (id=" + event.eventId + ") contains no " + "'sender' property; cannot prevent unknown-key attack");
+            throw new MXDecryptionException(new MXCryptoError(MXCryptoError.MISSING_PROPERTY_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, String.format(MXCryptoError.ERROR_MISSING_PROPERTY_REASON, "sender")));
+        }
+
+        if (!TextUtils.equals(olmPayloadContent.sender, event.getSender())) {
+            Log.e(LOG_TAG, "Event " + event.eventId + ": original sender " + olmPayloadContent.sender + " does not match reported sender " + event.getSender());
+            throw new MXDecryptionException(new MXCryptoError(MXCryptoError.FORWARDED_MESSAGE_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, String.format(MXCryptoError.FORWARDED_MESSAGE_REASON, olmPayloadContent.sender)));
+        }
+
+        if (!TextUtils.equals(olmPayloadContent.room_id, event.roomId)) {
+            Log.e(LOG_TAG, "## decryptEvent() : Event " + event.eventId + ": original room " + olmPayloadContent.room_id + " does not match reported room " + event.roomId);
+            throw new MXDecryptionException(new MXCryptoError(MXCryptoError.BAD_ROOM_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, String.format(MXCryptoError.BAD_ROOM_REASON, olmPayloadContent.room_id)));
+        }
+
+        if (null == olmPayloadContent.keys) {
+            Log.e(LOG_TAG, "## decryptEvent failed : null keys");
+            throw new MXDecryptionException(new MXCryptoError(MXCryptoError.UNABLE_TO_DECRYPT_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, MXCryptoError.MISSING_CIPHER_TEXT_REASON));
+        }
+
+        MXEventDecryptionResult result = new MXEventDecryptionResult();
+        result.mClearEvent = payload;
+        result.mSenderCurve25519Key = deviceKey;
+        result.mClaimedEd25519Key = olmPayloadContent.keys.get("ed25519");
+        
+        return result;
     }
 
     @Override
-    public  void onRoomKeyEvent(Event event) {
+    public void onRoomKeyEvent(Event event) {
         // No impact for olm
     }
 
@@ -220,14 +160,24 @@ public class MXOlmDecryption implements IMXDecrypting {
         // No impact for olm
     }
 
+    @Override
+    public boolean hasKeysForKeyRequest(IncomingRoomKeyRequest request) {
+        return false;
+    }
+
+    @Override
+    public void shareKeysWithDevice(IncomingRoomKeyRequest request) {
+    }
+
     /**
      * Attempt to decrypt an Olm message.
+     *
      * @param theirDeviceIdentityKey the Curve25519 identity key of the sender.
-     * @param message message object, with 'type' and 'body' fields.
+     * @param message                message object, with 'type' and 'body' fields.
      * @return payload, if decrypted successfully.
      */
-    private String decryptMessage(Map<String, Object>message, String theirDeviceIdentityKey) {
-        Set<String> sessionIdsSet =  mOlmDevice.getSessionIds(theirDeviceIdentityKey);
+    private String decryptMessage(Map<String, Object> message, String theirDeviceIdentityKey) {
+        Set<String> sessionIdsSet = mOlmDevice.getSessionIds(theirDeviceIdentityKey);
 
         ArrayList<String> sessionIds;
 
@@ -237,18 +187,18 @@ public class MXOlmDecryption implements IMXDecrypting {
             sessionIds = new ArrayList<>(sessionIdsSet);
         }
 
-        String messageBody = (String)message.get("body");
+        String messageBody = (String) message.get("body");
         Integer messageType = null;
 
         Object typeAsVoid = message.get("type");
 
         if (null != typeAsVoid) {
             if (typeAsVoid instanceof Double) {
-                messageType = new Integer (((Double)typeAsVoid).intValue());
-            } else  if (typeAsVoid instanceof Integer) {
-                messageType = (Integer)typeAsVoid;
+                messageType = new Integer(((Double) typeAsVoid).intValue());
+            } else if (typeAsVoid instanceof Integer) {
+                messageType = (Integer) typeAsVoid;
             } else if (typeAsVoid instanceof Long) {
-                messageType = new Integer (((Long)typeAsVoid).intValue());
+                messageType = new Integer(((Long) typeAsVoid).intValue());
             }
         }
 
@@ -298,7 +248,7 @@ public class MXOlmDecryption implements IMXDecrypting {
             return null;
         }
 
-        Log.d(LOG_TAG, "## decryptMessage() :  Created new inbound Olm session get id " + res.get("session_id") + " with " +  theirDeviceIdentityKey);
+        Log.d(LOG_TAG, "## decryptMessage() :  Created new inbound Olm session get id " + res.get("session_id") + " with " + theirDeviceIdentityKey);
 
         return res.get("payload");
     }

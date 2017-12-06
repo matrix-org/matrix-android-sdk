@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.crypto;
 
 import android.text.TextUtils;
+
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonParser;
@@ -36,11 +37,12 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public class MXOlmDevice {
-    private static final String LOG_TAG = "MXOlmDevice";
+    private static final String LOG_TAG = MXOlmDevice.class.getSimpleName();
 
     // Curve25519 key for the account.
     private String mDeviceCurve25519Key;
@@ -84,6 +86,7 @@ public class MXOlmDevice {
 
     /**
      * Constructor
+     *
      * @param store the used store
      */
     public MXOlmDevice(IMXCryptoStore store) {
@@ -93,6 +96,7 @@ public class MXOlmDevice {
         mOlmAccount = mStore.getAccount();
 
         if (null == mOlmAccount) {
+            Log.d(LOG_TAG, "MXOlmDevice : create a new olm account");
             // Else, create it
             try {
                 mOlmAccount = new OlmAccount();
@@ -100,6 +104,8 @@ public class MXOlmDevice {
             } catch (Exception e) {
                 Log.e(LOG_TAG, "MXOlmDevice : cannot initialize mOlmAccount " + e.getMessage());
             }
+        } else {
+            Log.d(LOG_TAG, "MXOlmDevice : use an existing account");
         }
 
         try {
@@ -151,6 +157,7 @@ public class MXOlmDevice {
 
     /**
      * Signs a message with the ed25519 key for this account.
+     *
      * @param message the message to be signed.
      * @return the base64-encoded signature.
      */
@@ -167,6 +174,7 @@ public class MXOlmDevice {
     /**
      * Signs a JSON dictionary with the ed25519 key for this account.
      * The signature is done on canonical version of the JSON.
+     *
      * @param JSONDictionary the JSON to be signed.
      * @return the base64-encoded signature
      */
@@ -212,6 +220,7 @@ public class MXOlmDevice {
 
     /**
      * Generate some new one-time keys
+     *
      * @param numKeys number of keys to generate
      */
     public void generateOneTimeKeys(int numKeys) {
@@ -226,8 +235,9 @@ public class MXOlmDevice {
     /**
      * Generate a new outbound session.
      * The new session will be stored in the MXStore.
+     *
      * @param theirIdentityKey the remote user's Curve25519 identity key
-     * @param theirOneTimeKey the remote user's one-time Curve25519 key
+     * @param theirOneTimeKey  the remote user's one-time Curve25519 key
      * @return the session id for the outbound session. @TODO OLMSession?
      */
     public String createOutboundSession(String theirIdentityKey, String theirOneTimeKey) {
@@ -256,11 +266,11 @@ public class MXOlmDevice {
     }
 
     /**
-     *
      * Generate a new inbound session, given an incoming message.
+     *
      * @param theirDeviceIdentityKey the remote user's Curve25519 identity key.
-     * @param messageType the message_type field from the received message (must be 0).
-     * @param ciphertext base64-encoded body from the received message.
+     * @param messageType            the message_type field from the received message (must be 0).
+     * @param ciphertext             base64-encoded body from the received message.
      * @return {{payload: string, session_id: string}} decrypted payload, andsession id of new session.
      */
     public Map<String, String> createInboundSession(String theirDeviceIdentityKey, int messageType, String ciphertext) {
@@ -287,7 +297,7 @@ public class MXOlmDevice {
                 Log.e(LOG_TAG, "## createInboundSession() : removeOneTimeKeys failed " + e.getMessage());
             }
 
-            Log.d(LOG_TAG, "## createInboundSession() : ciphertext: " +  ciphertext);
+            Log.d(LOG_TAG, "## createInboundSession() : ciphertext: " + ciphertext);
             try {
                 Log.d(LOG_TAG, "## createInboundSession() :ciphertext: SHA256:" + mOlmUtility.sha256(URLEncoder.encode(ciphertext, "utf-8")));
             } catch (Exception e) {
@@ -333,6 +343,7 @@ public class MXOlmDevice {
 
     /**
      * Get a list of known session IDs for the given device.
+     *
      * @param theirDeviceIdentityKey the Curve25519 identity key for the remote device.
      * @return a list of known session ids for the device.
      */
@@ -348,6 +359,7 @@ public class MXOlmDevice {
 
     /**
      * Get the right olm session id for encrypting messages to the given identity key.
+     *
      * @param theirDeviceIdentityKey the Curve25519 identity key for the remote device.
      * @return the session id, or nil if no established session.
      */
@@ -366,9 +378,10 @@ public class MXOlmDevice {
 
     /**
      * Encrypt an outgoing message using an existing session.
+     *
      * @param theirDeviceIdentityKey the Curve25519 identity key for the remote device.
-     * @param sessionId the id of the active session
-     * @param payloadString the payload to be encrypted and sent
+     * @param sessionId              the id of the active session
+     * @param payloadString          the payload to be encrypted and sent
      * @return the cipher text
      */
     public Map<String, Object> encryptMessage(String theirDeviceIdentityKey, String sessionId, String payloadString) {
@@ -397,10 +410,11 @@ public class MXOlmDevice {
 
     /**
      * Decrypt an incoming message using an existing session.
-     * @param ciphertext the base64-encoded body from the received message.
-     * @param messageType message_type field from the received message.
+     *
+     * @param ciphertext             the base64-encoded body from the received message.
+     * @param messageType            message_type field from the received message.
      * @param theirDeviceIdentityKey the Curve25519 identity key for the remote device.
-     * @param sessionId the id of the active session.
+     * @param sessionId              the id of the active session.
      * @return the decrypted payload.
      */
     public String decryptMessage(String ciphertext, int messageType, String sessionId, String theirDeviceIdentityKey) {
@@ -426,10 +440,11 @@ public class MXOlmDevice {
 
     /**
      * Determine if an incoming messages is a prekey message matching an existing session.
+     *
      * @param theirDeviceIdentityKey the Curve25519 identity key for the remote device.
-     * @param sessionId the id of the active session.
-     * @param messageType message_type field from the received message.
-     * @param ciphertext the base64-encoded body from the received message.
+     * @param sessionId              the id of the active session.
+     * @param messageType            message_type field from the received message.
+     * @param ciphertext             the base64-encoded body from the received message.
      * @return YES if the received message is a prekey message which matchesthe given session.
      */
     public boolean matchesSession(String theirDeviceIdentityKey, String sessionId, int messageType, String ciphertext) {
@@ -443,8 +458,10 @@ public class MXOlmDevice {
 
 
     // Outbound group session
+
     /**
      * Generate a new outbound group session.
+     *
      * @return the session id for the outbound session.
      */
     public String createOutboundGroupSession() {
@@ -465,6 +482,7 @@ public class MXOlmDevice {
 
     /**
      * Get the current session key of  an outbound group session.
+     *
      * @param sessionId the id of the outbound group session.
      * @return the base64-encoded secret key.
      */
@@ -481,6 +499,7 @@ public class MXOlmDevice {
 
     /**
      * Get the current message index of an outbound group session.
+     *
      * @param sessionId the id of the outbound group session.
      * @return the current chain index.
      */
@@ -493,7 +512,8 @@ public class MXOlmDevice {
 
     /**
      * Encrypt an outgoing message with an outbound group session.
-     * @param sessionId the id of the outbound group session.
+     *
+     * @param sessionId     the id of the outbound group session.
      * @param payloadString the payload to be encrypted and sent.
      * @return ciphertext
      */
@@ -509,16 +529,20 @@ public class MXOlmDevice {
     }
 
     //  Inbound group session
+
     /**
      * Add an inbound group session to the session store.
-     * @param sessionId the session identifier.
-     * @param sessionKey base64-encoded secret key.
-     * @param roomId the id of the room in which this session will be used.
-     * @param senderKey the base64-encoded curve25519 key of the sender.
-     * @param keysClaimed Other keys the sender claims.
+     *
+     * @param sessionId                    the session identifier.
+     * @param sessionKey                   base64-encoded secret key.
+     * @param roomId                       the id of the room in which this session will be used.
+     * @param senderKey                    the base64-encoded curve25519 key of the sender.
+     * @param forwardingCurve25519KeyChain Devices involved in forwarding this session to us.
+     * @param keysClaimed                  Other keys the sender claims.
+     * @param exportFormat                 true if the megolm keys are in export format
      * @return true if the operation succeeds.
      */
-    public boolean addInboundGroupSession(String sessionId, String sessionKey, String roomId, String senderKey, Map<String, String> keysClaimed) {
+    public boolean addInboundGroupSession(String sessionId, String sessionKey, String roomId, String senderKey, List<String> forwardingCurve25519KeyChain, Map<String, String> keysClaimed, boolean exportFormat) {
         if (null != getInboundGroupSession(sessionId, senderKey, roomId)) {
             // If we already have this session, consider updating it
             Log.e(LOG_TAG, "## addInboundGroupSession() : Update for megolm session " + senderKey + "/" + sessionId);
@@ -527,7 +551,7 @@ public class MXOlmDevice {
             return false;
         }
 
-        MXOlmInboundGroupSession2 session = new MXOlmInboundGroupSession2(sessionKey);
+        MXOlmInboundGroupSession2 session = new MXOlmInboundGroupSession2(sessionKey, exportFormat);
 
         // sanity check
         if (null == session.mSession) {
@@ -548,6 +572,7 @@ public class MXOlmDevice {
         session.mSenderKey = senderKey;
         session.mRoomId = roomId;
         session.mKeysClaimed = keysClaimed;
+        session.mForwardingCurve25519KeyChain = forwardingCurve25519KeyChain;
 
         mStore.storeInboundGroupSession(session);
 
@@ -556,13 +581,14 @@ public class MXOlmDevice {
 
     /**
      * Import an inbound group session to the session store.
+     *
      * @param exportedSessionMap the exported session map
      * @return the imported session if the operation succeeds.
      */
     public MXOlmInboundGroupSession2 importInboundGroupSession(Map<String, Object> exportedSessionMap) {
-        String sessionId = (String)exportedSessionMap.get("session_id");
-        String senderKey = (String)exportedSessionMap.get("sender_key");
-        String roomId = (String)exportedSessionMap.get("room_id");
+        String sessionId = (String) exportedSessionMap.get("session_id");
+        String senderKey = (String) exportedSessionMap.get("sender_key");
+        String roomId = (String) exportedSessionMap.get("room_id");
 
         if (null != getInboundGroupSession(sessionId, senderKey, roomId)) {
             // If we already have this session, consider updating it
@@ -603,7 +629,8 @@ public class MXOlmDevice {
 
     /**
      * Remove an inbound group session
-     * @param sessionId the session identifier.
+     *
+     * @param sessionId  the session identifier.
      * @param sessionKey base64-encoded secret key.
      */
     public void removeInboundGroupSession(String sessionId, String sessionKey) {
@@ -614,14 +641,15 @@ public class MXOlmDevice {
 
     /**
      * Decrypt a received message with an inbound group session.
-     * @param body the base64-encoded body of the encrypted message.
-     * @param roomId theroom in which the message was received.
-     * @param timeline the id of the timeline where the event is decrypted. It is used to prevent replay attack.
+     *
+     * @param body      the base64-encoded body of the encrypted message.
+     * @param roomId    theroom in which the message was received.
+     * @param timeline  the id of the timeline where the event is decrypted. It is used to prevent replay attack.
      * @param sessionId the session identifier.
      * @param senderKey the base64-encoded curve25519 key of the sender.
      * @return the decrypting result. Nil if the sessionId is unknown.
      */
-    public MXDecryptionResult decryptGroupMessage(String body, String roomId, String timeline, String sessionId, String senderKey) {
+    public MXDecryptionResult decryptGroupMessage(String body, String roomId, String timeline, String sessionId, String senderKey) throws MXDecryptionException {
         MXDecryptionResult result = new MXDecryptionResult();
         MXOlmInboundGroupSession2 session = getInboundGroupSession(sessionId, senderKey, roomId);
 
@@ -629,7 +657,7 @@ public class MXOlmDevice {
             // Check that the room id matches the original one for the session. This stops
             // the HS pretending a message was targeting a different room.
             if (TextUtils.equals(roomId, session.mRoomId)) {
-				String errorMessage = "";
+                String errorMessage = "";
                 OlmInboundGroupSession.DecryptMessageResult decryptResult = null;
                 try {
                     decryptResult = session.mSession.decryptMessage(body);
@@ -644,15 +672,12 @@ public class MXOlmDevice {
                             mInboundGroupSessionMessageIndexes.put(timeline, new HashMap<String, Boolean>());
                         }
 
-                        String messageIndexKey = senderKey + "|" + sessionId + "|" +  decryptResult.mIndex;
+                        String messageIndexKey = senderKey + "|" + sessionId + "|" + decryptResult.mIndex;
 
                         if (null != mInboundGroupSessionMessageIndexes.get(timeline).get(messageIndexKey)) {
-
                             String reason = String.format(MXCryptoError.DUPLICATE_MESSAGE_INDEX_REASON, decryptResult.mIndex);
-
-                            Log.e(LOG_TAG,"## decryptGroupMessage() : " + reason);
-                            result.mCryptoError = new MXCryptoError(MXCryptoError.DUPLICATED_MESSAGE_INDEX_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason);
-                            return result;
+                            Log.e(LOG_TAG, "## decryptGroupMessage() : " + reason);
+                            throw new MXDecryptionException(new MXCryptoError(MXCryptoError.DUPLICATED_MESSAGE_INDEX_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason));
                         }
 
                         mInboundGroupSessionMessageIndexes.get(timeline).put(messageIndexKey, true);
@@ -673,25 +698,20 @@ public class MXOlmDevice {
                     }
 
                     result.mKeysClaimed = session.mKeysClaimed;
-
-                    // The sender must have had the senderKey to persuade us to save the
-                    // session.
-                    HashMap<String, String> map = new HashMap<>();
-                    map.put("curve25519", senderKey);
-                    result.mKeysProved = map;
+                    result.mSenderKey = senderKey;
+                    result.mForwardingCurve25519KeyChain = session.mForwardingCurve25519KeyChain;
                 } else {
-                    result.mCryptoError = new MXCryptoError(MXCryptoError.OLM_ERROR_CODE, errorMessage, null);
                     Log.e(LOG_TAG, "## decryptGroupMessage() : failed to decode the message");
+                    throw new MXDecryptionException(new MXCryptoError(MXCryptoError.OLM_ERROR_CODE, errorMessage, null));
                 }
             } else {
                 String reason = String.format(MXCryptoError.INBOUND_SESSION_MISMATCH_ROOM_ID_REASON, roomId, session.mRoomId);
                 Log.e(LOG_TAG, "## decryptGroupMessage() : " + reason);
-                result.mCryptoError = new MXCryptoError(MXCryptoError.INBOUND_SESSION_MISMATCH_ROOM_ID_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason);
+                throw new MXDecryptionException(new MXCryptoError(MXCryptoError.INBOUND_SESSION_MISMATCH_ROOM_ID_ERROR_CODE, MXCryptoError.UNABLE_TO_DECRYPT, reason));
             }
-        }
-        else {
-            result.mCryptoError = mInboundGroupSessionWithIdError;
+        } else {
             Log.e(LOG_TAG, "## decryptGroupMessage() : Cannot retrieve inbound group session " + sessionId);
+            throw new MXDecryptionException(mInboundGroupSessionWithIdError);
         }
 
         return result;
@@ -699,21 +719,24 @@ public class MXOlmDevice {
 
     /**
      * Reset replay attack data for the given timeline.
+     *
      * @param timeline the id of the timeline.
      */
     public void resetReplayAttackCheckInTimeline(String timeline) {
-       if (null != timeline) {
-           mInboundGroupSessionMessageIndexes.remove(timeline);
-       }
+        if (null != timeline) {
+            mInboundGroupSessionMessageIndexes.remove(timeline);
+        }
     }
 
     //  Utilities
+
     /**
      * Verify an ed25519 signature on a JSON object.
-     * @param key the ed25519 key.
+     *
+     * @param key           the ed25519 key.
      * @param JSONDictinary the JSON object which was signed.
-     * @param signature the base64-encoded signature to be checked.
-     * @exception Exception the exception
+     * @param signature     the base64-encoded signature to be checked.
+     * @throws Exception the exception
      */
     public void verifySignature(String key, Map<String, Object> JSONDictinary, String signature) throws Exception {
         // Check signature on the canonical version of the JSON
@@ -722,7 +745,8 @@ public class MXOlmDevice {
 
     /**
      * Calculate the SHA-256 hash of the input and encodes it as base64.
-     * @param message  the message to hash.
+     *
+     * @param message the message to hash.
      * @return the base64-encoded hash value.
      */
     public String sha256(String message) {
@@ -731,8 +755,9 @@ public class MXOlmDevice {
 
     /**
      * Search an OlmSession
+     *
      * @param theirDeviceIdentityKey the device key
-     * @param sessionId the session Id
+     * @param sessionId              the session Id
      * @return the olm session
      */
     private OlmSession getSessionForDevice(String theirDeviceIdentityKey, String sessionId) {
@@ -751,12 +776,13 @@ public class MXOlmDevice {
     /**
      * Extract an InboundGroupSession from the session store and do some check.
      * mInboundGroupSessionWithIdError describes the failure reason.
-     * @param roomId the room where the sesion is used.
+     *
+     * @param roomId    the room where the sesion is used.
      * @param sessionId the session identifier.
      * @param senderKey the base64-encoded curve25519 key of the sender.
      * @return the inbound group session.
      */
-    private MXOlmInboundGroupSession2 getInboundGroupSession(String sessionId, String senderKey, String roomId) {
+    public MXOlmInboundGroupSession2 getInboundGroupSession(String sessionId, String senderKey, String roomId) {
         mInboundGroupSessionWithIdError = null;
 
         MXOlmInboundGroupSession2 session = mStore.getInboundGroupSession(sessionId, senderKey);
@@ -774,5 +800,17 @@ public class MXOlmDevice {
             mInboundGroupSessionWithIdError = new MXCryptoError(MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_REASON, null);
         }
         return session;
+    }
+
+    /**
+     * Determine if we have the keys for a given megolm session.
+     *
+     * @param roomId    room in which the message was received
+     * @param senderKey base64-encoded curve25519 key of the sender
+     * @param sessionId session identifier
+     * @return true if the unbound session keys are known.
+     */
+    public boolean hasInboundSessionKeys(String roomId, String senderKey, String sessionId) {
+        return null != getInboundGroupSession(sessionId, senderKey, roomId);
     }
 }

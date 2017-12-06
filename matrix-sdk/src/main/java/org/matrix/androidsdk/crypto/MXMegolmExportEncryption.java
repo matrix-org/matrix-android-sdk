@@ -35,13 +35,16 @@ import javax.crypto.spec.SecretKeySpec;
  * Utility class to import/export the crypto data
  */
 public class MXMegolmExportEncryption {
-    private static final String LOG_TAG = "MXCryptoExport";
+    private static final String LOG_TAG = MXMegolmExportEncryption.class.getSimpleName();
 
     private static final String HEADER_LINE = "-----BEGIN MEGOLM SESSION DATA-----";
     private static final String TRAILER_LINE = "-----END MEGOLM SESSION DATA-----";
     // we split into lines before base64ing, because encodeBase64 doesn't deal
     // terribly well with large arrays.
     private static final int LINE_LENGTH = (72 * 4 / 3);
+
+    // default iteration count to export the e2e keys
+    public static final int DEFAULT_ITERATION_COUNT = 500000;
 
     /**
      * Convert a signed byte to a int value
@@ -79,6 +82,7 @@ public class MXMegolmExportEncryption {
      * @param data     the data to decrypt
      * @param password the password.
      * @return the decrypted output.
+     * @throws Exception the failure reason
      */
     public static String decryptMegolmKeyFile(byte[] data, String password) throws Exception {
         byte[] body = unpackMegolmKeyFile(data);
@@ -149,7 +153,7 @@ public class MXMegolmExportEncryption {
      * @throws Exception the failure reason
      */
     public static byte[] encryptMegolmKeyFile(String data, String password) throws Exception {
-        return encryptMegolmKeyFile(data, password, 500000);
+        return encryptMegolmKeyFile(data, password, DEFAULT_ITERATION_COUNT);
     }
 
     /**
@@ -340,7 +344,7 @@ public class MXMegolmExportEncryption {
         // U1 = PRF(Password, Salt || INT_32_BE(i))
         prf.update(salt);
         byte[] int32BE = new byte[4];
-        Arrays.fill(int32BE, (byte)0);
+        Arrays.fill(int32BE, (byte) 0);
         int32BE[3] = (byte) 1;
         prf.update(int32BE);
         prf.doFinal(Uc, 0);
@@ -359,7 +363,7 @@ public class MXMegolmExportEncryption {
             }
         }
 
-        Log.d(LOG_TAG, "## deriveKeys() : " + iterations + " in "+ (System.currentTimeMillis() - t0)+ " ms");
+        Log.d(LOG_TAG, "## deriveKeys() : " + iterations + " in " + (System.currentTimeMillis() - t0) + " ms");
 
         return key;
     }

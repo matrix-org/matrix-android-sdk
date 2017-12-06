@@ -40,14 +40,14 @@ import javax.net.ssl.X509TrustManager;
  * Various utility classes for dealing with X509Certificates
  */
 public class CertUtil {
-
-    private static final String LOG_TAG = "CertUtil";
+    private static final String LOG_TAG = CertUtil.class.getSimpleName();
 
     /**
      * Generates the SHA-256 fingerprint of the given certificate
      *
      * @param cert the certificate.
      * @return the finger print
+     * @throws CertificateException the certificate exception
      */
     public static byte[] generateSha256Fingerprint(X509Certificate cert) throws CertificateException {
         return generateFingerprint(cert, "SHA-256");
@@ -58,6 +58,7 @@ public class CertUtil {
      *
      * @param cert the certificated
      * @return the SHA1 fingerprint
+     * @throws CertificateException the certificate exception
      */
     public static byte[] generateSha1Fingerprint(X509Certificate cert) throws CertificateException {
         return generateFingerprint(cert, "SHA-1");

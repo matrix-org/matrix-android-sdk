@@ -16,20 +16,22 @@
 package org.matrix.androidsdk.rest.model.crypto;
 
 import android.text.TextUtils;
+
 import java.util.Map;
 
 /**
- This class represents the response to /keys/upload request made by uploadKeys.
+ * This class represents the response to /keys/upload request made by uploadKeys.
  */
 public class KeysUploadResponse {
 
     /**
-     The count per algorithm as returned by the homeserver: a map (algorithm->count).
+     * The count per algorithm as returned by the home server: a map (algorithm to count).
      */
     public Map<String, Integer> oneTimeKeyCounts;
 
     /**
      * Helper methods to extract information from 'oneTimeKeyCounts'
+     *
      * @param algorithm the expected algorithm
      * @return the time key counts
      */
@@ -45,6 +47,16 @@ public class KeysUploadResponse {
         }
 
         return res;
+    }
+
+    /**
+     * Tells if there is a oneTimeKeys for a dedicated algorithm.
+     *
+     * @param algorithm the algorithm
+     * @return true if it is found
+     */
+    public boolean hasOneTimeKeyCountsForAlgorithm(String algorithm) {
+        return (null != oneTimeKeyCounts) && (null != algorithm) && oneTimeKeyCounts.containsKey(algorithm);
     }
 }
 

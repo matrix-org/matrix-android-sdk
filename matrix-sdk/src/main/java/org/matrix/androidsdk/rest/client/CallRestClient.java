@@ -36,16 +36,20 @@ public class CallRestClient extends RestClient<CallRulesApi> {
     }
 
     public void getTurnServer(final ApiCallback<JsonObject> callback) {
-        mApi.getTurnServer(new Callback<JsonObject>() {
-            @Override
-            public void success(JsonObject turnServer, Response response) {
-                callback.onSuccess(turnServer);
-            }
+        try {
+            mApi.getTurnServer(new Callback<JsonObject>() {
+                @Override
+                public void success(JsonObject turnServer, Response response) {
+                    callback.onSuccess(turnServer);
+                }
 
-            @Override
-            public void failure(RetrofitError error) {
-                callback.onUnexpectedError(error);
-            }
-        });
+                @Override
+                public void failure(RetrofitError error) {
+                    callback.onUnexpectedError(error);
+                }
+            });
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 }

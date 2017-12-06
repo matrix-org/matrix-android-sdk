@@ -76,12 +76,16 @@ public class EventsRestClient extends RestClient<EventsApi> {
     public void getThirdPartyServerProtocols(final ApiCallback<Map<String, ThirdPartyProtocol>> callback) {
         final String description = "getThirdPartyServerProtocols";
 
-        mApi.thirdpartyProtocols(new RestAdapterCallback<Map<String, ThirdPartyProtocol>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                getThirdPartyServerProtocols(callback);
-            }
-        }));
+        try {
+            mApi.thirdpartyProtocols(new RestAdapterCallback<Map<String, ThirdPartyProtocol>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    getThirdPartyServerProtocols(callback);
+                }
+            }));
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     /**
@@ -98,6 +102,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * Get the public rooms count.
      * The count can be null.
      *
+     * @param server   the server url
      * @param callback the asynchronous callback
      */
     public void getPublicRoomsCount(final String server, final ApiCallback<Integer> callback) {
@@ -108,6 +113,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * Get the public rooms count.
      * The count can be null.
      *
+     * @param server               the server url
      * @param thirdPartyInstanceId the third party instance id (optional)
      * @param includeAllNetworks   true to search in all the connected network
      * @param callback             the asynchronous callback
@@ -162,12 +168,16 @@ public class EventsRestClient extends RestClient<EventsApi> {
             publicRoomsParams.filter.generic_search_term = pattern;
         }
 
-        mApi.publicRooms(server, publicRoomsParams, new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                loadPublicRooms(server, thirdPartyInstanceId, includeAllNetworks, pattern, since, limit, callback);
-            }
-        }));
+        try {
+            mApi.publicRooms(server, publicRoomsParams, new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    loadPublicRooms(server, thirdPartyInstanceId, includeAllNetworks, pattern, since, limit, callback);
+                }
+            }));
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
 
@@ -217,14 +227,18 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
         final String description = "syncFromToken";
 
-        // Disable retry because it interferes with clientTimeout
-        // Let the client manage retries on events streams
-        mApi.sync(params, new RestAdapterCallback<SyncResponse>(description, null, false, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                syncFromToken(token, serverTimeout, clientTimeout, setPresence, filterId, callback);
-            }
-        }));
+        try {
+            // Disable retry because it interferes with clientTimeout
+            // Let the client manage retries on events streams
+            mApi.sync(params, new RestAdapterCallback<SyncResponse>(description, null, false, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    syncFromToken(token, serverTimeout, clientTimeout, setPresence, filterId, callback);
+                }
+            }));
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     /**
@@ -262,67 +276,72 @@ public class EventsRestClient extends RestClient<EventsApi> {
         final String uid = System.currentTimeMillis() + "";
         mSearchEventsPatternIdentifier = uid + text;
 
-        // don't retry to send the request
-        // if the search fails, stop it
-        mApi.searchEvents(searchParams, nextBatch, new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
-            /**
-             * Tells if the current response for the latest request.
-             * @return true if it is the response of the latest request.
-             */
-            private boolean isActiveRequest() {
-                return TextUtils.equals(mSearchEventsPatternIdentifier, uid + text);
-            }
-
-            @Override
-            public void onSuccess(SearchResponse response) {
-                if (isActiveRequest()) {
-                    if (null != callback) {
-                        callback.onSuccess(response);
-                    }
-
-                    mSearchEventsPatternIdentifier = null;
+        try {
+            // don't retry to send the request
+            // if the search fails, stop it
+            mApi.searchEvents(searchParams, nextBatch, new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
+                /**
+                 * Tells if the current response for the latest request.
+                 *
+                 * @return true if it is the response of the latest request.
+                 */
+                private boolean isActiveRequest() {
+                    return TextUtils.equals(mSearchEventsPatternIdentifier, uid + text);
                 }
-            }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                if (isActiveRequest()) {
-                    if (null != callback) {
-                        callback.onNetworkError(e);
+                @Override
+                public void onSuccess(SearchResponse response) {
+                    if (isActiveRequest()) {
+                        if (null != callback) {
+                            callback.onSuccess(response);
+                        }
+
+                        mSearchEventsPatternIdentifier = null;
                     }
-
-                    mSearchEventsPatternIdentifier = null;
                 }
-            }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (isActiveRequest()) {
-                    if (null != callback) {
-                        callback.onMatrixError(e);
+                @Override
+                public void onNetworkError(Exception e) {
+                    if (isActiveRequest()) {
+                        if (null != callback) {
+                            callback.onNetworkError(e);
+                        }
+
+                        mSearchEventsPatternIdentifier = null;
                     }
-
-                    mSearchEventsPatternIdentifier = null;
                 }
-            }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (isActiveRequest()) {
-                    if (null != callback) {
-                        callback.onUnexpectedError(e);
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    if (isActiveRequest()) {
+                        if (null != callback) {
+                            callback.onMatrixError(e);
+                        }
+
+                        mSearchEventsPatternIdentifier = null;
                     }
-
-                    mSearchEventsPatternIdentifier = null;
                 }
-            }
 
-        }, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                searchMessagesByText(text, rooms, beforeLimit, afterLimit, nextBatch, callback);
-            }
-        }));
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    if (isActiveRequest()) {
+                        if (null != callback) {
+                            callback.onUnexpectedError(e);
+                        }
+
+                        mSearchEventsPatternIdentifier = null;
+                    }
+                }
+
+            }, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    searchMessagesByText(text, rooms, beforeLimit, afterLimit, nextBatch, callback);
+                }
+            }));
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     /**
@@ -373,56 +392,61 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
         final String description = "searchMediasByText";
 
-        // don't retry to send the request
-        // if the search fails, stop it
-        mApi.searchEvents(searchParams, nextBatch, new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
+        try {
+            // don't retry to send the request
+            // if the search fails, stop it
+            mApi.searchEvents(searchParams, nextBatch, new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
 
-            /**
-             * Tells if the current response for the latest request.
-             * @return true if it is the response of the latest request.
-             */
-            private boolean isActiveRequest() {
-                return TextUtils.equals(mSearchEventsMediaNameIdentifier, uid + name);
-            }
-
-            @Override
-            public void onSuccess(SearchResponse newSearchResponse) {
-                if (isActiveRequest()) {
-                    callback.onSuccess(newSearchResponse);
-                    mSearchEventsMediaNameIdentifier = null;
+                /**
+                 * Tells if the current response for the latest request.
+                 *
+                 * @return true if it is the response of the latest request.
+                 */
+                private boolean isActiveRequest() {
+                    return TextUtils.equals(mSearchEventsMediaNameIdentifier, uid + name);
                 }
-            }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                if (isActiveRequest()) {
-                    callback.onNetworkError(e);
-                    mSearchEventsMediaNameIdentifier = null;
+                @Override
+                public void onSuccess(SearchResponse newSearchResponse) {
+                    if (isActiveRequest()) {
+                        callback.onSuccess(newSearchResponse);
+                        mSearchEventsMediaNameIdentifier = null;
+                    }
                 }
-            }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (isActiveRequest()) {
-                    callback.onMatrixError(e);
-                    mSearchEventsMediaNameIdentifier = null;
+                @Override
+                public void onNetworkError(Exception e) {
+                    if (isActiveRequest()) {
+                        callback.onNetworkError(e);
+                        mSearchEventsMediaNameIdentifier = null;
+                    }
                 }
-            }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (isActiveRequest()) {
-                    callback.onUnexpectedError(e);
-                    mSearchEventsMediaNameIdentifier = null;
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    if (isActiveRequest()) {
+                        callback.onMatrixError(e);
+                        mSearchEventsMediaNameIdentifier = null;
+                    }
                 }
-            }
 
-        }, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                searchMediasByText(name, rooms, beforeLimit, afterLimit, nextBatch, callback);
-            }
-        }));
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    if (isActiveRequest()) {
+                        callback.onUnexpectedError(e);
+                        mSearchEventsMediaNameIdentifier = null;
+                    }
+                }
+
+            }, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    searchMediasByText(name, rooms, beforeLimit, afterLimit, nextBatch, callback);
+                }
+            }));
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
 
@@ -443,72 +467,77 @@ public class EventsRestClient extends RestClient<EventsApi> {
         final String uid = mSearchUsersPatternIdentifier = System.currentTimeMillis() + " " + text + " " + limit;
         final String description = "searchUsers";
 
-        // don't retry to send the request
-        // if the search fails, stop it
-        mApi.searchUsers(searchParams, new RestAdapterCallback<SearchUsersRequestResponse>(description, null, new ApiCallback<SearchUsersRequestResponse>() {
-            /**
-             * Tells if the current response for the latest request.
-             * @return true if it is the response of the latest request.
-             */
-            private boolean isActiveRequest() {
-                return TextUtils.equals(mSearchUsersPatternIdentifier, uid);
-            }
+        try {
+            // don't retry to send the request
+            // if the search fails, stop it
+            mApi.searchUsers(searchParams, new RestAdapterCallback<SearchUsersRequestResponse>(description, null, new ApiCallback<SearchUsersRequestResponse>() {
+                /**
+                 * Tells if the current response for the latest request.
+                 *
+                 * @return true if it is the response of the latest request.
+                 */
+                private boolean isActiveRequest() {
+                    return TextUtils.equals(mSearchUsersPatternIdentifier, uid);
+                }
 
-            @Override
-            public void onSuccess(SearchUsersRequestResponse aResponse) {
-                if (isActiveRequest()) {
-                    SearchUsersResponse response = new SearchUsersResponse();
-                    response.limited = aResponse.limited;
-                    response.results = new ArrayList<>();
-                    Set<String> filter = (null != userIdsFilter) ? userIdsFilter : new HashSet<String>();
+                @Override
+                public void onSuccess(SearchUsersRequestResponse aResponse) {
+                    if (isActiveRequest()) {
+                        SearchUsersResponse response = new SearchUsersResponse();
+                        response.limited = aResponse.limited;
+                        response.results = new ArrayList<>();
+                        Set<String> filter = (null != userIdsFilter) ? userIdsFilter : new HashSet<String>();
 
-                    if (null != aResponse.results) {
-                        for (SearchUsersRequestResponse.User user : aResponse.results) {
-                            if ((null != user.user_id) && !filter.contains(user.user_id)) {
-                                User addedUser = new User();
-                                addedUser.user_id = user.user_id;
-                                addedUser.avatar_url = user.avatar_url;
-                                addedUser.displayname = user.display_name;
-                                response.results.add(addedUser);
+                        if (null != aResponse.results) {
+                            for (SearchUsersRequestResponse.User user : aResponse.results) {
+                                if ((null != user.user_id) && !filter.contains(user.user_id)) {
+                                    User addedUser = new User();
+                                    addedUser.user_id = user.user_id;
+                                    addedUser.avatar_url = user.avatar_url;
+                                    addedUser.displayname = user.display_name;
+                                    response.results.add(addedUser);
+                                }
                             }
                         }
+
+                        callback.onSuccess(response);
+                        mSearchUsersPatternIdentifier = null;
                     }
-
-                    callback.onSuccess(response);
-                    mSearchUsersPatternIdentifier = null;
                 }
-            }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                if (isActiveRequest()) {
-                    callback.onNetworkError(e);
-                    mSearchUsersPatternIdentifier = null;
+                @Override
+                public void onNetworkError(Exception e) {
+                    if (isActiveRequest()) {
+                        callback.onNetworkError(e);
+                        mSearchUsersPatternIdentifier = null;
+                    }
                 }
-            }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (isActiveRequest()) {
-                    callback.onMatrixError(e);
-                    mSearchUsersPatternIdentifier = null;
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    if (isActiveRequest()) {
+                        callback.onMatrixError(e);
+                        mSearchUsersPatternIdentifier = null;
+                    }
                 }
-            }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (isActiveRequest()) {
-                    callback.onUnexpectedError(e);
-                    mSearchUsersPatternIdentifier = null;
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    if (isActiveRequest()) {
+                        callback.onUnexpectedError(e);
+                        mSearchUsersPatternIdentifier = null;
+                    }
                 }
-            }
 
-        }, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                searchUsers(text, limit, userIdsFilter, callback);
-            }
-        }));
+            }, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    searchUsers(text, limit, userIdsFilter, callback);
+                }
+            }));
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     /**
@@ -534,46 +563,51 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
     /**
      * Retrieve the URL preview information.
-     * @param URL the URL
-     * @param ts the timestamp
+     *
+     * @param URL      the URL
+     * @param ts       the timestamp
      * @param callback the asynchronous callback
      */
     public void getURLPreview(final String URL, final long ts, final ApiCallback<URLPreview> callback) {
         final String description = "getURLPreview : URL " + URL + " with ts " + ts;
 
-        mApi.getURLPreview(URL, ts, new RestAdapterCallback<Map<String, Object>>(description, null, false, new ApiCallback<Map<String, Object>>() {
-            @Override
-            public void onSuccess(Map<String, Object> map) {
-                if (null != callback) {
-                    callback.onSuccess(new URLPreview(map));
+        try {
+            mApi.getURLPreview(URL, ts, new RestAdapterCallback<Map<String, Object>>(description, null, false, new ApiCallback<Map<String, Object>>() {
+                @Override
+                public void onSuccess(Map<String, Object> map) {
+                    if (null != callback) {
+                        callback.onSuccess(new URLPreview(map));
+                    }
                 }
-            }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
+                @Override
+                public void onNetworkError(Exception e) {
+                    if (null != callback) {
+                        callback.onNetworkError(e);
+                    }
                 }
-            }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    if (null != callback) {
+                        callback.onMatrixError(e);
+                    }
                 }
-            }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    if (null != callback) {
+                        callback.onUnexpectedError(e);
+                    }
                 }
-            }
-        }, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                getURLPreview(URL, ts, callback);
-            }
-        }));
+            }, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    getURLPreview(URL, ts, callback);
+                }
+            }));
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 }

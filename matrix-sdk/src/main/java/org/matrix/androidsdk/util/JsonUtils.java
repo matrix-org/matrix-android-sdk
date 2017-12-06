@@ -31,13 +31,17 @@ import org.matrix.androidsdk.rest.model.EncryptedEventContent;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.FileMessage;
+import org.matrix.androidsdk.rest.model.ForwardedRoomKeyContent;
 import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.LocationMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.NewDeviceContent;
+import org.matrix.androidsdk.rest.model.OlmEventContent;
+import org.matrix.androidsdk.rest.model.OlmPayloadContent;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomKeyContent;
+import org.matrix.androidsdk.rest.model.RoomKeyRequest;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomTags;
 import org.matrix.androidsdk.rest.model.RoomThirdPartyInvite;
@@ -56,8 +60,7 @@ import java.util.TreeSet;
  * Static methods for converting json into objects.
  */
 public class JsonUtils {
-
-    private static final String LOG_TAG = "JsonUtils";
+    private static final String LOG_TAG = JsonUtils.class.getSimpleName();
 
     /**
      * Based on FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES.
@@ -260,6 +263,26 @@ public class JsonUtils {
         return new EncryptedEventContent();
     }
 
+    public static OlmEventContent toOlmEventContent(JsonElement jsonObject) {
+        try {
+            return gson.fromJson(jsonObject, OlmEventContent.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toOlmEventContent failed " + e.getMessage());
+        }
+
+        return new OlmEventContent();
+    }
+
+    public static OlmPayloadContent toOlmPayloadContent(JsonElement jsonObject) {
+        try {
+            return gson.fromJson(jsonObject, OlmPayloadContent.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toOlmPayloadContent failed " + e.getMessage());
+        }
+
+        return new OlmPayloadContent();
+    }
+
     public static EventContent toEventContent(JsonElement jsonObject) {
         try {
             return gson.fromJson(jsonObject, EventContent.class);
@@ -278,6 +301,26 @@ public class JsonUtils {
         }
 
         return new RoomKeyContent();
+    }
+
+    public static RoomKeyRequest toRoomKeyRequest(JsonElement jsonObject) {
+        try {
+            return gson.fromJson(jsonObject, RoomKeyRequest.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## RoomKeyRequest failed " + e.getMessage());
+        }
+
+        return new RoomKeyRequest();
+    }
+
+    public static ForwardedRoomKeyContent toForwardedRoomKeyContent(JsonElement jsonObject) {
+        try {
+            return gson.fromJson(jsonObject, ForwardedRoomKeyContent.class);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## ForwardedRoomKeyContent failed " + e.getMessage());
+        }
+
+        return new ForwardedRoomKeyContent();
     }
 
     public static ImageMessage toImageMessage(JsonElement jsonObject) {
@@ -392,6 +435,7 @@ public class JsonUtils {
 
     /**
      * Create a canonicalized json string for an object
+     *
      * @param object the object to convert
      * @return the canonicalized string
      */
@@ -400,7 +444,7 @@ public class JsonUtils {
 
         if (null != object) {
             if (object instanceof JsonElement) {
-                canonicalizedJsonString = gsonWithoutHtmlEscaping.toJson(canonicalize((JsonElement)object));
+                canonicalizedJsonString = gsonWithoutHtmlEscaping.toJson(canonicalize((JsonElement) object));
             } else {
                 canonicalizedJsonString = gsonWithoutHtmlEscaping.toJson(canonicalize(gsonWithoutHtmlEscaping.toJsonTree(object)));
             }
@@ -415,6 +459,7 @@ public class JsonUtils {
 
     /**
      * Canonicalize a JsonElement element
+     *
      * @param src the src
      * @return the canonicalize element
      */
@@ -452,6 +497,7 @@ public class JsonUtils {
 
     /**
      * Convert a string from an UTF8 String
+     *
      * @param s the string to convert
      * @return the utf-16 string
      */
@@ -472,6 +518,7 @@ public class JsonUtils {
 
     /**
      * Convert a string to an UTF8 String
+     *
      * @param s the string to convert
      * @return the utf-8 string
      */

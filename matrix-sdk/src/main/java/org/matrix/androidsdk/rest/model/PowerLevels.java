@@ -34,6 +34,8 @@ public class PowerLevels implements java.io.Serializable {
 
     public int state_default = 50;
 
+    public Map<String, Object> notifications = new HashMap<>();
+
     public PowerLevels deepCopy() {
         PowerLevels copy = new PowerLevels();
         copy.ban = ban;
@@ -51,11 +53,14 @@ public class PowerLevels implements java.io.Serializable {
 
         copy.state_default = state_default;
 
+        copy.notifications = new HashMap<>(notifications);
+
         return copy;
     }
 
     /**
      * Returns the user power level of a dedicated user Id
+     *
      * @param userId the user id
      * @return the power level
      */
@@ -71,7 +76,8 @@ public class PowerLevels implements java.io.Serializable {
 
     /**
      * Updates the user power levels of a dedicated user id
-     * @param userId the user
+     *
+     * @param userId     the user
      * @param powerLevel the new power level
      */
     public void setUserPowerLevel(String userId, int powerLevel) {
@@ -82,8 +88,9 @@ public class PowerLevels implements java.io.Serializable {
 
     /**
      * Tell if an user can send an event of type 'eventTypeString'.
+     *
      * @param eventTypeString the event type  (in Event.EVENT_TYPE_XXX values)
-     * @param userId the user id
+     * @param userId          the user id
      * @return true if the user can send the event
      */
     public boolean maySendEventOfType(String eventTypeString, String userId) {
@@ -96,6 +103,7 @@ public class PowerLevels implements java.io.Serializable {
 
     /**
      * Tells if an user can send a room message.
+     *
      * @param userId the user id
      * @return true if the user can send a room message
      */
@@ -104,8 +112,9 @@ public class PowerLevels implements java.io.Serializable {
     }
 
     /**
-     *  Helper to get the minimum power level the user must have to send an event of the given type
-     as a message.
+     * Helper to get the minimum power level the user must have to send an event of the given type
+     * as a message.
+     *
      * @param eventTypeString the type of event (in Event.EVENT_TYPE_XXX values)
      * @return the required minimum power level.
      */
@@ -122,6 +131,7 @@ public class PowerLevels implements java.io.Serializable {
     /**
      * Helper to get the minimum power level the user must have to send an event of the given type
      * as a state event.
+     *
      * @param eventTypeString the type of event (in Event.EVENT_TYPE_STATE_ values).
      * @return the required minimum power level.
      */
@@ -133,5 +143,27 @@ public class PowerLevels implements java.io.Serializable {
         }
 
         return minimumPowerLevel;
+    }
+
+
+    /**
+     * Get the notification level for a dedicated key.
+     *
+     * @param key the notification key
+     * @return the level
+     */
+    public int notificationLevel(String key) {
+        if ((null != key) && notifications.containsKey(key)) {
+            Object valAsVoid = notifications.get(key);
+
+            // the first implementation was a string value
+            if (valAsVoid instanceof String) {
+                return Integer.parseInt((String) valAsVoid);
+            } else {
+                return (int) valAsVoid;
+            }
+        }
+
+        return users_default;
     }
 }

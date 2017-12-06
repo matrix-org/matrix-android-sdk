@@ -2,10 +2,8 @@ matrix-android-sdk
 ==================
 The [Matrix] SDK for Android wraps the Matrix REST API calls in asynchronous Java methods and provides basic structures for storing and handling data.
 
-It is an Android Studio (gradle) project containing two modules:
-
- * sdk - The SDK
- * app - The sample app using the SDK
+It is an Android Studio (gradle) project containing the SDK module.
+https://github.com/vector-im/riot-android is the sample app which uses this SDK.
 
 Overview
 --------
@@ -41,8 +39,8 @@ Logging in
 To log in, use an instance of the login API client.
 
 ```java
-HomeserverConnectionConfig hsConfig = new HomeserverConnectionConfig(Uri.parse("https://matrix.org"));
-new LoginRestClient(hsConfig).loginWithPassword(username, password, new SimpleApiCallback<Credentials>());
+HomeServerConnectionConfig hsConfig = new HomeServerConnectionConfig(Uri.parse("https://matrix.org"));
+new LoginRestClient(hsConfig).loginWithUser(username, password, new SimpleApiCallback<Credentials>());
 ```
 
 If successful, the callback will provide the user credentials to use from then on.
@@ -52,7 +50,7 @@ Starting the matrix session
 The session represents one user's session with a particular home server. There can potentially be multiple sessions for handling multiple accounts.
 
 ```java
-MXSession session = new MXSession(hsConfig);
+MXSession session = new MXSession(hsConfig, new MXDataHandler(store, credentials), getApplicationContext());
 ```
 
 sets up a session for interacting with the home server.

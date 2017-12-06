@@ -49,7 +49,7 @@ public class Credentials {
         creds.accessToken = obj.getString("access_token");
 
         if (obj.has("device_id")) {
-            creds.deviceId =  obj.getString("device_id");
+            creds.deviceId = obj.getString("device_id");
         }
 
         // refresh_token is mandatory

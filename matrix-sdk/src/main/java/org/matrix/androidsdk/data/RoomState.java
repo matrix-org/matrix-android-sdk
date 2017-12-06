@@ -50,7 +50,7 @@ import java.util.Set;
  * The state of a room.
  */
 public class RoomState implements Externalizable {
-    private static final String LOG_TAG = "RoomState";
+    private static final String LOG_TAG = RoomState.class.getSimpleName();
     private static final long serialVersionUID = -6019932024524988201L;
 
     public static final String DIRECTORY_VISIBILITY_PRIVATE = "private";
@@ -249,6 +249,7 @@ public class RoomState implements Externalizable {
      * The room member events are NOT included.
      *
      * @param types the allowed event types.
+     * @return the filtered state events list.
      */
     public List<Event> getStateEvents(final Set<String> types) {
         final List<Event> filteredStateEvents = new ArrayList<>();
@@ -256,12 +257,12 @@ public class RoomState implements Externalizable {
 
         // merge the values lists
         Collection<List<Event>> currentStateEvents = mStateEvents.values();
-        for(List<Event> eventsList : currentStateEvents) {
+        for (List<Event> eventsList : currentStateEvents) {
             stateEvents.addAll(eventsList);
         }
-            
+
         if ((null != types) && !types.isEmpty()) {
-            for(Event stateEvent : stateEvents) {
+            for (Event stateEvent : stateEvents) {
                 if ((null != stateEvent.getType()) && types.contains(stateEvent.getType())) {
                     filteredStateEvents.add(stateEvent);
                 }
@@ -278,8 +279,8 @@ public class RoomState implements Externalizable {
      * Provides the state events list.
      * It includes the room member creation events (they are not loaded in memory by default).
      *
-     * @param store the store in which the state events must be retrieved
-     * @param types the allowed event types.
+     * @param store    the store in which the state events must be retrieved
+     * @param types    the allowed event types.
      * @param callback the asynchronous callback.
      */
     public void getStateEvents(IMXStore store, final Set<String> types, final SimpleApiCallback<List<Event>> callback) {
@@ -288,7 +289,7 @@ public class RoomState implements Externalizable {
 
             Collection<List<Event>> currentStateEvents = mStateEvents.values();
 
-            for(List<Event> eventsList : currentStateEvents) {
+            for (List<Event> eventsList : currentStateEvents) {
                 stateEvents.addAll(eventsList);
             }
 
@@ -301,7 +302,7 @@ public class RoomState implements Externalizable {
                     final List<Event> filteredStateEvents = new ArrayList<>();
 
                     if ((null != types) && !types.isEmpty()) {
-                        for(Event stateEvent : stateEvents) {
+                        for (Event stateEvent : stateEvents) {
                             if ((null != stateEvent.getType()) && types.contains(stateEvent.getType())) {
                                 filteredStateEvents.add(stateEvent);
                             }
@@ -792,6 +793,7 @@ public class RoomState implements Externalizable {
     /**
      * Apply the given event (relevant for state changes) to our state.
      *
+     * @param store     the store to use
      * @param event     the event
      * @param direction how the event should affect the state: Forwards for applying, backwards for un-applying (applying the previous state)
      * @return true if the event is managed
@@ -1051,7 +1053,7 @@ public class RoomState implements Externalizable {
             mMergedAliasesList = (List<String>) input.readObject();
         }
 
-        Map<String, List<Event>> stateEvents = (Map<String, List<Event>>)input.readObject();
+        Map<String, List<Event>> stateEvents = (Map<String, List<Event>>) input.readObject();
         if (null != stateEvents) {
             mStateEvents = new HashMap<>(stateEvents);
         }

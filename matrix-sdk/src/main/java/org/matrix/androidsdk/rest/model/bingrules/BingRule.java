@@ -16,23 +16,22 @@
 package org.matrix.androidsdk.rest.model.bingrules;
 
 import android.text.TextUtils;
+
 import org.matrix.androidsdk.util.Log;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 import com.google.gson.annotations.SerializedName;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class BingRule {
-
-    private static final String LOG_TAG = "BingRule";
+    private static final String LOG_TAG = BingRule.class.getSimpleName();
 
     public static final String RULE_ID_DISABLE_ALL = ".m.rule.master";
-    public static final String RULE_ID_CONTAIN_USER_NAME= ".m.rule.contains_user_name";
-    public static final String RULE_ID_CONTAIN_DISPLAY_NAME= ".m.rule.contains_display_name";
+    public static final String RULE_ID_CONTAIN_USER_NAME = ".m.rule.contains_user_name";
+    public static final String RULE_ID_CONTAIN_DISPLAY_NAME = ".m.rule.contains_display_name";
     public static final String RULE_ID_ONE_TO_ONE_ROOM = ".m.rule.room_one_to_one";
     public static final String RULE_ID_INVITE_ME = ".m.rule.invite_for_me";
     public static final String RULE_ID_PEOPLE_JOIN_LEAVE = ".m.rule.member_event";
@@ -53,8 +52,6 @@ public class BingRule {
 
     public static final String ACTION_VALUE_DEFAULT = "default";
     public static final String ACTION_VALUE_RING = "ring";
-    public static final String ACTION_VALUE_TRUE = "true";
-    public static final String ACTION_VALUE_FALSE = "false";
 
     public static final String KIND_OVERRIDE = "override";
     public static final String KIND_CONTENT = "content";
@@ -64,7 +61,8 @@ public class BingRule {
 
     public String ruleId = null;
     public List<Condition> conditions = null;
-    public List<JsonElement> actions = null;
+    // Object is either String or Map<String, String>
+    public List<Object> actions = null;
     @SerializedName("default")
     public boolean isDefault = false;
 
@@ -72,12 +70,6 @@ public class BingRule {
     public boolean isEnabled = true;
 
     public String kind = null;
-
-    // bing rule statuses to compute them once
-    private String mNotificationSound;
-    private Boolean mShouldHighlight;
-    private Boolean mShouldNotify;
-    private Boolean mShouldNotNotify;
 
     public BingRule(boolean isDefaultValue) {
         this.isDefault = isDefaultValue;
@@ -101,11 +93,12 @@ public class BingRule {
 
     /**
      * Bing rule creator
-     * @param ruleKind the rule kind
-     * @param aPattern the pattern to check the conditon
-     * @param notify true to notify
+     *
+     * @param ruleKind  the rule kind
+     * @param aPattern  the pattern to check the conditon
+     * @param notify    true to notify
      * @param highlight true to highlight
-     * @param sound true to play sound
+     * @param sound     true to play sound
      */
     public BingRule(String ruleKind, String aPattern, boolean notify, boolean highlight, boolean sound) {
         //
@@ -115,173 +108,221 @@ public class BingRule {
         kind = ruleKind;
         conditions = null;
 
-        ArrayList<JsonElement> actionsList = new ArrayList<>();
+        actions = new ArrayList<>();
 
-        actionsList.add(new JsonPrimitive(notify ? ACTION_NOTIFY : ACTION_DONT_NOTIFY));
-
-        if (highlight) {
-            JsonObject highlightObject = new JsonObject();
-            highlightObject.add(ACTION_PARAMETER_SET_TWEAK, new JsonPrimitive(ACTION_SET_TWEAK_HIGHTLIGHT_VALUE));
-            highlightObject.add(ACTION_PARAMETER_VALUE, new JsonPrimitive(ACTION_VALUE_TRUE));
-            actionsList.add(highlightObject);
-        }
-
+        setNotify(notify);
+        setHighlight(highlight);
         if (sound) {
-            JsonObject soundObject = new JsonObject();
-            soundObject.add(ACTION_PARAMETER_SET_TWEAK, new JsonPrimitive(ACTION_SET_TWEAK_SOUND_VALUE));
-            soundObject.add(ACTION_PARAMETER_VALUE, new JsonPrimitive(ACTION_VALUE_DEFAULT));
-            actionsList.add(soundObject);
+            setNotificationSound();
+        }
+    }
+
+    /**
+     * Build a bing rule from another one.
+     *
+     * @param otherRule the other rule
+     */
+    public BingRule(BingRule otherRule) {
+        ruleId = otherRule.ruleId;
+
+        if (null != otherRule.conditions) {
+            conditions = new ArrayList<>(otherRule.conditions);
         }
 
-        actions = actionsList;
+        if (null != otherRule.actions) {
+            actions = new ArrayList<>(otherRule.actions);
+        }
+
+        isDefault = otherRule.isDefault;
+        isEnabled = otherRule.isEnabled;
+        kind = otherRule.kind;
     }
 
     /**
      * Add a condition to the rule.
+     *
      * @param condition the condition to add.
      */
     public void addCondition(Condition condition) {
-        if (conditions == null) {
+        if (null == conditions) {
             conditions = new ArrayList<>();
         }
         conditions.add(condition);
     }
 
     /**
-     * Search a JsonElement from its tweak name
+     * Search an action map from its tweak.
+     *
      * @param tweak the tweak name.
-     * @return the json element. null if not found.
+     * @return the action map. null if not found.
      */
-    private JsonObject jsonObjectWithTweak(String tweak) {
-        JsonObject jsonObject = null;
-
-        if (null != actions) {
-            for (JsonElement json : actions) {
-                if (json.isJsonObject()) {
-                    JsonObject object = json.getAsJsonObject();
+    public Map<String, Object> getActionMap(String tweak) {
+        if ((null != actions) && !TextUtils.isEmpty(tweak)) {
+            for (Object action : actions) {
+                if (action instanceof Map) {
                     try {
-                        if (object.has(ACTION_PARAMETER_SET_TWEAK)) {
-                            if (TextUtils.equals(object.get(ACTION_PARAMETER_SET_TWEAK).getAsString(), tweak)) {
-                                jsonObject = object;
-                                break;
-                            }
+                        Map<String, Object> actionMap = ((Map<String, Object>) action);
+
+                        if (TextUtils.equals((String) actionMap.get(ACTION_PARAMETER_SET_TWEAK), tweak)) {
+                            return actionMap;
                         }
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## jsonObjectWithTweak() : " + e.getMessage());
+                        Log.e(LOG_TAG, "## getActionMap() : " + e.getMessage());
                     }
                 }
             }
         }
 
-        return jsonObject;
-    }
-
-    /**
-     * Search a JsonPrimitive from its value.
-     * @param value the jsonPrimitive value.
-     * @return the json primitive. null if not found.
-     */
-    private JsonPrimitive jsonPrimitive(String value) {
-        JsonPrimitive jsonPrimitive = null;
-
-        if (null != actions) {
-            for (JsonElement json : actions) {
-                if (json.isJsonPrimitive()) {
-                    JsonPrimitive primitive = json.getAsJsonPrimitive();
-
-                    try {
-                        if (TextUtils.equals(primitive.getAsString(), value)) {
-                            jsonPrimitive = primitive;
-                            break;
-                        }
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "## jsonPrimitive() : " + e.getMessage());
-                    }
-                }
-            }
-        }
-        return jsonPrimitive;
+        return null;
     }
 
     /**
      * Check if the sound type is the default notification sound.
+     *
      * @param sound the sound name.
      * @return true if the sound is the default notification sound.
      */
-    public boolean isDefaultNotificationSound(String sound) {
+    public static boolean isDefaultNotificationSound(String sound) {
         return ACTION_VALUE_DEFAULT.equals(sound);
     }
 
     /**
      * Check if the sound type is the call ring.
+     *
      * @param sound the sound name.
      * @return true if the sound is the call ring.
      */
-    public boolean isCallRingNotificationSound(String sound) {
+    public static boolean isCallRingNotificationSound(String sound) {
         return ACTION_VALUE_RING.equals(sound);
     }
 
     /**
      * @return the notification sound (null if it is not defined)
      */
-    public String notificationSound() {
-        // do it once
-        if (null == mNotificationSound) {
-            String sound = null;
-            JsonObject jsonObject = jsonObjectWithTweak(ACTION_SET_TWEAK_SOUND_VALUE);
+    public String getNotificationSound() {
+        String sound = null;
+        Map<String, Object> actionMap = getActionMap(ACTION_SET_TWEAK_SOUND_VALUE);
 
-            if ((null != jsonObject) && jsonObject.has(ACTION_PARAMETER_VALUE)) {
-                sound = jsonObject.get(ACTION_PARAMETER_VALUE).getAsString();
-            }
-            mNotificationSound = TextUtils.isEmpty(sound) ? "" : sound;
+        if ((null != actionMap) && actionMap.containsKey(ACTION_PARAMETER_VALUE)) {
+            sound = (String) actionMap.get(ACTION_PARAMETER_VALUE);
         }
 
-        return TextUtils.isEmpty(mNotificationSound) ? null : mNotificationSound;
+        return sound;
+    }
+
+    /**
+     * Add the default notification sound.
+     */
+    public void setNotificationSound() {
+        setNotificationSound(ACTION_VALUE_DEFAULT);
+    }
+
+    /**
+     * Set the notification sound
+     *
+     * @param sound notification sound
+     */
+    public void setNotificationSound(String sound) {
+        removeNotificationSound();
+
+        if (!TextUtils.isEmpty(sound)) {
+            Map<String, String> actionMap = new HashMap<>();
+            actionMap.put(ACTION_PARAMETER_SET_TWEAK, ACTION_SET_TWEAK_SOUND_VALUE);
+            actionMap.put(ACTION_PARAMETER_VALUE, sound);
+            actions.add(actionMap);
+        }
+    }
+
+    /**
+     * Remove the notification sound
+     */
+    public void removeNotificationSound() {
+        Map<String, Object> actionMap = getActionMap(ACTION_SET_TWEAK_SOUND_VALUE);
+
+        if (null != actionMap) {
+            actions.remove(actionMap);
+        }
+    }
+
+    /**
+     * Set the highlight status.
+     *
+     * @param highlight the highlight status
+     */
+    public void setHighlight(boolean highlight) {
+        Map<String, Object> actionMap = getActionMap(ACTION_SET_TWEAK_HIGHTLIGHT_VALUE);
+
+        if (null == actionMap) {
+            actionMap = new HashMap<>();
+            actionMap.put(ACTION_PARAMETER_SET_TWEAK, ACTION_SET_TWEAK_HIGHTLIGHT_VALUE);
+            actions.add(actionMap);
+        }
+
+        if (highlight) {
+            actionMap.remove(ACTION_PARAMETER_VALUE);
+        } else {
+            actionMap.put(ACTION_PARAMETER_VALUE, false);
+        }
     }
 
     /**
      * Return true if the rule should highlight the event.
+     *
      * @return true if the rule should play sound
      */
     public boolean shouldHighlight() {
-        // do it once
-        if (null == mShouldHighlight) {
-            mShouldHighlight = false;
-            JsonObject jsonObject = jsonObjectWithTweak(ACTION_SET_TWEAK_HIGHTLIGHT_VALUE);
+        boolean shouldHighlight = false;
 
-            if (null != jsonObject) {
-                // default behaviour
-                mShouldHighlight = true;
+        Map<String, Object> actionMap = getActionMap(ACTION_SET_TWEAK_HIGHTLIGHT_VALUE);
 
-                if (jsonObject.has(ACTION_PARAMETER_VALUE)) {
-                    mShouldHighlight = TextUtils.equals(jsonObject.get(ACTION_PARAMETER_VALUE).getAsString(), ACTION_VALUE_TRUE);
-                }
+        if (null != actionMap) {
+            // default behaviour
+            shouldHighlight = true;
+
+            if (actionMap.containsKey(ACTION_PARAMETER_VALUE)) {
+                shouldHighlight = ((boolean) actionMap.get(ACTION_PARAMETER_VALUE));
             }
         }
 
-        return mShouldHighlight;
+        return shouldHighlight;
+    }
+
+    /**
+     * Set the notification status.
+     *
+     * @param notify true to notify
+     */
+    public void setNotify(boolean notify) {
+        if (notify) {
+            actions.remove(ACTION_DONT_NOTIFY);
+
+            if (!actions.contains(ACTION_NOTIFY)) {
+                actions.add(ACTION_NOTIFY);
+            }
+        } else {
+            actions.remove(ACTION_NOTIFY);
+
+            if (!actions.contains(ACTION_DONT_NOTIFY)) {
+                actions.add(ACTION_DONT_NOTIFY);
+            }
+        }
     }
 
     /**
      * Return true if the rule should highlight the event.
+     *
      * @return true if the rule should play sound
      */
     public boolean shouldNotify() {
-        if (null == mShouldNotify) {
-            mShouldNotify = (null != jsonPrimitive(ACTION_NOTIFY));
-        }
-
-        return mShouldNotify;
+        return actions.contains(ACTION_NOTIFY);
     }
 
     /**
      * Return true if the rule should not highlight the event.
+     *
      * @return true if the rule should not play sound
      */
     public boolean shouldNotNotify() {
-        if (null == mShouldNotNotify) {
-            mShouldNotNotify = (null != jsonPrimitive(ACTION_DONT_NOTIFY));
-        }
-        return mShouldNotNotify;
+        return actions.contains(ACTION_DONT_NOTIFY);
     }
 }

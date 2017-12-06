@@ -23,6 +23,7 @@ public class ThumbnailInfo {
 
     /**
      * Make a deep copy of this VideoMessage.
+     *
      * @return the copy
      */
     public ThumbnailInfo deepCopy() {

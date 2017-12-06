@@ -25,7 +25,9 @@ import org.matrix.olm.OlmInboundGroupSession;
 
 import java.io.Serializable;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -52,9 +54,12 @@ public class MXOlmInboundGroupSession2 implements Serializable {
     // Other keys the sender claims.
     public Map<String, String> mKeysClaimed;
 
+    // Devices which forwarded this session to us (normally empty).
+    public List<String> mForwardingCurve25519KeyChain = new ArrayList<>();
 
     /**
      * Constructor
+     *
      * @param prevFormatSession the previous session format
      */
     public MXOlmInboundGroupSession2(MXOlmInboundGroupSession prevFormatSession) {
@@ -66,11 +71,17 @@ public class MXOlmInboundGroupSession2 implements Serializable {
 
     /**
      * Constructor
+     *
      * @param sessionKey the session key
+     * @param isImported true if it is an imported session key
      */
-    public MXOlmInboundGroupSession2(String sessionKey) {
+    public MXOlmInboundGroupSession2(String sessionKey, boolean isImported) {
         try {
-            mSession = new OlmInboundGroupSession(sessionKey);
+            if (!isImported) {
+                mSession = new OlmInboundGroupSession(sessionKey);
+            } else {
+                mSession = OlmInboundGroupSession.importSession(sessionKey);
+            }
         } catch (Exception e) {
             Log.e(LOG_TAG, "Cannot create : " + e.getMessage());
         }
@@ -78,18 +89,21 @@ public class MXOlmInboundGroupSession2 implements Serializable {
 
     /**
      * Create a new instance from the provided keys map.
+     *
+     * @param map the map
+     * @throws Exception if the data are invalid
      */
     public MXOlmInboundGroupSession2(Map<String, Object> map) throws Exception {
         try {
-            mSession = OlmInboundGroupSession.importSession((String)map.get("session_key"));
+            mSession = OlmInboundGroupSession.importSession((String) map.get("session_key"));
 
-            if (!TextUtils.equals(mSession.sessionIdentifier(), (String)map.get("session_id"))) {
+            if (!TextUtils.equals(mSession.sessionIdentifier(), (String) map.get("session_id"))) {
                 throw new Exception("Mismatched group session Id");
             }
 
-            mSenderKey = (String)map.get("sender_key");
-            mKeysClaimed = (Map<String, String>)map.get("sender_claimed_keys");
-            mRoomId = (String)map.get("room_id");
+            mSenderKey = (String) map.get("sender_key");
+            mKeysClaimed = (Map<String, String>) map.get("sender_claimed_keys");
+            mRoomId = (String) map.get("room_id");
         } catch (Exception e) {
             throw new Exception(e.getMessage());
         }
@@ -97,12 +111,19 @@ public class MXOlmInboundGroupSession2 implements Serializable {
 
     /**
      * Export the inbound group session keys
+     *
      * @return the inbound group session as map if the operation succeeds
      */
     public Map<String, Object> exportKeys() {
         HashMap<String, Object> map = new HashMap<>();
 
         try {
+            if (null == mForwardingCurve25519KeyChain) {
+                mForwardingCurve25519KeyChain = new ArrayList<>();
+            }
+
+            map.put("sender_claimed_ed25519_key", mKeysClaimed.get("ed25519"));
+            map.put("forwardingCurve25519KeyChain", mForwardingCurve25519KeyChain);
             map.put("sender_key", mSenderKey);
             map.put("sender_claimed_keys", mKeysClaimed);
             map.put("room_id", mRoomId);
@@ -115,5 +136,38 @@ public class MXOlmInboundGroupSession2 implements Serializable {
         }
 
         return map;
+    }
+
+    /**
+     * @return the first known message index
+     */
+    public Long getFirstKnownIndex() {
+        if (null != mSession) {
+            try {
+                return mSession.getFirstKnownIndex();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## getFirstKnownIndex() : getFirstKnownIndex failed " + e.getMessage());
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Export the session for a message index.
+     *
+     * @param messageIndex the message index
+     * @return the exported data
+     */
+    public String exportSession(long messageIndex) {
+        if (null != mSession) {
+            try {
+                return mSession.export(messageIndex);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## exportSession() : export failed " + e.getMessage());
+            }
+        }
+
+        return null;
     }
 }

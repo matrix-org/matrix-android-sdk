@@ -1,3 +1,71 @@
+Changes to Matrix Android SDK in 0.8.05 (2017-11-28)
+=======================================================
+
+Improvements:
+
+* Improve the room creation methods.
+
+Bugfixes:
+
+* Fix many issues reported by google analytics.
+* #1700 : Jump to first unread message didn't jump anywhere, just stayed at the same position where it was before, although there are more unread messages.
+* #1722 : duplicated messages in history 
+* #1756 : Scrolling breaks badly if there is some server lag
+
+Changes to Matrix Android SDK in 0.8.04 (2017-11-15)
+=======================================================
+
+Features:
+
+* Add the e2e keys sharing.
+
+Improvements:
+
+* Refactor the calls management and fix many audio path issues.
+* Sanitise the functions description to generate a better javadocs.
+
+Bugfixes:
+
+* Fix many issues reported by google analytics.
+* Fix the encrypting messages colour
+* Fix a battery draining issue after ending a video call
+* #119 : Notifications: implement @room notifications on mobile
+* #207 : RoomState - updateRoomName: the provided string `name` is not checked correctly
+* #208 : Attached image: `thumbnail_info` and `thumbnail_url` must be moved in `content.info` dictionary
+* #1659 : Created a room with only me inside. After writing "test" I left it but it is still on my list with no way of deleting it.
+* #1678 : cannot join #Furnet_#S:spydar007.com
+
+Changes to Matrix Android SDK in 0.8.03 (2017-10-05)
+=======================================================
+
+Improvements: 
+
+* Improve the initial sync management : the data are stored only when the initial sync data are stored.
+
+
+Changes to Matrix Android SDK in 0.8.02 (2017-10-03)
+=======================================================
+
+Features:
+
+* Add widgets management.
+* Add javadoc to the project.
+* Add getUrlPreview request.
+
+Improvements: 
+
+* Replace the third party call lib (libJingle by webrtc).
+* Increase the initial sync request timeout.
+* Increase the incoming call timeout to one minute.
+
+Bugfixes:
+
+* Fix several crashes reported by Google Analytics.
+* #1592 Client unable to connect on server after certificate update
+* #1603 Stale device lists when users re-join e2e rooms 
+* #1613 Phone rings for ever 
+
+
 Changes to Matrix Android SDK in 0.8.01 (2017-09-04)
 =======================================================
 

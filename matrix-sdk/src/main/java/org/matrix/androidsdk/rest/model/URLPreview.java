@@ -71,6 +71,7 @@ public class URLPreview implements java.io.Serializable {
 
     /**
      * Constructor
+     *
      * @param map the constructor parameters
      */
     public URLPreview(Map<String, Object> map) {

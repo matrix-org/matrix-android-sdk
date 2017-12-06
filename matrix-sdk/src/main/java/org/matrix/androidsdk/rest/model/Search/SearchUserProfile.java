@@ -18,14 +18,14 @@ package org.matrix.androidsdk.rest.model.Search;
 /**
  * subclass representing a search API response
  */
-public class SearchUserProfile  {
+public class SearchUserProfile {
     /**
-     The avatar URL for this user, if any.
+     * The avatar URL for this user, if any.
      */
     public String avatarUrl;
 
     /**
-     The display name for this user, if any.
+     * The display name for this user, if any.
      */
     public String displayName;
 }

@@ -19,23 +19,26 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.widget.ListView;
 
+import org.matrix.androidsdk.util.Log;
+
 /**
  * The listView automatically scrolls down when its height is updated.
  * It is used to scroll the list when the keyboard is displayed
  */
 public class AutoScrollDownListView extends ListView {
+    private static final String LOG_TAG = AutoScrollDownListView.class.getSimpleName();
 
     private boolean mLockSelectionOnResize = false;
 
-    public AutoScrollDownListView (Context context) {
+    public AutoScrollDownListView(Context context) {
         super(context);
     }
 
-    public AutoScrollDownListView (Context context, AttributeSet attrs) {
+    public AutoScrollDownListView(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
 
-    public AutoScrollDownListView (Context context, AttributeSet attrs, int defStyle) {
+    public AutoScrollDownListView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
     }
 
@@ -62,5 +65,22 @@ public class AutoScrollDownListView extends ListView {
      */
     public void lockSelectionOnResize() {
         mLockSelectionOnResize = true;
+    }
+
+    @Override
+    protected void layoutChildren() {
+        // the adapter items are added without refreshing the list (back pagination only)
+        // to reduce the number of refresh
+        try {
+            super.layoutChildren();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## layoutChildren() failed " + e.getMessage());
+        }
+    }
+
+    @Override
+    // require to avoid lint errors with MatrixMessageListFragment
+    public void setSelectionFromTop(int position, int y) {
+        super.setSelectionFromTop(position, y);
     }
 }

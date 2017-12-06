@@ -35,7 +35,7 @@ import java.util.Arrays;
  */
 public class IconAndTextDialogFragment extends DialogFragment {
 
-    private static final String LOG_TAG = "IconAndTextDialogFragment";
+    private static final String LOG_TAG = IconAndTextDialogFragment.class.getSimpleName();
 
     // params
     public static final String ARG_ICONS_LIST_ID = "org.matrix.androidsdk.fragments.IconAndTextDialogFragment.ARG_ICONS_LIST_ID";
@@ -50,8 +50,9 @@ public class IconAndTextDialogFragment extends DialogFragment {
     public interface OnItemClickListener {
         /**
          * Callback method to be invoked when an item is clicked.
+         *
          * @param dialogFragment the dialog.
-         * @param position The clicked position
+         * @param position       The clicked position
          */
         void onItemClick(IconAndTextDialogFragment dialogFragment, int position);
     }
@@ -66,16 +67,16 @@ public class IconAndTextDialogFragment extends DialogFragment {
     private OnItemClickListener mOnItemClickListener;
 
 
-    public static IconAndTextDialogFragment newInstance(Integer[] iconResourcesList, Integer[] textResourcesList)  {
+    public static IconAndTextDialogFragment newInstance(Integer[] iconResourcesList, Integer[] textResourcesList) {
         return IconAndTextDialogFragment.newInstance(iconResourcesList, textResourcesList, null, null);
     }
 
-    public static IconAndTextDialogFragment newInstance(Integer[] iconResourcesList, Integer[] textResourcesList, Integer backgroundColor, Integer textColor)  {
+    public static IconAndTextDialogFragment newInstance(Integer[] iconResourcesList, Integer[] textResourcesList, Integer backgroundColor, Integer textColor) {
         IconAndTextDialogFragment f = new IconAndTextDialogFragment();
         Bundle args = new Bundle();
 
-        args.putIntegerArrayList(ARG_ICONS_LIST_ID,  new ArrayList<>(Arrays.asList(iconResourcesList)));
-        args.putIntegerArrayList(ARG_TEXTS_LIST_ID,  new ArrayList<>(Arrays.asList(textResourcesList)));
+        args.putIntegerArrayList(ARG_ICONS_LIST_ID, new ArrayList<>(Arrays.asList(iconResourcesList)));
+        args.putIntegerArrayList(ARG_TEXTS_LIST_ID, new ArrayList<>(Arrays.asList(textResourcesList)));
 
         if (null != backgroundColor) {
             args.putInt(ARG_BACKGROUND_COLOR, backgroundColor);
@@ -130,13 +131,14 @@ public class IconAndTextDialogFragment extends DialogFragment {
 
     /**
      * Init the dialog view.
+     *
      * @param v the dialog view.
      */
     void initView(View v) {
-        mListView = ((ListView)v.findViewById(R.id.listView_icon_and_text));
+        mListView = v.findViewById(R.id.listView_icon_and_text);
         IconAndTextAdapter adapter = new IconAndTextAdapter(getActivity(), R.layout.adapter_item_icon_and_text);
 
-        for(int index = 0; index < mIconResourcesList.size(); index++) {
+        for (int index = 0; index < mIconResourcesList.size(); index++) {
             adapter.add(mIconResourcesList.get(index), mTextResourcesList.get(index));
         }
 
@@ -155,6 +157,7 @@ public class IconAndTextDialogFragment extends DialogFragment {
     /**
      * Register a callback to be invoked when this view is clicked.
      *
+     * @param l the listener
      */
     public void setOnClickListener(OnItemClickListener l) {
         mOnItemClickListener = l;

@@ -46,13 +46,14 @@ public class MXUsersDevicesMap<E> implements Serializable {
 
     /**
      * The constructor
+     *
      * @param map the map
      */
     public MXUsersDevicesMap(Map<String, Map<String, E>> map) {
         if (null != map) {
             Set<String> keys = map.keySet();
 
-            for(String key : keys) {
+            for (String key : keys) {
                 mMap.put(key, new HashMap<>(map.get(key)));
             }
         }
@@ -66,7 +67,7 @@ public class MXUsersDevicesMap<E> implements Serializable {
 
         Set<String> keys = mMap.keySet();
 
-        for(String key : keys) {
+        for (String key : keys) {
             copy.mMap.put(key, new HashMap<>(mMap.get(key)));
         }
 
@@ -82,6 +83,7 @@ public class MXUsersDevicesMap<E> implements Serializable {
 
     /**
      * Provides the device ids list for an user id
+     *
      * @param userId the user id
      * @return the device ids list
      */
@@ -95,8 +97,9 @@ public class MXUsersDevicesMap<E> implements Serializable {
 
     /**
      * Provides the object for a device id and an user Id
+     *
      * @param deviceId the device id
-     * @param userId the object id
+     * @param userId   the object id
      * @return the object
      */
     public E getObject(String deviceId, String userId) {
@@ -109,8 +112,9 @@ public class MXUsersDevicesMap<E> implements Serializable {
 
     /**
      * Set an object for a dedicated user Id and device Id
-     * @param object the object to set
-     * @param userId the user Id
+     *
+     * @param object   the object to set
+     * @param userId   the user Id
      * @param deviceId the device id
      */
     public void setObject(E object, String userId, String deviceId) {
@@ -128,8 +132,9 @@ public class MXUsersDevicesMap<E> implements Serializable {
 
     /**
      * Defines the objects map for an user Id
+     *
      * @param objectsPerDevices the objects maps
-     * @param userId the user id
+     * @param userId            the user id
      */
     public void setObjects(Map<String, E> objectsPerDevices, String userId) {
         if (!TextUtils.isEmpty(userId)) {
@@ -143,6 +148,7 @@ public class MXUsersDevicesMap<E> implements Serializable {
 
     /**
      * Removes objects for a dedicated user
+     *
      * @param userId the user id.
      */
     public void removeUserObjects(String userId) {
@@ -160,6 +166,7 @@ public class MXUsersDevicesMap<E> implements Serializable {
 
     /**
      * Add entries from another MXUsersDevicesMap
+     *
      * @param other the other one
      */
     public void addEntriesFromMap(MXUsersDevicesMap<E> other) {

@@ -25,7 +25,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.call.MXCallsManager;
@@ -57,15 +56,14 @@ import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
-import org.matrix.androidsdk.rest.model.AudioMessage;
+import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.DeleteDeviceAuth;
 import org.matrix.androidsdk.rest.model.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.DevicesListResponse;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.FileMessage;
-import org.matrix.androidsdk.rest.model.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.MediaMessage;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -73,9 +71,9 @@ import org.matrix.androidsdk.rest.model.RoomResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchResponse;
 import org.matrix.androidsdk.rest.model.Search.SearchUsersResponse;
 import org.matrix.androidsdk.rest.model.User;
-import org.matrix.androidsdk.rest.model.VideoMessage;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.rest.model.login.LoginFlow;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 import org.matrix.androidsdk.sync.DefaultEventsThreadListener;
 import org.matrix.androidsdk.sync.EventsThread;
@@ -100,7 +98,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
 /**
@@ -108,7 +105,7 @@ import java.util.regex.Pattern;
  * There can potentially be multiple sessions for handling multiple accounts.
  */
 public class MXSession {
-    private static final String LOG_TAG = "MXSession";
+    private static final String LOG_TAG = MXSession.class.getSimpleName();
 
     private DataRetriever mDataRetriever;
     private MXDataHandler mDataHandler;
@@ -222,7 +219,25 @@ public class MXSession {
 
         mDataHandler.getStore().addMXStoreListener(new MXStoreListener() {
             @Override
+            public void onStoreReady(String accountId) {
+                Log.d(LOG_TAG, "## onStoreReady()");
+                getDataHandler().onStoreReady();
+            }
+
+            @Override
+            public void onStoreCorrupted(String accountId, String description) {
+                Log.d(LOG_TAG, "## onStoreCorrupted() : token " + getDataHandler().getStore().getEventStreamToken());
+
+                // nothing was saved
+                if (null == getDataHandler().getStore().getEventStreamToken()) {
+                    getDataHandler().onStoreReady();
+                }
+            }
+
+            @Override
             public void postProcess(String accountId) {
+                getDataHandler().checkPermanentStorageData();
+
                 // test if the crypto instance has already been created
                 if (null == mCrypto) {
                     MXFileCryptoStore store = new MXFileCryptoStore();
@@ -261,6 +276,7 @@ public class MXSession {
         mDataHandler.setThirdPidRestClient(mThirdPidRestClient);
         mDataHandler.setRoomsRestClient(mRoomsRestClient);
         mDataHandler.setEventsRestClient(mEventsRestClient);
+        mDataHandler.setAccountDataRestClient(mAccountDataRestClient);
 
         // application context
         mAppContent = appContext;
@@ -332,6 +348,9 @@ public class MXSession {
     }
 
     /**
+     * Provides the lib version.
+     *
+     * @param longFormat true to have a long format i.e with date and time.
      * @return the SDK version.
      */
     public String getVersion(boolean longFormat) {
@@ -353,6 +372,10 @@ public class MXSession {
     }
 
     /**
+     * Provides the crypto lib version.
+     *
+     * @param context    the context
+     * @param longFormat true to have a long version (with date and time)
      * @return the crypto lib version
      */
     public String getCryptoVersion(Context context, boolean longFormat) {
@@ -543,7 +566,7 @@ public class MXSession {
     /**
      * Provides the application caches size.
      *
-     * @param context the context
+     * @param context  the context
      * @param callback the asynchronous callback
      */
     public static void getApplicationSizeCaches(final Context context, final SimpleApiCallback<Long> callback) {
@@ -586,7 +609,11 @@ public class MXSession {
         mDataHandler.clear();
 
         // network event will not be listened anymore
-        mAppContent.unregisterReceiver(mNetworkConnectivityReceiver);
+        try {
+            mAppContent.unregisterReceiver(mNetworkConnectivityReceiver);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## clearApplicationCaches() : unregisterReceiver failed " + e.getMessage());
+        }
         mNetworkConnectivityReceiver.removeListeners();
 
         // auto resent messages will not be resent
@@ -669,6 +696,7 @@ public class MXSession {
     /**
      * Remove the medias older than the provided timestamp.
      *
+     * @param context   the context
      * @param timestamp the timestamp (in seconds)
      */
     public void removeMediasBefore(final Context context, final long timestamp) {
@@ -679,47 +707,23 @@ public class MXSession {
 
         Collection<Room> rooms = store.getRooms();
 
-        for(Room room : rooms) {
+        for (Room room : rooms) {
             Collection<Event> events = store.getRoomMessages(room.getRoomId());
             if (null != events) {
                 for (Event event : events) {
                     try {
                         if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE, event.getType())) {
-                            JsonElement msgtypeAsVoid = event.getContentAsJsonObject().get("msgtype");
+                            Message message = JsonUtils.toMessage(event.getContent());
 
-                            if (null != msgtypeAsVoid) {
-                                String msgtype = msgtypeAsVoid.getAsString();
+                            if (message instanceof MediaMessage) {
+                                MediaMessage mediaMessage = (MediaMessage) message;
 
-                                if (TextUtils.equals(Message.MSGTYPE_IMAGE, msgtype)) {
-                                    ImageMessage imageMessage = (ImageMessage) JsonUtils.toMessage(event.getContent());
+                                if (mediaMessage.isThumbnailLocalContent()) {
+                                    filesToKeep.add(Uri.parse(mediaMessage.getThumbnailUrl()).getPath());
+                                }
 
-                                    if (null != imageMessage) {
-                                        if (imageMessage.isThumbnailLocalContent()) {
-                                            filesToKeep.add(Uri.parse(imageMessage.thumbnailUrl).getPath());
-                                        }
-
-                                        if (imageMessage.isLocalContent()) {
-                                            filesToKeep.add(Uri.parse(imageMessage.url).getPath());
-                                        }
-                                    }
-                                } else if (TextUtils.equals(Message.MSGTYPE_VIDEO, msgtype)) {
-                                    VideoMessage videoMessage = (VideoMessage) JsonUtils.toMessage(event.getContent());
-
-                                    if ((null != videoMessage) && videoMessage.isLocalContent()) {
-                                        filesToKeep.add(Uri.parse(videoMessage.url).getPath());
-                                    }
-                                } else if (TextUtils.equals(Message.MSGTYPE_FILE, msgtype)) {
-                                    FileMessage fileMessage = (FileMessage) JsonUtils.toMessage(event.getContent());
-
-                                    if ((null != fileMessage) && fileMessage.isLocalContent()) {
-                                        filesToKeep.add(Uri.parse(fileMessage.url).getPath());
-                                    }
-                                } else if (TextUtils.equals(Message.MSGTYPE_AUDIO, msgtype)) {
-                                    AudioMessage audioMessage = (AudioMessage) JsonUtils.toMessage(event.getContent());
-
-                                    if ((null != audioMessage) && audioMessage.isLocalContent()) {
-                                        filesToKeep.add(Uri.parse(audioMessage.url).getPath());
-                                    }
+                                if (mediaMessage.isLocalContent()) {
+                                    filesToKeep.add(Uri.parse(mediaMessage.getUrl()).getPath());
                                 }
                             }
                         }
@@ -925,7 +929,7 @@ public class MXSession {
     }
 
     /**
-     * Tell if the client is seen as "online"
+     * @return true if the client is seen as "online"
      */
     public boolean isOnline() {
         return mIsOnline;
@@ -971,12 +975,25 @@ public class MXSession {
 
     /**
      * Update the data save mode
+     *
      * @param enabled true to enable the data save mode
      */
     public void setUseDataSaveMode(boolean enabled) {
         mUseDataSaveMode = enabled;
         if (null != mEventsThread) {
             mEventsThread.setUseDataSaveMode(enabled);
+        }
+    }
+
+    /**
+     * Refresh the network connection information.
+     * On android version older than 6.0, the doze mode might have killed the network connection.
+     */
+    public void refreshNetworkConnection() {
+        if (null != mNetworkConnectivityReceiver) {
+            // mNetworkConnectivityReceiver is a broadcastReceiver
+            // but some users reported that the network updates were not dispatched
+            mNetworkConnectivityReceiver.checkNetworkConnection(mAppContent);
         }
     }
 
@@ -1028,15 +1045,10 @@ public class MXSession {
     }
 
     /**
-     * Refresh the network connection information.
-     * On android >= 6.0, the doze mode might have killed the network connection.
+     * @return the current sync token
      */
-    public void refreshNetworkConnection() {
-        if (null != mNetworkConnectivityReceiver) {
-            // mNetworkConnectivityReceiver is a broadcastReceiver
-            // but some users reported that the network updates were not dispatched
-            mNetworkConnectivityReceiver.checkNetworkConnection(mAppContent);
-        }
+    public String getCurrentSyncToken() {
+        return (null != mEventsThread) ? mEventsThread.getCurrentSyncToken() : null;
     }
 
     /**
@@ -1098,160 +1110,12 @@ public class MXSession {
     }
 
     /**
-     * Create a direct message room with one participant.<br>
-     * The participant can be a user ID or mail address. Once the room is created, on success, the room
-     * is set as a "direct message" with the participant.
-     *
-     * @param aParticipantUserId  user ID (or user mail) to be invited in the direct message room
-     * @param aCreateRoomCallBack async call back response
-     * @return true if the invite was performed, false otherwise
-     */
-    public boolean createRoomDirectMessage(final String aParticipantUserId, final ApiCallback<String> aCreateRoomCallBack) {
-        boolean retCode = false;
-
-        if (!TextUtils.isEmpty(aParticipantUserId)) {
-            retCode = true;
-            HashMap<String, Object> params = new HashMap<>();
-            params.put("preset", "trusted_private_chat");
-            params.put("is_direct", true);
-
-            if (android.util.Patterns.EMAIL_ADDRESS.matcher(aParticipantUserId).matches()) {
-                // build the invite third party object
-                HashMap<String, String> parameters = new HashMap<>();
-                parameters.put("id_server", mHsConfig.getIdentityServerUri().getHost());
-                parameters.put("medium", "email");
-                parameters.put("address", aParticipantUserId);
-
-                params.put("invite_3pid", Arrays.asList(parameters));
-            } else {
-                if (!aParticipantUserId.equals(getMyUserId())) {
-                    // send invite only if the participant ID is not the user ID
-                    params.put("invite", Arrays.asList(aParticipantUserId));
-                }
-            }
-
-            createRoom(params, new ApiCallback<String>() {
-                @Override
-                public void onSuccess(String roomId) {
-                    final String fRoomId = roomId;
-
-                    toggleDirectChatRoom(roomId, aParticipantUserId, new ApiCallback<Void>() {
-                        @Override
-                        public void onSuccess(Void info) {
-                            Room room = getDataHandler().getRoom(fRoomId);
-
-                            if (null != room) {
-                                room.markAllAsRead(null);
-                            }
-
-                            if (null != aCreateRoomCallBack) {
-                                aCreateRoomCallBack.onSuccess(fRoomId);
-                            }
-                        }
-
-                        @Override
-                        public void onNetworkError(Exception e) {
-                            if (null != aCreateRoomCallBack) {
-                                aCreateRoomCallBack.onNetworkError(e);
-                            }
-                        }
-
-                        @Override
-                        public void onMatrixError(MatrixError e) {
-                            if (null != aCreateRoomCallBack) {
-                                aCreateRoomCallBack.onMatrixError(e);
-                            }
-                        }
-
-                        @Override
-                        public void onUnexpectedError(Exception e) {
-                            if (null != aCreateRoomCallBack) {
-                                aCreateRoomCallBack.onUnexpectedError(e);
-                            }
-                        }
-                    });
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    if (null != aCreateRoomCallBack) {
-                        aCreateRoomCallBack.onNetworkError(e);
-                    }
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    if (null != aCreateRoomCallBack) {
-                        aCreateRoomCallBack.onMatrixError(e);
-                    }
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    if (null != aCreateRoomCallBack) {
-                        aCreateRoomCallBack.onUnexpectedError(e);
-                    }
-                }
-            });
-        }
-
-        return retCode;
-    }
-
-
-    /**
      * Create a new room.
      *
      * @param callback the async callback once the room is ready
      */
     public void createRoom(final ApiCallback<String> callback) {
         createRoom(null, null, null, callback);
-    }
-
-    /**
-     * Create a new room with given properties.
-     *
-     * @param params   the creation parameters.
-     * @param callback the async callback once the room is ready
-     */
-    public void createRoom(final Map<String, Object> params, final ApiCallback<String> callback) {
-        mRoomsRestClient.createRoom(params, new SimpleApiCallback<CreateRoomResponse>(callback) {
-            @Override
-            public void onSuccess(CreateRoomResponse info) {
-                final String roomId = info.roomId;
-                final Room createdRoom = mDataHandler.getRoom(roomId);
-
-                // the creation events are not be called during the creation
-                if (createdRoom.getState().getMember(mCredentials.userId) == null) {
-                    createdRoom.setOnInitialSyncCallback(new ApiCallback<Void>() {
-                        @Override
-                        public void onSuccess(Void info) {
-                            createdRoom.markAllAsRead(null);
-                            callback.onSuccess(roomId);
-                        }
-
-                        @Override
-                        public void onNetworkError(Exception e) {
-                            callback.onNetworkError(e);
-                        }
-
-                        @Override
-                        public void onMatrixError(MatrixError e) {
-                            callback.onMatrixError(e);
-                        }
-
-                        @Override
-                        public void onUnexpectedError(Exception e) {
-                            callback.onUnexpectedError(e);
-                        }
-                    });
-                } else {
-                    createdRoom.markAllAsRead(null);
-                    callback.onSuccess(roomId);
-                }
-            }
-        });
-
     }
 
     /**
@@ -1263,7 +1127,7 @@ public class MXSession {
      * @param callback the async callback once the room is ready
      */
     public void createRoom(String name, String topic, String alias, final ApiCallback<String> callback) {
-        createRoom(name, topic, RoomState.DIRECTORY_VISIBILITY_PRIVATE, alias, RoomState.GUEST_ACCESS_CAN_JOIN, RoomState.HISTORY_VISIBILITY_SHARED, callback);
+        createRoom(name, topic, RoomState.DIRECTORY_VISIBILITY_PRIVATE, alias, RoomState.GUEST_ACCESS_CAN_JOIN, RoomState.HISTORY_VISIBILITY_SHARED, null, callback);
     }
 
     /**
@@ -1275,24 +1139,148 @@ public class MXSession {
      * @param alias             the room alias
      * @param guestAccess       the guest access rule (see {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN})
      * @param historyVisibility the history visibility
+     * @param algorithm         the crypto algorithm (null to create an unencrypted room)
      * @param callback          the async callback once the room is ready
      */
-    public void createRoom(String name, String topic, String visibility, String alias, String guestAccess, String historyVisibility, final ApiCallback<String> callback) {
+    public void createRoom(String name, String topic, String visibility, String alias, String guestAccess, String historyVisibility, String algorithm, final ApiCallback<String> callback) {
         checkIfAlive();
 
-        mRoomsRestClient.createRoom(name, topic, visibility, alias, guestAccess, historyVisibility, new SimpleApiCallback<CreateRoomResponse>(callback) {
+        CreateRoomParams params = new CreateRoomParams();
+        params.name = !TextUtils.isEmpty(name) ? name : null;
+        params.topic = !TextUtils.isEmpty(topic) ? topic : null;
+        params.visibility = !TextUtils.isEmpty(visibility) ? visibility : null;
+        params.roomAliasName = !TextUtils.isEmpty(alias) ? alias : null;
+        params.guest_access = !TextUtils.isEmpty(guestAccess) ? guestAccess : null;
+        params.history_visibility = !TextUtils.isEmpty(historyVisibility) ? historyVisibility : null;
+        params.addCryptoAlgorithm(algorithm);
+
+        createRoom(params, callback);
+    }
+
+    /**
+     * Create an encrypted room.
+     *
+     * @param algorithm the encryption algorithm.
+     * @param callback  the async callback once the room is ready
+     */
+    public void createEncryptedRoom(String algorithm, final ApiCallback<String> callback) {
+        CreateRoomParams params = new CreateRoomParams();
+        params.addCryptoAlgorithm(algorithm);
+        createRoom(params, callback);
+    }
+
+    /**
+     * Create a direct message room with one participant.<br>
+     * The participant can be a user ID or mail address. Once the room is created, on success, the room
+     * is set as a "direct message" with the participant.
+     *
+     * @param aParticipantUserId  user ID (or user mail) to be invited in the direct message room
+     * @param aCreateRoomCallBack async call back response
+     * @return true if the invite was performed, false otherwise
+     */
+    public boolean createDirectMessageRoom(final String aParticipantUserId, final ApiCallback<String> aCreateRoomCallBack) {
+        return createDirectMessageRoom(aParticipantUserId, null, aCreateRoomCallBack);
+    }
+
+    /**
+     * Create a direct message room with one participant.<br>
+     * The participant can be a user ID or mail address. Once the room is created, on success, the room
+     * is set as a "direct message" with the participant.
+     *
+     * @param aParticipantUserId  user ID (or user mail) to be invited in the direct message room
+     * @param algorithm           the crypto algorithm (null to create an unencrypted room)
+     * @param aCreateRoomCallBack async call back response
+     * @return true if the invite was performed, false otherwise
+     */
+    public boolean createDirectMessageRoom(final String aParticipantUserId, final String algorithm, final ApiCallback<String> aCreateRoomCallBack) {
+        boolean retCode = false;
+
+        if (!TextUtils.isEmpty(aParticipantUserId)) {
+            retCode = true;
+            CreateRoomParams params = new CreateRoomParams();
+
+            params.addCryptoAlgorithm(algorithm);
+            params.setDirectMessage();
+            params.addParticipantIds(mHsConfig, Arrays.asList(aParticipantUserId));
+
+            createRoom(params, aCreateRoomCallBack);
+        }
+
+        return retCode;
+    }
+
+    /**
+     * Finalise the created room as a direct chat one.
+     *
+     * @param roomId   the room id
+     * @param userId   the user id
+     * @param callback the asynchronous callback
+     */
+    private void finalizeDMRoomCreation(final String roomId, String userId, final ApiCallback<String> callback) {
+        final String fRoomId = roomId;
+
+        toggleDirectChatRoom(roomId, userId, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                Room room = getDataHandler().getRoom(fRoomId);
+
+                if (null != room) {
+                    room.markAllAsRead(null);
+                }
+
+                if (null != callback) {
+                    callback.onSuccess(fRoomId);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        });
+    }
+
+    /**
+     * Create a new room with given properties.
+     *
+     * @param params   the creation parameters.
+     * @param callback the async callback once the room is ready
+     */
+    public void createRoom(final CreateRoomParams params, final ApiCallback<String> callback) {
+        mRoomsRestClient.createRoom(params, new SimpleApiCallback<CreateRoomResponse>(callback) {
             @Override
             public void onSuccess(CreateRoomResponse info) {
                 final String roomId = info.roomId;
                 final Room createdRoom = mDataHandler.getRoom(roomId);
 
                 // the creation events are not be called during the creation
-                if (createdRoom.getState().getMember(mCredentials.userId) == null) {
+                if (createdRoom.isWaitingInitialSync()) {
                     createdRoom.setOnInitialSyncCallback(new ApiCallback<Void>() {
                         @Override
                         public void onSuccess(Void info) {
                             createdRoom.markAllAsRead(null);
-                            callback.onSuccess(roomId);
+
+                            if (params.isDirect()) {
+                                finalizeDMRoomCreation(roomId, params.getFirstInvitedUserId(), callback);
+                            } else {
+                                callback.onSuccess(roomId);
+                            }
                         }
 
                         @Override
@@ -1312,7 +1300,12 @@ public class MXSession {
                     });
                 } else {
                     createdRoom.markAllAsRead(null);
-                    callback.onSuccess(roomId);
+
+                    if (params.isDirect()) {
+                        finalizeDMRoomCreation(roomId, params.getFirstInvitedUserId(), callback);
+                    } else {
+                        callback.onSuccess(roomId);
+                    }
                 }
             }
         });
@@ -1334,11 +1327,9 @@ public class MXSession {
                 public void onSuccess(final RoomResponse roomResponse) {
                     final String roomId = roomResponse.roomId;
                     Room joinedRoom = mDataHandler.getRoom(roomId);
-                    RoomMember member = joinedRoom.getState().getMember(mCredentials.userId);
-                    String state = (null != member) ? member.membership : null;
 
                     // wait until the initial sync is done
-                    if ((state == null) || TextUtils.equals(state, RoomMember.MEMBERSHIP_INVITE)) {
+                    if (joinedRoom.isWaitingInitialSync()) {
                         joinedRoom.setOnInitialSyncCallback(new ApiCallback<Void>() {
                             @Override
                             public void onSuccess(Void info) {
@@ -1361,6 +1352,8 @@ public class MXSession {
                             }
                         });
                     } else {
+                        // to initialise the notification counters
+                        joinedRoom.markAllAsRead(null);
                         callback.onSuccess(roomId);
                     }
                 }
@@ -1684,7 +1677,7 @@ public class MXSession {
     public List<String> roomIdsWithTag(final String tag) {
         List<Room> roomsWithTag = roomsWithTag(tag);
 
-        ArrayList<String> roomIdsList = new ArrayList<>();
+        List<String> roomIdsList = new ArrayList<>();
 
         for (Room room : roomsWithTag) {
             roomIdsList.add(room.getRoomId());
@@ -1751,7 +1744,7 @@ public class MXSession {
      */
     public List<String> getDirectChatRoomIdsList() {
         IMXStore store = getDataHandler().getStore();
-        ArrayList<String> directChatRoomIdsList = new ArrayList<>();
+        List<String> directChatRoomIdsList = new ArrayList<>();
 
         if (null == store) {
             Log.e(LOG_TAG, "## getDirectChatRoomIdsList() : null store");
@@ -1826,7 +1819,7 @@ public class MXSession {
     /**
      * Return the direct chat room list for retro compatibility with 1:1 rooms.
      *
-     * @param aStore                         strore instance
+     * @param aStore                         store instance
      * @param aDirectChatRoomIdsListRetValue the other participants in the 1:1 room
      */
     private void getDirectChatRoomIdsListRetroCompat(IMXStore aStore, ArrayList<RoomIdsListRetroCompat> aDirectChatRoomIdsListRetValue) {
@@ -1910,8 +1903,9 @@ public class MXSession {
      * 2- oldest invited room member
      * 3- the user himself
      *
-     * @param roomId   the room roomId
-     * @param callback the asynchronous callback
+     * @param roomId             the room roomId
+     * @param aParticipantUserId the participant user id
+     * @param callback           the asynchronous callback
      */
     public void toggleDirectChatRoom(String roomId, String aParticipantUserId, ApiCallback<Void> callback) {
         IMXStore store = getDataHandler().getStore();
@@ -1927,16 +1921,16 @@ public class MXSession {
             }
 
             // if the room was not yet seen as direct chat
-            if (getDirectChatRoomIdsList().indexOf(roomId) < 0) {
-                ArrayList<String> roomIdsList = new ArrayList<>();
+            if (!getDirectChatRoomIdsList().contains(roomId)) {
+                List<String> roomIdsList = new ArrayList<>();
                 RoomMember directChatMember = null;
                 String chosenUserId;
 
                 if (null == aParticipantUserId) {
-                    ArrayList<RoomMember> members = new ArrayList<>(room.getActiveMembers());
+                    List<RoomMember> members = new ArrayList<>(room.getActiveMembers());
 
                     // should never happen but it was reported by a GA issue
-                    if (0 == members.size()) {
+                    if (members.isEmpty()) {
                         return;
                     }
 
@@ -2017,14 +2011,11 @@ public class MXSession {
                 }
             }
 
-            HashMap<String, Object> requestParams = new HashMap<>();
-            Collection<String> userIds = params.keySet();
+            // update the store value
+            // do not wait the server request echo to update the store
+            getDataHandler().getStore().setDirectChatRoomsDict(params);
 
-            for (String userId : userIds) {
-                requestParams.put(userId, params.get(userId));
-            }
-
-            mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, requestParams, callback);
+            mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, params, callback);
         }
     }
 
@@ -2035,12 +2026,11 @@ public class MXSession {
      * @param aRoomParticipantUserIdList the couple direct chat rooms ID / user IDs
      * @param callback                   the asynchronous response callback
      */
-    public void forceDirectChatRoomValue(ArrayList<RoomIdsListRetroCompat> aRoomParticipantUserIdList, ApiCallback<Void> callback) {
-        HashMap<String, List<String>> params = new HashMap<>();
-        ArrayList<String> roomIdsList;
+    private void forceDirectChatRoomValue(List<RoomIdsListRetroCompat> aRoomParticipantUserIdList, ApiCallback<Void> callback) {
+        Map<String, List<String>> params = new HashMap<>();
+        List<String> roomIdsList;
 
         if (null != aRoomParticipantUserIdList) {
-
             for (RoomIdsListRetroCompat item : aRoomParticipantUserIdList) {
                 if (params.containsKey(item.mParticipantUserId)) {
                     roomIdsList = new ArrayList<>(params.get(item.mParticipantUserId));
@@ -2052,14 +2042,7 @@ public class MXSession {
                 params.put(item.mParticipantUserId, roomIdsList);
             }
 
-            HashMap<String, Object> requestParams = new HashMap<>();
-
-            Collection<String> userIds = params.keySet();
-            for (String userId : userIds) {
-                requestParams.put(userId, params.get(userId));
-            }
-
-            mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, requestParams, callback);
+            mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, params, callback);
         }
     }
 
@@ -2092,13 +2075,13 @@ public class MXSession {
      * @param callback the callback
      */
     private void updateUsers(ArrayList<String> userIds, ApiCallback<Void> callback) {
-        HashMap<String, Object> ignoredUsersDict = new HashMap<>();
+        Map<String, Object> ignoredUsersDict = new HashMap<>();
 
         for (String userId : userIds) {
             ignoredUsersDict.put(userId, new ArrayList<>());
         }
 
-        HashMap<String, Object> params = new HashMap<>();
+        Map<String, Object> params = new HashMap<>();
         params.put(AccountDataRestClient.ACCOUNT_DATA_KEY_IGNORED_USERS, ignoredUsersDict);
 
         mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_IGNORED_USER_LIST, params, callback);
@@ -2340,9 +2323,10 @@ public class MXSession {
     }
 
     /**
-     * Enable / disable the crypto
+     * Enable / disable the crypto.
      *
      * @param cryptoEnabled true to enable the crypto
+     * @param callback      the asynchronous callback called when the action has been done
      */
     public void enableCrypto(boolean cryptoEnabled, final ApiCallback<Void> callback) {
         if (cryptoEnabled != isCryptoEnabled()) {
@@ -2433,9 +2417,7 @@ public class MXSession {
      * @param callback the asynchronous callback.
      */
     public void deleteDevice(final String deviceId, final String password, final ApiCallback<Void> callback) {
-        DeleteDeviceParams dummyparams = new DeleteDeviceParams();
-
-        mCryptoRestClient.deleteDevice(deviceId, dummyparams, new ApiCallback<Void>() {
+        mCryptoRestClient.deleteDevice(deviceId, new DeleteDeviceParams(), new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 // should never happen
@@ -2453,7 +2435,7 @@ public class MXSession {
 
             @Override
             public void onMatrixError(MatrixError matrixError) {
-                Log.d(LOG_TAG, "## checkNameAvailability(): The registration continues");
+                Log.d(LOG_TAG, "## deleteDevice() : onMatrixError " + matrixError.getMessage());
                 RegistrationFlowResponse registrationFlowResponse = null;
 
                 // expected status code is 401
@@ -2467,16 +2449,81 @@ public class MXSession {
                     Log.d(LOG_TAG, "## deleteDevice(): Received not expected status 401 =" + matrixError.mStatus);
                 }
 
-                // check if the server response can be casted
-                if (null != registrationFlowResponse) {
-                    DeleteDeviceParams params = new DeleteDeviceParams();
+                List<String> stages = new ArrayList<>();
 
+                // check if the server response can be casted
+                if ((null != registrationFlowResponse)
+                        && (null != registrationFlowResponse.flows)
+                        && !registrationFlowResponse.flows.isEmpty()) {
+                    for (LoginFlow flow : registrationFlowResponse.flows) {
+                        if (null != flow.stages) {
+                            stages.addAll(flow.stages);
+                        }
+                    }
+                }
+
+                if (!stages.isEmpty()) {
+                    DeleteDeviceParams params = new DeleteDeviceParams();
                     params.auth = new DeleteDeviceAuth();
                     params.auth.session = registrationFlowResponse.session;
-                    params.auth.type = "m.login.password";
                     params.auth.user = mCredentials.userId;
                     params.auth.password = password;
-                    mCryptoRestClient.deleteDevice(deviceId, params, callback);
+
+                    Log.d(LOG_TAG, "## deleteDevice() : supported stages " + stages);
+
+                    deleteDevice(deviceId, params, stages, callback);
+                } else {
+                    if (null != callback) {
+                        callback.onMatrixError(matrixError);
+                    }
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+        });
+    }
+
+    /**
+     * Delete a device.
+     *
+     * @param deviceId the device id.
+     * @param params   the delete device params
+     * @param stages   the supported stages
+     * @param callback the asynchronous callback
+     */
+    private void deleteDevice(final String deviceId, final DeleteDeviceParams params, final List<String> stages, final ApiCallback<Void> callback) {
+        // test the first one
+        params.auth.type = stages.get(0);
+        stages.remove(0);
+
+        mCryptoRestClient.deleteDevice(deviceId, params, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                if (null != callback) {
+                    callback.onSuccess(null);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError matrixError) {
+                boolean has401Error = (null != matrixError.mStatus) && (matrixError.mStatus == 401);
+
+                // failed, try next flow type
+                if ((has401Error || TextUtils.equals(matrixError.errcode, MatrixError.FORBIDDEN) || TextUtils.equals(matrixError.errcode, MatrixError.UNKNOWN))
+                        && !stages.isEmpty()) {
+                    deleteDevice(deviceId, params, stages, callback);
                 } else {
                     if (null != callback) {
                         callback.onMatrixError(matrixError);
@@ -2537,6 +2584,7 @@ public class MXSession {
      * Gets a bearer token from the homeserver that the user can
      * present to a third party in order to prove their ownership
      * of the Matrix account they are logged into.
+     *
      * @param callback the asynchronous callback called when finished
      */
     public void openIdToken(final ApiCallback<Map<Object, Object>> callback) {

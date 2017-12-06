@@ -35,11 +35,11 @@ import java.util.Map;
 import java.util.Set;
 
 public class MXDeviceList {
-    private static final String LOG_TAG = "MXDeviceList";
+    private static final String LOG_TAG = MXDeviceList.class.getSimpleName();
 
     /**
      * State transition diagram for DeviceList.deviceTrackingStatus
-     *
+     * <p>
      * |
      * stopTrackingDeviceList     V
      * +---------------------> NOT_TRACKED
@@ -56,7 +56,6 @@ public class MXDeviceList {
      * +<-------------------+       |  download successful         |
      * ^                            V                              |
      * +----------------------- UP_TO_DATE ------------------------+
-     *
      **/
 
     public static final int TRACKING_STATUS_NOT_TRACKED = -1;
@@ -113,7 +112,8 @@ public class MXDeviceList {
     /**
      * Constructor
      *
-     * @param crypto the crypto session
+     * @param session the session
+     * @param crypto  the crypto session
      */
     public MXDeviceList(MXSession session, MXCrypto crypto) {
         mxSession = session;
@@ -123,10 +123,10 @@ public class MXDeviceList {
         boolean isUpdated = false;
 
         Map<String, Integer> deviceTrackingStatuses = mCryptoStore.getDeviceTrackingStatuses();
-        for(String userId : deviceTrackingStatuses.keySet()) {
+        for (String userId : deviceTrackingStatuses.keySet()) {
             int status = deviceTrackingStatuses.get(userId);
 
-            if ((TRACKING_STATUS_DOWNLOAD_IN_PROGRESS == status) || (TRACKING_STATUS_UNREACHABLE_SERVER == status))  {
+            if ((TRACKING_STATUS_DOWNLOAD_IN_PROGRESS == status) || (TRACKING_STATUS_UNREACHABLE_SERVER == status)) {
                 // if a download was in progress when we got shut down, it isn't any more.
                 deviceTrackingStatuses.put(userId, TRACKING_STATUS_PENDING_DOWNLOAD);
                 isUpdated = true;
@@ -222,7 +222,7 @@ public class MXDeviceList {
      * Update the devices list statuses
      *
      * @param changed the user ids list which have new devices
-     * @param left the user ids list which left a room
+     * @param left    the user ids list which left a room
      */
     public void handleDeviceListsChanges(List<String> changed, List<String> left) {
         boolean isUpdated = false;
@@ -259,7 +259,7 @@ public class MXDeviceList {
 
     /**
      * This will flag each user whose devices we are tracking as in need of an
-     + update
+     * + update
      */
     public void invalidateAllDeviceLists() {
         handleDeviceListsChanges(new ArrayList<>(mCryptoStore.getDeviceTrackingStatuses().keySet()), null);
@@ -275,7 +275,7 @@ public class MXDeviceList {
             synchronized (mUserKeyDownloadsInProgress) {
                 Map<String, Integer> deviceTrackingStatuses = mCryptoStore.getDeviceTrackingStatuses();
 
-                for(String userId : userIds) {
+                for (String userId : userIds) {
                     mUserKeyDownloadsInProgress.remove(userId);
                     deviceTrackingStatuses.put(userId, TRACKING_STATUS_PENDING_DOWNLOAD);
                 }
@@ -290,7 +290,7 @@ public class MXDeviceList {
     /**
      * The keys download succeeded.
      *
-     * @param userIds the userIds list
+     * @param userIds  the userIds list
      * @param failures the failure map.
      */
     private void onKeysDownloadSucceed(List<String> userIds, Map<String, Map<String, Object>> failures) {
@@ -377,7 +377,7 @@ public class MXDeviceList {
                 mDownloadKeysQueues.removeAll(promisesToRemove);
             }
 
-            for(String userId : userIds) {
+            for (String userId : userIds) {
                 mUserKeyDownloadsInProgress.remove(userId);
             }
 
@@ -516,8 +516,8 @@ public class MXDeviceList {
         // we defines a tag for each request
         // and test if the response is the latest request one
         final String downloadToken = filteredUsers.hashCode() + " " + System.currentTimeMillis();
-        
-        for(String userId : filteredUsers) {
+
+        for (String userId : filteredUsers) {
             mPendingDownloadKeysRequestToken.put(userId, downloadToken);
         }
 
@@ -536,7 +536,7 @@ public class MXDeviceList {
                         for (String userId : userIdsList) {
                             // test if the response is the latest request one
                             if (!TextUtils.equals(mPendingDownloadKeysRequestToken.get(userId), downloadToken)) {
-                                Log.e(LOG_TAG, "## doKeyDownloadForUsers() : Another update in the queue for " +  userId + " not marking up-to-date");
+                                Log.e(LOG_TAG, "## doKeyDownloadForUsers() : Another update in the queue for " + userId + " not marking up-to-date");
                                 filteredUsers.remove(userId);
                             } else {
                                 Map<String, MXDeviceInfo> devices = keysQueryResponse.deviceKeys.get(userId);
@@ -602,7 +602,7 @@ public class MXDeviceList {
                     public void run() {
                         List<String> userIdsList = new ArrayList<>(filteredUsers);
 
-                         // test if the response is the latest request one
+                        // test if the response is the latest request one
                         for (String userId : userIdsList) {
                             if (!TextUtils.equals(mPendingDownloadKeysRequestToken.get(userId), downloadToken)) {
                                 Log.e(LOG_TAG, "## doKeyDownloadForUsers() : Another update in the queue for " + userId + " not marking up-to-date");
@@ -721,7 +721,7 @@ public class MXDeviceList {
         } catch (Exception e) {
             errorMessage = e.getMessage();
         }
-        
+
         if (!isVerified) {
             Log.e(LOG_TAG, "## validateDeviceKeys() : Unable to verify signature on device " + userId + ":" + deviceKeys.deviceId + " with error " + errorMessage);
             return false;
@@ -733,7 +733,12 @@ public class MXDeviceList {
                 // best off sticking with the original keys.
                 //
                 // Should we warn the user about it somehow?
-                Log.e(LOG_TAG, "## validateDeviceKeys() : WARNING:Ed25519 key for device " + userId + ":" + deviceKeys.deviceId + " has changed");
+                Log.e(LOG_TAG, "## validateDeviceKeys() : WARNING:Ed25519 key for device " + userId + ":" + deviceKeys.deviceId + " has changed : "
+                        + previouslyStoredDeviceKeys.fingerprint() + " -> " +  signKey);
+
+                Log.e(LOG_TAG, "## validateDeviceKeys() : " + previouslyStoredDeviceKeys + " -> " + deviceKeys);
+                Log.e(LOG_TAG, "## validateDeviceKeys() : " + previouslyStoredDeviceKeys.keys + " -> " + deviceKeys.keys);
+
                 return false;
             }
         }
@@ -750,7 +755,7 @@ public class MXDeviceList {
 
         Map<String, Integer> deviceTrackingStatuses = mCryptoStore.getDeviceTrackingStatuses();
 
-        for(String userId : deviceTrackingStatuses.keySet()) {
+        for (String userId : deviceTrackingStatuses.keySet()) {
             if (TRACKING_STATUS_PENDING_DOWNLOAD == deviceTrackingStatuses.get(userId)) {
                 users.add(userId);
             }
@@ -768,7 +773,7 @@ public class MXDeviceList {
         }
 
         // update the statuses
-        for(String userId : users) {
+        for (String userId : users) {
             Integer status = deviceTrackingStatuses.get(userId);
 
             if ((null != status) && (TRACKING_STATUS_PENDING_DOWNLOAD == status)) {

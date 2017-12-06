@@ -37,14 +37,16 @@ public class BingRuleSet {
         sender = new ArrayList<>();
         underride = new ArrayList<>();
     }
+
     /**
      * Find a rule from its rule ID.
-     * @param rules the rules list.
+     *
+     * @param rules  the rules list.
      * @param ruleID the rule ID.
      * @return the bing rule if it exists, else null.
      */
     private BingRule findRule(List<BingRule> rules, String ruleID) {
-        for(BingRule rule : rules) {
+        for (BingRule rule : rules) {
             if (TextUtils.equals(ruleID, rule.ruleId)) {
                 return rule;
             }
@@ -70,6 +72,7 @@ public class BingRuleSet {
 
     /**
      * Add a rule from the bingRules
+     *
      * @param rule the rule to add.
      */
     public void addAtTop(BingRule rule) {
@@ -90,6 +93,7 @@ public class BingRuleSet {
 
     /**
      * Remove a rule from the bingRules
+     *
      * @param rule the rule to delete.
      * @return true if the rule has been deleted
      */
@@ -113,12 +117,13 @@ public class BingRuleSet {
 
     /**
      * Find a rule from its rule ID.
-     * @param rules the rules list.
+     *
+     * @param rules  the rules list.
      * @param ruleID the rule ID.
      * @return the bing rule if it exists, else null.
      */
     private BingRule findContentRule(List<ContentRule> rules, String ruleID) {
-        for(BingRule rule : rules) {
+        for (BingRule rule : rules) {
             if (TextUtils.equals(ruleID, rule.ruleId)) {
                 return rule;
             }
@@ -128,6 +133,7 @@ public class BingRuleSet {
 
     /**
      * Find a rule from its ruleID.
+     *
      * @param ruleId a RULE_ID_XX value
      * @return the matched bing rule or null it doesn't exist.
      */
@@ -153,13 +159,14 @@ public class BingRuleSet {
 
     /**
      * Return the content rules list.
+     *
      * @return the content rules list.
      */
     public List<BingRule> getContentRules() {
         ArrayList<BingRule> res = new ArrayList<>();
 
         if (null != content) {
-            for(BingRule rule : content) {
+            for (BingRule rule : content) {
                 if (!rule.ruleId.startsWith(".m.")) {
                     res.add(rule);
                 }
@@ -171,6 +178,7 @@ public class BingRuleSet {
 
     /**
      * Return the room rules list.
+     *
      * @return the room rules list.
      */
     public List<BingRule> getRoomRules() {
@@ -183,6 +191,7 @@ public class BingRuleSet {
 
     /**
      * Return the room rules list.
+     *
      * @return the sender rules list.
      */
     public List<BingRule> getSenderRules() {

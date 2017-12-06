@@ -59,7 +59,7 @@ import java.util.zip.GZIPOutputStream;
  * An in-file IMXStore.
  */
 public class MXFileStore extends MXMemoryStore {
-    private static final String LOG_TAG = "MXFileStore";
+    private static final String LOG_TAG = MXFileStore.class.getSimpleName();
 
     // some constant values
     private static final int MXFILE_VERSION = 15;
@@ -287,7 +287,7 @@ public class MXFileStore extends MXMemoryStore {
     @Override
     public void commit() {
         // Save data only if metaData exists
-        if ((null != mMetadata) && !isKilled()) {
+        if ((null != mMetadata) && (null != mMetadata.mAccessToken) && !isKilled()) {
             Log.d(LOG_TAG, "++ Commit");
             saveUsers();
             saveRoomsMessages();
@@ -400,7 +400,7 @@ public class MXFileStore extends MXMemoryStore {
                                         // check also if the user is a member of the room
                                         // https://github.com/vector-im/riot-android/issues/1302
 
-                                        for(String roomId : mRoomSummaries.keySet()) {
+                                        for (String roomId : mRoomSummaries.keySet()) {
                                             Room room = getRoom(roomId);
 
                                             if (null == room) {
@@ -465,7 +465,7 @@ public class MXFileStore extends MXMemoryStore {
                                     Log.d(LOG_TAG, "++ store stats");
                                     Set<String> roomIds = mRoomEvents.keySet();
 
-                                    for(String roomId : roomIds) {
+                                    for (String roomId : roomIds) {
                                         Room room = getRoom(roomId);
 
                                         if ((null != room) && (null != room.getLiveState())) {
@@ -479,15 +479,15 @@ public class MXFileStore extends MXMemoryStore {
                                     Log.d(LOG_TAG, "-- store stats");
                                 }
 
+                                // post processing
+                                Log.d(LOG_TAG, "## open() : post processing.");
+                                dispatchPostProcess(mCredentials.userId);
+                                mIsPostProcessingDone = true;
+
                                 synchronized (this) {
                                     mIsReady = true;
                                 }
                                 mIsOpening = false;
-
-                                // post processing
-                                Log.e(LOG_TAG, "## open() : post processing.");
-                                dispatchPostProcess(mCredentials.userId);
-                                mIsPostProcessingDone = true;
 
                                 if (!succeed && !mIsNewStorage) {
                                     Log.e(LOG_TAG, "The store is corrupted.");
@@ -715,21 +715,13 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
-    public void setDisplayName(String displayName) {
-        // privacy
-        //Log.d(LOG_TAG, "Set setDisplayName to " + displayName);
-        Log.d(LOG_TAG, "Set setDisplayName ");
-        mMetaDataHasChanged = true;
-        super.setDisplayName(displayName);
+    public boolean setDisplayName(String displayName, long ts) {
+        return mMetaDataHasChanged = super.setDisplayName(displayName, ts);
     }
 
     @Override
-    public void setAvatarURL(String avatarURL) {
-        // privacy
-        //Log.d(LOG_TAG, "Set setAvatarURL to " + avatarURL);
-        Log.d(LOG_TAG, "Set setAvatarURL");
-        mMetaDataHasChanged = true;
-        super.setAvatarURL(avatarURL);
+    public boolean setAvatarURL(String avatarURL, long ts) {
+        return mMetaDataHasChanged = super.setAvatarURL(avatarURL, ts);
     }
 
     @Override
@@ -768,7 +760,10 @@ public class MXFileStore extends MXMemoryStore {
         super.flushRoomEvents(roomId);
 
         mRoomsToCommitForMessages.add(roomId);
-        saveRoomsMessages();
+
+        if ((null != mMetadata) && (null != mMetadata.mAccessToken) && !isKilled()) {
+            saveRoomsMessages();
+        }
     }
 
     @Override
@@ -882,7 +877,10 @@ public class MXFileStore extends MXMemoryStore {
     public void flushSummary(RoomSummary summary) {
         super.flushSummary(summary);
         mRoomsToCommitForSummaries.add(summary.getRoomId());
-        saveSummaries();
+
+        if ((null != mMetadata) && (null != mMetadata.mAccessToken) && !isKilled()) {
+            saveSummaries();
+        }
     }
 
     @Override
@@ -892,7 +890,9 @@ public class MXFileStore extends MXMemoryStore {
         // add any existing roomid to the list to save all
         mRoomsToCommitForSummaries.addAll(mRoomSummaries.keySet());
 
-        saveSummaries();
+        if ((null != mMetadata) && (null != mMetadata.mAccessToken) && !isKilled()) {
+            saveSummaries();
+        }
     }
 
     @Override
@@ -1068,7 +1068,8 @@ public class MXFileStore extends MXMemoryStore {
         // if some messages are received, the token is stored in the event.
         if (eventsList.size() > MAX_STORED_MESSAGES_COUNT) {
             // search backward the first known token
-            for (startIndex = eventsList.size() - MAX_STORED_MESSAGES_COUNT; !eventsList.get(startIndex).hasToken() && (startIndex > 0); startIndex--);
+            for (startIndex = eventsList.size() - MAX_STORED_MESSAGES_COUNT; !eventsList.get(startIndex).hasToken() && (startIndex > 0); startIndex--)
+                ;
 
             if (startIndex > 0) {
                 Log.d(LOG_TAG, "## getSavedEveventsMap() : " + roomId + " reduce the number of messages " + eventsList.size() + " -> " + (eventsList.size() - startIndex));
@@ -2353,5 +2354,18 @@ public class MXFileStore extends MXMemoryStore {
         }
 
         return filteredFilenames;
+    }
+
+    /**
+     * Start a runnable from the store thread
+     *
+     * @param runnable the runnable to call
+     */
+    public void post(Runnable runnable) {
+        if (null != mFileStoreHandler) {
+            mFileStoreHandler.post(runnable);
+        } else {
+            super.post(runnable);
+        }
     }
 }

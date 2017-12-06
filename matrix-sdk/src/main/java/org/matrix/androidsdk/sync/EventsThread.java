@@ -48,7 +48,7 @@ import java.util.concurrent.CountDownLatch;
  * Thread that continually watches the event stream and sends events to its listener.
  */
 public class EventsThread extends Thread {
-    private static final String LOG_TAG = "EventsThread";
+    private static final String LOG_TAG = EventsThread.class.getSimpleName();
 
     private static final int RETRY_WAIT_TIME_MS = 10000;
 
@@ -127,12 +127,20 @@ public class EventsThread extends Thread {
         mListener = listener;
         mCurrentToken = initialToken;
         mSyncObjectByInstance.put(this.toString(), this);
-        mAlarmManager = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
-        mPowerManager = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
+        mAlarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        mPowerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+    }
+
+    /**
+     * @return the current sync token
+     */
+    public String getCurrentSyncToken() {
+        return mCurrentToken;
     }
 
     /**
      * Update the data save mode
+     *
      * @param enabled true to enable the data save mode
      */
     public void setUseDataSaveMode(boolean enabled) {
@@ -167,7 +175,7 @@ public class EventsThread extends Thread {
 
         Log.d(LOG_TAG, "## setSyncDelay() : " + mRequestDelayMs + " with state " + getState());
 
-        if (State.WAITING == getState() && (!mPaused || (0 == mRequestDelayMs) &&  mIsCatchingUp)) {
+        if (State.WAITING == getState() && (!mPaused || (0 == mRequestDelayMs) && mIsCatchingUp)) {
             if (!mPaused) {
                 Log.d(LOG_TAG, "## setSyncDelay() : resume the application");
             }
@@ -409,7 +417,7 @@ public class EventsThread extends Thread {
             // Start with initial sync
             while (!mInitialSyncDone) {
                 final CountDownLatch latch = new CountDownLatch(1);
-                mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null :"offline", DATA_SAVE_MODE_FILTER, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
+                mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", DATA_SAVE_MODE_FILTER, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         Log.d(LOG_TAG, "Received initial sync response.");
@@ -549,7 +557,7 @@ public class EventsThread extends Thread {
                 final int fServerTimeout = serverTimeout;
                 mNextServerTimeoutms = mDefaultServerTimeoutms;
 
-                mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null :"offline", inlineFilter, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
+                mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", inlineFilter, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         if (!mKilling) {

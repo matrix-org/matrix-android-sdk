@@ -35,64 +35,134 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
         super(hsConfig, BingRulesApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
     }
 
+    /**
+     * Retrieve the bing rules list.
+     *
+     * @param callback the asynchronous callback.
+     */
     public void getAllBingRules(final ApiCallback<BingRulesResponse> callback) {
-        mApi.getAllBingRules(new Callback<BingRulesResponse>() {
-            @Override
-            public void success(BingRulesResponse bingRulesResponse, Response response) {
-                callback.onSuccess(bingRulesResponse);
-            }
+        try {
+            mApi.getAllBingRules(new Callback<BingRulesResponse>() {
+                @Override
+                public void success(BingRulesResponse bingRulesResponse, Response response) {
+                    callback.onSuccess(bingRulesResponse);
+                }
 
-            @Override
-            public void failure(RetrofitError error) {
-                callback.onUnexpectedError(error);
-            }
-        });
+                @Override
+                public void failure(RetrofitError error) {
+                    callback.onUnexpectedError(error);
+                }
+            });
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
+    /**
+     * @return the bing rules list.
+     */
     public BingRulesResponse getAllBingRules() {
         return mApi.getAllBingRules();
     }
 
+    /**
+     * Update the rule enable status.
+     *
+     * @param Kind     the rule kind
+     * @param ruleId   the rule id
+     * @param status   the rule state
+     * @param callback the asynchronous callback.
+     */
     public void updateEnableRuleStatus(String Kind, String ruleId, boolean status, final ApiCallback<Void> callback) {
-        mApi.updateEnableRuleStatus(Kind, ruleId, status, new Callback<Void> () {
-            @Override
-            public void success (Void voidObject, Response response){
-                callback.onSuccess(voidObject);
-            }
+        try {
+            mApi.updateEnableRuleStatus(Kind, ruleId, status, new Callback<Void>() {
+                @Override
+                public void success(Void voidObject, Response response) {
+                    callback.onSuccess(voidObject);
+                }
 
-            @Override
-            public void failure (RetrofitError error){
-                callback.onUnexpectedError(error);
-            }
-        });
+                @Override
+                public void failure(RetrofitError error) {
+                    callback.onUnexpectedError(error);
+                }
+            });
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
+    /**
+     * Update the rule actions lists.
+     *
+     * @param Kind     the rule kind
+     * @param ruleId   the rule id
+     * @param actions  the rule actions list
+     * @param callback the asynchronous callback
+     */
+    public void updateRuleActions(String Kind, String ruleId, Object actions, final ApiCallback<Void> callback) {
+        try {
+            mApi.updateRuleActions(Kind, ruleId, actions, new Callback<Void>() {
+                @Override
+                public void success(Void voidObject, Response response) {
+                    callback.onSuccess(voidObject);
+                }
+
+                @Override
+                public void failure(RetrofitError error) {
+                    callback.onUnexpectedError(error);
+                }
+            });
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
+    }
+
+    /**
+     * Delete a rule.
+     *
+     * @param Kind     the rule kind
+     * @param ruleId   the rule id
+     * @param callback the asynchronous callback
+     */
     public void deleteRule(String Kind, String ruleId, final ApiCallback<Void> callback) {
-        mApi.deleteRule(Kind, ruleId, new Callback<Void>() {
-            @Override
-            public void success(Void voidObject, Response response) {
-                callback.onSuccess(voidObject);
-            }
+        try {
+            mApi.deleteRule(Kind, ruleId, new Callback<Void>() {
+                @Override
+                public void success(Void voidObject, Response response) {
+                    callback.onSuccess(voidObject);
+                }
 
-            @Override
-            public void failure(RetrofitError error) {
-                callback.onUnexpectedError(error);
-            }
-        });
+                @Override
+                public void failure(RetrofitError error) {
+                    callback.onUnexpectedError(error);
+                }
+            });
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
+    /**
+     * Add a rule.
+     *
+     * @param rule     the rule
+     * @param callback the asynchronous callback
+     */
     public void addRule(BingRule rule, final ApiCallback<Void> callback) {
-        mApi.addRule(rule.kind, rule.ruleId, rule, new Callback<Void>() {
-            @Override
-            public void success(Void voidObject, Response response) {
-                callback.onSuccess(voidObject);
-            }
+        try {
+            mApi.addRule(rule.kind, rule.ruleId, rule, new Callback<Void>() {
+                @Override
+                public void success(Void voidObject, Response response) {
+                    callback.onSuccess(voidObject);
+                }
 
-            @Override
-            public void failure(RetrofitError error) {
-                callback.onUnexpectedError(error);
-            }
-        });
+                @Override
+                public void failure(RetrofitError error) {
+                    callback.onUnexpectedError(error);
+                }
+            });
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
-
 }

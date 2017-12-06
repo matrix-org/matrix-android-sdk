@@ -22,9 +22,11 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import java.util.Collection;
 
 public class RoomMemberCountCondition extends Condition {
-    private static final String LOG_TAG = "RMCountCondition";
+
+    private static final String LOG_TAG = RoomMemberCountCondition.class.getSimpleName();
+
     // NB: Leave the strings in order of descending length
-    private static final String[] PREFIX_ARR = new String[] {"==", "<=", ">=", "<", ">", ""};
+    private static final String[] PREFIX_ARR = new String[]{"==", "<=", ">=", "<", ">", ""};
 
     public String is;
     private String comparisonPrefix = null;
@@ -73,6 +75,7 @@ public class RoomMemberCountCondition extends Condition {
 
     /**
      * Count joined room members in the room.
+     *
      * @param room the room
      * @return the number of joined members
      */
@@ -101,12 +104,10 @@ public class RoomMemberCountCondition extends Condition {
 
         if (comparisonPrefix == null) {
             parseError = true;
-        }
-        else {
+        } else {
             try {
                 limit = Integer.parseInt(is.substring(comparisonPrefix.length()));
-            }
-            catch (NumberFormatException e) {
+            } catch (NumberFormatException e) {
                 parseError = true;
             }
         }

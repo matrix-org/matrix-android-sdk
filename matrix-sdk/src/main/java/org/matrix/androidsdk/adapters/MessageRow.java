@@ -20,6 +20,7 @@ import org.matrix.androidsdk.rest.model.Event;
 
 // this class defines a MessagesAdapter Item.
 public class MessageRow {
+
     // the linked event
     private Event mEvent;
     // the room state
@@ -27,13 +28,15 @@ public class MessageRow {
 
     /**
      * Constructor
-     * @param event the event.
+     *
+     * @param event     the event.
      * @param roomState the room state
      */
     public MessageRow(Event event, RoomState roomState) {
         this.mEvent = event;
         this.mRoomState = roomState;
     }
+
 
     /**
      * @return the event.
@@ -44,6 +47,7 @@ public class MessageRow {
 
     /**
      * Update the linked event.
+     *
      * @param event the event.
      */
     public void updateEvent(Event event) {

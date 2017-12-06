@@ -24,32 +24,37 @@ public interface IMXStoreListener {
      * The store has loaded its internal data.
      * Let any post processing data management.
      * It is called in the store thread before calling onStoreReady.
+     *
      * @param accountId the account id
      */
     void postProcess(String accountId);
 
     /**
      * Called when the store is initialized
+     *
      * @param accountId the account identifier
      */
     void onStoreReady(String accountId);
 
     /**
      * Called when the store initialization fails.
-     * @param accountId the account identifier
+     *
+     * @param accountId   the account identifier
      * @param description the corruption error messages
      */
     void onStoreCorrupted(String accountId, String description);
 
     /**
      * Called when the store has no more memory
-     * @param accountId the account identifier
+     *
+     * @param accountId   the account identifier
      * @param description the corruption error messages
      */
     void onStoreOOM(String accountId, String description);
 
     /**
      * The read receipts of a room is loaded are loaded
+     *
      * @param roomId the room id
      */
     void onReadReceiptsLoaded(String roomId);

@@ -19,6 +19,8 @@ package org.matrix.androidsdk.rest.model;
  * Class to define a filter to retrieve public rooms
  */
 public class PublicRoomsFilter {
-    /** String to search for **/
+    /**
+     * String to search for
+     **/
     public String generic_search_term;
 }

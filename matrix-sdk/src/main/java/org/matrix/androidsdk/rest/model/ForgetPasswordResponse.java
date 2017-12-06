@@ -20,6 +20,8 @@ package org.matrix.androidsdk.rest.model;
  */
 public class ForgetPasswordResponse {
 
-    /** The session id **/
+    /**
+     * The session id
+     **/
     public String sid;
 }

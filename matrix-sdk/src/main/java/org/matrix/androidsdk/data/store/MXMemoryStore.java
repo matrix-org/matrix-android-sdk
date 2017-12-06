@@ -52,7 +52,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class MXMemoryStore implements IMXStore {
 
-    private static final String LOG_TAG = "MXMemoryStore";
+    private static final String LOG_TAG = MXMemoryStore.class.getSimpleName();
 
     protected Map<String, Room> mRooms;
     protected Map<String, User> mUsers;
@@ -93,6 +93,10 @@ public class MXMemoryStore implements IMXStore {
     // When nil, nothing is stored on the file system.
     protected MXFileStoreMetaData mMetadata = null;
 
+    // last time the avatar / displayname was updated
+    protected long mUserDisplayNameTs;
+    protected long mUserAvatarUrlTs;
+
     /**
      * Initialization method.
      */
@@ -132,6 +136,7 @@ public class MXMemoryStore implements IMXStore {
      * Default constructor
      *
      * @param credentials the expected credentials
+     * @param context     the context
      */
     public MXMemoryStore(Credentials credentials, Context context) {
         initCommon();
@@ -221,6 +226,7 @@ public class MXMemoryStore implements IMXStore {
     /**
      * Warn that the store data are corrupted.
      * It might append if an update request failed.
+     *
      * @param reason the corruption reason
      */
     @Override
@@ -292,24 +298,34 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public void setDisplayName(String displayName) {
-        if ((null != mMetadata) && !TextUtils.equals(mMetadata.mUserDisplayName, displayName)) {
-            mMetadata.mUserDisplayName = displayName;
+    public boolean setDisplayName(String displayName, long ts) {
+        boolean isUpdated;
 
-            if (null != displayName) {
-                mMetadata.mUserDisplayName = mMetadata.mUserDisplayName.trim();
+        synchronized (LOG_TAG) {
+            if (null != mMetadata) {
+                Log.d(LOG_TAG, "## setDisplayName() : from " + mMetadata.mUserDisplayName + " to " + displayName + " ts " + ts);
             }
 
-            // update the cached oneself User
-            User myUser = getUser(mMetadata.mUserId);
+            isUpdated = (null != mMetadata) && !TextUtils.equals(mMetadata.mUserDisplayName, displayName) &&
+                    (mUserDisplayNameTs < ts) && (ts != 0) && (ts <= System.currentTimeMillis());
 
-            if (null != myUser) {
-                myUser.displayname = mMetadata.mUserDisplayName;
+            if (isUpdated) {
+                mMetadata.mUserDisplayName = (null != displayName) ? displayName.trim() : null;
+                mUserDisplayNameTs = ts;
+
+                // update the cached oneself User
+                User myUser = getUser(mMetadata.mUserId);
+
+                if (null != myUser) {
+                    myUser.displayname = mMetadata.mUserDisplayName;
+                }
+
+                Log.d(LOG_TAG, "## setDisplayName() : updated");
+                commit();
             }
-
-            Log.d(LOG_TAG, "setDisplayName : commit");
-            commit();
         }
+
+        return isUpdated;
     }
 
     @Override
@@ -322,20 +338,34 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public void setAvatarURL(String avatarURL) {
-        if ((null != mMetadata) && !TextUtils.equals(mMetadata.mUserAvatarUrl, avatarURL)) {
-            mMetadata.mUserAvatarUrl = avatarURL;
+    public boolean setAvatarURL(String avatarURL, long ts) {
+        boolean isUpdated = false;
 
-            // update the cached oneself User
-            User myUser = getUser(mMetadata.mUserId);
-
-            if (null != myUser) {
-                myUser.setAvatarUrl(avatarURL);
+        synchronized (LOG_TAG) {
+            if (null != mMetadata) {
+                Log.d(LOG_TAG, "## setAvatarURL() : from " + mMetadata.mUserAvatarUrl + " to " + avatarURL + " ts " + ts);
             }
 
-            Log.d(LOG_TAG, "setAvatarURL : commit");
-            commit();
+            isUpdated = (null != mMetadata) && !TextUtils.equals(mMetadata.mUserAvatarUrl, avatarURL) &&
+                    (mUserAvatarUrlTs < ts) && (ts != 0) && (ts <= System.currentTimeMillis());
+
+            if (isUpdated) {
+                mMetadata.mUserAvatarUrl = avatarURL;
+                mUserAvatarUrlTs = ts;
+
+                // update the cached oneself User
+                User myUser = getUser(mMetadata.mUserId);
+
+                if (null != myUser) {
+                    myUser.setAvatarUrl(avatarURL);
+                }
+
+                Log.d(LOG_TAG, "## setAvatarURL() : updated");
+                commit();
+            }
         }
+
+        return isUpdated;
     }
 
     @Override
@@ -969,7 +999,7 @@ public class MXMemoryStore implements IMXStore {
     public Collection<RoomSummary> getSummaries() {
         List<RoomSummary> summaries = new ArrayList<>();
 
-        for(String roomId : mRoomSummaries.keySet()) {
+        for (String roomId : mRoomSummaries.keySet()) {
             Room room = mRooms.get(roomId);
             if (null != room) {
                 if (null == room.getMember(mCredentials.userId)) {
@@ -1296,7 +1326,7 @@ public class MXMemoryStore implements IMXStore {
                 }
             }
         }
-        
+
         return events;
     }
 
@@ -1411,7 +1441,8 @@ public class MXMemoryStore implements IMXStore {
     /**
      * Dispatch that the store is corrupted
      *
-     * @param accountId the account id
+     * @param accountId   the account id
+     * @param description the error description
      */
     protected void dispatchOnStoreCorrupted(String accountId, String description) {
         List<IMXStoreListener> listeners = getListeners();
@@ -1422,7 +1453,9 @@ public class MXMemoryStore implements IMXStore {
     }
 
     /**
-     * Called when the store fails to save some data
+     * Dispatch an out of memory error.
+     *
+     * @param e the out of memory error
      */
     protected void dispatchOOM(OutOfMemoryError e) {
         List<IMXStoreListener> listeners = getListeners();
@@ -1434,6 +1467,8 @@ public class MXMemoryStore implements IMXStore {
 
     /**
      * Dispatch the read receipts loading.
+     *
+     * @param roomId the room id.
      */
     protected void dispatchOnReadReceiptsLoaded(String roomId) {
         List<IMXStoreListener> listeners = getListeners();
@@ -1442,7 +1477,6 @@ public class MXMemoryStore implements IMXStore {
             listener.onReadReceiptsLoaded(roomId);
         }
     }
-
 
     /**
      * Provides the store preload time in milliseconds.
@@ -1460,5 +1494,14 @@ public class MXMemoryStore implements IMXStore {
      */
     public Map<String, Long> getStats() {
         return new HashMap<>();
+    }
+
+    /**
+     * Start a runnable from the store thread
+     *
+     * @param runnable the runnable to call
+     */
+    public void post(Runnable runnable) {
+        new Handler(Looper.getMainLooper()).post(runnable);
     }
 }

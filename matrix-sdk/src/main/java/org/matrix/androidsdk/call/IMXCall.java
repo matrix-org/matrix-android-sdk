@@ -24,8 +24,6 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.model.Event;
 
-import java.io.Serializable;
-
 /**
  * Audio/video call interface.
  * See {@link MXWebRtcCall} and {@link MXChromeCall}.
@@ -48,14 +46,16 @@ public interface IMXCall {
     int END_CALL_REASON_USER_HIMSELF = 2;
 
     // call state events
+
     // the call is an empty shell nothing has been initialized
     String CALL_STATE_CREATED = "IMXCall.CALL_STATE_CREATED";
 
-    // the callview has been created
+    // the call view is creating and being inserting.
     String CALL_STATE_CREATING_CALL_VIEW = "IMXCall.CALL_STATE_CREATING_CALL_VIEW";
 
-    // the call is preparing
-    String CALL_STATE_FLEDGLING = "IMXCall.CALL_STATE_FLEDGLING";
+    // the call view is managed.
+    // the call can start from now.
+    String CALL_STATE_READY = "IMXCall.CALL_STATE_READY";
 
     // incoming/outgoing calls : initializing the local audio / video
     String CALL_STATE_WAIT_LOCAL_MEDIA = "IMXCall.CALL_STATE_WAIT_LOCAL_MEDIA";
@@ -74,10 +74,10 @@ public interface IMXCall {
     // incoming calls : create the call answer
     String CALL_STATE_CREATE_ANSWER = "IMXCall.CALL_STATE_CREATE_ANSWER";
 
-    // the call connection is connecting
+    // the call is connecting
     String CALL_STATE_CONNECTING = "IMXCall.CALL_STATE_CONNECTING";
 
-    //
+    // the call is in progress
     String CALL_STATE_CONNECTED = "IMXCall.CALL_STATE_CONNECTED";
 
     // call is ended
@@ -95,117 +95,6 @@ public interface IMXCall {
 
     // the user did not respond to the call.
     String CALL_ERROR_USER_NOT_RESPONDING = "IMXCall.CALL_ERROR_USER_NOT_RESPONDING";
-
-    class VideoLayoutConfiguration implements Serializable {
-        public final static int INVALID_VALUE = -1;
-
-        @Override
-        public String toString() {
-            return "VideoLayoutConfiguration{" +
-                    "mIsPortrait=" + mIsPortrait +
-                    ", X=" + mX +
-                    ", Y=" + mY +
-                    ", Width=" + mWidth +
-                    ", Height=" + mHeight +
-                    '}';
-        }
-
-        // parameters of the video of the local user (small video)
-        /**
-         * margin left in percentage of the screen resolution for the local user video
-         **/
-        public int mX;
-        /**
-         * margin top in percentage of the screen resolution for the local user video
-         **/
-        public int mY;
-
-        /**
-         * width in percentage of the screen resolution for the local user video
-         **/
-        public int mWidth;
-        /**
-         * video height in percentage of the screen resolution for the local user video
-         **/
-        public int mHeight;
-
-        /**
-         * the area size in which the video in displayed
-         **/
-        public int mDisplayWidth;
-        public int mDisplayHeight;
-
-        /**
-         * tells if the display in is a portrait orientation
-         **/
-        public boolean mIsPortrait;
-
-        public VideoLayoutConfiguration(int aX, int aY, int aWidth, int aHeight) {
-            this(aX, aY, aWidth, aHeight, INVALID_VALUE, INVALID_VALUE);
-        }
-
-        public VideoLayoutConfiguration(int aX, int aY, int aWidth, int aHeight, int aDisplayWidth, int aDisplayHeight) {
-            mX = aX;
-            mY = aY;
-            mWidth = aWidth;
-            mHeight = aHeight;
-            mDisplayWidth = aDisplayWidth;
-            mDisplayHeight = aDisplayHeight;
-        }
-
-        public VideoLayoutConfiguration() {
-            mX = INVALID_VALUE;
-            mY = INVALID_VALUE;
-            mWidth = INVALID_VALUE;
-            mHeight = INVALID_VALUE;
-            mDisplayWidth = INVALID_VALUE;
-            mDisplayHeight = INVALID_VALUE;
-        }
-    }
-
-    interface MXCallListener {
-        /**
-         * Called when the call state change
-         */
-        void onStateDidChange(String state);
-
-        /**
-         * Called when the call fails
-         */
-        void onCallError(String error);
-
-        /**
-         * The callview must be added to a layout
-         *
-         * @param callView the callview
-         */
-        void onViewLoading(View callView);
-
-        /**
-         * Warn when the call view is ready
-         */
-        void onViewReady();
-
-        /**
-         * The call was answered on another device
-         */
-        void onCallAnsweredElsewhere();
-
-        /**
-         * Warn that the call is ended
-         *
-         * @param aReasonId the reason of the call ending
-         */
-        void onCallEnd(final int aReasonId);
-
-        /**
-         * The video preview size has been updated.
-         *
-         * @param width  the new width (non scaled size)
-         * @param height the new height (non scaled size)
-         */
-        void onPreviewSizeChanged(int width, int height);
-    }
 
     // creator
 
@@ -280,18 +169,24 @@ public interface IMXCall {
 
     /**
      * The call is hung up.
+     *
+     * @param reason the reason
      */
     void hangup(String reason);
 
     /**
      * Add a listener to the call manager.
+     *
+     * @param callListener the call listener
      */
-    void addListener(MXCallListener callListener);
+    void addListener(IMXCallListener callListener);
 
     /**
      * Remove a listener from the call manager.
+     *
+     * @param callListener the call listener
      */
-    void removeListener(MXCallListener callListener);
+    void removeListener(IMXCallListener callListener);
 
     // getters / setters
 
@@ -302,6 +197,8 @@ public interface IMXCall {
 
     /**
      * Set the callId
+     *
+     * @param callId the call id
      */
     void setCallId(String callId);
 
@@ -334,11 +231,6 @@ public interface IMXCall {
     boolean isIncoming();
 
     /**
-     * @param isIncoming true if the call is an incoming one.
-     */
-    void setIsIncoming(boolean isIncoming);
-
-    /**
      * Set the call type: video or voice
      *
      * @param isVideo true for video call, false for VoIP
@@ -352,6 +244,8 @@ public interface IMXCall {
 
     /**
      * Defines the call conference status
+     *
+     * @param isConference the conference status
      */
     void setIsConference(boolean isConference);
 
@@ -378,6 +272,7 @@ public interface IMXCall {
     /**
      * Set the callview visibility
      *
+     * @param visibility true to make the callview visible
      * @return true if the operation succeeds
      */
     boolean setVisibility(int visibility);
@@ -439,6 +334,4 @@ public interface IMXCall {
      * @return true if video recording is muted, false otherwise
      */
     boolean isVideoRecordingMuted();
-
-
 }

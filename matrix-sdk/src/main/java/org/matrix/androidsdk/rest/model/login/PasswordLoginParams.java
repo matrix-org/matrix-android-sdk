@@ -96,7 +96,7 @@ public class PasswordLoginParams extends LoginParams {
      *
      * @param phoneNumber the phone number
      * @param countryCode the country code
-     * @param password the password
+     * @param password    the password
      */
     public void setPhoneIdentifier(@NonNull final String phoneNumber, @NonNull final String countryCode, @NonNull final String password) {
         identifier = new HashMap<>();

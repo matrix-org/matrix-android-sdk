@@ -47,7 +47,7 @@ import retrofit.RetrofitError;
  */
 public class UnsentEventsManager {
 
-    private static final String LOG_TAG = "UnsentEventsManager";
+    private static final String LOG_TAG = UnsentEventsManager.class.getSimpleName();
 
     // 3 minutes
     private static final int MAX_MESSAGE_LIFETIME_MS = 180000;
@@ -101,33 +101,43 @@ public class UnsentEventsManager {
 
         /**
          * Resend the event after a delay.
+         *
          * @param delayMs the delay in milliseconds.
+         * @return true if the operation succeeds
          */
-        public void resendEventAfter(int delayMs) {
+        public boolean resendEventAfter(int delayMs) {
             stopTimer();
 
-            if (null != mEventDescription) {
-                Log.d(LOG_TAG, "Resend after " + delayMs + " [" +  mEventDescription + "]");
+            try {
+                if (null != mEventDescription) {
+                    Log.d(LOG_TAG, "Resend after " + delayMs + " [" + mEventDescription + "]");
+                }
+
+                mAutoResendTimer = new Timer();
+                mAutoResendTimer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        try {
+                            UnsentEventSnapshot.this.mIsResending = true;
+
+                            if (null != mEventDescription) {
+                                Log.d(LOG_TAG, "Resend [" + mEventDescription + "]");
+                            }
+
+                            mRequestRetryCallBack.onRetry();
+                        } catch (Throwable throwable) {
+                            UnsentEventSnapshot.this.mIsResending = false;
+                            Log.e(LOG_TAG, "## resendEventAfter() : " + mEventDescription + " + onRetry failed " + throwable.getMessage());
+                        }
+                    }
+                }, delayMs);
+                return true;
+
+            } catch (Throwable t) {
+                Log.e(LOG_TAG, "## resendEventAfter failed " + t.getMessage());
             }
 
-            mAutoResendTimer = new Timer();
-            mAutoResendTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    try {
-                        UnsentEventSnapshot.this.mIsResending = true;
-
-                        if (null != mEventDescription) {
-                            Log.d(LOG_TAG, "Resend [" +  mEventDescription + "]");
-                        }
-
-                        mRequestRetryCallBack.onRetry();
-                    } catch (Exception e) {
-                        UnsentEventSnapshot.this.mIsResending = false;
-                        Log.e(LOG_TAG, "## resendEventAfter() : " + mEventDescription + " + onRetry failed " + e.getMessage());
-                    }
-                }
-            }, delayMs);
+            return false;
         }
 
         /**
@@ -158,8 +168,9 @@ public class UnsentEventsManager {
 
     /**
      * Constructor
+     *
      * @param networkConnectivityReceiver the network received
-     * @param dataHandler the data handler
+     * @param dataHandler                 the data handler
      */
     public UnsentEventsManager(NetworkConnectivityReceiver networkConnectivityReceiver, MXDataHandler dataHandler) {
         mNetworkConnectivityReceiver = networkConnectivityReceiver;
@@ -184,6 +195,7 @@ public class UnsentEventsManager {
 
     /**
      * Warn that the apiCallback has been called
+     *
      * @param apiCallback the called apiCallback
      */
     public void onEventSent(ApiCallback apiCallback) {
@@ -198,7 +210,7 @@ public class UnsentEventsManager {
 
             if (null != snapshot) {
                 if (null != snapshot.mEventDescription) {
-                    Log.d(LOG_TAG, "Resend Succeeded [" +  snapshot.mEventDescription + "]");
+                    Log.d(LOG_TAG, "Resend Succeeded [" + snapshot.mEventDescription + "]");
                 }
 
                 snapshot.stopTimers();
@@ -218,7 +230,7 @@ public class UnsentEventsManager {
      */
     public void clear() {
         synchronized (mUnsentEventsMap) {
-            for(UnsentEventSnapshot snapshot : mUnsentEvents) {
+            for (UnsentEventSnapshot snapshot : mUnsentEvents) {
                 snapshot.stopTimers();
             }
 
@@ -244,15 +256,16 @@ public class UnsentEventsManager {
     /**
      * The event failed to be sent and cannot be resent.
      * It triggers the error callbacks.
+     *
      * @param eventDescription the event description
-     * @param error the retrofit error
-     * @param callback the callback.
+     * @param error            the retrofit error
+     * @param callback         the callback.
      */
     private static void triggerErrorCallback(MXDataHandler dataHandler, String eventDescription, RetrofitError error, ApiCallback callback) {
         if ((null != error) && !TextUtils.isEmpty(error.getMessage())) {
             // privacy
             //Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl());
-            Log.e(LOG_TAG, error.getLocalizedMessage());  
+            Log.e(LOG_TAG, error.getLocalizedMessage());
         }
 
         if (null == error) {
@@ -268,8 +281,7 @@ public class UnsentEventsManager {
                 //Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
                 Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage());
             }
-        }
-        else if (error.isNetworkError()) {
+        } else if (error.isNetworkError()) {
             try {
                 if (null != eventDescription) {
                     Log.e(LOG_TAG, "Network Error " + eventDescription);
@@ -282,14 +294,12 @@ public class UnsentEventsManager {
                 //Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage() + " while managing " + error.getUrl());
                 Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage());
             }
-        }
-        else {
+        } else {
             // Try to convert this into a Matrix error
             MatrixError mxError;
             try {
                 mxError = (MatrixError) error.getBodyAs(MatrixError.class);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 mxError = null;
             }
             if (mxError != null) {
@@ -309,8 +319,7 @@ public class UnsentEventsManager {
                     //Log.e(LOG_TAG, "Exception MatrixError " + e.getMessage() + " while managing " + error.getUrl());
                     Log.e(LOG_TAG, "Exception MatrixError " + e.getLocalizedMessage());
                 }
-            }
-            else {
+            } else {
                 try {
                     if (null != eventDescription) {
                         Log.e(LOG_TAG, "Unexpected Error " + eventDescription);
@@ -330,6 +339,7 @@ public class UnsentEventsManager {
 
     /**
      * A request fails with an unknown matrix token error code.
+     *
      * @param eventDescription the event description
      */
     public void onUnknownMatrixToken(final String eventDescription) {
@@ -339,17 +349,18 @@ public class UnsentEventsManager {
 
     /**
      * warns that an event failed to be sent.
-     * @param eventDescription the event description
+     *
+     * @param eventDescription             the event description
      * @param ignoreEventTimeLifeInOffline tell if the event timelife is ignored in offline mode
-     * @param retrofitError the retrofit error .
-     * @param apiCallback the apiCallback.
-     * @param requestRetryCallBack requestRetryCallBack.
+     * @param retrofitError                the retrofit error .
+     * @param apiCallback                  the apiCallback.
+     * @param requestRetryCallBack         requestRetryCallBack.
      */
-    public void onEventSendingFailed(final String eventDescription,  final boolean ignoreEventTimeLifeInOffline, final RetrofitError retrofitError, final ApiCallback apiCallback, final RestAdapterCallback.RequestRetryCallBack requestRetryCallBack) {
+    public void onEventSendingFailed(final String eventDescription, final boolean ignoreEventTimeLifeInOffline, final RetrofitError retrofitError, final ApiCallback apiCallback, final RestAdapterCallback.RequestRetryCallBack requestRetryCallBack) {
         boolean isManaged = false;
 
         if (null != eventDescription) {
-            Log.d(LOG_TAG, "Fail to send [" +  eventDescription + "]");
+            Log.d(LOG_TAG, "Fail to send [" + eventDescription + "]");
         }
 
         if ((null != requestRetryCallBack) && (null != apiCallback)) {
@@ -369,7 +380,7 @@ public class UnsentEventsManager {
 
                 // trace the matrix error.
                 if ((null != eventDescription) && (null != mxError)) {
-                    Log.d(LOG_TAG, "Matrix error " + mxError.errcode + " " + mxError.getMessage() + " [" +  eventDescription + "]");
+                    Log.d(LOG_TAG, "Matrix error " + mxError.errcode + " " + mxError.getMessage() + " [" + eventDescription + "]");
 
                     if (TextUtils.equals(MatrixError.UNKNOWN_TOKEN, mxError.errcode)) {
                         Log.e(LOG_TAG, "## onEventSendingFailed() : invalid token detected");
@@ -381,7 +392,7 @@ public class UnsentEventsManager {
 
                 int matrixRetryTimeout = -1;
 
-                if ((null != mxError) &&  MatrixError.LIMIT_EXCEEDED.equals(mxError.errcode) && (null != mxError.retry_after_ms)) {
+                if ((null != mxError) && MatrixError.LIMIT_EXCEEDED.equals(mxError.errcode) && (null != mxError.retry_after_ms)) {
                     matrixRetryTimeout = mxError.retry_after_ms + 200;
                 }
 
@@ -424,7 +435,7 @@ public class UnsentEventsManager {
                             mUnsentEvents.remove(snapshot);
 
                             if (null != eventDescription) {
-                                Log.d(LOG_TAG, "Cancel [" +  eventDescription + "]");
+                                Log.d(LOG_TAG, "Cancel [" + eventDescription + "]");
                             }
 
                             isManaged = false;
@@ -434,40 +445,57 @@ public class UnsentEventsManager {
                     } else {
                         snapshot = new UnsentEventSnapshot();
 
-                        snapshot.mAge = ignoreEventTimeLifeInOffline ? -1 : System.currentTimeMillis();
-                        snapshot.mRequestRetryCallBack = requestRetryCallBack;
-                        snapshot.mRetryCount = 1;
-                        snapshot.mEventDescription = eventDescription;
-                        mUnsentEventsMap.put(apiCallback, snapshot);
-                        mUnsentEvents.add(snapshot);
+                        try {
+                            snapshot.mAge = ignoreEventTimeLifeInOffline ? -1 : System.currentTimeMillis();
+                            snapshot.mRequestRetryCallBack = requestRetryCallBack;
+                            snapshot.mRetryCount = 1;
+                            snapshot.mEventDescription = eventDescription;
+                            mUnsentEventsMap.put(apiCallback, snapshot);
+                            mUnsentEvents.add(snapshot);
 
-                        if (mbIsConnected || !ignoreEventTimeLifeInOffline) {
-                            // the event has a life time
-                            final UnsentEventSnapshot fSnapshot = snapshot;
-                            fSnapshot.mLifeTimeTimer = new Timer();
-                            fSnapshot.mLifeTimeTimer.schedule(new TimerTask() {
-                                @Override
-                                public void run() {
-                                    try {
+                            if (mbIsConnected || !ignoreEventTimeLifeInOffline) {
+                                // the event has a life time
+                                final UnsentEventSnapshot fSnapshot = snapshot;
+                                fSnapshot.mLifeTimeTimer = new Timer();
+                                fSnapshot.mLifeTimeTimer.schedule(new TimerTask() {
+                                    @Override
+                                    public void run() {
+                                        try {
 
-                                        if (null != eventDescription) {
-                                            Log.d(LOG_TAG, "Cancel to send [" + eventDescription + "]");
+                                            if (null != eventDescription) {
+                                                Log.d(LOG_TAG, "Cancel to send [" + eventDescription + "]");
+                                            }
+
+                                            fSnapshot.stopTimers();
+                                            synchronized (mUnsentEventsMap) {
+                                                mUnsentEventsMap.remove(apiCallback);
+                                                mUnsentEvents.remove(fSnapshot);
+                                            }
+
+                                            triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
+                                        } catch (Exception e) {
+                                            Log.e(LOG_TAG, "## onEventSendingFailed() : failure Msg=" + e.getMessage());
                                         }
-
-                                        fSnapshot.stopTimers();
-                                        synchronized (mUnsentEventsMap) {
-                                            mUnsentEventsMap.remove(apiCallback);
-                                            mUnsentEvents.remove(fSnapshot);
-                                        }
-
-                                        triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
-                                    } catch (Exception e) {
-                                        Log.e(LOG_TAG, "## onEventSendingFailed() : failure Msg=" + e.getMessage());
                                     }
-                                }
-                            }, MAX_MESSAGE_LIFETIME_MS);
-                        } else if (ignoreEventTimeLifeInOffline) {
-                            Log.d(LOG_TAG, "The request " + eventDescription + " will be sent when a network will be available");
+                                }, MAX_MESSAGE_LIFETIME_MS);
+                            } else if (ignoreEventTimeLifeInOffline) {
+                                Log.d(LOG_TAG, "The request " + eventDescription + " will be sent when a network will be available");
+                            }
+                        } catch (Throwable throwable) {
+                            Log.e(LOG_TAG, "## snapshot creation failed " + throwable.getMessage());
+
+                            if (null != snapshot.mLifeTimeTimer) {
+                                snapshot.mLifeTimeTimer.cancel();
+                            }
+
+                            mUnsentEventsMap.remove(apiCallback);
+                            mUnsentEvents.remove(snapshot);
+
+                            try {
+                                triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
+                            } catch (Exception e) {
+                                Log.e(LOG_TAG, "## onEventSendingFailed() : failure Msg=" + e.getMessage());
+                            }
                         }
 
                         isManaged = true;
@@ -482,8 +510,8 @@ public class UnsentEventsManager {
                         //    It never happens, so the message is never resent.
                         //
                         if (mbIsConnected) {
-                            int jitterTime = ((int)Math.pow(2, snapshot.mRetryCount)) + (Math.abs(new Random(System.currentTimeMillis()).nextInt()) % RETRY_JITTER_MS);
-                            snapshot.resendEventAfter((matrixRetryTimeout > 0) ? matrixRetryTimeout : jitterTime);
+                            int jitterTime = ((int) Math.pow(2, snapshot.mRetryCount)) + (Math.abs(new Random(System.currentTimeMillis()).nextInt()) % RETRY_JITTER_MS);
+                            isManaged = snapshot.resendEventAfter((matrixRetryTimeout > 0) ? matrixRetryTimeout : jitterTime);
                         }
                     }
                 }
@@ -507,7 +535,7 @@ public class UnsentEventsManager {
                 List<UnsentEventSnapshot> staledSnapShots = new ArrayList<>();
 
                 // retry the first
-                for(int index = 0; index < mUnsentEvents.size(); index++) {
+                for (int index = 0; index < mUnsentEvents.size(); index++) {
                     UnsentEventSnapshot unsentEventSnapshot = mUnsentEvents.get(index);
 
                     // check if there is no required delay to resend the message

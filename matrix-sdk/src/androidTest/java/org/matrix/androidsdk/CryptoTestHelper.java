@@ -47,7 +47,7 @@ public class CryptoTestHelper {
      * @param userName the account username
      * @param password the password
      * @param startSession true to perform an initial sync
-     * @throws Exception
+     * @throws Exception an exception if the account creation failed
      */
     public static MXSession createAccountAndSync(Context context, String userName, String password, boolean startSession) throws Exception {
         Uri uri = Uri.parse(TESTS_HOME_SERVER_URL);
@@ -97,7 +97,7 @@ public class CryptoTestHelper {
             }
         });
 
-        mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        mLock.await(10000, TimeUnit.MILLISECONDS);
 
         String session = (String)params.get("session");
 
@@ -135,7 +135,7 @@ public class CryptoTestHelper {
             }
         });
 
-        mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        mLock.await(10000, TimeUnit.MILLISECONDS);
 
         Credentials credentials = (Credentials)params.get("credentials");
 
@@ -164,7 +164,7 @@ public class CryptoTestHelper {
             }
         });
 
-        mLock.await(100000, TimeUnit.DAYS.MILLISECONDS);
+        mLock.await(100000, TimeUnit.MILLISECONDS);
 
         assertTrue(params.containsKey("isInit"));
 
@@ -176,7 +176,7 @@ public class CryptoTestHelper {
      * @param context the context
      * @param userName the account username
      * @param password the password
-     * @throws Exception
+     * @throws Exception an exception if the account cannot be synced
      */
     public static MXSession logAccountAndSync(Context context, String userName, String password) throws Exception {
         Uri uri = Uri.parse(TESTS_HOME_SERVER_URL);
@@ -211,7 +211,7 @@ public class CryptoTestHelper {
             }
         });
 
-        mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        mLock.await(10000, TimeUnit.MILLISECONDS);
 
         Credentials credentials = (Credentials)params.get("credentials");
 
@@ -243,7 +243,7 @@ public class CryptoTestHelper {
         mxSession.getDataHandler().getStore().open();
         mxSession.startEventStream(null);
 
-        mLock.await(10000, TimeUnit.DAYS.MILLISECONDS);
+        mLock.await(10000, TimeUnit.MILLISECONDS);
 
         assertTrue(params.containsKey("isInit"));
         assertTrue(params.containsKey("onCryptoSyncComplete"));

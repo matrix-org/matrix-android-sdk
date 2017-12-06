@@ -21,7 +21,7 @@ import android.os.Looper;
 /**
  * Override the os handler to support unitary tests
  */
-public class MXOsHandler  {
+public class MXOsHandler {
 
     // the internal handler
     private final android.os.Handler mHandler;
@@ -39,6 +39,7 @@ public class MXOsHandler  {
 
     /**
      * Constructor
+     *
      * @param looper the looper
      */
     public MXOsHandler(Looper looper) {
@@ -47,6 +48,7 @@ public class MXOsHandler  {
 
     /**
      * Post a runnable
+     *
      * @param r the runnable
      * @return true if the runnable is placed
      */

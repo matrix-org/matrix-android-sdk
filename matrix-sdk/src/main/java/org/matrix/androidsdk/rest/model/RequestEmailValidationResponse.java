@@ -16,7 +16,7 @@
 package org.matrix.androidsdk.rest.model;
 
 /**
- *  Response to a request an email validation post
+ * Response to a request an email validation post
  */
 public class RequestEmailValidationResponse {
 

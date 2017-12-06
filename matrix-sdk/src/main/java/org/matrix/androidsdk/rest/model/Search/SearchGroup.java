@@ -20,10 +20,10 @@ import java.util.HashMap;
 /**
  * subclass representing a search API response
  */
-public class SearchGroup  {
+public class SearchGroup {
     /**
-     Total number of results found.
-     The key is "room_id" (TODO_SEARCH) , the value the group.
+     * Total number of results found.
+     * The key is "room_id" (TODO_SEARCH) , the value the group.
      */
     public HashMap<String, SearchGroupContent> group;
 }

@@ -51,7 +51,7 @@ import retrofit.client.Response;
  * Class used to make requests to the profile API.
  */
 public class ProfileRestClient extends RestClient<ProfileApi> {
-    private static final String LOG_TAG = "ProfileRestClient";
+    private static final String LOG_TAG = ProfileRestClient.class.getSimpleName();
 
     /**
      * {@inheritDoc}
@@ -68,18 +68,22 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     public void displayname(final String userId, final ApiCallback<String> callback) {
         final String description = "display name userId : " + userId;
 
-        mApi.displayname(userId, new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                displayname(userId, callback);
-            }
-        }) {
-            @Override
-            public void success(User user, Response response) {
-                onEventSent();
-                callback.onSuccess(user.displayname);
-            }
-        });
+        try {
+            mApi.displayname(userId, new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    displayname(userId, callback);
+                }
+            }) {
+                @Override
+                public void success(User user, Response response) {
+                    onEventSent();
+                    callback.onSuccess(user.displayname);
+                }
+            });
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     /**
@@ -95,14 +99,18 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         User user = new User();
         user.displayname = newName;
 
-        // don't retry if the network comes back
-        // let the user chooses what he want to do
-        mApi.displayname(mCredentials.userId, user, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                updateDisplayname(newName, callback);
-            }
-        }));
+        try {
+            // don't retry if the network comes back
+            // let the user chooses what he want to do
+            mApi.displayname(mCredentials.userId, user, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    updateDisplayname(newName, callback);
+                }
+            }));
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     /**
@@ -113,18 +121,22 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     public void avatarUrl(final String userId, final ApiCallback<String> callback) {
         final String description = "avatarUrl userId : " + userId;
 
-        mApi.avatarUrl(userId, new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                avatarUrl(userId, callback);
-            }
-        }) {
-            @Override
-            public void success(User user, Response response) {
-                onEventSent();
-                callback.onSuccess(user.getAvatarUrl());
-            }
-        });
+        try {
+            mApi.avatarUrl(userId, new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    avatarUrl(userId, callback);
+                }
+            }) {
+                @Override
+                public void success(User user, Response response) {
+                    onEventSent();
+                    callback.onSuccess(user.getAvatarUrl());
+                }
+            });
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     /**
@@ -140,12 +152,16 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         User user = new User();
         user.setAvatarUrl(newUrl);
 
-        mApi.avatarUrl(mCredentials.userId, user, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                updateAvatarUrl(newUrl, callback);
-            }
-        }));
+        try {
+            mApi.avatarUrl(mCredentials.userId, user, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    updateAvatarUrl(newUrl, callback);
+                }
+            }));
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     /**
@@ -168,16 +184,20 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         passwordParams.auth.password = oldPassword;
         passwordParams.new_password = newPassword;
 
-        mApi.updatePassword(passwordParams, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                try {
-                    updatePassword(userId, oldPassword, newPassword, callback);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## updatePassword() failed" + e.getMessage());
+        try {
+            mApi.updatePassword(passwordParams, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    try {
+                        updatePassword(userId, oldPassword, newPassword, callback);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## updatePassword() failed" + e.getMessage());
+                    }
                 }
-            }
-        }));
+            }));
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     /**
@@ -198,12 +218,16 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         passwordParams.auth.threepid_creds = threepid_creds;
         passwordParams.new_password = newPassword;
 
-        mApi.updatePassword(passwordParams, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        try {
+            mApi.updatePassword(passwordParams, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 resetPassword(newPassword, threepid_creds, callback);
             }
         }));
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     /**
@@ -223,20 +247,24 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
             forgetPasswordParams.send_attempt = 1;
             forgetPasswordParams.id_server = mHsConfig.getIdentityServerUri().getHost();
 
-            mApi.forgetPassword(forgetPasswordParams, new RestAdapterCallback<ForgetPasswordResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    forgetPassword(email, callback);
-                }
-            }) {
-                @Override
-                public void success(ForgetPasswordResponse forgetPasswordResponse, Response response) {
-                    onEventSent();
+            try {
+                mApi.forgetPassword(forgetPasswordParams, new RestAdapterCallback<ForgetPasswordResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        forgetPassword(email, callback);
+                    }
+                }) {
+                    @Override
+                    public void success(ForgetPasswordResponse forgetPasswordResponse, Response response) {
+                        onEventSent();
 
-                    pid.sid = forgetPasswordResponse.sid;
-                    callback.onSuccess(pid);
-                }
-            });
+                        pid.sid = forgetPasswordResponse.sid;
+                        callback.onSuccess(pid);
+                    }
+                });
+            } catch (Throwable t) {
+                callback.onUnexpectedError(new Exception(t));
+            }
         }
     }
 
@@ -250,17 +278,21 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         TokenRefreshParams params = new TokenRefreshParams();
         params.refresh_token = mCredentials.refreshToken;
 
-        mApi.tokenrefresh(params, new RestAdapterCallback<TokenRefreshResponse>(description, mUnsentEventsManager, callback, null) {
-            @Override
-            public void success(TokenRefreshResponse tokenreponse, Response response) {
-                onEventSent();
-                mCredentials.refreshToken = tokenreponse.refresh_token;
-                mCredentials.accessToken = tokenreponse.access_token;
-                if (null != callback) {
-                    callback.onSuccess(mCredentials);
+        try {
+            mApi.tokenrefresh(params, new RestAdapterCallback<TokenRefreshResponse>(description, mUnsentEventsManager, callback, null) {
+                @Override
+                public void success(TokenRefreshResponse tokenreponse, Response response) {
+                    onEventSent();
+                    mCredentials.refreshToken = tokenreponse.refresh_token;
+                    mCredentials.accessToken = tokenreponse.access_token;
+                    if (null != callback) {
+                        callback.onSuccess(mCredentials);
+                    }
                 }
-            }
-        });
+            });
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     /**
@@ -270,15 +302,19 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     public void threePIDs(final ApiCallback<List<ThirdPartyIdentifier>> callback) {
         final String description = "threePIDs";
 
-        mApi.threePIDs(new RestAdapterCallback<AccountThreePidsResponse>(description, mUnsentEventsManager, callback, null) {
-            @Override
-            public void success(AccountThreePidsResponse threePidsResponse, Response response) {
-                onEventSent();
-                if (null != callback) {
-                    callback.onSuccess(threePidsResponse.threepids);
+        try {
+            mApi.threePIDs(new RestAdapterCallback<AccountThreePidsResponse>(description, mUnsentEventsManager, callback, null) {
+                @Override
+                public void success(AccountThreePidsResponse threePidsResponse, Response response) {
+                    onEventSent();
+                    if (null != callback) {
+                        callback.onSuccess(threePidsResponse.threepids);
+                    }
                 }
-            }
-        });
+            });
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     /**
@@ -324,11 +360,15 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
             }
         };
 
-        if (isDuringRegistration) {
-            // URL differs in that case
-            mApi.requestEmailValidationForRegistration(params, adapterCallback);
-        } else {
-            mApi.requestEmailValidation(params, adapterCallback);
+        try {
+            if (isDuringRegistration) {
+                // URL differs in that case
+                mApi.requestEmailValidationForRegistration(params, adapterCallback);
+            } else {
+                mApi.requestEmailValidation(params, adapterCallback);
+            }
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
         }
     }
 
@@ -372,11 +412,15 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
             }
         };
 
-        if (isDuringRegistration) {
-            // URL differs in that case
-            mApi.requestPhoneNumberValidationForRegistration(params, adapterCallback);
-        } else {
-            mApi.requestPhoneNumberValidation(params, adapterCallback);
+        try {
+            if (isDuringRegistration) {
+                // URL differs in that case
+                mApi.requestPhoneNumberValidationForRegistration(params, adapterCallback);
+            } else {
+                mApi.requestPhoneNumberValidation(params, adapterCallback);
+            }
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
         }
     }
 
@@ -406,14 +450,18 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
 
         params.bind = bind;
 
-        mApi.add3PID(params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback,
-                new RestAdapterCallback.RequestRetryCallBack() {
-                    @Override
-                    public void onRetry() {
-                        add3PID(pid, bind, callback);
+        try {
+            mApi.add3PID(params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback,
+                    new RestAdapterCallback.RequestRetryCallBack() {
+                        @Override
+                        public void onRetry() {
+                            add3PID(pid, bind, callback);
+                        }
                     }
-                }
-        ));
+            ));
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 
     /**
@@ -429,13 +477,17 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         params.medium = pid.medium;
         params.address = pid.address;
 
-        mApi.delete3PID(params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback,
-                new RestAdapterCallback.RequestRetryCallBack() {
-                    @Override
-                    public void onRetry() {
-                        delete3PID(pid, callback);
-                    }
-                })
-        );
+        try {
+            mApi.delete3PID(params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback,
+                    new RestAdapterCallback.RequestRetryCallBack() {
+                        @Override
+                        public void onRetry() {
+                            delete3PID(pid, callback);
+                        }
+                    })
+            );
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
     }
 }
