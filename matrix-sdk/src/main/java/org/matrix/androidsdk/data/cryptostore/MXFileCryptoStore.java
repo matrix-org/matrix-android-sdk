@@ -314,17 +314,18 @@ public class MXFileCryptoStore implements IMXCryptoStore {
      * @param folder      the folder
      * @param filename    the filename
      * @param description the object description
+     * @return true if the operation succeeds
      */
-    private void storeObject(Object object, File folder, String filename, String description) {
+    private boolean  storeObject(Object object, File folder, String filename, String description) {
         if (!mIsReady) {
             Log.e(LOG_TAG, "## storeObject() : the store is not ready");
-            return;
+            return false;
         }
 
         // sanity checks
         if ((null == object) || (null == folder) || (null == filename)) {
             Log.e(LOG_TAG, "## storeObject() : invalid parameters");
-            return;
+            return false;
         }
 
         // ensure that the folder exists
@@ -335,7 +336,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             }
         }
 
-        storeObject(object, new File(folder, filename), description);
+        return storeObject(object, new File(folder, filename), description);
     }
 
     /**
@@ -344,16 +345,19 @@ public class MXFileCryptoStore implements IMXCryptoStore {
      * @param object      the object to write.
      * @param file        the file
      * @param description the object description
+     * @return true if the operation succeeds
      */
-    private void storeObject(Object object, File file, String description) {
+    private boolean storeObject(Object object, File file, String description) {
         if (!mIsReady) {
             Log.e(LOG_TAG, "## storeObject() : the store is not ready");
-            return;
+            return false;
         }
 
         if (Thread.currentThread() == Looper.getMainLooper().getThread()) {
             Log.e(LOG_TAG, "## storeObject() : should not be called in the UI thread " + description);
         }
+
+        boolean succeed = false;
 
         synchronized (LOG_TAG) {
             try {
@@ -370,6 +374,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 out.writeObject(object);
                 out.close();
 
+                succeed = true;
                 Log.d(LOG_TAG, "## storeObject () : " + description + " done in " + (System.currentTimeMillis() - t0) + " ms");
             } catch (OutOfMemoryError oom) {
                 Log.e(LOG_TAG, "storeObject failed : " + description + " -- " + oom.getMessage());
@@ -377,6 +382,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 Log.e(LOG_TAG, "storeObject failed : " + description + " -- " + e.getMessage());
             }
         }
+
+        return succeed;
     }
 
     /**
@@ -391,10 +398,14 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             mMetaDataFile.renameTo(mMetaDataFileTmp);
         }
 
-        storeObject(mMetaData, mMetaDataFile, "saveMetaData");
-
-        if (mMetaDataFileTmp.exists()) {
-            mMetaDataFileTmp.delete();
+        if (storeObject(mMetaData, mMetaDataFile, "saveMetaData")) {
+            if (mMetaDataFileTmp.exists()) {
+                mMetaDataFileTmp.delete();
+            }
+        } else {
+            if (mMetaDataFileTmp.exists()) {
+                mMetaDataFileTmp.renameTo(mMetaDataFile);
+            }
         }
     }
 
@@ -415,10 +426,14 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             mAccountFile.renameTo(mAccountFileTmp);
         }
 
-        storeObject(mOlmAccount, mAccountFile, "storeAccount");
-
-        if (mAccountFileTmp.exists()) {
-            mAccountFileTmp.delete();
+        if (storeObject(mOlmAccount, mAccountFile, "storeAccount")) {
+            if (mAccountFileTmp.exists()) {
+                mAccountFileTmp.delete();
+            }
+        } else {
+            if (mAccountFileTmp.exists()) {
+                mAccountFileTmp.renameTo(mAccountFile);
+            }
         }
     }
 
@@ -577,11 +592,15 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 mAlgorithmsFile.renameTo(mAlgorithmsFileTmp);
             }
 
-            storeObject(mRoomsAlgorithms, mAlgorithmsFile, "storeAlgorithmForRoom - in background");
-
-            // remove the tmp file
-            if (mAlgorithmsFileTmp.exists()) {
-                mAlgorithmsFileTmp.delete();
+            if (storeObject(mRoomsAlgorithms, mAlgorithmsFile, "storeAlgorithmForRoom - in background")) {
+                // remove the tmp file
+                if (mAlgorithmsFileTmp.exists()) {
+                    mAlgorithmsFileTmp.delete();
+                }
+            } else {
+                if (mAlgorithmsFileTmp.exists()) {
+                    mAlgorithmsFileTmp.renameTo(mAlgorithmsFile);
+                }
             }
         }
     }
@@ -638,11 +657,15 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             mTrackingStatusesFile.renameTo(mTrackingStatusesFileTmp);
         }
 
-        storeObject(mTrackingStatuses, mTrackingStatusesFile, "saveDeviceTrackingStatus - in background");
-
-        // remove the tmp file
-        if (mTrackingStatusesFileTmp.exists()) {
-            mTrackingStatusesFileTmp.delete();
+        if (storeObject(mTrackingStatuses, mTrackingStatusesFile, "saveDeviceTrackingStatus - in background")) {
+            // remove the tmp file
+            if (mTrackingStatusesFileTmp.exists()) {
+                mTrackingStatusesFileTmp.delete();
+            }
+        } else {
+            if (mTrackingStatusesFileTmp.exists()) {
+                mTrackingStatusesFileTmp.renameTo(mTrackingStatusesFile);
+            }
         }
     }
 
@@ -934,10 +957,14 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             mOutgoingRoomKeyRequestsFile.renameTo(mOutgoingRoomKeyRequestsFileTmp);
         }
 
-        storeObject(mOutgoingRoomKeyRequests, mOutgoingRoomKeyRequestsFile, "saveOutgoingRoomKeyRequests");
-
-        if (mOutgoingRoomKeyRequestsFileTmp.exists()) {
-            mOutgoingRoomKeyRequestsFileTmp.delete();
+        if (storeObject(mOutgoingRoomKeyRequests, mOutgoingRoomKeyRequestsFile, "saveOutgoingRoomKeyRequests")) {
+            if (mOutgoingRoomKeyRequestsFileTmp.exists()) {
+                mOutgoingRoomKeyRequestsFileTmp.delete();
+            }
+        } else {
+            if (mOutgoingRoomKeyRequestsFileTmp.exists()) {
+                mOutgoingRoomKeyRequestsFileTmp.renameTo(mOutgoingRoomKeyRequestsFile);
+            }
         }
     }
 
