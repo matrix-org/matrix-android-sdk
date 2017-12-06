@@ -17,8 +17,6 @@
 
 package org.matrix.androidsdk.rest.model.sync;
 
-import org.matrix.androidsdk.rest.model.DeviceListResponse;
-
 import java.util.Map;
 
 // SyncResponse represents the request response for server sync v2.

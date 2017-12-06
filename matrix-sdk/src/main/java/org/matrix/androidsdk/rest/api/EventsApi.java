@@ -17,14 +17,14 @@
 package org.matrix.androidsdk.rest.api;
 
 import org.matrix.androidsdk.RestClient;
-import org.matrix.androidsdk.rest.model.PublicRoomsParams;
-import org.matrix.androidsdk.rest.model.PublicRoomsResponse;
+import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
+import org.matrix.androidsdk.rest.model.publicroom.PublicRoomsParams;
+import org.matrix.androidsdk.rest.model.publicroom.PublicRoomsResponse;
 import org.matrix.androidsdk.rest.model.search.SearchParams;
 import org.matrix.androidsdk.rest.model.search.SearchResponse;
 import org.matrix.androidsdk.rest.model.search.SearchUsersParams;
 import org.matrix.androidsdk.rest.model.search.SearchUsersRequestResponse;
 import org.matrix.androidsdk.rest.model.sync.SyncResponse;
-import org.matrix.androidsdk.rest.model.ThirdPartyProtocol;
 
 import java.util.Map;
 
@@ -56,7 +56,7 @@ public interface EventsApi {
      * @param callback The asynchronous callback to call when finished
      */
     @GET(RestClient.URI_API_PREFIX_PATH_UNSTABLE + "/thirdparty/protocols")
-    void thirdpartyProtocols(Callback<Map<String, ThirdPartyProtocol>> callback);
+    void thirdpartyProtocols(Callback<Map<String, DeleteDeviceParams.ThirdPartyProtocol>> callback);
 
     /**
      * Get the list of public rooms.

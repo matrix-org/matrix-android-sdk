@@ -25,28 +25,28 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.json.ConditionDeserializer;
-import org.matrix.androidsdk.rest.model.AudioMessage;
 import org.matrix.androidsdk.rest.model.ContentResponse;
-import org.matrix.androidsdk.rest.model.EncryptedEventContent;
+import org.matrix.androidsdk.rest.model.crypto.EncryptedEventContent;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
-import org.matrix.androidsdk.rest.model.FileMessage;
-import org.matrix.androidsdk.rest.model.ForwardedRoomKeyContent;
-import org.matrix.androidsdk.rest.model.ImageMessage;
-import org.matrix.androidsdk.rest.model.LocationMessage;
+import org.matrix.androidsdk.rest.model.message.FileMessage;
+import org.matrix.androidsdk.rest.model.crypto.ForwardedRoomKeyContent;
+import org.matrix.androidsdk.rest.model.message.ImageInfo;
+import org.matrix.androidsdk.rest.model.message.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.Message;
-import org.matrix.androidsdk.rest.model.NewDeviceContent;
-import org.matrix.androidsdk.rest.model.OlmEventContent;
-import org.matrix.androidsdk.rest.model.OlmPayloadContent;
+import org.matrix.androidsdk.rest.model.message.MediaMessage;
+import org.matrix.androidsdk.rest.model.message.Message;
+import org.matrix.androidsdk.rest.model.crypto.NewDeviceContent;
+import org.matrix.androidsdk.rest.model.crypto.OlmEventContent;
+import org.matrix.androidsdk.rest.model.crypto.OlmPayloadContent;
 import org.matrix.androidsdk.rest.model.PowerLevels;
-import org.matrix.androidsdk.rest.model.RoomKeyContent;
-import org.matrix.androidsdk.rest.model.RoomKeyRequest;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyContent;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequest;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomTags;
-import org.matrix.androidsdk.rest.model.RoomThirdPartyInvite;
+import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
 import org.matrix.androidsdk.rest.model.User;
-import org.matrix.androidsdk.rest.model.VideoMessage;
+import org.matrix.androidsdk.rest.model.message.VideoMessage;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 
@@ -343,14 +343,14 @@ public class JsonUtils {
         return new FileMessage();
     }
 
-    public static AudioMessage toAudioMessage(JsonElement jsonObject) {
+    public static ImageInfo.AudioMessage toAudioMessage(JsonElement jsonObject) {
         try {
-            return gson.fromJson(jsonObject, AudioMessage.class);
+            return gson.fromJson(jsonObject, ImageInfo.AudioMessage.class);
         } catch (Exception e) {
             Log.e(LOG_TAG, "## toAudioMessage failed " + e.getMessage());
         }
 
-        return new AudioMessage();
+        return new ImageInfo.AudioMessage();
     }
 
     public static VideoMessage toVideoMessage(JsonElement jsonObject) {
@@ -363,14 +363,14 @@ public class JsonUtils {
         return new VideoMessage();
     }
 
-    public static LocationMessage toLocationMessage(JsonElement jsonObject) {
+    public static MediaMessage.LocationMessage toLocationMessage(JsonElement jsonObject) {
         try {
-            return gson.fromJson(jsonObject, LocationMessage.class);
+            return gson.fromJson(jsonObject, MediaMessage.LocationMessage.class);
         } catch (Exception e) {
             Log.e(LOG_TAG, "## toLocationMessage failed " + e.getMessage());
         }
 
-        return new LocationMessage();
+        return new MediaMessage.LocationMessage();
     }
 
     public static ContentResponse toContentResponse(String jsonString) {

@@ -27,9 +27,9 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
 
 import java.util.Collection;
 import java.util.List;
@@ -169,14 +169,14 @@ public interface IMXStore {
     /**
      * @return the third party identifiers list
      */
-    List<ThirdPartyIdentifier> thirdPartyIdentifiers();
+    List<DeleteDeviceParams.ThirdPartyIdentifier> thirdPartyIdentifiers();
 
     /**
      * Update the third party identifiers list.
      *
      * @param identifiers the identifiers list
      */
-    void setThirdPartyIdentifiers(List<ThirdPartyIdentifier> identifiers);
+    void setThirdPartyIdentifiers(List<DeleteDeviceParams.ThirdPartyIdentifier> identifiers);
 
     /**
      * Update the ignored user ids list.

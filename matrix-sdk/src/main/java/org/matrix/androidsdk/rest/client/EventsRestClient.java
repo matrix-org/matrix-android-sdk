@@ -25,9 +25,10 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.PublicRoomsFilter;
-import org.matrix.androidsdk.rest.model.PublicRoomsParams;
-import org.matrix.androidsdk.rest.model.PublicRoomsResponse;
+import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
+import org.matrix.androidsdk.rest.model.publicroom.PublicRoomsFilter;
+import org.matrix.androidsdk.rest.model.publicroom.PublicRoomsParams;
+import org.matrix.androidsdk.rest.model.publicroom.PublicRoomsResponse;
 import org.matrix.androidsdk.rest.model.search.SearchParams;
 import org.matrix.androidsdk.rest.model.search.SearchResponse;
 import org.matrix.androidsdk.rest.model.search.SearchRoomEventCategoryParams;
@@ -35,7 +36,6 @@ import org.matrix.androidsdk.rest.model.search.SearchUsersParams;
 import org.matrix.androidsdk.rest.model.search.SearchUsersRequestResponse;
 import org.matrix.androidsdk.rest.model.search.SearchUsersResponse;
 import org.matrix.androidsdk.rest.model.sync.SyncResponse;
-import org.matrix.androidsdk.rest.model.ThirdPartyProtocol;
 import org.matrix.androidsdk.rest.model.URLPreview;
 import org.matrix.androidsdk.rest.model.User;
 
@@ -73,11 +73,11 @@ public class EventsRestClient extends RestClient<EventsApi> {
      *
      * @param callback the asynchronous callback
      */
-    public void getThirdPartyServerProtocols(final ApiCallback<Map<String, ThirdPartyProtocol>> callback) {
+    public void getThirdPartyServerProtocols(final ApiCallback<Map<String, DeleteDeviceParams.ThirdPartyProtocol>> callback) {
         final String description = "getThirdPartyServerProtocols";
 
         try {
-            mApi.thirdpartyProtocols(new RestAdapterCallback<Map<String, ThirdPartyProtocol>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            mApi.thirdpartyProtocols(new RestAdapterCallback<Map<String, DeleteDeviceParams.ThirdPartyProtocol>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
                     getThirdPartyServerProtocols(callback);

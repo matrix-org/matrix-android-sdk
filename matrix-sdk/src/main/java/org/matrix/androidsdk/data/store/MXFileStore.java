@@ -22,6 +22,7 @@ import android.os.HandlerThread;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
@@ -33,7 +34,6 @@ import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.ContentUtils;
@@ -725,7 +725,7 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
-    public void setThirdPartyIdentifiers(List<ThirdPartyIdentifier> identifiers) {
+    public void setThirdPartyIdentifiers(List<DeleteDeviceParams.ThirdPartyIdentifier> identifiers) {
         // privacy
         //Log.d(LOG_TAG, "Set setThirdPartyIdentifiers to " + identifiers);
         Log.d(LOG_TAG, "Set setThirdPartyIdentifiers");
