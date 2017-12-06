@@ -24,7 +24,7 @@
     <string name="notice_placed_voice_call">%s hanghívást kezdeményezett.</string>
     <string name="notice_answered_call">%s elfogadta a hívást.</string>
     <string name="notice_ended_call">%s befejezte a hívást.</string>
-    <string name="notice_made_future_room_visibility">%1$s a jövőbeli előzményeket láthatóvá tette nekik %2$s</string>
+    <string name="notice_made_future_room_visibility">%1$s láthatóvá tette a jövőbeli előzményeket %2$s számára</string>
     <string name="notice_room_visibility_invited">az összes szoba tag, onnantól, hogy meg lettek hívva.</string>
     <string name="notice_room_visibility_joined">az összes szoba tag, onnantól, hogy csatlakoztak.</string>
     <string name="notice_room_visibility_shared">az összes szoba tag.</string>
@@ -57,8 +57,7 @@
     <string name="network_error">Hálózat hiba</string>
     <string name="matrix_error">Matrix hiba</string>
 
-    <string name="room_error_join_failed_empty_room">hívás események
- szoba hiba üzenetek</string>
+    <string name="room_error_join_failed_empty_room">Jelenleg nem lehetséges újracsatlakozni egy üres szobába.</string>
 
     <string name="encrypted_message">Titkosított üzenet</string>
 
