@@ -2514,7 +2514,7 @@ public class MXSession {
                 boolean has401Error = (null != matrixError.mStatus) && (matrixError.mStatus == 401);
 
                 // failed, try next flow type
-                if ((has401Error || TextUtils.equals(matrixError.errcode, MatrixError.FORBIDDEN))
+                if ((has401Error || TextUtils.equals(matrixError.errcode, MatrixError.FORBIDDEN) || TextUtils.equals(matrixError.errcode, MatrixError.UNKNOWN))
                     && !stages.isEmpty()) {
                     deleteDevice(deviceId, params, stages, callback);
                 } else {
