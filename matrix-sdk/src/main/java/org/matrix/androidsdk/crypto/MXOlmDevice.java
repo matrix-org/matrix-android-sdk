@@ -96,6 +96,7 @@ public class MXOlmDevice {
         mOlmAccount = mStore.getAccount();
 
         if (null == mOlmAccount) {
+            Log.d(LOG_TAG, "MXOlmDevice : create a new olm account");
             // Else, create it
             try {
                 mOlmAccount = new OlmAccount();
@@ -103,6 +104,8 @@ public class MXOlmDevice {
             } catch (Exception e) {
                 Log.e(LOG_TAG, "MXOlmDevice : cannot initialize mOlmAccount " + e.getMessage());
             }
+        } else {
+            Log.d(LOG_TAG, "MXOlmDevice : use an existing account");
         }
 
         try {
