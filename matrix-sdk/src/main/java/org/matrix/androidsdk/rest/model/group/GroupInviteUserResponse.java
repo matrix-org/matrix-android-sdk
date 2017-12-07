@@ -15,18 +15,16 @@
  */
 package org.matrix.androidsdk.rest.model.group;
 
-import java.io.Serializable;
-import java.util.List;
-
 /**
- * This class represents the community members in a group summary response.
+ * Group user invitation response
  */
-public class GroupSummaryUsersSection  implements Serializable {
-
-    public Integer totalUserCountEstimate;
-
-    public List<String> users;
-
-    // @TODO: Check the meaning and the usage of these roles. This dictionary is empty FTM.
-    //public Map<Object, Object> roles;
+public class GroupInviteUserResponse {
+    /**
+     * The user state
+     *
+     * join - the invitee’s HS immediately accepted the invite
+     * invite - the invitee’s HS accepted the invite, and then may relay to invitee’s clients
+     * reject - the invitee’s HS immediately rejected the invite
+     */
+    public String state;
 }
