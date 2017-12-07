@@ -29,6 +29,7 @@ import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.group.Group;
 import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
 
 import java.util.Collection;
@@ -538,4 +539,30 @@ public interface IMXStore {
      * @param runnable the runnable to call
      */
     void post(Runnable runnable);
+
+    /**
+     * Store a group
+     *
+     * @param group the group to store
+     */
+    void storeGroup(Group group);
+
+    /**
+     * Delete a group
+     * @param groupId the group id to delete
+     */
+    void deleteGroup(String groupId);
+
+    /**
+     * Retrieve a group from its id.
+     *
+     * @param groupId the group id
+     * @return the group if it exists
+     */
+    Group getGroup(String groupId);
+
+    /**
+     * @return the stored groups
+     */
+    Collection<Group> getGroups();
 }

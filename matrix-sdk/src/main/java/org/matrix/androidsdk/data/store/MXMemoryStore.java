@@ -22,6 +22,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 
+import org.matrix.androidsdk.rest.model.group.Group;
 import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
 import org.matrix.androidsdk.util.Log;
 
@@ -71,6 +72,8 @@ public class MXMemoryStore implements IMXStore {
     protected final Object mReceiptsByRoomIdLock = new Object();
     protected Map<String, Map<String, ReceiptData>> mReceiptsByRoomId;
 
+    protected Map<String, Group> mGroups;
+
     // room state events
     //protected final Map<String, Map<String, Event>> mRoomStateEventsByRoomId = new HashMap<>();
 
@@ -108,6 +111,7 @@ public class MXMemoryStore implements IMXStore {
         mRoomSummaries = new ConcurrentHashMap<>();
         mReceiptsByRoomId = new ConcurrentHashMap<>();
         mRoomAccountData = new ConcurrentHashMap<>();
+        mGroups = new ConcurrentHashMap<>();
         mEventStreamToken = null;
     }
 
@@ -1483,6 +1487,7 @@ public class MXMemoryStore implements IMXStore {
      *
      * @return the store preload time in milliseconds.
      */
+    @Override
     public long getPreloadTime() {
         return 0;
     }
@@ -1492,6 +1497,7 @@ public class MXMemoryStore implements IMXStore {
      *
      * @return the store stats
      */
+    @Override
     public Map<String, Long> getStats() {
         return new HashMap<>();
     }
@@ -1501,7 +1507,59 @@ public class MXMemoryStore implements IMXStore {
      *
      * @param runnable the runnable to call
      */
+    @Override
     public void post(Runnable runnable) {
         new Handler(Looper.getMainLooper()).post(runnable);
+    }
+
+    /**
+     * Store a group
+     *
+     * @param group the group to store
+     */
+    @Override
+    public void storeGroup(Group group) {
+        if ((null != group) && !TextUtils.isEmpty(group.getGroupId())) {
+            synchronized (mGroups) {
+                mGroups.put(group.getGroupId(), group);
+            }
+        }
+    }
+
+    /**
+     * Delete a group
+     *
+     * @param groupId the groupId to delete
+     */
+    @Override
+    public void deleteGroup(String groupId) {
+        if (!TextUtils.isEmpty(groupId)) {
+            synchronized (mGroups) {
+                mGroups.remove(groupId);
+            }
+        }
+    }
+
+    /**
+     * Retrieve a group from its id.
+     *
+     * @param groupId the group id
+     * @return the group if it exists
+     */
+    @Override
+    public Group getGroup(String groupId) {
+        synchronized (mGroups) {
+            return (null != groupId) ? mGroups.get(groupId) : null;
+        }
+    }
+
+    /**
+     * @return the stored groups
+     */
+    @Override
+    public Collection<Group> getGroups() {
+        synchronized (mGroups) {
+            return mGroups.values();
+        }
     }
 }

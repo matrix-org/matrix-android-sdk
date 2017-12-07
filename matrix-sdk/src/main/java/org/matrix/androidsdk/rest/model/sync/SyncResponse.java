@@ -17,6 +17,8 @@
 
 package org.matrix.androidsdk.rest.model.sync;
 
+import org.matrix.androidsdk.rest.model.group.GroupsSyncResponse;
+
 import java.util.Map;
 
 // SyncResponse represents the request response for server sync v2.
@@ -56,4 +58,9 @@ public class SyncResponse implements java.io.Serializable {
      * One time keys management
      */
     public DeviceOneTimeKeysCountSyncResponse deviceOneTimeKeysCount;
+
+    /**
+     * List of groups.
+     */
+    public GroupsSyncResponse groups;
 }

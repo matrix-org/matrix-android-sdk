@@ -130,4 +130,16 @@ public class MXEventListener implements IMXEventListener {
     @Override
     public void onDirectMessageChatRoomsListUpdate() {
     }
+
+    @Override
+    public void onNewGroupInvitation(String groupId) {
+    }
+
+    @Override
+    public void onJoinGroup(String groupId) {
+    }
+
+    @Override
+    public void onLeaveGroup(String groupId) {
+    }
 }
