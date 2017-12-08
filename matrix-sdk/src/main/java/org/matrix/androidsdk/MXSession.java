@@ -41,6 +41,7 @@ import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXStoreListener;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.groups.GroupsManager;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
@@ -50,6 +51,7 @@ import org.matrix.androidsdk.rest.client.BingRulesRestClient;
 import org.matrix.androidsdk.rest.client.CallRestClient;
 import org.matrix.androidsdk.rest.client.CryptoRestClient;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
+import org.matrix.androidsdk.rest.client.GroupsRestClient;
 import org.matrix.androidsdk.rest.client.LoginRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
@@ -124,6 +126,7 @@ public class MXSession {
     private final AccountDataRestClient mAccountDataRestClient;
     private final CryptoRestClient mCryptoRestClient;
     private final LoginRestClient mLoginRestClient;
+    private final GroupsRestClient mGroupsRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -155,6 +158,9 @@ public class MXSession {
 
     // tell if the data save mode is enabled
     private boolean mUseDataSaveMode;
+
+    // the groups manager
+    private GroupsManager mGroupsManager;
 
     // load the crypto libs.
     public static OlmManager mOlmManager = new OlmManager();
@@ -204,6 +210,7 @@ public class MXSession {
         mAccountDataRestClient = new AccountDataRestClient(hsConfig);
         mCryptoRestClient = new CryptoRestClient(hsConfig);
         mLoginRestClient = new LoginRestClient(hsConfig);
+        mGroupsRestClient = new GroupsRestClient(hsConfig);
     }
 
     /**
@@ -309,11 +316,15 @@ public class MXSession {
         mAccountDataRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mCryptoRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mLoginRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mGroupsRestClient.setUnsentEventsManager(mUnsentEventsManager);
 
         // return the default cache manager
         mLatestChatMessageCache = new MXLatestChatMessageCache(mCredentials.userId);
         mMediasCache = new MXMediasCache(mContentManager, mNetworkConnectivityReceiver, mCredentials.userId, appContext);
         mDataHandler.setMediasCache(mMediasCache);
+
+        mGroupsManager = new GroupsManager(mDataHandler, mGroupsRestClient);
+        mDataHandler.setGroupsManager(mGroupsManager);
     }
 
     private void checkIfAlive() {
@@ -2589,5 +2600,12 @@ public class MXSession {
      */
     public void openIdToken(final ApiCallback<Map<Object, Object>> callback) {
         mAccountDataRestClient.openIdToken(getMyUserId(), callback);
+    }
+
+    /**
+     * @return the groups manager
+     */
+    public GroupsManager getGroupsManager() {
+        return mGroupsManager;
     }
 }

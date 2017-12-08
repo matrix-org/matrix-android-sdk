@@ -63,7 +63,7 @@ public class MXFileStore extends MXMemoryStore {
     private static final String LOG_TAG = MXFileStore.class.getSimpleName();
 
     // some constant values
-    private static final int MXFILE_VERSION = 15;
+    private static final int MXFILE_VERSION = 16;
 
     // ensure that there is enough messages to fill a tablet screen
     private static final int MAX_STORED_MESSAGES_COUNT = 50;
@@ -2405,6 +2405,20 @@ public class MXFileStore extends MXMemoryStore {
         super.storeGroup(group);
         if ((null != group) && !TextUtils.isEmpty(group.getGroupId())) {
             mGroupsToCommit.add(group.getGroupId());
+        }
+    }
+
+    /**
+     * Flush a group
+     *
+     * @param group the group to store
+     */
+    @Override
+    public void flushGroup(Group group) {
+        super.flushGroup(group);
+        if ((null != group) && !TextUtils.isEmpty(group.getGroupId())) {
+            mGroupsToCommit.add(group.getGroupId());
+            saveGroups();
         }
     }
 

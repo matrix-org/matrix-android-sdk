@@ -39,6 +39,7 @@ import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXMemoryStore;
 import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.groups.GroupsManager;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -162,6 +163,9 @@ public class MXDataHandler implements IMXEventListener {
     // the crypto is only started when the sync did not retrieve new device
     private boolean mIsStartingCryptoWithInitialSync = false;
 
+    // groups manager
+    private GroupsManager mGroupsManager;
+
     /**
      * Default constructor.
      *
@@ -283,6 +287,14 @@ public class MXDataHandler implements IMXEventListener {
         if (null != getCrypto()) {
             getCrypto().setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
         }
+    }
+
+    /**
+     * Set the groups manager.
+     * @param groupsManager the groups manager
+     */
+    public void setGroupsManager(GroupsManager groupsManager) {
+        mGroupsManager = groupsManager;
     }
 
     /**
@@ -1437,7 +1449,7 @@ public class MXDataHandler implements IMXEventListener {
                 // Handle invited groups
                 for (String groupId : syncResponse.groups.invite.keySet()) {
                     InvitedGroupSync invitedGroupSync = syncResponse.groups.invite.get(groupId);
-                    createGroupInvite(groupId, invitedGroupSync.profile, invitedGroupSync.inviter, !isInitialSync);
+                    mGroupsManager.onNewGroupInvitation(groupId, invitedGroupSync.profile, invitedGroupSync.inviter, !isInitialSync);
                 }
             }
 
@@ -1445,14 +1457,14 @@ public class MXDataHandler implements IMXEventListener {
             if ((null != syncResponse.groups.join) && !syncResponse.groups.join.isEmpty()) {
 
                 for (String groupId : syncResponse.groups.join) {
-                    joinGroup(groupId, !isInitialSync);
+                    mGroupsManager.onJoinGroup(groupId, !isInitialSync);
                 }
             }
             // Handle left groups
             if ((null != syncResponse.groups.leave) && !syncResponse.groups.leave.isEmpty()) {
                 // Handle joined groups
                 for (String groupId : syncResponse.groups.leave) {
-                    removeGroup(groupId, !isInitialSync);
+                    mGroupsManager.onLeaveGroup(groupId, !isInitialSync);
                 }
             }
 
@@ -1718,94 +1730,6 @@ public class MXDataHandler implements IMXEventListener {
     public void resetReplayAttackCheckInTimeline(String timelineId) {
         if ((null != timelineId) && (null != mCrypto) && (null != mCrypto.getOlmDevice())) {
             mCrypto.resetReplayAttackCheckInTimeline(timelineId);
-        }
-    }
-
-    //================================================================================
-    // groups management
-    //================================================================================
-
-    /**
-     * Retrieve the group from a group id
-     *
-     * @param groupId the group id
-     * @return the group if it exists
-     */
-    public Group getGroup(String groupId) {
-        return mStore.getGroup(groupId);
-    }
-
-    /**
-     * @return the existing groups
-     */
-    public Collection<Group> getGroups() {
-        return mStore.getGroups();
-    }
-
-    /**
-     * Join a group.
-     *
-     * @param groupId the group id
-     * @param notify  true to notify
-     */
-    private void joinGroup(String groupId, boolean notify) {
-        Group group = getGroup(groupId);
-
-        if (null != group) {
-            group = new Group(groupId);
-        }
-
-        group.setMembership(RoomMember.MEMBERSHIP_JOIN);
-        mStore.storeGroup(group);
-
-        if (notify) {
-            onJoinGroup(groupId);
-        }
-    }
-
-    /**
-     * Create a group from an invitation.
-     *
-     * @param groupId the group id
-     * @param profile the profile
-     * @param inviter the inviter
-     * @param notify  true to notify
-     */
-    private void createGroupInvite(String groupId, GroupSyncProfile profile, String inviter, boolean notify) {
-        Group group = getGroup(groupId);
-
-        // it should always be null
-        if (null != group) {
-            group = new Group(groupId);
-        }
-
-        GroupSummary summary = new GroupSummary();
-        summary.profile = new GroupProfile();
-        summary.profile.name = profile.name;
-        summary.profile.avatarUrl = profile.avatarUrl;
-
-        group.setGroupSummary(summary);
-        group.setInviter(inviter);
-        group.setMembership(RoomMember.MEMBERSHIP_INVITE);
-
-        mStore.storeGroup(group);
-
-        if (notify) {
-            onNewGroupInvitation(groupId);
-        }
-    }
-
-    /**
-     * Remove a group.
-     *
-     * @param groupId the group id.
-     * @param notify  true to notify
-     */
-    private void removeGroup(String groupId, boolean notify) {
-        mStore.deleteGroup(groupId);
-
-        if (notify) {
-            onLeaveGroup(groupId);
         }
     }
 

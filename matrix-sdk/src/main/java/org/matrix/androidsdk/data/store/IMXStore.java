@@ -548,6 +548,13 @@ public interface IMXStore {
     void storeGroup(Group group);
 
     /**
+     * Flush a group in store.
+     *
+     * @param group the group
+     */
+    void flushGroup(Group group);
+
+    /**
      * Delete a group
      * @param groupId the group id to delete
      */

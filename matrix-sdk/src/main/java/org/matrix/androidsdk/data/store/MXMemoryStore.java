@@ -1527,6 +1527,15 @@ public class MXMemoryStore implements IMXStore {
     }
 
     /**
+     * Flush a group
+     *
+     * @param group the group to store
+     */
+    @Override
+    public void flushGroup(Group group) {
+    }
+
+    /**
      * Delete a group
      *
      * @param groupId the groupId to delete
