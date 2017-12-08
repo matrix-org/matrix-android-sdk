@@ -20,7 +20,8 @@ import android.text.TextUtils;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
+import org.matrix.androidsdk.rest.model.pid.Invite3Pid;
+import org.matrix.androidsdk.rest.model.pid.ThreePid;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
@@ -81,7 +82,7 @@ public class CreateRoomParams {
     /**
      * A list of objects representing third party IDs to invite into the room.
      */
-    public List<DeleteDeviceParams.Invite3Pid> invite_3pid;
+    public List<Invite3Pid> invite_3pid;
 
     /**
      * Extra keys to be added to the content of the m.room.create.
@@ -175,9 +176,9 @@ public class CreateRoomParams {
                     invite_3pid = new ArrayList<>();
                 }
 
-                DeleteDeviceParams.Invite3Pid pid = new DeleteDeviceParams.Invite3Pid();
+                Invite3Pid pid = new Invite3Pid();
                 pid.id_server = hsConfig.getIdentityServerUri().getHost();
-                pid.medium = DeleteDeviceParams.ThreePid.MEDIUM_EMAIL;
+                pid.medium = ThreePid.MEDIUM_EMAIL;
                 pid.address = id;
 
                 invite_3pid.add(pid);

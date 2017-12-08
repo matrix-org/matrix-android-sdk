@@ -23,7 +23,7 @@ import android.text.TextUtils;
 
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.group.Group;
-import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
+import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
@@ -747,7 +747,7 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
-    public void setThirdPartyIdentifiers(List<DeleteDeviceParams.ThirdPartyIdentifier> identifiers) {
+    public void setThirdPartyIdentifiers(List<ThirdPartyIdentifier> identifiers) {
         // privacy
         //Log.d(LOG_TAG, "Set setThirdPartyIdentifiers to " + identifiers);
         Log.d(LOG_TAG, "Set setThirdPartyIdentifiers");

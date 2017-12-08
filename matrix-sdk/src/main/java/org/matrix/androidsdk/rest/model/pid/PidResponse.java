@@ -1,5 +1,5 @@
 /* 
- * Copyright 2016 OpenMarket Ltd
+ * Copyright 2014 OpenMarket Ltd
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,6 @@
  */
 package org.matrix.androidsdk.rest.model.pid;
 
-/**
- * This class provides the parameter to delete a device
- */
-public class DeleteDeviceParams {
-    public DeleteDeviceAuth auth;
+public class PidResponse {
+    public String mxid;
 }

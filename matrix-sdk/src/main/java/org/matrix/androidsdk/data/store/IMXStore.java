@@ -30,7 +30,7 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.group.Group;
-import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
+import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
 
 import java.util.Collection;
 import java.util.List;
@@ -170,14 +170,14 @@ public interface IMXStore {
     /**
      * @return the third party identifiers list
      */
-    List<DeleteDeviceParams.ThirdPartyIdentifier> thirdPartyIdentifiers();
+    List<ThirdPartyIdentifier> thirdPartyIdentifiers();
 
     /**
      * Update the third party identifiers list.
      *
      * @param identifiers the identifiers list
      */
-    void setThirdPartyIdentifiers(List<DeleteDeviceParams.ThirdPartyIdentifier> identifiers);
+    void setThirdPartyIdentifiers(List<ThirdPartyIdentifier> identifiers);
 
     /**
      * Update the ignored user ids list.

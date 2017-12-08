@@ -22,11 +22,15 @@ import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.ProfileApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.model.RequestEmailValidationParams;
+import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
+import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationParams;
+import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationResponse;
+import org.matrix.androidsdk.rest.model.ThreePidCreds;
 import org.matrix.androidsdk.rest.model.pid.AccountThreePidsResponse;
 import org.matrix.androidsdk.rest.model.pid.AddThreePidsParams;
 import org.matrix.androidsdk.rest.model.AuthParams;
 import org.matrix.androidsdk.rest.model.ChangePasswordParams;
-import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.pid.DeleteThreePidParams;
 import org.matrix.androidsdk.rest.model.ForgetPasswordParams;
 import org.matrix.androidsdk.rest.model.ForgetPasswordResponse;
@@ -34,6 +38,8 @@ import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
+import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
+import org.matrix.androidsdk.rest.model.pid.ThreePid;
 import org.matrix.androidsdk.util.Log;
 
 import java.util.List;
@@ -229,11 +235,11 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param email the email to send the password reset.
      * @param callback the callback
      */
-    public void forgetPassword(final String email, final ApiCallback<DeleteDeviceParams.ThreePid> callback) {
+    public void forgetPassword(final String email, final ApiCallback<ThreePid> callback) {
         final String description = "forget password";
 
         if (!TextUtils.isEmpty(email)) {
-            final DeleteDeviceParams.ThreePid pid = new DeleteDeviceParams.ThreePid(email, DeleteDeviceParams.ThreePid.MEDIUM_EMAIL);
+            final ThreePid pid = new ThreePid(email, ThreePid.MEDIUM_EMAIL);
 
             final ForgetPasswordParams forgetPasswordParams = new ForgetPasswordParams();
             forgetPasswordParams.email = email;
@@ -293,7 +299,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * List all 3PIDs linked to the Matrix user account.
      * @param callback the asynchronous callback called with the response
      */
-    public void threePIDs(final ApiCallback<List<DeleteDeviceParams.ThirdPartyIdentifier>> callback) {
+    public void threePIDs(final ApiCallback<List<ThirdPartyIdentifier>> callback) {
         final String description = "threePIDs";
 
         try {
@@ -323,10 +329,10 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      */
     public void requestEmailValidationToken(final String address, final String clientSecret, final int attempt,
                                             final String nextLink, final boolean isDuringRegistration,
-                                            final ApiCallback<DeleteDeviceParams.RequestEmailValidationResponse> callback) {
+                                            final ApiCallback<RequestEmailValidationResponse> callback) {
         final String description = "requestEmailValidationToken";
 
-        DeleteDeviceParams.RequestEmailValidationParams params = new DeleteDeviceParams.RequestEmailValidationParams();
+        RequestEmailValidationParams params = new RequestEmailValidationParams();
         params.email = address;
         params.clientSecret = clientSecret;
         params.sendAttempt = attempt;
@@ -335,7 +341,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
             params.next_link = nextLink;
         }
 
-        final RestAdapterCallback<DeleteDeviceParams.RequestEmailValidationResponse> adapterCallback = new RestAdapterCallback<DeleteDeviceParams.RequestEmailValidationResponse>(description, mUnsentEventsManager, callback,
+        final RestAdapterCallback<RequestEmailValidationResponse> adapterCallback = new RestAdapterCallback<RequestEmailValidationResponse>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -344,7 +350,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
                 }
         ) {
             @Override
-            public void success(DeleteDeviceParams.RequestEmailValidationResponse requestEmailValidationResponse, Response response) {
+            public void success(RequestEmailValidationResponse requestEmailValidationResponse, Response response) {
                 onEventSent();
                 requestEmailValidationResponse.email = address;
                 requestEmailValidationResponse.clientSecret = clientSecret;
@@ -378,17 +384,17 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      */
     public void requestPhoneNumberValidationToken(final String phoneNumber, final String countryCode,
                                                   final String clientSecret, final int attempt,
-                                                  final boolean isDuringRegistration, final ApiCallback<DeleteDeviceParams.RequestPhoneNumberValidationResponse> callback) {
+                                                  final boolean isDuringRegistration, final ApiCallback<RequestPhoneNumberValidationResponse> callback) {
         final String description = "requestPhoneNumberValidationToken";
 
-        DeleteDeviceParams.RequestPhoneNumberValidationParams params = new DeleteDeviceParams.RequestPhoneNumberValidationParams();
+        RequestPhoneNumberValidationParams params = new RequestPhoneNumberValidationParams();
         params.phone_number = phoneNumber;
         params.country = countryCode;
         params.clientSecret = clientSecret;
         params.sendAttempt = attempt;
         params.id_server = mHsConfig.getIdentityServerUri().getHost();
 
-        final RestAdapterCallback<DeleteDeviceParams.RequestPhoneNumberValidationResponse> adapterCallback = new RestAdapterCallback<DeleteDeviceParams.RequestPhoneNumberValidationResponse>(description, mUnsentEventsManager, callback,
+        final RestAdapterCallback<RequestPhoneNumberValidationResponse> adapterCallback = new RestAdapterCallback<RequestPhoneNumberValidationResponse>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -397,7 +403,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
                 }
         ) {
             @Override
-            public void success(DeleteDeviceParams.RequestPhoneNumberValidationResponse requestPhoneNumberValidationResponse, Response response) {
+            public void success(RequestPhoneNumberValidationResponse requestPhoneNumberValidationResponse, Response response) {
                 onEventSent();
                 requestPhoneNumberValidationResponse.clientSecret = clientSecret;
                 requestPhoneNumberValidationResponse.sendAttempt = attempt;
@@ -424,12 +430,11 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param bind bind the email
      * @param callback the asynchronous callback called with the response
      */
-    public void add3PID(final DeleteDeviceParams.ThreePid pid, final boolean bind, final ApiCallback<Void>callback) {
+    public void add3PID(final ThreePid pid, final boolean bind, final ApiCallback<Void>callback) {
         final String description = "add3PID";
 
         AddThreePidsParams params = new AddThreePidsParams();
-
-        params.three_pid_creds = new DeleteDeviceParams.ThreePidCreds();
+        params.three_pid_creds = new ThreePidCreds();
 
         String identityServerHost = mHsConfig.getIdentityServerUri().toString();
         if (identityServerHost.startsWith("http://")) {
@@ -464,7 +469,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param pid      the 3Pid to delete
      * @param callback the asynchronous callback called with the response
      */
-    public void delete3PID(final DeleteDeviceParams.ThirdPartyIdentifier pid, final ApiCallback<Void> callback) {
+    public void delete3PID(final ThirdPartyIdentifier pid, final ApiCallback<Void> callback) {
         final String description = "delete3PID";
 
         final DeleteThreePidParams params = new DeleteThreePidParams();

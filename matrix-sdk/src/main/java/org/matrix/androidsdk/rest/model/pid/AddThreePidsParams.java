@@ -16,13 +16,15 @@
 
 package org.matrix.androidsdk.rest.model.pid;
 
+import org.matrix.androidsdk.rest.model.ThreePidCreds;
+
 /**
  * Parameters to add a 3Pids to an user
  */
 public class AddThreePidsParams {
 
     // the 3rd party id credentials
-    public DeleteDeviceParams.ThreePidCreds three_pid_creds;
+    public ThreePidCreds three_pid_creds;
 
     // true when the email has been binded.
     public Boolean bind;

@@ -24,7 +24,8 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.User;
-import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
+import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
+import org.matrix.androidsdk.rest.model.pid.ThreePid;
 import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
@@ -49,9 +50,9 @@ public class MyUser extends User {
     private transient final Handler mUiHandler;
 
     // linked emails to the account
-    private transient List<DeleteDeviceParams.ThirdPartyIdentifier> mEmailIdentifiers = new ArrayList<>();
+    private transient List<ThirdPartyIdentifier> mEmailIdentifiers = new ArrayList<>();
     // linked phone number to the account
-    private transient List<DeleteDeviceParams.ThirdPartyIdentifier> mPhoneNumberIdentifiers = new ArrayList<>();
+    private transient List<ThirdPartyIdentifier> mPhoneNumberIdentifiers = new ArrayList<>();
 
     public MyUser(User user) {
         clone(user);
@@ -101,7 +102,7 @@ public class MyUser extends User {
      * @param pid      the pid to retrieve a token
      * @param callback the callback when the operation is done
      */
-    public void requestEmailValidationToken(DeleteDeviceParams.ThreePid pid, ApiCallback<Void> callback) {
+    public void requestEmailValidationToken(ThreePid pid, ApiCallback<Void> callback) {
         if (null != pid) {
             pid.requestEmailValidationToken(mDataHandler.getProfileRestClient(), null, false, callback);
         }
@@ -113,7 +114,7 @@ public class MyUser extends User {
      * @param pid      the pid to retrieve a token
      * @param callback the callback when the operation is done
      */
-    public void requestPhoneNumberValidationToken(DeleteDeviceParams.ThreePid pid, ApiCallback<Void> callback) {
+    public void requestPhoneNumberValidationToken(ThreePid pid, ApiCallback<Void> callback) {
         if (null != pid) {
             pid.requestPhoneNumberValidationToken(mDataHandler.getProfileRestClient(), false, callback);
         }
@@ -126,7 +127,7 @@ public class MyUser extends User {
      * @param bind     true to add it.
      * @param callback the async callback
      */
-    public void add3Pid(final DeleteDeviceParams.ThreePid pid, final boolean bind, final ApiCallback<Void> callback) {
+    public void add3Pid(final ThreePid pid, final boolean bind, final ApiCallback<Void> callback) {
         if (null != pid) {
             mDataHandler.getProfileRestClient().add3PID(pid, bind, new ApiCallback<Void>() {
                 @Override
@@ -165,7 +166,7 @@ public class MyUser extends User {
      * @param pid      the pid to delete
      * @param callback the async callback
      */
-    public void delete3Pid(final DeleteDeviceParams.ThirdPartyIdentifier pid, final ApiCallback<Void> callback) {
+    public void delete3Pid(final ThirdPartyIdentifier pid, final ApiCallback<Void> callback) {
         if (null != pid) {
             mDataHandler.getProfileRestClient().delete3PID(pid, new ApiCallback<Void>() {
                 @Override
@@ -202,15 +203,15 @@ public class MyUser extends User {
      * Build the lists of identifiers
      */
     private void buildIdentifiersLists() {
-        List<DeleteDeviceParams.ThirdPartyIdentifier> identifiers = mDataHandler.getStore().thirdPartyIdentifiers();
+        List<ThirdPartyIdentifier> identifiers = mDataHandler.getStore().thirdPartyIdentifiers();
         mEmailIdentifiers = new ArrayList<>();
         mPhoneNumberIdentifiers = new ArrayList<>();
-        for (DeleteDeviceParams.ThirdPartyIdentifier identifier : identifiers) {
+        for (ThirdPartyIdentifier identifier : identifiers) {
             switch (identifier.medium) {
-                case DeleteDeviceParams.ThreePid.MEDIUM_EMAIL:
+                case ThreePid.MEDIUM_EMAIL:
                     mEmailIdentifiers.add(identifier);
                     break;
-                case DeleteDeviceParams.ThreePid.MEDIUM_MSISDN:
+                case ThreePid.MEDIUM_MSISDN:
                     mPhoneNumberIdentifiers.add(identifier);
                     break;
             }
@@ -220,7 +221,7 @@ public class MyUser extends User {
     /**
      * @return the list of linked emails
      */
-    public List<DeleteDeviceParams.ThirdPartyIdentifier> getlinkedEmails() {
+    public List<ThirdPartyIdentifier> getlinkedEmails() {
         if (mEmailIdentifiers == null) {
             buildIdentifiersLists();
         }
@@ -231,7 +232,7 @@ public class MyUser extends User {
     /**
      * @return the list of linked emails
      */
-    public List<DeleteDeviceParams.ThirdPartyIdentifier> getlinkedPhoneNumbers() {
+    public List<ThirdPartyIdentifier> getlinkedPhoneNumbers() {
         if (mPhoneNumberIdentifiers == null) {
             buildIdentifiersLists();
         }
@@ -434,9 +435,9 @@ public class MyUser extends User {
      * Refresh the Third party identifiers i.e. the linked email to this account
      */
     public void refreshThirdPartyIdentifiers() {
-        mDataHandler.getProfileRestClient().threePIDs(new SimpleApiCallback<List<DeleteDeviceParams.ThirdPartyIdentifier>>() {
+        mDataHandler.getProfileRestClient().threePIDs(new SimpleApiCallback<List<ThirdPartyIdentifier>>() {
             @Override
-            public void onSuccess(List<DeleteDeviceParams.ThirdPartyIdentifier> identifiers) {
+            public void onSuccess(List<ThirdPartyIdentifier> identifiers) {
                 if (mDataHandler.isAlive()) {
                     // store
                     mDataHandler.getStore().setThirdPartyIdentifiers(identifiers);

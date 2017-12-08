@@ -1,5 +1,5 @@
 /* 
- * Copyright 2016 OpenMarket Ltd
+ * Copyright 2017 Vector Creations Ltd
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,22 @@
  */
 package org.matrix.androidsdk.rest.model.pid;
 
+import java.util.List;
+import java.util.Map;
+
 /**
- * This class provides the parameter to delete a device
+ * This class describes the third party server protocols.
  */
-public class DeleteDeviceParams {
-    public DeleteDeviceAuth auth;
+public class ThirdPartyProtocol {
+    // the user fields (domain, nick, username...)
+    public List<String> userFields;
+
+    // the location fields (domain, channels, room...)
+    public List<String> locationFields;
+
+    // the field types
+    public Map<String, Map<String, String>> fieldTypes;
+
+    // the protocol instance
+    public List<ThirdPartyProtocolInstance> instances;
 }

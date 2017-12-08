@@ -17,10 +17,13 @@
 package org.matrix.androidsdk.rest.api;
 
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.rest.model.RequestEmailValidationParams;
+import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
+import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationParams;
+import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationResponse;
 import org.matrix.androidsdk.rest.model.pid.AccountThreePidsResponse;
 import org.matrix.androidsdk.rest.model.pid.AddThreePidsParams;
 import org.matrix.androidsdk.rest.model.ChangePasswordParams;
-import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.pid.DeleteThreePidParams;
 import org.matrix.androidsdk.rest.model.ForgetPasswordParams;
 import org.matrix.androidsdk.rest.model.ForgetPasswordResponse;
@@ -140,7 +143,7 @@ public interface ProfileApi {
      * @param callback the asynchronous callback
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/account/3pid/email/requestToken")
-    void requestEmailValidation(@Body DeleteDeviceParams.RequestEmailValidationParams params, Callback<DeleteDeviceParams.RequestEmailValidationResponse> callback);
+    void requestEmailValidation(@Body RequestEmailValidationParams params, Callback<RequestEmailValidationResponse> callback);
 
     /**
      * Request a validation token for an email being added during registration process
@@ -151,7 +154,7 @@ public interface ProfileApi {
      * @param callback the asynchronous callback
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/register/email/requestToken")
-    void requestEmailValidationForRegistration(@Body DeleteDeviceParams.RequestEmailValidationParams params, Callback<DeleteDeviceParams.RequestEmailValidationResponse> callback);
+    void requestEmailValidationForRegistration(@Body RequestEmailValidationParams params, Callback<RequestEmailValidationResponse> callback);
 
     /**
      * Request a validation token for a phone number
@@ -162,7 +165,7 @@ public interface ProfileApi {
      * @param callback the asynchronous callback
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/account/3pid/msisdn/requestToken")
-    void requestPhoneNumberValidation(@Body DeleteDeviceParams.RequestPhoneNumberValidationParams params, Callback<DeleteDeviceParams.RequestPhoneNumberValidationResponse> callback);
+    void requestPhoneNumberValidation(@Body RequestPhoneNumberValidationParams params, Callback<RequestPhoneNumberValidationResponse> callback);
 
     /**
      * Request a validation token for a phone number being added during registration process
@@ -173,5 +176,5 @@ public interface ProfileApi {
      * @param callback the asynchronous callback
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/register/msisdn/requestToken")
-    void requestPhoneNumberValidationForRegistration(@Body DeleteDeviceParams.RequestPhoneNumberValidationParams params, Callback<DeleteDeviceParams.RequestPhoneNumberValidationResponse> callback);
+    void requestPhoneNumberValidationForRegistration(@Body RequestPhoneNumberValidationParams params, Callback<RequestPhoneNumberValidationResponse> callback);
 }

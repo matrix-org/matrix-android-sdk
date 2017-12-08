@@ -1,5 +1,5 @@
 /* 
- * Copyright 2016 OpenMarket Ltd
+  * Copyright 2017 Vector Creations Ltd
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,29 @@
  */
 package org.matrix.androidsdk.rest.model.pid;
 
+import java.io.Serializable;
+import java.util.Map;
+
 /**
- * This class provides the parameter to delete a device
+ * This class describes a third party protocol instance
  */
-public class DeleteDeviceParams {
-    public DeleteDeviceAuth auth;
+public class ThirdPartyProtocolInstance implements Serializable {
+
+    // the network identifier
+    public String networkId;
+
+    // the fields (domain...)
+    public Map<String, Object> fields;
+
+    // the instance id
+    public String instanceId;
+
+    // the description
+    public String desc;
+
+    // the dedicated bot
+    public String botUserId;
+
+    // the icon URL
+    public String icon;
 }

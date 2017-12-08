@@ -21,5 +21,5 @@ import java.util.List;
  * Class representing the ThreePids response
  */
 public class AccountThreePidsResponse {
-    public List<DeleteDeviceParams.ThirdPartyIdentifier> threepids;
+    public List<ThirdPartyIdentifier> threepids;
 }

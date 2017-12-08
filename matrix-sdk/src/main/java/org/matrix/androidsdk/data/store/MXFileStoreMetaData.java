@@ -16,7 +16,7 @@
 
 package org.matrix.androidsdk.data.store;
 
-import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
+import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +40,7 @@ public class MXFileStoreMetaData implements java.io.Serializable {
      */
     public String mUserDisplayName = null;
     public String mUserAvatarUrl = null;
-    public List<DeleteDeviceParams.ThirdPartyIdentifier> mThirdPartyIdentifiers = null;
+    public List<ThirdPartyIdentifier> mThirdPartyIdentifiers = null;
     public List<String> mIgnoredUsers = new ArrayList<>();
     public Map<String, List<String>> mDirectChatRoomsMap = null;
 

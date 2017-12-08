@@ -22,7 +22,7 @@ import org.matrix.androidsdk.rest.api.ThirdPidApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.BulkLookupParams;
 import org.matrix.androidsdk.rest.model.BulkLookupResponse;
-import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
+import org.matrix.androidsdk.rest.model.pid.PidResponse;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,9 +53,9 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
      */
     public void lookup3Pid(String address, String medium, final ApiCallback<String> callback) {
         try {
-            mApi.lookup3Pid(address, medium, new Callback<DeleteDeviceParams.PidResponse>() {
+            mApi.lookup3Pid(address, medium, new Callback<PidResponse>() {
                 @Override
-                public void success(DeleteDeviceParams.PidResponse pidResponse, Response response) {
+                public void success(PidResponse pidResponse, Response response) {
                     callback.onSuccess((null == pidResponse.mxid) ? "" : pidResponse.mxid);
                 }
 

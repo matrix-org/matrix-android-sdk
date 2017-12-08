@@ -23,7 +23,7 @@ import android.os.Looper;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.rest.model.group.Group;
-import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
+import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.data.EventTimeline;
@@ -373,7 +373,7 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public List<DeleteDeviceParams.ThirdPartyIdentifier> thirdPartyIdentifiers() {
+    public List<ThirdPartyIdentifier> thirdPartyIdentifiers() {
         if (null != mMetadata) {
             return mMetadata.mThirdPartyIdentifiers;
         } else {
@@ -382,7 +382,7 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public void setThirdPartyIdentifiers(List<DeleteDeviceParams.ThirdPartyIdentifier> identifiers) {
+    public void setThirdPartyIdentifiers(List<ThirdPartyIdentifier> identifiers) {
         if (null != mMetadata) {
             mMetadata.mThirdPartyIdentifiers = identifiers;
 
