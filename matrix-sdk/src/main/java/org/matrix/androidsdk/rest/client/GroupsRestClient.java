@@ -53,7 +53,7 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
      * {@inheritDoc}
      */
     public GroupsRestClient(HomeServerConnectionConfig hsConfig) {
-        super(hsConfig, GroupsApi.class, "", false);
+        super(hsConfig, GroupsApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
     }
 
     protected GroupsRestClient(GroupsApi api) {

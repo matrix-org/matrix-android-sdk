@@ -104,7 +104,7 @@ public interface GroupsApi {
      * @param profile  the group profile
      * @param callback the asynchronous callback.
      */
-    @POST("groups/{groupId}/profile")
+    @POST("/groups/{groupId}/profile")
     void updateProfile(@Path("groupId") String groupId, @Body GroupProfile profile, Callback<Void> callback);
 
     /**
@@ -113,7 +113,7 @@ public interface GroupsApi {
      * @param groupId  the group id
      * @param callback the asynchronous callback.
      */
-    @GET("groups/{groupId}/profile")
+    @GET("/groups/{groupId}/profile")
     void getProfile(@Path("groupId") String groupId, Callback<GroupProfile> callback);
 
     /**
@@ -122,7 +122,7 @@ public interface GroupsApi {
      * @param groupId  the group id
      * @param callback the asynchronous callback.
      */
-    @GET("groups/{groupId}/invited_users")
+    @GET("/groups/{groupId}/invited_users")
     void getInvitedUsers(@Path("groupId") String groupId, Callback<GroupUsers> callback);
 
     /**
@@ -131,7 +131,7 @@ public interface GroupsApi {
      * @param groupId  the group id
      * @param callback the asynchronous callback.
      */
-    @GET("groups/{groupId}/users")
+    @GET("/groups/{groupId}/users")
     void getUsers(@Path("groupId") String groupId, Callback<GroupUsers> callback);
 
     /**
@@ -140,7 +140,7 @@ public interface GroupsApi {
      * @param groupId  the group id
      * @param callback the asynchronous callback.
      */
-    @GET("groups/{groupId}/rooms")
+    @GET("/groups/{groupId}/rooms")
     void getRooms(@Path("groupId") String groupId, Callback<GetRoomsResponse> callback);
 
     /**
@@ -149,7 +149,7 @@ public interface GroupsApi {
      * @param groupId  the group id
      * @param callback the asynchronous callback.
      */
-    @GET("groups/{groupId}/summary")
+    @GET("/groups/{groupId}/summary")
     void getSummary(@Path("groupId") String groupId, Callback<GroupSummary> callback);
 
     /**
@@ -196,6 +196,6 @@ public interface GroupsApi {
      * @param userId   the user id
      * @param callback the asynchronous callback.
      */
-    @GET("publicised_groups/{userId}")
+    @GET("/publicised_groups/{userId}")
     void getUserPublicisedGroups(@Path("userId") String userId, Callback<GetUserPublicisedGroupsResponse> callback);
 }

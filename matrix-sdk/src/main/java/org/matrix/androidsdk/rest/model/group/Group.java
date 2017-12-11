@@ -15,12 +15,25 @@
  */
 package org.matrix.androidsdk.rest.model.group;
 
+import android.text.TextUtils;
+
+import org.matrix.androidsdk.rest.model.RoomMember;
+
 import java.io.Serializable;
+import java.util.Comparator;
 
 /**
  * This class represents a community in Matrix.
  */
 public class Group implements Serializable {
+    /**
+     * Sort by group id
+     */
+    public static final Comparator<Group> mGroupsComparator = new Comparator<Group>() {
+        public int compare(Group group1, Group group2) {
+            return group1.getGroupId().compareTo(group2.getGroupId());
+        }
+    };
 
     /**
      * The group id.
@@ -70,12 +83,92 @@ public class Group implements Serializable {
     }
 
     /**
+     * Update the group profile.
+     *
+     * @param profile the group profile.
+     */
+    public void setGroupProfile(GroupProfile profile) {
+        if (null == mSummary) {
+            mSummary = new GroupSummary();
+        }
+
+        getGroupSummary().profile = profile;
+    }
+
+    /**
+     * @return the group profile
+     */
+    public GroupProfile getGroupProfile() {
+        if (null != getGroupSummary()) {
+            return getGroupSummary().profile;
+        }
+
+        return null;
+    }
+
+    /**
+     * @return the group name
+     */
+    public String getName() {
+        String name = null;
+
+        if (null != getGroupProfile()) {
+            name = getGroupProfile().name;
+        }
+
+        if (TextUtils.isEmpty(name)) {
+            name = getGroupId();
+        }
+
+        return name;
+    }
+
+    /**
+     * @return the avatar URL
+     */
+    public String getAvatarUrl() {
+        if (null != getGroupProfile()) {
+            return getGroupProfile().avatarUrl;
+        }
+
+        return null;
+    }
+
+    /**
+     * @return the short description
+     */
+    public String getShortDescription() {
+        if (null != getGroupProfile()) {
+            return getGroupProfile().shortDescription;
+        }
+
+        return null;
+    }
+
+    /**
+     * Tells if the group is public.
+     *
+     * @return true if the group is public.
+     */
+    public boolean isPublic() {
+        return (null != getGroupProfile()) && (null != getGroupProfile().isPublic) && getGroupProfile().isPublic;
+    }
+
+    /**
+     * Tells if the user is invited to this group.
+     *
+     * @return true if the user is invited
+     */
+    public boolean isInvitated() {
+        return TextUtils.equals(mMembership, RoomMember.MEMBERSHIP_INVITE);
+    }
+
+    /**
      * @return the group summary
      */
     public GroupSummary getGroupSummary() {
         return mSummary;
     }
-
 
     /**
      * Update the group summary

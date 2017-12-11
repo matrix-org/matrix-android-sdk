@@ -24,17 +24,17 @@ import java.util.Map;
  */
 public class GroupsSyncResponse implements Serializable {
     /**
-     Joined groups: An array of groups ids.
+     * Joined groups: An array of groups ids.
      */
-  public List<String> join;
+    public Map<String, Object> join;
 
     /**
-     Invitations. The groups that the user has been invited to: keys are groups ids.
+     * Invitations. The groups that the user has been invited to: keys are groups ids.
      */
     public Map<String, InvitedGroupSync> invite;
 
     /**
-     Left groups. An array of groups ids: the groups that the user has left or been banned from.
+     * Left groups. An array of groups ids: the groups that the user has left or been banned from.
      */
-    public List<String> leave;
+    public Map<String, Object> leave;
 }

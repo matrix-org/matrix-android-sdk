@@ -29,7 +29,7 @@ public class GroupSummary implements Serializable {
     /**
      * The group users.
      */
-    public GroupSummaryUsersSection usersSection ;
+    public GroupSummaryUsersSection usersSection;
 
     /**
      * The current user status.

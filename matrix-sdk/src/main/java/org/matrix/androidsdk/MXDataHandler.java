@@ -1444,27 +1444,30 @@ public class MXDataHandler implements IMXEventListener {
                 }
             }
 
-            // Handle invited groups
-            if ((null != syncResponse.groups.invite) && !syncResponse.groups.invite.isEmpty()) {
+            // groups
+            if (null != syncResponse.groups) {
                 // Handle invited groups
-                for (String groupId : syncResponse.groups.invite.keySet()) {
-                    InvitedGroupSync invitedGroupSync = syncResponse.groups.invite.get(groupId);
-                    mGroupsManager.onNewGroupInvitation(groupId, invitedGroupSync.profile, invitedGroupSync.inviter, !isInitialSync);
+                if ((null != syncResponse.groups.invite) && !syncResponse.groups.invite.isEmpty()) {
+                    // Handle invited groups
+                    for (String groupId : syncResponse.groups.invite.keySet()) {
+                        InvitedGroupSync invitedGroupSync = syncResponse.groups.invite.get(groupId);
+                        mGroupsManager.onNewGroupInvitation(groupId, invitedGroupSync.profile, invitedGroupSync.inviter, !isInitialSync);
+                    }
                 }
-            }
 
-            // Handle joined groups
-            if ((null != syncResponse.groups.join) && !syncResponse.groups.join.isEmpty()) {
-
-                for (String groupId : syncResponse.groups.join) {
-                    mGroupsManager.onJoinGroup(groupId, !isInitialSync);
-                }
-            }
-            // Handle left groups
-            if ((null != syncResponse.groups.leave) && !syncResponse.groups.leave.isEmpty()) {
                 // Handle joined groups
-                for (String groupId : syncResponse.groups.leave) {
-                    mGroupsManager.onLeaveGroup(groupId, !isInitialSync);
+                if ((null != syncResponse.groups.join) && !syncResponse.groups.join.isEmpty()) {
+
+                    for (String groupId : syncResponse.groups.join.keySet()) {
+                        mGroupsManager.onJoinGroup(groupId, !isInitialSync);
+                    }
+                }
+                // Handle left groups
+                if ((null != syncResponse.groups.leave) && !syncResponse.groups.leave.isEmpty()) {
+                    // Handle joined groups
+                    for (String groupId : syncResponse.groups.leave.keySet()) {
+                        mGroupsManager.onLeaveGroup(groupId, !isInitialSync);
+                    }
                 }
             }
 
