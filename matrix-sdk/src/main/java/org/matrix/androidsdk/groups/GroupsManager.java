@@ -16,7 +16,10 @@
 
 package org.matrix.androidsdk.groups;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.ContactsContract;
+import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.data.store.IMXStore;
@@ -33,9 +36,11 @@ import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -51,6 +56,12 @@ public class GroupsManager {
     // callbacks
     private Set<SimpleApiCallback<Void>> mRefreshProfilesCallback = new HashSet<>();
 
+    //
+    private final Map<String, ApiCallback<Void>> mPendingJoinGroups = new HashMap<>();
+    private final Map<String, ApiCallback<Void>> mPendingLeaveGroups = new HashMap<>();
+
+    private Handler mUIHandler;
+
 
     /**
      * Constructor
@@ -62,6 +73,8 @@ public class GroupsManager {
         mDataHandler = dataHandler;
         mStore = mDataHandler.getStore();
         mGroupsRestClient = restClient;
+
+        mUIHandler = new Handler(Looper.getMainLooper());
     }
 
     /**
@@ -95,7 +108,7 @@ public class GroupsManager {
         List<Group> invitedGroups = new ArrayList<>();
         Collection<Group> groups = getGroups();
 
-        for(Group group : groups) {
+        for (Group group : groups) {
             if (group.isInvitated()) {
                 invitedGroups.add(group);
             }
@@ -149,6 +162,11 @@ public class GroupsManager {
                     group.setGroupSummary(groupSummary);
                     mStore.flushGroup(group);
                     onDone();
+
+                    if (null != mPendingJoinGroups.get(groupId)) {
+                        mPendingJoinGroups.get(groupId).onSuccess(null);
+                        mPendingJoinGroups.remove(groupId);
+                    }
                 }
             }
 
@@ -156,18 +174,33 @@ public class GroupsManager {
             public void onNetworkError(Exception e) {
                 Log.e(LOG_TAG, "## onJoinGroup() : failed " + e.getMessage());
                 onDone();
+
+                if (null != mPendingJoinGroups.get(groupId)) {
+                    mPendingJoinGroups.get(groupId).onNetworkError(e);
+                    mPendingJoinGroups.remove(groupId);
+                }
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
                 Log.e(LOG_TAG, "## onMatrixError() : failed " + e.getMessage());
                 onDone();
+
+                if (null != mPendingJoinGroups.get(groupId)) {
+                    mPendingJoinGroups.get(groupId).onMatrixError(e);
+                    mPendingJoinGroups.remove(groupId);
+                }
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
                 Log.e(LOG_TAG, "## onUnexpectedError() : failed " + e.getMessage());
                 onDone();
+
+                if (null != mPendingJoinGroups.get(groupId)) {
+                    mPendingJoinGroups.get(groupId).onUnexpectedError(e);
+                    mPendingJoinGroups.remove(groupId);
+                }
             }
         });
     }
@@ -180,7 +213,7 @@ public class GroupsManager {
      * @param inviter the inviter
      * @param notify  true to notify
      */
-    public void onNewGroupInvitation(String groupId, GroupSyncProfile profile, String inviter, boolean notify) {
+    public void onNewGroupInvitation(final String groupId, final GroupSyncProfile profile, final String inviter, final boolean notify) {
         Group group = getGroup(groupId);
 
         // it should always be null
@@ -200,7 +233,12 @@ public class GroupsManager {
         mStore.storeGroup(group);
 
         if (notify) {
-            mDataHandler.onNewGroupInvitation(groupId);
+            mUIHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mDataHandler.onNewGroupInvitation(groupId);
+                }
+            });
         }
     }
 
@@ -210,11 +248,23 @@ public class GroupsManager {
      * @param groupId the group id.
      * @param notify  true to notify
      */
-    public void onLeaveGroup(String groupId, boolean notify) {
-        mStore.deleteGroup(groupId);
+    public void onLeaveGroup(final String groupId, final boolean notify) {
+        if (null != mStore.getGroup(groupId)) {
+            mStore.deleteGroup(groupId);
 
-        if (notify) {
-            mDataHandler.onLeaveGroup(groupId);
+            mUIHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (notify) {
+                        mDataHandler.onLeaveGroup(groupId);
+                    }
+
+                    if (mPendingLeaveGroups.containsKey(groupId)) {
+                        mPendingLeaveGroups.get(groupId).onSuccess(null);
+                        mPendingLeaveGroups.remove(groupId);
+                    }
+                }
+            });
         }
     }
 
@@ -287,6 +337,80 @@ public class GroupsManager {
             public void onUnexpectedError(Exception e) {
                 Log.e(LOG_TAG, "## refreshGroupProfiles() : failed " + e.getMessage());
                 onDone();
+            }
+        });
+    }
+
+    /**
+     * Join a group.
+     *
+     * @param groupId  the group id
+     * @param callback the asynchronous callback
+     */
+    public void joinGroup(final String groupId, final ApiCallback<Void> callback) {
+        getGroupsRestClient().joinGroup(groupId, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                Group group = getGroup(groupId);
+                // not yet synced -> wait it is synced
+                if ((null == group) || TextUtils.equals(group.getMembership(), RoomMember.MEMBERSHIP_INVITE)) {
+                    mPendingJoinGroups.put(groupId, callback);
+                    onJoinGroup(groupId, true);
+                } else {
+                    callback.onSuccess(null);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                callback.onNetworkError(e);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                callback.onMatrixError(e);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                callback.onUnexpectedError(e);
+            }
+        });
+    }
+
+    /**
+     * Leave a group.
+     *
+     * @param groupId the group id
+     * @param callback the asynchronous callback
+     */
+    public void leaveGroup(final String groupId, final ApiCallback<Void> callback) {
+        getGroupsRestClient().leaveGroup(groupId, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                Group group = getGroup(groupId);
+                // not yet synced -> wait it is synced
+                if (null != group) {
+                    mPendingLeaveGroups.put(groupId, callback);
+                    onLeaveGroup(groupId, true);
+                } else {
+                    callback.onSuccess(null);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                callback.onNetworkError(e);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                callback.onMatrixError(e);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                callback.onUnexpectedError(e);
             }
         });
     }
