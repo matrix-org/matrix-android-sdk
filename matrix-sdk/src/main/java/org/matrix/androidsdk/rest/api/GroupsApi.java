@@ -27,6 +27,7 @@ import org.matrix.androidsdk.rest.model.group.GroupInviteUserParams;
 import org.matrix.androidsdk.rest.model.group.GroupInviteUserResponse;
 import org.matrix.androidsdk.rest.model.group.GroupKickUserParams;
 import org.matrix.androidsdk.rest.model.group.GroupProfile;
+import org.matrix.androidsdk.rest.model.group.GroupRooms;
 import org.matrix.androidsdk.rest.model.group.GroupSummary;
 import org.matrix.androidsdk.rest.model.group.GroupUsers;
 import org.matrix.androidsdk.rest.model.group.LeaveGroupParams;
@@ -141,7 +142,7 @@ public interface GroupsApi {
      * @param callback the asynchronous callback.
      */
     @GET("/groups/{groupId}/rooms")
-    void getRooms(@Path("groupId") String groupId, Callback<GetRoomsResponse> callback);
+    void getRooms(@Path("groupId") String groupId, Callback<GroupRooms> callback);
 
     /**
      * Request a group summary

@@ -16,13 +16,38 @@
 package org.matrix.androidsdk.rest.model.group;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * This class represents the group rooms in the server response.
  */
 public class GroupRooms implements Serializable  {
+    // estimated room count
     public Integer totalRoomCountEstimate;
 
+    // rooms list
     public List<GroupRoom> chunk;
+
+    /**
+     * @return the rooms list
+     */
+    public List<GroupRoom> getRoomsList() {
+        if (null == chunk) {
+            chunk = new ArrayList<>();
+        }
+
+        return chunk;
+    }
+
+    /**
+     * @return the estimated rooms count
+     */
+    public int getEstimatedRoomCount() {
+        if (null == totalRoomCountEstimate) {
+            totalRoomCountEstimate = getRoomsList().size();
+        }
+
+        return totalRoomCountEstimate;
+    }
 }

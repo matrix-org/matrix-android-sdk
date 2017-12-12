@@ -18,7 +18,6 @@ package org.matrix.androidsdk.groups;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.provider.ContactsContract;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXDataHandler;
@@ -31,8 +30,10 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.group.CreateGroupParams;
 import org.matrix.androidsdk.rest.model.group.Group;
 import org.matrix.androidsdk.rest.model.group.GroupProfile;
+import org.matrix.androidsdk.rest.model.group.GroupRooms;
 import org.matrix.androidsdk.rest.model.group.GroupSummary;
 import org.matrix.androidsdk.rest.model.group.GroupSyncProfile;
+import org.matrix.androidsdk.rest.model.group.GroupUsers;
 import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
@@ -62,7 +63,6 @@ public class GroupsManager {
     private final Map<String, ApiCallback<Void>> mPendingLeaveGroups = new HashMap<>();
 
     private Handler mUIHandler;
-
 
     /**
      * Constructor
@@ -110,7 +110,7 @@ public class GroupsManager {
         Collection<Group> groups = getGroups();
 
         for (Group group : groups) {
-            if (group.isInvitated()) {
+            if (group.isInvited()) {
                 invitedGroups.add(group);
             }
         }
@@ -389,7 +389,7 @@ public class GroupsManager {
     /**
      * Leave a group.
      *
-     * @param groupId the group id
+     * @param groupId  the group id
      * @param callback the asynchronous callback
      */
     public void leaveGroup(final String groupId, final ApiCallback<Void> callback) {
@@ -428,7 +428,7 @@ public class GroupsManager {
      *
      * @param localPart the local part
      * @param groupName the group human name
-     * @param callback the asynchronous callback
+     * @param callback  the asynchronous callback
      */
     public void createGroup(String localPart, String groupName, final ApiCallback<String> callback) {
         final CreateGroupParams params = new CreateGroupParams();
@@ -450,6 +450,163 @@ public class GroupsManager {
                 }
 
                 callback.onSuccess(groupId);
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                callback.onNetworkError(e);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                callback.onMatrixError(e);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                callback.onUnexpectedError(e);
+            }
+        });
+    }
+
+
+    /**
+     * Refresh the group data i.e the invited users list, the users list and the ooms list.
+     *
+     * @param groupId  the group id
+     * @param callback the asynchronous callback
+     */
+    public void refreshGroupData(String groupId, ApiCallback<Void> callback) {
+        refreshGroupData(groupId, GROUP_REFRESH_STEP_PROFILE, callback);
+    }
+
+    private static final int GROUP_REFRESH_STEP_PROFILE = 0;
+    private static final int GROUP_REFRESH_STEP_ROOMS_LIST = 1;
+    private static final int GROUP_REFRESH_STEP_USERS_LIST = 2;
+    private static final int GROUP_REFRESH_STEP_INVITED_USERS_LIST = 3;
+
+    /**
+     * Internal method to refresh the group informations.
+     *
+     * @param groupId  the group id
+     * @param step     the current step
+     * @param callback the asynchronous callback
+     */
+    private void refreshGroupData(final String groupId, final int step, final ApiCallback<Void> callback) {
+        if (step == GROUP_REFRESH_STEP_PROFILE) {
+            getGroupsRestClient().getGroupProfile(groupId, new ApiCallback<GroupProfile>() {
+                @Override
+                public void onSuccess(GroupProfile groupProfile) {
+                    Group group = getGroup(groupId);
+
+                    if (null != group) {
+                        group.setGroupProfile(groupProfile);
+                        mStore.flushGroup(group);
+                        refreshGroupData(groupId, GROUP_REFRESH_STEP_ROOMS_LIST, callback);
+                    } else {
+                        callback.onSuccess(null);
+                    }
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    callback.onNetworkError(e);
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    callback.onMatrixError(e);
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    callback.onUnexpectedError(e);
+                }
+            });
+
+            return;
+        }
+
+        if (step == GROUP_REFRESH_STEP_ROOMS_LIST) {
+            getGroupsRestClient().getGroupRooms(groupId, new ApiCallback<GroupRooms>() {
+                @Override
+                public void onSuccess(GroupRooms groupRooms) {
+                    Group group = getGroup(groupId);
+
+                    if (null != group) {
+                        group.setGroupRooms(groupRooms);
+                        mStore.flushGroup(group);
+                        refreshGroupData(groupId, GROUP_REFRESH_STEP_USERS_LIST, callback);
+                    } else {
+                        callback.onSuccess(null);
+                    }
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    callback.onNetworkError(e);
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    callback.onMatrixError(e);
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    callback.onUnexpectedError(e);
+                }
+            });
+            return;
+        }
+
+        if (step == GROUP_REFRESH_STEP_USERS_LIST) {
+            getGroupsRestClient().getGroupUsers(groupId, new ApiCallback<GroupUsers>() {
+                @Override
+                public void onSuccess(GroupUsers groupUsers) {
+                    Group group = getGroup(groupId);
+
+                    if (null != group) {
+                        group.setGroupUsers(groupUsers);
+                        mStore.flushGroup(group);
+                        refreshGroupData(groupId, GROUP_REFRESH_STEP_INVITED_USERS_LIST, callback);
+                    } else {
+                        callback.onSuccess(null);
+                    }
+                }
+
+                @Override
+                public void onNetworkError(Exception e) {
+                    callback.onNetworkError(e);
+                }
+
+                @Override
+                public void onMatrixError(MatrixError e) {
+                    callback.onMatrixError(e);
+                }
+
+                @Override
+                public void onUnexpectedError(Exception e) {
+                    callback.onUnexpectedError(e);
+                }
+            });
+            return;
+        }
+
+
+        //if (step == GROUP_REFRESH_STEP_INVITED_USERS_LIST)
+
+        getGroupsRestClient().getGroupInvitedUsers(groupId, new ApiCallback<GroupUsers>() {
+            @Override
+            public void onSuccess(GroupUsers groupUsers) {
+                Group group = getGroup(groupId);
+
+                if (null != group) {
+                    group.setInvitedGroupUsers(groupUsers);
+                    mStore.flushGroup(group);
+                }
+
+                callback.onSuccess(null);
             }
 
             @Override

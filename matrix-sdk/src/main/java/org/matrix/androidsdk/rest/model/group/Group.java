@@ -20,7 +20,9 @@ import android.text.TextUtils;
 import org.matrix.androidsdk.rest.model.RoomMember;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 
 /**
  * This class represents a community in Matrix.
@@ -54,6 +56,11 @@ public class Group implements Serializable {
      * The community members.
      */
     private GroupUsers mUsers = new GroupUsers();
+
+    /**
+     * The community invited members.
+     */
+    private GroupUsers mInvitedUsers = new GroupUsers();
 
     /**
      * The user membership.
@@ -159,7 +166,7 @@ public class Group implements Serializable {
      *
      * @return true if the user is invited
      */
-    public boolean isInvitated() {
+    public boolean isInvited() {
         return TextUtils.equals(mMembership, RoomMember.MEMBERSHIP_INVITE);
     }
 
@@ -209,6 +216,22 @@ public class Group implements Serializable {
      */
     public void setGroupUsers(GroupUsers aGroupUsers) {
         mUsers = aGroupUsers;
+    }
+
+    /**
+     * @return the invited group users
+     */
+    public GroupUsers getInvitedGroupUsers() {
+        return mInvitedUsers;
+    }
+
+    /**
+     * Update the invited group users
+     *
+     * @param aGroupUsers the group users
+     */
+    public void setInvitedGroupUsers(GroupUsers aGroupUsers) {
+        mInvitedUsers = aGroupUsers;
     }
 
     /**

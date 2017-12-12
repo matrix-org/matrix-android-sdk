@@ -33,6 +33,7 @@ import org.matrix.androidsdk.rest.model.group.GroupInviteUserParams;
 import org.matrix.androidsdk.rest.model.group.GroupInviteUserResponse;
 import org.matrix.androidsdk.rest.model.group.GroupKickUserParams;
 import org.matrix.androidsdk.rest.model.group.GroupProfile;
+import org.matrix.androidsdk.rest.model.group.GroupRooms;
 import org.matrix.androidsdk.rest.model.group.GroupSummary;
 import org.matrix.androidsdk.rest.model.group.GroupUsers;
 import org.matrix.androidsdk.rest.model.group.LeaveGroupParams;
@@ -63,8 +64,8 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
     /**
      * Create a group.
      *
-     * @param params the room creation parameters
-     * @param callback  the asynchronous callback.
+     * @param params   the room creation parameters
+     * @param callback the asynchronous callback.
      */
     public void createGroup(final CreateGroupParams params, final ApiCallback<String> callback) {
         final String description = "createGroup " + params.localpart;
@@ -254,28 +255,42 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
     }
 
     /**
+     * Request the group rooms.
+     *
+     * @param groupId  the group id
+     * @param callback the asynchronous callback.
+     */
+    public void getGroupRooms(final String groupId, final ApiCallback<GroupRooms> callback) {
+        final String description = "getGroupRooms " + groupId;
+
+        try {
+            mApi.getRooms(groupId, new RestAdapterCallback<GroupRooms>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    getGroupRooms(groupId, callback);
+                }
+            }));
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
+    }
+
+    /**
      * Request the group users.
      *
      * @param groupId  the group id
      * @param callback the asynchronous callback.
      */
-    public void getGroupRooms(final String groupId, final ApiCallback<List<PublicRoom>> callback) {
-        final String description = "getGroupRooms " + groupId;
+    public void getGroupUsers(final String groupId, final ApiCallback<GroupUsers> callback) {
+        final String description = "getGroupUsers " + groupId;
 
         try {
-            mApi.getRooms(groupId, new RestAdapterCallback<GetRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            mApi.getUsers(groupId, new RestAdapterCallback<GroupUsers>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
-                    getGroupRooms(groupId, callback);
+                    getGroupUsers(groupId, callback);
                 }
-            }
-            ) {
-                @Override
-                public void success(GetRoomsResponse getRoomsResponse, Response response) {
-                    onEventSent();
-                    callback.onSuccess(getRoomsResponse.chunk);
-                }
-            });
+            }));
         } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }

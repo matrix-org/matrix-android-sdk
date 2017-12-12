@@ -16,13 +16,37 @@
 package org.matrix.androidsdk.rest.model.group;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * This class represents the group users in the server response.
  */
 public class GroupUsers implements Serializable {
+
     public Integer totalUserCountEstimate;
 
     public List<GroupUser> chunk;
+
+    /**
+     * @return the users list
+     */
+    public List<GroupUser> getUsers() {
+        if (null == chunk) {
+            chunk = new ArrayList<>();
+        }
+
+        return chunk;
+    }
+
+    /**
+     * @return the estimated users count
+     */
+    public int getEstimatedUsersCount() {
+        if (null == totalUserCountEstimate) {
+            totalUserCountEstimate = getUsers().size();
+        }
+
+        return totalUserCountEstimate;
+    }
 }
