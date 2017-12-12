@@ -28,6 +28,7 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.GroupsRestClient;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.group.CreateGroupParams;
 import org.matrix.androidsdk.rest.model.group.Group;
 import org.matrix.androidsdk.rest.model.group.GroupProfile;
 import org.matrix.androidsdk.rest.model.group.GroupSummary;
@@ -140,6 +141,11 @@ public class GroupsManager {
             group = new Group(groupId);
         }
 
+        if (TextUtils.equals(RoomMember.MEMBERSHIP_JOIN, group.getMembership())) {
+            Log.d(LOG_TAG, "## onJoinGroup() : the group " + groupId + " was already joined");
+            return;
+        }
+
         group.setMembership(RoomMember.MEMBERSHIP_JOIN);
         mStore.storeGroup(group);
 
@@ -223,8 +229,10 @@ public class GroupsManager {
 
         GroupSummary summary = new GroupSummary();
         summary.profile = new GroupProfile();
-        summary.profile.name = profile.name;
-        summary.profile.avatarUrl = profile.avatarUrl;
+        if (null != profile) {
+            summary.profile.name = profile.name;
+            summary.profile.avatarUrl = profile.avatarUrl;
+        }
 
         group.setGroupSummary(summary);
         group.setInviter(inviter);
@@ -396,6 +404,52 @@ public class GroupsManager {
                 } else {
                     callback.onSuccess(null);
                 }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                callback.onNetworkError(e);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                callback.onMatrixError(e);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                callback.onUnexpectedError(e);
+            }
+        });
+    }
+
+    /**
+     * Create a group.
+     *
+     * @param localPart the local part
+     * @param groupName the group human name
+     * @param callback the asynchronous callback
+     */
+    public void createGroup(String localPart, String groupName, final ApiCallback<String> callback) {
+        final CreateGroupParams params = new CreateGroupParams();
+        params.localpart = localPart;
+        params.profile = new GroupProfile();
+        params.profile.name = groupName;
+
+        getGroupsRestClient().createGroup(params, new ApiCallback<String>() {
+            @Override
+            public void onSuccess(String groupId) {
+                Group group = getGroup(groupId);
+
+                // if the group does not exist, create it
+                if (null == group) {
+                    group = new Group(groupId);
+                    group.setGroupProfile(params.profile);
+                    group.setMembership(RoomMember.MEMBERSHIP_JOIN);
+                    mStore.storeGroup(group);
+                }
+
+                callback.onSuccess(groupId);
             }
 
             @Override

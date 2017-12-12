@@ -60,24 +60,20 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
         mApi = api;
     }
 
-
     /**
      * Create a group.
      *
-     * @param localPart the local group name
+     * @param params the room creation parameters
      * @param callback  the asynchronous callback.
      */
-    public void createGroup(final String localPart, final ApiCallback<String> callback) {
-        final String description = "createGroup " + localPart;
+    public void createGroup(final CreateGroupParams params, final ApiCallback<String> callback) {
+        final String description = "createGroup " + params.localpart;
 
         try {
-            CreateGroupParams params = new CreateGroupParams();
-            params.localpart = localPart;
-
             mApi.createGroup(params, new RestAdapterCallback<CreateGroupResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
-                    createGroup(localPart, callback);
+                    createGroup(params, callback);
                 }
             }
             ) {

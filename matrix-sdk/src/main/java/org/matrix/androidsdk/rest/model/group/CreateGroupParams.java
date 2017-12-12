@@ -24,4 +24,9 @@ public class CreateGroupParams {
      * The group local part
      */
     public String localpart;
+
+    /**
+     * The group profile
+     */
+    public GroupProfile profile;
 }
