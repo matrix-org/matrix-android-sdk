@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.rest.model.group;
 
+import org.matrix.androidsdk.rest.model.User;
+
 import java.io.Serializable;
 
 /**
@@ -37,7 +39,7 @@ public class GroupUser implements Serializable {
     public Boolean isPrivileged;
 
     /**
-     * The URL for the user's avatar. May be nil.
+     * The URL for the user's avatar. May be null.
      */
     public String avatarUrl;
 
@@ -45,4 +47,12 @@ public class GroupUser implements Serializable {
      * Tell whether the user's membership is public.
      */
     public Boolean isPublic;
+
+
+    /**
+     * @return the user display name
+     */
+    public String getDisplayname() {
+        return (null != displayname) ? displayname : userId;
+    }
 }

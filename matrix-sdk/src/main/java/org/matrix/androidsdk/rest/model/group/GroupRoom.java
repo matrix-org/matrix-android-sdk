@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.rest.model.group;
 
+import android.text.TextUtils;
+
 import java.io.Serializable;
 
 /**
@@ -60,10 +62,17 @@ public class GroupRoom implements Serializable {
     /**
      * The URL for the room's avatar. May be nil.
      */
-    public String vatarUrl;
+    public String avatarUrl;
 
     /**
      * Tell whether the room is public.
      */
     public Boolean isPublic;
+
+    /**
+     * @return the display name
+     */
+    public String getDisplayName() {
+        return !TextUtils.isEmpty(name) ? name : roomId;
+    }
 }
