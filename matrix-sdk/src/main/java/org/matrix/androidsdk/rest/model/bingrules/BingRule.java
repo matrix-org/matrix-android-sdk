@@ -285,6 +285,8 @@ public class BingRule {
 
                 if (valueAsVoid instanceof Boolean) {
                     shouldHighlight = (boolean) valueAsVoid;
+                } else if (valueAsVoid instanceof String) {
+                    shouldHighlight = TextUtils.equals((String)valueAsVoid, "true");
                 } else {
                     Log.e(LOG_TAG, "## shouldHighlight() : unexpected type " + valueAsVoid);
                 }
