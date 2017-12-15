@@ -18,6 +18,7 @@ package org.matrix.androidsdk.rest.model.bingrules;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.util.Log;
+import org.w3c.dom.Text;
 
 import com.google.gson.annotations.SerializedName;
 
@@ -280,7 +281,13 @@ public class BingRule {
             shouldHighlight = true;
 
             if (actionMap.containsKey(ACTION_PARAMETER_VALUE)) {
-                shouldHighlight = ((boolean) actionMap.get(ACTION_PARAMETER_VALUE));
+                Object valueAsVoid = actionMap.get(ACTION_PARAMETER_VALUE);
+
+                if (valueAsVoid instanceof Boolean) {
+                    shouldHighlight = (boolean) valueAsVoid;
+                } else {
+                    Log.e(LOG_TAG, "## shouldHighlight() : unexpected type " + valueAsVoid);
+                }
             }
         }
 
