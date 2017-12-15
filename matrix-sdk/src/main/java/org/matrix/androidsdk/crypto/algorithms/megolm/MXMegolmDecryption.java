@@ -352,76 +352,102 @@ public class MXMegolmDecryption implements IMXDecrypting {
         }
 
         final String userId = request.mUserId;
-        final String deviceId = request.mDeviceId;
-        final MXDeviceInfo deviceInfo = mSession.getCrypto().mCryptoStore.getUserDevice(deviceId, userId);
-        final RoomKeyRequestBody body = request.mRequestBody;
-
-        HashMap<String, ArrayList<MXDeviceInfo>> devicesByUser = new HashMap<>();
-        devicesByUser.put(userId, new ArrayList<>(Arrays.asList(deviceInfo)));
-
-        mSession.getCrypto().ensureOlmSessionsForDevices(devicesByUser, new ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>>() {
+        
+        mSession.getCrypto().getDeviceList().downloadKeys(Arrays.asList(userId), false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
             @Override
-            public void onSuccess(MXUsersDevicesMap<MXOlmSessionResult> map) {
-                MXOlmSessionResult olmSessionResult = map.getObject(deviceId, userId);
+            public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> devicesMap) {
+                final String deviceId = request.mDeviceId;
+                final MXDeviceInfo deviceInfo = mSession.getCrypto().mCryptoStore.getUserDevice(deviceId, userId);
 
-                if ((null == olmSessionResult) || (null == olmSessionResult.mSessionId)) {
-                    // no session with this device, probably because there
-                    // were no one-time keys.
-                    //
-                    // ensureOlmSessionsForUsers has already done the logging,
-                    // so just skip it.
-                    return;
+                if (null != deviceInfo) {
+                    final RoomKeyRequestBody body = request.mRequestBody;
+
+                    HashMap<String, ArrayList<MXDeviceInfo>> devicesByUser = new HashMap<>();
+                    devicesByUser.put(userId, new ArrayList<>(Arrays.asList(deviceInfo)));
+
+                    mSession.getCrypto().ensureOlmSessionsForDevices(devicesByUser, new ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>>() {
+                        @Override
+                        public void onSuccess(MXUsersDevicesMap<MXOlmSessionResult> map) {
+                            MXOlmSessionResult olmSessionResult = map.getObject(deviceId, userId);
+
+                            if ((null == olmSessionResult) || (null == olmSessionResult.mSessionId)) {
+                                // no session with this device, probably because there
+                                // were no one-time keys.
+                                //
+                                // ensureOlmSessionsForUsers has already done the logging,
+                                // so just skip it.
+                                return;
+                            }
+
+                            Log.d(LOG_TAG, "## shareKeysWithDevice() : sharing keys for session " + body.sender_key + "|" + body.session_id + " with device " + userId + ":" + deviceId);
+
+                            MXOlmInboundGroupSession2 inboundGroupSession = mSession.getCrypto().getOlmDevice().getInboundGroupSession(body.session_id, body.sender_key, body.room_id);
+
+                            Map<String, Object> payloadJson = new HashMap<>();
+                            payloadJson.put("type", Event.EVENT_TYPE_FORWARDED_ROOM_KEY);
+                            payloadJson.put("content", inboundGroupSession.exportKeys());
+
+                            Map<String, Object> encodedPayload = mSession.getCrypto().encryptMessage(payloadJson, Arrays.asList(deviceInfo));
+                            MXUsersDevicesMap<Map<String, Object>> sendToDeviceMap = new MXUsersDevicesMap<>();
+                            sendToDeviceMap.setObject(encodedPayload, userId, deviceId);
+
+                            Log.d(LOG_TAG, "## shareKeysWithDevice() : sending to " + userId + ":" + deviceId);
+                            mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, sendToDeviceMap, new ApiCallback<Void>() {
+                                @Override
+                                public void onSuccess(Void info) {
+                                    Log.d(LOG_TAG, "## shareKeysWithDevice() : sent to " + userId + ":" + deviceId);
+                                }
+
+                                @Override
+                                public void onNetworkError(Exception e) {
+                                    Log.e(LOG_TAG, "## shareKeysWithDevice() : sendToDevice " + userId + ":" + deviceId + " failed " + e.getMessage());
+                                }
+
+                                @Override
+                                public void onMatrixError(MatrixError e) {
+                                    Log.e(LOG_TAG, "## shareKeysWithDevice() : sendToDevice " + userId + ":" + deviceId + " failed " + e.getMessage());
+                                }
+
+                                @Override
+                                public void onUnexpectedError(Exception e) {
+                                    Log.e(LOG_TAG, "## shareKeysWithDevice() : sendToDevice " + userId + ":" + deviceId + " failed " + e.getMessage());
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onNetworkError(Exception e) {
+                            Log.e(LOG_TAG, "## shareKeysWithDevice() : ensureOlmSessionsForDevices " + userId + ":" + deviceId + " failed " + e.getMessage());
+                        }
+
+                        @Override
+                        public void onMatrixError(MatrixError e) {
+                            Log.e(LOG_TAG, "## shareKeysWithDevice() : ensureOlmSessionsForDevices " + userId + ":" + deviceId + " failed " + e.getMessage());
+                        }
+
+                        @Override
+                        public void onUnexpectedError(Exception e) {
+                            Log.e(LOG_TAG, "## shareKeysWithDevice() : ensureOlmSessionsForDevices " + userId + ":" + deviceId + " failed " + e.getMessage());
+                        }
+                    });
+                } else {
+                    Log.e(LOG_TAG, "## shareKeysWithDevice() : ensureOlmSessionsForDevices " + userId + ":" + deviceId + " not found");
                 }
-
-                Log.d(LOG_TAG, "## shareKeysWithDevice() : sharing keys for session " + body.sender_key + "|" + body.session_id + " with device " + userId + ":" + deviceId);
-
-                MXOlmInboundGroupSession2 inboundGroupSession = mSession.getCrypto().getOlmDevice().getInboundGroupSession(body.session_id, body.sender_key, body.room_id);
-
-                Map<String, Object> payloadJson = new HashMap<>();
-                payloadJson.put("type", Event.EVENT_TYPE_FORWARDED_ROOM_KEY);
-                payloadJson.put("content", inboundGroupSession.exportKeys());
-
-                Map<String, Object> encodedPayload = mSession.getCrypto().encryptMessage(payloadJson, Arrays.asList(deviceInfo));
-                MXUsersDevicesMap<Map<String, Object>> sendToDeviceMap = new MXUsersDevicesMap<>();
-                sendToDeviceMap.setObject(encodedPayload, userId, deviceId);
-
-                Log.d(LOG_TAG, "## shareKeysWithDevice() : sending to " + userId + ":" + deviceId);
-                mSession.getCryptoRestClient().sendToDevice(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, sendToDeviceMap, new ApiCallback<Void>() {
-                    @Override
-                    public void onSuccess(Void info) {
-                        Log.d(LOG_TAG, "## shareKeysWithDevice() : sent to " + userId + ":" + deviceId);
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "## shareKeysWithDevice() : sendToDevice " + userId + ":" + deviceId + " failed " + e.getMessage());
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        Log.e(LOG_TAG, "## shareKeysWithDevice() : sendToDevice " + userId + ":" + deviceId + " failed " + e.getMessage());
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        Log.e(LOG_TAG, "## shareKeysWithDevice() : sendToDevice " + userId + ":" + deviceId + " failed " + e.getMessage());
-                    }
-                });
             }
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## shareKeysWithDevice() : ensureOlmSessionsForDevices " + userId + ":" + deviceId + " failed " + e.getMessage());
+                Log.e(LOG_TAG, "## shareKeysWithDevice() : downloadKeys " + userId + " failed " + e.getMessage());
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "## shareKeysWithDevice() : ensureOlmSessionsForDevices " + userId + ":" + deviceId + " failed " + e.getMessage());
+                Log.e(LOG_TAG, "## shareKeysWithDevice() : downloadKeys " + userId + " failed " + e.getMessage());
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## shareKeysWithDevice() : ensureOlmSessionsForDevices " + userId + ":" + deviceId + " failed " + e.getMessage());
+                Log.e(LOG_TAG, "## shareKeysWithDevice() : downloadKeys " + userId + " failed " + e.getMessage());
             }
         });
     }

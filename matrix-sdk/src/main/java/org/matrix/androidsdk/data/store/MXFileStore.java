@@ -429,7 +429,7 @@ public class MXFileStore extends MXMemoryStore {
                                                 succeed = false;
                                                 Log.e(LOG_TAG, "loadSummaries : the room " + roomId + " does not exist");
                                             } else if (null == room.getMember(mCredentials.userId)) {
-                                                succeed = false;
+                                                //succeed = false;
                                                 Log.e(LOG_TAG, "loadSummaries) : a summary exists for the roomId " + roomId + " but the user is not anymore a member");
                                             }
                                         }
