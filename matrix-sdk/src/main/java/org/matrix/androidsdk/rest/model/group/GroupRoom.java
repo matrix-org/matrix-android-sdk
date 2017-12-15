@@ -17,62 +17,25 @@ package org.matrix.androidsdk.rest.model.group;
 
 import android.text.TextUtils;
 
-import java.io.Serializable;
+import org.matrix.androidsdk.rest.model.publicroom.PublicRoom;
 
 /**
  * This class represents a room linked to a community
  */
-public class GroupRoom implements Serializable {
-    /**
-     * The main address of the room.
-     */
-    public String canonicalAlias;
-
-    /**
-     * The ID of the room.
-     */
-    public String roomId;
-
-    /**
-     * The name of the room, if any. May be nil.
-     */
-    public String name;
-
-    /**
-     * The topic of the room, if any. May be nil.
-     */
-    public String topic;
-
-    /**
-     * The number of members joined to the room.
-     */
-    public Integer numJoinedMembers;
-
-    /**
-     * Whether the room may be viewed by guest users without joining.
-     */
-    public Boolean worldReadable;
-
-    /**
-     * Whether guest users may join the room and participate in it.
-     * If they can, they will be subject to ordinary power level rules like any other user.
-     */
-    public Boolean guestCanJoin;
-
-    /**
-     * The URL for the room's avatar. May be nil.
-     */
-    public String avatarUrl;
-
-    /**
-     * Tell whether the room is public.
-     */
-    public Boolean isPublic;
+public class GroupRoom extends PublicRoom {
 
     /**
      * @return the display name
      */
     public String getDisplayName() {
-        return !TextUtils.isEmpty(name) ? name : roomId;
+        if (!TextUtils.isEmpty(name)) {
+            return name;
+        }
+
+        if (!TextUtils.isEmpty(getAlias())) {
+            return getAlias();
+        }
+
+        return roomId;
     }
 }

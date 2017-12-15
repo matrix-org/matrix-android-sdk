@@ -116,7 +116,7 @@ public class Group implements Serializable {
     /**
      * @return the group name
      */
-    public String getName() {
+    public String getDisplayName() {
         String name = null;
 
         if (null != getGroupProfile()) {
@@ -128,6 +128,17 @@ public class Group implements Serializable {
         }
 
         return name;
+    }
+
+    /**
+     * @return the group long description
+     */
+    public String getLongDescription() {
+        if (null != getGroupProfile()) {
+           return getGroupProfile().longDescription;
+        }
+
+        return null;
     }
 
     /**
