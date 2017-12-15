@@ -21,7 +21,6 @@ import org.matrix.androidsdk.rest.model.group.AddGroupParams;
 import org.matrix.androidsdk.rest.model.group.CreateGroupParams;
 import org.matrix.androidsdk.rest.model.group.CreateGroupResponse;
 import org.matrix.androidsdk.rest.model.group.GetGroupsResponse;
-import org.matrix.androidsdk.rest.model.group.GetRoomsResponse;
 import org.matrix.androidsdk.rest.model.group.GetUserPublicisedGroupsResponse;
 import org.matrix.androidsdk.rest.model.group.GroupInviteUserParams;
 import org.matrix.androidsdk.rest.model.group.GroupInviteUserResponse;

@@ -15,8 +15,6 @@
  */
 package org.matrix.androidsdk.rest.model.group;
 
-import org.matrix.androidsdk.rest.model.User;
-
 import java.io.Serializable;
 
 /**

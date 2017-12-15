@@ -17,7 +17,6 @@ package org.matrix.androidsdk.rest.model.group;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.Map;
 
 /**
  * This class represents the community rooms in a group summary response.

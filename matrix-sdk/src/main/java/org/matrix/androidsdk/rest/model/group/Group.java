@@ -20,9 +20,7 @@ import android.text.TextUtils;
 import org.matrix.androidsdk.rest.model.RoomMember;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.List;
 
 /**
  * This class represents a community in Matrix.
