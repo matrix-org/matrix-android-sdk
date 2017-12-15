@@ -22,7 +22,7 @@ import java.util.List;
 /**
  * This class represents the group rooms in the server response.
  */
-public class GroupRooms implements Serializable  {
+public class GroupRooms implements Serializable {
     // estimated room count
     public Integer totalRoomCountEstimate;
 

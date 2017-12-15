@@ -2434,6 +2434,7 @@ public class MXFileStore extends MXMemoryStore {
             mGroupsToCommit.add(groupId);
         }
     }
+
     /**
      * Flush groups list
      */
@@ -2483,7 +2484,7 @@ public class MXFileStore extends MXMemoryStore {
                 Thread t = new Thread(r);
                 t.start();
             } catch (OutOfMemoryError oom) {
-                Log.e(LOG_TAG, "saveGroups : failed"  + oom.getMessage());
+                Log.e(LOG_TAG, "saveGroups : failed" + oom.getMessage());
             }
         }
     }
@@ -2509,7 +2510,7 @@ public class MXFileStore extends MXMemoryStore {
                     Object groupAsVoid = readObject("loadGroups " + filename, groupFile);
 
                     if ((null != groupAsVoid) && (groupAsVoid instanceof Group)) {
-                        Group group = (Group)groupAsVoid;
+                        Group group = (Group) groupAsVoid;
                         mGroups.put(group.getGroupId(), group);
                     } else {
                         succeed = false;

@@ -133,7 +133,7 @@ public class Group implements Serializable {
      */
     public String getLongDescription() {
         if (null != getGroupProfile()) {
-           return getGroupProfile().longDescription;
+            return getGroupProfile().longDescription;
         }
 
         return null;

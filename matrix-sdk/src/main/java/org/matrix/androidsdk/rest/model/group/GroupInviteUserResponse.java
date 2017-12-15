@@ -21,7 +21,7 @@ package org.matrix.androidsdk.rest.model.group;
 public class GroupInviteUserResponse {
     /**
      * The user state
-     *
+     * <p>
      * join - the invitee’s HS immediately accepted the invite
      * invite - the invitee’s HS accepted the invite, and then may relay to invitee’s clients
      * reject - the invitee’s HS immediately rejected the invite
