@@ -30,7 +30,7 @@ import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.RoomThirdPartyInvite;
+import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.JsonUtils;
 
@@ -99,6 +99,9 @@ public class RoomState implements Externalizable {
 
     // Informs which alias is the canonical one.
     public String alias;
+
+    // The canonical alias of the room, if any.
+    public String canonical_alias;
 
     // The name of the room as provided by the home server.
     public String name;
@@ -601,6 +604,8 @@ public class RoomState implements Externalizable {
             return alias;
         } else if (!TextUtils.isEmpty(getFirstAlias())) {
             return getFirstAlias();
+        } else if (!TextUtils.isEmpty(canonical_alias)) {
+            return canonical_alias;
         }
 
         return null;

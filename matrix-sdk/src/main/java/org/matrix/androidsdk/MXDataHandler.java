@@ -38,6 +38,7 @@ import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXMemoryStore;
 import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.groups.GroupsManager;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -54,8 +55,9 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
-import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
+import org.matrix.androidsdk.rest.model.group.InvitedGroupSync;
+import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
+import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
@@ -155,6 +157,9 @@ public class MXDataHandler implements IMXEventListener {
 
     // the crypto is only started when the sync did not retrieve new device
     private boolean mIsStartingCryptoWithInitialSync = false;
+
+    // groups manager
+    private GroupsManager mGroupsManager;
 
     /**
      * Default constructor.
@@ -277,6 +282,14 @@ public class MXDataHandler implements IMXEventListener {
         if (null != getCrypto()) {
             getCrypto().setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
         }
+    }
+
+    /**
+     * Set the groups manager.
+     * @param groupsManager the groups manager
+     */
+    public void setGroupsManager(GroupsManager groupsManager) {
+        mGroupsManager = groupsManager;
     }
 
     /**
@@ -1426,6 +1439,33 @@ public class MXDataHandler implements IMXEventListener {
                 }
             }
 
+            // groups
+            if (null != syncResponse.groups) {
+                // Handle invited groups
+                if ((null != syncResponse.groups.invite) && !syncResponse.groups.invite.isEmpty()) {
+                    // Handle invited groups
+                    for (String groupId : syncResponse.groups.invite.keySet()) {
+                        InvitedGroupSync invitedGroupSync = syncResponse.groups.invite.get(groupId);
+                        mGroupsManager.onNewGroupInvitation(groupId, invitedGroupSync.profile, invitedGroupSync.inviter, !isInitialSync);
+                    }
+                }
+
+                // Handle joined groups
+                if ((null != syncResponse.groups.join) && !syncResponse.groups.join.isEmpty()) {
+
+                    for (String groupId : syncResponse.groups.join.keySet()) {
+                        mGroupsManager.onJoinGroup(groupId, !isInitialSync);
+                    }
+                }
+                // Handle left groups
+                if ((null != syncResponse.groups.leave) && !syncResponse.groups.leave.isEmpty()) {
+                    // Handle joined groups
+                    for (String groupId : syncResponse.groups.leave.keySet()) {
+                        mGroupsManager.onLeaveGroup(groupId, !isInitialSync);
+                    }
+                }
+            }
+
             // Handle presence of other users
             if ((null != syncResponse.presence) && (null != syncResponse.presence.events)) {
                 Log.d(LOG_TAG, "Received " + syncResponse.presence.events.size() + " presence events");
@@ -2404,5 +2444,61 @@ public class MXDataHandler implements IMXEventListener {
             }
         });
     }
+
+
+    @Override
+    public void onNewGroupInvitation(final String groupId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onNewGroupInvitation(groupId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onNewGroupInvitation " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onJoinGroup(final String groupId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onJoinGroup(groupId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onJoinGroup " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onLeaveGroup(final String groupId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onLeaveGroup(groupId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onLeaveGroup " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
 
 }

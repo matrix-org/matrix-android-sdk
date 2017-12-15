@@ -19,6 +19,10 @@ package org.matrix.androidsdk.rest.model;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
+import org.matrix.androidsdk.rest.model.message.FileMessage;
+import org.matrix.androidsdk.rest.model.message.ImageMessage;
+import org.matrix.androidsdk.rest.model.message.Message;
+import org.matrix.androidsdk.rest.model.message.VideoMessage;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;

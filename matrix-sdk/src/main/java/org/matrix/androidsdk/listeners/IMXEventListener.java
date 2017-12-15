@@ -204,5 +204,26 @@ public interface IMXEventListener {
      * @param event the event
      */
     void onToDeviceEvent(Event event);
+
+    /**
+     * The user has been invited to a new group.
+     *
+     * @param groupId the group id
+     */
+    void onNewGroupInvitation(String groupId);
+
+    /**
+     * A group has been joined.
+     *
+     * @param groupId the group id
+     */
+    void onJoinGroup(String groupId);
+
+    /**
+     * A group has been left.
+     *
+     * @param groupId the group id
+     */
+    void onLeaveGroup(String groupId);
 }
 

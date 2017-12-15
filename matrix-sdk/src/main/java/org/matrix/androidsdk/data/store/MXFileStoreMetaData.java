@@ -16,7 +16,7 @@
 
 package org.matrix.androidsdk.data.store;
 
-import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
+import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
 
 import java.util.ArrayList;
 import java.util.List;

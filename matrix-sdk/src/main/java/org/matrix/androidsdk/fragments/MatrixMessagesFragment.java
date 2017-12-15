@@ -40,10 +40,10 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.RoomResponse;
-import org.matrix.androidsdk.rest.model.Sync.RoomSync;
-import org.matrix.androidsdk.rest.model.Sync.RoomSyncState;
-import org.matrix.androidsdk.rest.model.Sync.RoomSyncTimeline;
+import org.matrix.androidsdk.rest.model.sync.RoomResponse;
+import org.matrix.androidsdk.rest.model.sync.RoomSync;
+import org.matrix.androidsdk.rest.model.sync.RoomSyncState;
+import org.matrix.androidsdk.rest.model.sync.RoomSyncTimeline;
 import org.matrix.androidsdk.util.Log;
 
 import java.util.List;

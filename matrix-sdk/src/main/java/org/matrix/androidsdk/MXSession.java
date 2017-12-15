@@ -41,6 +41,7 @@ import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXStoreListener;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.groups.GroupsManager;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
@@ -50,6 +51,7 @@ import org.matrix.androidsdk.rest.client.BingRulesRestClient;
 import org.matrix.androidsdk.rest.client.CallRestClient;
 import org.matrix.androidsdk.rest.client.CryptoRestClient;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
+import org.matrix.androidsdk.rest.client.GroupsRestClient;
 import org.matrix.androidsdk.rest.client.LoginRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
@@ -58,18 +60,18 @@ import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
-import org.matrix.androidsdk.rest.model.DeleteDeviceAuth;
-import org.matrix.androidsdk.rest.model.DeleteDeviceParams;
-import org.matrix.androidsdk.rest.model.DevicesListResponse;
+import org.matrix.androidsdk.rest.model.pid.DeleteDeviceAuth;
+import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
+import org.matrix.androidsdk.rest.model.sync.DevicesListResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.MediaMessage;
-import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.message.MediaMessage;
+import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.RoomResponse;
-import org.matrix.androidsdk.rest.model.Search.SearchResponse;
-import org.matrix.androidsdk.rest.model.Search.SearchUsersResponse;
+import org.matrix.androidsdk.rest.model.sync.RoomResponse;
+import org.matrix.androidsdk.rest.model.search.SearchResponse;
+import org.matrix.androidsdk.rest.model.search.SearchUsersResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -124,6 +126,7 @@ public class MXSession {
     private final AccountDataRestClient mAccountDataRestClient;
     private final CryptoRestClient mCryptoRestClient;
     private final LoginRestClient mLoginRestClient;
+    private final GroupsRestClient mGroupsRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -156,6 +159,9 @@ public class MXSession {
     // tell if the data save mode is enabled
     private boolean mUseDataSaveMode;
 
+    // the groups manager
+    private GroupsManager mGroupsManager;
+
     // load the crypto libs.
     public static OlmManager mOlmManager = new OlmManager();
 
@@ -167,7 +173,6 @@ public class MXSession {
     public static final String MATRIX_ROOM_ALIAS_REGEX = "#[A-Z0-9._%#+-]+:[A-Z0-9.-]+\\.[A-Z]{2,}+(\\:[0-9]{2,})?";
     public static final Pattern PATTERN_CONTAIN_MATRIX_ALIAS = Pattern.compile(MATRIX_ROOM_ALIAS_REGEX, Pattern.CASE_INSENSITIVE);
 
-
     // regex pattern to find room ids in a string.
     public static final String MATRIX_ROOM_IDENTIFIER_REGEX = "![A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}+(\\:[0-9]{2,})?";
     public static final Pattern PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER = Pattern.compile(MATRIX_ROOM_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
@@ -175,6 +180,10 @@ public class MXSession {
     // regex pattern to find message ids in a string.
     public static final String MATRIX_MESSAGE_IDENTIFIER_REGEX = "\\$[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}+(\\:[0-9]{2,})?";
     public static final Pattern PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER = Pattern.compile(MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
+
+    // regex pattern to find group ids in a string.
+    public static final String MATRIX_GROUP_IDENTIFIER_REGEX = "\\+[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}+(\\:[0-9]{2,})?";
+    public static final Pattern PATTERN_CONTAIN_MATRIX_GROUP_IDENTIFIER = Pattern.compile(MATRIX_GROUP_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
 
     // regex pattern to find permalink with message id.
     // Android does not support in URL so extract it.
@@ -204,6 +213,7 @@ public class MXSession {
         mAccountDataRestClient = new AccountDataRestClient(hsConfig);
         mCryptoRestClient = new CryptoRestClient(hsConfig);
         mLoginRestClient = new LoginRestClient(hsConfig);
+        mGroupsRestClient = new GroupsRestClient(hsConfig);
     }
 
     /**
@@ -309,11 +319,15 @@ public class MXSession {
         mAccountDataRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mCryptoRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mLoginRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mGroupsRestClient.setUnsentEventsManager(mUnsentEventsManager);
 
         // return the default cache manager
         mLatestChatMessageCache = new MXLatestChatMessageCache(mCredentials.userId);
         mMediasCache = new MXMediasCache(mContentManager, mNetworkConnectivityReceiver, mCredentials.userId, appContext);
         mDataHandler.setMediasCache(mMediasCache);
+
+        mGroupsManager = new GroupsManager(mDataHandler, mGroupsRestClient);
+        mDataHandler.setGroupsManager(mGroupsManager);
     }
 
     private void checkIfAlive() {
@@ -2581,6 +2595,16 @@ public class MXSession {
     }
 
     /**
+     * Tells if a string is a valid group id.
+     *
+     * @param aGroupId the string to test
+     * @return true if the string is a valid message id.
+     */
+    public static boolean isGroupId(String aGroupId) {
+        return (null != aGroupId) && PATTERN_CONTAIN_MATRIX_GROUP_IDENTIFIER.matcher(aGroupId).matches();
+    }
+
+    /**
      * Gets a bearer token from the homeserver that the user can
      * present to a third party in order to prove their ownership
      * of the Matrix account they are logged into.
@@ -2589,5 +2613,12 @@ public class MXSession {
      */
     public void openIdToken(final ApiCallback<Map<Object, Object>> callback) {
         mAccountDataRestClient.openIdToken(getMyUserId(), callback);
+    }
+
+    /**
+     * @return the groups manager
+     */
+    public GroupsManager getGroupsManager() {
+        return mGroupsManager;
     }
 }

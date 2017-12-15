@@ -17,14 +17,14 @@
 package org.matrix.androidsdk.rest.api;
 
 import org.matrix.androidsdk.RestClient;
-import org.matrix.androidsdk.rest.model.PublicRoomsParams;
-import org.matrix.androidsdk.rest.model.PublicRoomsResponse;
-import org.matrix.androidsdk.rest.model.Search.SearchParams;
-import org.matrix.androidsdk.rest.model.Search.SearchResponse;
-import org.matrix.androidsdk.rest.model.Search.SearchUsersParams;
-import org.matrix.androidsdk.rest.model.Search.SearchUsersRequestResponse;
-import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
-import org.matrix.androidsdk.rest.model.ThirdPartyProtocol;
+import org.matrix.androidsdk.rest.model.pid.ThirdPartyProtocol;
+import org.matrix.androidsdk.rest.model.publicroom.PublicRoomsParams;
+import org.matrix.androidsdk.rest.model.publicroom.PublicRoomsResponse;
+import org.matrix.androidsdk.rest.model.search.SearchParams;
+import org.matrix.androidsdk.rest.model.search.SearchResponse;
+import org.matrix.androidsdk.rest.model.search.SearchUsersParams;
+import org.matrix.androidsdk.rest.model.search.SearchUsersRequestResponse;
+import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 
 import java.util.Map;
 
