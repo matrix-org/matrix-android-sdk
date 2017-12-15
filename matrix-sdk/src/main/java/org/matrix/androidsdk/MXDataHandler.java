@@ -1889,6 +1889,7 @@ public class MXDataHandler implements IMXEventListener {
     public void updateEventState(Event event, Event.SentState newState) {
         if ((null != event) && (event.mSentState != newState)) {
             event.mSentState = newState;
+            getStore().flushRoomEvents(event.roomId);
             onEventSentStateUpdated(event);
         }
     }
