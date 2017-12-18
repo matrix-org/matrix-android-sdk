@@ -1,3 +1,12 @@
+Changes to Matrix Android SDK in 0.8.07 (2017-12-18)
+=======================================================
+
+Bugfixes:
+
+* Manage string or boolean value for BingRule highlight
+* #1799 : Riot often chokes on messages 
+* #1802 : Expected status header not present. Restore okhttp*.2.2 until we update to OKHtpp 3.X.
+
 Changes to Matrix Android SDK in 0.8.06 (2017-12-06)
 =======================================================
 

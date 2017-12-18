@@ -280,7 +280,14 @@ public class BingRule {
             shouldHighlight = true;
 
             if (actionMap.containsKey(ACTION_PARAMETER_VALUE)) {
-                shouldHighlight = ((boolean) actionMap.get(ACTION_PARAMETER_VALUE));
+                Object valueAsVoid = actionMap.get(ACTION_PARAMETER_VALUE);
+
+                if (valueAsVoid instanceof Boolean) {
+                    shouldHighlight = (boolean) valueAsVoid;
+                } else if (valueAsVoid instanceof String) {
+                    shouldHighlight = TextUtils.equals((String) valueAsVoid, "true");
+                    Log.e(LOG_TAG, "## shouldHighlight() : unexpected type " + valueAsVoid);
+                }
             }
         }
 
