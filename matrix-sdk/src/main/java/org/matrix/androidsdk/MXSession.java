@@ -182,7 +182,7 @@ public class MXSession {
     public static final Pattern PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER = Pattern.compile(MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
 
     // regex pattern to find group ids in a string.
-    public static final String MATRIX_GROUP_IDENTIFIER_REGEX = "\\+[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}+(\\:[0-9]{2,})?";
+    public static final String MATRIX_GROUP_IDENTIFIER_REGEX = "\\+[A-Z0-9=_\\-./]+:[A-Z0-9.-]+\\.[A-Z]{2,}+(\\:[0-9]{2,})?";
     public static final Pattern PATTERN_CONTAIN_MATRIX_GROUP_IDENTIFIER = Pattern.compile(MATRIX_GROUP_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
 
     // regex pattern to find permalink with message id.
