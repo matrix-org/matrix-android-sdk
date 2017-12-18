@@ -471,13 +471,13 @@ public class GroupsManager {
 
 
     /**
-     * Refresh the group data i.e the invited users list, the users list and the ooms list.
+     * Refresh the group data i.e the invited users list, the users list and the rooms list.
      *
-     * @param groupId  the group id
+     * @param group  the group
      * @param callback the asynchronous callback
      */
-    public void refreshGroupData(String groupId, ApiCallback<Void> callback) {
-        refreshGroupData(groupId, GROUP_REFRESH_STEP_PROFILE, callback);
+    public void refreshGroupData(Group group, ApiCallback<Void> callback) {
+        refreshGroupData(group, GROUP_REFRESH_STEP_PROFILE, callback);
     }
 
     private static final int GROUP_REFRESH_STEP_PROFILE = 0;
@@ -488,24 +488,18 @@ public class GroupsManager {
     /**
      * Internal method to refresh the group informations.
      *
-     * @param groupId  the group id
+     * @param group  the group
      * @param step     the current step
      * @param callback the asynchronous callback
      */
-    private void refreshGroupData(final String groupId, final int step, final ApiCallback<Void> callback) {
+    private void refreshGroupData(final Group group, final int step, final ApiCallback<Void> callback) {
         if (step == GROUP_REFRESH_STEP_PROFILE) {
-            getGroupsRestClient().getGroupProfile(groupId, new ApiCallback<GroupProfile>() {
+            getGroupsRestClient().getGroupProfile(group.getGroupId(), new ApiCallback<GroupProfile>() {
                 @Override
                 public void onSuccess(GroupProfile groupProfile) {
-                    Group group = getGroup(groupId);
-
-                    if (null != group) {
-                        group.setGroupProfile(groupProfile);
-                        mStore.flushGroup(group);
-                        refreshGroupData(groupId, GROUP_REFRESH_STEP_ROOMS_LIST, callback);
-                    } else {
-                        callback.onSuccess(null);
-                    }
+                    group.setGroupProfile(groupProfile);
+                    mStore.flushGroup(group);
+                    refreshGroupData(group, GROUP_REFRESH_STEP_ROOMS_LIST, callback);
                 }
 
                 @Override
@@ -528,18 +522,12 @@ public class GroupsManager {
         }
 
         if (step == GROUP_REFRESH_STEP_ROOMS_LIST) {
-            getGroupsRestClient().getGroupRooms(groupId, new ApiCallback<GroupRooms>() {
+            getGroupsRestClient().getGroupRooms(group.getGroupId(), new ApiCallback<GroupRooms>() {
                 @Override
                 public void onSuccess(GroupRooms groupRooms) {
-                    Group group = getGroup(groupId);
-
-                    if (null != group) {
-                        group.setGroupRooms(groupRooms);
-                        mStore.flushGroup(group);
-                        refreshGroupData(groupId, GROUP_REFRESH_STEP_USERS_LIST, callback);
-                    } else {
-                        callback.onSuccess(null);
-                    }
+                    group.setGroupRooms(groupRooms);
+                    mStore.flushGroup(group);
+                    refreshGroupData(group, GROUP_REFRESH_STEP_USERS_LIST, callback);
                 }
 
                 @Override
@@ -561,18 +549,12 @@ public class GroupsManager {
         }
 
         if (step == GROUP_REFRESH_STEP_USERS_LIST) {
-            getGroupsRestClient().getGroupUsers(groupId, new ApiCallback<GroupUsers>() {
+            getGroupsRestClient().getGroupUsers(group.getGroupId(), new ApiCallback<GroupUsers>() {
                 @Override
                 public void onSuccess(GroupUsers groupUsers) {
-                    Group group = getGroup(groupId);
-
-                    if (null != group) {
-                        group.setGroupUsers(groupUsers);
-                        mStore.flushGroup(group);
-                        refreshGroupData(groupId, GROUP_REFRESH_STEP_INVITED_USERS_LIST, callback);
-                    } else {
-                        callback.onSuccess(null);
-                    }
+                    group.setGroupUsers(groupUsers);
+                    mStore.flushGroup(group);
+                    refreshGroupData(group, GROUP_REFRESH_STEP_INVITED_USERS_LIST, callback);
                 }
 
                 @Override
@@ -596,16 +578,14 @@ public class GroupsManager {
 
         //if (step == GROUP_REFRESH_STEP_INVITED_USERS_LIST)
 
-        getGroupsRestClient().getGroupInvitedUsers(groupId, new ApiCallback<GroupUsers>() {
+        getGroupsRestClient().getGroupInvitedUsers(group.getGroupId(), new ApiCallback<GroupUsers>() {
             @Override
             public void onSuccess(GroupUsers groupUsers) {
-                Group group = getGroup(groupId);
+                group.setInvitedGroupUsers(groupUsers);
 
-                if (null != group) {
-                    group.setInvitedGroupUsers(groupUsers);
+                if (null != mStore.getGroup(group.getGroupId())) {
                     mStore.flushGroup(group);
                 }
-
                 callback.onSuccess(null);
             }
 
