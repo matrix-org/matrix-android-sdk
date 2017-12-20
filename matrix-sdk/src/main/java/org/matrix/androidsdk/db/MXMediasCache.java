@@ -23,9 +23,11 @@ import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.Looper;
 import android.text.TextUtils;
 
+import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.util.Log;
@@ -41,6 +43,7 @@ import org.matrix.androidsdk.listeners.MXMediaDownloadListener;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.ContentUtils;
+import org.matrix.androidsdk.util.MXOsHandler;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -51,6 +54,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.RunnableFuture;
 
 public class MXMediasCache {
 
@@ -59,10 +63,12 @@ public class MXMediasCache {
     /**
      * The medias folders.
      */
-    private static final String MXMEDIA_STORE_FOLDER = "MXMediaStore";
+    private static final String MXMEDIA_STORE_FOLDER_OLD = "MXMediaStore";
+    private static final String MXMEDIA_STORE_FOLDER_NEW = "MXMediaStore2";
     private static final String MXMEDIA_STORE_MEMBER_THUMBNAILS_FOLDER = "MXMemberThumbnailsStore";
     private static final String MXMEDIA_STORE_IMAGES_FOLDER = "Images";
     private static final String MXMEDIA_STORE_OTHERS_FOLDER = "Others";
+    private static final String MXMEDIA_STORE_TMP_FOLDER = "tmp";
 
     /**
      * The content manager
@@ -77,31 +83,15 @@ public class MXMediasCache {
     private File mOthersFolderFile = null;
     private File mThumbnailsFolderFile = null;
 
+    private File mTmpFolderFile = null;
+
     // track the network updates
     private final NetworkConnectivityReceiver mNetworkConnectivityReceiver;
 
-    /**
-     * Clear the former medias cache.
-     * The dirtree has been updated.
-     *
-     * @param directory The upper directory file.
-     */
-    private void cleanFormerMediasCache(File directory) {
-        File[] files = directory.listFiles();
-
-        if (null != files) {
-            for (int i = 0; i < files.length; i++) {
-                if (!files[i].isDirectory()) {
-                    String fileName = files[i].getName();
-
-                    // remove standard medias 
-                    if (fileName.endsWith(".jpeg") || fileName.endsWith(".jpg") || fileName.endsWith(".tmp") || fileName.endsWith(".gif")) {
-                        files[i].delete();
-                    }
-                }
-            }
-        }
-    }
+    // the background thread
+    static HandlerThread mDecryptingHandlerThread = null;
+    static MXOsHandler mDecryptingHandler = null;
+    static android.os.Handler mUIHandler = null;
 
     /**
      * Constructor
@@ -115,10 +105,15 @@ public class MXMediasCache {
         mContentManager = contentManager;
         mNetworkConnectivityReceiver = networkConnectivityReceiver;
 
-        File mediaBaseFolderFile = new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER);
+        File mediaBaseFolderFile = new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER_OLD);
+
+        if (mediaBaseFolderFile.exists()) {
+            ContentUtils.deleteDirectory(mediaBaseFolderFile);
+        }
+
+        mediaBaseFolderFile = new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER_NEW);
 
         if (!mediaBaseFolderFile.exists()) {
-            cleanFormerMediasCache(context.getApplicationContext().getFilesDir());
             mediaBaseFolderFile.mkdirs();
         }
 
@@ -126,8 +121,22 @@ public class MXMediasCache {
         mMediasFolderFile = new File(mediaBaseFolderFile, userID);
         mImagesFolderFile = new File(mMediasFolderFile, MXMEDIA_STORE_IMAGES_FOLDER);
         mOthersFolderFile = new File(mMediasFolderFile, MXMEDIA_STORE_OTHERS_FOLDER);
+        mTmpFolderFile = new File(mMediasFolderFile, MXMEDIA_STORE_TMP_FOLDER);
+
+        if (mTmpFolderFile.exists()) {
+            ContentUtils.deleteDirectory(mTmpFolderFile);
+        }
+        mTmpFolderFile.mkdirs();
 
         mThumbnailsFolderFile = new File(mediaBaseFolderFile, MXMEDIA_STORE_MEMBER_THUMBNAILS_FOLDER);
+
+        // use the same thread for all the sessions
+        if (null == mDecryptingHandlerThread) {
+            mDecryptingHandlerThread = new HandlerThread("MXMediaDecryptingBackgroundThread", Thread.MIN_PRIORITY);
+            mDecryptingHandlerThread.start();
+            mDecryptingHandler = new MXOsHandler(mDecryptingHandlerThread.getLooper());
+            mUIHandler = new Handler(Looper.getMainLooper());
+        }
     }
 
     /**
@@ -192,7 +201,7 @@ public class MXMediasCache {
         AsyncTask<Void, Void, Long> task = new AsyncTask<Void, Void, Long>() {
             @Override
             protected Long doInBackground(Void... params) {
-                return ContentUtils.getDirectorySize(context, new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER), 1);
+                return ContentUtils.getDirectorySize(context, new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER_NEW), 1);
             }
 
             @Override
@@ -285,7 +294,7 @@ public class MXMediasCache {
      * @param applicationContext the application context
      */
     public static void clearThumbnailsCache(Context applicationContext) {
-        ContentUtils.deleteDirectory(new File(new File(applicationContext.getApplicationContext().getFilesDir(), MXMediasCache.MXMEDIA_STORE_FOLDER), MXMEDIA_STORE_MEMBER_THUMBNAILS_FOLDER));
+        ContentUtils.deleteDirectory(new File(new File(applicationContext.getApplicationContext().getFilesDir(), MXMediasCache.MXMEDIA_STORE_FOLDER_NEW), MXMEDIA_STORE_MEMBER_THUMBNAILS_FOLDER));
     }
 
     /**
@@ -340,24 +349,13 @@ public class MXMediasCache {
     /**
      * Return the cache file name for a media defined by its URL and its mimetype.
      *
-     * @param url      the media url
-     * @param mimeType the mime type
-     * @return the media file it is found
-     */
-    public File mediaCacheFile(String url, String mimeType) {
-        return mediaCacheFile(url, -1, -1, mimeType);
-    }
-
-    /**
-     * Return the cache file name for a media defined by its URL and its mimetype.
-     *
      * @param url      the media URL
      * @param width    the media width
      * @param height   the media height
      * @param mimeType the media mime type
      * @return the media file it is found
      */
-    public File mediaCacheFile(String url, int width, int height, String mimeType) {
+    private File mediaCacheFile(String url, int width, int height, String mimeType) {
         // sanity check
         if (null == url) {
             return null;
@@ -383,6 +381,112 @@ public class MXMediasCache {
         }
 
         return null;
+    }
+
+    /**
+     * Tells if a media is cached
+     *
+     * @param url      the url
+     * @param mimeType the mimetype
+     * @return true if the media is cached
+     */
+    public boolean isMediaCached(String url, String mimeType) {
+        return isMediaCached(url, -1, -1, mimeType);
+    }
+
+    /**
+     * Tells if a media is cached
+     *
+     * @param url      the media URL
+     * @param width    the media width
+     * @param height   the media height
+     * @param mimeType the media mime type
+     * @return the media file is cached
+     */
+    public boolean isMediaCached(String url, int width, int height, String mimeType) {
+        return null != mediaCacheFile(url, width, height, mimeType);
+    }
+
+    /**
+     * Create a temporary copy of a media.
+     * It must be released when it is not anymore used with clearTmpCache().
+     *
+     * @param url               the url
+     * @param mimeType          the mimetype
+     * @param encryptedFileInfo the encryption information
+     * @param callback          the asynchronous callback
+     * @return true if the file is cached
+     */
+    public boolean createTmpMediaFile(String url, String mimeType, EncryptedFileInfo encryptedFileInfo, SimpleApiCallback<File> callback) {
+        return createTmpMediaFile(url, -1, -1, mimeType, encryptedFileInfo, callback);
+    }
+
+    /**
+     * Create a temporary copy of a media.
+     * It must be released when it is not anymore used with clearTmpCache().
+     *
+     * @param url               the media URL
+     * @param width             the media width
+     * @param height            the media height
+     * @param mimeType          the media mime type
+     * @param encryptedFileInfo the encryption information
+     * @param callback          the asynchronous callback
+     * @return true if the file is cached
+     */
+    public boolean createTmpMediaFile(String url, int width, int height, String mimeType, final EncryptedFileInfo encryptedFileInfo, final SimpleApiCallback<File> callback) {
+        final File file = mediaCacheFile(url, width, height, mimeType);
+
+        if (null != file) {
+            mDecryptingHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    final File tmpFile = new File(mTmpFolderFile, file.getName());
+
+                    // create it if it does not exist
+                    if (!tmpFile.exists()) {
+                        try {
+                            InputStream fis = new FileInputStream(file);
+
+                            if (null != encryptedFileInfo) {
+                                InputStream is = MXEncryptedAttachments.decryptAttachment(fis, encryptedFileInfo);
+                                fis.close();
+                                fis = is;
+                            }
+
+                            FileOutputStream fos = new FileOutputStream(tmpFile);
+                            byte[] buf = new byte[2048];
+                            int len;
+                            while ((len = fis.read(buf)) != -1) {
+                                fos.write(buf, 0, len);
+                            }
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "## createTmpMediaFile() failed " + e.getMessage());
+                        }
+                    }
+
+                    mUIHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onSuccess(tmpFile);
+                        }
+                    });
+                }
+            });
+        }
+        return (null != file);
+    }
+
+    /**
+     * Clear the temporary cache file
+     */
+    public void clearTmpCache() {
+        if (mTmpFolderFile.exists()) {
+            ContentUtils.deleteDirectory(mTmpFolderFile);
+        }
+
+        if (!mTmpFolderFile.exists()) {
+            mTmpFolderFile.mkdirs();
+        }
     }
 
     /**
@@ -719,7 +823,7 @@ public class MXMediasCache {
         }
 
         // is the media already downloaded ?
-        if (null != mediaCacheFile(url, mimeType)) {
+        if (isMediaCached(url, mimeType)) {
             return null;
         }
 
@@ -803,11 +907,6 @@ public class MXMediasCache {
     }
 
     /**
-     * Handler to post events on UI thread
-     */
-    private static Handler mUIHandler = null;
-
-    /**
      * The default bitmap to use when the media cannot be retrieved.
      */
     private static Bitmap mDefaultBitmap = null;
@@ -875,7 +974,7 @@ public class MXMediasCache {
             mDefaultBitmap = BitmapFactory.decodeResource(context.getResources(), android.R.drawable.ic_menu_gallery);
         }
 
-        Bitmap defaultBimap = (null == aDefaultBitmap) ? mDefaultBitmap : aDefaultBitmap;
+        final Bitmap defaultBitmap = (null == aDefaultBitmap) ? mDefaultBitmap : aDefaultBitmap;
         String downloadableUrl;
 
         // it is not possible to resize an encrypted image
@@ -905,34 +1004,19 @@ public class MXMediasCache {
             mimeType = "image/jpeg";
         }
 
-        // check if the bitmap is already cached
-        final Bitmap bitmap = (MXMediaDownloadWorkerTask.isMediaUrlUnreachable(downloadableUrl)) ? defaultBimap : MXMediaDownloadWorkerTask.bitmapForURL(context.getApplicationContext(), folderFile, downloadableUrl, rotationAngle, mimeType);
-
-        if (null != bitmap) {
-            if (null != imageView) {
-                if (Looper.getMainLooper().getThread() == Thread.currentThread()) {
-                    // display it
-                    imageView.setImageBitmap(bitmap);
-                } else {
-                    // init
-                    if (null == mUIHandler) {
-                        mUIHandler = new Handler(Looper.getMainLooper());
+        boolean isCached = MXMediaDownloadWorkerTask.bitmapForURL(context.getApplicationContext(), folderFile, downloadableUrl, rotationAngle, mimeType, encryptionInfo, new SimpleApiCallback<Bitmap>() {
+            @Override
+            public void onSuccess(Bitmap bitmap) {
+                if (null != imageView) {
+                    if (TextUtils.equals(fDownloadableUrl, (String) imageView.getTag())) {
+                        // display it
+                        imageView.setImageBitmap((null != bitmap) ? bitmap : defaultBitmap);
                     }
-
-                    // handle any thread management
-                    // the image should be loaded from any thread
-                    mUIHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (TextUtils.equals(fDownloadableUrl, (String) imageView.getTag())) {
-                                // display it
-                                imageView.setImageBitmap(bitmap);
-                            }
-                        }
-                    });
                 }
             }
+        });
 
+        if (isCached) {
             downloadableUrl = null;
         } else {
             MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadableUrl);
@@ -949,7 +1033,7 @@ public class MXMediasCache {
                     task.addImageView(imageView);
                 }
 
-                task.setDefaultBitmap(defaultBimap);
+                task.setDefaultBitmap(defaultBitmap);
 
                 // check at the end of the download, if a suspended task can be launched again.
                 task.addDownloadListener(new MXMediaDownloadListener() {

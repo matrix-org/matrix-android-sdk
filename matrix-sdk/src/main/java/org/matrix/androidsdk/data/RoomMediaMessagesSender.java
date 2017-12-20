@@ -614,10 +614,12 @@ class RoomMediaMessagesSender {
         mEncodingHandler.post(new Runnable() {
             @Override
             public void run() {
+                final MXMediasCache mediasCache = mDataHandler.getMediasCache();
+
                 Uri uri = Uri.parse(url);
                 String mimeType = fMimeType;
-
                 final MXEncryptedAttachments.EncryptionResult encryptionResult;
+                final Uri encryptedUri;
                 InputStream stream;
 
                 try {
@@ -627,8 +629,10 @@ class RoomMediaMessagesSender {
                         stream.close();
 
                         if (null != encryptionResult) {
-                            stream = encryptionResult.mEncryptedStream;
                             mimeType = "application/octet-stream";
+                            encryptedUri = Uri.parse(mediasCache.saveMedia(encryptionResult.mEncryptedStream, null, fMimeType));
+                            File file = new File(encryptedUri.getPath());
+                            stream = new FileInputStream(file);
                         } else {
                             skip();
 
@@ -647,6 +651,7 @@ class RoomMediaMessagesSender {
                         }
                     } else {
                         encryptionResult = null;
+                        encryptedUri = null;
                     }
                 } catch (Exception e) {
                     skip();
@@ -654,8 +659,6 @@ class RoomMediaMessagesSender {
                 }
 
                 mDataHandler.updateEventState(roomMediaMessage.getEvent(), Event.SentState.SENDING);
-
-                final MXMediasCache mediasCache = mDataHandler.getMediasCache();
 
                 mediasCache.uploadContent(stream, mediaMessage.isThumbnailLocalContent() ? ("thumb" + message.body) : message.body, mimeType, url, new MXMediaUploadListener() {
                     @Override
@@ -717,7 +720,12 @@ class RoomMediaMessagesSender {
                                     mediaMessage.setThumbnailUrl(encryptionResult, contentUri);
 
                                     if (null != encryptionResult) {
-                                        mediasCache.saveFileMediaForUrl(contentUri, url, -1, -1, "image/jpeg");
+                                        mediasCache.saveFileMediaForUrl(contentUri, encryptedUri.toString(), -1, -1, "image/jpeg");
+                                        try {
+                                            new File(Uri.parse(url).getPath()).delete();
+                                        } catch (Exception e) {
+                                            Log.e(LOG_TAG, "## cannot delete the uncompress media");
+                                        }
                                     } else {
                                         Pair<Integer, Integer> thumbnailSize = roomMediaMessage.getThumnailSize();
                                         mediasCache.saveFileMediaForUrl(contentUri, url, thumbnailSize.first, thumbnailSize.second, "image/jpeg");
@@ -733,8 +741,18 @@ class RoomMediaMessagesSender {
                                     // upload the media
                                     uploadMedias(roomMediaMessage);
                                 } else {
-                                    // replace the thumbnail and the media contents by the computed one
-                                    mediasCache.saveFileMediaForUrl(contentUri, url, mediaMessage.getMimeType());
+                                    if (null != encryptedUri) {
+                                        // replace the thumbnail and the media contents by the computed one
+                                        mediasCache.saveFileMediaForUrl(contentUri, encryptedUri.toString(), mediaMessage.getMimeType());
+                                        try {
+                                            new File(Uri.parse(url).getPath()).delete();
+                                        } catch (Exception e) {
+                                            Log.e(LOG_TAG, "## cannot delete the uncompress media");
+                                        }
+                                    } else {
+                                        // replace the thumbnail and the media contents by the computed one
+                                        mediasCache.saveFileMediaForUrl(contentUri, url, mediaMessage.getMimeType());
+                                    }
                                     mediaMessage.setUrl(encryptionResult, contentUri);
 
                                     // update the event content with the new message info
