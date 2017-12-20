@@ -1056,6 +1056,10 @@ public class MXSession {
         } else {
             Log.e(LOG_TAG, "pauseEventStream : mEventsThread is null");
         }
+
+        if (null != getMediasCache()) {
+            getMediasCache().clearTmpCache();
+        }
     }
 
     /**
