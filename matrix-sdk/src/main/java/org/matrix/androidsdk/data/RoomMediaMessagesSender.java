@@ -336,13 +336,18 @@ class RoomMediaMessagesSender {
         }
 
         // a text message cannot be null
-        if (TextUtils.isEmpty(text)) {
+        if (TextUtils.isEmpty(text) && !TextUtils.equals(roomMediaMessage.getMessageType(), Message.MSGTYPE_EMOTE)) {
             return null;
         }
 
         Message message = new Message();
         message.msgtype = (null == roomMediaMessage.getMessageType()) ? Message.MSGTYPE_TEXT : roomMediaMessage.getMessageType();
         message.body = text;
+
+        // an emote can have an empty body
+        if (null == message.body) {
+            message.body = "";
+        }
 
         if (!TextUtils.isEmpty(htmlText)) {
             message.formatted_body = htmlText;
