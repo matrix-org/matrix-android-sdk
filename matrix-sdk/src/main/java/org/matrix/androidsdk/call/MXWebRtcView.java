@@ -56,7 +56,7 @@ public class MXWebRtcView extends ViewGroup {
      */
     private static final Method IS_IN_LAYOUT;
 
-    private static final String TAG = MXWebRtcView.TAG;
+    private static final String TAG = MXWebRtcView.class.getSimpleName();
 
     static {
         // IS_IN_LAYOUT
