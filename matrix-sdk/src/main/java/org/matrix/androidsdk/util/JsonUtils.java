@@ -23,6 +23,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.json.ConditionDeserializer;
 import org.matrix.androidsdk.rest.model.ContentResponse;
@@ -50,6 +51,7 @@ import org.matrix.androidsdk.rest.model.message.VideoMessage;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Locale;
@@ -123,50 +125,113 @@ public class JsonUtils {
             .registerTypeAdapter(Condition.class, new ConditionDeserializer())
             .create();
 
+    /**
+     * Provides the JSON parser.
+     *
+     * @param withNullSerialization true to serialise the null parameters
+     * @return the JSON parser
+     */
     public static Gson getGson(boolean withNullSerialization) {
         return withNullSerialization ? gsonWithNullSerialization : gson;
     }
 
+    /**
+     * Convert a JSON object to a room state.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return a room state
+     */
     public static RoomState toRoomState(JsonElement jsonObject) {
+        RoomState roomState = null;
+
         try {
-            return gson.fromJson(jsonObject, RoomState.class);
+            roomState = gson.fromJson(jsonObject, RoomState.class);
         } catch (Exception e) {
             Log.e(LOG_TAG, "## toRoomState failed " + e.getMessage());
         }
 
-        return new RoomState();
+        if (null == roomState) {
+            roomState = new RoomState();
+        }
+
+        return roomState;
     }
 
+    /**
+     * Convert a JSON object to an User.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return an user
+     */
     public static User toUser(JsonElement jsonObject) {
+        User user = null;
+
         try {
-            return gson.fromJson(jsonObject, User.class);
+            user = gson.fromJson(jsonObject, User.class);
         } catch (Exception e) {
             Log.e(LOG_TAG, "## toUser failed " + e.getMessage());
         }
 
-        return new User();
+        if (null == user) {
+            user = new User();
+        }
+
+        return user;
     }
 
+    /**
+     * Convert a JSON object to a RoomMember.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return a RoomMember
+     */
     public static RoomMember toRoomMember(JsonElement jsonObject) {
+        RoomMember roomMember = null;
+
         try {
-            return gson.fromJson(jsonObject, RoomMember.class);
+            roomMember = gson.fromJson(jsonObject, RoomMember.class);
         } catch (Exception e) {
             Log.e(LOG_TAG, "## toRoomMember failed " + e.getMessage());
         }
 
-        return new RoomMember();
+        if (null == roomMember) {
+            roomMember = new RoomMember();
+        }
+
+        return roomMember;
     }
 
+    /**
+     * Convert a JSON object to a RoomTags.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return a RoomTags
+     */
     public static RoomTags toRoomTags(JsonElement jsonObject) {
+        RoomTags roomTags = null;
+
         try {
-            return gson.fromJson(jsonObject, RoomTags.class);
+            roomTags = gson.fromJson(jsonObject, RoomTags.class);
         } catch (Exception e) {
             Log.e(LOG_TAG, "## toRoomTags failed " + e.getMessage());
         }
 
-        return new RoomTags();
+        if (null == roomTags) {
+            roomTags = new RoomTags();
+        }
+
+        return roomTags;
     }
 
+    /**
+     *
+     * @param jsonObject
+     * @return
+     */
     public static MatrixError toMatrixError(JsonElement jsonObject) {
         try {
             return gson.fromJson(jsonObject, MatrixError.class);
@@ -431,6 +496,28 @@ public class JsonUtils {
         }
 
         return new NewDeviceContent();
+    }
+
+    private static Object toClass(JsonElement jsonObject, Class aClass) {
+        Object object = null;
+
+        try {
+            object = gson.fromJson(jsonObject, aClass);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toClass failed " + e.getMessage());
+        }
+
+        if (null == object) {
+            Constructor<?>[] constructors = aClass.getConstructors();
+
+            try {
+                object = constructors[0].newInstance();
+            } catch (Throwable t) {
+                Log.e(LOG_TAG, "## toClass failed " + t.getMessage());
+            }
+        }
+
+        return object;
     }
 
     /**
