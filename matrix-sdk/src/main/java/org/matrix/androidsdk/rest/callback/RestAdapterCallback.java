@@ -23,6 +23,7 @@ import org.matrix.androidsdk.util.UnsentEventsManager;
 import retrofit.Callback;
 import retrofit.RetrofitError;
 import retrofit.client.Response;
+import retrofit.converter.ConversionException;
 import retrofit.mime.TypedByteArray;
 import retrofit.mime.TypedInput;
 
@@ -148,6 +149,9 @@ public class RestAdapterCallback<T> implements Callback<T> {
         if (null != error.getResponse()) {
             retry = (error.getResponse().getStatus() < 400) || (error.getResponse().getStatus() > 500);
         }
+
+        // do not retry if the response format is not the expected one.
+        retry &= (null == error.getCause()) || !(error.getCause() instanceof ConversionException);
 
         if (retry && (null != mUnsentEventsManager)) {
             Log.d(LOG_TAG, "Add it to the UnsentEventsManager");
