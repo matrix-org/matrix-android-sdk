@@ -586,8 +586,11 @@ public class MXWebRtcCall extends MXCall {
             }
         }
 
+        Log.d(LOG_TAG, "## createLocalStream(): " + iceServers.size() + " known ice servers");
+
         // define at least on server
-        if (iceServers.size() == 0) {
+        if (iceServers.isEmpty()) {
+            Log.d(LOG_TAG, "## createLocalStream(): use the default google server");
             iceServers.add(new PeerConnection.IceServer("stun:stun.l.google.com:19302"));
         }
 
@@ -723,7 +726,6 @@ public class MXWebRtcCall extends MXCall {
                                                 lastContent.add("candidates", lastContentCandidates);
 
                                                 // don't need to save anything, lastContent is a reference not a copy
-
                                                 addIt = false;
                                             }
                                         } catch (Exception e) {
