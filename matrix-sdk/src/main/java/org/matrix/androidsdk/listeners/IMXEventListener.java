@@ -225,5 +225,33 @@ public interface IMXEventListener {
      * @param groupId the group id
      */
     void onLeaveGroup(String groupId);
+
+    /**
+     * The group file has been updated.
+     *
+     * @param groupId the group id
+     */
+    void onGroupProfileUpdate(String groupId);
+
+    /**
+     * The group rooms list has been updated.
+     *
+     * @param groupId the group id
+     */
+    void onGroupRoomsListUpdate(String groupId);
+
+    /**
+     * The group users id list has been updated.
+     *
+     * @param groupId the group id
+     */
+    void onGroupUsersListUpdate(String groupId);
+
+    /**
+     * The group invited users id list has been updated.
+     *
+     * @param groupId the group id
+     */
+    void onGroupInvitedUsersListUpdate(String groupId);
 }
 

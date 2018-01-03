@@ -326,6 +326,7 @@ public class GroupsManager {
                     mStore.flushGroup(group);
                 }
 
+                mDataHandler.onGroupProfileUpdate(groupId);
                 onDone();
             }
 
@@ -499,6 +500,7 @@ public class GroupsManager {
                 public void onSuccess(GroupProfile groupProfile) {
                     group.setGroupProfile(groupProfile);
                     mStore.flushGroup(group);
+                    mDataHandler.onGroupProfileUpdate(group.getGroupId());
                     refreshGroupData(group, GROUP_REFRESH_STEP_ROOMS_LIST, callback);
                 }
 
@@ -527,6 +529,7 @@ public class GroupsManager {
                 public void onSuccess(GroupRooms groupRooms) {
                     group.setGroupRooms(groupRooms);
                     mStore.flushGroup(group);
+                    mDataHandler.onGroupRoomsListUpdate(group.getGroupId());
                     refreshGroupData(group, GROUP_REFRESH_STEP_USERS_LIST, callback);
                 }
 
@@ -554,6 +557,7 @@ public class GroupsManager {
                 public void onSuccess(GroupUsers groupUsers) {
                     group.setGroupUsers(groupUsers);
                     mStore.flushGroup(group);
+                    mDataHandler.onGroupUsersListUpdate(group.getGroupId());
                     refreshGroupData(group, GROUP_REFRESH_STEP_INVITED_USERS_LIST, callback);
                 }
 
@@ -586,6 +590,7 @@ public class GroupsManager {
                 if (null != mStore.getGroup(group.getGroupId())) {
                     mStore.flushGroup(group);
                 }
+                mDataHandler.onGroupInvitedUsersListUpdate(group.getGroupId());
                 callback.onSuccess(null);
             }
 

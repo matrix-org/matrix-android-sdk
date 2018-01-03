@@ -142,4 +142,20 @@ public class MXEventListener implements IMXEventListener {
     @Override
     public void onLeaveGroup(String groupId) {
     }
+    
+    @Override
+    public void onGroupProfileUpdate(String groupId) {
+    }
+
+    @Override
+    public void onGroupRoomsListUpdate(String groupId) {
+    }
+
+    @Override
+    public void onGroupUsersListUpdate(String groupId) {
+    }
+
+    @Override
+    public void onGroupInvitedUsersListUpdate(String groupId) {
+    }
 }

@@ -2500,5 +2500,75 @@ public class MXDataHandler implements IMXEventListener {
         });
     }
 
+    @Override
+    public void onGroupProfileUpdate(final String groupId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onGroupProfileUpdate(groupId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onGroupProfileUpdate " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onGroupRoomsListUpdate(final String groupId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onGroupRoomsListUpdate(groupId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onGroupRoomsListUpdate " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onGroupUsersListUpdate(final String groupId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onGroupUsersListUpdate(groupId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onGroupUsersListUpdate " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onGroupInvitedUsersListUpdate(final String groupId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onGroupInvitedUsersListUpdate(groupId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onGroupInvitedUsersListUpdate " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
 }

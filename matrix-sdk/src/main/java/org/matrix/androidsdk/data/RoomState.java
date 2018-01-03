@@ -138,6 +138,9 @@ public class RoomState implements Externalizable {
     // the encryption algorithm
     public String algorithm;
 
+    // group ids list which should be displayed
+    public List<String> groups;
+
     /**
      * The number of unread messages that match the push notification rules.
      * It is based on the notificationCount field in /sync response.
@@ -231,6 +234,13 @@ public class RoomState implements Externalizable {
         } else {
             return avatar_url;
         }
+    }
+
+    /**
+     * @return the related group ids list (cannot be null)
+     */
+    public List<String> getRelatedGroups() {
+        return (null == groups) ? new ArrayList<String>() : groups;
     }
 
     /**
@@ -548,7 +558,6 @@ public class RoomState implements Externalizable {
      * @return the copy
      */
     public RoomState deepCopy() {
-
         RoomState copy = new RoomState();
         copy.roomId = roomId;
         copy.setPowerLevels((powerLevels == null) ? null : powerLevels.deepCopy());
@@ -565,6 +574,7 @@ public class RoomState implements Externalizable {
         copy.visibility = visibility;
         copy.roomAliasName = roomAliasName;
         copy.token = token;
+        copy.groups = groups;
         copy.mDataHandler = mDataHandler;
         copy.mMembership = mMembership;
         copy.mIsLive = mIsLive;
@@ -856,6 +866,9 @@ public class RoomState implements Externalizable {
             } else if (Event.EVENT_TYPE_STATE_ROOM_AVATAR.equals(eventType)) {
                 RoomState roomState = JsonUtils.toRoomState(contentToConsider);
                 url = (roomState == null) ? null : roomState.url;
+            } else if (Event.EVENT_TYPE_STATE_RELATED_GROUPS.equals(eventType)) {
+                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
+                groups = (roomState == null) ? null : roomState.groups;
             } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
                 RoomMember member = JsonUtils.toRoomMember(contentToConsider);
                 String userId = event.stateKey;
