@@ -1452,7 +1452,6 @@ public class MXDataHandler implements IMXEventListener {
 
                 // Handle joined groups
                 if ((null != syncResponse.groups.join) && !syncResponse.groups.join.isEmpty()) {
-
                     for (String groupId : syncResponse.groups.join.keySet()) {
                         mGroupsManager.onJoinGroup(groupId, !isInitialSync);
                     }

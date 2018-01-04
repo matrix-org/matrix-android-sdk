@@ -23,19 +23,18 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.json.ConditionDeserializer;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedEventContent;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
+import org.matrix.androidsdk.rest.model.message.AudioMessage;
 import org.matrix.androidsdk.rest.model.message.FileMessage;
 import org.matrix.androidsdk.rest.model.crypto.ForwardedRoomKeyContent;
-import org.matrix.androidsdk.rest.model.message.ImageInfo;
 import org.matrix.androidsdk.rest.model.message.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.message.MediaMessage;
+import org.matrix.androidsdk.rest.model.message.LocationMessage;
 import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.crypto.NewDeviceContent;
 import org.matrix.androidsdk.rest.model.crypto.OlmEventContent;
@@ -143,19 +142,7 @@ public class JsonUtils {
      * @return a room state
      */
     public static RoomState toRoomState(JsonElement jsonObject) {
-        RoomState roomState = null;
-
-        try {
-            roomState = gson.fromJson(jsonObject, RoomState.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toRoomState failed " + e.getMessage());
-        }
-
-        if (null == roomState) {
-            roomState = new RoomState();
-        }
-
-        return roomState;
+        return (RoomState) toClass(jsonObject, RoomState.class);
     }
 
     /**
@@ -166,19 +153,7 @@ public class JsonUtils {
      * @return an user
      */
     public static User toUser(JsonElement jsonObject) {
-        User user = null;
-
-        try {
-            user = gson.fromJson(jsonObject, User.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toUser failed " + e.getMessage());
-        }
-
-        if (null == user) {
-            user = new User();
-        }
-
-        return user;
+        return (User) toClass(jsonObject, User.class);
     }
 
     /**
@@ -189,19 +164,7 @@ public class JsonUtils {
      * @return a RoomMember
      */
     public static RoomMember toRoomMember(JsonElement jsonObject) {
-        RoomMember roomMember = null;
-
-        try {
-            roomMember = gson.fromJson(jsonObject, RoomMember.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toRoomMember failed " + e.getMessage());
-        }
-
-        if (null == roomMember) {
-            roomMember = new RoomMember();
-        }
-
-        return roomMember;
+        return (RoomMember) toClass(jsonObject, RoomMember.class);
     }
 
     /**
@@ -212,46 +175,26 @@ public class JsonUtils {
      * @return a RoomTags
      */
     public static RoomTags toRoomTags(JsonElement jsonObject) {
-        RoomTags roomTags = null;
-
-        try {
-            roomTags = gson.fromJson(jsonObject, RoomTags.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toRoomTags failed " + e.getMessage());
-        }
-
-        if (null == roomTags) {
-            roomTags = new RoomTags();
-        }
-
-        return roomTags;
+        return (RoomTags) toClass(jsonObject, RoomTags.class);
     }
 
     /**
+     * Convert a JSON object to a MatrixError.
+     * The result is never null.
      *
-     * @param jsonObject
-     * @return
+     * @param jsonObject the json to convert
+     * @return a MatrixError
      */
     public static MatrixError toMatrixError(JsonElement jsonObject) {
-        try {
-            return gson.fromJson(jsonObject, MatrixError.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toMatrixError failed " + e.getMessage());
-        }
-
-        return new MatrixError();
+        return (MatrixError) toClass(jsonObject, MatrixError.class);
     }
 
-    public static JsonElement toJson(RoomMember roomMember) {
-        try {
-            return gson.toJsonTree(roomMember);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toJson failed " + e.getMessage());
-        }
-
-        return null;
-    }
-
+    /**
+     * Retrieves the message type from a Json object.
+     *
+     * @param jsonObject the json object
+     * @return the message type
+     */
     public static String getMessageMsgType(JsonElement jsonObject) {
         try {
             Message message = gson.fromJson(jsonObject, Message.class);
@@ -263,6 +206,13 @@ public class JsonUtils {
         return null;
     }
 
+    /**
+     * Convert a JSON object to a Message.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return a Message
+     */
     public static Message toMessage(JsonElement jsonObject) {
         try {
             Message message = gson.fromJson(jsonObject, Message.class);
@@ -298,207 +248,202 @@ public class JsonUtils {
         return new Message();
     }
 
-    public static JsonObject toJson(Message message) {
-        try {
-            return (JsonObject) gson.toJsonTree(message);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toJson failed " + e.getMessage());
-        }
-
-        return null;
-    }
-
+    /**
+     * Convert a JSON object to an Event.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return an Event
+     */
     public static Event toEvent(JsonElement jsonObject) {
-        try {
-            return gson.fromJson(jsonObject, Event.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toEvent failed " + e.getMessage());
-        }
-
-        return new Event();
+        return (Event) toClass(jsonObject, Event.class);
     }
 
+    /**
+     * Convert a JSON object to an EncryptedEventContent.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return an EncryptedEventContent
+     */
     public static EncryptedEventContent toEncryptedEventContent(JsonElement jsonObject) {
-        try {
-            return gson.fromJson(jsonObject, EncryptedEventContent.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toEncryptedEventContent failed " + e.getMessage());
-        }
-
-        return new EncryptedEventContent();
+        return (EncryptedEventContent) toClass(jsonObject, EncryptedEventContent.class);
     }
 
+    /**
+     * Convert a JSON object to an OlmEventContent.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return an OlmEventContent
+     */
     public static OlmEventContent toOlmEventContent(JsonElement jsonObject) {
-        try {
-            return gson.fromJson(jsonObject, OlmEventContent.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toOlmEventContent failed " + e.getMessage());
-        }
-
-        return new OlmEventContent();
+        return (OlmEventContent) toClass(jsonObject, OlmEventContent.class);
     }
 
+    /**
+     * Convert a JSON object to an OlmPayloadContent.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return an OlmPayloadContent
+     */
     public static OlmPayloadContent toOlmPayloadContent(JsonElement jsonObject) {
-        try {
-            return gson.fromJson(jsonObject, OlmPayloadContent.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toOlmPayloadContent failed " + e.getMessage());
-        }
-
-        return new OlmPayloadContent();
+        return (OlmPayloadContent) toClass(jsonObject, OlmPayloadContent.class);
     }
 
+    /**
+     * Convert a JSON object to an EventContent.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return an EventContent
+     */
     public static EventContent toEventContent(JsonElement jsonObject) {
-        try {
-            return gson.fromJson(jsonObject, EventContent.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toEventContent failed " + e.getMessage());
-        }
-
-        return new EventContent();
+        return (EventContent) toClass(jsonObject, EventContent.class);
     }
 
+    /**
+     * Convert a JSON object to an RoomKeyContent.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return an RoomKeyContent
+     */
     public static RoomKeyContent toRoomKeyContent(JsonElement jsonObject) {
-        try {
-            return gson.fromJson(jsonObject, RoomKeyContent.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## RoomKeyContent failed " + e.getMessage());
-        }
-
-        return new RoomKeyContent();
+        return (RoomKeyContent) toClass(jsonObject, RoomKeyContent.class);
     }
 
+    /**
+     * Convert a JSON object to an RoomKeyRequest.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return an RoomKeyRequest
+     */
     public static RoomKeyRequest toRoomKeyRequest(JsonElement jsonObject) {
-        try {
-            return gson.fromJson(jsonObject, RoomKeyRequest.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## RoomKeyRequest failed " + e.getMessage());
-        }
-
-        return new RoomKeyRequest();
+        return (RoomKeyRequest) toClass(jsonObject, RoomKeyRequest.class);
     }
 
+    /**
+     * Convert a JSON object to an ForwardedRoomKeyContent.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return an ForwardedRoomKeyContent
+     */
     public static ForwardedRoomKeyContent toForwardedRoomKeyContent(JsonElement jsonObject) {
-        try {
-            return gson.fromJson(jsonObject, ForwardedRoomKeyContent.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## ForwardedRoomKeyContent failed " + e.getMessage());
-        }
-
-        return new ForwardedRoomKeyContent();
+        return (ForwardedRoomKeyContent) toClass(jsonObject, ForwardedRoomKeyContent.class);
     }
 
+    /**
+     * Convert a JSON object to an ImageMessage.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return an ImageMessage
+     */
     public static ImageMessage toImageMessage(JsonElement jsonObject) {
-        try {
-            return gson.fromJson(jsonObject, ImageMessage.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toImageMessage failed " + e.getMessage());
-        }
-
-        return new ImageMessage();
+        return (ImageMessage) toClass(jsonObject, ImageMessage.class);
     }
 
+    /**
+     * Convert a JSON object to an FileMessage.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return an FileMessage
+     */
     public static FileMessage toFileMessage(JsonElement jsonObject) {
-        try {
-            return gson.fromJson(jsonObject, FileMessage.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toFileMessage failed " + e.getMessage());
-        }
-
-        return new FileMessage();
+        return (FileMessage) toClass(jsonObject, FileMessage.class);
     }
 
-    public static ImageInfo.AudioMessage toAudioMessage(JsonElement jsonObject) {
-        try {
-            return gson.fromJson(jsonObject, ImageInfo.AudioMessage.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toAudioMessage failed " + e.getMessage());
-        }
-
-        return new ImageInfo.AudioMessage();
+    /**
+     * Convert a JSON object to an AudioMessage.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return an AudioMessage
+     */
+    public static AudioMessage toAudioMessage(JsonElement jsonObject) {
+        return (AudioMessage) toClass(jsonObject, AudioMessage.class);
     }
 
+    /**
+     * Convert a JSON object to a VideoMessage.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return a VideoMessage
+     */
     public static VideoMessage toVideoMessage(JsonElement jsonObject) {
-        try {
-            return gson.fromJson(jsonObject, VideoMessage.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toVideoMessage failed " + e.getMessage());
-        }
-
-        return new VideoMessage();
+        return (VideoMessage) toClass(jsonObject, VideoMessage.class);
     }
 
-    public static MediaMessage.LocationMessage toLocationMessage(JsonElement jsonObject) {
-        try {
-            return gson.fromJson(jsonObject, MediaMessage.LocationMessage.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toLocationMessage failed " + e.getMessage());
-        }
-
-        return new MediaMessage.LocationMessage();
+    /**
+     * Convert a JSON object to a LocationMessage.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return a LocationMessage
+     */
+    public static LocationMessage toLocationMessage(JsonElement jsonObject) {
+        return (LocationMessage) toClass(jsonObject, LocationMessage.class);
     }
 
+    /**
+     * Convert a JSON object to a ContentResponse.
+     * The result is never null.
+     *
+     * @param jsonString the json as string to convert
+     * @return a ContentResponse
+     */
     public static ContentResponse toContentResponse(String jsonString) {
-        try {
-            return gson.fromJson(jsonString, ContentResponse.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toContentResponse failed " + e.getMessage());
-        }
-
-        return new ContentResponse();
+        return (ContentResponse) toClass(jsonString, ContentResponse.class);
     }
 
+    /**
+     * Convert a JSON object to a PowerLevels.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return a PowerLevels
+     */
     public static PowerLevels toPowerLevels(JsonElement jsonObject) {
-        try {
-            return gson.fromJson(jsonObject, PowerLevels.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toPowerLevels failed " + e.getMessage());
-        }
-
-        return new PowerLevels();
+        return (PowerLevels) toClass(jsonObject, PowerLevels.class);
     }
 
+    /**
+     * Convert a JSON object to a RoomThirdPartyInvite.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return a RoomThirdPartyInvite
+     */
     public static RoomThirdPartyInvite toRoomThirdPartyInvite(JsonElement jsonObject) {
-        try {
-            return gson.fromJson(jsonObject, RoomThirdPartyInvite.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toRoomThirdPartyInvite failed " + e.getMessage());
-        }
-
-        return new RoomThirdPartyInvite();
+        return (RoomThirdPartyInvite) toClass(jsonObject, RoomThirdPartyInvite.class);
     }
 
+    /**
+     * Convert a stringified JSON object to a RegistrationFlowResponse.
+     * The result is never null.
+     *
+     * @param jsonString the json as string to convert
+     * @return a RegistrationFlowResponse
+     */
     public static RegistrationFlowResponse toRegistrationFlowResponse(String jsonString) {
-        try {
-            return gson.fromJson(jsonString, RegistrationFlowResponse.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toRegistrationFlowResponse failed " + e.getMessage());
-        }
-
-        return new RegistrationFlowResponse();
+        return (RegistrationFlowResponse) toClass(jsonString, RegistrationFlowResponse.class);
     }
 
-    public static JsonObject toJson(Event event) {
-        try {
-            return (JsonObject) gson.toJsonTree(event);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toJson failed " + e.getMessage());
-        }
-
-        return new JsonObject();
-    }
-
-    public static NewDeviceContent toNewDeviceContent(JsonElement jsonObject) {
-        try {
-            return gson.fromJson(jsonObject, NewDeviceContent.class);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## toNewDeviceContent failed " + e.getMessage());
-        }
-
-        return new NewDeviceContent();
-    }
-
-    private static Object toClass(JsonElement jsonObject, Class aClass) {
+    /**
+     * Convert a JSON object into a class instance.
+     * The returned value cannot be null.
+     *
+     * @param jsonObject the json object to convert
+     * @param aClass     the class
+     * @return the converted object
+     */
+    public static Object toClass(JsonElement jsonObject, Class aClass) {
         Object object = null;
 
         try {
@@ -518,6 +463,68 @@ public class JsonUtils {
         }
 
         return object;
+    }
+
+    /**
+     * Convert a stringified JSON into a class instance.
+     * The returned value cannot be null.
+     *
+     * @param jsonObjectAsString the json object as string to convert
+     * @param aClass             the class
+     * @return the converted object
+     */
+    public static Object toClass(String jsonObjectAsString, Class aClass) {
+        Object object = null;
+
+        try {
+            object = gson.fromJson(jsonObjectAsString, aClass);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toClass failed " + e.getMessage());
+        }
+
+        if (null == object) {
+            Constructor<?>[] constructors = aClass.getConstructors();
+
+            try {
+                object = constructors[0].newInstance();
+            } catch (Throwable t) {
+                Log.e(LOG_TAG, "## toClass failed " + t.getMessage());
+            }
+        }
+
+        return object;
+    }
+
+    /**
+     * Convert an Event instance to a Json object.
+     *
+     * @param event the event instance.
+     * @return the json object
+     */
+    public static JsonObject toJson(Event event) {
+        try {
+            return (JsonObject) gson.toJsonTree(event);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toJson failed " + e.getMessage());
+        }
+
+        return new JsonObject();
+    }
+
+    /**
+     * Convert an Message instance into a Json object.
+     *
+     * @param message the Message instance.
+     * @return the json object
+     */
+    public static JsonObject toJson(Message message) {
+        try {
+            return (JsonObject) gson.toJsonTree(message);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## toJson failed " + e.getMessage());
+        }
+
+        return null;
     }
 
     /**

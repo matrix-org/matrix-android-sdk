@@ -34,8 +34,8 @@ import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.MXMediaUploadListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.message.AudioMessage;
 import org.matrix.androidsdk.rest.model.message.FileMessage;
-import org.matrix.androidsdk.rest.model.message.ImageInfo;
 import org.matrix.androidsdk.rest.model.message.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.message.MediaMessage;
@@ -562,7 +562,7 @@ class RoomMediaMessagesSender {
             FileMessage fileMessage;
 
             if (mimeType.startsWith("audio/")) {
-                fileMessage = new ImageInfo.AudioMessage();
+                fileMessage = new AudioMessage();
             } else {
                 fileMessage = new FileMessage();
             }

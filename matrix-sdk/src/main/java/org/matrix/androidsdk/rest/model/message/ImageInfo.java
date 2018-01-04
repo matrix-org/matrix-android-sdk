@@ -57,12 +57,6 @@ public class ImageInfo {
 
         return copy;
     }
-
-    public static class AudioMessage extends FileMessage {
-        public AudioMessage() {
-            msgtype = MSGTYPE_AUDIO;
-        }
-    }
 }
 
 

@@ -56,7 +56,7 @@ import org.matrix.androidsdk.rest.model.message.FileMessage;
 import org.matrix.androidsdk.rest.model.message.ImageInfo;
 import org.matrix.androidsdk.rest.model.message.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.message.MediaMessage;
+import org.matrix.androidsdk.rest.model.message.LocationMessage;
 import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReceiptData;
@@ -1601,7 +1601,7 @@ public class Room {
      * @param thumbnailUri    the thumbnail uri
      * @param thumbMimeType   the thumbnail mime type
      */
-    public static void fillLocationInfo(Context context, MediaMessage.LocationMessage locationMessage, Uri thumbnailUri, String thumbMimeType) {
+    public static void fillLocationInfo(Context context, LocationMessage locationMessage, Uri thumbnailUri, String thumbMimeType) {
         if (null != thumbnailUri) {
             try {
                 locationMessage.thumbnail_url = thumbnailUri.toString();

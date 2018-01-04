@@ -823,26 +823,19 @@ public class RoomState implements Externalizable {
 
         try {
             if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType)) {
-                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                name = (roomState == null) ? null : roomState.name;
+                name = JsonUtils.toRoomState(contentToConsider).name;
             } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType)) {
-                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                topic = (roomState == null) ? null : roomState.topic;
+                topic = JsonUtils.toRoomState(contentToConsider).topic;
             } else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(eventType)) {
-                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                creator = (roomState == null) ? null : roomState.creator;
+                creator = JsonUtils.toRoomState(contentToConsider).creator;
             } else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(eventType)) {
-                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                join_rule = (roomState == null) ? null : roomState.join_rule;
+                join_rule = JsonUtils.toRoomState(contentToConsider).join_rule;
             } else if (Event.EVENT_TYPE_STATE_ROOM_GUEST_ACCESS.equals(eventType)) {
-                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                guest_access = (roomState == null) ? null : roomState.guest_access;
+                guest_access = JsonUtils.toRoomState(contentToConsider).guest_access;
             } else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(eventType)) {
                 if (!TextUtils.isEmpty(event.stateKey)) {
-                    RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-
                     // backward compatibility
-                    aliases = (null == roomState) ? null : roomState.aliases;
+                    aliases = JsonUtils.toRoomState(contentToConsider).aliases;
 
                     // sanity check
                     if (null != aliases) {
@@ -853,22 +846,17 @@ public class RoomState implements Externalizable {
                     }
                 }
             } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
-                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                algorithm = (roomState == null) ? null : roomState.algorithm;
+                algorithm = JsonUtils.toRoomState(contentToConsider).algorithm;
             } else if (Event.EVENT_TYPE_STATE_CANONICAL_ALIAS.equals(eventType)) {
                 // SPEC-125
-                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                alias = (roomState == null) ? null : roomState.alias;
+                alias = JsonUtils.toRoomState(contentToConsider).alias;
             } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(eventType)) {
                 // SPEC-134
-                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                history_visibility = (roomState == null) ? null : roomState.history_visibility;
+                history_visibility = JsonUtils.toRoomState(contentToConsider).history_visibility;
             } else if (Event.EVENT_TYPE_STATE_ROOM_AVATAR.equals(eventType)) {
-                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                url = (roomState == null) ? null : roomState.url;
+                url = JsonUtils.toRoomState(contentToConsider).url;
             } else if (Event.EVENT_TYPE_STATE_RELATED_GROUPS.equals(eventType)) {
-                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                groups = (roomState == null) ? null : roomState.groups;
+                groups = JsonUtils.toRoomState(contentToConsider).groups;
             } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
                 RoomMember member = JsonUtils.toRoomMember(contentToConsider);
                 String userId = event.stateKey;
