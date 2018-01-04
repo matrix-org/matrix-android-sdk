@@ -378,7 +378,7 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
             mApi.updatePublicity(groupId, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
-                    leaveGroup(groupId, callback);
+                    updateGroupPublicity(groupId, publicity, callback);
                 }
             }));
         } catch (Throwable t) {

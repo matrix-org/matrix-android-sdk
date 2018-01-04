@@ -1060,6 +1060,10 @@ public class MXSession {
         if (null != getMediasCache()) {
             getMediasCache().clearTmpCache();
         }
+
+        if (null != mGroupsManager) {
+            mGroupsManager.onSessionPaused();
+        }
     }
 
     /**
@@ -1095,6 +1099,10 @@ public class MXSession {
         if (mIsBgCatchupPending) {
             mIsBgCatchupPending = false;
             Log.d(LOG_TAG, "## resumeEventStream() : cancel bg sync");
+        }
+
+        if (null != mGroupsManager) {
+            mGroupsManager.onSessionResumed();
         }
     }
 

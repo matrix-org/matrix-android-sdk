@@ -21,6 +21,7 @@ import android.os.Looper;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -62,6 +63,10 @@ public class GroupsManager {
     private final Map<String, ApiCallback<Void>> mPendingJoinGroups = new HashMap<>();
     private final Map<String, ApiCallback<Void>> mPendingLeaveGroups = new HashMap<>();
 
+    // publicise management
+    private Map<String, Set<ApiCallback<Set<String>>>> mPendingPubliciseRequests = new HashMap<>();
+    private Map<String, Set<String>> mPubliciseByUserId = new HashMap<>();
+
     private Handler mUIHandler;
 
     /**
@@ -83,6 +88,22 @@ public class GroupsManager {
      */
     public GroupsRestClient getGroupsRestClient() {
         return mGroupsRestClient;
+    }
+
+
+    /**
+     * Call when the session is paused
+     */
+    public void onSessionPaused() {
+        mPubliciseByUserId.clear();
+    }
+
+    /**
+     * Call when the session is resumed
+     */
+    public void onSessionResumed() {
+        refreshGroupProfiles((SimpleApiCallback<Void>) null);
+        getUserPublicisedGroups(mDataHandler.getUserId(), true, null);
     }
 
     /**
@@ -301,7 +322,9 @@ public class GroupsManager {
         if (!iterator.hasNext()) {
             for (SimpleApiCallback<Void> callback : mRefreshProfilesCallback) {
                 try {
-                    callback.onSuccess(null);
+                    if (null != callback) {
+                        callback.onSuccess(null);
+                    }
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "## refreshGroupProfiles() failed " + e.getMessage());
                 }
@@ -474,7 +497,7 @@ public class GroupsManager {
     /**
      * Refresh the group data i.e the invited users list, the users list and the rooms list.
      *
-     * @param group  the group
+     * @param group    the group
      * @param callback the asynchronous callback
      */
     public void refreshGroupData(Group group, ApiCallback<Void> callback) {
@@ -489,7 +512,7 @@ public class GroupsManager {
     /**
      * Internal method to refresh the group informations.
      *
-     * @param group  the group
+     * @param group    the group
      * @param step     the current step
      * @param callback the asynchronous callback
      */
@@ -607,6 +630,149 @@ public class GroupsManager {
             @Override
             public void onUnexpectedError(Exception e) {
                 callback.onUnexpectedError(e);
+            }
+        });
+    }
+
+    /**
+     * Request the publicised groups for an user.
+     *
+     * @param userId       the user id
+     * @param forceRefresh true to do not use the cached data
+     * @param callback     the asynchronous callback.
+     */
+    public void getUserPublicisedGroups(final String userId, final boolean forceRefresh, final ApiCallback<Set<String>> callback) {
+        Log.d(LOG_TAG, "## getUserPublicisedGroups() : " + userId);
+
+        // sanity check
+        if (!MXSession.isUserId(userId)) {
+            mUIHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    callback.onSuccess(new HashSet<String>());
+                }
+            });
+
+            return;
+        }
+
+        // already cached
+        if (forceRefresh) {
+            mPubliciseByUserId.remove(userId);
+        } else {
+            if (mPubliciseByUserId.containsKey(userId)) {
+                mUIHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.d(LOG_TAG, "## getUserPublicisedGroups() : " + userId + " --> cached data " + mPubliciseByUserId.get(userId));
+                        callback.onSuccess(mPubliciseByUserId.get(userId));
+                    }
+                });
+
+                return;
+            }
+        }
+
+        // request in progress
+        if (mPendingPubliciseRequests.containsKey(userId)) {
+            Log.d(LOG_TAG, "## getUserPublicisedGroups() : " + userId + " request in progress");
+            mPendingPubliciseRequests.get(userId).add(callback);
+            return;
+        }
+
+        mPendingPubliciseRequests.put(userId, new HashSet<ApiCallback<Set<String>>>());
+        mPendingPubliciseRequests.get(userId).add(callback);
+
+        mGroupsRestClient.getUserPublicisedGroups(userId, new ApiCallback<List<String>>() {
+            private void onDone(Set<String> groupIdsSet) {
+                if (null == groupIdsSet) {
+                    groupIdsSet = new HashSet<>();
+                }
+
+                mPubliciseByUserId.put(userId, groupIdsSet);
+
+                Log.d(LOG_TAG, "## getUserPublicisedGroups() : " + userId + " -- " + groupIdsSet);
+
+                Set<ApiCallback<Set<String>>> callbacks = mPendingPubliciseRequests.get(userId);
+                mPendingPubliciseRequests.remove(userId);
+
+                if (null != callbacks) {
+                    for (ApiCallback<Set<String>> callback : callbacks) {
+                        if (null != callback) {
+                            callback.onSuccess(groupIdsSet);
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void onSuccess(List<String> groupIdsList) {
+                onDone((null == groupIdsList) ? new HashSet<String>() : new HashSet<>(groupIdsList));
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                Log.d(LOG_TAG, "## getUserPublicisedGroups() : request failed " + e.getMessage());
+                onDone(null);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                Log.d(LOG_TAG, "## getUserPublicisedGroups() : request failed " + e.getMessage());
+                onDone(null);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                Log.d(LOG_TAG, "## getUserPublicisedGroups() : request failed " + e.getMessage());
+                onDone(null);
+            }
+        });
+    }
+
+    /**
+     * Update a group publicity status.
+     *
+     * @param groupId   the group id
+     * @param publicity the new publicity status
+     * @param callback  the asynchronous callback.
+     */
+    public void updateGroupPublicity(final String groupId, final boolean publicity, final ApiCallback<Void> callback) {
+        getGroupsRestClient().updateGroupPublicity(groupId, publicity, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                if (mPubliciseByUserId.containsKey(groupId)) {
+                    if (publicity) {
+                        mPubliciseByUserId.get(groupId).add(groupId);
+                    } else {
+                        mPubliciseByUserId.get(groupId).remove(groupId);
+                    }
+                }
+
+                if (null != callback) {
+                    callback.onSuccess(null);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
             }
         });
     }
