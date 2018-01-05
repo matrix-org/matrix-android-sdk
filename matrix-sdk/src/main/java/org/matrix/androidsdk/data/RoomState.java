@@ -1143,6 +1143,10 @@ public class RoomState implements Externalizable {
         if (input.readBoolean()) {
             mIsConferenceUserRoom = input.readBoolean();
         }
+
+        if (input.readBoolean()) {
+            groups = (List<String>)input.readObject();
+        }
     }
 
     @Override
@@ -1256,6 +1260,10 @@ public class RoomState implements Externalizable {
         if (null != mIsConferenceUserRoom) {
             output.writeBoolean(mIsConferenceUserRoom);
         }
-    }
 
+        output.writeBoolean(null != groups);
+        if (null != groups) {
+            output.writeObject(groups);
+        }
+    }
 }
