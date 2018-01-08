@@ -935,6 +935,80 @@ public class Room {
     }
 
     /**
+     * Add a group to the related ones
+     *
+     * @param groupId the group id to add
+     * @param callback the asynchronous callback
+     */
+    public void addRelatedGroup(final String groupId, final ApiCallback<Void> callback) {
+        List<String> nextGroupIdsList = new ArrayList<>(getLiveState().getRelatedGroups());
+
+        if (!nextGroupIdsList.contains(groupId)) {
+            nextGroupIdsList.add(groupId);
+        }
+
+        updateRelatedGroups(nextGroupIdsList, callback);
+    }
+
+    /**
+     * Remove a group id from the related ones.
+     *
+     * @param groupId the group id
+     * @param callback the asynchronous callback
+     */
+    public void removeRelatedGroup(final String groupId, final ApiCallback<Void> callback) {
+        List<String> nextGroupIdsList = new ArrayList<>(getLiveState().getRelatedGroups());
+        nextGroupIdsList.remove(groupId);
+
+        updateRelatedGroups(nextGroupIdsList, callback);
+    }
+
+    /**
+     * Update the related group ids list
+     *
+     * @param groupIds the new related groups
+     * @param callback the asynchronous callback
+     */
+    public void updateRelatedGroups(final List<String> groupIds, final ApiCallback<Void> callback) {
+        HashMap<String, Object> params = new HashMap<>();
+        params.put("groups", groupIds);
+
+        mDataHandler.getDataRetriever().getRoomsRestClient().sendStateEvent(getRoomId(), Event.EVENT_TYPE_STATE_RELATED_GROUPS, null, params, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                getLiveState().groups = groupIds;
+                getDataHandler().getStore().storeLiveStateForRoom(getRoomId());
+
+                if (null != callback) {
+                    callback.onSuccess(null);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        });
+    }
+
+
+    /**
      * @return the room avatar URL. If there is no defined one, use the members one (1:1 chat only).
      */
     public String getAvatarUrl() {
