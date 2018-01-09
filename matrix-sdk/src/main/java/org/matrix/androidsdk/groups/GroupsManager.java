@@ -38,6 +38,7 @@ import org.matrix.androidsdk.rest.model.group.GroupUsers;
 import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -104,6 +105,9 @@ public class GroupsManager {
     public void onSessionResumed() {
         refreshGroupProfiles((SimpleApiCallback<Void>) null);
         getUserPublicisedGroups(mDataHandler.getUserId(), true, null);
+
+        mGroupProfilebyGroupId.clear();
+        mGroupProfileCallback.clear();
     }
 
     /**
@@ -350,6 +354,7 @@ public class GroupsManager {
                 }
 
                 mDataHandler.onGroupProfileUpdate(groupId);
+                mGroupProfilebyGroupId.put(groupId, profile);
                 onDone();
             }
 
@@ -492,7 +497,6 @@ public class GroupsManager {
             }
         });
     }
-
 
     /**
      * Refresh the group data i.e the invited users list, the users list and the rooms list.
@@ -775,5 +779,105 @@ public class GroupsManager {
                 }
             }
         });
+    }
+
+    Map<String, GroupProfile> mGroupProfilebyGroupId = new HashMap<>();
+    Map<String, List<ApiCallback<GroupProfile>>> mGroupProfileCallback = new HashMap<>();
+
+    /**
+     * Request the profile of a group.
+     *
+     * @param groupId  the group id
+     * @param callback the asynchronous callback
+     */
+    public void getGroupProfile(final String groupId, final ApiCallback<GroupProfile> callback) {
+        // sanity check
+        if (null == callback) {
+            return;
+        }
+
+        // valid group id
+        if (TextUtils.isEmpty(groupId) || !MXSession.isGroupId(groupId)) {
+            mUIHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    callback.onSuccess(new GroupProfile());
+                }
+            });
+
+            return;
+        }
+
+        // already downloaded
+        if (mGroupProfilebyGroupId.containsKey(groupId)) {
+            mUIHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    callback.onSuccess(mGroupProfilebyGroupId.get(groupId));
+                }
+            });
+
+            return;
+        }
+
+        // in progress
+        if (mGroupProfileCallback.containsKey(groupId)) {
+            mGroupProfileCallback.get(groupId).add(callback);
+            return;
+        }
+
+        mGroupProfileCallback.put(groupId, new ArrayList<>(Arrays.asList(callback)));
+
+        mGroupsRestClient.getGroupProfile(groupId, new ApiCallback<GroupProfile>() {
+            @Override
+            public void onSuccess(GroupProfile groupProfile) {
+                mGroupProfilebyGroupId.put(groupId, groupProfile);
+                List<ApiCallback<GroupProfile>> callbacks = mGroupProfileCallback.get(groupId);
+                mGroupProfileCallback.remove(groupId);
+
+                if (null != callbacks) {
+                    for (ApiCallback<GroupProfile> c : callbacks) {
+                        c.onSuccess(groupProfile);
+                    }
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                List<ApiCallback<GroupProfile>> callbacks = mGroupProfileCallback.get(groupId);
+                mGroupProfileCallback.remove(groupId);
+
+                if (null != callbacks) {
+                    for (ApiCallback<GroupProfile> c : callbacks) {
+                        c.onNetworkError(e);
+                    }
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                List<ApiCallback<GroupProfile>> callbacks = mGroupProfileCallback.get(groupId);
+                mGroupProfileCallback.remove(groupId);
+
+                if (null != callbacks) {
+                    for (ApiCallback<GroupProfile> c : callbacks) {
+                        c.onMatrixError(e);
+                    }
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                List<ApiCallback<GroupProfile>> callbacks = mGroupProfileCallback.get(groupId);
+                mGroupProfileCallback.remove(groupId);
+
+                if (null != callbacks) {
+                    for (ApiCallback<GroupProfile> c : callbacks) {
+                        c.onUnexpectedError(e);
+                    }
+                }
+            }
+        });
+
     }
 }
