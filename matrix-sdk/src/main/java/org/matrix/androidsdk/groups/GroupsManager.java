@@ -689,11 +689,14 @@ public class GroupsManager {
 
         mGroupsRestClient.getUserPublicisedGroups(userId, new ApiCallback<List<String>>() {
             private void onDone(Set<String> groupIdsSet) {
-                if (null == groupIdsSet) {
+
+                // cache only if the request succeeds
+                // else it will be tried later
+                if (null != groupIdsSet) {
+                    mPubliciseByUserId.put(userId, groupIdsSet);
+                } else {
                     groupIdsSet = new HashSet<>();
                 }
-
-                mPubliciseByUserId.put(userId, groupIdsSet);
 
                 Log.d(LOG_TAG, "## getUserPublicisedGroups() : " + userId + " -- " + groupIdsSet);
 
@@ -703,7 +706,11 @@ public class GroupsManager {
                 if (null != callbacks) {
                     for (ApiCallback<Set<String>> callback : callbacks) {
                         if (null != callback) {
-                            callback.onSuccess(groupIdsSet);
+                            try {
+                                callback.onSuccess(groupIdsSet);
+                            } catch (Throwable t) {
+                                Log.d(LOG_TAG, "## getUserPublicisedGroups() : callback failed " + t.getMessage());
+                            }
                         }
                     }
                 }
