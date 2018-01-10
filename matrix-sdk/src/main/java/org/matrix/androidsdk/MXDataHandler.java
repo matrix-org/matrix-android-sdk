@@ -94,9 +94,11 @@ public class MXDataHandler implements IMXEventListener {
 
     public interface RequestNetworkErrorListener {
         /**
-         * Call when the access token is corrupted
+         * Call there is a configuration error.
+         *
+         * @param matrixErrorCode the matrix error code
          */
-        void onTokenCorrupted();
+        void onConfigurationError(String matrixErrorCode);
 
         /**
          * Call when the requests are rejected after a SSL update
@@ -362,11 +364,13 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
-     * The current token is not anymore valid
+     * Dispatch the configuration error.
+     *
+     * @param matrixErrorCode the matrix error code.
      */
-    public void onInvalidToken() {
+    public void onConfigurationError(String matrixErrorCode) {
         if (null != mRequestNetworkErrorListener) {
-            mRequestNetworkErrorListener.onTokenCorrupted();
+            mRequestNetworkErrorListener.onConfigurationError(matrixErrorCode);
         }
     }
 

@@ -2382,8 +2382,8 @@ public class Room {
                 event.unsentMatrixError = e;
                 mDataHandler.updateEventState(event, Event.SentState.UNDELIVERABLE);
 
-                if (TextUtils.equals(MatrixError.UNKNOWN_TOKEN, e.errcode)) {
-                    mDataHandler.onInvalidToken();
+                if (MatrixError.isConfigurationErrorCode(e.errcode)) {
+                    mDataHandler.onConfigurationError(e.errcode);
                 } else {
                     try {
                         callback.onMatrixError(e);

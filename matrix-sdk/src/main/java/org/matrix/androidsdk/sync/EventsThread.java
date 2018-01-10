@@ -453,8 +453,8 @@ public class EventsThread extends Thread {
                     public void onMatrixError(MatrixError e) {
                         super.onMatrixError(e);
 
-                        if (TextUtils.equals(MatrixError.UNKNOWN_TOKEN, e.errcode)) {
-                            mListener.onInvalidToken();
+                        if (MatrixError.isConfigurationErrorCode(e.errcode)) {
+                            mListener.onConfigurationError(e.errcode);
                         } else {
                             sleepAndUnblock();
                         }
@@ -635,8 +635,8 @@ public class EventsThread extends Thread {
 
                     @Override
                     public void onMatrixError(MatrixError e) {
-                        if (TextUtils.equals(MatrixError.UNKNOWN_TOKEN, e.errcode)) {
-                            mListener.onInvalidToken();
+                        if (MatrixError.isConfigurationErrorCode(e.errcode)) {
+                            mListener.onConfigurationError(e.errcode);
                         } else {
                             onError(e.getLocalizedMessage());
                         }

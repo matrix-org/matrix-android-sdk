@@ -32,7 +32,9 @@ public interface EventsThreadListener {
     void onSyncResponse(SyncResponse response, String fromToken, boolean isCatchingUp);
 
     /**
-     * the server returns an invalid token error
+     * A configuration error has been received.
+     *
+     * @param matrixErrorCode the matrix error code
      */
-    void onInvalidToken();
+    void onConfigurationError(String matrixErrorCode);
 }
