@@ -645,37 +645,14 @@ public class MatrixMessagesFragment extends Fragment {
             @Override
             public void onSuccess(Void info) {
                 Log.d(LOG_TAG, "joinRoom succeeds");
-
-                if (null != getActivity()) {
-                    if (null != mMatrixMessagesListener) {
-                        getActivity().runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    mMatrixMessagesListener.hideInitLoading();
-                                    mMatrixMessagesListener.onInitialMessagesLoaded();
-                                } catch (Exception e) {
-                                    Log.e(LOG_TAG, "joinRoom callback fails " + e.getMessage());
-                                }
-                            }
-                        });
-                    }
-                }
+                requestInitialHistory();
             }
 
             private void onError(String errorMessage) {
                 Log.e(LOG_TAG, "joinRoom error: " + errorMessage);
                 if (null != getActivity()) {
                     Toast.makeText(mContext, errorMessage, Toast.LENGTH_SHORT).show();
-                    if (null != mMatrixMessagesListener) {
-
-                        getActivity().runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                mMatrixMessagesListener.hideInitLoading();
-                            }
-                        });
-                    }
+                    getActivity().finish();
                 }
             }
 
