@@ -1639,10 +1639,10 @@ public class EventTimeline {
         if (!TextUtils.isEmpty(eventId)) {
             Log.d(LOG_TAG, "checkStateEventRedaction : retrieving the event");
 
-            mDataHandler.getDataRetriever().getRoomsRestClient().getContextOfEvent(mRoomId, eventId, 1, new ApiCallback<EventContext>() {
+            mDataHandler.getDataRetriever().getRoomsRestClient().getEvent(mRoomId, eventId, new ApiCallback<Event>() {
                 @Override
-                public void onSuccess(EventContext eventContext) {
-                    if ((null != eventContext.event) && (null != eventContext.event.stateKey)) {
+                public void onSuccess(Event event) {
+                    if ((null != event) && (null != event.stateKey)) {
                         Log.d(LOG_TAG, "checkStateEventRedaction : the event is a state event -> get a refreshed roomState");
                         forceRoomStateServerSync();
                     } else {

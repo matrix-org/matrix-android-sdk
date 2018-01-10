@@ -337,6 +337,25 @@ public interface RoomsApi {
     void getContextOfEvent(@Path("roomId") String roomId, @Path("eventId") String eventId, @Query("limit") int limit, Callback<EventContext> callback);
 
     /**
+     * Retrieve an event from its room id / events id
+     *
+     * @param roomId   the room id
+     * @param eventId  the event Id
+     * @param callback the asynchronous callback called with the response
+     */
+    @GET("/rooms/{roomId}/event/{eventId}")
+    void getEvent(@Path("roomId") String roomId, @Path("eventId") String eventId, Callback<Event> callback);
+
+    /**
+     * Retrieve an event from its event id
+     *
+     * @param eventId  the event Id
+     * @param callback the asynchronous callback called with the response
+     */
+    @GET("/events/{eventId}")
+    void getEvent(@Path("eventId") String eventId, Callback<Event> callback);
+
+    /**
      * Redact an event from the room>.
      *
      * @param roomId   the room id
