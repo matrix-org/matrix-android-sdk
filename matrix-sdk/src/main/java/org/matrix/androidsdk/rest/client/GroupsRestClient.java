@@ -16,18 +16,18 @@
  */
 package org.matrix.androidsdk.rest.client;
 
-
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.GroupsApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.group.AcceptGroupInvitationParams;
 import org.matrix.androidsdk.rest.model.group.AddGroupParams;
 import org.matrix.androidsdk.rest.model.group.CreateGroupParams;
 import org.matrix.androidsdk.rest.model.group.CreateGroupResponse;
 import org.matrix.androidsdk.rest.model.group.GetGroupsResponse;
-import org.matrix.androidsdk.rest.model.group.GetUserPublicisedGroupsResponse;
+import org.matrix.androidsdk.rest.model.group.GetPublicisedGroupsResponse;
 import org.matrix.androidsdk.rest.model.group.GroupInviteUserParams;
 import org.matrix.androidsdk.rest.model.group.GroupInviteUserResponse;
 import org.matrix.androidsdk.rest.model.group.GroupKickUserParams;
@@ -38,10 +38,13 @@ import org.matrix.androidsdk.rest.model.group.GroupUsers;
 import org.matrix.androidsdk.rest.model.group.LeaveGroupParams;
 import org.matrix.androidsdk.rest.model.group.UpdatePubliciseParams;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import retrofit.client.Response;
-
 
 /**
  * Class used to make requests to the groups API.
@@ -420,20 +423,70 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
      * @param callback the asynchronous callback.
      */
     public void getUserPublicisedGroups(final String userId, final ApiCallback<List<String>> callback) {
-        final String description = "getUserPublicisedGroups " + userId;
+        getPublicisedGroups(Arrays.asList(userId), new ApiCallback<Map<String, List<String>>>() {
+            @Override
+            public void onSuccess(Map<String, List<String>> map) {
+                callback.onSuccess(map.get(userId));
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                callback.onNetworkError(e);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                callback.onMatrixError(e);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                callback.onUnexpectedError(e);
+            }
+        });
+    }
+
+    /**
+     * Request the publicised groups for an users list.
+     *
+     * @param userIds  the user ids list
+     * @param callback the asynchronous callback
+     */
+    public void getPublicisedGroups(final List<String> userIds, final ApiCallback<Map<String, List<String>>> callback) {
+        final String description = "getPublicisedGroups " + userIds;
 
         try {
-            mApi.getUserPublicisedGroups(userId, new RestAdapterCallback<GetUserPublicisedGroupsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            Map<String, List<String>> params = new HashMap<>();
+            params.put("user_ids", userIds);
+
+            mApi.getPublicisedGroups(params, new RestAdapterCallback<GetPublicisedGroupsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
-                    getUserPublicisedGroups(userId, callback);
+                    getPublicisedGroups(userIds, callback);
                 }
             }
             ) {
                 @Override
-                public void success(GetUserPublicisedGroupsResponse getUserPublicisedGroupsResponse, Response response) {
+                public void success(GetPublicisedGroupsResponse getPublicisedGroupsResponse, Response response) {
                     onEventSent();
-                    callback.onSuccess(getUserPublicisedGroupsResponse.groups);
+
+                    Map<String, List<String>> map = new HashMap<>();
+
+                    for (String userId : userIds) {
+                        List<String> groupIds = null;
+
+                        if ((null != getPublicisedGroupsResponse.users) && getPublicisedGroupsResponse.users.containsKey(userId)) {
+                            groupIds = getPublicisedGroupsResponse.users.get(userId);
+                        }
+
+                        if (null == groupIds) {
+                            groupIds = new ArrayList<>();
+                        }
+
+                        map.put(userId, groupIds);
+                    }
+
+                    callback.onSuccess(map);
                 }
             });
         } catch (Throwable t) {

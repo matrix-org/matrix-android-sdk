@@ -21,7 +21,7 @@ import org.matrix.androidsdk.rest.model.group.AddGroupParams;
 import org.matrix.androidsdk.rest.model.group.CreateGroupParams;
 import org.matrix.androidsdk.rest.model.group.CreateGroupResponse;
 import org.matrix.androidsdk.rest.model.group.GetGroupsResponse;
-import org.matrix.androidsdk.rest.model.group.GetUserPublicisedGroupsResponse;
+import org.matrix.androidsdk.rest.model.group.GetPublicisedGroupsResponse;
 import org.matrix.androidsdk.rest.model.group.GroupInviteUserParams;
 import org.matrix.androidsdk.rest.model.group.GroupInviteUserResponse;
 import org.matrix.androidsdk.rest.model.group.GroupKickUserParams;
@@ -32,6 +32,9 @@ import org.matrix.androidsdk.rest.model.group.GroupUsers;
 import org.matrix.androidsdk.rest.model.group.LeaveGroupParams;
 import org.matrix.androidsdk.rest.model.group.UpdatePubliciseParams;
 
+import java.util.List;
+import java.util.Map;
+
 import retrofit.Callback;
 import retrofit.http.Body;
 import retrofit.http.DELETE;
@@ -39,6 +42,8 @@ import retrofit.http.GET;
 import retrofit.http.POST;
 import retrofit.http.PUT;
 import retrofit.http.Path;
+import retrofit.http.Query;
+import retrofit.http.QueryMap;
 
 /**
  * The groups API.
@@ -190,12 +195,22 @@ public interface GroupsApi {
     @GET("/joined_groups")
     void getJoinedGroupIds(Callback<GetGroupsResponse> callback);
 
+    // NOT FEDERATED
     /**
      * Request the publicised groups for an user id.
      *
      * @param userId   the user id
      * @param callback the asynchronous callback.
      */
-    @GET("/publicised_groups/{userId}")
-    void getUserPublicisedGroups(@Path("userId") String userId, Callback<GetUserPublicisedGroupsResponse> callback);
+    //@GET("/publicised_groups/{userId}")
+    //void getUserPublicisedGroups(@Path("userId") String userId, Callback<GetUserPublicisedGroupsResponse> callback);
+
+    /**
+     * Request the publicised groups for user ids.
+     *
+     * @param params   the request params
+     * @param callback the asynchronous callback
+     */
+    @POST("/publicised_groups")
+    void getPublicisedGroups(@Body Map<String, List<String>> params, Callback<GetPublicisedGroupsResponse> callback);
 }
