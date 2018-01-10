@@ -669,7 +669,7 @@ public class GroupsManager {
                     @Override
                     public void run() {
                         Log.d(LOG_TAG, "## getUserPublicisedGroups() : " + userId + " --> cached data " + mPubliciseByUserId.get(userId));
-                        callback.onSuccess(mPubliciseByUserId.get(userId));
+                        callback.onSuccess(new HashSet<>(mPubliciseByUserId.get(userId)));
                     }
                 });
 
@@ -693,7 +693,7 @@ public class GroupsManager {
                 // cache only if the request succeeds
                 // else it will be tried later
                 if (null != groupIdsSet) {
-                    mPubliciseByUserId.put(userId, groupIdsSet);
+                    mPubliciseByUserId.put(userId, new HashSet<>(groupIdsSet));
                 } else {
                     groupIdsSet = new HashSet<>();
                 }
@@ -707,7 +707,7 @@ public class GroupsManager {
                     for (ApiCallback<Set<String>> callback : callbacks) {
                         if (null != callback) {
                             try {
-                                callback.onSuccess(groupIdsSet);
+                                callback.onSuccess(new HashSet<>(groupIdsSet));
                             } catch (Throwable t) {
                                 Log.d(LOG_TAG, "## getUserPublicisedGroups() : callback failed " + t.getMessage());
                             }
