@@ -176,6 +176,13 @@ public interface IMXEventListener {
     void onLeaveRoom(String roomId);
 
     /**
+     * The user has been kicked or banned.
+     *
+     * @param roomId the roomID
+     */
+    void onRoomKick(String roomId);
+
+    /**
      * A receipt event has been received.
      * It could be triggered when a request failed.
      *

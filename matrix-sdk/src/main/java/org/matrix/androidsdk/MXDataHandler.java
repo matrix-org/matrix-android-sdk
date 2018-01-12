@@ -1410,7 +1410,8 @@ public class MXDataHandler implements IMXEventListener {
                         // For that create 'handleArchivedRoomSync' method
 
                         String membership = RoomMember.MEMBERSHIP_LEAVE;
-                        Room room = this.getStore().getRoom(roomId);
+                        Room room = getRoom(roomId);
+
                         // Retrieve existing room
                         // check if the room still exists.
                         if (null != room) {
@@ -1424,13 +1425,15 @@ public class MXDataHandler implements IMXEventListener {
                             }
 
                             Log.d(LOG_TAG, "## manageResponse() : leave the room " + roomId);
-                        } else {
-                            Log.d(LOG_TAG, "## manageResponse() : Try to leave an unknown room " + roomId);
                         }
 
-                        // ensure that the room data are properly deleted
-                        this.getStore().deleteRoom(roomId);
-                        onLeaveRoom(roomId);
+                        if (!TextUtils.equals(membership, RoomMember.MEMBERSHIP_KICK) && !TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN)) {
+                            // ensure that the room data are properly deleted
+                            this.getStore().deleteRoom(roomId);
+                            onLeaveRoom(roomId);
+                        } else {
+                            onRoomKick(roomId);
+                        }
 
                         // don't add to the left rooms if the user has been kicked / banned
                         if ((mAreLeftRoomsSynced) && TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE)) {
@@ -2249,6 +2252,32 @@ public class MXDataHandler implements IMXEventListener {
                         listener.onLeaveRoom(roomId);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onLeaveRoom " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onRoomKick(final String roomId) {
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onRoomKick(roomId);
+        }
+
+        if (ignoreEvent(roomId)) {
+            return;
+        }
+
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onRoomKick(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onRoomKick " + e.getMessage());
                     }
                 }
             }

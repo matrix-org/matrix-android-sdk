@@ -2281,6 +2281,18 @@ public class Room {
                     }
                 }
             }
+
+            @Override
+            public void onRoomKick(String roomId) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), roomId)) {
+                    try {
+                        eventListener.onRoomKick(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onRoomKick exception " + e.getMessage());
+                    }
+                }
+            }
         };
 
         mEventListeners.put(eventListener, globalListener);
