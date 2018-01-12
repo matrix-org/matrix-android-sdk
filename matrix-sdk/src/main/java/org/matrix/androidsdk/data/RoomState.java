@@ -875,7 +875,7 @@ public class RoomState implements Externalizable {
                         member.setUserId(userId);
                         member.setOriginServerTs(event.getOriginServerTs());
                         member.setOriginalEventId(event.eventId);
-                        member.setInviterId(event.getSender());
+                        member.mSender = event.getSender();
 
                         if ((null != store) && (direction == EventTimeline.Direction.FORWARDS)) {
                             store.storeRoomStateEvent(roomId, event);
@@ -904,6 +904,13 @@ public class RoomState implements Externalizable {
                                 // remove the cached display name
                                 if (null != mMemberDisplayNameByUserId) {
                                     mMemberDisplayNameByUserId.remove(userId);
+                                }
+
+                                // test if the user has been kicked
+                                if (!TextUtils.equals(event.getSender(), event.stateKey) &&
+                                        TextUtils.equals(currentMember.membership, RoomMember.MEMBERSHIP_JOIN) &&
+                                        TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_LEAVE)) {
+                                    member.membership = RoomMember.MEMBERSHIP_KICK;
                                 }
                             }
                         }

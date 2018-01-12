@@ -520,8 +520,9 @@ public class EventDisplay {
             }
         } else if (RoomMember.MEMBERSHIP_BAN.equals(eventContent.membership)) {
             return context.getString(R.string.notice_room_ban, senderDisplayName, targetDisplayName);
+        } else if (RoomMember.MEMBERSHIP_KICK.equals(eventContent.membership)) {
+            return context.getString(R.string.notice_room_kick, senderDisplayName, targetDisplayName);
         } else {
-            // eh?
             Log.e(LOG_TAG, "Unknown membership: " + eventContent.membership);
         }
         return null;

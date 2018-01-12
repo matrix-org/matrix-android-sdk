@@ -265,7 +265,10 @@ public class MatrixMessagesFragment extends Fragment {
                 // else, the joining could have been half broken (network error)
                 if (null != mRoom.getState().creator) {
                     RoomMember self = mRoom.getMember(mSession.getCredentials().userId);
-                    if (self != null && RoomMember.MEMBERSHIP_JOIN.equals(self.membership)) {
+                    if (self != null &&
+                            (RoomMember.MEMBERSHIP_JOIN.equals(self.membership) ||
+                                    RoomMember.MEMBERSHIP_KICK.equals(self.membership) ||
+                                    RoomMember.MEMBERSHIP_BAN.equals(self.membership))) {
                         joinedRoom = true;
                     }
                 }
