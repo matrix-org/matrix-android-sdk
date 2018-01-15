@@ -669,7 +669,12 @@ public class GroupsManager {
                     @Override
                     public void run() {
                         Log.d(LOG_TAG, "## getUserPublicisedGroups() : " + userId + " --> cached data " + mPubliciseByUserId.get(userId));
-                        callback.onSuccess(new HashSet<>(mPubliciseByUserId.get(userId)));
+                        // reported by a rage shake
+                        if (mPubliciseByUserId.containsKey(userId)) {
+                            callback.onSuccess(new HashSet<>(mPubliciseByUserId.get(userId)));
+                        } else {
+                            callback.onSuccess(new HashSet<String>());
+                        }
                     }
                 });
 
