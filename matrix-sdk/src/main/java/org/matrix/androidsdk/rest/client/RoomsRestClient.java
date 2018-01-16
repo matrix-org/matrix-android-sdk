@@ -35,6 +35,7 @@ import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContext;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReportContentParams;
@@ -89,7 +90,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     sendMessage(transactionId, roomId, message, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -145,7 +146,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     getRoomMessagesFrom(roomId, fromToken, direction, limit, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -170,7 +171,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     inviteUserToRoom(roomId, userId, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -220,7 +221,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     inviteThreePidToRoom(medium, address, roomId, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -252,7 +253,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     joinRoom(roomIdOrAlias, params, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -273,7 +274,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     leaveRoom(roomId, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -320,7 +321,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     kickFromRoom(roomId, userId, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -342,7 +343,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     banFromRoom(roomId, user, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -364,7 +365,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     unbanFromRoom(roomId, user, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -372,8 +373,8 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     /**
      * Create a new room.
      *
-     * @param params the room creation parameters
-     * @param callback   the async callback
+     * @param params   the room creation parameters
+     * @param callback the async callback
      */
     public void createRoom(final CreateRoomParams params, final ApiCallback<CreateRoomResponse> callback) {
         // privacy
@@ -387,7 +388,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     createRoom(params, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -408,10 +409,136 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     initialSync(roomId, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
+
+    /**
+     * Retrieve an event from its room id / event id.
+     *
+     * @param roomId   the room id
+     * @param eventId  the event id
+     * @param callback the asynchronous callback.
+     */
+    public void getEvent(final String roomId, final String eventId, final ApiCallback<Event> callback) {
+        // try first with roomid / event id
+        getEventFromRoomIdEventId(roomId, eventId, new ApiCallback<Event>() {
+            @Override
+            public void onSuccess(Event event) {
+                callback.onSuccess(event);
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                callback.onNetworkError(e);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (TextUtils.equals(e.errcode, MatrixError.UNRECOGNIZED)) {
+                    getEventFromEventId(eventId, new ApiCallback<Event>() {
+                        @Override
+                        public void onSuccess(Event event) {
+                            callback.onSuccess(event);
+                        }
+
+                        @Override
+                        public void onNetworkError(Exception e) {
+                            callback.onNetworkError(e);
+                        }
+
+                        @Override
+                        public void onMatrixError(MatrixError e) {
+                            if (TextUtils.equals(e.errcode, MatrixError.UNRECOGNIZED)) {
+                                getContextOfEvent(roomId, eventId, 1, new ApiCallback<EventContext>() {
+                                    @Override
+                                    public void onSuccess(EventContext eventContext) {
+                                        callback.onSuccess(eventContext.event);
+                                    }
+
+                                    @Override
+                                    public void onNetworkError(Exception e) {
+                                        callback.onNetworkError(e);
+                                    }
+
+                                    @Override
+                                    public void onMatrixError(MatrixError e) {
+                                        callback.onMatrixError(e);
+                                    }
+
+                                    @Override
+                                    public void onUnexpectedError(Exception e) {
+                                        callback.onUnexpectedError(e);
+                                    }
+                                });
+                            } else {
+                                callback.onMatrixError(e);
+                            }
+                        }
+
+                        @Override
+                        public void onUnexpectedError(Exception e) {
+                            callback.onUnexpectedError(e);
+                        }
+                    });
+                } else {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                callback.onUnexpectedError(e);
+            }
+        });
+    }
+
+    /**
+     * Retrieve an event from its room id / event id.
+     *
+     * @param roomId   the room id
+     * @param eventId  the event id
+     * @param callback the asynchronous callback.
+     */
+    private void getEventFromRoomIdEventId(final String roomId, final String eventId, final ApiCallback<Event> callback) {
+        final String description = "getEventFromRoomIdEventId : roomId " + roomId + " eventId " + eventId;
+
+        try {
+            mApi.getEvent(roomId, eventId , new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    getEventFromRoomIdEventId(roomId, eventId, callback);
+                }
+            }));
+
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
+    }
+
+    /**
+     * Retrieve an event from its event id.
+     *
+     * @param eventId  the event id
+     * @param callback the asynchronous callback.
+     */
+    private void getEventFromEventId(final String eventId, final ApiCallback<Event> callback) {
+        final String description = "getEventFromEventId : eventId " + eventId;
+
+        try {
+            mApi.getEvent(eventId , new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    getEventFromEventId(eventId, callback);
+                }
+            }));
+
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
+    }
+
 
     /**
      * Get the context surrounding an event.
@@ -431,7 +558,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     getContextOfEvent(roomId, eventId, limit, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -456,7 +583,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     updateRoomName(roomId, name, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -481,7 +608,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     updateCanonicalAlias(roomId, canonicalAlias, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -506,7 +633,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     updateHistoryVisibility(roomId, aVisibility, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -531,7 +658,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     updateDirectoryVisibility(aRoomId, aDirectoryVisibility, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -553,7 +680,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     getDirectoryVisibility(aRoomId, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -578,7 +705,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     updateTopic(roomId, topic, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -600,7 +727,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     redactEvent(roomId, eventId, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -632,7 +759,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     reportEvent(roomId, eventId, score, reason, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -654,7 +781,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     updatePowerLevels(roomId, powerLevels, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -687,7 +814,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     }
                 }));
             }
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -709,7 +836,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     getStateEvent(roomId, eventType, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -732,7 +859,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     getStateEvent(roomId, eventType, stateKey, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -759,7 +886,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         try {
             // never resend typing on network error
             mApi.setTypingNotification(roomId, userId, typing, new RestAdapterCallback<Void>(description, null, callback, null));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -784,7 +911,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     updateAvatarUrl(roomId, avatarUrl, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -816,7 +943,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     sendReadMarker(roomId, rmEventId, rrEventId, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -843,7 +970,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     addTag(roomId, tag, order, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -865,7 +992,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     removeTag(roomId, tag, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -886,7 +1013,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     getRoomIdByAlias(roomAlias, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -932,7 +1059,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     removeRoomAlias(roomAlias, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
@@ -959,7 +1086,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     updateJoinRules(aRoomId, aJoinRule, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
 
@@ -987,7 +1114,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     updateGuestAccess(aRoomId, aGuestAccessRule, callback);
                 }
             }));
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             callback.onUnexpectedError(new Exception(t));
         }
     }
