@@ -33,7 +33,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.oney.WebRTCModule.EglUtils;
-import com.oney.WebRTCModule.WebRTCView;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.rest.model.Event;
@@ -96,8 +95,8 @@ public class MXWebRtcCall extends MXCall {
     private String mCallState = CALL_STATE_CREATED;
 
     private boolean mUsingLargeLocalRenderer = true;
-    private WebRTCView mFullScreenRTCView = null;
-    private WebRTCView mPipRTCView = null;
+    private MXWebRtcView mFullScreenRTCView = null;
+    private MXWebRtcView mPipRTCView = null;
 
     private static boolean mIsInitialized = false;
     // null -> not initialized
@@ -1029,7 +1028,7 @@ public class MXWebRtcCall extends MXCall {
      * @param webRTCView          the view
      * @param aLocalVideoPosition the video configuration
      */
-    private void updateWebRtcViewLayout(WebRTCView webRTCView, VideoLayoutConfiguration aLocalVideoPosition) {
+    private void updateWebRtcViewLayout(MXWebRtcView webRTCView, VideoLayoutConfiguration aLocalVideoPosition) {
         if (null != webRTCView) {
             final DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
 
@@ -1101,12 +1100,12 @@ public class MXWebRtcCall extends MXCall {
             try {
                 Log.d(LOG_TAG, "## initCallUI() building UI");
 
-                mFullScreenRTCView = new WebRTCView(mContext);
+                mFullScreenRTCView = new MXWebRtcView(mContext);
                 mFullScreenRTCView.setBackgroundColor(ContextCompat.getColor(mContext, android.R.color.black));
                 mCallView.addView(mFullScreenRTCView, new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
                 mFullScreenRTCView.setVisibility(View.GONE);
 
-                mPipRTCView = new WebRTCView(mContext);
+                mPipRTCView = new MXWebRtcView(mContext);
                 mCallView.addView(mPipRTCView, new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
                 mPipRTCView.setBackgroundColor(ContextCompat.getColor(mContext, android.R.color.transparent));
                 mPipRTCView.setVisibility(View.GONE);
