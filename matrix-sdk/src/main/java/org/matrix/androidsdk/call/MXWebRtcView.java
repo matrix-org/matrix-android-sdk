@@ -56,7 +56,7 @@ public class MXWebRtcView extends ViewGroup {
      */
     private static final Method IS_IN_LAYOUT;
 
-    private static final String TAG = MXWebRtcView.TAG;
+    private static final String LOG_TAG = MXWebRtcView.class.getSimpleName();
 
     static {
         // IS_IN_LAYOUT
@@ -148,7 +148,7 @@ public class MXWebRtcView extends ViewGroup {
     private ScalingType scalingType;
 
     /**
-     * The {@link View} and {@link VideoRenderer#Callbacks} implementation which
+     * The {@link View} and {@link VideoRenderer} implementation which
      * actually renders {@link #videoTrack} on behalf of this instance.
      */
     private final SurfaceViewRenderer surfaceViewRenderer;
@@ -506,7 +506,7 @@ public class MXWebRtcView extends ViewGroup {
             if (sharedContext == null) {
                 // If SurfaceViewRenderer#init() is invoked, it will throw a
                 // RuntimeException which will very likely kill the application.
-                Log.e(TAG, "Failed to render a VideoTrack!");
+                Log.e(LOG_TAG, "Failed to render a VideoTrack!");
                 return;
             }
 
