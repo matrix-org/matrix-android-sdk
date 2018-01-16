@@ -29,12 +29,15 @@ import android.text.TextUtils;
 
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
@@ -673,6 +676,9 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
     // Decode image in background.
     @Override
     protected Void doInBackground(Integer... params) {
+        MatrixError defaultError = new MatrixError();
+        defaultError.errcode = MatrixError.UNKNOWN;
+
         try {
             URL url = new URL(mUrl);
             Log.d(LOG_TAG, "MXMediaDownloadWorkerTask " + this + " starts");
@@ -707,6 +713,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                 stream = connection.getInputStream();
             } catch (Exception e) {
                 Log.e(LOG_TAG, "bitmapForURL : fail to open the connection " + e.getMessage());
+                defaultError.error = e.getLocalizedMessage();
 
                 InputStream errorStream = ((HttpsURLConnection) connection).getErrorStream();
 
@@ -796,8 +803,10 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                     }
                 } catch (OutOfMemoryError outOfMemoryError) {
                     Log.e(LOG_TAG, "doInBackground: out of memory");
+                    defaultError.error = outOfMemoryError.getLocalizedMessage();
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "doInBackground fail to read image " + e.getMessage());
+                    defaultError.error = e.getLocalizedMessage();
                 }
 
                 mIsDone = true;
@@ -830,6 +839,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                         originalFile.renameTo(newFile);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "doInBackground : renaming error " + e.getMessage());
+                        defaultError.error = e.getLocalizedMessage();
                     }
                 }
             }
@@ -845,6 +855,12 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             }
         } catch (Exception e) {
             Log.e(LOG_TAG, "Unable to download media " + this);
+            defaultError.error = e.getMessage();
+        }
+
+        // build a JSON from the error
+        if (!TextUtils.isEmpty(defaultError.error)) {
+            mErrorAsJsonElement = JsonUtils.getGson(false).toJsonTree(defaultError);
         }
 
         // remove the image from the loading one
