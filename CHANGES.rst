@@ -1,3 +1,10 @@
+Changes to Matrix Android SDK in 0.8.08 (2018-01-16)
+=======================================================
+
+Bugfixes:
+
+* #1859 : After a user redacted their own join event from HQ, Android DoSes us with /context requests.
+
 Changes to Matrix Android SDK in 0.8.07 (2017-12-18)
 =======================================================
 
