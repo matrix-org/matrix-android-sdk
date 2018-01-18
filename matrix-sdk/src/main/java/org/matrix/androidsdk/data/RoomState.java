@@ -795,14 +795,16 @@ public class RoomState implements Externalizable {
      * @return true if the room is encrypted
      */
     public boolean isEncrypted() {
-        return !TextUtils.isEmpty(algorithm);
+        // When a client receives an m.room.encryption event as above, it should set a flag to indicate that messages sent in the room should be encrypted.
+        // This flag should not be cleared if a later m.room.encryption event changes the configuration. This is to avoid a situation where a MITM can simply ask participants to disable encryption. In short: once encryption is enabled in a room, it can never be disabled.
+        return null != algorithm;
     }
 
     /**
      * @return the encryption algorithm
      */
     public String encryptionAlgorithm() {
-        return algorithm;
+        return TextUtils.isEmpty(algorithm) ? null : algorithm;
     }
 
     /**
@@ -847,6 +849,12 @@ public class RoomState implements Externalizable {
                 }
             } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
                 algorithm = JsonUtils.toRoomState(contentToConsider).algorithm;
+
+                // When a client receives an m.room.encryption event as above, it should set a flag to indicate that messages sent in the room should be encrypted.
+                // This flag should not be cleared if a later m.room.encryption event changes the configuration. This is to avoid a situation where a MITM can simply ask participants to disable encryption. In short: once encryption is enabled in a room, it can never be disabled.
+                if (null == algorithm) {
+                    algorithm = "";
+                }
             } else if (Event.EVENT_TYPE_STATE_CANONICAL_ALIAS.equals(eventType)) {
                 // SPEC-125
                 alias = JsonUtils.toRoomState(contentToConsider).alias;
