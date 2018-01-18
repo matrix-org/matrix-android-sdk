@@ -747,9 +747,19 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
 
             dispatchDownloadStart();
 
+            // failed to open the remote stream without having exception
+            if ((null == stream) && (null == mErrorAsJsonElement)) {
+                mErrorAsJsonElement = new JsonParser().parse("Cannot open " + mUrl);
+
+                // if some medias are not found
+                // do not try to reload them until the next application launch.
+                synchronized (mUnreachableUrls) {
+                    mUnreachableUrls.add(mUrl);
+                }
+            }
+
             // test if the download has not been cancelled
             if (!isDownloadCancelled() && (null == mErrorAsJsonElement)) {
-
                 final long startDownloadTime = System.currentTimeMillis();
 
                 String filename = MXMediaDownloadWorkerTask.buildFileName(mUrl, mMimeType) + ".tmp";
