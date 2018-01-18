@@ -1000,7 +1000,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                         Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                                     }
                                 } else if (null != event.unsentMatrixError) {
-                                    Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.getLocalizedMessage() + ".", Toast.LENGTH_LONG).show();
+                                    String localised = (event.unsentMatrixError instanceof MXCryptoError) ? ((MXCryptoError)event.unsentMatrixError).getDetailedErrorDescription() : event.unsentMatrixError.getLocalizedMessage();
+                                    Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + localised, Toast.LENGTH_LONG).show();
                                 }
 
                                 mAdapter.notifyDataSetChanged();

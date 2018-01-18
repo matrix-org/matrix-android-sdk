@@ -1805,7 +1805,7 @@ public class CryptoTest {
                 lock1.countDown();
             }
         });
-        lock1.await(10000, TimeUnit.MILLISECONDS);
+        lock1.await(30000, TimeUnit.MILLISECONDS);
         assertTrue(results + "", results.containsKey("send1") && results.containsKey("bob1") && results.containsKey("sam1"));
 
         List<MXDeviceInfo> list = mBobSession.getCrypto().getUserDevices(mAliceSession.getMyUserId());

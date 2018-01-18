@@ -1311,7 +1311,8 @@ public class MXCrypto {
                         }
                     });
                 } else {
-                    final String reason = String.format(MXCryptoError.UNABLE_TO_ENCRYPT_REASON, room.getLiveState().encryptionAlgorithm());
+                    final String algorithm = room.getLiveState().encryptionAlgorithm();
+                    final String reason = String.format(MXCryptoError.UNABLE_TO_ENCRYPT_REASON, (null == algorithm) ? MXCryptoError.NO_MORE_ALGORITHM_REASON : algorithm);
                     Log.e(LOG_TAG, "## encryptEventContent() : " + reason);
 
                     if (null != callback) {
