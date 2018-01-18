@@ -2860,7 +2860,7 @@ public class Room {
      * @return if the room content is encrypted
      */
     public boolean isEncrypted() {
-        return !TextUtils.isEmpty(getLiveState().algorithm);
+        return getLiveState().isEncrypted();
     }
 
     /**

@@ -166,23 +166,23 @@ public class MXSession {
     public static OlmManager mOlmManager = new OlmManager();
 
     // regex pattern to find matrix user ids in a string.
-    public static final String MATRIX_USER_IDENTIFIER_REGEX = "@[A-Z0-9._=-]+:[A-Z0-9.-]+\\.[A-Z]{2,}+(\\:[0-9]{2,})?";
+    public static final String MATRIX_USER_IDENTIFIER_REGEX = "@[A-Z0-9._=-]+:[A-Z0-9.-]+(\\.[A-Z]{2,})?+(\\:[0-9]{2,})?";
     public static final Pattern PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER = Pattern.compile(MATRIX_USER_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
 
     // regex pattern to find room aliases in a string.
-    public static final String MATRIX_ROOM_ALIAS_REGEX = "#[A-Z0-9._%#+-]+:[A-Z0-9.-]+\\.[A-Z]{2,}+(\\:[0-9]{2,})?";
+    public static final String MATRIX_ROOM_ALIAS_REGEX = "#[A-Z0-9._%#+-]+:[A-Z0-9.-]+(\\.[A-Z]{2,})?+(\\:[0-9]{2,})?";
     public static final Pattern PATTERN_CONTAIN_MATRIX_ALIAS = Pattern.compile(MATRIX_ROOM_ALIAS_REGEX, Pattern.CASE_INSENSITIVE);
 
     // regex pattern to find room ids in a string.
-    public static final String MATRIX_ROOM_IDENTIFIER_REGEX = "![A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}+(\\:[0-9]{2,})?";
+    public static final String MATRIX_ROOM_IDENTIFIER_REGEX = "![A-Z0-9]+:[A-Z0-9.-]+(\\.[A-Z]{2,})?+(\\:[0-9]{2,})?";
     public static final Pattern PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER = Pattern.compile(MATRIX_ROOM_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
 
     // regex pattern to find message ids in a string.
-    public static final String MATRIX_MESSAGE_IDENTIFIER_REGEX = "\\$[A-Z0-9]+:[A-Z0-9.-]+\\.[A-Z]{2,}+(\\:[0-9]{2,})?";
+    public static final String MATRIX_MESSAGE_IDENTIFIER_REGEX = "\\$[A-Z0-9]+:[A-Z0-9.-]+(\\.[A-Z]{2,})?+(\\:[0-9]{2,})?";
     public static final Pattern PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER = Pattern.compile(MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
 
     // regex pattern to find group ids in a string.
-    public static final String MATRIX_GROUP_IDENTIFIER_REGEX = "\\+[A-Z0-9=_\\-./]+:[A-Z0-9.-]+\\.[A-Z]{2,}+(\\:[0-9]{2,})?";
+    public static final String MATRIX_GROUP_IDENTIFIER_REGEX = "\\+[A-Z0-9=_\\-./]+:[A-Z0-9.-]+(\\.[A-Z]{2,})?+(\\:[0-9]{2,})?";
     public static final Pattern PATTERN_CONTAIN_MATRIX_GROUP_IDENTIFIER = Pattern.compile(MATRIX_GROUP_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
 
     // regex pattern to find permalink with message id.
