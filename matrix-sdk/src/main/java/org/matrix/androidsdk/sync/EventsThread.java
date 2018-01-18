@@ -27,8 +27,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
 import android.os.SystemClock;
-import android.text.TextUtils;
-
 import org.matrix.androidsdk.rest.model.sync.RoomsSyncResponse;
 import org.matrix.androidsdk.util.Log;
 
@@ -565,8 +563,12 @@ public class EventsThread extends Thread {
                             // we get no to_device messages back.
                             if (0 == fServerTimeout) {
                                 if (hasDevicesChanged(syncResponse)) {
-                                    Log.d(LOG_TAG, "mNextServerTimeoutms is set to 0 because of hasDevicesChanged " + syncResponse.deviceLists.changed);
-                                    mNextServerTimeoutms = 0;
+                                    if (mIsCatchingUp) {
+                                        Log.d(LOG_TAG, "Some devices have changed but do not set mNextServerTimeoutms to 0 to avoid infinite loops");
+                                    } else {
+                                        Log.d(LOG_TAG, "mNextServerTimeoutms is set to 0 because of hasDevicesChanged " + syncResponse.deviceLists.changed);
+                                        mNextServerTimeoutms = 0;
+                                    }
                                 }
                             }
 
