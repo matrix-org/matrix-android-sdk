@@ -48,6 +48,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * RoomMediaMessage encapsulates the media information to be sent.
@@ -764,6 +765,38 @@ public class RoomMediaMessage implements Parcelable {
         List<RoomMediaMessage> roomMediaMessages = new ArrayList<>();
 
         if (null != intent) {
+            // chrome adds many items when sharing an web page link
+            // so, test first the type
+            if (TextUtils.equals(intent.getType(), ClipDescription.MIMETYPE_TEXT_PLAIN)) {
+                String text = intent.getStringExtra(Intent.EXTRA_TEXT);
+
+                if (null == text) {
+                    CharSequence sequence = intent.getCharSequenceExtra(Intent.EXTRA_TEXT);
+                    if (null != sequence) {
+                        text = sequence.toString();
+                    }
+                }
+
+                String subject = intent.getStringExtra(Intent.EXTRA_SUBJECT);
+
+                String message = "";
+
+                if (!TextUtils.isEmpty(subject)) {
+                    message = subject;
+                }
+
+                if (TextUtils.isEmpty(message)) {
+                    message = text;
+                } else if (!TextUtils.isEmpty(text) && android.util.Patterns.WEB_URL.matcher(text).matches()) {
+                    message += "\n" + text;
+                }
+
+                if (!TextUtils.isEmpty(message)) {
+                    roomMediaMessages.add(new RoomMediaMessage(message, null, intent.getType()));
+                    return roomMediaMessages;
+                }
+            }
+
             ClipData clipData = null;
             ArrayList<String> mimetypes = null;
 
