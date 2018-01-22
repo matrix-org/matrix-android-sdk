@@ -166,7 +166,8 @@ public class MXSession {
     public static OlmManager mOlmManager = new OlmManager();
 
     // regex pattern to find matrix user ids in a string.
-    public static final String MATRIX_USER_IDENTIFIER_REGEX = "@[A-Z0-9._=-]+:[A-Z0-9.-]+(\\.[A-Z]{2,})?+(\\:[0-9]{2,})?";
+    // See https://matrix.org/speculator/spec/HEAD/appendices.html#historical-user-ids
+    public static final String MATRIX_USER_IDENTIFIER_REGEX = "@[A-Z0-9\\x21-\\x39\\x3B-\\x7F]+:[A-Z0-9.-]+(\\.[A-Z]{2,})?+(\\:[0-9]{2,})?";
     public static final Pattern PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER = Pattern.compile(MATRIX_USER_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
 
     // regex pattern to find room aliases in a string.
