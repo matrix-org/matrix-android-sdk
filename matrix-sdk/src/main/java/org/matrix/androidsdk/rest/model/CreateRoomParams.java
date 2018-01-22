@@ -144,20 +144,39 @@ public class CreateRoomParams {
     }
 
     /**
+     * @return the invite count
+     */
+    private int getInviteCount() {
+        return (null == invite) ? 0 : invite.size();
+    }
+
+    /**
+     * @return the pid invite count
+     */
+    private int getInvite3PidCount() {
+        return (null == invite_3pid) ? 0 : invite_3pid.size();
+    }
+
+    /**
      * Tells if the created room can be a direct chat one.
      *
      * @return if it is a direct chat
      */
     public boolean isDirect() {
-        return TextUtils.equals(preset, CreateRoomParams.PRESET_TRUSTED_PRIVATE_CHAT) && (null != is_direct) && is_direct && (null != invite) && (1 == invite.size());
+        return TextUtils.equals(preset, CreateRoomParams.PRESET_TRUSTED_PRIVATE_CHAT) && (null != is_direct) && is_direct &&
+                (1 == getInviteCount() || (1 == getInvite3PidCount()));
     }
 
     /**
      * @return the first invited user id
      */
     public String getFirstInvitedUserId() {
-        if ((null != invite) && !invite.isEmpty()) {
+        if (0 != getInviteCount()) {
             return invite.get(0);
+        }
+
+        if (0 != getInvite3PidCount()) {
+            return invite_3pid.get(0).address;
         }
 
         return null;
