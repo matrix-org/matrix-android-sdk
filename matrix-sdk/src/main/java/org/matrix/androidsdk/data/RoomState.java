@@ -900,7 +900,7 @@ public class RoomState implements Externalizable {
 
                         // when a member leaves a room, his avatar / display name is not anymore provided
                         if (null != currentMember) {
-                            if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN)) {
+                            if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_LEAVE) || TextUtils.equals(member.membership, (RoomMember.MEMBERSHIP_BAN))) {
                                 if (null == member.getAvatarUrl()) {
                                     member.setAvatarUrl(currentMember.getAvatarUrl());
                                 }
