@@ -11,7 +11,7 @@
 
     <string name="notice_room_invite_no_invitee">la invitació de %s</string>
     <string name="notice_room_invite">%1$s ha convidat a %2$s</string>
-    <string name="notice_room_invite_you">%1$s us ha convidat</string>
+    <string name="notice_room_invite_you">%1$s vos ha convidat</string>
     <string name="notice_room_reject">%1$s ha rebutjat la invitació</string>
     <string name="notice_room_kick">%1$s ha fet fora a %2$s</string>
     <string name="matrix_sdk_app_name">Android SDK de Matrix</string>
