@@ -7,7 +7,7 @@
     <string name="medium_phone_number">Número de telèfon</string>
 
 <string name="medium_email">Correu electrònic</string>
-    <string name="encrypted_message">Missatge encriptat</string>
+    <string name="encrypted_message"></string>
 
     <string name="notice_room_invite_no_invitee">la invitació de %s</string>
     <string name="notice_room_invite">%1$s ha convidat a %2$s</string>
