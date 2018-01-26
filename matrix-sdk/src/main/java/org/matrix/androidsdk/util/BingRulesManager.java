@@ -17,6 +17,10 @@ package org.matrix.androidsdk.util;
 
 import android.text.TextUtils;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
+import org.json.JSONObject;
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.MyUser;
@@ -110,6 +114,33 @@ public class BingRulesManager {
     private final Set<onBingRulesUpdateListener> mBingRulesUpdateListeners = new HashSet<>();
 
     /**
+     * Defines the room notification state
+     */
+    public enum RoomNotificationState {
+        /**
+         * All the messages will trigger a noisy notification
+         */
+        ALL_MESSAGES_NOISY,
+
+        /**
+         * All the messages will trigger a notification
+         */
+        ALL_MESSAGES,
+
+        /**
+         * Only the messages with user display name / user name will trigger notifications
+         */
+        MENTIONS_ONLY,
+
+        /**
+         * No notifications
+         */
+        MUTE
+    }
+
+    private Map<String, RoomNotificationState> mRoomNotificationStateByRoomId = new HashMap<>();
+
+    /**
      * Constructor
      *
      * @param session                     the session
@@ -181,6 +212,9 @@ public class BingRulesManager {
      * Some rules have been updated.
      */
     private void onBingRulesUpdate() {
+        // delete cached data
+        mRoomNotificationStateByRoomId.clear();
+
         for (onBingRulesUpdateListener listener : mBingRulesUpdateListeners) {
             try {
                 listener.onBingRulesUpdate();
@@ -627,8 +661,14 @@ public class BingRulesManager {
     private void forceRulesRefresh(final String errorMsg, final onBingRuleUpdateListener listener) {
         // refresh only there is a listener
         if (null != listener) {
+            // clear cached data
+            mRoomNotificationStateByRoomId.clear();
+
             loadRules(new ApiCallback<Void>() {
                 private void onDone(String error) {
+                    // clear cached data
+                    mRoomNotificationStateByRoomId.clear();
+
                     try {
                         if (TextUtils.isEmpty(error) && TextUtils.isEmpty(errorMsg)) {
                             listener.onBingRuleUpdateSuccess();
@@ -931,13 +971,13 @@ public class BingRulesManager {
      * @param roomId the room id
      * @return the room rules list
      */
-    public List<BingRule> getPushRulesForRoomId(String roomId) {
+    private List<BingRule> getPushRulesForRoomId(String roomId) {
         ArrayList<BingRule> rules = new ArrayList<>();
 
         // sanity checks
         if (!TextUtils.isEmpty(roomId) && (null != mRulesSet)) {
             // the webclient defines two ways to set a room rule
-            // mention only : the user won't have any push for the room except if a content rule is fullfilled
+            // mention only : the user won't have any push for the room except if a content rule is fulfilled
             // mute : no notification for this room
 
             // mute rules are defined in override groups
@@ -963,39 +1003,87 @@ public class BingRulesManager {
     }
 
     /**
+     * Provide the room notification state
+     *
+     * @param roomId the room
+     * @return the room notification state
+     */
+    public RoomNotificationState getRoomNotificationState(String roomId) {
+        if (TextUtils.isEmpty(roomId)) {
+            return RoomNotificationState.ALL_MESSAGES;
+        }
+
+        if (mRoomNotificationStateByRoomId.containsKey(roomId)) {
+            return mRoomNotificationStateByRoomId.get(roomId);
+        }
+
+        RoomNotificationState result = RoomNotificationState.ALL_MESSAGES;
+        List<BingRule> bingRules = getPushRulesForRoomId(roomId);
+
+        for (BingRule rule : bingRules) {
+            if (rule.isEnabled) {
+                if (rule.shouldNotNotify()) {
+                    result = TextUtils.equals(rule.kind, BingRule.KIND_OVERRIDE) ? RoomNotificationState.MUTE : RoomNotificationState.MENTIONS_ONLY;
+                    break;
+                } else if (rule.shouldNotify()) {
+                    result = (null != rule.getNotificationSound()) ? RoomNotificationState.ALL_MESSAGES_NOISY : RoomNotificationState.ALL_MESSAGES;
+                }
+            }
+        }
+
+        mRoomNotificationStateByRoomId.put(roomId, result);
+        return result;
+    }
+
+    /**
+     * Update the notification state of a dedicated room
+     *
+     * @param roomId   the room id
+     * @param state    the new state
+     * @param listener the asynchronous callback
+     */
+    public void updateRoomNotificationState(final String roomId, final RoomNotificationState state, final onBingRuleUpdateListener listener) {
+        List<BingRule> bingRules = getPushRulesForRoomId(roomId);
+
+        deleteRules(bingRules, new onBingRuleUpdateListener() {
+            @Override
+            public void onBingRuleUpdateSuccess() {
+                if (state == RoomNotificationState.ALL_MESSAGES) {
+                    forceRulesRefresh(null, listener);
+                } else {
+                    BingRule rule;
+
+                    if (state == RoomNotificationState.ALL_MESSAGES_NOISY) {
+                        rule = new BingRule(BingRule.KIND_ROOM, roomId, true, false, true);
+                    } else {
+                        rule = new BingRule((state == RoomNotificationState.MENTIONS_ONLY) ? BingRule.KIND_ROOM : BingRule.KIND_OVERRIDE, roomId, false, null, false);
+
+                        EventMatchCondition condition = new EventMatchCondition();
+                        condition.key = "room_id";
+                        condition.pattern = roomId;
+                        rule.addCondition(condition);
+
+                    }
+
+                    addRule(rule, listener);
+                }
+            }
+
+            @Override
+            public void onBingRuleUpdateFailure(String errorMessage) {
+                listener.onBingRuleUpdateFailure(errorMessage);
+            }
+        });
+    }
+
+    /**
      * Tell whether the regular notifications are disabled for the room.
      *
      * @param roomId the room id
      * @return true if the regular notifications are disabled (mention only)
      */
     public boolean isRoomMentionOnly(String roomId) {
-        // sanity check
-        if (!TextUtils.isEmpty(roomId)) {
-            if (mIsMentionOnlyMap.containsKey(roomId)) {
-                return mIsMentionOnlyMap.get(roomId);
-            }
-
-            if (null != mRulesSet.room) {
-                for (BingRule roomRule : mRulesSet.room) {
-                    if (TextUtils.equals(roomRule.ruleId, roomId)) {
-                        List<BingRule> roomRules = getPushRulesForRoomId(roomId);
-
-                        if (0 != roomRules.size()) {
-                            for (BingRule rule : roomRules) {
-                                if (rule.shouldNotNotify()) {
-                                    mIsMentionOnlyMap.put(roomId, rule.isEnabled);
-                                    return rule.isEnabled;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            mIsMentionOnlyMap.put(roomId, false);
-        }
-
-        return false;
+        return RoomNotificationState.MENTIONS_ONLY == getRoomNotificationState(roomId);
     }
 
     /**
@@ -1005,56 +1093,7 @@ public class BingRulesManager {
      * @return true if there is a rule to disable notifications.
      */
     public boolean isRoomNotificationsDisabled(String roomId) {
-        List<BingRule> roomRules = getPushRulesForRoomId(roomId);
-
-        if (0 != roomRules.size()) {
-            for (BingRule rule : roomRules) {
-                if (!rule.shouldNotify() && rule.isEnabled) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Mute / unmute the room notifications.
-     * Only the room rules are checked.
-     *
-     * @param roomId   the room id to mute / unmute.
-     * @param isMuted  set to true to mute the notification
-     * @param listener the listener.
-     */
-    public void muteRoomNotifications(final String roomId, final boolean isMuted, final onBingRuleUpdateListener listener) {
-        List<BingRule> bingRules = getPushRulesForRoomId(roomId);
-
-        // the mobile client only supports to define a "mention only" rule i.e a rule defined in the room rules set.
-        // delete the rule and create a new one
-        deleteRules(bingRules, new onBingRuleUpdateListener() {
-            @Override
-            public void onBingRuleUpdateSuccess() {
-                if (isMuted) {
-                    addRule(new BingRule(BingRule.KIND_ROOM, roomId, false, false, false), listener);
-                } else if (null != listener) {
-                    try {
-                        listener.onBingRuleUpdateSuccess();
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "## muteRoomNotifications() : onBingRuleUpdateSuccess failed " + e.getMessage());
-                    }
-                }
-            }
-
-            @Override
-            public void onBingRuleUpdateFailure(String errorMessage) {
-                if (null != listener) {
-                    try {
-                        listener.onBingRuleUpdateFailure(errorMessage);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "## muteRoomNotifications() : onBingRuleUpdateFailure failed " + e.getMessage());
-                    }
-                }
-            }
-        });
+        RoomNotificationState state = getRoomNotificationState(roomId);
+        return (RoomNotificationState.MENTIONS_ONLY == state) || (RoomNotificationState.MUTE == state);
     }
 }
