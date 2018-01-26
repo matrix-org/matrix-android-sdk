@@ -17,6 +17,8 @@ package org.matrix.androidsdk.rest.model.group;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -28,15 +30,31 @@ public class GroupUsers implements Serializable {
 
     public List<GroupUser> chunk;
 
+    // the server sends some duplicated entries
+    private List<GroupUser> mFilteredUsers;
+
     /**
      * @return the users list
      */
     public List<GroupUser> getUsers() {
         if (null == chunk) {
-            chunk = new ArrayList<>();
+            mFilteredUsers = chunk = new ArrayList<>();
+        } else if (null == mFilteredUsers) {
+            mFilteredUsers = new ArrayList<>();
+
+            HashMap<String, GroupUser> map = new HashMap<>();
+
+            for (GroupUser user : chunk) {
+                if (null != user.userId) {
+                    map.put(user.userId, user);
+                } else {
+                    mFilteredUsers.add(user);
+                }
+            }
+            mFilteredUsers.addAll(map.values());
         }
 
-        return chunk;
+        return mFilteredUsers;
     }
 
     /**
