@@ -21,6 +21,7 @@ import android.content.Context;
 import android.os.Looper;
 import android.text.TextUtils;
 
+import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.OutgoingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.util.Log;
@@ -84,6 +85,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private static final String MXFILE_CRYPTO_STORE_OUTGOING_ROOM_KEY_REQUEST_FILE = "outgoingRoomKeyRequests";
     private static final String MXFILE_CRYPTO_STORE_OUTGOING_ROOM_KEY_REQUEST_FILE_TMP = "outgoingRoomKeyRequests.tmp";
 
+    private static final String MXFILE_CRYPTO_STORE_INCOMING_ROOM_KEY_REQUESTS_FILE = "incomingRoomKeyRequests";
+    private static final String MXFILE_CRYPTO_STORE_INCOMING_ROOM_KEY_REQUESTS_FILE_TMP = "incomingRoomKeyRequests.tmp";
+
     // The credentials used for this store
     private Credentials mCredentials;
 
@@ -113,8 +117,10 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             HashMap<String /*inboundGroupSessionId*/, MXOlmInboundGroupSession2>> mInboundGroupSessions;
     private final Object mInboundGroupSessionsLock = new Object();
 
-
     private final Map<Map<String, String>, OutgoingRoomKeyRequest> mOutgoingRoomKeyRequests = new HashMap<>();
+
+    // userId -> deviceId -> [keyRequest]
+    private Map<String, Map<String, List<IncomingRoomKeyRequest>>> mPendingIncomingRoomKeyRequests;
 
     // The path of the MXFileCryptoStore folder
     private File mStoreFile;
@@ -145,6 +151,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     private File mOutgoingRoomKeyRequestsFile;
     private File mOutgoingRoomKeyRequestsFileTmp;
+
+    private File mIncomingRoomKeyRequestsFile;
+    private File mIncomingRoomKeyRequestsFileTmp;
 
     // tell if the store is corrupted
     private boolean mIsCorrupted = false;
@@ -189,6 +198,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
         mOutgoingRoomKeyRequestsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_OUTGOING_ROOM_KEY_REQUEST_FILE);
         mOutgoingRoomKeyRequestsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_OUTGOING_ROOM_KEY_REQUEST_FILE_TMP);
+
+        mIncomingRoomKeyRequestsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_INCOMING_ROOM_KEY_REQUESTS_FILE);
+        mIncomingRoomKeyRequestsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_INCOMING_ROOM_KEY_REQUESTS_FILE_TMP);
 
         // Build default metadata
         if ((null == mMetaData)
@@ -316,7 +328,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
      * @param description the object description
      * @return true if the operation succeeds
      */
-    private boolean  storeObject(Object object, File folder, String filename, String description) {
+    private boolean storeObject(Object object, File folder, String filename, String description) {
         if (!mIsReady) {
             Log.e(LOG_TAG, "## storeObject() : the store is not ready");
             return false;
@@ -1509,5 +1521,186 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         }
 
         return encodedFilename;
+    }
+
+
+    /**
+     * Tells if an IncomingRoomKeyRequest instance is valid
+     *
+     * @param incomingRoomKeyRequest the incomingRoomKeyRequest instance
+     * @return true if it is valid
+     */
+    private boolean isValidIncomingRoomKeyRequest(IncomingRoomKeyRequest incomingRoomKeyRequest) {
+        return (null != incomingRoomKeyRequest) &&
+                !TextUtils.isEmpty(incomingRoomKeyRequest.mUserId) &&
+                !TextUtils.isEmpty(incomingRoomKeyRequest.mDeviceId) &&
+                !TextUtils.isEmpty(incomingRoomKeyRequest.mRequestId);
+    }
+
+    @Override
+    public IncomingRoomKeyRequest getIncomingRoomKeyRequest(String userId, String deviceId, String requestId) {
+        // sanity checks
+        if (TextUtils.isEmpty(userId) || TextUtils.isEmpty(deviceId) || TextUtils.isEmpty(requestId)) {
+            return null;
+        }
+
+        if (!mPendingIncomingRoomKeyRequests.containsKey(userId)) {
+            return null;
+        }
+
+        if (!mPendingIncomingRoomKeyRequests.get(userId).containsKey(deviceId)) {
+            return null;
+        }
+
+        List<IncomingRoomKeyRequest> pendingRequests = mPendingIncomingRoomKeyRequests.get(userId).get(deviceId);
+
+        for (IncomingRoomKeyRequest request : pendingRequests) {
+            if (TextUtils.equals(requestId, request.mRequestId)) {
+                return request;
+            }
+        }
+
+        return null;
+    }
+
+    @Override
+    public List<IncomingRoomKeyRequest> getPendingIncomingRoomKeyRequests() {
+        loadIncomingRoomKeyRequests();
+
+        List<IncomingRoomKeyRequest> list = new ArrayList<>();
+
+        // userId -> deviceId -> [keyRequest]
+        Set<String> userIds = mPendingIncomingRoomKeyRequests.keySet();
+
+        for (String userId : userIds) {
+            Set<String> deviceIds = mPendingIncomingRoomKeyRequests.get(userId).keySet();
+            for (String deviceId : deviceIds) {
+                list.addAll(mPendingIncomingRoomKeyRequests.get(userId).get(deviceId));
+            }
+        }
+
+        return list;
+    }
+
+    /**
+     * Add an incomingRoomKeyRequest.
+     *
+     * @param incomingRoomKeyRequest the incomingRoomKeyRequest request
+     */
+    private void addIncomingRoomKeyRequest(IncomingRoomKeyRequest incomingRoomKeyRequest) {
+        String userId = incomingRoomKeyRequest.mUserId;
+        String deviceId = incomingRoomKeyRequest.mDeviceId;
+
+        if (!mPendingIncomingRoomKeyRequests.containsKey(userId)) {
+            mPendingIncomingRoomKeyRequests.put(userId, new HashMap<String, List<IncomingRoomKeyRequest>>());
+        }
+
+        if (!mPendingIncomingRoomKeyRequests.get(userId).containsKey(deviceId)) {
+            mPendingIncomingRoomKeyRequests.get(userId).put(deviceId, new ArrayList<IncomingRoomKeyRequest>());
+        }
+
+        mPendingIncomingRoomKeyRequests.get(userId).get(deviceId).add(incomingRoomKeyRequest);
+    }
+
+    @Override
+    public void storeIncomingRoomKeyRequest(IncomingRoomKeyRequest incomingRoomKeyRequest) {
+        loadIncomingRoomKeyRequests();
+
+        // invalid or already stored
+        if (!isValidIncomingRoomKeyRequest(incomingRoomKeyRequest) ||
+                (null != getIncomingRoomKeyRequest(incomingRoomKeyRequest.mUserId, incomingRoomKeyRequest.mDeviceId, incomingRoomKeyRequest.mRequestId))) {
+            return;
+        }
+
+        addIncomingRoomKeyRequest(incomingRoomKeyRequest);
+        saveIncomingRoomKeyRequests();
+    }
+
+    @Override
+    public void deleteIncomingRoomKeyRequest(IncomingRoomKeyRequest incomingRoomKeyRequest) {
+        loadIncomingRoomKeyRequests();
+
+        if (!isValidIncomingRoomKeyRequest(incomingRoomKeyRequest)) {
+            return;
+        }
+
+        IncomingRoomKeyRequest request = getIncomingRoomKeyRequest(incomingRoomKeyRequest.mUserId, incomingRoomKeyRequest.mDeviceId, incomingRoomKeyRequest.mRequestId);
+
+        if (null == request) {
+            return;
+        }
+
+        String userId = incomingRoomKeyRequest.mUserId;
+        String deviceId = incomingRoomKeyRequest.mDeviceId;
+
+        mPendingIncomingRoomKeyRequests.get(userId).get(deviceId).remove(request);
+
+        if (mPendingIncomingRoomKeyRequests.get(userId).get(deviceId).isEmpty()) {
+            mPendingIncomingRoomKeyRequests.get(userId).remove(deviceId);
+        }
+
+        if (mPendingIncomingRoomKeyRequests.get(userId).isEmpty()) {
+            mPendingIncomingRoomKeyRequests.remove(userId);
+        }
+
+        saveIncomingRoomKeyRequests();
+    }
+
+    /**
+     * Save the incoming key requests
+     */
+    private void saveIncomingRoomKeyRequests() {
+        // delete the previous tmp
+        if (mIncomingRoomKeyRequestsFileTmp.exists()) {
+            mIncomingRoomKeyRequestsFileTmp.delete();
+        }
+
+        // copy the existing file
+        if (mIncomingRoomKeyRequestsFile.exists()) {
+            mIncomingRoomKeyRequestsFile.renameTo(mIncomingRoomKeyRequestsFileTmp);
+        }
+
+        if (storeObject(getPendingIncomingRoomKeyRequests(), mIncomingRoomKeyRequestsFile, "savedIncomingRoomKeyRequests - in background")) {
+            // remove the tmp file
+            if (mIncomingRoomKeyRequestsFileTmp.exists()) {
+                mIncomingRoomKeyRequestsFileTmp.delete();
+            }
+        } else {
+            if (mIncomingRoomKeyRequestsFileTmp.exists()) {
+                mIncomingRoomKeyRequestsFileTmp.renameTo(mIncomingRoomKeyRequestsFile);
+            }
+        }
+    }
+
+    /**
+     * Load the incoming key requests
+     */
+    private void loadIncomingRoomKeyRequests() {
+        if (null == mPendingIncomingRoomKeyRequests) {
+            Object requestsAsVoid;
+
+            if (mIncomingRoomKeyRequestsFileTmp.exists()) {
+                requestsAsVoid = loadObject(mIncomingRoomKeyRequestsFileTmp, "loadIncomingRoomKeyRequests - tmp");
+            } else {
+                requestsAsVoid = loadObject(mIncomingRoomKeyRequestsFile, "loadIncomingRoomKeyRequests");
+            }
+
+            List<IncomingRoomKeyRequest> requests = new ArrayList<>();
+
+            if (null != requestsAsVoid) {
+                try {
+                    requests = (List<IncomingRoomKeyRequest>) requestsAsVoid;
+                } catch (Exception e) {
+                    mIncomingRoomKeyRequestsFileTmp.delete();
+                    mIncomingRoomKeyRequestsFile.delete();
+                }
+            }
+
+            mPendingIncomingRoomKeyRequests = new HashMap<>();
+
+            for (IncomingRoomKeyRequest request : requests) {
+                addIncomingRoomKeyRequest(request);
+            }
+        }
     }
 }

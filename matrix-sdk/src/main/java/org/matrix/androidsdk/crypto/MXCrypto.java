@@ -254,6 +254,8 @@ public class MXCrypto {
         }
 
         mOutgoingRoomKeyRequestManager = new MXOutgoingRoomKeyRequestManager(mSession, this);
+
+        mReceivedRoomKeyRequests.addAll(mCryptoStore.getPendingIncomingRoomKeyRequests());
     }
 
     /**
@@ -464,6 +466,13 @@ public class MXCrypto {
                                                                         // refresh the devices list for each known room members
                                                                         getDeviceList().invalidateAllDeviceLists();
                                                                         mDevicesList.refreshOutdatedDeviceLists();
+                                                                    }
+                                                                });
+                                                            } else {
+                                                                getEncryptingThreadHandler().post(new Runnable() {
+                                                                    @Override
+                                                                    public void run() {
+                                                                        processReceivedRoomKeyRequests();
                                                                     }
                                                                 });
                                                             }
@@ -1682,6 +1691,7 @@ public class MXCrypto {
                             @Override
                             public void run() {
                                 decryptor.shareKeysWithDevice(request);
+                                mCryptoStore.deleteIncomingRoomKeyRequest(request);
                             }
                         });
                     }
@@ -1703,6 +1713,7 @@ public class MXCrypto {
                     }
                 }
 
+                mCryptoStore.storeIncomingRoomKeyRequest(request);
                 onRoomKeyRequest(request);
             }
         }
@@ -1724,6 +1735,7 @@ public class MXCrypto {
                 // about, but we don't currently have a record of that, so we just pass
                 // everything through.
                 onRoomKeyRequestCancellation(request);
+                mCryptoStore.deleteIncomingRoomKeyRequest(request);
             }
         }
     }
