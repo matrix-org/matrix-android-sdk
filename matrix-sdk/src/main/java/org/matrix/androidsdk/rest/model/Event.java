@@ -1191,8 +1191,10 @@ public class Event implements Externalizable {
     public Map<String, String> getKeysClaimed() {
         Map<String, String> res = new HashMap<>();
 
-        if (null != mClaimedEd25519Key) {
-            res.put("ed25519", mClaimedEd25519Key);
+        String claimedEd25519Key = (null != getClearEvent()) ? getClearEvent().mClaimedEd25519Key : mClaimedEd25519Key;
+
+        if (null != claimedEd25519Key) {
+            res.put("ed25519", claimedEd25519Key);
         }
 
         return res;
