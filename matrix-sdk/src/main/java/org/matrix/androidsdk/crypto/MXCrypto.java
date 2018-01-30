@@ -1676,11 +1676,13 @@ public class MXCrypto {
 
                 if (!decryptor.hasKeysForKeyRequest(request)) {
                     Log.e(LOG_TAG, "## processReceivedRoomKeyRequests() : room key request for unknown session " + body.session_id);
+                    mCryptoStore.deleteIncomingRoomKeyRequest(request);
                     continue;
                 }
 
                 if (TextUtils.equals(deviceId, getMyDevice().deviceId) && TextUtils.equals(mSession.getMyUserId(), userId)) {
                     Log.d(LOG_TAG, "## processReceivedRoomKeyRequests() : oneself device - ignored");
+                    mCryptoStore.deleteIncomingRoomKeyRequest(request);
                     continue;
                 }
 
@@ -1703,12 +1705,14 @@ public class MXCrypto {
                 if (null != device) {
                     if (device.isVerified()) {
                         Log.d(LOG_TAG, "## processReceivedRoomKeyRequests() : device is already verified: sharing keys");
+                        mCryptoStore.deleteIncomingRoomKeyRequest(request);
                         request.mShare.run();
                         continue;
                     }
 
                     if (device.isBlocked()) {
                         Log.d(LOG_TAG, "## processReceivedRoomKeyRequests() : device is blocked -> ignored");
+                        mCryptoStore.deleteIncomingRoomKeyRequest(request);
                         continue;
                     }
                 }
