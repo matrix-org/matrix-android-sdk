@@ -254,6 +254,8 @@ public class MXCrypto {
         }
 
         mOutgoingRoomKeyRequestManager = new MXOutgoingRoomKeyRequestManager(mSession, this);
+
+        mReceivedRoomKeyRequests.addAll(mCryptoStore.getPendingIncomingRoomKeyRequests());
     }
 
     /**
@@ -464,6 +466,13 @@ public class MXCrypto {
                                                                         // refresh the devices list for each known room members
                                                                         getDeviceList().invalidateAllDeviceLists();
                                                                         mDevicesList.refreshOutdatedDeviceLists();
+                                                                    }
+                                                                });
+                                                            } else {
+                                                                getEncryptingThreadHandler().post(new Runnable() {
+                                                                    @Override
+                                                                    public void run() {
+                                                                        processReceivedRoomKeyRequests();
                                                                     }
                                                                 });
                                                             }
@@ -1667,11 +1676,13 @@ public class MXCrypto {
 
                 if (!decryptor.hasKeysForKeyRequest(request)) {
                     Log.e(LOG_TAG, "## processReceivedRoomKeyRequests() : room key request for unknown session " + body.session_id);
+                    mCryptoStore.deleteIncomingRoomKeyRequest(request);
                     continue;
                 }
 
                 if (TextUtils.equals(deviceId, getMyDevice().deviceId) && TextUtils.equals(mSession.getMyUserId(), userId)) {
                     Log.d(LOG_TAG, "## processReceivedRoomKeyRequests() : oneself device - ignored");
+                    mCryptoStore.deleteIncomingRoomKeyRequest(request);
                     continue;
                 }
 
@@ -1682,6 +1693,7 @@ public class MXCrypto {
                             @Override
                             public void run() {
                                 decryptor.shareKeysWithDevice(request);
+                                mCryptoStore.deleteIncomingRoomKeyRequest(request);
                             }
                         });
                     }
@@ -1693,16 +1705,19 @@ public class MXCrypto {
                 if (null != device) {
                     if (device.isVerified()) {
                         Log.d(LOG_TAG, "## processReceivedRoomKeyRequests() : device is already verified: sharing keys");
+                        mCryptoStore.deleteIncomingRoomKeyRequest(request);
                         request.mShare.run();
                         continue;
                     }
 
                     if (device.isBlocked()) {
                         Log.d(LOG_TAG, "## processReceivedRoomKeyRequests() : device is blocked -> ignored");
+                        mCryptoStore.deleteIncomingRoomKeyRequest(request);
                         continue;
                     }
                 }
 
+                mCryptoStore.storeIncomingRoomKeyRequest(request);
                 onRoomKeyRequest(request);
             }
         }
@@ -1724,6 +1739,7 @@ public class MXCrypto {
                 // about, but we don't currently have a record of that, so we just pass
                 // everything through.
                 onRoomKeyRequestCancellation(request);
+                mCryptoStore.deleteIncomingRoomKeyRequest(request);
             }
         }
     }
