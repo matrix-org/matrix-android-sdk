@@ -704,7 +704,23 @@ public class MXMediasCache {
      * @return true if the avatar bitmap is cached.
      */
     public boolean isAvatarThumbnailCached(String url, int side) {
-        return MXMediaDownloadWorkerTask.isUrlCached(downloadableUrl(url, side, side));
+        boolean isCached = false;
+
+        if (null != url) {
+            String thumbnailUrl = downloadableUrl(url, side, side);
+
+            isCached = MXMediaDownloadWorkerTask.isUrlCached(thumbnailUrl);
+
+            if (!isCached) {
+                try {
+                    isCached = (new File(getThumbnailsFolderFile(), MXMediaDownloadWorkerTask.buildFileName(thumbnailUrl, "image/jpeg"))).exists();
+                } catch (Throwable t) {
+                    Log.e(LOG_TAG, "## isAvatarThumbnailCached() : failed " + t.getMessage());
+                }
+            }
+        }
+
+        return isCached;
     }
 
     /**

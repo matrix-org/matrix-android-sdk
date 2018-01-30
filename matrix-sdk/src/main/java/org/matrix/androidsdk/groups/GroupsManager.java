@@ -106,7 +106,7 @@ public class GroupsManager {
         refreshGroupProfiles((SimpleApiCallback<Void>) null);
         getUserPublicisedGroups(mDataHandler.getUserId(), true, null);
 
-        mGroupProfilebyGroupId.clear();
+        mGroupProfileByGroupId.clear();
         mGroupProfileCallback.clear();
     }
 
@@ -354,7 +354,7 @@ public class GroupsManager {
                 }
 
                 mDataHandler.onGroupProfileUpdate(groupId);
-                mGroupProfilebyGroupId.put(groupId, profile);
+                mGroupProfileByGroupId.put(groupId, profile);
                 onDone();
             }
 
@@ -639,6 +639,20 @@ public class GroupsManager {
     }
 
     /**
+     * Retrieves the cached publicisedGroups for an userId.
+     *
+     * @param userId the user id
+     * @return a set if there is a cached one, else null
+     */
+    public Set<String> getUserPublicisedGroups(final String userId) {
+        if (mPubliciseByUserId.containsKey(userId)) {
+            return new HashSet<>(mPubliciseByUserId.get(userId));
+        }
+
+        return null;
+    }
+
+    /**
      * Request the publicised groups for an user.
      *
      * @param userId       the user id
@@ -793,8 +807,19 @@ public class GroupsManager {
         });
     }
 
-    Map<String, GroupProfile> mGroupProfilebyGroupId = new HashMap<>();
+    Map<String, GroupProfile> mGroupProfileByGroupId = new HashMap<>();
     Map<String, List<ApiCallback<GroupProfile>>> mGroupProfileCallback = new HashMap<>();
+
+
+    /**
+     * Retrieve the cached group profile
+     *
+     * @param groupId the group id
+     * @return the cached GroupProfile if it exits, else null
+     */
+    public GroupProfile getGroupProfile(final String groupId) {
+        return mGroupProfileByGroupId.get(groupId);
+    }
 
     /**
      * Request the profile of a group.
@@ -821,11 +846,11 @@ public class GroupsManager {
         }
 
         // already downloaded
-        if (mGroupProfilebyGroupId.containsKey(groupId)) {
+        if (mGroupProfileByGroupId.containsKey(groupId)) {
             mUIHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    callback.onSuccess(mGroupProfilebyGroupId.get(groupId));
+                    callback.onSuccess(mGroupProfileByGroupId.get(groupId));
                 }
             });
 
@@ -843,7 +868,7 @@ public class GroupsManager {
         mGroupsRestClient.getGroupProfile(groupId, new ApiCallback<GroupProfile>() {
             @Override
             public void onSuccess(GroupProfile groupProfile) {
-                mGroupProfilebyGroupId.put(groupId, groupProfile);
+                mGroupProfileByGroupId.put(groupId, groupProfile);
                 List<ApiCallback<GroupProfile>> callbacks = mGroupProfileCallback.get(groupId);
                 mGroupProfileCallback.remove(groupId);
 
