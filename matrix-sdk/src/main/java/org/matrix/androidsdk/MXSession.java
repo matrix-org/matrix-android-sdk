@@ -2301,16 +2301,6 @@ public class MXSession {
         return getDataHandler().getStore().isURLPreviewEnabled();
     }
 
-    /**
-     * Tells if the URL preview has been disabled for the dedicated room by the user
-     *
-     * @param roomId the room id
-     * @return true if disabled
-     */
-    public boolean isRoomUrlPreviewDisabledByUser(String roomId) {
-        return !getDataHandler().getStore().getRoomsWithoutURLPreviews().contains(roomId);
-    }
-
     //==============================================================================================================
     // Crypto
     //==============================================================================================================

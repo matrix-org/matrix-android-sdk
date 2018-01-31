@@ -1991,9 +1991,9 @@ public class Room {
                                 Set<String> roomIdsWithoutURLPreview = mDataHandler.getStore().getRoomsWithoutURLPreviews();
 
                                 if (disabled) {
-                                    roomIdsWithoutURLPreview.add(accountDataEvent.roomId);
+                                    roomIdsWithoutURLPreview.add(getRoomId());
                                 } else {
-                                    roomIdsWithoutURLPreview.remove(accountDataEvent.roomId);
+                                    roomIdsWithoutURLPreview.remove(getRoomId());
                                 }
 
                                 mDataHandler.getStore().setRoomsWithoutURLPreview(roomIdsWithoutURLPreview);
@@ -2088,6 +2088,29 @@ public class Room {
             });
 
         }
+    }
+
+    //==============================================================================================================
+    // URL preview
+    //==============================================================================================================
+
+    /**
+     * Tells if the URL preview has been allowed by the user.
+     *
+     * @return @return true if allowed.
+     */
+    public boolean isURLPreviewAllowedByUser() {
+        return !getDataHandler().getStore().getRoomsWithoutURLPreviews().contains(getRoomId());
+    }
+
+    /**
+     * Update the user enabled room url preview
+     *
+     * @param status the new status
+     * @param callback the asynchronous callback
+     */
+    public void setIsURLPreviewAllowedByUser(boolean status, ApiCallback<Void> callback) {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateURLPreviewStatus(getRoomId(), status, callback);
     }
 
     //==============================================================================================================
