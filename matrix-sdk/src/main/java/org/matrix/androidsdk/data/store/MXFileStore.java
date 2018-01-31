@@ -63,7 +63,7 @@ public class MXFileStore extends MXMemoryStore {
     private static final String LOG_TAG = MXFileStore.class.getSimpleName();
 
     // some constant values
-    private static final int MXFILE_VERSION = 20;
+    private static final int MXFILE_VERSION = 21;
 
     // ensure that there is enough messages to fill a tablet screen
     private static final int MAX_STORED_MESSAGES_COUNT = 50;
@@ -2531,5 +2531,17 @@ public class MXFileStore extends MXMemoryStore {
         }
 
         return succeed;
+    }
+
+    @Override
+    public void setURLPreviewEnabled(boolean value) {
+        super.setURLPreviewEnabled(value);
+        mMetaDataHasChanged = true;
+    }
+
+    @Override
+    public void setRoomsWithoutURLPreview(Set<String> roomIds) {
+        super.setRoomsWithoutURLPreview(roomIds);
+        mMetaDataHasChanged = true;
     }
 }

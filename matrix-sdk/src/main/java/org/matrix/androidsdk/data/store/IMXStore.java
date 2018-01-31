@@ -35,6 +35,7 @@ import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * An interface for storing and retrieving Matrix objects.
@@ -572,4 +573,27 @@ public interface IMXStore {
      * @return the stored groups
      */
     Collection<Group> getGroups();
+
+    /**
+     * Set the URL preview status
+     * @param value the URL preview status
+     */
+    void setURLPreviewEnabled(boolean value);
+
+    /**
+     * Tells if the global URL preview is enabled.
+     * @return true if it is enabled
+     */
+    boolean isURLPreviewEnabled();
+
+    /**
+     * Update the rooms list which don't have URL previews
+     * @param roomIds teh room ids list
+     */
+    void setRoomsWithoutURLPreview(Set<String> roomIds);
+
+    /**
+     * @return the room ids list which don't have URL preview enabled
+     */
+    Set<String> getRoomsWithoutURLPreviews();
 }

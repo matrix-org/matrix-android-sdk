@@ -288,6 +288,7 @@ public class MXDataHandler implements IMXEventListener {
 
     /**
      * Set the groups manager.
+     *
      * @param groupsManager the groups manager
      */
     public void setGroupsManager(GroupsManager groupsManager) {
@@ -984,16 +985,19 @@ public class MXDataHandler implements IMXEventListener {
      */
     private void manageAccountData(Map<String, Object> accountData, boolean isInitialSync) {
         try {
+
             if (accountData.containsKey("events")) {
                 List<Map<String, Object>> events = (List<Map<String, Object>>) accountData.get("events");
 
-                if (0 != events.size()) {
+                if (!events.isEmpty()) {
                     // ignored users list
                     manageIgnoredUsers(events, isInitialSync);
                     // push rules
                     managePushRulesUpdate(events);
                     // direct messages rooms
                     manageDirectChatRooms(events, isInitialSync);
+                    // URL preview
+                    manageUrlPreview(events);
                 }
             }
         } catch (Exception e) {
@@ -1122,6 +1126,34 @@ public class MXDataHandler implements IMXEventListener {
 
         }
     }
+
+    /**
+     * Manage the URL preview flag
+     *
+     * @param events the events list
+     */
+    private void manageUrlPreview(List<Map<String, Object>> events) {
+        if (0 != events.size()) {
+            for (Map<String, Object> event : events) {
+                String type = (String) event.get("type");
+
+                if (TextUtils.equals(type, AccountDataRestClient.ACCOUNT_DATA_TYPE_PREVIEW_URLS)) {
+                    if (event.containsKey("content")) {
+                        Map<String, Object> contentDict = (Map<String, Object>) event.get("content");
+
+                        Log.d(LOG_TAG, "## manageUrlPreview() : " + contentDict);
+                        boolean enable = true;
+                        if (contentDict.containsKey(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE)) {
+                            enable = !((boolean) contentDict.get(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE));
+                        }
+
+                        mStore.setURLPreviewEnabled(enable);
+                    }
+                }
+            }
+        }
+    }
+
 
     //================================================================================
     // Sync V2

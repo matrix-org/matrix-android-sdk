@@ -42,10 +42,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -1570,5 +1572,25 @@ public class MXMemoryStore implements IMXStore {
         synchronized (mGroups) {
             return mGroups.values();
         }
+    }
+
+    @Override
+    public void setURLPreviewEnabled(boolean value) {
+        mMetadata.mIsUrlPreviewEnabled = value;
+    }
+
+    @Override
+    public boolean isURLPreviewEnabled() {
+        return mMetadata.mIsUrlPreviewEnabled;
+    }
+
+    @Override
+    public void setRoomsWithoutURLPreview(Set<String> roomIds) {
+        mMetadata.mRoomsListWithoutURLPrevew = roomIds;
+    }
+
+    @Override
+    public Set<String> getRoomsWithoutURLPreviews() {
+        return (null != mMetadata.mRoomsListWithoutURLPrevew) ? mMetadata.mRoomsListWithoutURLPrevew : new HashSet<String>();
     }
 }

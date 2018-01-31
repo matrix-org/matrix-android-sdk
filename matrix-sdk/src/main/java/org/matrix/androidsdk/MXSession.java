@@ -2250,6 +2250,55 @@ public class MXSession {
         });
     }
 
+    /**
+     * Update the URL preview status by default
+     * @param status  the status
+     * @param callback
+     */
+    public void setURLPreviewStatus(final boolean status, final ApiCallback<Void> callback) {
+        Map<String, Object> params = new HashMap<>();
+        params.put(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE, !status);
+
+        Log.d(LOG_TAG, "## setURLPreviewStatus() : status " + status);
+        mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_PREVIEW_URLS, params, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                Log.d(LOG_TAG, "## setURLPreviewStatus() : succeeds");
+
+                getDataHandler().getStore().setURLPreviewEnabled(status);
+                if (null != callback) {
+                    callback.onSuccess(null);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                Log.e(LOG_TAG, "## setURLPreviewStatus() : failed " + e.getMessage());
+                callback.onNetworkError(e);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                Log.e(LOG_TAG, "## setURLPreviewStatus() : failed " + e.getMessage());
+                callback.onMatrixError(e);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                Log.e(LOG_TAG, "## setURLPreviewStatus() : failed " + e.getMessage());
+                callback.onUnexpectedError(e);
+            }
+        });
+    }
+
+    /**
+     * Tells if the global URL preview settings is enabled
+     * @return true if it is enabled.
+     */
+    public boolean isURLPreviewEnabled() {
+        return getDataHandler().getStore().isURLPreviewEnabled();
+    }
+
     //==============================================================================================================
     // Crypto
     //==============================================================================================================
