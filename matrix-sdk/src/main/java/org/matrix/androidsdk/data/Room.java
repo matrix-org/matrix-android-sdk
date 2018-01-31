@@ -46,6 +46,7 @@ import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.client.AccountDataRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.UrlPostTask;
 import org.matrix.androidsdk.rest.model.BannedUser;
@@ -82,6 +83,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Class representing a room and the interactions we have with it.
@@ -937,7 +939,7 @@ public class Room {
     /**
      * Add a group to the related ones
      *
-     * @param groupId the group id to add
+     * @param groupId  the group id to add
      * @param callback the asynchronous callback
      */
     public void addRelatedGroup(final String groupId, final ApiCallback<Void> callback) {
@@ -953,7 +955,7 @@ public class Room {
     /**
      * Remove a group id from the related ones.
      *
-     * @param groupId the group id
+     * @param groupId  the group id
      * @param callback the asynchronous callback
      */
     public void removeRelatedGroup(final String groupId, final ApiCallback<Void> callback) {
@@ -1979,6 +1981,25 @@ public class Room {
                         if (accountDataEvent.getType().equals(Event.EVENT_TYPE_TAGS)) {
                             mDataHandler.onRoomTagEvent(getRoomId());
                         }
+
+                        if (accountDataEvent.getType().equals(Event.EVENT_TYPE_URL_PREVIEW)) {
+                            JsonObject jsonObject = accountDataEvent.getContentAsJsonObject();
+
+                            if (jsonObject.has(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE)) {
+                                boolean disabled = jsonObject.get(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE).getAsBoolean();
+
+                                Set<String> roomIdsWithoutURLPreview = mDataHandler.getStore().getRoomsWithoutURLPreviews();
+
+                                if (disabled) {
+                                    roomIdsWithoutURLPreview.add(accountDataEvent.roomId);
+                                } else {
+                                    roomIdsWithoutURLPreview.remove(accountDataEvent.roomId);
+                                }
+
+                                mDataHandler.getStore().setRoomsWithoutURLPreview(roomIdsWithoutURLPreview);
+                            }
+                        }
+
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "## handleAccountDataEvents() : room " + getRoomId() + " failed " + e.getMessage());
                     }

@@ -2252,7 +2252,8 @@ public class MXSession {
 
     /**
      * Update the URL preview status by default
-     * @param status  the status
+     *
+     * @param status   the status
      * @param callback
      */
     public void setURLPreviewStatus(final boolean status, final ApiCallback<Void> callback) {
@@ -2293,10 +2294,21 @@ public class MXSession {
 
     /**
      * Tells if the global URL preview settings is enabled
+     *
      * @return true if it is enabled.
      */
     public boolean isURLPreviewEnabled() {
         return getDataHandler().getStore().isURLPreviewEnabled();
+    }
+
+    /**
+     * Tells if the URL preview has been disabled for the dedicated room by the user
+     *
+     * @param roomId the room id
+     * @return true if disabled
+     */
+    public boolean isRoomUrlPreviewDisabledByUser(String roomId) {
+        return !getDataHandler().getStore().getRoomsWithoutURLPreviews().contains(roomId);
     }
 
     //==============================================================================================================
