@@ -18,7 +18,7 @@ package org.matrix.androidsdk.rest.client;
 
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.rest.model.KeyChangesResponse;
+import org.matrix.androidsdk.rest.model.crypto.KeyChangesResponse;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
@@ -29,8 +29,8 @@ import org.matrix.androidsdk.rest.api.CryptoApi;
 
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
-import org.matrix.androidsdk.rest.model.DeleteDeviceParams;
-import org.matrix.androidsdk.rest.model.DevicesListResponse;
+import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
+import org.matrix.androidsdk.rest.model.sync.DevicesListResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysClaimResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;

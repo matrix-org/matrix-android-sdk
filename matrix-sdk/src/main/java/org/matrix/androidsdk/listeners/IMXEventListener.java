@@ -176,6 +176,13 @@ public interface IMXEventListener {
     void onLeaveRoom(String roomId);
 
     /**
+     * The user has been kicked or banned.
+     *
+     * @param roomId the roomID
+     */
+    void onRoomKick(String roomId);
+
+    /**
      * A receipt event has been received.
      * It could be triggered when a request failed.
      *
@@ -204,5 +211,54 @@ public interface IMXEventListener {
      * @param event the event
      */
     void onToDeviceEvent(Event event);
+
+    /**
+     * The user has been invited to a new group.
+     *
+     * @param groupId the group id
+     */
+    void onNewGroupInvitation(String groupId);
+
+    /**
+     * A group has been joined.
+     *
+     * @param groupId the group id
+     */
+    void onJoinGroup(String groupId);
+
+    /**
+     * A group has been left.
+     *
+     * @param groupId the group id
+     */
+    void onLeaveGroup(String groupId);
+
+    /**
+     * The group file has been updated.
+     *
+     * @param groupId the group id
+     */
+    void onGroupProfileUpdate(String groupId);
+
+    /**
+     * The group rooms list has been updated.
+     *
+     * @param groupId the group id
+     */
+    void onGroupRoomsListUpdate(String groupId);
+
+    /**
+     * The group users id list has been updated.
+     *
+     * @param groupId the group id
+     */
+    void onGroupUsersListUpdate(String groupId);
+
+    /**
+     * The group invited users id list has been updated.
+     *
+     * @param groupId the group id
+     */
+    void onGroupInvitedUsersListUpdate(String groupId);
 }
 

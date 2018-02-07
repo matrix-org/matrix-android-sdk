@@ -17,16 +17,16 @@
 package org.matrix.androidsdk.rest.api;
 
 import org.matrix.androidsdk.RestClient;
-import org.matrix.androidsdk.rest.model.AccountThreePidsResponse;
-import org.matrix.androidsdk.rest.model.AddThreePidsParams;
-import org.matrix.androidsdk.rest.model.ChangePasswordParams;
-import org.matrix.androidsdk.rest.model.DeleteThreePidParams;
-import org.matrix.androidsdk.rest.model.ForgetPasswordParams;
-import org.matrix.androidsdk.rest.model.ForgetPasswordResponse;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationParams;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
 import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationParams;
 import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationResponse;
+import org.matrix.androidsdk.rest.model.pid.AccountThreePidsResponse;
+import org.matrix.androidsdk.rest.model.pid.AddThreePidsParams;
+import org.matrix.androidsdk.rest.model.ChangePasswordParams;
+import org.matrix.androidsdk.rest.model.pid.DeleteThreePidParams;
+import org.matrix.androidsdk.rest.model.ForgetPasswordParams;
+import org.matrix.androidsdk.rest.model.ForgetPasswordResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;

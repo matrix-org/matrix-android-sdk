@@ -37,7 +37,7 @@
     <string name="notice_voip_started">conferencia VoIP iniciada</string>
     <string name="notice_voip_finished">conferencia VoIP finalizada</string>
 
-    <string name="notice_avatar_changed_too">(foto de perfil tambien se cambió)</string>
+    <string name="notice_avatar_changed_too">(foto de perfil también se cambió)</string>
     <string name="notice_room_name_removed">%1$s retiró el nombre de la sala</string>
     <string name="notice_room_topic_removed">%1$s retiro el tema de la sala</string>
     <string name="notice_event_redacted">redactado %1$s </string>

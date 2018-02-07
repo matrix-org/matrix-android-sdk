@@ -18,26 +18,26 @@
 package org.matrix.androidsdk.sync;
 
 import org.matrix.androidsdk.MXDataHandler;
-import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
+import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 
 /**
  * Listener for the events thread that sends data back to a data handler.
  */
 public class DefaultEventsThreadListener implements EventsThreadListener {
 
-    private final MXDataHandler mData;
+    private final MXDataHandler mDataHandler;
 
     public DefaultEventsThreadListener(MXDataHandler data) {
-        mData = data;
+        mDataHandler = data;
     }
 
     @Override
     public void onSyncResponse(SyncResponse syncResponse, String fromToken, boolean isCatchingUp) {
-        mData.onSyncResponse(syncResponse, fromToken, isCatchingUp);
+        mDataHandler.onSyncResponse(syncResponse, fromToken, isCatchingUp);
     }
 
     @Override
-    public void onInvalidToken() {
-        mData.onInvalidToken();
+    public void onConfigurationError(String matrixErrorCode) {
+        mDataHandler.onConfigurationError(matrixErrorCode);
     }
 }

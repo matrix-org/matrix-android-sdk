@@ -18,8 +18,6 @@ package org.matrix.androidsdk.crypto.algorithms;
 
 import com.google.gson.JsonElement;
 
-import org.matrix.androidsdk.crypto.MXCryptoError;
-
 import java.util.List;
 import java.util.Map;
 

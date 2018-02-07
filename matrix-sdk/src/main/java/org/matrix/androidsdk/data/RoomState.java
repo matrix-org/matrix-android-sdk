@@ -30,7 +30,7 @@ import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.RoomThirdPartyInvite;
+import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.JsonUtils;
 
@@ -100,6 +100,9 @@ public class RoomState implements Externalizable {
     // Informs which alias is the canonical one.
     public String alias;
 
+    // The canonical alias of the room, if any.
+    public String canonical_alias;
+
     // The name of the room as provided by the home server.
     public String name;
 
@@ -134,6 +137,9 @@ public class RoomState implements Externalizable {
 
     // the encryption algorithm
     public String algorithm;
+
+    // group ids list which should be displayed
+    public List<String> groups;
 
     /**
      * The number of unread messages that match the push notification rules.
@@ -228,6 +234,13 @@ public class RoomState implements Externalizable {
         } else {
             return avatar_url;
         }
+    }
+
+    /**
+     * @return the related group ids list (cannot be null)
+     */
+    public List<String> getRelatedGroups() {
+        return (null == groups) ? new ArrayList<String>() : groups;
     }
 
     /**
@@ -545,7 +558,6 @@ public class RoomState implements Externalizable {
      * @return the copy
      */
     public RoomState deepCopy() {
-
         RoomState copy = new RoomState();
         copy.roomId = roomId;
         copy.setPowerLevels((powerLevels == null) ? null : powerLevels.deepCopy());
@@ -562,6 +574,7 @@ public class RoomState implements Externalizable {
         copy.visibility = visibility;
         copy.roomAliasName = roomAliasName;
         copy.token = token;
+        copy.groups = groups;
         copy.mDataHandler = mDataHandler;
         copy.mMembership = mMembership;
         copy.mIsLive = mIsLive;
@@ -601,6 +614,8 @@ public class RoomState implements Externalizable {
             return alias;
         } else if (!TextUtils.isEmpty(getFirstAlias())) {
             return getFirstAlias();
+        } else if (!TextUtils.isEmpty(canonical_alias)) {
+            return canonical_alias;
         }
 
         return null;
@@ -780,14 +795,16 @@ public class RoomState implements Externalizable {
      * @return true if the room is encrypted
      */
     public boolean isEncrypted() {
-        return !TextUtils.isEmpty(algorithm);
+        // When a client receives an m.room.encryption event as above, it should set a flag to indicate that messages sent in the room should be encrypted.
+        // This flag should not be cleared if a later m.room.encryption event changes the configuration. This is to avoid a situation where a MITM can simply ask participants to disable encryption. In short: once encryption is enabled in a room, it can never be disabled.
+        return null != algorithm;
     }
 
     /**
      * @return the encryption algorithm
      */
     public String encryptionAlgorithm() {
-        return algorithm;
+        return TextUtils.isEmpty(algorithm) ? null : algorithm;
     }
 
     /**
@@ -808,26 +825,19 @@ public class RoomState implements Externalizable {
 
         try {
             if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType)) {
-                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                name = (roomState == null) ? null : roomState.name;
+                name = JsonUtils.toRoomState(contentToConsider).name;
             } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType)) {
-                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                topic = (roomState == null) ? null : roomState.topic;
+                topic = JsonUtils.toRoomState(contentToConsider).topic;
             } else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(eventType)) {
-                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                creator = (roomState == null) ? null : roomState.creator;
+                creator = JsonUtils.toRoomState(contentToConsider).creator;
             } else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(eventType)) {
-                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                join_rule = (roomState == null) ? null : roomState.join_rule;
+                join_rule = JsonUtils.toRoomState(contentToConsider).join_rule;
             } else if (Event.EVENT_TYPE_STATE_ROOM_GUEST_ACCESS.equals(eventType)) {
-                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                guest_access = (roomState == null) ? null : roomState.guest_access;
+                guest_access = JsonUtils.toRoomState(contentToConsider).guest_access;
             } else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(eventType)) {
                 if (!TextUtils.isEmpty(event.stateKey)) {
-                    RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-
                     // backward compatibility
-                    aliases = (null == roomState) ? null : roomState.aliases;
+                    aliases = JsonUtils.toRoomState(contentToConsider).aliases;
 
                     // sanity check
                     if (null != aliases) {
@@ -838,19 +848,23 @@ public class RoomState implements Externalizable {
                     }
                 }
             } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
-                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                algorithm = (roomState == null) ? null : roomState.algorithm;
+                algorithm = JsonUtils.toRoomState(contentToConsider).algorithm;
+
+                // When a client receives an m.room.encryption event as above, it should set a flag to indicate that messages sent in the room should be encrypted.
+                // This flag should not be cleared if a later m.room.encryption event changes the configuration. This is to avoid a situation where a MITM can simply ask participants to disable encryption. In short: once encryption is enabled in a room, it can never be disabled.
+                if (null == algorithm) {
+                    algorithm = "";
+                }
             } else if (Event.EVENT_TYPE_STATE_CANONICAL_ALIAS.equals(eventType)) {
                 // SPEC-125
-                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                alias = (roomState == null) ? null : roomState.alias;
+                alias = JsonUtils.toRoomState(contentToConsider).alias;
             } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(eventType)) {
                 // SPEC-134
-                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                history_visibility = (roomState == null) ? null : roomState.history_visibility;
+                history_visibility = JsonUtils.toRoomState(contentToConsider).history_visibility;
             } else if (Event.EVENT_TYPE_STATE_ROOM_AVATAR.equals(eventType)) {
-                RoomState roomState = JsonUtils.toRoomState(contentToConsider);
-                url = (roomState == null) ? null : roomState.url;
+                url = JsonUtils.toRoomState(contentToConsider).url;
+            } else if (Event.EVENT_TYPE_STATE_RELATED_GROUPS.equals(eventType)) {
+                groups = JsonUtils.toRoomState(contentToConsider).groups;
             } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
                 RoomMember member = JsonUtils.toRoomMember(contentToConsider);
                 String userId = event.stateKey;
@@ -869,7 +883,7 @@ public class RoomState implements Externalizable {
                         member.setUserId(userId);
                         member.setOriginServerTs(event.getOriginServerTs());
                         member.setOriginalEventId(event.eventId);
-                        member.setInviterId(event.getSender());
+                        member.mSender = event.getSender();
 
                         if ((null != store) && (direction == EventTimeline.Direction.FORWARDS)) {
                             store.storeRoomStateEvent(roomId, event);
@@ -886,7 +900,7 @@ public class RoomState implements Externalizable {
 
                         // when a member leaves a room, his avatar / display name is not anymore provided
                         if (null != currentMember) {
-                            if (member.membership.equals(RoomMember.MEMBERSHIP_LEAVE) || member.membership.equals(RoomMember.MEMBERSHIP_BAN)) {
+                            if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_LEAVE) || TextUtils.equals(member.membership, (RoomMember.MEMBERSHIP_BAN))) {
                                 if (null == member.getAvatarUrl()) {
                                     member.setAvatarUrl(currentMember.getAvatarUrl());
                                 }
@@ -898,6 +912,13 @@ public class RoomState implements Externalizable {
                                 // remove the cached display name
                                 if (null != mMemberDisplayNameByUserId) {
                                     mMemberDisplayNameByUserId.remove(userId);
+                                }
+
+                                // test if the user has been kicked
+                                if (!TextUtils.equals(event.getSender(), event.stateKey) &&
+                                        TextUtils.equals(currentMember.membership, RoomMember.MEMBERSHIP_JOIN) &&
+                                        TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_LEAVE)) {
+                                    member.membership = RoomMember.MEMBERSHIP_KICK;
                                 }
                             }
                         }
@@ -1137,6 +1158,10 @@ public class RoomState implements Externalizable {
         if (input.readBoolean()) {
             mIsConferenceUserRoom = input.readBoolean();
         }
+
+        if (input.readBoolean()) {
+            groups = (List<String>)input.readObject();
+        }
     }
 
     @Override
@@ -1250,6 +1275,10 @@ public class RoomState implements Externalizable {
         if (null != mIsConferenceUserRoom) {
             output.writeBoolean(mIsConferenceUserRoom);
         }
-    }
 
+        output.writeBoolean(null != groups);
+        if (null != groups) {
+            output.writeObject(groups);
+        }
+    }
 }

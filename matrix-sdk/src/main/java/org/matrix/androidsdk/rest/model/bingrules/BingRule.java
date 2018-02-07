@@ -17,8 +17,11 @@ package org.matrix.androidsdk.rest.model.bingrules;
 
 import android.text.TextUtils;
 
+import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 
 import java.util.ArrayList;
@@ -92,6 +95,22 @@ public class BingRule {
     }
 
     /**
+     * Convert BingRule to a JsonElement.
+     * It seems that "conditions" name triggers conversion issues.
+     *
+     * @return the JsonElement
+     */
+    public JsonElement toJsonElement() {
+        JsonObject jsonObject = JsonUtils.getGson(false).toJsonTree(this).getAsJsonObject();
+
+        if (null != conditions) {
+            jsonObject.add("conditions", JsonUtils.getGson(false).toJsonTree(conditions));
+        }
+
+        return jsonObject;
+    }
+
+    /**
      * Bing rule creator
      *
      * @param ruleKind  the rule kind
@@ -100,7 +119,7 @@ public class BingRule {
      * @param highlight true to highlight
      * @param sound     true to play sound
      */
-    public BingRule(String ruleKind, String aPattern, boolean notify, boolean highlight, boolean sound) {
+    public BingRule(String ruleKind, String aPattern, Boolean notify, Boolean highlight, boolean sound) {
         //
         ruleId = aPattern;
         isEnabled = true;
@@ -110,8 +129,14 @@ public class BingRule {
 
         actions = new ArrayList<>();
 
-        setNotify(notify);
-        setHighlight(highlight);
+        if (null != notify) {
+            setNotify(notify);
+        }
+        
+        if (null != highlight) {
+            setHighlight(highlight);
+        }
+
         if (sound) {
             setNotificationSound();
         }
@@ -280,7 +305,15 @@ public class BingRule {
             shouldHighlight = true;
 
             if (actionMap.containsKey(ACTION_PARAMETER_VALUE)) {
-                shouldHighlight = ((boolean) actionMap.get(ACTION_PARAMETER_VALUE));
+                Object valueAsVoid = actionMap.get(ACTION_PARAMETER_VALUE);
+
+                if (valueAsVoid instanceof Boolean) {
+                    shouldHighlight = (boolean) valueAsVoid;
+                } else if (valueAsVoid instanceof String) {
+                    shouldHighlight = TextUtils.equals((String)valueAsVoid, "true");
+                } else {
+                    Log.e(LOG_TAG, "## shouldHighlight() : unexpected type " + valueAsVoid);
+                }
             }
         }
 

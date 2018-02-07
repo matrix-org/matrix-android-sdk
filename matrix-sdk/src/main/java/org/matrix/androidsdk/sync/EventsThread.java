@@ -27,9 +27,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
 import android.os.SystemClock;
-import android.text.TextUtils;
-
-import org.matrix.androidsdk.rest.model.Sync.RoomsSyncResponse;
+import org.matrix.androidsdk.rest.model.sync.RoomsSyncResponse;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
@@ -38,7 +36,7 @@ import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
+import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -453,8 +451,8 @@ public class EventsThread extends Thread {
                     public void onMatrixError(MatrixError e) {
                         super.onMatrixError(e);
 
-                        if (TextUtils.equals(MatrixError.UNKNOWN_TOKEN, e.errcode)) {
-                            mListener.onInvalidToken();
+                        if (MatrixError.isConfigurationErrorCode(e.errcode)) {
+                            mListener.onConfigurationError(e.errcode);
                         } else {
                             sleepAndUnblock();
                         }
@@ -565,8 +563,12 @@ public class EventsThread extends Thread {
                             // we get no to_device messages back.
                             if (0 == fServerTimeout) {
                                 if (hasDevicesChanged(syncResponse)) {
-                                    Log.d(LOG_TAG, "mNextServerTimeoutms is set to 0 because of hasDevicesChanged " + syncResponse.deviceLists.changed);
-                                    mNextServerTimeoutms = 0;
+                                    if (mIsCatchingUp) {
+                                        Log.d(LOG_TAG, "Some devices have changed but do not set mNextServerTimeoutms to 0 to avoid infinite loops");
+                                    } else {
+                                        Log.d(LOG_TAG, "mNextServerTimeoutms is set to 0 because of hasDevicesChanged " + syncResponse.deviceLists.changed);
+                                        mNextServerTimeoutms = 0;
+                                    }
                                 }
                             }
 
@@ -635,8 +637,8 @@ public class EventsThread extends Thread {
 
                     @Override
                     public void onMatrixError(MatrixError e) {
-                        if (TextUtils.equals(MatrixError.UNKNOWN_TOKEN, e.errcode)) {
-                            mListener.onInvalidToken();
+                        if (MatrixError.isConfigurationErrorCode(e.errcode)) {
+                            mListener.onConfigurationError(e.errcode);
                         } else {
                             onError(e.getLocalizedMessage());
                         }

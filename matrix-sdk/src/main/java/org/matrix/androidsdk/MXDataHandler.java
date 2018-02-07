@@ -38,6 +38,7 @@ import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXMemoryStore;
 import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.groups.GroupsManager;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -54,8 +55,9 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
-import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
+import org.matrix.androidsdk.rest.model.group.InvitedGroupSync;
+import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
+import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
@@ -92,9 +94,11 @@ public class MXDataHandler implements IMXEventListener {
 
     public interface RequestNetworkErrorListener {
         /**
-         * Call when the access token is corrupted
+         * Call there is a configuration error.
+         *
+         * @param matrixErrorCode the matrix error code
          */
-        void onTokenCorrupted();
+        void onConfigurationError(String matrixErrorCode);
 
         /**
          * Call when the requests are rejected after a SSL update
@@ -155,6 +159,9 @@ public class MXDataHandler implements IMXEventListener {
 
     // the crypto is only started when the sync did not retrieve new device
     private boolean mIsStartingCryptoWithInitialSync = false;
+
+    // groups manager
+    private GroupsManager mGroupsManager;
 
     /**
      * Default constructor.
@@ -280,6 +287,15 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
+     * Set the groups manager.
+     *
+     * @param groupsManager the groups manager
+     */
+    public void setGroupsManager(GroupsManager groupsManager) {
+        mGroupsManager = groupsManager;
+    }
+
+    /**
      * @return the crypto engine
      */
     public MXCrypto getCrypto() {
@@ -349,11 +365,13 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
-     * The current token is not anymore valid
+     * Dispatch the configuration error.
+     *
+     * @param matrixErrorCode the matrix error code.
      */
-    public void onInvalidToken() {
+    public void onConfigurationError(String matrixErrorCode) {
         if (null != mRequestNetworkErrorListener) {
-            mRequestNetworkErrorListener.onTokenCorrupted();
+            mRequestNetworkErrorListener.onConfigurationError(matrixErrorCode);
         }
     }
 
@@ -967,16 +985,19 @@ public class MXDataHandler implements IMXEventListener {
      */
     private void manageAccountData(Map<String, Object> accountData, boolean isInitialSync) {
         try {
+
             if (accountData.containsKey("events")) {
                 List<Map<String, Object>> events = (List<Map<String, Object>>) accountData.get("events");
 
-                if (0 != events.size()) {
+                if (!events.isEmpty()) {
                     // ignored users list
                     manageIgnoredUsers(events, isInitialSync);
                     // push rules
                     managePushRulesUpdate(events);
                     // direct messages rooms
                     manageDirectChatRooms(events, isInitialSync);
+                    // URL preview
+                    manageUrlPreview(events);
                 }
             }
         } catch (Exception e) {
@@ -1105,6 +1126,34 @@ public class MXDataHandler implements IMXEventListener {
 
         }
     }
+
+    /**
+     * Manage the URL preview flag
+     *
+     * @param events the events list
+     */
+    private void manageUrlPreview(List<Map<String, Object>> events) {
+        if (0 != events.size()) {
+            for (Map<String, Object> event : events) {
+                String type = (String) event.get("type");
+
+                if (TextUtils.equals(type, AccountDataRestClient.ACCOUNT_DATA_TYPE_PREVIEW_URLS)) {
+                    if (event.containsKey("content")) {
+                        Map<String, Object> contentDict = (Map<String, Object>) event.get("content");
+
+                        Log.d(LOG_TAG, "## manageUrlPreview() : " + contentDict);
+                        boolean enable = true;
+                        if (contentDict.containsKey(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE)) {
+                            enable = !((boolean) contentDict.get(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE));
+                        }
+
+                        mStore.setURLPreviewEnabled(enable);
+                    }
+                }
+            }
+        }
+    }
+
 
     //================================================================================
     // Sync V2
@@ -1393,7 +1442,8 @@ public class MXDataHandler implements IMXEventListener {
                         // For that create 'handleArchivedRoomSync' method
 
                         String membership = RoomMember.MEMBERSHIP_LEAVE;
-                        Room room = this.getStore().getRoom(roomId);
+                        Room room = getRoom(roomId);
+
                         // Retrieve existing room
                         // check if the room still exists.
                         if (null != room) {
@@ -1407,13 +1457,15 @@ public class MXDataHandler implements IMXEventListener {
                             }
 
                             Log.d(LOG_TAG, "## manageResponse() : leave the room " + roomId);
-                        } else {
-                            Log.d(LOG_TAG, "## manageResponse() : Try to leave an unknown room " + roomId);
                         }
 
-                        // ensure that the room data are properly deleted
-                        this.getStore().deleteRoom(roomId);
-                        onLeaveRoom(roomId);
+                        if (!TextUtils.equals(membership, RoomMember.MEMBERSHIP_KICK) && !TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN)) {
+                            // ensure that the room data are properly deleted
+                            this.getStore().deleteRoom(roomId);
+                            onLeaveRoom(roomId);
+                        } else {
+                            onRoomKick(roomId);
+                        }
 
                         // don't add to the left rooms if the user has been kicked / banned
                         if ((mAreLeftRoomsSynced) && TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE)) {
@@ -1423,6 +1475,32 @@ public class MXDataHandler implements IMXEventListener {
                     }
 
                     isEmptyResponse = false;
+                }
+            }
+
+            // groups
+            if (null != syncResponse.groups) {
+                // Handle invited groups
+                if ((null != syncResponse.groups.invite) && !syncResponse.groups.invite.isEmpty()) {
+                    // Handle invited groups
+                    for (String groupId : syncResponse.groups.invite.keySet()) {
+                        InvitedGroupSync invitedGroupSync = syncResponse.groups.invite.get(groupId);
+                        mGroupsManager.onNewGroupInvitation(groupId, invitedGroupSync.profile, invitedGroupSync.inviter, !isInitialSync);
+                    }
+                }
+
+                // Handle joined groups
+                if ((null != syncResponse.groups.join) && !syncResponse.groups.join.isEmpty()) {
+                    for (String groupId : syncResponse.groups.join.keySet()) {
+                        mGroupsManager.onJoinGroup(groupId, !isInitialSync);
+                    }
+                }
+                // Handle left groups
+                if ((null != syncResponse.groups.leave) && !syncResponse.groups.leave.isEmpty()) {
+                    // Handle joined groups
+                    for (String groupId : syncResponse.groups.leave.keySet()) {
+                        mGroupsManager.onLeaveGroup(groupId, !isInitialSync);
+                    }
                 }
             }
 
@@ -1889,6 +1967,7 @@ public class MXDataHandler implements IMXEventListener {
     public void updateEventState(Event event, Event.SentState newState) {
         if ((null != event) && (event.mSentState != newState)) {
             event.mSentState = newState;
+            getStore().flushRoomEvents(event.roomId);
             onEventSentStateUpdated(event);
         }
     }
@@ -2212,6 +2291,32 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     @Override
+    public void onRoomKick(final String roomId) {
+        if (null != mCryptoEventsListener) {
+            mCryptoEventsListener.onRoomKick(roomId);
+        }
+
+        if (ignoreEvent(roomId)) {
+            return;
+        }
+
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onRoomKick(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onRoomKick " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
     public void onReceiptEvent(final String roomId, final List<String> senderIds) {
         synchronized (mUpdatedRoomIdList) {
             // refresh the unread countries at the end of the process chunk
@@ -2404,4 +2509,130 @@ public class MXDataHandler implements IMXEventListener {
         });
     }
 
+
+    @Override
+    public void onNewGroupInvitation(final String groupId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onNewGroupInvitation(groupId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onNewGroupInvitation " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onJoinGroup(final String groupId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onJoinGroup(groupId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onJoinGroup " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onLeaveGroup(final String groupId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onLeaveGroup(groupId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onLeaveGroup " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onGroupProfileUpdate(final String groupId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onGroupProfileUpdate(groupId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onGroupProfileUpdate " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onGroupRoomsListUpdate(final String groupId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onGroupRoomsListUpdate(groupId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onGroupRoomsListUpdate " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onGroupUsersListUpdate(final String groupId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onGroupUsersListUpdate(groupId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onGroupUsersListUpdate " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onGroupInvitedUsersListUpdate(final String groupId) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onGroupInvitedUsersListUpdate(groupId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onGroupInvitedUsersListUpdate " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
 }

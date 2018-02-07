@@ -169,11 +169,24 @@ public class MXDeviceList {
      */
     private List<String> addDownloadKeysPromise(List<String> userIds, ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> callback) {
         if (null != userIds) {
-            List<String> filteredUserIds = new ArrayList<>(userIds);
+            List<String> filteredUserIds = new ArrayList<>();
+            List<String> invalidUserIds = new ArrayList<>();
+
+            for(String userId : userIds) {
+                if (MXSession.isUserId(userId)) {
+                    filteredUserIds.add(userId);
+                } else {
+                    Log.e(LOG_TAG, "## userId " + userId  + "is not a valid user id");
+                    invalidUserIds.add(userId);
+                }
+            }
 
             synchronized (mUserKeyDownloadsInProgress) {
                 filteredUserIds.removeAll(mUserKeyDownloadsInProgress);
                 mUserKeyDownloadsInProgress.addAll(userIds);
+                // got some email addresses instead of matrix ids
+                mUserKeyDownloadsInProgress.removeAll(invalidUserIds);
+                userIds.removeAll(invalidUserIds);
             }
 
             mDownloadKeysQueues.add(new DownloadKeysPromise(userIds, callback));

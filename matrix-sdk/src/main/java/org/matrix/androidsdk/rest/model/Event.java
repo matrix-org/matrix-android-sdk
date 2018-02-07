@@ -19,6 +19,10 @@ package org.matrix.androidsdk.rest.model;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
+import org.matrix.androidsdk.rest.model.message.FileMessage;
+import org.matrix.androidsdk.rest.model.message.ImageMessage;
+import org.matrix.androidsdk.rest.model.message.Message;
+import org.matrix.androidsdk.rest.model.message.VideoMessage;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
@@ -85,6 +89,7 @@ public class Event implements Externalizable {
     public static final String EVENT_TYPE_ROOM_BOT_OPTIONS = "m.room.bot.options";
     public static final String EVENT_TYPE_ROOM_KEY_REQUEST = "m.room_key_request";
     public static final String EVENT_TYPE_FORWARDED_ROOM_KEY = "m.forwarded_room_key";
+    public static final String EVENT_TYPE_URL_PREVIEW = "org.matrix.room.preview_urls";
 
     // State events
     public static final String EVENT_TYPE_STATE_ROOM_NAME = "m.room.name";
@@ -99,6 +104,7 @@ public class Event implements Externalizable {
     public static final String EVENT_TYPE_STATE_ROOM_ALIASES = "m.room.aliases";
     public static final String EVENT_TYPE_STATE_CANONICAL_ALIAS = "m.room.canonical_alias";
     public static final String EVENT_TYPE_STATE_HISTORY_VISIBILITY = "m.room.history_visibility";
+    public static final String EVENT_TYPE_STATE_RELATED_GROUPS = "m.room.related_groups";
 
     // call events
     public static final String EVENT_TYPE_CALL_INVITE = "m.call.invite";
@@ -1186,8 +1192,10 @@ public class Event implements Externalizable {
     public Map<String, String> getKeysClaimed() {
         Map<String, String> res = new HashMap<>();
 
-        if (null != mClaimedEd25519Key) {
-            res.put("ed25519", mClaimedEd25519Key);
+        String claimedEd25519Key = (null != getClearEvent()) ? getClearEvent().mClaimedEd25519Key : mClaimedEd25519Key;
+
+        if (null != claimedEd25519Key) {
+            res.put("ed25519", claimedEd25519Key);
         }
 
         return res;

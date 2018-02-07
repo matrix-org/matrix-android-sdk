@@ -31,7 +31,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
-import android.widget.ListView;
 import android.widget.Toast;
 
 import com.google.gson.JsonObject;
@@ -56,11 +55,11 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.MediaMessage;
-import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.message.MediaMessage;
+import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.ReceiptData;
-import org.matrix.androidsdk.rest.model.Search.SearchResponse;
-import org.matrix.androidsdk.rest.model.Search.SearchResult;
+import org.matrix.androidsdk.rest.model.search.SearchResponse;
+import org.matrix.androidsdk.rest.model.search.SearchResult;
 import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
@@ -1001,7 +1000,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                         Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                                     }
                                 } else if (null != event.unsentMatrixError) {
-                                    Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + event.unsentMatrixError.getLocalizedMessage() + ".", Toast.LENGTH_LONG).show();
+                                    String localised = (event.unsentMatrixError instanceof MXCryptoError) ? ((MXCryptoError)event.unsentMatrixError).getDetailedErrorDescription() : event.unsentMatrixError.getLocalizedMessage();
+                                    Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + localised, Toast.LENGTH_LONG).show();
                                 }
 
                                 mAdapter.notifyDataSetChanged();

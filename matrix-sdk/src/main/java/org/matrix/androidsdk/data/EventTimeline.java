@@ -35,9 +35,9 @@ import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.RoomResponse;
-import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
-import org.matrix.androidsdk.rest.model.Sync.RoomSync;
+import org.matrix.androidsdk.rest.model.sync.RoomResponse;
+import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
+import org.matrix.androidsdk.rest.model.sync.RoomSync;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.util.BingRulesManager;
@@ -1639,10 +1639,10 @@ public class EventTimeline {
         if (!TextUtils.isEmpty(eventId)) {
             Log.d(LOG_TAG, "checkStateEventRedaction : retrieving the event");
 
-            mDataHandler.getDataRetriever().getRoomsRestClient().getContextOfEvent(mRoomId, eventId, 1, new ApiCallback<EventContext>() {
+            mDataHandler.getDataRetriever().getRoomsRestClient().getEvent(mRoomId, eventId, new ApiCallback<Event>() {
                 @Override
-                public void onSuccess(EventContext eventContext) {
-                    if ((null != eventContext.event) && (null != eventContext.event.stateKey)) {
+                public void onSuccess(Event event) {
+                    if ((null != event) && (null != event.stateKey)) {
                         Log.d(LOG_TAG, "checkStateEventRedaction : the event is a state event -> get a refreshed roomState");
                         forceRoomStateServerSync();
                     } else {

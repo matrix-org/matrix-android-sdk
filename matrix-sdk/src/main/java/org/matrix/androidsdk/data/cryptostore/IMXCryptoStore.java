@@ -18,6 +18,7 @@ package org.matrix.androidsdk.data.cryptostore;
 
 import android.content.Context;
 
+import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.OutgoingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
@@ -277,4 +278,33 @@ public interface IMXCryptoStore {
      * @param transactionId the transaction id.
      */
     void deleteOutgoingRoomKeyRequest(String transactionId);
+
+    /**
+     * Store an incomingRoomKeyRequest instance
+     *
+     * @param incomingRoomKeyRequest the incoming key request
+     */
+    void storeIncomingRoomKeyRequest(IncomingRoomKeyRequest incomingRoomKeyRequest);
+
+    /**
+     * Delete an incomingRoomKeyRequest instance
+     *
+     * @param incomingRoomKeyRequest the incoming key request
+     */
+    void deleteIncomingRoomKeyRequest(IncomingRoomKeyRequest incomingRoomKeyRequest);
+
+    /**
+     * Search an IncomingRoomKeyRequest
+     *
+     * @param userId the user id
+     * @param deviceId the device id
+     * @param requestId the request id
+     * @return an IncomingRoomKeyRequest if it exists, else null
+     */
+    IncomingRoomKeyRequest getIncomingRoomKeyRequest(String userId, String deviceId, String requestId);
+
+    /**
+     * @return the pending IncomingRoomKeyRequest requests
+     */
+    List<IncomingRoomKeyRequest> getPendingIncomingRoomKeyRequests();
 }

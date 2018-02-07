@@ -16,7 +16,7 @@
  */
 package org.matrix.androidsdk.sync;
 
-import org.matrix.androidsdk.rest.model.Sync.SyncResponse;
+import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 
 /**
  * Interface to implement to listen to the event thread.
@@ -32,7 +32,9 @@ public interface EventsThreadListener {
     void onSyncResponse(SyncResponse response, String fromToken, boolean isCatchingUp);
 
     /**
-     * the server returns an invalid token error
+     * A configuration error has been received.
+     *
+     * @param matrixErrorCode the matrix error code
      */
-    void onInvalidToken();
+    void onConfigurationError(String matrixErrorCode);
 }

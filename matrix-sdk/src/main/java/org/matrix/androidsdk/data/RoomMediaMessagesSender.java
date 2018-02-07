@@ -33,14 +33,14 @@ import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.MXMediaUploadListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.model.AudioMessage;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.FileMessage;
-import org.matrix.androidsdk.rest.model.ImageMessage;
+import org.matrix.androidsdk.rest.model.message.AudioMessage;
+import org.matrix.androidsdk.rest.model.message.FileMessage;
+import org.matrix.androidsdk.rest.model.message.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.MediaMessage;
-import org.matrix.androidsdk.rest.model.Message;
-import org.matrix.androidsdk.rest.model.VideoMessage;
+import org.matrix.androidsdk.rest.model.message.MediaMessage;
+import org.matrix.androidsdk.rest.model.message.Message;
+import org.matrix.androidsdk.rest.model.message.VideoMessage;
 import org.matrix.androidsdk.util.ImageUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
@@ -336,13 +336,18 @@ class RoomMediaMessagesSender {
         }
 
         // a text message cannot be null
-        if (TextUtils.isEmpty(text)) {
+        if (TextUtils.isEmpty(text) && !TextUtils.equals(roomMediaMessage.getMessageType(), Message.MSGTYPE_EMOTE)) {
             return null;
         }
 
         Message message = new Message();
         message.msgtype = (null == roomMediaMessage.getMessageType()) ? Message.MSGTYPE_TEXT : roomMediaMessage.getMessageType();
         message.body = text;
+
+        // an emote can have an empty body
+        if (null == message.body) {
+            message.body = "";
+        }
 
         if (!TextUtils.isEmpty(htmlText)) {
             message.formatted_body = htmlText;
@@ -614,10 +619,12 @@ class RoomMediaMessagesSender {
         mEncodingHandler.post(new Runnable() {
             @Override
             public void run() {
+                final MXMediasCache mediasCache = mDataHandler.getMediasCache();
+
                 Uri uri = Uri.parse(url);
                 String mimeType = fMimeType;
-
                 final MXEncryptedAttachments.EncryptionResult encryptionResult;
+                final Uri encryptedUri;
                 InputStream stream;
 
                 try {
@@ -627,8 +634,10 @@ class RoomMediaMessagesSender {
                         stream.close();
 
                         if (null != encryptionResult) {
-                            stream = encryptionResult.mEncryptedStream;
                             mimeType = "application/octet-stream";
+                            encryptedUri = Uri.parse(mediasCache.saveMedia(encryptionResult.mEncryptedStream, null, fMimeType));
+                            File file = new File(encryptedUri.getPath());
+                            stream = new FileInputStream(file);
                         } else {
                             skip();
 
@@ -647,6 +656,7 @@ class RoomMediaMessagesSender {
                         }
                     } else {
                         encryptionResult = null;
+                        encryptedUri = null;
                     }
                 } catch (Exception e) {
                     skip();
@@ -654,8 +664,6 @@ class RoomMediaMessagesSender {
                 }
 
                 mDataHandler.updateEventState(roomMediaMessage.getEvent(), Event.SentState.SENDING);
-
-                final MXMediasCache mediasCache = mDataHandler.getMediasCache();
 
                 mediasCache.uploadContent(stream, mediaMessage.isThumbnailLocalContent() ? ("thumb" + message.body) : message.body, mimeType, url, new MXMediaUploadListener() {
                     @Override
@@ -717,7 +725,12 @@ class RoomMediaMessagesSender {
                                     mediaMessage.setThumbnailUrl(encryptionResult, contentUri);
 
                                     if (null != encryptionResult) {
-                                        mediasCache.saveFileMediaForUrl(contentUri, url, -1, -1, "image/jpeg");
+                                        mediasCache.saveFileMediaForUrl(contentUri, encryptedUri.toString(), -1, -1, "image/jpeg");
+                                        try {
+                                            new File(Uri.parse(url).getPath()).delete();
+                                        } catch (Exception e) {
+                                            Log.e(LOG_TAG, "## cannot delete the uncompress media");
+                                        }
                                     } else {
                                         Pair<Integer, Integer> thumbnailSize = roomMediaMessage.getThumnailSize();
                                         mediasCache.saveFileMediaForUrl(contentUri, url, thumbnailSize.first, thumbnailSize.second, "image/jpeg");
@@ -733,8 +746,18 @@ class RoomMediaMessagesSender {
                                     // upload the media
                                     uploadMedias(roomMediaMessage);
                                 } else {
-                                    // replace the thumbnail and the media contents by the computed one
-                                    mediasCache.saveFileMediaForUrl(contentUri, url, mediaMessage.getMimeType());
+                                    if (null != encryptedUri) {
+                                        // replace the thumbnail and the media contents by the computed one
+                                        mediasCache.saveFileMediaForUrl(contentUri, encryptedUri.toString(), mediaMessage.getMimeType());
+                                        try {
+                                            new File(Uri.parse(url).getPath()).delete();
+                                        } catch (Exception e) {
+                                            Log.e(LOG_TAG, "## cannot delete the uncompress media");
+                                        }
+                                    } else {
+                                        // replace the thumbnail and the media contents by the computed one
+                                        mediasCache.saveFileMediaForUrl(contentUri, url, mediaMessage.getMimeType());
+                                    }
                                     mediaMessage.setUrl(encryptionResult, contentUri);
 
                                     // update the event content with the new message info

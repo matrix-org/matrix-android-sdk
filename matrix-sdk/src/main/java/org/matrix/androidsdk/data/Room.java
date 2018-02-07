@@ -46,29 +46,30 @@ import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.client.AccountDataRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.UrlPostTask;
 import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContext;
-import org.matrix.androidsdk.rest.model.FileInfo;
-import org.matrix.androidsdk.rest.model.FileMessage;
-import org.matrix.androidsdk.rest.model.ImageInfo;
-import org.matrix.androidsdk.rest.model.ImageMessage;
-import org.matrix.androidsdk.rest.model.LocationMessage;
+import org.matrix.androidsdk.rest.model.message.FileInfo;
+import org.matrix.androidsdk.rest.model.message.FileMessage;
+import org.matrix.androidsdk.rest.model.message.ImageInfo;
+import org.matrix.androidsdk.rest.model.message.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.message.LocationMessage;
+import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.RoomResponse;
-import org.matrix.androidsdk.rest.model.Sync.InvitedRoomSync;
-import org.matrix.androidsdk.rest.model.Sync.RoomSync;
-import org.matrix.androidsdk.rest.model.ThumbnailInfo;
+import org.matrix.androidsdk.rest.model.sync.RoomResponse;
+import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
+import org.matrix.androidsdk.rest.model.sync.RoomSync;
+import org.matrix.androidsdk.rest.model.message.ThumbnailInfo;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
-import org.matrix.androidsdk.rest.model.VideoInfo;
-import org.matrix.androidsdk.rest.model.VideoMessage;
+import org.matrix.androidsdk.rest.model.message.VideoInfo;
+import org.matrix.androidsdk.rest.model.message.VideoMessage;
 import org.matrix.androidsdk.util.ImageUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
@@ -82,6 +83,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Class representing a room and the interactions we have with it.
@@ -933,6 +935,80 @@ public class Room {
             }
         });
     }
+
+    /**
+     * Add a group to the related ones
+     *
+     * @param groupId  the group id to add
+     * @param callback the asynchronous callback
+     */
+    public void addRelatedGroup(final String groupId, final ApiCallback<Void> callback) {
+        List<String> nextGroupIdsList = new ArrayList<>(getLiveState().getRelatedGroups());
+
+        if (!nextGroupIdsList.contains(groupId)) {
+            nextGroupIdsList.add(groupId);
+        }
+
+        updateRelatedGroups(nextGroupIdsList, callback);
+    }
+
+    /**
+     * Remove a group id from the related ones.
+     *
+     * @param groupId  the group id
+     * @param callback the asynchronous callback
+     */
+    public void removeRelatedGroup(final String groupId, final ApiCallback<Void> callback) {
+        List<String> nextGroupIdsList = new ArrayList<>(getLiveState().getRelatedGroups());
+        nextGroupIdsList.remove(groupId);
+
+        updateRelatedGroups(nextGroupIdsList, callback);
+    }
+
+    /**
+     * Update the related group ids list
+     *
+     * @param groupIds the new related groups
+     * @param callback the asynchronous callback
+     */
+    public void updateRelatedGroups(final List<String> groupIds, final ApiCallback<Void> callback) {
+        HashMap<String, Object> params = new HashMap<>();
+        params.put("groups", groupIds);
+
+        mDataHandler.getDataRetriever().getRoomsRestClient().sendStateEvent(getRoomId(), Event.EVENT_TYPE_STATE_RELATED_GROUPS, null, params, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                getLiveState().groups = groupIds;
+                getDataHandler().getStore().storeLiveStateForRoom(getRoomId());
+
+                if (null != callback) {
+                    callback.onSuccess(null);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        });
+    }
+
 
     /**
      * @return the room avatar URL. If there is no defined one, use the members one (1:1 chat only).
@@ -1905,6 +1981,25 @@ public class Room {
                         if (accountDataEvent.getType().equals(Event.EVENT_TYPE_TAGS)) {
                             mDataHandler.onRoomTagEvent(getRoomId());
                         }
+
+                        if (accountDataEvent.getType().equals(Event.EVENT_TYPE_URL_PREVIEW)) {
+                            JsonObject jsonObject = accountDataEvent.getContentAsJsonObject();
+
+                            if (jsonObject.has(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE)) {
+                                boolean disabled = jsonObject.get(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE).getAsBoolean();
+
+                                Set<String> roomIdsWithoutURLPreview = mDataHandler.getStore().getRoomsWithoutURLPreviews();
+
+                                if (disabled) {
+                                    roomIdsWithoutURLPreview.add(getRoomId());
+                                } else {
+                                    roomIdsWithoutURLPreview.remove(getRoomId());
+                                }
+
+                                mDataHandler.getStore().setRoomsWithoutURLPreview(roomIdsWithoutURLPreview);
+                            }
+                        }
+
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "## handleAccountDataEvents() : room " + getRoomId() + " failed " + e.getMessage());
                     }
@@ -1993,6 +2088,29 @@ public class Room {
             });
 
         }
+    }
+
+    //==============================================================================================================
+    // URL preview
+    //==============================================================================================================
+
+    /**
+     * Tells if the URL preview has been allowed by the user.
+     *
+     * @return @return true if allowed.
+     */
+    public boolean isURLPreviewAllowedByUser() {
+        return !getDataHandler().getStore().getRoomsWithoutURLPreviews().contains(getRoomId());
+    }
+
+    /**
+     * Update the user enabled room url preview
+     *
+     * @param status the new status
+     * @param callback the asynchronous callback
+     */
+    public void setIsURLPreviewAllowedByUser(boolean status, ApiCallback<Void> callback) {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateURLPreviewStatus(getRoomId(), status, callback);
     }
 
     //==============================================================================================================
@@ -2207,6 +2325,18 @@ public class Room {
                     }
                 }
             }
+
+            @Override
+            public void onRoomKick(String roomId) {
+                // Filter out events for other rooms
+                if (TextUtils.equals(getRoomId(), roomId)) {
+                    try {
+                        eventListener.onRoomKick(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onRoomKick exception " + e.getMessage());
+                    }
+                }
+            }
         };
 
         mEventListeners.put(eventListener, globalListener);
@@ -2308,8 +2438,8 @@ public class Room {
                 event.unsentMatrixError = e;
                 mDataHandler.updateEventState(event, Event.SentState.UNDELIVERABLE);
 
-                if (TextUtils.equals(MatrixError.UNKNOWN_TOKEN, e.errcode)) {
-                    mDataHandler.onInvalidToken();
+                if (MatrixError.isConfigurationErrorCode(e.errcode)) {
+                    mDataHandler.onConfigurationError(e.errcode);
                 } else {
                     try {
                         callback.onMatrixError(e);
@@ -2774,7 +2904,7 @@ public class Room {
      * @return if the room content is encrypted
      */
     public boolean isEncrypted() {
-        return !TextUtils.isEmpty(getLiveState().algorithm);
+        return getLiveState().isEncrypted();
     }
 
     /**
