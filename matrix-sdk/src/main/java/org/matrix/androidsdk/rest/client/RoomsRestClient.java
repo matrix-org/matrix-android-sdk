@@ -36,12 +36,12 @@ import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReportContentParams;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.RoomResponse;
+import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
@@ -505,7 +505,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         final String description = "getEventFromRoomIdEventId : roomId " + roomId + " eventId " + eventId;
 
         try {
-            mApi.getEvent(roomId, eventId , new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            mApi.getEvent(roomId, eventId, new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
                     getEventFromRoomIdEventId(roomId, eventId, callback);
@@ -527,7 +527,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         final String description = "getEventFromEventId : eventId " + eventId;
 
         try {
-            mApi.getEvent(eventId , new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            mApi.getEvent(eventId, new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
                     getEventFromEventId(eventId, callback);
@@ -990,6 +990,31 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 @Override
                 public void onRetry() {
                     removeTag(roomId, tag, callback);
+                }
+            }));
+        } catch (Throwable t) {
+            callback.onUnexpectedError(new Exception(t));
+        }
+    }
+
+    /**
+     * Update the URL preview status
+     *
+     * @param roomId   the roomId
+     * @param status   the new status
+     * @param callback the operation callback
+     */
+    public void updateURLPreviewStatus(final String roomId, final boolean status, final ApiCallback<Void> callback) {
+        final String description = "updateURLPreviewStatus : roomId " + roomId + " - status " + status;
+
+        try {
+            HashMap<String, Object> params = new HashMap<>();
+            params.put(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE, !status);
+
+            mApi.updateAccountData(mCredentials.userId, roomId, Event.EVENT_TYPE_URL_PREVIEW, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    updateURLPreviewStatus(roomId, status, callback);
                 }
             }));
         } catch (Throwable t) {

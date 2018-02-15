@@ -17,6 +17,10 @@ package org.matrix.androidsdk.rest.model;
 
 import android.text.TextUtils;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 import retrofit.mime.TypedInput;
 
 /**
@@ -47,6 +51,12 @@ public class MatrixError implements java.io.Serializable {
 
     // custom ones
     public static final String NOT_SUPPORTED = "M_NOT_SUPPORTED";
+
+    // Define the configuration error codes.
+    // The others matrix errors are requests dedicated
+    // UNKNOWN_TOKEN : the access token is no more valid
+    // OLD_VERSION : the current SDK / application versions are too old and might trigger some unexpected errors.
+    public static final Set<String> mConfigurationErrorCodes = new HashSet<>(Arrays.asList(UNKNOWN_TOKEN, OLD_VERSION));
 
     public String errcode;
     public String error;
@@ -114,5 +124,15 @@ public class MatrixError implements java.io.Serializable {
                 MatrixError.BAD_PAGINATION.equals(errcode) ||
                 MatrixError.OLD_VERSION.equals(errcode) ||
                 MatrixError.UNRECOGNIZED.equals(errcode);
+    }
+
+    /**
+     * Tells if a matrix error code is a configuration error code.
+     *
+     * @param matrixErrorCode the matrix error code
+     * @return true if it is one
+     */
+    public static boolean isConfigurationErrorCode(String matrixErrorCode) {
+        return (null != matrixErrorCode) && mConfigurationErrorCodes.contains(matrixErrorCode);
     }
 }

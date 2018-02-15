@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Comparator;
+
 /**
  * Class representing a room member: a user with membership information.
  */
@@ -36,6 +37,9 @@ public class RoomMember implements Externalizable {
     public static final String MEMBERSHIP_INVITE = "invite";
     public static final String MEMBERSHIP_LEAVE = "leave";
     public static final String MEMBERSHIP_BAN = "ban";
+
+    // not supported by the server sync response by computed from the room state events
+    public static final String MEMBERSHIP_KICK = "kick";
 
     public String displayname;
     public String avatarUrl;
@@ -48,11 +52,14 @@ public class RoomMember implements Externalizable {
     private String userId = null;
     // timestamp of the event which has created this member
     private long mOriginServerTs = -1;
-    // the id of the sender which has created this member
-    private String mInviter;
 
     // the event used to build the room member
     private String mOriginalEventId = null;
+
+    // kick / ban reason
+    public String reason;
+    // user which banned or kicked this member
+    public String mSender;
 
     @Override
     public void readExternal(ObjectInput input) throws IOException, ClassNotFoundException {
@@ -69,7 +76,7 @@ public class RoomMember implements Externalizable {
         }
 
         if (input.readBoolean()) {
-            thirdPartyInvite = (Invite)input.readObject();
+            thirdPartyInvite = (Invite) input.readObject();
         }
 
         if (input.readBoolean()) {
@@ -83,16 +90,20 @@ public class RoomMember implements Externalizable {
         mOriginServerTs = input.readLong();
 
         if (input.readBoolean()) {
-            mInviter = input.readUTF();
+            mOriginalEventId = input.readUTF();
         }
 
         if (input.readBoolean()) {
-            mOriginalEventId = input.readUTF();
+            reason = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            mSender = input.readUTF();
         }
     }
 
     @Override
-    public  void writeExternal(ObjectOutput output) throws IOException {
+    public void writeExternal(ObjectOutput output) throws IOException {
         output.writeBoolean(null != displayname);
         if (null != displayname) {
             output.writeUTF(displayname);
@@ -125,14 +136,19 @@ public class RoomMember implements Externalizable {
 
         output.writeLong(mOriginServerTs);
 
-        output.writeBoolean(null != mInviter);
-        if (null != mInviter) {
-            output.writeUTF(mInviter);
-        }
-
         output.writeBoolean(null != mOriginalEventId);
         if (null != mOriginalEventId) {
             output.writeUTF(mOriginalEventId);
+        }
+
+        output.writeBoolean(null != reason);
+        if (null != reason) {
+            output.writeUTF(reason);
+        }
+
+        output.writeBoolean(null != mSender);
+        if (null != mSender) {
+            output.writeUTF(mSender);
         }
     }
 
@@ -158,14 +174,6 @@ public class RoomMember implements Externalizable {
 
     public String getOriginalEventId() {
         return mOriginalEventId;
-    }
-
-    public String getInviterId() {
-        return mInviter;
-    }
-
-    public void setInviterId(String userId) {
-        mInviter = userId;
     }
 
     public String getAvatarUrl() {
@@ -199,8 +207,7 @@ public class RoomMember implements Externalizable {
 
             if (lhs == null) {
                 return -1;
-            }
-            else if (rhs == null) {
+            } else if (rhs == null) {
                 return 1;
             }
             if (lhs.startsWith("@")) {
@@ -216,6 +223,7 @@ public class RoomMember implements Externalizable {
     /**
      * Test if a room member fields matches with a pattern.
      * The check is done with the displayname and the userId.
+     *
      * @param aPattern the pattern to search.
      * @return true if it matches.
      */
@@ -240,6 +248,7 @@ public class RoomMember implements Externalizable {
     /**
      * Test if a room member matches with a reg ex.
      * The check is done with the displayname and the userId.
+     *
      * @param aRegEx the reg ex
      * @return true if it matches.
      */
@@ -264,6 +273,7 @@ public class RoomMember implements Externalizable {
     /**
      * Compare two members.
      * The members are equals if each field have the same value.
+     *
      * @param otherMember the member to compare.
      * @return true if they define the same member.
      */
@@ -308,10 +318,15 @@ public class RoomMember implements Externalizable {
         copy.membership = membership;
         copy.userId = userId;
         copy.mOriginalEventId = mOriginalEventId;
+        copy.mSender = mSender;
+        copy.reason = reason;
         return copy;
     }
 
-    public boolean hasLeft() {
-        return RoomMember.MEMBERSHIP_BAN.equals(membership) || RoomMember.MEMBERSHIP_LEAVE.equals(membership);
+    /**
+     * @return true if the user has been banned or kicked
+     */
+    public boolean kickedOrBanned() {
+        return TextUtils.equals(membership, MEMBERSHIP_KICK) || TextUtils.equals(membership, MEMBERSHIP_BAN);
     }
 }

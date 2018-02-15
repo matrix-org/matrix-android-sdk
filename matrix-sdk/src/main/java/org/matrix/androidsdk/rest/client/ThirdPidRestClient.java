@@ -22,7 +22,7 @@ import org.matrix.androidsdk.rest.api.ThirdPidApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.BulkLookupParams;
 import org.matrix.androidsdk.rest.model.BulkLookupResponse;
-import org.matrix.androidsdk.rest.model.PidResponse;
+import org.matrix.androidsdk.rest.model.pid.PidResponse;
 
 import java.util.ArrayList;
 import java.util.Arrays;

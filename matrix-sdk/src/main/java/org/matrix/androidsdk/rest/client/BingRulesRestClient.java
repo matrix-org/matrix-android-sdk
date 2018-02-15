@@ -150,7 +150,7 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
      */
     public void addRule(BingRule rule, final ApiCallback<Void> callback) {
         try {
-            mApi.addRule(rule.kind, rule.ruleId, rule, new Callback<Void>() {
+            mApi.addRule(rule.kind, rule.ruleId, rule.toJsonElement(), new Callback<Void>() {
                 @Override
                 public void success(Void voidObject, Response response) {
                     callback.onSuccess(voidObject);

@@ -22,6 +22,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 
+import org.matrix.androidsdk.rest.model.group.Group;
+import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.data.EventTimeline;
@@ -32,7 +34,6 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -41,10 +42,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -70,6 +73,8 @@ public class MXMemoryStore implements IMXStore {
     // dict of dict of MXReceiptData indexed by userId
     protected final Object mReceiptsByRoomIdLock = new Object();
     protected Map<String, Map<String, ReceiptData>> mReceiptsByRoomId;
+
+    protected Map<String, Group> mGroups;
 
     // room state events
     //protected final Map<String, Map<String, Event>> mRoomStateEventsByRoomId = new HashMap<>();
@@ -108,6 +113,7 @@ public class MXMemoryStore implements IMXStore {
         mRoomSummaries = new ConcurrentHashMap<>();
         mReceiptsByRoomId = new ConcurrentHashMap<>();
         mRoomAccountData = new ConcurrentHashMap<>();
+        mGroups = new ConcurrentHashMap<>();
         mEventStreamToken = null;
     }
 
@@ -1483,6 +1489,7 @@ public class MXMemoryStore implements IMXStore {
      *
      * @return the store preload time in milliseconds.
      */
+    @Override
     public long getPreloadTime() {
         return 0;
     }
@@ -1492,6 +1499,7 @@ public class MXMemoryStore implements IMXStore {
      *
      * @return the store stats
      */
+    @Override
     public Map<String, Long> getStats() {
         return new HashMap<>();
     }
@@ -1501,7 +1509,88 @@ public class MXMemoryStore implements IMXStore {
      *
      * @param runnable the runnable to call
      */
+    @Override
     public void post(Runnable runnable) {
         new Handler(Looper.getMainLooper()).post(runnable);
+    }
+
+    /**
+     * Store a group
+     *
+     * @param group the group to store
+     */
+    @Override
+    public void storeGroup(Group group) {
+        if ((null != group) && !TextUtils.isEmpty(group.getGroupId())) {
+            synchronized (mGroups) {
+                mGroups.put(group.getGroupId(), group);
+            }
+        }
+    }
+
+    /**
+     * Flush a group
+     *
+     * @param group the group to store
+     */
+    @Override
+    public void flushGroup(Group group) {
+    }
+
+    /**
+     * Delete a group
+     *
+     * @param groupId the groupId to delete
+     */
+    @Override
+    public void deleteGroup(String groupId) {
+        if (!TextUtils.isEmpty(groupId)) {
+            synchronized (mGroups) {
+                mGroups.remove(groupId);
+            }
+        }
+    }
+
+    /**
+     * Retrieve a group from its id.
+     *
+     * @param groupId the group id
+     * @return the group if it exists
+     */
+    @Override
+    public Group getGroup(String groupId) {
+        synchronized (mGroups) {
+            return (null != groupId) ? mGroups.get(groupId) : null;
+        }
+    }
+
+    /**
+     * @return the stored groups
+     */
+    @Override
+    public Collection<Group> getGroups() {
+        synchronized (mGroups) {
+            return mGroups.values();
+        }
+    }
+
+    @Override
+    public void setURLPreviewEnabled(boolean value) {
+        mMetadata.mIsUrlPreviewEnabled = value;
+    }
+
+    @Override
+    public boolean isURLPreviewEnabled() {
+        return mMetadata.mIsUrlPreviewEnabled;
+    }
+
+    @Override
+    public void setRoomsWithoutURLPreview(Set<String> roomIds) {
+        mMetadata.mRoomsListWithoutURLPrevew = roomIds;
+    }
+
+    @Override
+    public Set<String> getRoomsWithoutURLPreviews() {
+        return (null != mMetadata.mRoomsListWithoutURLPrevew) ? mMetadata.mRoomsListWithoutURLPrevew : new HashSet<String>();
     }
 }

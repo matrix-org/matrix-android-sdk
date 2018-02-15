@@ -27,13 +27,15 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.group.Group;
+import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * An interface for storing and retrieving Matrix objects.
@@ -538,4 +540,60 @@ public interface IMXStore {
      * @param runnable the runnable to call
      */
     void post(Runnable runnable);
+
+    /**
+     * Store a group
+     *
+     * @param group the group to store
+     */
+    void storeGroup(Group group);
+
+    /**
+     * Flush a group in store.
+     *
+     * @param group the group
+     */
+    void flushGroup(Group group);
+
+    /**
+     * Delete a group
+     * @param groupId the group id to delete
+     */
+    void deleteGroup(String groupId);
+
+    /**
+     * Retrieve a group from its id.
+     *
+     * @param groupId the group id
+     * @return the group if it exists
+     */
+    Group getGroup(String groupId);
+
+    /**
+     * @return the stored groups
+     */
+    Collection<Group> getGroups();
+
+    /**
+     * Set the URL preview status
+     * @param value the URL preview status
+     */
+    void setURLPreviewEnabled(boolean value);
+
+    /**
+     * Tells if the global URL preview is enabled.
+     * @return true if it is enabled
+     */
+    boolean isURLPreviewEnabled();
+
+    /**
+     * Update the rooms list which don't have URL previews
+     * @param roomIds teh room ids list
+     */
+    void setRoomsWithoutURLPreview(Set<String> roomIds);
+
+    /**
+     * @return the room ids list which don't have URL preview enabled
+     */
+    Set<String> getRoomsWithoutURLPreviews();
 }

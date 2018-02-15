@@ -18,8 +18,7 @@ package org.matrix.androidsdk.rest.api;
 
 import org.matrix.androidsdk.rest.model.BulkLookupParams;
 import org.matrix.androidsdk.rest.model.BulkLookupResponse;
-import org.matrix.androidsdk.rest.model.PidResponse;
-import org.matrix.androidsdk.rest.model.RequestEmailValidationParams;
+import org.matrix.androidsdk.rest.model.pid.PidResponse;
 
 import java.util.Map;
 

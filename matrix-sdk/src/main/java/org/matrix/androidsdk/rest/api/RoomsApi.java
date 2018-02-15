@@ -25,12 +25,12 @@ import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContext;
-import org.matrix.androidsdk.rest.model.Message;
+import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReportContentParams;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.RoomResponse;
+import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
@@ -296,7 +296,7 @@ public interface RoomsApi {
      * Create a room.
      *
      * @param createRoomRequest the creation room request
-     * @param callback  the asynchronous callback called with the response
+     * @param callback          the asynchronous callback called with the response
      */
     @POST("/createRoom")
     void createRoom(@Body CreateRoomParams createRoomRequest, Callback<CreateRoomResponse> callback);
@@ -433,6 +433,19 @@ public interface RoomsApi {
     @DELETE("/user/{userId}/rooms/{roomId}/tags/{tag}")
     void removeTag(@Path("userId") String userId, @Path("roomId") String roomId, @Path("tag") String tag,
                    Callback<Void> callback);
+
+    /**
+     * Update a dedicated account data field
+     *
+     * @param userId   the userId
+     * @param roomId   the room id
+     * @param subPath  the url sub path
+     * @param content  the event content
+     * @param callback the asynchronous callback called with the response
+     */
+    @PUT("/user/{userId}/rooms/{roomId}/account_data/{tag}")
+    void updateAccountData(@Path("userId") String userId, @Path("roomId") String roomId, @Path("tag") String subPath, @Body HashMap<String, Object> content,
+                           Callback<Void> callback);
 
     /**
      * Get the room ID associated to the room alias.

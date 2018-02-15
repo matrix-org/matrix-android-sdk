@@ -21,8 +21,8 @@ import android.util.Base64;
 
 import org.matrix.androidsdk.util.Log;
 
-import org.matrix.androidsdk.rest.model.EncryptedFileInfo;
-import org.matrix.androidsdk.rest.model.EncryptedFileKey;
+import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
+import org.matrix.androidsdk.rest.model.crypto.EncryptedFileKey;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

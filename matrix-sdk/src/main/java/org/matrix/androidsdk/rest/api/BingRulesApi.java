@@ -15,7 +15,8 @@
  */
 package org.matrix.androidsdk.rest.api;
 
-import org.matrix.androidsdk.rest.model.bingrules.BingRule;
+import com.google.gson.JsonElement;
+
 import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
 
 import retrofit.Callback;
@@ -76,5 +77,5 @@ public interface BingRulesApi {
      * @param callback the callback.
      */
     @PUT("/pushrules/global/{kind}/{ruleId}")
-    void addRule(@Path("kind") String kind, @Path("ruleId") String ruleId, @Body BingRule rule, Callback<Void> callback);
+    void addRule(@Path("kind") String kind, @Path("ruleId") String ruleId, @Body JsonElement rule, Callback<Void> callback);
 }

@@ -11,8 +11,8 @@ import org.junit.runner.RunWith;
 
 import org.junit.runners.MethodSorters;
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
-import org.matrix.androidsdk.rest.model.EncryptedFileInfo;
-import org.matrix.androidsdk.rest.model.EncryptedFileKey;
+import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
+import org.matrix.androidsdk.rest.model.crypto.EncryptedFileKey;
 
 import java.io.InputStream;
 import java.util.Arrays;

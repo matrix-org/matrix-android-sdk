@@ -22,24 +22,24 @@ import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.ProfileApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
-import org.matrix.androidsdk.rest.model.AccountThreePidsResponse;
-import org.matrix.androidsdk.rest.model.AddThreePidsParams;
-import org.matrix.androidsdk.rest.model.AuthParams;
-import org.matrix.androidsdk.rest.model.ChangePasswordParams;
-import org.matrix.androidsdk.rest.model.DeleteThreePidParams;
-import org.matrix.androidsdk.rest.model.ForgetPasswordParams;
-import org.matrix.androidsdk.rest.model.ForgetPasswordResponse;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationParams;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
 import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationParams;
 import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationResponse;
-import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
-import org.matrix.androidsdk.rest.model.ThreePid;
 import org.matrix.androidsdk.rest.model.ThreePidCreds;
+import org.matrix.androidsdk.rest.model.pid.AccountThreePidsResponse;
+import org.matrix.androidsdk.rest.model.pid.AddThreePidsParams;
+import org.matrix.androidsdk.rest.model.AuthParams;
+import org.matrix.androidsdk.rest.model.ChangePasswordParams;
+import org.matrix.androidsdk.rest.model.pid.DeleteThreePidParams;
+import org.matrix.androidsdk.rest.model.ForgetPasswordParams;
+import org.matrix.androidsdk.rest.model.ForgetPasswordResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
+import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
+import org.matrix.androidsdk.rest.model.pid.ThreePid;
 import org.matrix.androidsdk.util.Log;
 
 import java.util.List;
@@ -434,7 +434,6 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         final String description = "add3PID";
 
         AddThreePidsParams params = new AddThreePidsParams();
-
         params.three_pid_creds = new ThreePidCreds();
 
         String identityServerHost = mHsConfig.getIdentityServerUri().toString();

@@ -22,6 +22,8 @@ import android.os.HandlerThread;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.model.group.Group;
+import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
 import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
@@ -33,7 +35,6 @@ import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.util.ContentUtils;
@@ -62,7 +63,7 @@ public class MXFileStore extends MXMemoryStore {
     private static final String LOG_TAG = MXFileStore.class.getSimpleName();
 
     // some constant values
-    private static final int MXFILE_VERSION = 16;
+    private static final int MXFILE_VERSION = 21;
 
     // ensure that there is enough messages to fill a tablet screen
     private static final int MAX_STORED_MESSAGES_COUNT = 50;
@@ -78,6 +79,7 @@ public class MXFileStore extends MXMemoryStore {
     private static final String MXFILE_STORE_ROOMS_RECEIPT_FOLDER = "receipts";
     private static final String MXFILE_STORE_ROOMS_ACCOUNT_DATA_FOLDER = "accountData";
     private static final String MXFILE_STORE_USER_FOLDER = "users";
+    private static final String MXFILE_STORE_GROUPS_FOLDER = "groups";
 
     // the data is read from the file system
     private boolean mIsReady = false;
@@ -100,6 +102,7 @@ public class MXFileStore extends MXMemoryStore {
     private HashSet<String> mRoomsToCommitForAccountData;
     private HashSet<String> mRoomsToCommitForReceipts;
     private HashSet<String> mUserIdsToCommit;
+    private HashSet<String> mGroupsToCommit;
 
     // Flag to indicate metaData needs to be store
     private boolean mMetaDataHasChanged = false;
@@ -114,6 +117,7 @@ public class MXFileStore extends MXMemoryStore {
     private File mStoreRoomsMessagesReceiptsFolderFile = null;
     private File mStoreRoomsAccountDataFolderFile = null;
     private File mStoreUserFolderFile = null;
+    private File mStoreGroupsFolderFile = null;
 
     // the background thread
     private HandlerThread mHandlerThread = null;
@@ -141,13 +145,14 @@ public class MXFileStore extends MXMemoryStore {
         // data path
         // MXFileStore/userID/
         // MXFileStore/userID/MXFileStore
-        // MXFileStore/userID/Messages/
-        // MXFileStore/userID/Tokens/
-        // MXFileStore/userID/States/
-        // MXFileStore/userID/Summaries/
-        // MXFileStore/userID/receipt/<room Id>/receipts
-        // MXFileStore/userID/accountData/
-        // MXFileStore/userID/users/
+        // MXFileStore/userID/MXFileStore/Messages/
+        // MXFileStore/userID/MXFileStore/Tokens/
+        // MXFileStore/userID/MXFileStore/States/
+        // MXFileStore/userID/MXFileStore/Summaries/
+        // MXFileStore/userID/MXFileStore/receipt/<room Id>/receipts
+        // MXFileStore/userID/MXFileStore/accountData/
+        // MXFileStore/userID/MXFileStore/users/
+        // MXFileStore/userID/MXFileStore/groups/
 
         // create the dirtree
         mStoreFolderFile = new File(new File(mContext.getApplicationContext().getFilesDir(), MXFILE_STORE_FOLDER), userId);
@@ -195,6 +200,11 @@ public class MXFileStore extends MXMemoryStore {
         if (!mStoreUserFolderFile.exists()) {
             mStoreUserFolderFile.mkdirs();
         }
+
+        mStoreGroupsFolderFile = new File(mStoreFolderFile, MXFILE_STORE_GROUPS_FOLDER);
+        if (!mStoreGroupsFolderFile.exists()) {
+            mStoreGroupsFolderFile.mkdirs();
+        }
     }
 
     /**
@@ -222,6 +232,7 @@ public class MXFileStore extends MXMemoryStore {
         mRoomsToCommitForAccountData = new HashSet<>();
         mRoomsToCommitForReceipts = new HashSet<>();
         mUserIdsToCommit = new HashSet<>();
+        mGroupsToCommit = new HashSet<>();
 
         // check if the metadata file exists and if it is valid
         loadMetaData();
@@ -290,6 +301,7 @@ public class MXFileStore extends MXMemoryStore {
         if ((null != mMetadata) && (null != mMetadata.mAccessToken) && !isKilled()) {
             Log.d(LOG_TAG, "++ Commit");
             saveUsers();
+            saveGroups();
             saveRoomsMessages();
             saveRoomStates();
             saveRoomStatesEvents();
@@ -358,6 +370,16 @@ public class MXFileStore extends MXMemoryStore {
                                 }
 
                                 if (succeed) {
+                                    succeed &= loadGroups();
+                                    if (!succeed) {
+                                        errorDescription = "loadGroups fails";
+                                        Log.e(LOG_TAG, errorDescription);
+                                    } else {
+                                        Log.e(LOG_TAG, "loadGroups succeeds");
+                                    }
+                                }
+
+                                if (succeed) {
                                     succeed &= loadRoomsState();
 
                                     if (!succeed) {
@@ -407,7 +429,7 @@ public class MXFileStore extends MXMemoryStore {
                                                 succeed = false;
                                                 Log.e(LOG_TAG, "loadSummaries : the room " + roomId + " does not exist");
                                             } else if (null == room.getMember(mCredentials.userId)) {
-                                                succeed = false;
+                                                //succeed = false;
                                                 Log.e(LOG_TAG, "loadSummaries) : a summary exists for the roomId " + roomId + " but the user is not anymore a member");
                                             }
                                         }
@@ -2367,5 +2389,159 @@ public class MXFileStore extends MXMemoryStore {
         } else {
             super.post(runnable);
         }
+    }
+
+    //================================================================================
+    // groups management
+    //================================================================================
+
+    /**
+     * Store a group
+     *
+     * @param group the group to store
+     */
+    @Override
+    public void storeGroup(Group group) {
+        super.storeGroup(group);
+        if ((null != group) && !TextUtils.isEmpty(group.getGroupId())) {
+            mGroupsToCommit.add(group.getGroupId());
+        }
+    }
+
+    /**
+     * Flush a group
+     *
+     * @param group the group to store
+     */
+    @Override
+    public void flushGroup(Group group) {
+        super.flushGroup(group);
+        if ((null != group) && !TextUtils.isEmpty(group.getGroupId())) {
+            mGroupsToCommit.add(group.getGroupId());
+            saveGroups();
+        }
+    }
+
+    /**
+     * Delete a group
+     *
+     * @param groupId the groupId to delete
+     */
+    @Override
+    public void deleteGroup(String groupId) {
+        super.deleteGroup(groupId);
+        if (!TextUtils.isEmpty(groupId)) {
+            mGroupsToCommit.add(groupId);
+        }
+    }
+
+    /**
+     * Flush groups list
+     */
+    private void saveGroups() {
+        // some updated rooms ?
+        if ((mGroupsToCommit.size() > 0) && (null != mFileStoreHandler)) {
+            // get the list
+            final HashSet<String> fGroupIds = mGroupsToCommit;
+            mGroupsToCommit = new HashSet<>();
+
+            try {
+                Runnable r = new Runnable() {
+                    @Override
+                    public void run() {
+                        mFileStoreHandler.post(new Runnable() {
+                            public void run() {
+                                if (!isKilled()) {
+                                    Log.d(LOG_TAG, "saveGroups " + fGroupIds.size() + " groups");
+
+                                    long start = System.currentTimeMillis();
+
+                                    for (String groupId : fGroupIds) {
+                                        Group group;
+
+                                        synchronized (mGroups) {
+                                            group = mGroups.get(groupId);
+                                        }
+
+                                        if (null != group) {
+                                            writeObject("saveGroup " + groupId, new File(mStoreGroupsFolderFile, groupId), group);
+                                        } else {
+                                            File tokenFile = new File(mStoreGroupsFolderFile, groupId);
+
+                                            if (tokenFile.exists()) {
+                                                tokenFile.delete();
+                                            }
+                                        }
+                                    }
+
+                                    Log.d(LOG_TAG, "saveGroups done in " + (System.currentTimeMillis() - start) + " ms");
+                                }
+                            }
+                        });
+                    }
+                };
+
+                Thread t = new Thread(r);
+                t.start();
+            } catch (OutOfMemoryError oom) {
+                Log.e(LOG_TAG, "saveGroups : failed" + oom.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Load groups from the filesystem.
+     *
+     * @return true if the operation succeeds.
+     */
+    private boolean loadGroups() {
+        boolean succeed = true;
+
+        try {
+            // extract the messages list
+            List<String> filenames = listFiles(mStoreGroupsFolderFile.list());
+
+            long start = System.currentTimeMillis();
+
+            for (String filename : filenames) {
+                File groupFile = new File(mStoreGroupsFolderFile, filename);
+
+                if (groupFile.exists()) {
+                    Object groupAsVoid = readObject("loadGroups " + filename, groupFile);
+
+                    if ((null != groupAsVoid) && (groupAsVoid instanceof Group)) {
+                        Group group = (Group) groupAsVoid;
+                        mGroups.put(group.getGroupId(), group);
+                    } else {
+                        succeed = false;
+                        break;
+                    }
+                }
+            }
+
+            if (succeed) {
+                long delta = (System.currentTimeMillis() - start);
+                Log.d(LOG_TAG, "loadGroups : " + filenames.size() + " groups in " + delta + " ms");
+                mStoreStats.put("loadGroups", delta);
+            }
+
+        } catch (Exception e) {
+            succeed = false;
+            Log.e(LOG_TAG, "loadGroups failed : " + e.getMessage());
+        }
+
+        return succeed;
+    }
+
+    @Override
+    public void setURLPreviewEnabled(boolean value) {
+        super.setURLPreviewEnabled(value);
+        mMetaDataHasChanged = true;
+    }
+
+    @Override
+    public void setRoomsWithoutURLPreview(Set<String> roomIds) {
+        super.setRoomsWithoutURLPreview(roomIds);
+        mMetaDataHasChanged = true;
     }
 }

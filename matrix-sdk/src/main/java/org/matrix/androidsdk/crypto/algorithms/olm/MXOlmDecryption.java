@@ -21,14 +21,12 @@ import android.text.TextUtils;
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.MXDecryptionException;
 import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
-import org.matrix.androidsdk.rest.model.OlmEventContent;
-import org.matrix.androidsdk.rest.model.OlmPayloadContent;
+import org.matrix.androidsdk.rest.model.crypto.OlmEventContent;
+import org.matrix.androidsdk.rest.model.crypto.OlmPayloadContent;
 import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.crypto.MXCryptoError;

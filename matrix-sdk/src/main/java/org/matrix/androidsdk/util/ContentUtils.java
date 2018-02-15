@@ -20,14 +20,12 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
-import org.matrix.androidsdk.util.Log;
-
 import android.os.Build;
 import android.os.StatFs;
 import android.system.Os;
 import android.webkit.MimeTypeMap;
 
-import org.matrix.androidsdk.rest.model.ImageInfo;
+import org.matrix.androidsdk.rest.model.message.ImageInfo;
 
 import java.io.File;
 import java.lang.reflect.Field;

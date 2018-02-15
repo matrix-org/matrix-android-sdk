@@ -308,8 +308,8 @@ public class UnsentEventsManager {
                         Log.e(LOG_TAG, "Matrix Error " + mxError + " " + eventDescription);
                     }
 
-                    if (TextUtils.equals(MatrixError.UNKNOWN_TOKEN, mxError.errcode)) {
-                        dataHandler.onInvalidToken();
+                    if (MatrixError.isConfigurationErrorCode(mxError.errcode)) {
+                        dataHandler.onConfigurationError(mxError.errcode);
                     } else if (null != callback) {
                         callback.onMatrixError(mxError);
                     }
@@ -340,11 +340,12 @@ public class UnsentEventsManager {
     /**
      * A request fails with an unknown matrix token error code.
      *
+     * @param matrixErrorCode  the matrix error code
      * @param eventDescription the event description
      */
-    public void onUnknownMatrixToken(final String eventDescription) {
+    public void onConfigurationErrorCode(final String matrixErrorCode, final String eventDescription) {
         Log.e(LOG_TAG, eventDescription + " failed because of an unknown matrix token");
-        mDataHandler.onInvalidToken();
+        mDataHandler.onConfigurationError(matrixErrorCode);
     }
 
     /**
@@ -382,9 +383,9 @@ public class UnsentEventsManager {
                 if ((null != eventDescription) && (null != mxError)) {
                     Log.d(LOG_TAG, "Matrix error " + mxError.errcode + " " + mxError.getMessage() + " [" + eventDescription + "]");
 
-                    if (TextUtils.equals(MatrixError.UNKNOWN_TOKEN, mxError.errcode)) {
+                    if (MatrixError.isConfigurationErrorCode(mxError.errcode)) {
                         Log.e(LOG_TAG, "## onEventSendingFailed() : invalid token detected");
-                        mDataHandler.onInvalidToken();
+                        mDataHandler.onConfigurationError(mxError.errcode);
                         triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
                         return;
                     }

@@ -23,6 +23,7 @@ import org.matrix.androidsdk.util.UnsentEventsManager;
 import retrofit.Callback;
 import retrofit.RetrofitError;
 import retrofit.client.Response;
+import retrofit.converter.ConversionException;
 import retrofit.mime.TypedByteArray;
 import retrofit.mime.TypedInput;
 
@@ -149,6 +150,9 @@ public class RestAdapterCallback<T> implements Callback<T> {
             retry = (error.getResponse().getStatus() < 400) || (error.getResponse().getStatus() > 500);
         }
 
+        // do not retry if the response format is not the expected one.
+        retry &= (null == error.getCause()) || !(error.getCause() instanceof ConversionException);
+
         if (retry && (null != mUnsentEventsManager)) {
             Log.d(LOG_TAG, "Add it to the UnsentEventsManager");
             mUnsentEventsManager.onEventSendingFailed(mEventDescription, mIgnoreEventTimeLifeInOffline, error, mApiCallback, mRequestRetryCallBack);
@@ -198,8 +202,8 @@ public class RestAdapterCallback<T> implements Callback<T> {
                 if (mxError != null) {
                     if (MatrixError.LIMIT_EXCEEDED.equals(mxError.errcode) && (null != mUnsentEventsManager)) {
                         mUnsentEventsManager.onEventSendingFailed(mEventDescription, mIgnoreEventTimeLifeInOffline, error, mApiCallback, mRequestRetryCallBack);
-                    } else if (MatrixError.UNKNOWN_TOKEN.equals(mxError.errcode) && (null != mUnsentEventsManager)) {
-                        mUnsentEventsManager.onUnknownMatrixToken(mEventDescription);
+                    } else if (MatrixError.isConfigurationErrorCode(mxError.errcode) && (null != mUnsentEventsManager)) {
+                        mUnsentEventsManager.onConfigurationErrorCode(mxError.errcode, mEventDescription);
                     } else {
                         try {
                             if (null != mApiCallback) {
