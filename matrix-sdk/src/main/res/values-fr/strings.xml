@@ -64,4 +64,6 @@
     <string name="medium_email">Adresse e-mail</string>
     <string name="medium_phone_number">Numéro de téléphone</string>
 
-</resources>
+<string name="summary_user_sent_sticker">%1$s a envoyé un sticker.</string>
+
+    </resources>
