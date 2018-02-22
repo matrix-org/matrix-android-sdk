@@ -165,10 +165,7 @@ public class EventsThread extends Thread {
     public void setServerLongPollTimeout(int ms) {
         mDefaultServerTimeoutms = Math.max(ms, DEFAULT_SERVER_TIMEOUT_MS);
         Log.d(LOG_TAG, "setServerLongPollTimeout : " + mDefaultServerTimeoutms);
-
     }
-
-
 
     /**
      * @return the long poll timeout
