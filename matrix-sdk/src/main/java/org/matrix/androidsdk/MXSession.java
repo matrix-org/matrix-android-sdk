@@ -161,10 +161,7 @@ public class MXSession {
 
     // tell if the rageshake mode is enabled
     public boolean mUseRageShakeMode;
-
-    // tell if the piwik mode is enabled
-    public boolean mUsePiwikMode;
-
+    
     // the groups manager
     private GroupsManager mGroupsManager;
 
