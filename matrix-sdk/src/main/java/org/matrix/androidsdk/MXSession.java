@@ -159,6 +159,9 @@ public class MXSession {
     // tell if the data save mode is enabled
     private boolean mUseDataSaveMode;
 
+    // tell if the rageshake mode is enabled
+    public boolean mUseRageShakeMode;
+    
     // the groups manager
     private GroupsManager mGroupsManager;
 
@@ -880,6 +883,7 @@ public class MXSession {
             }
 
             mEventsThread.setUseDataSaveMode(mUseDataSaveMode);
+            mEventsThread.setUseRageShakeMode(mUseRageShakeMode);
 
             if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
                 // GA issue
@@ -997,6 +1001,18 @@ public class MXSession {
         mUseDataSaveMode = enabled;
         if (null != mEventsThread) {
             mEventsThread.setUseDataSaveMode(enabled);
+        }
+    }
+
+    /**
+     * Update the rageshake mode
+     *
+     * @param enabled true to enable the rageshake mode
+     */
+    public void setUseRageShakeMode(boolean enabled) {
+        mUseRageShakeMode = enabled;
+        if (null != mEventsThread) {
+            mEventsThread.setUseRageShakeMode(enabled);
         }
     }
 

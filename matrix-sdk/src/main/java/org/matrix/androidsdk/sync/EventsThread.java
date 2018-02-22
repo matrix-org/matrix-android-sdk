@@ -92,6 +92,8 @@ public class EventsThread extends Thread {
 
     // use dedicated filter when enable
     private boolean mIsInDataSaveMode = false;
+    private boolean mIsInRageShakeMode = false;
+
 
     private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
         @Override
@@ -145,6 +147,16 @@ public class EventsThread extends Thread {
         mIsInDataSaveMode = enabled;
     }
 
+
+    /**
+     * Update the rageshake mode
+     *
+     * @param enabled true to enable the rageshake mode
+     */
+    public void setUseRageShakeMode(boolean enabled) {
+        mIsInRageShakeMode = enabled;
+    }
+
     /**
      * Update the long poll timeout.
      *
@@ -153,7 +165,6 @@ public class EventsThread extends Thread {
     public void setServerLongPollTimeout(int ms) {
         mDefaultServerTimeoutms = Math.max(ms, DEFAULT_SERVER_TIMEOUT_MS);
         Log.d(LOG_TAG, "setServerLongPollTimeout : " + mDefaultServerTimeoutms);
-
     }
 
     /**
