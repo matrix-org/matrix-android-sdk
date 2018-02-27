@@ -492,13 +492,13 @@ public class Room {
             event = mMemberEventByEventId.get(member.getOriginalEventId());
 
             if (null == event) {
-                mDataHandler.getDataRetriever().getRoomsRestClient().getContextOfEvent(getRoomId(), member.getOriginalEventId(), 1, new ApiCallback<EventContext>() {
+                mDataHandler.getDataRetriever().getRoomsRestClient().getEvent(getRoomId(), member.getOriginalEventId(), new ApiCallback<Event>() {
                     @Override
-                    public void onSuccess(EventContext eventContext) {
-                        if (null != eventContext.event) {
-                            mMemberEventByEventId.put(eventContext.event.eventId, eventContext.event);
+                    public void onSuccess(Event event) {
+                        if (null != event) {
+                            mMemberEventByEventId.put(event.eventId, event);
                         }
-                        callback.onSuccess(eventContext.event);
+                        callback.onSuccess(event);
                     }
 
                     @Override

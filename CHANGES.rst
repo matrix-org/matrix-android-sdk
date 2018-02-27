@@ -1,3 +1,59 @@
+Changes to Matrix Android SDK in 0.9.0 (2018-02-15)
+=======================================================
+
+Improvements:
+ * Groups: Handle the user's groups and their data (vector-im/riot-meta#114).
+ * Groups: Add methods to accept group invite and leave it (vector-im/riot-meta#114).
+ * Groups Flair: Handle the publicised groups for the matrix users (vector-im/riot-meta#118).
+ * Groups Flair: Support the new state event type `m.room.related_groups`(vector-im/riot-meta#118).
+ * Improve media cache (PR #226).
+ * Force to save the room events when their states are updated.
+ * Do not retry a request if the response is not formatted as expected.
+ * Increase the call timeout to reduce the number of failed calls with a slow network.
+ * Add configuration errors management.
+ * Improve the text extraction from android share feature.
+ * Improve the user id regex to supported extended format (vector-im/riot-android#1927).
+ * Update the room notifications management (vector-im/riot-meta#9).
+ * Saved the incoming key requests in the store (PR #232).
+ * Improve isAvatarThumbnailCached() to avoid flickering.
+ * Add the global URL preview flag management.
+ * Synchronize the room url preview disabled by the user.
+
+Bugfixes:
+ * Do kicked rooms appear in the room list? (#1856).
+ * Fix a sharekeys issue when the user devices were not downloaded to check if they exist.
+ * Messages are not displayed properly (#1805).
+ * If an m.room.encryption event is redacted, android thinks the room is no longer encrypted (vector-im/riot-android#1064).
+ * Excessive battery use reported by my phones software (vector-im/riot-android#1838).
+ * Create a direct chat with an email address is not marked/seen as direct (vector-im/riot-android#1931).
+ * F-Droid: can't compile with react-native-webrtc.aar built from source (#227).
+ * Fix empty emote case.
+ * Fix downloadManagerTask error management.
+ * Empty chat history (#1875).
+ * Fix a server issue : some group members are duplicated.
+ * Fix a sharekeys issue : getKeysClaimed() failed to return the decrypted value.
+
+Translations:
+ * Catalan, added thanks to @sim6 and @d1d4c.
+ * Arabic, added thanks to @SafaAlfulaij.
+
+Changes to Matrix Android SDK in 0.8.08 (2018-01-16)
+=======================================================
+
+Bugfixes:
+
+* #1859 : After a user redacted their own join event from HQ, Android DoSes us with /context requests.
+* Update to the latest JITSI libs
+
+Changes to Matrix Android SDK in 0.8.07 (2017-12-18)
+=======================================================
+
+Bugfixes:
+
+* Manage string or boolean value for BingRule highlight
+* #1799 : Riot often chokes on messages 
+* #1802 : Expected status header not present. Restore okhttp*.2.2 until we update to OKHtpp 3.X.
+
 Changes to Matrix Android SDK in 0.8.06 (2017-12-06)
 =======================================================
 

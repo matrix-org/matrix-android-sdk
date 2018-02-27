@@ -172,11 +172,11 @@ public class MXDeviceList {
             List<String> filteredUserIds = new ArrayList<>();
             List<String> invalidUserIds = new ArrayList<>();
 
-            for(String userId : userIds) {
+            for (String userId : userIds) {
                 if (MXSession.isUserId(userId)) {
                     filteredUserIds.add(userId);
                 } else {
-                    Log.e(LOG_TAG, "## userId " + userId  + "is not a valid user id");
+                    Log.e(LOG_TAG, "## userId " + userId + "is not a valid user id");
                     invalidUserIds.add(userId);
                 }
             }
@@ -747,7 +747,7 @@ public class MXDeviceList {
                 //
                 // Should we warn the user about it somehow?
                 Log.e(LOG_TAG, "## validateDeviceKeys() : WARNING:Ed25519 key for device " + userId + ":" + deviceKeys.deviceId + " has changed : "
-                        + previouslyStoredDeviceKeys.fingerprint() + " -> " +  signKey);
+                        + previouslyStoredDeviceKeys.fingerprint() + " -> " + signKey);
 
                 Log.e(LOG_TAG, "## validateDeviceKeys() : " + previouslyStoredDeviceKeys + " -> " + deviceKeys);
                 Log.e(LOG_TAG, "## validateDeviceKeys() : " + previouslyStoredDeviceKeys.keys + " -> " + deviceKeys.keys);

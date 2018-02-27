@@ -47,7 +47,7 @@ public class MXCall implements IMXCall {
     private static final String LOG_TAG = MXCall.class.getSimpleName();
 
     // defines the call timeout
-    public static final int CALL_TIMEOUT_MS = 2 * 60 * 1000;
+    public static final int CALL_TIMEOUT_MS = 120 * 1000;
 
     /**
      * The session
