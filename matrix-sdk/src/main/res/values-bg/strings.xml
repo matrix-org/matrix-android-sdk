@@ -30,4 +30,38 @@
     <string name="notice_room_visibility_shared">всички членове в нея.</string>
     <string name="notice_room_visibility_world_readable">всеки.</string>
     <string name="notice_room_visibility_unknown">непознат (%s).</string>
+    <string name="notice_end_to_end">%1$s включи шифроване от край до край (%2$s)</string>
+
+    <string name="notice_requested_voip_conference">%1$s заяви VoIP групов разговор</string>
+    <string name="notice_voip_started">Започна VoIP групов разговор</string>
+    <string name="notice_voip_finished">Груповият разговор приключи</string>
+
+    <string name="notice_avatar_changed_too">(профилната снимка също беше сменена)</string>
+    <string name="notice_room_name_removed">%1$s премахна името на стаята</string>
+    <string name="notice_room_topic_removed">%1$s премахна темата на стаята</string>
+    <string name="notice_event_redacted">"изтрито %1$s "</string>
+    <string name="notice_event_redacted_by">" от %1$s"</string>
+    <string name="notice_event_redacted_reason">" [причина: %1$s]"</string>
+    <string name="notice_profile_change_redacted">%1$s обнови своя профил %2$s</string>
+    <string name="notice_room_third_party_invite">%1$s изпрати покана на %2$s да се присъедини към стаята</string>
+    <string name="notice_room_third_party_registered_invite">%1$s прие поканата за %2$s</string>
+
+    <string name="notice_crypto_unable_to_decrypt">** Неуспешно разшифроване: %s **</string>
+    <string name="could_not_redact">Неуспешно премахване</string>
+    <string name="unable_to_send_message">Неуспешно изпращане на съобщението</string>
+
+    <string name="message_failed_to_upload">Неуспешно качване на снимката</string>
+
+    <string name="network_error">Грешка в мрежата</string>
+    <string name="matrix_error">Matrix грешка</string>
+
+    <string name="room_error_join_failed_empty_room">В момента не е възможно да се присъедините отново към празна стая.</string>
+
+    <string name="encrypted_message">Шифровано съобщение</string>
+
+    <string name="medium_email">Имейл адрес</string>
+    <string name="medium_phone_number">Телефонен номер</string>
+
+<string name="notice_crypto_error_unkwown_inbound_session_id">Устройството на подателя не изпрати ключовете за това съобщение.</string>
+
     </resources>
