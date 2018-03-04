@@ -29,7 +29,7 @@
     <string name="notice_room_visibility_joined">всички членове, от момента на присъединяването им в нея.</string>
     <string name="notice_room_visibility_shared">всички членове в нея.</string>
     <string name="notice_room_visibility_world_readable">всеки.</string>
-    <string name="notice_room_visibility_unknown">непознат (%s).</string>
+    <string name="notice_room_visibility_unknown">непозната (%s).</string>
     <string name="notice_end_to_end">%1$s включи шифроване от край до край (%2$s)</string>
 
     <string name="notice_requested_voip_conference">%1$s заяви VoIP групов разговор</string>
