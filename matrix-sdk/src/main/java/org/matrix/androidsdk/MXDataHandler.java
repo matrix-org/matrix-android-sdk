@@ -139,6 +139,9 @@ public class MXDataHandler implements IMXEventListener {
     // should be retrieved from the store
     private List<String> mIgnoredUserIdsList;
 
+    // list all the roomIds of current direct chat rooms
+    private List<String> mLocalDirectChatRoomIdsList = null;
+
     private boolean mIsAlive = true;
 
     private RequestNetworkErrorListener mRequestNetworkErrorListener;
@@ -1116,6 +1119,10 @@ public class MXDataHandler implements IMXEventListener {
 
                         mStore.setDirectChatRoomsDict(contentDict);
 
+                        // reset the current list of direct chat roomIDs
+                        // to update it
+                        mLocalDirectChatRoomIdsList = null;
+
                         if (!isInitialSync) {
                             // warn there is an update
                             onDirectMessageChatRoomsListUpdate();
@@ -1123,7 +1130,6 @@ public class MXDataHandler implements IMXEventListener {
                     }
                 }
             }
-
         }
     }
 
@@ -2640,6 +2646,8 @@ public class MXDataHandler implements IMXEventListener {
      * @return the direct chat room ids list
      */
     public List<String> getDirectChatRoomIdsList() {
+        if (null != mLocalDirectChatRoomIdsList) return  mLocalDirectChatRoomIdsList;
+
         IMXStore store = getStore();
         List<String> directChatRoomIdsList = new ArrayList<>();
 
@@ -2697,7 +2705,7 @@ public class MXDataHandler implements IMXEventListener {
             }
         }
 
-        return directChatRoomIdsList;
+        return mLocalDirectChatRoomIdsList = directChatRoomIdsList;
     }
 
     /**
