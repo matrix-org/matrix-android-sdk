@@ -139,7 +139,7 @@ public class MXDataHandler implements IMXEventListener {
     // should be retrieved from the store
     private List<String> mIgnoredUserIdsList;
 
-    // list all the roomIds of current direct chat rooms
+    // list all the roomIds of the current direct chat rooms
     private List<String> mLocalDirectChatRoomIdsList = null;
 
     private boolean mIsAlive = true;
@@ -1119,7 +1119,7 @@ public class MXDataHandler implements IMXEventListener {
 
                         mStore.setDirectChatRoomsDict(contentDict);
 
-                        // reset the current list of direct chat roomIDs
+                        // reset the current list of the direct chat roomIDs
                         // to update it
                         mLocalDirectChatRoomIdsList = null;
 
