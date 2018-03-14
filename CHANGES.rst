@@ -1,3 +1,13 @@
+Changes to Matrix Android SDK in 0.9.1 (2018-03-14)
+=======================================================
+
+Improvements:
+ * Room: Add isDirect method.
+ * Optimise computation of isDirect chat flag.
+
+Translations:
+ * Bulgarian, added thanks to @rbozhkova.
+
 Changes to Matrix Android SDK in 0.9.0 (2018-02-15)
 =======================================================
 
