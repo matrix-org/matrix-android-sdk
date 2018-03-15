@@ -1198,8 +1198,6 @@ public class MXFileStore extends MXMemoryStore {
                     Log.d(LOG_TAG, "## loadRoomMessages() : the room " + roomId + " has " + events.size() + " stored events : we need to find a way to reduce it.");
                 }
 
-                long undeliverableTs = 1L << 50;
-
                 // finalizes the deserialization
                 for (Event event : events.values()) {
                     // if a message was not sent, mark at as UNDELIVERABLE
@@ -1209,7 +1207,6 @@ public class MXFileStore extends MXMemoryStore {
                             (event.mSentState == Event.SentState.WAITING_RETRY) ||
                             (event.mSentState == Event.SentState.ENCRYPTING)) {
                         event.mSentState = Event.SentState.UNDELIVERABLE;
-                        event.originServerTs = undeliverableTs++;
                         shouldSave = true;
                     }
                 }
