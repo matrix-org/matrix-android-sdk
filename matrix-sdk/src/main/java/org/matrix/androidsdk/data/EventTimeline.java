@@ -446,6 +446,10 @@ public class EventTimeline {
             state.setDataHandler(mDataHandler);
 
             this.mBackState = this.mState = state;
+
+            // in the pending invitation case the room sends only very little informations
+            // that is why we can consider that it is ready
+            mRoom.setReadyState(true);
         }
 
         if ((null != roomSync.state) && (null != roomSync.state.events) && (roomSync.state.events.size() > 0)) {
