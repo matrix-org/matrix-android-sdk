@@ -54,4 +54,13 @@
     <string name="medium_email">عنوان البريد الإلكتروني</string>
     <string name="medium_phone_number">رقم الهاتف</string>
 
-</resources>
+<string name="summary_message">‏‏⁨%1$s⁩: ‏⁨%2$s⁩</string>
+    <string name="notice_room_withdraw">انسحب ⁨%1$s⁩ من دعوة ⁨%2$s⁩</string>
+    <string name="notice_placed_video_call">أجرى ⁨%s⁩ مكالمة مرئية.</string>
+    <string name="notice_placed_voice_call">أجرى ⁨%s⁩ مكالمة صوتية.</string>
+    <string name="notice_event_redacted">"هُذّبت ⁨%1$s⁩ "</string>
+    <string name="notice_event_redacted_by">" على يد ⁨%1$s⁩"</string>
+    <string name="notice_room_third_party_registered_invite">قبل ⁨%1$s⁩ دعوة ⁨%2$s⁩</string>
+
+    <string name="could_not_redact">تعذر التهذيب</string>
+    </resources>
