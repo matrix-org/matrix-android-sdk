@@ -408,10 +408,13 @@ public class EventTimeline {
                     event.eventId = mRoomId + "-" + System.currentTimeMillis() + "-" + event.hashCode();
                 }
 
-                // the roomId is not defined.
+                // The roomId is not defined.
                 event.roomId = mRoomId;
                 handleLiveEvent(event, false, true);
             }
+
+            // The room related to the pending invite can be considered as ready from now
+            mRoom.setReadyState(true);
         }
     }
 
