@@ -32,4 +32,9 @@
 
 <string name="notice_room_visibility_shared">wszyscy członkowie pokoju.</string>
     <string name="notice_room_visibility_world_readable">wszyscy.</string>
+    <string name="notice_room_name_changed">%1$s zmienił znawę pokoju na: %2$s</string>
+    <string name="notice_ended_call">%s zakończył rozmowę.</string>
+    <string name="notice_room_name_removed">%1$s usunął nazwę pokoju</string>
+    <string name="notice_room_topic_removed">%1$s usunął temat pokoju</string>
+    <string name="notice_event_redacted_reason">" [powód: %1$s]"</string>
     </resources>
