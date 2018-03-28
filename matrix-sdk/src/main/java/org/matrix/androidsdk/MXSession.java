@@ -1,6 +1,7 @@
 /*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,6 +61,7 @@ import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
+import org.matrix.androidsdk.rest.model.message.StickerMessage;
 import org.matrix.androidsdk.rest.model.pid.DeleteDeviceAuth;
 import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.sync.DevicesListResponse;
@@ -740,6 +742,16 @@ public class MXSession {
                                 if (mediaMessage.isLocalContent()) {
                                     filesToKeep.add(Uri.parse(mediaMessage.getUrl()).getPath());
                                 }
+                            }
+                        } else if (TextUtils.equals(Event.EVENT_TYPE_STICKER, event.getType())) {
+                            StickerMessage stickerMessage = JsonUtils.toStickerMessage(event.getContent());
+
+                            if (stickerMessage.isThumbnailLocalContent()) {
+                                filesToKeep.add(Uri.parse(stickerMessage.getThumbnailUrl()).getPath());
+                            }
+
+                            if (stickerMessage.isLocalContent()) {
+                                filesToKeep.add(Uri.parse(stickerMessage.getUrl()).getPath());
                             }
                         }
                     } catch (Exception e) {

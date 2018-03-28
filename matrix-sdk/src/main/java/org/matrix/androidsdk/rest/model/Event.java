@@ -1,6 +1,7 @@
 /*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +23,7 @@ import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
 import org.matrix.androidsdk.rest.model.message.FileMessage;
 import org.matrix.androidsdk.rest.model.message.ImageMessage;
 import org.matrix.androidsdk.rest.model.message.Message;
+import org.matrix.androidsdk.rest.model.message.StickerMessage;
 import org.matrix.androidsdk.rest.model.message.VideoMessage;
 import org.matrix.androidsdk.util.Log;
 
@@ -76,6 +78,7 @@ public class Event implements Externalizable {
 
     public static final String EVENT_TYPE_PRESENCE = "m.presence";
     public static final String EVENT_TYPE_MESSAGE = "m.room.message";
+    public static final String EVENT_TYPE_STICKER = "m.sticker";
     public static final String EVENT_TYPE_MESSAGE_ENCRYPTED = "m.room.encrypted";
     public static final String EVENT_TYPE_MESSAGE_ENCRYPTION = "m.room.encryption";
     public static final String EVENT_TYPE_FEEDBACK = "m.room.message.feedback";
@@ -671,6 +674,16 @@ public class Event implements Externalizable {
                 if (null != videoMessage.getUrl()) {
                     urls.add(videoMessage.getUrl());
                 }
+            }
+        } else if (Event.EVENT_TYPE_STICKER.equals(getType())) {
+            StickerMessage stickerMessage = JsonUtils.toStickerMessage(getContent());
+
+            if (null != stickerMessage.getUrl()) {
+                urls.add(stickerMessage.getUrl());
+            }
+
+            if (null != stickerMessage.getThumbnailUrl()) {
+                urls.add(stickerMessage.getThumbnailUrl());
             }
         }
 

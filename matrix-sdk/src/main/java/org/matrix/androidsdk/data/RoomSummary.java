@@ -1,6 +1,7 @@
 /*
  * Copyright 2015 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -163,6 +164,7 @@ public class RoomSummary implements java.io.Serializable {
                     TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_CREATE, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY, type) ||
                     TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE, type) ||
+                    TextUtils.equals(Event.EVENT_TYPE_STICKER, type) ||
                     (event.isCallEvent() && !Event.EVENT_TYPE_CALL_CANDIDATES.equals(type));
 
             if (!isSupported) {
