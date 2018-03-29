@@ -107,8 +107,6 @@ public class EventDisplay {
     public CharSequence getTextualDisplay(Integer displayNameColor) {
         CharSequence text = null;
 
-        Log.e(LOG_TAG, "#getTextualDisplay : " + mEvent.eventId);
-
         try {
             JsonObject jsonEventContent = mEvent.getContentAsJsonObject();
 

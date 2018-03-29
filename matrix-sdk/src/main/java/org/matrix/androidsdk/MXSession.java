@@ -729,7 +729,7 @@ public class MXSession {
             if (null != events) {
                 for (Event event : events) {
                     try {
-                        if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE, event.getType())) {
+                        if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE, event.getType()) || TextUtils.equals(Event.EVENT_TYPE_STICKER, event.getType())) {
                             Message message = JsonUtils.toMessage(event.getContent());
 
                             if (message instanceof MediaMessage) {
@@ -742,16 +742,6 @@ public class MXSession {
                                 if (mediaMessage.isLocalContent()) {
                                     filesToKeep.add(Uri.parse(mediaMessage.getUrl()).getPath());
                                 }
-                            }
-                        } else if (TextUtils.equals(Event.EVENT_TYPE_STICKER, event.getType())) {
-                            StickerMessage stickerMessage = JsonUtils.toStickerMessage(event.getContent());
-
-                            if (stickerMessage.isThumbnailLocalContent()) {
-                                filesToKeep.add(Uri.parse(stickerMessage.getThumbnailUrl()).getPath());
-                            }
-
-                            if (stickerMessage.isLocalContent()) {
-                                filesToKeep.add(Uri.parse(stickerMessage.getUrl()).getPath());
                             }
                         }
                     } catch (Exception e) {

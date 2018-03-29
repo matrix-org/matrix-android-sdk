@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk.rest.model.message;
 
+// It's just an intermediate object to create a StickerMessage from a m.sticker event type.
 public class StickerJsonMessage {
 
     public String body;
