@@ -729,19 +729,23 @@ public class MXSession {
             if (null != events) {
                 for (Event event : events) {
                     try {
-                        if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE, event.getType()) || TextUtils.equals(Event.EVENT_TYPE_STICKER, event.getType())) {
-                            Message message = JsonUtils.toMessage(event.getContent());
+                        Message message = null;
 
-                            if (message instanceof MediaMessage) {
-                                MediaMessage mediaMessage = (MediaMessage) message;
+                        if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE, event.getType())) {
+                            message = JsonUtils.toMessage(event.getContent());
+                        } else if (TextUtils.equals(Event.EVENT_TYPE_STICKER, event.getType())) {
+                            message = JsonUtils.toStickerMessage(event.getContent());
+                        }
 
-                                if (mediaMessage.isThumbnailLocalContent()) {
-                                    filesToKeep.add(Uri.parse(mediaMessage.getThumbnailUrl()).getPath());
-                                }
+                        if (null != message && message instanceof MediaMessage) {
+                            MediaMessage mediaMessage = (MediaMessage) message;
 
-                                if (mediaMessage.isLocalContent()) {
-                                    filesToKeep.add(Uri.parse(mediaMessage.getUrl()).getPath());
-                                }
+                            if (mediaMessage.isThumbnailLocalContent()) {
+                                filesToKeep.add(Uri.parse(mediaMessage.getThumbnailUrl()).getPath());
+                            }
+
+                            if (mediaMessage.isLocalContent()) {
+                                filesToKeep.add(Uri.parse(mediaMessage.getUrl()).getPath());
                             }
                         }
                     } catch (Exception e) {
