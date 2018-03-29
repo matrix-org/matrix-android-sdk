@@ -44,6 +44,7 @@ import org.matrix.androidsdk.rest.model.crypto.RoomKeyContent;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequest;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomTags;
+import org.matrix.androidsdk.rest.model.message.StickerJsonMessage;
 import org.matrix.androidsdk.rest.model.message.StickerMessage;
 import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
 import org.matrix.androidsdk.rest.model.User;
@@ -356,7 +357,10 @@ public class JsonUtils {
      * @return a StickerMessage
      */
     public static StickerMessage toStickerMessage(JsonElement jsonObject) {
-        return (StickerMessage) toClass(jsonObject, StickerMessage.class);
+        StickerJsonMessage stickerJsonMessage = (StickerJsonMessage) toClass(jsonObject, StickerJsonMessage.class);
+        StickerMessage stickerMessage = new StickerMessage(stickerJsonMessage);
+
+        return stickerMessage;
     }
 
     /**

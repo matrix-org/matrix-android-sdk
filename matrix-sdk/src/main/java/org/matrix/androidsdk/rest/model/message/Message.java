@@ -26,6 +26,10 @@ public class Message {
     public static final String MSGTYPE_FILE = "m.file";
     public static final String FORMAT_MATRIX_HTML = "org.matrix.custom.html";
 
+    // Add, in local, a fake message type in order to StickerMessage can inherit Message class
+    // Because sticker isn't a new message type but a new event type without msgtype field
+    public static final String MSGTYPE_STICKER_LOCAL = "org.matrix.android.sdk.sticker";
+
     public String msgtype;
     public String body;
 
