@@ -311,6 +311,19 @@ public class RoomMember implements Externalizable {
         return null;
     }
 
+    /**
+     * Prune the room member data as we would have done with the original state event.
+     */
+    public void prune() {
+        // Redact redactable data
+        displayname = null;
+        avatarUrl = null;
+        reason = null;
+
+        // Note: if we had access to the original event content, we should store
+        // the `redacted_because` of the redaction event in it.
+    }
+
     public RoomMember deepCopy() {
         RoomMember copy = new RoomMember();
         copy.displayname = displayname;

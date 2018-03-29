@@ -745,8 +745,8 @@ public class EventTimeline {
 
                     // the redaction check must not be done during an initial sync
                     // or the redacted event is received with roomSync.timeline.limited
-                    if (checkRedactedStateEvent) {
-                        checkStateEventRedaction(eventToPrune);
+                    if (checkRedactedStateEvent && eventToPrune.stateKey != null) {
+                        checkStateEventRedaction(event);
                     }
 
                     // search the latest displayable event
@@ -776,7 +776,7 @@ public class EventTimeline {
                     // the redaction check must not be done during an initial sync
                     // or the redacted event is received with roomSync.timeline.limited
                     if (checkRedactedStateEvent) {
-                        checkStateEventRedaction(event.getRedacts());
+                        checkStateEventRedaction(event);
                     }
                 }
             }
@@ -1576,143 +1576,122 @@ public class EventTimeline {
     //==============================================================================================================
 
     /**
-     * Redact an event might require to reload the timeline
-     * because the room states has to be been updated.
+     * Redaction of a state event might require to reload the timeline
+     * because the room states has to be updated.
      *
-     * @param event the redacted event
+     * @param redactionEvent the redaction event
      */
-    private void checkStateEventRedaction(final Event event) {
-        if (null != event.stateKey) {
-            Log.d(LOG_TAG, "checkStateEventRedaction from event " + event.eventId);
+    private void checkStateEventRedaction(final Event redactionEvent) {
 
-            // check if the state events is locally known
-            // to avoid triggering a room initial sync
-            mState.getStateEvents(getStore(), null, new SimpleApiCallback<List<Event>>() {
-                @Override
-                public void onSuccess(List<Event> stateEvents) {
-                    boolean isFound = false;
+        final String eventId = redactionEvent.getRedacts();
+        Log.d(LOG_TAG, "checkStateEventRedaction from event " + eventId);
 
-                    // The membership events are not anymore stored in the application store
+        // check if the state events is locally known
+        mState.getStateEvents(getStore(), null, new SimpleApiCallback<List<Event>>() {
+            @Override
+            public void onSuccess(List<Event> stateEvents) {
+
+                // Check whether the current room state depends on this redacted event.
+                boolean isFound = false;
+                for(int index = 0; index < stateEvents.size(); index++) {
+                    Event stateEvent = stateEvents.get(index);
+
+                    if (TextUtils.equals(stateEvent.eventId, eventId)) {
+
+                        // remove expected keys
+                        stateEvent.prune(redactionEvent);
+
+                        stateEvents.set(index, stateEvent);
+
+                        Log.d(LOG_TAG, "checkStateEventRedaction: the current room state has been modified by the event redaction");
+                        initHistory(stateEvents);
+
+                        isFound = true;
+                        break;
+                    }
+                }
+
+                if (!isFound) {
+                    // Else try to find the redacted event among members which
+                    // are stored apart from other state events
+
+                    // Reason: The membership events are not anymore stored in the application store
                     // until we have found a way to improve the way they are stored.
                     // It used to have many out of memory errors because they are too many stored small memory objects.
                     // see https://github.com/matrix-org/matrix-android-sdk/issues/196
 
-                    /*for(int index = 0; index < stateEvents.size(); index++) {
-                        Event stateEvent = stateEvents.get(index);
+                    RoomMember member = mState.getMemberByEventId(event.eventId);
+                    if (member != null)
+                    {
+                        Log.d(LOG_TAG, "checkStateEventRedaction: the current room members list has been modified by the event redaction");
 
-                        if (TextUtils.equals(stateEvent.eventId, event.eventId)) {
-                            stateEvents.set(index, event);
-                            isFound = true;
-                            break;
-                        }
-                    }*/
+                        // the android SDK does not stored stock member events but a representation of them, RoomMember
+                        // prune this representation
+                        member.prune();
+                        mStore.storeLiveStateForRoom(mRoomId);
 
-                    // if the room state can be locally pruned
-                    // and can create a new valid room state
-                    if (isFound) {
-                        initHistory(stateEvents);
-                    } else {
-                        // let the server provides an up to update room state.
-                        // we should apply the pruned event to the latest room state
-                        // because it might concern an older state.
-                        // Else, the current state would be invalid.
-                        // eg with this room history
-                        //
-                        // message_1 : A renames this room to Name1
-                        // message_2 : A renames this room to Name2
-                        // If message_1 is redacted, the room name must not be cleared
-                        // If the messages have been room member name updates,
-                        // the user must keep his latest name but his name must be updated in the history
-                        checkStateEventRedaction(event.eventId);
+                        // warn that there was a flush
+                        initHistory();
+                        mDataHandler.onRoomFlush(mRoomId);
+
+                        isFound = true;
                     }
                 }
-            });
-        }
+
+                if (!isFound) {
+                    Log.d(LOG_TAG, "checkStateEventRedaction: the redacted event is unknown. Fetch it from the homeserver");
+                    checkStateEventRedactionWithHomeserver(eventId);
+                }
+            }
+        });
     }
 
     /**
-     * Redact an event might require to reload the timeline
-     * because the room states has to be been updated.
+     * Check with the HS whether the redacted event impacts the room data we have locally.
+     * If yes, local data must be pruned.
      *
      * @param eventId the redacted event id
      */
-    private void checkStateEventRedaction(String eventId) {
-        Log.d(LOG_TAG, "checkStateEventRedaction from event Id " + eventId);
+    private void checkStateEventRedactionWithHomeserver(String eventId) {
+        Log.d(LOG_TAG, "checkStateEventRedactionWithHomeserver on event Id " + eventId);
+
+        // We need to figure out if this redacted event is a room state in the past.
+        // If yes, we must prune the `prev_content` of the state event that replaced it.
+        // Indeed, redacted information shouldn't spontaneously appear when you backpaginate...
+        // TODO: This is no more implemented (see https://github.com/vector-im/riot-ios/issues/443).
+        // The previous implementation based on a room initial sync was too heavy server side
+        // and has been removed.
 
         if (!TextUtils.isEmpty(eventId)) {
-            Log.d(LOG_TAG, "checkStateEventRedaction : retrieving the event");
+            Log.d(LOG_TAG, "checkStateEventRedactionWithHomeserver : retrieving the event");
 
             mDataHandler.getDataRetriever().getRoomsRestClient().getEvent(mRoomId, eventId, new ApiCallback<Event>() {
                 @Override
                 public void onSuccess(Event event) {
                     if ((null != event) && (null != event.stateKey)) {
-                        Log.d(LOG_TAG, "checkStateEventRedaction : the event is a state event -> get a refreshed roomState");
-                        forceRoomStateServerSync();
+                        Log.d(LOG_TAG, "checkStateEventRedactionWithHomeserver : the redacted event is a state event in the past. TODO: prune prev_content of the new state event");
+
                     } else {
-                        Log.d(LOG_TAG, "checkStateEventRedaction : the event is a not state event -> job is done");
+                        Log.d(LOG_TAG, "checkStateEventRedactionWithHomeserver : the redacted event is a not state event -> job is done");
                     }
                 }
 
                 @Override
                 public void onNetworkError(Exception e) {
-                    Log.e(LOG_TAG, "checkStateEventRedaction :  onNetworkError " + e.getMessage() + "-> get a refreshed roomState");
-                    forceRoomStateServerSync();
+                    Log.e(LOG_TAG, "checkStateEventRedactionWithHomeserver : failed to retrieved the redacted event: onNetworkError " + e.getMessage());
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    Log.e(LOG_TAG, "checkStateEventRedaction :  onMatrixError " + e.getMessage() + "-> get a refreshed roomState");
-                    forceRoomStateServerSync();
-                }
+                    Log.e(LOG_TAG, "checkStateEventRedactionWithHomeserver : failed to retrieved the redacted event: onNetworkError " + e.getMessage());
+               }
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    Log.e(LOG_TAG, "checkStateEventRedaction :  onUnexpectedError " + e.getMessage() + "-> get a refreshed roomState");
-                    forceRoomStateServerSync();
+                    Log.e(LOG_TAG, "checkStateEventRedactionWithHomeserver : failed to retrieved the redacted event: onNetworkError " + e.getMessage());
                 }
             });
         }
-    }
-
-    /**
-     * Get a fresh room state from the server
-     */
-    private void forceRoomStateServerSync() {
-        Log.d(LOG_TAG, "forceRoomStateServerSync starts");
-
-        final RoomState curRoomState = mState;
-
-        mDataHandler.getDataRetriever().getRoomsRestClient().initialSync(mRoomId, new ApiCallback<RoomResponse>() {
-            @Override
-            public void onSuccess(RoomResponse roomResponse) {
-                // test if the room state is still the same
-                // else assume the state has already been updated
-                if (curRoomState == mState) {
-                    Log.d(LOG_TAG, "forceRoomStateServerSync updates the state");
-                    initHistory(roomResponse.state);
-                } else {
-                    Log.d(LOG_TAG, "forceRoomStateServerSync : the room state has been udpated, don't know what to do");
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "forceRoomStateServerSync : onNetworkError " + e.getMessage());
-                mStore.setCorrupted(e.getMessage());
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "forceRoomStateServerSync : onMatrixError " + e.getMessage());
-                mStore.setCorrupted(e.getMessage());
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "forceRoomStateServerSync : onUnexpectedError " + e.getMessage());
-                mStore.setCorrupted(e.getMessage());
-            }
-        });
     }
 
     //==============================================================================================================

@@ -423,6 +423,27 @@ public class RoomState implements Externalizable {
     }
 
     /**
+     * Retrieve a room member from its original event id.
+     *
+     * @param eventId the event id.
+     * @return the linked member it exists.
+     */
+    public RoomMember getMemberByEventId(String eventId) {
+        RoomMember member = null;
+
+        synchronized (this) {
+            for (RoomMember aMember : mMembers.values()) {
+                if (aMember.getOriginalEventId().equals(eventId)) {
+                    member = aMember;
+                    break;
+                }
+            }
+        }
+
+        return member;
+    }
+
+    /**
      * Remove a member defines by its user id.
      *
      * @param userId the user id.
