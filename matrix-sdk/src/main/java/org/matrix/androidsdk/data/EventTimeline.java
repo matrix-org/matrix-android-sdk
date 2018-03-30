@@ -312,34 +312,6 @@ public class EventTimeline {
     }
 
     /**
-     * Init the history with a list of stateEvents
-     *
-     * @param stateEvents the state events
-     */
-    private void initHistory(List<Event> stateEvents) {
-        // clear the states
-        mState = new RoomState();
-        mState.roomId = mRoomId;
-        mState.setDataHandler(mDataHandler);
-
-        if (null != stateEvents) {
-            for (Event event : stateEvents) {
-                try {
-                    processStateEvent(event, Direction.FORWARDS);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "initHistory failed " + e.getMessage());
-                }
-            }
-        }
-
-        mStore.storeLiveStateForRoom(mRoomId);
-        initHistory();
-
-        // warn that there was a flush
-        mDataHandler.onRoomFlush(mRoomId);
-    }
-
-    /**
      * @return The state of the room at the top most recent event of the timeline.
      */
     public RoomState getState() {
