@@ -1604,7 +1604,9 @@ public class EventTimeline {
                         stateEvents.set(index, stateEvent);
 
                         Log.d(LOG_TAG, "checkStateEventRedaction: the current room state has been modified by the event redaction");
-                        initHistory(stateEvents);
+
+                        // digest the updated state
+                        processStateEvent(stateEvent, Direction.FORWARDS);
 
                         isFound = true;
                         break;
@@ -1620,25 +1622,27 @@ public class EventTimeline {
                     // It used to have many out of memory errors because they are too many stored small memory objects.
                     // see https://github.com/matrix-org/matrix-android-sdk/issues/196
 
-                    RoomMember member = mState.getMemberByEventId(event.eventId);
+                    RoomMember member = mState.getMemberByEventId(eventId);
                     if (member != null)
                     {
                         Log.d(LOG_TAG, "checkStateEventRedaction: the current room members list has been modified by the event redaction");
 
-                        // the android SDK does not stored stock member events but a representation of them, RoomMember
-                        // prune this representation
+                        // the android SDK does not store stock member events but a representation of them, RoomMember.
+                        // Prune this representation
                         member.prune();
-                        mStore.storeLiveStateForRoom(mRoomId);
-
-                        // warn that there was a flush
-                        initHistory();
-                        mDataHandler.onRoomFlush(mRoomId);
 
                         isFound = true;
                     }
                 }
 
-                if (!isFound) {
+                if (isFound) {
+                    mStore.storeLiveStateForRoom(mRoomId);
+
+                    // warn that there was a flush
+                    initHistory();
+                    mDataHandler.onRoomFlush(mRoomId);
+                }
+                else {
                     Log.d(LOG_TAG, "checkStateEventRedaction: the redacted event is unknown. Fetch it from the homeserver");
                     checkStateEventRedactionWithHomeserver(eventId);
                 }
