@@ -1,3 +1,9 @@
+Changes to Matrix Android SDK in 0.9.2 (2018-03-30)
+=======================================================
+
+Improvements:
+ * Make state event redaction handling gentler with homeserver (vector-im/riot-android#2117).
+
 Changes to Matrix Android SDK in 0.9.1 (2018-03-14)
 =======================================================
 
