@@ -1584,7 +1584,7 @@ public class EventTimeline {
     private void checkStateEventRedaction(final Event redactionEvent) {
 
         final String eventId = redactionEvent.getRedacts();
-        Log.d(LOG_TAG, "checkStateEventRedaction from event " + eventId);
+        Log.d(LOG_TAG, "checkStateEventRedaction of event " + eventId);
 
         // check if the state events is locally known
         mState.getStateEvents(getStore(), null, new SimpleApiCallback<List<Event>>() {
@@ -1598,12 +1598,12 @@ public class EventTimeline {
 
                     if (TextUtils.equals(stateEvent.eventId, eventId)) {
 
+                        Log.d(LOG_TAG, "checkStateEventRedaction: the current room state has been modified by the event redaction");
+
                         // remove expected keys
                         stateEvent.prune(redactionEvent);
 
                         stateEvents.set(index, stateEvent);
-
-                        Log.d(LOG_TAG, "checkStateEventRedaction: the current room state has been modified by the event redaction");
 
                         // digest the updated state
                         processStateEvent(stateEvent, Direction.FORWARDS);

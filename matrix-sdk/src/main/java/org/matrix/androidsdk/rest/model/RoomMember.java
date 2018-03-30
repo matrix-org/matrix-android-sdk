@@ -312,7 +312,7 @@ public class RoomMember implements Externalizable {
     }
 
     /**
-     * Prune the room member data as we would have done with the original state event.
+     * Prune the room member data as we would have done with its original state event.
      */
     public void prune() {
         // Redact redactable data
