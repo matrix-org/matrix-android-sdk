@@ -1874,11 +1874,17 @@ public class MXSession {
             } else {
                 // remove the current room from the direct chat list rooms
                 if (null != store.getDirectChatRoomsDict()) {
-                    Collection<List<String>> listOfList = store.getDirectChatRoomsDict().values();
+                    List<String> keysList = new ArrayList<>(params.keySet());
 
-                    for (List<String> list : listOfList) {
-                        if (list.contains(roomId)) {
-                            list.remove(roomId);
+                    for (String key : keysList) {
+                        List<String> roomIdsList = params.get(key);
+                        if (roomIdsList.contains(roomId)) {
+                            roomIdsList.remove(roomId);
+
+                            if (roomIdsList.isEmpty()) {
+                                // Remove this entry
+                                params.remove(key);
+                            }
                         }
                     }
                 } else {
@@ -1889,11 +1895,8 @@ public class MXSession {
                 }
             }
 
-            // update the store value
-            // do not wait the server request echo to update the store
-            getDataHandler().getStore().setDirectChatRoomsDict(params);
-
-            mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, params, callback);
+            // Store and upload the updated map
+            getDataHandler().setDirectChatRoomsMap(params, callback);
         }
     }
     /**
