@@ -143,7 +143,7 @@ public class RestClient<T> {
 
                         // Add the access token to all requests if it is set
                         if ((mCredentials != null) && (mCredentials.accessToken != null)) {
-                            request.addEncodedQueryParam(PARAM_ACCESS_TOKEN, mCredentials.accessToken);
+                            request.addHeader("Authorization", "Bearer " + mCredentials.accessToken);
                         }
                     }
                 });
