@@ -764,7 +764,7 @@ public class MXFileStore extends MXMemoryStore {
 
     @Override
     public void setDirectChatRoomsDict(Map<String, List<String>> directChatRoomsDict) {
-        Log.d(LOG_TAG, "## setDirectChatRoomsDict() : " + directChatRoomsDict);
+        Log.d(LOG_TAG, "## setDirectChatRoomsDict()");
         mMetaDataHasChanged = true;
         super.setDirectChatRoomsDict(directChatRoomsDict);
     }
