@@ -800,7 +800,7 @@ public class MXMediasCache {
             return downloadId;
         }
 
-        return null;
+        return downloadId;
     }
 
     /**
