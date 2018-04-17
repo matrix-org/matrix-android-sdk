@@ -64,4 +64,6 @@
     <string name="medium_email">Emailová adresa</string>
     <string name="medium_phone_number">Telefónne číslo</string>
 
-</resources>
+<string name="summary_user_sent_sticker">%1$s poslal nálepku.</string>
+
+    </resources>
