@@ -36,7 +36,7 @@
     <string name="notice_voip_started">Začala VoIP konferencia</string>
     <string name="notice_voip_finished">Skončila VoIP konferencia</string>
 
-    <string name="notice_avatar_changed_too">(bol zmenený aj avatar)</string>
+    <string name="notice_avatar_changed_too">(a tiež obrázok v profile)</string>
     <string name="notice_room_name_removed">%1$s odstránil názov miestnosti</string>
     <string name="notice_room_topic_removed">%1$s odstránil tému miestnosti</string>
     <string name="notice_event_redacted">"zmazaná udalosť %1$s "</string>
