@@ -42,6 +42,7 @@ public class StickerMessage extends ImageMessage {
         copy.info = info;
         copy.url = url;
         copy.body = body;
+        copy.format = format;
 
         if (null != file) {
             copy.file = file.deepCopy();
