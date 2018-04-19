@@ -1,5 +1,6 @@
 /* 
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -192,6 +193,15 @@ public class EventDisplay {
                         ((SpannableStringBuilder) text).setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, userDisplayName.length() + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
                 }
+            } else if (Event.EVENT_TYPE_STICKER.equals(eventType)) {
+
+                // all m.stickers events should support the 'body' key fallback, so use it.
+                text = jsonEventContent.get("body") == null ? null : jsonEventContent.get("body").getAsString();
+
+                if (TextUtils.isEmpty(text)) {
+                    text = mContext.getString(R.string.summary_user_sent_sticker, userDisplayName);
+                }
+
             } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
                 text = mContext.getString(R.string.notice_end_to_end, userDisplayName, mEvent.getWireEventContent().algorithm);
             } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(eventType)) {

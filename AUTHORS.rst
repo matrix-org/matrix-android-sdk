@@ -12,4 +12,6 @@ Matthew Hodgson <matthew at matrix.org>
 
 Mitchell Hentges <mitchhentges at protonmail.com>
  * PR #35, PR #36, etc
-
+ 
+Matthias Kesler <mitchhentges at protonmail.com>
+ * PR #251: Send Access-Token as header instead of query param

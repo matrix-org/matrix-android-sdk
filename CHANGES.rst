@@ -1,3 +1,18 @@
+Changes in 0.9.3 (2018-04-20)
+=======================================================
+
+Improvements:
+ * MXFileStore: Remove the trick with the huge timestamp to mark an undelivered event (vector-im/riot-android#2081).
+ * Handle pending invitations : set the room is ready for invitations.
+ * MXSession: Update correctly the Direct Chats. Map when a room is removed from it.
+ * RestClient: Send Access-Token as header instead of query param, thanks to @krombel (PR #251).
+
+Changes to Matrix Android SDK in 0.9.2 (2018-03-30)
+=======================================================
+
+Improvements:
+ * Make state event redaction handling gentler with homeserver (vector-im/riot-android#2117).
+
 Changes to Matrix Android SDK in 0.9.1 (2018-03-14)
 =======================================================
 

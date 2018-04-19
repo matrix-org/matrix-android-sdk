@@ -1,7 +1,8 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -36,7 +37,6 @@ import org.matrix.androidsdk.rest.model.message.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.message.LocationMessage;
 import org.matrix.androidsdk.rest.model.message.Message;
-import org.matrix.androidsdk.rest.model.crypto.NewDeviceContent;
 import org.matrix.androidsdk.rest.model.crypto.OlmEventContent;
 import org.matrix.androidsdk.rest.model.crypto.OlmPayloadContent;
 import org.matrix.androidsdk.rest.model.PowerLevels;
@@ -44,6 +44,8 @@ import org.matrix.androidsdk.rest.model.crypto.RoomKeyContent;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequest;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomTags;
+import org.matrix.androidsdk.rest.model.message.StickerJsonMessage;
+import org.matrix.androidsdk.rest.model.message.StickerMessage;
 import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.message.VideoMessage;
@@ -345,6 +347,20 @@ public class JsonUtils {
      */
     public static ImageMessage toImageMessage(JsonElement jsonObject) {
         return (ImageMessage) toClass(jsonObject, ImageMessage.class);
+    }
+
+    /**
+     * Convert a JSON object to a StickerMessage.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return a StickerMessage
+     */
+    public static StickerMessage toStickerMessage(JsonElement jsonObject) {
+        StickerJsonMessage stickerJsonMessage = (StickerJsonMessage) toClass(jsonObject, StickerJsonMessage.class);
+        StickerMessage stickerMessage = new StickerMessage(stickerJsonMessage);
+
+        return stickerMessage;
     }
 
     /**

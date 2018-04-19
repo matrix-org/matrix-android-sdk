@@ -2709,6 +2709,27 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
+     * Store and upload the provided direct chat rooms map.
+     *
+     * @param directChatRoomsMap the direct chats map
+     * @param callback           the asynchronous callback
+     */
+    public void setDirectChatRoomsMap(Map<String, List<String>> directChatRoomsMap, ApiCallback<Void> callback) {
+        Log.d(LOG_TAG, "## setDirectChatRoomsMap()");
+        IMXStore store = getStore();
+        if (null != store) {
+            // update the store value
+            // do not wait the server request echo to update the store
+            store.setDirectChatRoomsDict(directChatRoomsMap);
+        } else {
+            Log.e(LOG_TAG, "## setDirectChatRoomsMap() : null store");
+        }
+        mLocalDirectChatRoomIdsList = null;
+        // Upload the new map
+        mAccountDataRestClient.setAccountData(getMyUser().user_id, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, directChatRoomsMap, callback);
+    }
+
+    /**
      * For the value account_data with the rooms list passed in aRoomIdsListToAdd for a given user ID (aParticipantUserId)<br>
      * WARNING: this method must be used with care because it erases the account_data object.
      *
