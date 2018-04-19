@@ -810,8 +810,7 @@ public class MXMediasCache {
      * @return the download ID
      */
     public String downloadIdStickerFromUrl(String url) {
-        String downloadId = downloadableUrl(url, -1, -1);
-        return downloadId;
+        return downloadableUrl(url, -1, -1);
     }
 
     /**
