@@ -5,26 +5,6 @@ import org.junit.runner.RunWith;
 
 import org.robolectric.RobolectricTestRunner;
 
-<<<<<<< HEAD
-=======
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.api.EventsApi;
-import org.matrix.androidsdk.rest.model.PublicRoom;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
-import org.matrix.androidsdk.test.JSONUtils;
-import org.mockito.ArgumentCaptor;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-
-
-import java.util.List;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
 /**
  * Unit tests RestClient.
  */

@@ -24,21 +24,14 @@ import org.matrix.androidsdk.util.MXOsHandler;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
-import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 /**
  * MXRestExecutor is a basic thread executor
  */
-<<<<<<< HEAD:matrix-sdk/src/main/java/org/matrix/androidsdk/rest/client/MXRestExecutor.java
-public class MXRestExecutor implements Executor {
-    private final HandlerThread mHandlerThread;
-    private final MXOsHandler mHandler;
-=======
 public class MXRestExecutorService extends AbstractExecutorService {
     private HandlerThread mHandlerThread;
     private MXOsHandler mHandler;
->>>>>>> Rework MXRestExecutor as MXRestExecutorService:matrix-sdk/src/main/java/org/matrix/androidsdk/rest/client/MXRestExecutorService.java
 
     public MXRestExecutorService() {
         mHandlerThread = new HandlerThread("MXRestExecutor" + this.hashCode(), Thread.MIN_PRIORITY);

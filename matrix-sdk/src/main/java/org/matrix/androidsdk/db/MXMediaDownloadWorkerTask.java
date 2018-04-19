@@ -33,10 +33,7 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 
-<<<<<<< HEAD
-=======
 import android.util.Pair;
->>>>>>> CertUtil: return trust manager with the SSL Socket Factory
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 

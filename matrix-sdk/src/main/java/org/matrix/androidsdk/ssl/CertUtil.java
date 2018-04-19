@@ -138,11 +138,7 @@ public class CertUtil {
      * @param hsConfig the HS config.
      * @return SSLSocket factory
      */
-<<<<<<< HEAD
-    public static SSLSocketFactory newPinnedSSLSocketFactory(HomeServerConnectionConfig hsConfig) {
-=======
-    public static Pair<SSLSocketFactory, X509TrustManager> newPinnedSSLSocketFactory(HomeserverConnectionConfig hsConfig) {
->>>>>>> CertUtil: return trust manager with the SSL Socket Factory
+    public static Pair<SSLSocketFactory, X509TrustManager> newPinnedSSLSocketFactory(HomeServerConnectionConfig hsConfig) {
         try {
             X509TrustManager defaultTrustManager = null;
 

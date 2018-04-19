@@ -23,6 +23,10 @@ import org.matrix.androidsdk.rest.callback.DefaultRetrofit2CallbackWrapper;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class BingRulesRestClient extends RestClient<BingRulesApi> {
 
     /**
@@ -38,30 +42,7 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
      * @param callback the asynchronous callback.
      */
     public void getAllBingRules(final ApiCallback<BingRulesResponse> callback) {
-<<<<<<< HEAD
-<<<<<<< HEAD
-        try {
-            mApi.getAllBingRules(new Callback<BingRulesResponse>() {
-                @Override
-                public void success(BingRulesResponse bingRulesResponse, Response response) {
-                    callback.onSuccess(bingRulesResponse);
-                }
-
-                @Override
-                public void failure(RetrofitError error) {
-                    callback.onUnexpectedError(error);
-                }
-            });
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
-    }
-
-    /**
-     * @return the bing rules list.
-     */
-    public BingRulesResponse getAllBingRules() {
-        return mApi.getAllBingRules();
+        mApi.getAllBingRules().enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
     }
 
     /**
@@ -73,21 +54,7 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
      * @param callback the asynchronous callback.
      */
     public void updateEnableRuleStatus(String Kind, String ruleId, boolean status, final ApiCallback<Void> callback) {
-        try {
-            mApi.updateEnableRuleStatus(Kind, ruleId, status, new Callback<Void>() {
-                @Override
-                public void success(Void voidObject, Response response) {
-                    callback.onSuccess(voidObject);
-                }
-
-                @Override
-                public void failure(RetrofitError error) {
-                    callback.onUnexpectedError(error);
-                }
-            });
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        mApi.updateEnableRuleStatus(Kind, ruleId, status).enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
     }
 
     /**
@@ -99,59 +66,7 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
      * @param callback the asynchronous callback
      */
     public void updateRuleActions(String Kind, String ruleId, Object actions, final ApiCallback<Void> callback) {
-        try {
-            mApi.updateRuleActions(Kind, ruleId, actions, new Callback<Void>() {
-                @Override
-                public void success(Void voidObject, Response response) {
-                    callback.onSuccess(voidObject);
-                }
-
-                @Override
-                public void failure(RetrofitError error) {
-                    callback.onUnexpectedError(error);
-                }
-            });
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
-=======
-        mApi.getAllBingRules().enqueue(new Callback<BingRulesResponse>() {
-            @Override
-            public void onResponse(Call<BingRulesResponse> call, Response<BingRulesResponse> response) {
-                BingRulesResponse bingRulesResponse = response.body();
-                callback.onSuccess(bingRulesResponse);
-            }
-
-            @Override public void onFailure(Call<BingRulesResponse> call, Throwable t) {
-                callback.onUnexpectedError((Exception) t);
-            }
-        });
-    }
-
-    public void updateEnableRuleStatus(String Kind, String ruleId, boolean status, final ApiCallback<Void> callback) {
-        mApi.updateEnableRuleStatus(Kind, ruleId, status).enqueue(new Callback<Void> () {
-            @Override public void onResponse(Call<Void> call, Response<Void> response) {
-                callback.onSuccess(response.body());
-            }
-
-            @Override public void onFailure(Call<Void> call, Throwable t) {
-                callback.onUnexpectedError((Exception) t);
-            }
-        });
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
-=======
-        mApi
-            .getAllBingRules()
-            .enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
-    }
-
-    public void updateEnableRuleStatus(
-        String Kind, String ruleId, boolean status, final ApiCallback<Void> callback
-    ) {
-        mApi
-            .updateEnableRuleStatus(Kind, ruleId, status)
-            .enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
->>>>>>> Handle correctly response from retrofit 2
+        mApi.updateRuleActions(Kind, ruleId, actions).enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
     }
 
     /**
@@ -162,37 +77,7 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
      * @param callback the asynchronous callback
      */
     public void deleteRule(String Kind, String ruleId, final ApiCallback<Void> callback) {
-<<<<<<< HEAD
-<<<<<<< HEAD
-        try {
-            mApi.deleteRule(Kind, ruleId, new Callback<Void>() {
-                @Override
-                public void success(Void voidObject, Response response) {
-                    callback.onSuccess(voidObject);
-                }
-
-                @Override
-                public void failure(RetrofitError error) {
-                    callback.onUnexpectedError(error);
-                }
-            });
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
-=======
-        mApi.deleteRule(Kind, ruleId).enqueue(new Callback<Void>() {
-            @Override public void onResponse(Call<Void> call, Response<Void> response) {
-                callback.onSuccess(response.body());
-            }
-
-            @Override public void onFailure(Call<Void> call, Throwable t) {
-                callback.onUnexpectedError((Exception) t);
-            }
-        });
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
-=======
         mApi.deleteRule(Kind, ruleId).enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
->>>>>>> Handle correctly response from retrofit 2
     }
 
     /**
@@ -202,36 +87,6 @@ public class BingRulesRestClient extends RestClient<BingRulesApi> {
      * @param callback the asynchronous callback
      */
     public void addRule(BingRule rule, final ApiCallback<Void> callback) {
-<<<<<<< HEAD
-<<<<<<< HEAD
-        try {
-            mApi.addRule(rule.kind, rule.ruleId, rule.toJsonElement(), new Callback<Void>() {
-                @Override
-                public void success(Void voidObject, Response response) {
-                    callback.onSuccess(voidObject);
-                }
-
-                @Override
-                public void failure(RetrofitError error) {
-                    callback.onUnexpectedError(error);
-                }
-            });
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
-=======
-        mApi.addRule(rule.kind, rule.ruleId, rule).enqueue(new Callback<Void>() {
-            @Override public void onResponse(Call<Void> call, Response<Void> response) {
-                callback.onSuccess(response.body());
-            }
-
-            @Override public void onFailure(Call<Void> call, Throwable t) {
-                callback.onUnexpectedError((Exception) t);
-            }
-        });
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
-=======
-        mApi.addRule(rule.kind, rule.ruleId, rule).enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
->>>>>>> Handle correctly response from retrofit 2
+        mApi.addRule(rule.kind, rule.ruleId, rule.toJsonElement()).enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
     }
 }

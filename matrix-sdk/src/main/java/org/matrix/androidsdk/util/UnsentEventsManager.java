@@ -1,12 +1,12 @@
-/* 
+/*
  * Copyright 2014 OpenMarket Ltd
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -39,7 +39,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import retrofit2.Response;
-
 
 /**
  * unsent matrix events manager
@@ -255,32 +254,19 @@ public class UnsentEventsManager {
         return mDataHandler.getStore().getContext();
     }
 
-    public MXDataHandler getDataHandler() {
-        return mDataHandler;
-    }
-
     /**
      * The event failed to be sent and cannot be resent.
      * It triggers the error callbacks.
      *
      * @param eventDescription the event description
-<<<<<<< HEAD
-     * @param error            the retrofit error
+     * @param exception        the exception
      * @param callback         the callback.
-=======
-     * @param exception the exception
-     * @param callback the callback.
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
      */
     private static void triggerErrorCallback(MXDataHandler dataHandler, String eventDescription, Response response, Exception exception, ApiCallback callback) {
         if ((null != exception) && !TextUtils.isEmpty(exception.getMessage())) {
             // privacy
             //Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl());
-<<<<<<< HEAD
-            Log.e(LOG_TAG, error.getLocalizedMessage());
-=======
             Log.e(LOG_TAG, exception.getLocalizedMessage());
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
         }
 
         if (null == exception) {
@@ -296,18 +282,13 @@ public class UnsentEventsManager {
                 //Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
                 Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage());
             }
-<<<<<<< HEAD
-        } else if (error.isNetworkError()) {
-=======
-        }
-        else if (exception instanceof IOException) {
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
+        } else if (exception instanceof IOException) {
             try {
                 if (null != eventDescription) {
                     Log.e(LOG_TAG, "Network Error " + eventDescription);
                 }
                 if (null != callback) {
-                    callback.onNetworkError((Exception) exception);
+                    callback.onNetworkError(exception);
                 }
             } catch (Exception e) {
                 // privacy
@@ -318,14 +299,8 @@ public class UnsentEventsManager {
             // Try to convert this into a Matrix error
             MatrixError mxError;
             try {
-<<<<<<< HEAD
-                mxError = (MatrixError) error.getBodyAs(MatrixError.class);
-            } catch (Exception e) {
-=======
                 mxError = JsonUtils.getGson(false).fromJson(response.errorBody().string(), MatrixError.class);
-            }
-            catch (Exception e) {
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
+            } catch (Exception e) {
                 mxError = null;
             }
             if (mxError != null) {
@@ -379,18 +354,12 @@ public class UnsentEventsManager {
      *
      * @param eventDescription             the event description
      * @param ignoreEventTimeLifeInOffline tell if the event timelife is ignored in offline mode
-<<<<<<< HEAD
-     * @param retrofitError                the retrofit error .
+     * @param response                     Retrofit response
+     * @param exception                    Retrofit Exception
      * @param apiCallback                  the apiCallback.
      * @param requestRetryCallBack         requestRetryCallBack.
      */
-    public void onEventSendingFailed(final String eventDescription, final boolean ignoreEventTimeLifeInOffline, final RetrofitError retrofitError, final ApiCallback apiCallback, final RestAdapterCallback.RequestRetryCallBack requestRetryCallBack) {
-=======
-     * @param apiCallback the apiCallback.
-     * @param requestRetryCallBack requestRetryCallBack.
-     */
     public void onEventSendingFailed(final String eventDescription, final boolean ignoreEventTimeLifeInOffline, final Response response, final Exception exception, final ApiCallback apiCallback, final RestAdapterCallback.RequestRetryCallBack requestRetryCallBack) {
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
         boolean isManaged = false;
 
         if (null != eventDescription) {
@@ -419,7 +388,7 @@ public class UnsentEventsManager {
                     if (MatrixError.isConfigurationErrorCode(mxError.errcode)) {
                         Log.e(LOG_TAG, "## onEventSendingFailed() : invalid token detected");
                         mDataHandler.onConfigurationError(mxError.errcode);
-                        triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
+                        triggerErrorCallback(mDataHandler, eventDescription, response, exception, apiCallback);
                         return;
                     }
                 }
@@ -430,13 +399,13 @@ public class UnsentEventsManager {
                     matrixRetryTimeout = mxError.retry_after_ms + 200;
                 }
 
-                if ((null != retrofitError) && retrofitError.isNetworkError()) {
-                    UnrecognizedCertificateException unrecCertEx = CertUtil.getCertificateException(retrofitError);
+                if (null != exception) {
+                    UnrecognizedCertificateException unrecCertEx = CertUtil.getCertificateException(exception);
 
                     if (null != unrecCertEx) {
                         Log.e(LOG_TAG, "## onEventSendingFailed() : SSL issue detected");
                         mDataHandler.onSSLCertificateError(unrecCertEx);
-                        triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
+                        triggerErrorCallback(mDataHandler, eventDescription, response, exception, apiCallback);
                         return;
                     }
                 }
@@ -506,7 +475,7 @@ public class UnsentEventsManager {
                                                 mUnsentEvents.remove(fSnapshot);
                                             }
 
-                                            triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
+                                            triggerErrorCallback(mDataHandler, eventDescription, response, exception, apiCallback);
                                         } catch (Exception e) {
                                             Log.e(LOG_TAG, "## onEventSendingFailed() : failure Msg=" + e.getMessage());
                                         }
@@ -522,25 +491,14 @@ public class UnsentEventsManager {
                                 snapshot.mLifeTimeTimer.cancel();
                             }
 
-<<<<<<< HEAD
                             mUnsentEventsMap.remove(apiCallback);
                             mUnsentEvents.remove(snapshot);
 
                             try {
-                                triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
+                                triggerErrorCallback(mDataHandler, eventDescription, response, exception, apiCallback);
                             } catch (Exception e) {
                                 Log.e(LOG_TAG, "## onEventSendingFailed() : failure Msg=" + e.getMessage());
                             }
-=======
-                                        triggerErrorCallback(mDataHandler, eventDescription, response, exception, apiCallback);
-                                    } catch (Exception e) {
-                                        Log.e(LOG_TAG, "## onEventSendingFailed() : failure Msg=" + e.getMessage());
-                                    }
-                                }
-                            }, MAX_MESSAGE_LIFETIME_MS);
-                        } else if (ignoreEventTimeLifeInOffline) {
-                            Log.d(LOG_TAG, "The request " + eventDescription + " will be sent when a network will be available");
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                         }
 
                         isManaged = true;

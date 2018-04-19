@@ -33,40 +33,6 @@ public class CallRestClient extends RestClient<CallRulesApi> {
     }
 
     public void getTurnServer(final ApiCallback<JsonObject> callback) {
-<<<<<<< HEAD
-<<<<<<< HEAD
-        try {
-            mApi.getTurnServer(new Callback<JsonObject>() {
-                @Override
-                public void success(JsonObject turnServer, Response response) {
-                    callback.onSuccess(turnServer);
-                }
-
-                @Override
-                public void failure(RetrofitError error) {
-                    callback.onUnexpectedError(error);
-                }
-            });
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
-=======
-        mApi.getTurnServer().enqueue(new Callback<JsonObject>() {
-            @Override public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
-                if (response.isSuccessful()) {
-                    callback.onSuccess(response.body());
-                } else {
-                    callback.onUnexpectedError(null);
-                }
-            }
-
-            @Override public void onFailure(Call<JsonObject> call, Throwable t) {
-                callback.onUnexpectedError((Exception) t);
-            }
-        });
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
-=======
         mApi.getTurnServer().enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
->>>>>>> Handle correctly response from retrofit 2
     }
 }

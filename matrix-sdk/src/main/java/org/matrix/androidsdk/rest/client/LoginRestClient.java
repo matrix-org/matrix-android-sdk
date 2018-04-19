@@ -1,13 +1,13 @@
-/* 
+/*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -71,32 +71,19 @@ public class LoginRestClient extends RestClient<LoginApi> {
     public void getSupportedLoginFlows(final ApiCallback<List<LoginFlow>> callback) {
         final String description = "geLoginSupportedFlows";
 
-<<<<<<< HEAD
-        try {
-            mApi.login(new RestAdapterCallback<LoginFlowResponse>(description, mUnsentEventsManager, callback,
-                    new RestAdapterCallback.RequestRetryCallBack() {
-                        @Override
-                        public void onRetry() {
-                            getSupportedLoginFlows(callback);
-                        }
-=======
         mApi.login().enqueue(new RestAdapterCallback<LoginFlowResponse>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
                         getSupportedLoginFlows(callback);
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     }
-            ) {
-                @Override
-                public void success(LoginFlowResponse loginFlowResponse, Response response) {
-                    onEventSent();
-                    callback.onSuccess(loginFlowResponse.flows);
-                }
-            });
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+                }) {
+            @Override
+            public void success(LoginFlowResponse loginFlowResponse, Response response) {
+                onEventSent();
+                callback.onSuccess(loginFlowResponse.flows);
+            }
+        });
     }
 
     /**
@@ -122,33 +109,21 @@ public class LoginRestClient extends RestClient<LoginApi> {
             params.x_show_msisdn = true;
         }
 
-<<<<<<< HEAD
-        try {
-            mApi.register(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
-                    new RestAdapterCallback.RequestRetryCallBack() {
-                        @Override
-                        public void onRetry() {
-                            register(params, callback);
-                        }
-=======
         mApi.register(params).enqueue(new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
                         register(params, callback);
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     }
-            ) {
-                @Override
-                public void success(JsonObject jsonObject, Response response) {
-                    onEventSent();
-                    mCredentials = gson.fromJson(jsonObject, Credentials.class);
-                    callback.onSuccess(mCredentials);
-                }
-            });
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+                }) {
+
+            @Override
+            public void success(JsonObject jsonObject, Response response) {
+                onEventSent();
+                mCredentials = gson.fromJson(jsonObject, Credentials.class);
+                callback.onSuccess(mCredentials);
+            }
+        });
     }
 
     /**
@@ -248,14 +223,9 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param params   custom login params
      * @param callback the asynchronous callback
      */
-<<<<<<< HEAD
     public void login(LoginParams params, final ApiCallback<Credentials> callback) {
         login(params, callback, "login with a " + params.getClass().getSimpleName() + " object");
     }
-=======
-    private void login(final PasswordLoginParams params, final ApiCallback<Credentials> callback, final String description) {
-        mApi.login(params).enqueue(new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
 
     /**
      * Make login request
@@ -265,29 +235,25 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param description the request description
      */
     private void login(final LoginParams params, final ApiCallback<Credentials> callback, final String description) {
-        try {
-            mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
+        mApi.login(params).enqueue(new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
 
-                    new RestAdapterCallback.RequestRetryCallBack() {
-                        @Override
-                        public void onRetry() {
-                            login(params, callback, description);
-                        }
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        login(params, callback, description);
                     }
-
-            ) {
-                @Override
-                public void success(JsonObject jsonObject, Response response) {
-                    onEventSent();
-                    mCredentials = gson.fromJson(jsonObject, Credentials.class);
-                    callback.onSuccess(mCredentials);
                 }
-            });
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+
+        ) {
+            @Override
+            public void success(JsonObject jsonObject, Response<JsonObject> response) {
+                onEventSent();
+                mCredentials = gson.fromJson(jsonObject, Credentials.class);
+                callback.onSuccess(mCredentials);
+            }
+        });
     }
-    
+
     /**
      * Attempt a user/token log in.
      *
@@ -319,37 +285,27 @@ public class LoginRestClient extends RestClient<LoginApi> {
         params.token = token;
         params.txn_id = txn_id;
 
-<<<<<<< HEAD
         if ((null != deviceName) && !TextUtils.isEmpty(deviceName.trim())) {
             params.initial_device_display_name = deviceName.trim();
         } else {
             params.initial_device_display_name = Build.MODEL.trim();
         }
 
-        try {
-            mApi.login(params, new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
-=======
         mApi.login(params).enqueue(new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
-
-                    new RestAdapterCallback.RequestRetryCallBack() {
-                        @Override
-                        public void onRetry() {
-                            loginWithToken(user, token, txn_id, callback);
-                        }
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        loginWithToken(user, token, txn_id, callback);
                     }
-
-            ) {
-                @Override
-                public void success(JsonObject jsonObject, Response response) {
-                    onEventSent();
-                    mCredentials = gson.fromJson(jsonObject, Credentials.class);
-                    callback.onSuccess(mCredentials);
                 }
-            });
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        ) {
+            @Override
+            public void success(JsonObject jsonObject, Response response) {
+                onEventSent();
+                mCredentials = gson.fromJson(jsonObject, Credentials.class);
+                callback.onSuccess(mCredentials);
+            }
+        });
     }
 
     /**
@@ -361,25 +317,13 @@ public class LoginRestClient extends RestClient<LoginApi> {
         // privacy
         final String description = "logout user";
 
-<<<<<<< HEAD
-        try {
-            mApi.logout(new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
-                    new RestAdapterCallback.RequestRetryCallBack() {
-                        @Override
-                        public void onRetry() {
-                            logout(callback);
-                        }
-=======
         mApi.logout().enqueue(new RestAdapterCallback<JsonObject>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
                         logout(callback);
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
                     }
-            ));
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+                }
+        ));
     }
 }

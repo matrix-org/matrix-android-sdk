@@ -33,23 +33,14 @@ public interface LoginApi {
 
     /**
      * Get the different login flows supported by the server.
-<<<<<<< HEAD
-     *
-     * @param callback the asynchronous callback called with the response
-=======
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
      */
     @GET("login")
     Call<LoginFlowResponse> login();
 
     /**
      * Try to create an account
-<<<<<<< HEAD
      *
-     * @param params   the registration params
-     * @param callback the asynchronous callback called with the response
-=======
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
+     * @param params the registration params
      */
     @POST("register")
     Call<JsonObject> register(@Body RegistrationParams params);
@@ -58,21 +49,12 @@ public interface LoginApi {
      * Pass params to the server for the current login phase.
      *
      * @param loginParams the login parameters
-<<<<<<< HEAD
-     * @param callback    the asynchronous callback called with the response
-=======
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
      */
     @POST("login")
     Call<JsonObject> login(@Body LoginParams loginParams);
 
     /**
      * Invalidate the access token, so that it can no longer be used for authorization.
-<<<<<<< HEAD
-     *
-     * @param callback the asynchronous callback called with the response
-=======
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
      */
     @POST("logout")
     Call<JsonObject> logout();

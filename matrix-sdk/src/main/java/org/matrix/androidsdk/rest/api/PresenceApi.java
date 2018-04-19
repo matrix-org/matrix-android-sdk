@@ -17,42 +17,18 @@ package org.matrix.androidsdk.rest.api;
 
 import org.matrix.androidsdk.rest.model.User;
 
-<<<<<<< HEAD
-import retrofit.Callback;
-import retrofit.http.GET;
-import retrofit.http.Path;
-=======
 import retrofit2.Call;
-import retrofit2.http.Body;
 import retrofit2.http.GET;
-import retrofit2.http.PUT;
 import retrofit2.http.Path;
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
 
 /**
  * The presence REST API.
  */
 public interface PresenceApi {
-<<<<<<< HEAD
     /**
      * Get a user's presence state.
      *
-     * @param userId   the user id
-     * @param callback the asynchronous callback called with the response
-=======
-
-    /**
-     * Set this user's presence state.
      * @param userId the user id
-     * @param userPresence a User object with possibly the presence and statusMsg fields
-     */
-    @PUT("presence/{userId}/status")
-    Call<Void> presenceStatus(@Path("userId") String userId, @Body User userPresence);
-
-    /**
-     * Get a user's presence state.
-     * @param userId the user id
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
      */
     @GET("presence/{userId}/status")
     Call<User> presenceStatus(@Path("userId") String userId);

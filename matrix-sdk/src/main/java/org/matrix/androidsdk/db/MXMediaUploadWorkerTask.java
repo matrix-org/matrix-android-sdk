@@ -18,10 +18,7 @@ package org.matrix.androidsdk.db;
 
 import android.os.AsyncTask;
 import android.os.Looper;
-<<<<<<< HEAD
-=======
 import android.util.Pair;
->>>>>>> CertUtil: return trust manager with the SSL Socket Factory
 
 import org.matrix.androidsdk.util.Log;
 

@@ -1,13 +1,13 @@
-/* 
+/*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -44,7 +44,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import retrofit.client.Response;
+import retrofit2.Response;
 
 /**
  * Class used to make requests to the groups API.
@@ -71,23 +71,18 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
     public void createGroup(final CreateGroupParams params, final ApiCallback<String> callback) {
         final String description = "createGroup " + params.localpart;
 
-        try {
-            mApi.createGroup(params, new RestAdapterCallback<CreateGroupResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    createGroup(params, callback);
-                }
+        mApi.createGroup(params).enqueue(new RestAdapterCallback<CreateGroupResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                createGroup(params, callback);
             }
-            ) {
-                @Override
-                public void success(CreateGroupResponse createGroupResponse, Response response) {
-                    onEventSent();
-                    callback.onSuccess(createGroupResponse.group_id);
-                }
-            });
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        }) {
+            @Override
+            public void success(CreateGroupResponse createGroupResponse, Response<CreateGroupResponse> response) {
+                onEventSent();
+                callback.onSuccess(createGroupResponse.group_id);
+            }
+        });
     }
 
     /**
@@ -100,25 +95,20 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
     public void inviteUserInGroup(final String groupId, final String userId, final ApiCallback<String> callback) {
         final String description = "inviteUserInGroup " + groupId + " - " + userId;
 
-        try {
-            GroupInviteUserParams params = new GroupInviteUserParams();
+        GroupInviteUserParams params = new GroupInviteUserParams();
 
-            mApi.inviteUser(groupId, userId, params, new RestAdapterCallback<GroupInviteUserResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    inviteUserInGroup(groupId, userId, callback);
-                }
+        mApi.inviteUser(groupId, userId, params).enqueue(new RestAdapterCallback<GroupInviteUserResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                inviteUserInGroup(groupId, userId, callback);
             }
-            ) {
-                @Override
-                public void success(GroupInviteUserResponse groupInviteUserResponse, Response response) {
-                    onEventSent();
-                    callback.onSuccess(groupInviteUserResponse.state);
-                }
-            });
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        }) {
+            @Override
+            public void success(GroupInviteUserResponse groupInviteUserResponse, Response<GroupInviteUserResponse> response) {
+                onEventSent();
+                callback.onSuccess(groupInviteUserResponse.state);
+            }
+        });
     }
 
     /**
@@ -131,18 +121,14 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
     public void KickUserFromGroup(final String groupId, final String userId, final ApiCallback<Void> callback) {
         final String description = "KickFromGroup " + groupId + " " + userId;
 
-        try {
-            GroupKickUserParams params = new GroupKickUserParams();
+        GroupKickUserParams params = new GroupKickUserParams();
 
-            mApi.kickUser(groupId, userId, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    KickUserFromGroup(groupId, userId, callback);
-                }
-            }));
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        mApi.kickUser(groupId, userId, params).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                KickUserFromGroup(groupId, userId, callback);
+            }
+        }));
     }
 
     /**
@@ -155,18 +141,14 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
     public void addRoomInGroup(final String groupId, final String roomId, final ApiCallback<Void> callback) {
         final String description = "addRoomInGroup " + groupId + " " + roomId;
 
-        try {
-            AddGroupParams params = new AddGroupParams();
+        AddGroupParams params = new AddGroupParams();
 
-            mApi.addRoom(groupId, roomId, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    addRoomInGroup(groupId, roomId, callback);
-                }
-            }));
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        mApi.addRoom(groupId, roomId, params).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                addRoomInGroup(groupId, roomId, callback);
+            }
+        }));
     }
 
     /**
@@ -179,16 +161,12 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
     public void removeRoomFromGroup(final String groupId, final String roomId, final ApiCallback<Void> callback) {
         final String description = "removeRoomFromGroup " + groupId + " " + roomId;
 
-        try {
-            mApi.removeRoom(groupId, roomId, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    removeRoomFromGroup(groupId, roomId, callback);
-                }
-            }));
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        mApi.removeRoom(groupId, roomId).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                removeRoomFromGroup(groupId, roomId, callback);
+            }
+        }));
     }
 
     /**
@@ -201,16 +179,12 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
     public void updateGroupProfile(final String groupId, final GroupProfile profile, final ApiCallback<Void> callback) {
         final String description = "updateGroupProfile " + groupId;
 
-        try {
-            mApi.updateProfile(groupId, profile, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    updateGroupProfile(groupId, profile, callback);
-                }
-            }));
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        mApi.updateProfile(groupId, profile).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                updateGroupProfile(groupId, profile, callback);
+            }
+        }));
     }
 
     /**
@@ -222,16 +196,12 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
     public void getGroupProfile(final String groupId, final ApiCallback<GroupProfile> callback) {
         final String description = "getGroupProfile " + groupId;
 
-        try {
-            mApi.getProfile(groupId, new RestAdapterCallback<GroupProfile>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    getGroupProfile(groupId, callback);
-                }
-            }));
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        mApi.getProfile(groupId).enqueue(new RestAdapterCallback<GroupProfile>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                getGroupProfile(groupId, callback);
+            }
+        }));
     }
 
     /**
@@ -243,16 +213,12 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
     public void getGroupInvitedUsers(final String groupId, final ApiCallback<GroupUsers> callback) {
         final String description = "getGroupInvitedUsers " + groupId;
 
-        try {
-            mApi.getInvitedUsers(groupId, new RestAdapterCallback<GroupUsers>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    getGroupInvitedUsers(groupId, callback);
-                }
-            }));
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        mApi.getInvitedUsers(groupId).enqueue(new RestAdapterCallback<GroupUsers>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                getGroupInvitedUsers(groupId, callback);
+            }
+        }));
     }
 
     /**
@@ -264,16 +230,12 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
     public void getGroupRooms(final String groupId, final ApiCallback<GroupRooms> callback) {
         final String description = "getGroupRooms " + groupId;
 
-        try {
-            mApi.getRooms(groupId, new RestAdapterCallback<GroupRooms>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    getGroupRooms(groupId, callback);
-                }
-            }));
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        mApi.getRooms(groupId).enqueue(new RestAdapterCallback<GroupRooms>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                getGroupRooms(groupId, callback);
+            }
+        }));
     }
 
     /**
@@ -285,16 +247,12 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
     public void getGroupUsers(final String groupId, final ApiCallback<GroupUsers> callback) {
         final String description = "getGroupUsers " + groupId;
 
-        try {
-            mApi.getUsers(groupId, new RestAdapterCallback<GroupUsers>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    getGroupUsers(groupId, callback);
-                }
-            }));
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        mApi.getUsers(groupId).enqueue(new RestAdapterCallback<GroupUsers>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                getGroupUsers(groupId, callback);
+            }
+        }));
     }
 
     /**
@@ -306,16 +264,12 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
     public void getGroupSummary(final String groupId, final ApiCallback<GroupSummary> callback) {
         final String description = "getGroupSummary " + groupId;
 
-        try {
-            mApi.getSummary(groupId, new RestAdapterCallback<GroupSummary>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    getGroupSummary(groupId, callback);
-                }
-            }));
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        mApi.getSummary(groupId).enqueue(new RestAdapterCallback<GroupSummary>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                getGroupSummary(groupId, callback);
+            }
+        }));
     }
 
     /**
@@ -327,18 +281,14 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
     public void joinGroup(final String groupId, final ApiCallback<Void> callback) {
         final String description = "joinGroup " + groupId;
 
-        try {
-            AcceptGroupInvitationParams params = new AcceptGroupInvitationParams();
+        AcceptGroupInvitationParams params = new AcceptGroupInvitationParams();
 
-            mApi.acceptInvitation(groupId, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    joinGroup(groupId, callback);
-                }
-            }));
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        mApi.acceptInvitation(groupId, params).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                joinGroup(groupId, callback);
+            }
+        }));
     }
 
     /**
@@ -350,18 +300,14 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
     public void leaveGroup(final String groupId, final ApiCallback<Void> callback) {
         final String description = "leaveGroup " + groupId;
 
-        try {
-            LeaveGroupParams params = new LeaveGroupParams();
+        LeaveGroupParams params = new LeaveGroupParams();
 
-            mApi.leave(groupId, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    leaveGroup(groupId, callback);
-                }
-            }));
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        mApi.leave(groupId, params).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                leaveGroup(groupId, callback);
+            }
+        }));
     }
 
     /**
@@ -374,19 +320,15 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
     public void updateGroupPublicity(final String groupId, final boolean publicity, final ApiCallback<Void> callback) {
         final String description = "updateGroupPublicity " + groupId + " - " + publicity;
 
-        try {
-            UpdatePubliciseParams params = new UpdatePubliciseParams();
-            params.publicise = publicity;
+        UpdatePubliciseParams params = new UpdatePubliciseParams();
+        params.publicise = publicity;
 
-            mApi.updatePublicity(groupId, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    updateGroupPublicity(groupId, publicity, callback);
-                }
-            }));
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        mApi.updatePublicity(groupId, params).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                updateGroupPublicity(groupId, publicity, callback);
+            }
+        }));
     }
 
     /**
@@ -397,23 +339,18 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
     public void getJoinedGroups(final ApiCallback<List<String>> callback) {
         final String description = "getJoinedGroups";
 
-        try {
-            mApi.getJoinedGroupIds(new RestAdapterCallback<GetGroupsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    getJoinedGroups(callback);
-                }
+        mApi.getJoinedGroupIds().enqueue(new RestAdapterCallback<GetGroupsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                getJoinedGroups(callback);
             }
-            ) {
-                @Override
-                public void success(GetGroupsResponse getRoomsResponse, Response response) {
-                    onEventSent();
-                    callback.onSuccess(getRoomsResponse.groupIds);
-                }
-            });
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        }) {
+            @Override
+            public void success(GetGroupsResponse getGroupsResponse, Response<GetGroupsResponse> response) {
+                onEventSent();
+                callback.onSuccess(getGroupsResponse.groupIds);
+            }
+        });
     }
 
     /**
@@ -455,42 +392,38 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
     public void getPublicisedGroups(final List<String> userIds, final ApiCallback<Map<String, List<String>>> callback) {
         final String description = "getPublicisedGroups " + userIds;
 
-        try {
-            Map<String, List<String>> params = new HashMap<>();
-            params.put("user_ids", userIds);
+        Map<String, List<String>> params = new HashMap<>();
+        params.put("user_ids", userIds);
 
-            mApi.getPublicisedGroups(params, new RestAdapterCallback<GetPublicisedGroupsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    getPublicisedGroups(userIds, callback);
-                }
+        mApi.getPublicisedGroups(params).enqueue(new RestAdapterCallback<GetPublicisedGroupsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                getPublicisedGroups(userIds, callback);
             }
-            ) {
-                @Override
-                public void success(GetPublicisedGroupsResponse getPublicisedGroupsResponse, Response response) {
-                    onEventSent();
+        }
+        ) {
+            @Override
+            public void success(GetPublicisedGroupsResponse getPublicisedGroupsResponse, Response<GetPublicisedGroupsResponse> response) {
+                onEventSent();
 
-                    Map<String, List<String>> map = new HashMap<>();
+                Map<String, List<String>> map = new HashMap<>();
 
-                    for (String userId : userIds) {
-                        List<String> groupIds = null;
+                for (String userId : userIds) {
+                    List<String> groupIds = null;
 
-                        if ((null != getPublicisedGroupsResponse.users) && getPublicisedGroupsResponse.users.containsKey(userId)) {
-                            groupIds = getPublicisedGroupsResponse.users.get(userId);
-                        }
-
-                        if (null == groupIds) {
-                            groupIds = new ArrayList<>();
-                        }
-
-                        map.put(userId, groupIds);
+                    if ((null != getPublicisedGroupsResponse.users) && getPublicisedGroupsResponse.users.containsKey(userId)) {
+                        groupIds = getPublicisedGroupsResponse.users.get(userId);
                     }
 
-                    callback.onSuccess(map);
+                    if (null == groupIds) {
+                        groupIds = new ArrayList<>();
+                    }
+
+                    map.put(userId, groupIds);
                 }
-            });
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+
+                callback.onSuccess(map);
+            }
+        });
     }
 }

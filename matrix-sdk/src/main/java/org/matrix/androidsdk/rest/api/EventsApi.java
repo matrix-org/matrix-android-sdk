@@ -51,11 +51,9 @@ public interface EventsApi {
 
     /**
      * Get the third party server protocols.
-     *
-     * @param callback The asynchronous callback to call when finished
      */
     @GET(RestClient.URI_API_PREFIX_PATH_UNSTABLE + "thirdparty/protocols")
-    void thirdpartyProtocols(Callback<Map<String, ThirdPartyProtocol>> callback);
+    Call<Map<String, ThirdPartyProtocol>> thirdPartyProtocols();
 
     /**
      * Get the list of public rooms.
@@ -64,40 +62,31 @@ public interface EventsApi {
      * @param publicRoomsParams the request params
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "publicRooms")
-    Call<PublicRoomsResponse> publicRooms(@Body PublicRoomsParams publicRoomsParams);
+    Call<PublicRoomsResponse> publicRooms(@Query("server") String server, @Body PublicRoomsParams publicRoomsParams);
 
     /**
      * Perform a search.
      *
      * @param searchParams the search params.
-<<<<<<< HEAD
      * @param nextBatch    the next batch token
-     * @param callback     The search result.
      */
-    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/search")
-    void searchEvents(@Body SearchParams searchParams, @Query("next_batch") String nextBatch, Callback<SearchResponse> callback);
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "search")
+    Call<SearchResponse> searchEvents(@Body SearchParams searchParams, @Query("next_batch") String nextBatch);
 
     /**
      * Perform an users search.
      *
      * @param searchUsersParams the search params.
-     * @param callback          The search result.
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/user_directory/search")
-    void searchUsers(@Body SearchUsersParams searchUsersParams, Callback<SearchUsersRequestResponse> callback);
+    Call<SearchUsersRequestResponse> searchUsers(@Body SearchUsersParams searchUsersParams);
 
     /**
      * Retrieve the preview information of an URL.
      *
      * @param url      the URL
      * @param ts       the ts
-     * @param callback the asynchronous callback
      */
     @GET(RestClient.URI_API_PREFIX_PATH_MEDIA_R0 + "/preview_url")
-    void getURLPreview(@Query("url") String url, @Query("ts") long ts, Callback<Map<String, Object>> callback);
-=======
-     */
-    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "search")
-    Call<SearchResponse> search(@Body SearchParams searchParams, @Query("next_batch") String nextBatch);
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
+    Call<Map<String, Object>> getURLPreview(@Query("url") String url, @Query("ts") long ts);
 }

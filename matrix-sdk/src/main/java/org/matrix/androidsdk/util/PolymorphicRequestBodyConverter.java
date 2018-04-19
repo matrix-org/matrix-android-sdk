@@ -35,8 +35,7 @@ public final class PolymorphicRequestBodyConverter<T> implements Converter<T, Re
         Factory skipPast,
         Annotation[] parameterAnnotations,
         Annotation[] methodsAnnotations,
-        Retrofit retrofit
-    ) {
+        Retrofit retrofit) {
         this.skipPast = skipPast;
         this.parameterAnnotations = parameterAnnotations;
         this.methodsAnnotations = methodsAnnotations;

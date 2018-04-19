@@ -27,16 +27,9 @@ import android.util.Pair;
 import com.facebook.stetho.okhttp3.StethoInterceptor;
 import com.google.gson.Gson;
 
-<<<<<<< HEAD
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
-<<<<<<< HEAD
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
-import org.matrix.androidsdk.rest.client.MXRestExecutor;
-=======
-=======
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
 import org.matrix.androidsdk.rest.client.MXRestExecutorService;
->>>>>>> Rework MXRestExecutor as MXRestExecutorService
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.ssl.CertUtil;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -65,21 +58,9 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class RestClient<T> {
     private static final String LOG_TAG = RestClient.class.getSimpleName();
 
-<<<<<<< HEAD
-    public static final String URI_API_PREFIX_PATH_MEDIA_R0 = "/_matrix/media/r0";
-    public static final String URI_API_PREFIX_PATH_R0 = "/_matrix/client/r0";
-    public static final String URI_API_PREFIX_PATH_UNSTABLE = "/_matrix/client/unstable";
-=======
-    private static final String LOG_TAG = "RestClient";
-
-<<<<<<< HEAD
-    public static final String URI_API_PREFIX_PATH_R0 = "/_matrix/client/r0/";
-    public static final String URI_API_PREFIX_PATH_UNSTABLE = "/_matrix/client/unstable/";
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
-=======
+    public static final String URI_API_PREFIX_PATH_MEDIA_R0 = "_matrix/media/r0/";
     public static final String URI_API_PREFIX_PATH_R0 = "_matrix/client/r0/";
     public static final String URI_API_PREFIX_PATH_UNSTABLE = "_matrix/client/unstable/";
->>>>>>> Fix event API urls and sanitize urls
 
     /**
      * Prefix used in path of identity server API requests.
@@ -133,7 +114,8 @@ public class RestClient<T> {
 
         Interceptor authentInterceptor = new Interceptor() {
 
-            @Override public Response intercept(Chain chain) throws IOException {
+            @Override
+            public Response intercept(Chain chain) throws IOException {
                 Request request = chain.request();
                 Request.Builder newRequestBuilder = request.newBuilder();
                 if (null != sUserAgent) {
@@ -144,9 +126,9 @@ public class RestClient<T> {
                 // Add the access token to all requests if it is set
                 if ((mCredentials != null) && (mCredentials.accessToken != null)) {
                     HttpUrl url = request.url()
-                        .newBuilder()
-                        .addEncodedQueryParameter(PARAM_ACCESS_TOKEN, mCredentials.accessToken)
-                        .build();
+                            .newBuilder()
+                            .addEncodedQueryParameter(PARAM_ACCESS_TOKEN, mCredentials.accessToken)
+                            .build();
                     newRequestBuilder.url(url);
                 }
 
@@ -157,10 +139,11 @@ public class RestClient<T> {
         };
 
         Interceptor connectivityInterceptor = new Interceptor() {
-            @Override public Response intercept(Chain chain) throws IOException {
+            @Override
+            public Response intercept(Chain chain) throws IOException {
                 if (mUnsentEventsManager != null
-                    && mUnsentEventsManager.getNetworkConnectivityReceiver() != null
-                    && !mUnsentEventsManager.getNetworkConnectivityReceiver().isConnected()) {
+                        && mUnsentEventsManager.getNetworkConnectivityReceiver() != null
+                        && !mUnsentEventsManager.getNetworkConnectivityReceiver().isConnected()) {
                     throw new IOException("Not connected");
                 }
                 return chain.proceed(chain.request());
@@ -168,12 +151,12 @@ public class RestClient<T> {
         };
 
         OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient().newBuilder()
-            .connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-            .readTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-            .writeTimeout(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-            .addInterceptor(authentInterceptor)
-            .addInterceptor(connectivityInterceptor)
-            .addNetworkInterceptor(new StethoInterceptor());
+                .connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                .readTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                .writeTimeout(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                .addInterceptor(authentInterceptor)
+                .addInterceptor(connectivityInterceptor)
+                .addNetworkInterceptor(new StethoInterceptor());
 
 
         if (mUseMXExececutor) {
@@ -192,46 +175,22 @@ public class RestClient<T> {
         final String endPoint = makeEndpoint(hsConfig, uriPrefix, useIdentityServer);
 
         // Rest adapter for turning API interfaces into actual REST-calling objects
-<<<<<<< HEAD
-        RestAdapter.Builder builder = new RestAdapter.Builder()
-                .setEndpoint(endPoint)
-                .setConverter(new GsonConverter(gson))
-                .setClient(new OkClient(mOkHttpClient))
-                .setRequestInterceptor(new RequestInterceptor() {
-                    @Override
-                    public void intercept(RequestInterceptor.RequestFacade request) {
-                        if (null != sUserAgent) {
-                            // set a custom user agent
-                            request.addHeader("User-Agent", sUserAgent);
-                        }
-
-                        // Add the access token to all requests if it is set
-                        if ((mCredentials != null) && (mCredentials.accessToken != null)) {
-                            request.addHeader("Authorization", "Bearer " + mCredentials.accessToken);
-                        }
-                    }
-                });
-=======
         Retrofit.Builder builder = new Retrofit.Builder()
                 .baseUrl(endPoint)
                 .addConverterFactory(PolymorphicRequestBodyConverter.FACTORY)
                 .addConverterFactory(GsonConverterFactory.create(gson))
                 .client(mOkHttpClient);
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
 
         Retrofit retrofit = builder.build();
 
         mApi = retrofit.create(type);
     }
 
-    @NonNull private String makeEndpoint(
-        HomeserverConnectionConfig hsConfig,
-        String uriPrefix,
-        boolean useIdentityServer
-    ) {
+    @NonNull
+    private String makeEndpoint(HomeServerConnectionConfig hsConfig, String uriPrefix, boolean useIdentityServer) {
         String baseUrl = useIdentityServer
-            ? hsConfig.getIdentityServerUri().toString()
-            : hsConfig.getHomeserverUri().toString();
+                ? hsConfig.getIdentityServerUri().toString()
+                : hsConfig.getHomeserverUri().toString();
         baseUrl = sanitizeBaseUrl(baseUrl);
         String dynamicPath = sanitizeDynamicPath(uriPrefix);
         return baseUrl + dynamicPath;
@@ -304,20 +263,25 @@ public class RestClient<T> {
      * @param networkConnectivityReceiver the network connectivity receiver
      */
     private void refreshConnectionTimeout(NetworkConnectivityReceiver networkConnectivityReceiver) {
+        OkHttpClient.Builder builder = mOkHttpClient.newBuilder();
+
         if (networkConnectivityReceiver.isConnected()) {
             float factor = networkConnectivityReceiver.getTimeoutScale();
 
-            mOkHttpClient.setConnectTimeout((int) (CONNECTION_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS);
-            mOkHttpClient.setReadTimeout((int) (READ_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS);
-            mOkHttpClient.setWriteTimeout((int) (WRITE_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS);
+            builder
+                    .connectTimeout((int) (CONNECTION_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS)
+                    .readTimeout((int) (READ_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS)
+                    .writeTimeout((int) (WRITE_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS);
 
-            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update setConnectTimeout to " + mOkHttpClient.getConnectTimeout() + " ms");
-            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update setReadTimeout to " + mOkHttpClient.getReadTimeout() + " ms");
-            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update setWriteTimeout to " + mOkHttpClient.getWriteTimeout() + " ms");
+            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update setConnectTimeout to " + (CONNECTION_TIMEOUT_MS * factor) + " ms");
+            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update setReadTimeout to " + (READ_TIMEOUT_MS * factor) + " ms");
+            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update setWriteTimeout to " + (WRITE_TIMEOUT_MS * factor) + " ms");
         } else {
-            mOkHttpClient.setConnectTimeout(1, TimeUnit.MILLISECONDS);
+            builder.connectTimeout(1, TimeUnit.MILLISECONDS);
             Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update the requests timeout to 1 ms");
         }
+
+        mOkHttpClient = builder.build();
     }
 
     /**
@@ -340,8 +304,8 @@ public class RestClient<T> {
             }
         }
 
-        if (timeoutMs != mOkHttpClient.getConnectTimeout()) {
-            mOkHttpClient.setConnectTimeout(timeoutMs, TimeUnit.MILLISECONDS);
+        if (timeoutMs != mOkHttpClient.connectTimeoutMillis()) {
+            mOkHttpClient = mOkHttpClient.newBuilder().connectTimeout(timeoutMs, TimeUnit.MILLISECONDS).build();
         }
     }
 
@@ -352,7 +316,6 @@ public class RestClient<T> {
      */
     public void setUnsentEventsManager(UnsentEventsManager unsentEventsManager) {
         mUnsentEventsManager = unsentEventsManager;
-<<<<<<< HEAD
 
         final NetworkConnectivityReceiver networkConnectivityReceiver = mUnsentEventsManager.getNetworkConnectivityReceiver();
         refreshConnectionTimeout(networkConnectivityReceiver);
@@ -364,8 +327,6 @@ public class RestClient<T> {
                 refreshConnectionTimeout(networkConnectivityReceiver);
             }
         });
-=======
->>>>>>> Migrate API calls from Retrofit 1 to Retrofit 2
     }
 
     /**
