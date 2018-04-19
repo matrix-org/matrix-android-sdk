@@ -24,10 +24,31 @@ public class StickerMessage extends ImageMessage {
     }
 
     public StickerMessage(StickerJsonMessage stickerJsonMessage) {
+        this();
         this.info = stickerJsonMessage.info;
         this.url = stickerJsonMessage.url;
         this.body = stickerJsonMessage.body;
         this.format = stickerJsonMessage.format;
+    }
+
+    /**
+     * Make a deep copy of this StickerMessage.
+     *
+     * @return the copy
+     */
+    public StickerMessage deepCopy() {
+        StickerMessage copy = new StickerMessage();
+        copy.msgtype = msgtype;
+        copy.info = info;
+        copy.url = url;
+        copy.body = body;
+        copy.format = format;
+
+        if (null != file) {
+            copy.file = file.deepCopy();
+        }
+
+        return copy;
     }
 }
 

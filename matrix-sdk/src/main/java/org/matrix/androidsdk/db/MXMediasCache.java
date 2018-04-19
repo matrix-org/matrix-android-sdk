@@ -804,6 +804,16 @@ public class MXMediasCache {
     }
 
     /**
+     * Returns the download ID from the sticker URL.
+     *
+     * @param url the sticker url
+     * @return the download ID
+     */
+    public String downloadIdStickerFromUrl(String url) {
+        return downloadableUrl(url, -1, -1);
+    }
+
+    /**
      * Download a media.
      *
      * @param context        the application context
