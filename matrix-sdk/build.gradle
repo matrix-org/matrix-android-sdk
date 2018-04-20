@@ -17,8 +17,8 @@ android {
         targetSdkVersion 26
         // use version to define a version code.
         versionCode 903
-        version "0.9.3-dev"
-        versionName "0.9.3-dev"
+        version "0.9.3"
+        versionName "0.9.3"
         resValue "string", "flavor_description", "SDKApp"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
      }
