@@ -64,4 +64,6 @@
     <string name="medium_email">E-mail helbidea</string>
     <string name="medium_phone_number">Telefono zenbakia</string>
 
-</resources>
+<string name="summary_user_sent_sticker">%1$s erabiltzaileak eranskailu bat bidali du.</string>
+
+    </resources>
