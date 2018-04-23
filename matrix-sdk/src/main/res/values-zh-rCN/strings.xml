@@ -5,7 +5,7 @@
     <string name="notice_room_invite">%1$s 邀请了 %2$s</string>
     <string name="notice_room_invite_you">%1$s 邀请了你</string>
     <string name="notice_room_join">%1$s 加入了聊天室</string>
-    <string name="notice_room_leave">%1$s 离开了聊天室</string>
+    <string name="notice_room_leave">%1$s 退出了聊天室</string>
     <string name="notice_room_reject">%1$s 拒绝了邀请</string>
     <string name="notice_room_kick">%1$s 将%2$s 移除了</string>
     <string name="notice_room_unban">%1$s 解封了 %2$s</string>
