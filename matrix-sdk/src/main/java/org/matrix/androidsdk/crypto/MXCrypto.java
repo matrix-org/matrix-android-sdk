@@ -1699,6 +1699,18 @@ public class MXCrypto {
                     }
                 };
 
+                request.mIgnore = new Runnable() {
+                    @Override
+                    public void run() {
+                        getEncryptingThreadHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mCryptoStore.deleteIncomingRoomKeyRequest(request);
+                            }
+                        });
+                    }
+                };
+
                 // if the device is is verified already, share the keys
                 MXDeviceInfo device = mCryptoStore.getUserDevice(deviceId, userId);
 

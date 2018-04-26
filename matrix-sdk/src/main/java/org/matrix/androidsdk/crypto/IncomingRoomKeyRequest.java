@@ -54,6 +54,11 @@ public class IncomingRoomKeyRequest implements Serializable {
     public transient Runnable mShare;
 
     /**
+     * The runnable to call to ignore the key share request.
+     */
+    public transient Runnable mIgnore;
+
+    /**
      * Constructor
      *
      * @param event the event
