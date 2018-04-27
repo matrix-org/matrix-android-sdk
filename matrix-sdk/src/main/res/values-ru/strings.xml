@@ -75,4 +75,6 @@
     <string name="medium_email">Адрес электронной почты</string>
     <string name="medium_phone_number">Номер телефона</string>
 
+    <string name="summary_user_sent_sticker">%1$s отправил стикер.</string>
+
     </resources>
