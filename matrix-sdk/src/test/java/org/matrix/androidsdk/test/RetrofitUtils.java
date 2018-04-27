@@ -16,18 +16,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import retrofit.RetrofitError;
-import retrofit.client.Header;
-import retrofit.client.Response;
-import retrofit.converter.Converter;
-import retrofit.converter.GsonConverter;
-import retrofit.mime.TypedInput;
 
 /**
  * Utility class for interacting with Retrofit.
  */
 public class RetrofitUtils {
 
+    /*
     private static final HashMap<Integer, String> sCodeToStatusMsg = new HashMap<>();
 
     static {
@@ -97,4 +92,5 @@ public class RetrofitUtils {
         Converter converter = new GsonConverter(gson);
         return  RetrofitError.httpError(url, response, converter, MatrixError.class);
     }
+    */
 }
