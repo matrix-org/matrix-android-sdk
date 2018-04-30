@@ -16,6 +16,8 @@
 
 package org.matrix.androidsdk.ssl;
 
+import android.util.Pair;
+
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 
@@ -136,7 +138,7 @@ public class CertUtil {
      * @param hsConfig the HS config.
      * @return SSLSocket factory
      */
-    public static SSLSocketFactory newPinnedSSLSocketFactory(HomeServerConnectionConfig hsConfig) {
+    public static Pair<SSLSocketFactory, X509TrustManager> newPinnedSSLSocketFactory(HomeServerConnectionConfig hsConfig) {
         try {
             X509TrustManager defaultTrustManager = null;
 
@@ -180,7 +182,7 @@ public class CertUtil {
             sslContext.init(null, trustPinned, new java.security.SecureRandom());
             SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
 
-            return sslSocketFactory;
+            return new Pair<>(sslSocketFactory, defaultTrustManager);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

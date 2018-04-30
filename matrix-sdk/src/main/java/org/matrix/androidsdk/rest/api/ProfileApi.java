@@ -31,12 +31,13 @@ import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
 
-import retrofit.Callback;
-import retrofit.http.Body;
-import retrofit.http.GET;
-import retrofit.http.POST;
-import retrofit.http.PUT;
-import retrofit.http.Path;
+import retrofit2.Call;
+import retrofit2.http.Body;
+import retrofit2.http.GET;
+import retrofit2.http.POST;
+import retrofit2.http.PUT;
+import retrofit2.http.Path;
+
 
 /**
  * The profile REST API.
@@ -46,135 +47,120 @@ public interface ProfileApi {
     /**
      * Update a user's display name.
      *
-     * @param userId   the user id
-     * @param user     the user object containing the new display name
-     * @param callback the asynchronous callback to call when finished
+     * @param userId the user id
+     * @param user   the user object containing the new display name
      */
-    @PUT(RestClient.URI_API_PREFIX_PATH_R0 + "/profile/{userId}/displayname")
-    void displayname(@Path("userId") String userId, @Body User user, Callback<Void> callback);
+    @PUT(RestClient.URI_API_PREFIX_PATH_R0 + "profile/{userId}/displayname")
+    Call<Void> displayname(@Path("userId") String userId, @Body User user);
 
     /**
      * Get a user's display name.
      *
-     * @param userId   the user id
-     * @param callback the asynchronous callback called with the response
+     * @param userId the user id
      */
-    @GET(RestClient.URI_API_PREFIX_PATH_R0 + "/profile/{userId}/displayname")
-    void displayname(@Path("userId") String userId, Callback<User> callback);
+    @GET(RestClient.URI_API_PREFIX_PATH_R0 + "profile/{userId}/displayname")
+    Call<User> displayname(@Path("userId") String userId);
 
     /**
      * Update a user's avatar URL.
      *
-     * @param userId   the user id
-     * @param user     the user object containing the new avatar url
-     * @param callback the asynchronous callback to call when finished
+     * @param userId the user id
+     * @param user   the user object containing the new avatar url
      */
-    @PUT(RestClient.URI_API_PREFIX_PATH_R0 + "/profile/{userId}/avatar_url")
-    void avatarUrl(@Path("userId") String userId, @Body User user, Callback<Void> callback);
+    @PUT(RestClient.URI_API_PREFIX_PATH_R0 + "profile/{userId}/avatar_url")
+    Call<Void> avatarUrl(@Path("userId") String userId, @Body User user);
 
     /**
      * Get a user's avatar URL.
      *
-     * @param userId   the user id
-     * @param callback the asynchronous callback called with the response
+     * @param userId the user id
      */
-    @GET(RestClient.URI_API_PREFIX_PATH_R0 + "/profile/{userId}/avatar_url")
-    void avatarUrl(@Path("userId") String userId, Callback<User> callback);
+    @GET(RestClient.URI_API_PREFIX_PATH_R0 + "profile/{userId}/avatar_url")
+    Call<User> avatarUrl(@Path("userId") String userId);
 
     /**
      * Update the password
      *
      * @param passwordParams the new password
-     * @param callback       the asynchronous callback to call when finished
      */
-    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/account/password")
-    void updatePassword(@Body ChangePasswordParams passwordParams, Callback<Void> callback);
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "account/password")
+    Call<Void> updatePassword(@Body ChangePasswordParams passwordParams);
 
     /**
      * Reset the password server side.
      *
-     * @param params   the forget password params
-     * @param callback the asynchronous callback to call when finished
+     * @param params the forget password params
      */
-    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/account/password/email/requestToken")
-    void forgetPassword(@Body ForgetPasswordParams params, Callback<ForgetPasswordResponse> callback);
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "account/password/email/requestToken")
+    Call<ForgetPasswordResponse> forgetPassword(@Body ForgetPasswordParams params);
 
     /**
      * Pass params to the server for the token refresh phase.
      *
      * @param refreshParams the refresh token parameters
-     * @param callback      the asynchronous callback called with the response
      */
-    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/tokenrefresh")
-    void tokenrefresh(@Body TokenRefreshParams refreshParams, Callback<TokenRefreshResponse> callback);
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "tokenrefresh")
+    Call<TokenRefreshResponse> tokenrefresh(@Body TokenRefreshParams refreshParams);
 
     /**
      * List all 3PIDs linked to the Matrix user account.
-     *
-     * @param callback the asynchronous callback called with the response
      */
-    @GET(RestClient.URI_API_PREFIX_PATH_R0 + "/account/3pid")
-    void threePIDs(Callback<AccountThreePidsResponse> callback);
+    @GET(RestClient.URI_API_PREFIX_PATH_R0 + "account/3pid")
+    Call<AccountThreePidsResponse> threePIDs();
 
     /**
      * Add an 3Pid to a user
      *
-     * @param params   the params
-     * @param callback the asynchronous callback called with the response
+     * @param params the params
      */
-    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/account/3pid")
-    void add3PID(@Body AddThreePidsParams params, Callback<Void> callback);
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "account/3pid")
+    Call<Void> add3PID(@Body AddThreePidsParams params);
 
     /**
      * Delete a 3Pid of a user
      *
-     * @param params   the params
-     * @param callback the asynchronous callback called with the response
+     * @param params the params
      */
-    @POST(RestClient.URI_API_PREFIX_PATH_UNSTABLE + "/account/3pid/delete")
-    void delete3PID(@Body DeleteThreePidParams params, Callback<Void> callback);
+    @POST(RestClient.URI_API_PREFIX_PATH_UNSTABLE + "account/3pid/delete")
+    Call<Void> delete3PID(@Body DeleteThreePidParams params);
 
     /**
      * Request a validation token for an email
      * Note: Proxies the identity server API validate/email/requestToken, but first checks that
      * the given email address is not already associated with an account on this Home Server.
      *
-     * @param params   the parameters
-     * @param callback the asynchronous callback
+     * @param params the parameters
      */
-    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/account/3pid/email/requestToken")
-    void requestEmailValidation(@Body RequestEmailValidationParams params, Callback<RequestEmailValidationResponse> callback);
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "account/3pid/email/requestToken")
+    Call<RequestEmailValidationResponse> requestEmailValidation(@Body RequestEmailValidationParams params);
 
     /**
      * Request a validation token for an email being added during registration process
      * Note: Proxies the identity server API validate/email/requestToken, but first checks that
      * the given email address is not already associated with an account on this Home Server.
      *
-     * @param params   the parameters
-     * @param callback the asynchronous callback
+     * @param params the parameters
      */
-    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/register/email/requestToken")
-    void requestEmailValidationForRegistration(@Body RequestEmailValidationParams params, Callback<RequestEmailValidationResponse> callback);
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "register/email/requestToken")
+    Call<RequestEmailValidationResponse> requestEmailValidationForRegistration(@Body RequestEmailValidationParams params);
 
     /**
      * Request a validation token for a phone number
      * Note: Proxies the identity server API validate/msisdn/requestToken, but first checks that
      * the given phone number is not already associated with an account on this Home Server.
      *
-     * @param params   the parameters
-     * @param callback the asynchronous callback
+     * @param params the parameters
      */
-    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/account/3pid/msisdn/requestToken")
-    void requestPhoneNumberValidation(@Body RequestPhoneNumberValidationParams params, Callback<RequestPhoneNumberValidationResponse> callback);
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "account/3pid/msisdn/requestToken")
+    Call<RequestPhoneNumberValidationResponse> requestPhoneNumberValidation(@Body RequestPhoneNumberValidationParams params);
 
     /**
      * Request a validation token for a phone number being added during registration process
      * Note: Proxies the identity server API validate/msisdn/requestToken, but first checks that
      * the given phone number is not already associated with an account on this Home Server.
      *
-     * @param params   the parameters
-     * @param callback the asynchronous callback
+     * @param params the parameters
      */
-    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/register/msisdn/requestToken")
-    void requestPhoneNumberValidationForRegistration(@Body RequestPhoneNumberValidationParams params, Callback<RequestPhoneNumberValidationResponse> callback);
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "register/msisdn/requestToken")
+    Call<RequestPhoneNumberValidationResponse> requestPhoneNumberValidationForRegistration(@Body RequestPhoneNumberValidationParams params);
 }

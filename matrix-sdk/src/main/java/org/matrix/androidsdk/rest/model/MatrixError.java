@@ -21,7 +21,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import retrofit.mime.TypedInput;
+import okhttp3.MediaType;
+import okhttp3.ResponseBody;
 
 /**
  * Represents a standard error response.
@@ -64,10 +65,10 @@ public class MatrixError implements java.io.Serializable {
 
     // extracted from the error response
     public Integer mStatus;
-    public String mReason;
-    public TypedInput mErrorBody;
+    public String  mReason;
+    public ResponseBody mErrorBody;
     public String mErrorBodyAsString;
-    public String mErrorBodyMimeType;
+    public MediaType mErrorBodyMimeType;
 
     /**
      * Default creator
