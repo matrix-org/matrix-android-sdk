@@ -34,7 +34,7 @@
     <string name="notice_avatar_changed_too">（头像也被更改）</string>
     <string name="notice_room_name_removed">%1$s 移除了聊天室名称</string>
     <string name="notice_room_topic_removed">%1$s 移除了聊天室主题</string>
-    <string name="notice_event_redacted_reason">" [原因：%1$s]"</string>
+    <string name="notice_event_redacted_reason">" [理由：%1$s]"</string>
     <string name="notice_crypto_unable_to_decrypt">** 无法解密：%s **</string>
     <string name="notice_crypto_error_unkwown_inbound_session_id">发送者的设备没有向我们发送此消息的密钥。</string>
 
@@ -47,7 +47,7 @@
 
     <string name="room_error_join_failed_empty_room">目前无法重新加入一个空的聊天室。</string>
 
-    <string name="encrypted_message">加密消息</string>
+    <string name="encrypted_message">已加密消息</string>
 
     <string name="medium_email">邮箱地址</string>
     <string name="medium_phone_number">电话号码</string>
@@ -60,7 +60,7 @@
     <string name="notice_room_third_party_invite">%1$s 向 %2$s 发送了加入聊天室的邀请</string>
     <string name="notice_room_third_party_registered_invite">%1$s 接受了 %2$s 的邀请</string>
 
-    <string name="could_not_redact">无法删改</string>
+    <string name="could_not_redact">无法撤回</string>
     <string name="matrix_sdk_app_name">Matrix Android SDK</string>
 
     <string name="summary_message">%1$s：%2$s</string>
