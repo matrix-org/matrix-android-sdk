@@ -69,8 +69,6 @@ public class RestClient<T> {
      */
     public static final String URI_API_PREFIX_IDENTITY = "_matrix/identity/api/v1/";
 
-    private static final String PARAM_ACCESS_TOKEN = "access_token";
-
     protected static final int CONNECTION_TIMEOUT_MS = 30000;
     private static final int READ_TIMEOUT_MS = 60000;
     private static final int WRITE_TIMEOUT_MS = 60000;
@@ -127,11 +125,7 @@ public class RestClient<T> {
 
                 // Add the access token to all requests if it is set
                 if ((mCredentials != null) && (mCredentials.accessToken != null)) {
-                    HttpUrl url = request.url()
-                            .newBuilder()
-                            .addEncodedQueryParameter(PARAM_ACCESS_TOKEN, mCredentials.accessToken)
-                            .build();
-                    newRequestBuilder.url(url);
+                    newRequestBuilder.addHeader("Authorization", "Bearer " + mCredentials.accessToken);
                 }
 
                 request = newRequestBuilder.build();
