@@ -1922,16 +1922,16 @@ public class MXSession {
     }
 
     /**
-     * Triggers a request to update the userId to ignore
+     * Triggers a request to update the userIds to ignore
      *
-     * @param userIds  the userIds to ignoer
+     * @param userIds  the userIds to ignore
      * @param callback the callback
      */
     private void updateUsers(ArrayList<String> userIds, ApiCallback<Void> callback) {
         Map<String, Object> ignoredUsersDict = new HashMap<>();
 
         for (String userId : userIds) {
-            ignoredUsersDict.put(userId, new ArrayList<>());
+            ignoredUsersDict.put(userId, new HashMap<>());
         }
 
         Map<String, Object> params = new HashMap<>();
