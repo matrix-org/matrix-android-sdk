@@ -1,13 +1,13 @@
-/* 
+/*
  * Copyright 2016 OpenMarket Ltd
  * Copyright 2018 New Vector Ltd
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -46,6 +46,9 @@ import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
  */
 public class EventDisplay {
     private static final String LOG_TAG = EventDisplay.class.getSimpleName();
+
+    private static final String MESSAGE_IN_REPLY_TO_FIRST_PART = "<blockquote data-mx-reply>";
+    private static final String MESSAGE_IN_REPLY_TO_LAST_PART = "</a>";
 
     // members
     protected final Event mEvent;
@@ -170,10 +173,33 @@ public class EventDisplay {
                     if (Message.FORMAT_MATRIX_HTML.equals(format)) {
                         String htmlBody = jsonEventContent.getAsJsonPrimitive("formatted_body").getAsString();
 
+                        // Special treatment for "In reply to" message
+                        if (jsonEventContent.has("m.relates_to")) {
+                            JsonElement relatesTo = jsonEventContent.get("m.relates_to");
+                            if (relatesTo.isJsonObject()) {
+                                if (relatesTo.getAsJsonObject().has("m.in_reply_to")) {
+                                    // Replace <blockquote data-mx-reply><a href=\"__permalink__\">In reply to</a>
+                                    // By <blockquote data-mx-reply><a href=\"#\">['In reply to' from resources]</a>
+                                    // To disable the link and to localize the "In reply to" string
+                                    if(htmlBody.startsWith(MESSAGE_IN_REPLY_TO_FIRST_PART)) {
+                                        int index = htmlBody.indexOf(MESSAGE_IN_REPLY_TO_LAST_PART);
+
+                                        if(index != -1) {
+                                            htmlBody = MESSAGE_IN_REPLY_TO_FIRST_PART
+                                                    + "<a href=\"#\">"
+                                                    + mContext.getString(R.string.message_reply_to_prefix)
+                                                    + htmlBody.substring(index);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         // some markers are not supported so fallback on an ascii display until to find the right way to manage them
                         // an issue has been created https://github.com/vector-im/vector-android/issues/38
                         if (!TextUtils.isEmpty(htmlBody) && !htmlBody.contains("<ol>") && !htmlBody.contains("<li>")) {
-                            text = Html.fromHtml(jsonEventContent.getAsJsonPrimitive("formatted_body").getAsString());
+                            // TODO This call may be quite long, we should cache its result
+                            text = Html.fromHtml(htmlBody);
                         }
                     }
                 }
@@ -194,7 +220,6 @@ public class EventDisplay {
                     }
                 }
             } else if (Event.EVENT_TYPE_STICKER.equals(eventType)) {
-
                 // all m.stickers events should support the 'body' key fallback, so use it.
                 text = jsonEventContent.get("body") == null ? null : jsonEventContent.get("body").getAsString();
 
