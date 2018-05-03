@@ -165,7 +165,7 @@ public class EventDisplay {
                 String msgtype = (null != jsonEventContent.get("msgtype")) ? jsonEventContent.get("msgtype").getAsString() : "";
 
                 // all m.room.message events should support the 'body' key fallback, so use it.
-                text = jsonEventContent.get("body") == null ? null : jsonEventContent.get("body").getAsString();
+                text = jsonEventContent.has("body") ? jsonEventContent.get("body").getAsString() : null;
 
                 // check for html formatting
                 if (jsonEventContent.has("formatted_body") && jsonEventContent.has("format")) {
@@ -221,7 +221,7 @@ public class EventDisplay {
                 }
             } else if (Event.EVENT_TYPE_STICKER.equals(eventType)) {
                 // all m.stickers events should support the 'body' key fallback, so use it.
-                text = jsonEventContent.get("body") == null ? null : jsonEventContent.get("body").getAsString();
+                text = jsonEventContent.has("body") ? jsonEventContent.get("body").getAsString() : null;
 
                 if (TextUtils.isEmpty(text)) {
                     text = mContext.getString(R.string.summary_user_sent_sticker, userDisplayName);
