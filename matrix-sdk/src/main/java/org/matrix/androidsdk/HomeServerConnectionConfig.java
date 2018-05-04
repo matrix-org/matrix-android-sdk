@@ -173,7 +173,7 @@ public class HomeServerConnectionConfig {
     public String toString() {
         return "HomeserverConnectionConfig{" +
                 "mHsUri=" + mHsUri +
-                "mIdentityServerUri=" + mIdentityServerUri +
+                ", mIdentityServerUri=" + mIdentityServerUri +
                 ", mAllowedFingerprints size=" + mAllowedFingerprints.size() +
                 ", mCredentials=" + mCredentials +
                 ", mPin=" + mPin +
