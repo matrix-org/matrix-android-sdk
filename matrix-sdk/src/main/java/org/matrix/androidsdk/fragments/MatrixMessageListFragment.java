@@ -561,7 +561,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         super.onActivityCreated(savedInstanceState);
 
         Bundle args = getArguments();
-        FragmentManager fm = getActivity().getSupportFragmentManager();
+        FragmentManager fm = getChildFragmentManager();
         mMatrixMessagesFragment = (MatrixMessagesFragment) fm.findFragmentByTag(getMatrixMessagesFragmentTag());
 
         if (mMatrixMessagesFragment == null) {
@@ -573,8 +573,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         } else {
             Log.d(LOG_TAG, "onActivityCreated - reuse");
 
-            // Reset the listener because this is not done when the system restores the fragment (newInstance is not called)
+            // Set the listener because this is not done when the system restores the fragment (newInstance is not called)
             mMatrixMessagesFragment.setMatrixMessagesListener(this);
+
+            // Also set the session
+            mMatrixMessagesFragment.setMXSession(getSession());
         }
 
         mMatrixMessagesFragment.mKeepRoomHistory = (-1 != mFirstVisibleRow);

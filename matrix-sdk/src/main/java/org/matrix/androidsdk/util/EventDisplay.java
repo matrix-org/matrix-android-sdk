@@ -1,13 +1,13 @@
-/* 
+/*
  * Copyright 2016 OpenMarket Ltd
  * Copyright 2018 New Vector Ltd
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,6 +18,7 @@ package org.matrix.androidsdk.util;
 
 import android.content.Context;
 import android.graphics.Typeface;
+import android.support.annotation.Nullable;
 import android.text.Html;
 import android.text.Spannable;
 import android.text.SpannableString;
@@ -34,6 +35,7 @@ import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.interfaces.HtmlToolbox;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.message.Message;
@@ -47,10 +49,17 @@ import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
 public class EventDisplay {
     private static final String LOG_TAG = EventDisplay.class.getSimpleName();
 
+    private static final String MESSAGE_IN_REPLY_TO_FIRST_PART = "<blockquote>";
+    private static final String MESSAGE_IN_REPLY_TO_LAST_PART = "</a>";
+
     // members
     protected final Event mEvent;
     protected final Context mContext;
     protected final RoomState mRoomState;
+
+    @Nullable
+    protected final HtmlToolbox mHtmlToolbox;
+
     protected boolean mPrependAuthor;
 
     // let the application defines if the redacted events must be displayed
@@ -58,9 +67,15 @@ public class EventDisplay {
 
     // constructor
     public EventDisplay(Context context, Event event, RoomState roomState) {
+        this(context, event, roomState, null);
+    }
+
+    // constructor
+    public EventDisplay(Context context, Event event, RoomState roomState, @Nullable HtmlToolbox htmlToolbox) {
         mContext = context.getApplicationContext();
         mEvent = event;
         mRoomState = roomState;
+        mHtmlToolbox = htmlToolbox;
     }
 
     /**
@@ -162,7 +177,7 @@ public class EventDisplay {
                 String msgtype = (null != jsonEventContent.get("msgtype")) ? jsonEventContent.get("msgtype").getAsString() : "";
 
                 // all m.room.message events should support the 'body' key fallback, so use it.
-                text = jsonEventContent.get("body") == null ? null : jsonEventContent.get("body").getAsString();
+                text = jsonEventContent.has("body") ? jsonEventContent.get("body").getAsString() : null;
 
                 // check for html formatting
                 if (jsonEventContent.has("formatted_body") && jsonEventContent.has("format")) {
@@ -170,10 +185,44 @@ public class EventDisplay {
                     if (Message.FORMAT_MATRIX_HTML.equals(format)) {
                         String htmlBody = jsonEventContent.getAsJsonPrimitive("formatted_body").getAsString();
 
+                        if (mHtmlToolbox != null) {
+                            htmlBody = mHtmlToolbox.convert(htmlBody);
+                        }
+
+                        // Special treatment for "In reply to" message
+                        if (jsonEventContent.has("m.relates_to")) {
+                            JsonElement relatesTo = jsonEventContent.get("m.relates_to");
+                            if (relatesTo.isJsonObject()) {
+                                if (relatesTo.getAsJsonObject().has("m.in_reply_to")) {
+                                    // Note: <mx-reply> tag has been removed by HtmlToolbox.convert()
+
+                                    // Replace <blockquote><a href=\"__permalink__\">In reply to</a>
+                                    // By <blockquote><a href=\"#\">['In reply to' from resources]</a>
+                                    // To disable the link and to localize the "In reply to" string
+                                    if (htmlBody.startsWith(MESSAGE_IN_REPLY_TO_FIRST_PART)) {
+                                        int index = htmlBody.indexOf(MESSAGE_IN_REPLY_TO_LAST_PART);
+
+                                        if (index != -1) {
+                                            htmlBody = MESSAGE_IN_REPLY_TO_FIRST_PART
+                                                    + "<a href=\"#\">"
+                                                    + mContext.getString(R.string.message_reply_to_prefix)
+                                                    + htmlBody.substring(index);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         // some markers are not supported so fallback on an ascii display until to find the right way to manage them
                         // an issue has been created https://github.com/vector-im/vector-android/issues/38
-                        if (!TextUtils.isEmpty(htmlBody) && !htmlBody.contains("<ol>") && !htmlBody.contains("<li>")) {
-                            text = Html.fromHtml(jsonEventContent.getAsJsonPrimitive("formatted_body").getAsString());
+                        // BMA re-enable <ol> and <li> support (https://github.com/vector-im/riot-android/issues/2184)
+                        if (!TextUtils.isEmpty(htmlBody)) {
+                            // TODO This call may be quite long, we should cache its result
+                            if(mHtmlToolbox != null) {
+                                text = Html.fromHtml(htmlBody, mHtmlToolbox.getImageGetter(), mHtmlToolbox.getTagHandler(htmlBody));
+                            } else {
+                                text = Html.fromHtml(htmlBody);
+                            }
                         }
                     }
                 }
@@ -194,9 +243,8 @@ public class EventDisplay {
                     }
                 }
             } else if (Event.EVENT_TYPE_STICKER.equals(eventType)) {
-
                 // all m.stickers events should support the 'body' key fallback, so use it.
-                text = jsonEventContent.get("body") == null ? null : jsonEventContent.get("body").getAsString();
+                text = jsonEventContent.has("body") ? jsonEventContent.get("body").getAsString() : null;
 
                 if (TextUtils.isEmpty(text)) {
                     text = mContext.getString(R.string.summary_user_sent_sticker, userDisplayName);

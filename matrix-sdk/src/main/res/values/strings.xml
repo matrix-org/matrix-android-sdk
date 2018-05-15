@@ -50,6 +50,9 @@
     <string name="notice_crypto_unable_to_decrypt">** Unable to decrypt: %s **</string>
     <string name="notice_crypto_error_unkwown_inbound_session_id">The sender\'s device has not sent us the keys for this message.</string>
 
+    <!-- Messages -->
+    <string name="message_reply_to_prefix">In reply to</string>
+
     <!-- Room Screen -->
     <string name="could_not_redact">Could not redact</string>
     <string name="unable_to_send_message">Unable to send message</string>
