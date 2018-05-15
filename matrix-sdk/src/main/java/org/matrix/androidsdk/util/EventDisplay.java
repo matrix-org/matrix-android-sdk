@@ -214,7 +214,7 @@ public class EventDisplay {
                         // some markers are not supported so fallback on an ascii display until to find the right way to manage them
                         // an issue has been created https://github.com/vector-im/vector-android/issues/38
                         // BMA re-enable <ol> and <li> support (https://github.com/vector-im/riot-android/issues/2184)
-                        if (!TextUtils.isEmpty(htmlBody) /*&& !htmlBody.contains("<ol>") && !htmlBody.contains("<li>")*/) {
+                        if (!TextUtils.isEmpty(htmlBody)) {
                             // TODO This call may be quite long, we should cache its result
                             if(mHtmlToolbox != null) {
                                 text = Html.fromHtml(htmlBody, mHtmlToolbox.getImageGetter(), mHtmlToolbox.getTagHandler(htmlBody));
