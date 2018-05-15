@@ -31,6 +31,7 @@ public class AccountDataRestClient extends RestClient<AccountDataApi> {
     public static final String ACCOUNT_DATA_TYPE_IGNORED_USER_LIST = "m.ignored_user_list";
     public static final String ACCOUNT_DATA_TYPE_DIRECT_MESSAGES = "m.direct";
     public static final String ACCOUNT_DATA_TYPE_PREVIEW_URLS = "org.matrix.preview_urls";
+    public static final String ACCOUNT_DATA_TYPE_WIDGETS = "m.widgets";
 
     /**
      * Account data keys

@@ -61,7 +61,6 @@ import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
-import org.matrix.androidsdk.rest.model.message.StickerMessage;
 import org.matrix.androidsdk.rest.model.pid.DeleteDeviceAuth;
 import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.sync.DevicesListResponse;
@@ -1899,6 +1898,7 @@ public class MXSession {
             getDataHandler().setDirectChatRoomsMap(params, callback);
         }
     }
+
     /**
      * Update the account password
      *
@@ -2118,6 +2118,40 @@ public class MXSession {
         });
     }
 
+    public void addUserWidget(final Map<String, Object> params, final ApiCallback<Void> callback) {
+        Log.d(LOG_TAG, "## addUserWidget()");
+
+        mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_WIDGETS, params, new ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void info) {
+                Log.d(LOG_TAG, "## addUserWidget() : succeeds");
+
+                getDataHandler().getStore().setUserWidgets(params);
+                if (null != callback) {
+                    callback.onSuccess(null);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                Log.e(LOG_TAG, "## addUserWidget() : failed " + e.getMessage());
+                callback.onNetworkError(e);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                Log.e(LOG_TAG, "## addUserWidget() : failed " + e.getMessage());
+                callback.onMatrixError(e);
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                Log.e(LOG_TAG, "## addUserWidget() : failed " + e.getMessage());
+                callback.onUnexpectedError(e);
+            }
+        });
+    }
+
     /**
      * Tells if the global URL preview settings is enabled
      *
@@ -2125,6 +2159,10 @@ public class MXSession {
      */
     public boolean isURLPreviewEnabled() {
         return getDataHandler().getStore().isURLPreviewEnabled();
+    }
+
+    public Map<String, Object> getUserWidgets() {
+        return getDataHandler().getStore().getUserWidgets();
     }
 
     //==============================================================================================================
