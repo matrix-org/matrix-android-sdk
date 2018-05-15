@@ -49,7 +49,7 @@ import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
 public class EventDisplay {
     private static final String LOG_TAG = EventDisplay.class.getSimpleName();
 
-    private static final String MESSAGE_IN_REPLY_TO_FIRST_PART = "<blockquote data-mx-reply>";
+    private static final String MESSAGE_IN_REPLY_TO_FIRST_PART = "<blockquote>";
     private static final String MESSAGE_IN_REPLY_TO_LAST_PART = "</a>";
 
     // members
@@ -194,8 +194,10 @@ public class EventDisplay {
                             JsonElement relatesTo = jsonEventContent.get("m.relates_to");
                             if (relatesTo.isJsonObject()) {
                                 if (relatesTo.getAsJsonObject().has("m.in_reply_to")) {
-                                    // Replace <blockquote data-mx-reply><a href=\"__permalink__\">In reply to</a>
-                                    // By <blockquote data-mx-reply><a href=\"#\">['In reply to' from resources]</a>
+                                    // Note: <mx-reply> tag has been removed by HtmlToolbox.convert()
+
+                                    // Replace <blockquote><a href=\"__permalink__\">In reply to</a>
+                                    // By <blockquote><a href=\"#\">['In reply to' from resources]</a>
                                     // To disable the link and to localize the "In reply to" string
                                     if (htmlBody.startsWith(MESSAGE_IN_REPLY_TO_FIRST_PART)) {
                                         int index = htmlBody.indexOf(MESSAGE_IN_REPLY_TO_LAST_PART);
