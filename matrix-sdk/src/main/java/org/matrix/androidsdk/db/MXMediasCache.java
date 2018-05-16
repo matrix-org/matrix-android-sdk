@@ -310,7 +310,8 @@ public class MXMediasCache {
                 return mContentManager.getDownloadableUrl(url);
             }
         } else {
-            return url;
+            // do not allow non-mxc content URLs: we should not be making requests out to whatever http urls people send us
+            return null;
         }
     }
 
@@ -357,7 +358,17 @@ public class MXMediasCache {
             return null;
         }
 
-        String filename = (url.startsWith("file:")) ? url : MXMediaDownloadWorkerTask.buildFileName(downloadableUrl(url, width, height), mimeType);
+        String filename;
+        if (url.startsWith("file:")) {
+            filename = url;
+        } else {
+            String downloadableUrl = downloadableUrl(url, width, height);
+            if (null != downloadableUrl) {
+                filename = MXMediaDownloadWorkerTask.buildFileName(downloadableUrl, mimeType);
+            } else {
+                return null;
+            }
+        }
 
         try {
             // already a local file
@@ -1004,6 +1015,15 @@ public class MXMediasCache {
             downloadableUrl = downloadableUrl(url, width, height);
         } else {
             downloadableUrl = downloadableUrl(url, -1, -1);
+        }
+
+        // Check whether the url is valid
+        if (null == downloadableUrl) {
+            // Nothing to do
+            if (null != imageView) {
+                imageView.setImageBitmap(defaultBitmap);
+            }
+            return null;
         }
 
         // the thumbnail params are ignored when encrypted
