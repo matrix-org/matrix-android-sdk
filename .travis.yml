@@ -1,4 +1,4 @@
-# FTR: Configuration on https://travis-ci.com/TODO/settings
+# FTR: Configuration on https://travis-ci.org/matrix-org/matrix-android-sdk/settings
 #
 # - Build only if .travis.yml is present -> On
 # - Limit concurrent jobs                -> Off
