@@ -2118,6 +2118,12 @@ public class MXSession {
         });
     }
 
+    /**
+     * Add user widget to the user Account Data
+     *
+     * @param params
+     * @param callback
+     */
     public void addUserWidget(final Map<String, Object> params, final ApiCallback<Void> callback) {
         Log.d(LOG_TAG, "## addUserWidget()");
 
@@ -2161,6 +2167,11 @@ public class MXSession {
         return getDataHandler().getStore().isURLPreviewEnabled();
     }
 
+    /**
+     * Get user widget from user AccountData
+     *
+     * @return
+     */
     public Map<String, Object> getUserWidgets() {
         return getDataHandler().getStore().getUserWidgets();
     }
