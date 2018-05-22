@@ -297,7 +297,7 @@ public class MXMediasCache {
     /**
      * Resolve a Matrix media content URI (in the form of "mxc://...") into an HTTP URL.
      *
-     * @param url    the matrix url, must not be null.
+     * @param url    the matrix url.
      * @param width  the expected image width
      * @param height the expected image height
      * @return the URL to access the described resource, or null if the url is invalid.

@@ -93,10 +93,7 @@ public class ContentManager {
      * @return true if contentUrl is valid.
      */
     public boolean isValidMatrixContentUrl(String contentUrl) {
-        if (null != contentUrl && contentUrl.startsWith(MATRIX_CONTENT_URI_SCHEME)) {
-            return true;
-        }
-        return false;
+        return (null != contentUrl && contentUrl.startsWith(MATRIX_CONTENT_URI_SCHEME));
     }
 
     /**
