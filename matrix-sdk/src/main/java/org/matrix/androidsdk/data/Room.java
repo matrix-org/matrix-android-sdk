@@ -3038,17 +3038,16 @@ public class Room {
     }
 
     /**
-     * Send an arbitrary event.
+     * Send a sticker message.
      *
      * @param event
-     * @param msgType
      * @param listener
      */
-    public void sendEvent(Event event, String msgType, final RoomMediaMessage.EventCreationListener listener) {
+    public void sendStickerMessage(Event event, final RoomMediaMessage.EventCreationListener listener) {
         initRoomMediaMessagesSender();
 
         RoomMediaMessage roomMediaMessage = new RoomMediaMessage(event);
-        roomMediaMessage.setMessageType(msgType);
+        roomMediaMessage.setMessageType(Event.EVENT_TYPE_STICKER);
         roomMediaMessage.setEventCreationListener(listener);
 
         mRoomMediaMessagesSender.send(roomMediaMessage);

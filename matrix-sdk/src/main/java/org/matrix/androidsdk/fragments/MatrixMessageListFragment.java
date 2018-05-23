@@ -1079,13 +1079,12 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
-     * Send an arbitrary event to the room
+     * Send a sticker message to the room
      *
      * @param event
-     * @param msgType
      */
-    public void sendEvent(Event event, String msgType) {
-        mRoom.sendEvent(event, msgType, mEventCreationListener);
+    public void sendStickerMessage(Event event) {
+        mRoom.sendStickerMessage(event, mEventCreationListener);
     }
 
     /**
