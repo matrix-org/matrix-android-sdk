@@ -19,6 +19,7 @@ package org.matrix.androidsdk.data.store;
 import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,7 @@ public class MXFileStoreMetaData implements java.io.Serializable {
     public List<String> mIgnoredUsers = new ArrayList<>();
     public Map<String, List<String>> mDirectChatRoomsMap = null;
     public boolean mIsUrlPreviewEnabled = false;
+    public Map<String, Object> mUserWidgets = new HashMap<>();
     public Set<String> mRoomsListWithoutURLPrevew = new HashSet<>();
 
     // crypto
@@ -71,6 +73,7 @@ public class MXFileStoreMetaData implements java.io.Serializable {
         copy.mEndToEndDeviceAnnounced = mEndToEndDeviceAnnounced;
 
         copy.mIsUrlPreviewEnabled = mIsUrlPreviewEnabled;
+        copy.mUserWidgets = mUserWidgets;
         copy.mRoomsListWithoutURLPrevew = mRoomsListWithoutURLPrevew;
 
         return copy;
