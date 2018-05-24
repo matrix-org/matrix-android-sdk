@@ -1023,7 +1023,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 @Override
                 public void onMatrixError(final MatrixError e) {
-                    // do not display toast if the sending failed because of unknown deviced (e2e issue)
+                    // do not display toast if the sending failed because of unknown device (e2e issue)
                     if (event.mSentState == Event.SentState.FAILED_UNKNOWN_DEVICES) {
                         getUiHandler().post(new Runnable() {
                             @Override
