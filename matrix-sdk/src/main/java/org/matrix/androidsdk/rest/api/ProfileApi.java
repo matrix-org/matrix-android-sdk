@@ -1,6 +1,7 @@
 /*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +18,7 @@
 package org.matrix.androidsdk.rest.api;
 
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.rest.model.DeactivateAccountParams;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationParams;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
 import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationParams;
@@ -93,6 +95,14 @@ public interface ProfileApi {
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "account/password/email/requestToken")
     Call<ForgetPasswordResponse> forgetPassword(@Body ForgetPasswordParams params);
+
+    /**
+     * Deactivate the user account
+     *
+     * @param params the deactivate account params
+     */
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "account/deactivate")
+    Call<Void> deactivate(@Body DeactivateAccountParams params);
 
     /**
      * Pass params to the server for the token refresh phase.
