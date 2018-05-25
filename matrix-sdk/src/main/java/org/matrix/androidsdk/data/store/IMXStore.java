@@ -593,6 +593,16 @@ public interface IMXStore {
     void setRoomsWithoutURLPreview(Set<String> roomIds);
 
     /**
+     * Set the user widgets
+     */
+    void setUserWidgets(Map<String, Object> contentDict);
+
+    /**
+     * Get the user widgets
+     */
+    Map<String, Object> getUserWidgets();
+
+    /**
      * @return the room ids list which don't have URL preview enabled
      */
     Set<String> getRoomsWithoutURLPreviews();

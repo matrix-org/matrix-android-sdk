@@ -32,6 +32,7 @@ import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.client.MXRestExecutorService;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.ssl.CertUtil;
+import org.matrix.androidsdk.util.FormattedJsonHttpLogger;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.PolymorphicRequestBodyConverter;
@@ -49,6 +50,7 @@ import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
@@ -66,8 +68,6 @@ public class RestClient<T> {
      * Prefix used in path of identity server API requests.
      */
     public static final String URI_API_PREFIX_IDENTITY = "_matrix/identity/api/v1/";
-
-    private static final String PARAM_ACCESS_TOKEN = "access_token";
 
     protected static final int CONNECTION_TIMEOUT_MS = 30000;
     private static final int READ_TIMEOUT_MS = 60000;
@@ -125,11 +125,7 @@ public class RestClient<T> {
 
                 // Add the access token to all requests if it is set
                 if ((mCredentials != null) && (mCredentials.accessToken != null)) {
-                    HttpUrl url = request.url()
-                            .newBuilder()
-                            .addEncodedQueryParameter(PARAM_ACCESS_TOKEN, mCredentials.accessToken)
-                            .build();
-                    newRequestBuilder.url(url);
+                    newRequestBuilder.addHeader("Authorization", "Bearer " + mCredentials.accessToken);
                 }
 
                 request = newRequestBuilder.build();
@@ -150,12 +146,16 @@ public class RestClient<T> {
             }
         };
 
+        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(new FormattedJsonHttpLogger());
+        loggingInterceptor.setLevel(BuildConfig.OKHTTP_LOGGING_LEVEL);
+
         OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient().newBuilder()
                 .connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .readTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .writeTimeout(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .addInterceptor(authentInterceptor)
                 .addInterceptor(connectivityInterceptor)
+                .addInterceptor(loggingInterceptor)
                 .addNetworkInterceptor(new StethoInterceptor());
 
 

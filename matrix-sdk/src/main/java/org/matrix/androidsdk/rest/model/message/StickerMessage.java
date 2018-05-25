@@ -38,7 +38,6 @@ public class StickerMessage extends ImageMessage {
      */
     public StickerMessage deepCopy() {
         StickerMessage copy = new StickerMessage();
-        copy.msgtype = msgtype;
         copy.info = info;
         copy.url = url;
         copy.body = body;

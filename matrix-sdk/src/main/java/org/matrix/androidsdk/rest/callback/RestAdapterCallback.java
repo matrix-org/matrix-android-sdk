@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,6 +49,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
     private final String mEventDescription;
 
     // the callback
+    // FIXME It should be safer if the type was ApiCallback<T>, else onSuccess() has to be overridden
     private final ApiCallback mApiCallback;
 
     // the retry callback
@@ -159,7 +161,8 @@ public class RestAdapterCallback<T> implements Callback<T> {
                 try {
                     mApiCallback.onSuccess(t);
                 } catch (Exception e) {
-                    Log.d(LOG_TAG, "## succeed() : onSuccess failed" + e.getMessage());
+                    Log.e(LOG_TAG, "## succeed() : onSuccess failed " + e.getMessage());
+                    mApiCallback.onUnexpectedError(e);
                 }
             }
         } catch (Exception e) {

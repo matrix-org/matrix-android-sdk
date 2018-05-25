@@ -25,6 +25,7 @@ import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
@@ -294,23 +295,20 @@ public class MXMediasCache {
     }
 
     /**
-     * Convert matrix url into http one.
+     * Resolve a Matrix media content URI (in the form of "mxc://...") into an HTTP URL.
      *
-     * @param url    the matrix url
+     * @param url    the matrix url.
      * @param width  the expected image width
      * @param height the expected image height
-     * @return the URL to access the described resource.
+     * @return the URL to access the described resource, or null if the url is invalid.
      */
+    @Nullable
     private String downloadableUrl(String url, int width, int height) {
-        // check if the Url is a matrix one
-        if ((null != url) && url.startsWith(ContentManager.MATRIX_CONTENT_URI_SCHEME)) {
-            if ((width > 0) && (height > 0)) {
-                return mContentManager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_SCALE);
-            } else {
-                return mContentManager.getDownloadableUrl(url);
-            }
+        // Let the content manager check if the Url is a matrix one
+        if ((width > 0) && (height > 0)) {
+            return mContentManager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_SCALE);
         } else {
-            return url;
+            return mContentManager.getDownloadableUrl(url);
         }
     }
 
@@ -321,22 +319,23 @@ public class MXMediasCache {
      * @param size the thumbnail size.
      * @return the File if it exits.
      */
+    @Nullable
     public File thumbnailCacheFile(String url, int size) {
-        // sanity check
-        if (null == url) {
-            return null;
-        }
+        // Check and resolve the provided URL
+        String downloadableUrl = downloadableUrl(url, size, size);
 
-        String filename = MXMediaDownloadWorkerTask.buildFileName(downloadableUrl(url, size, size), "image/jpeg");
+        if (null != downloadableUrl) {
+            String filename = MXMediaDownloadWorkerTask.buildFileName(downloadableUrl, "image/jpeg");
 
-        try {
-            File file = new File(getThumbnailsFolderFile(), filename);
+            try {
+                File file = new File(getThumbnailsFolderFile(), filename);
 
-            if (file.exists()) {
-                return file;
+                if (file.exists()) {
+                    return file;
+                }
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "thumbnailCacheFile failed " + e.getMessage());
             }
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "thumbnailCacheFile failed " + e.getMessage());
         }
 
         return null;
@@ -351,13 +350,24 @@ public class MXMediasCache {
      * @param mimeType the media mime type
      * @return the media file it is found
      */
+    @Nullable
     private File mediaCacheFile(String url, int width, int height, String mimeType) {
         // sanity check
         if (null == url) {
             return null;
         }
 
-        String filename = (url.startsWith("file:")) ? url : MXMediaDownloadWorkerTask.buildFileName(downloadableUrl(url, width, height), mimeType);
+        String filename;
+        if (url.startsWith("file:")) {
+            filename = url;
+        } else {
+            String downloadableUrl = downloadableUrl(url, width, height);
+            if (null != downloadableUrl) {
+                filename = MXMediaDownloadWorkerTask.buildFileName(downloadableUrl, mimeType);
+            } else {
+                return null;
+            }
+        }
 
         try {
             // already a local file
@@ -624,42 +634,46 @@ public class MXMediasCache {
      * @param keepSource keep the source file
      */
     public void saveFileMediaForUrl(String mediaUrl, String fileUrl, int width, int height, String mimeType, boolean keepSource) {
+        // Check and resolve the provided URL
         String downloadableUrl = downloadableUrl(mediaUrl, width, height);
-        String filename = MXMediaDownloadWorkerTask.buildFileName(downloadableUrl, mimeType);
 
-        try {
-            // delete the current content
-            File destFile = new File(getFolderFile(mimeType), filename);
+        if (null != downloadableUrl) {
+            String filename = MXMediaDownloadWorkerTask.buildFileName(downloadableUrl, mimeType);
 
-            if (destFile.exists()) {
-                try {
-                    destFile.delete();
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "saveFileMediaForUrl delete failed " + e.getMessage());
+            try {
+                // delete the current content
+                File destFile = new File(getFolderFile(mimeType), filename);
+
+                if (destFile.exists()) {
+                    try {
+                        destFile.delete();
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "saveFileMediaForUrl delete failed " + e.getMessage());
+                    }
                 }
-            }
 
-            Uri uri = Uri.parse(fileUrl);
-            File srcFile = new File(uri.getPath());
+                Uri uri = Uri.parse(fileUrl);
+                File srcFile = new File(uri.getPath());
 
-            if (keepSource) {
-                InputStream in = new FileInputStream(srcFile);
-                OutputStream out = new FileOutputStream(destFile);
+                if (keepSource) {
+                    InputStream in = new FileInputStream(srcFile);
+                    OutputStream out = new FileOutputStream(destFile);
 
-                // Transfer bytes from in to out
-                byte[] buf = new byte[1024];
-                int len;
-                while ((len = in.read(buf)) > 0) {
-                    out.write(buf, 0, len);
+                    // Transfer bytes from in to out
+                    byte[] buf = new byte[1024];
+                    int len;
+                    while ((len = in.read(buf)) > 0) {
+                        out.write(buf, 0, len);
+                    }
+                    in.close();
+                    out.close();
+                } else {
+                    srcFile.renameTo(destFile);
                 }
-                in.close();
-                out.close();
-            } else {
-                srcFile.renameTo(destFile);
-            }
 
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "saveFileMediaForUrl failed " + e.getMessage());
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "saveFileMediaForUrl failed " + e.getMessage());
+            }
         }
     }
 
@@ -702,9 +716,10 @@ public class MXMediasCache {
     public boolean isAvatarThumbnailCached(String url, int side) {
         boolean isCached = false;
 
-        if (null != url) {
-            String thumbnailUrl = downloadableUrl(url, side, side);
+        // Check and resolve the provided URL
+        String thumbnailUrl = downloadableUrl(url, side, side);
 
+        if (null != thumbnailUrl) {
             isCached = MXMediaDownloadWorkerTask.isUrlCached(thumbnailUrl);
 
             if (!isCached) {
@@ -793,24 +808,16 @@ public class MXMediasCache {
      * @param url the media url
      * @return the download ID if there is a pending download or null
      */
+    @Nullable
     public String downloadIdFromUrl(String url) {
+        // Check and resolve the provided URL, the resulting URL is used as download identifier.
         String downloadId = downloadableUrl(url, -1, -1);
 
-        if (null != MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadId)) {
+        if (null != downloadId && null != MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadId)) {
             return downloadId;
         }
 
         return null;
-    }
-
-    /**
-     * Returns the download ID from the sticker URL.
-     *
-     * @param url the sticker url
-     * @return the download ID
-     */
-    public String downloadIdStickerFromUrl(String url) {
-        return downloadableUrl(url, -1, -1);
     }
 
     /**
@@ -840,16 +847,17 @@ public class MXMediasCache {
      */
     public String downloadMedia(Context context, HomeServerConnectionConfig hsConfig, String url, String mimeType, EncryptedFileInfo encryptionInfo, IMXMediaDownloadListener listener) {
         // sanity checks
-        if ((null == mimeType) || (null == url) || (null == context)) {
+        if ((null == mimeType) || (null == context)) {
             return null;
         }
 
-        // is the media already downloaded ?
-        if (isMediaCached(url, mimeType)) {
-            return null;
-        }
-
+        // Check and resolve the provided URL
         String downloadableUrl = downloadableUrl(url, -1, -1);
+
+        // Return if the media url is not valid, or if the media is already downloaded.
+        if (null == downloadableUrl || isMediaCached(url, mimeType)) {
+            return null;
+        }
 
         // download it in background
         MXMediaDownloadWorkerTask task = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadableUrl);
@@ -983,11 +991,7 @@ public class MXMediasCache {
      * @return a download identifier if the image is not cached
      */
     public String loadBitmap(Context context, HomeServerConnectionConfig hsConfig, final ImageView imageView, String url, int width, int height, int rotationAngle, int orientation, String mimeType, File folderFile, Bitmap aDefaultBitmap, EncryptedFileInfo encryptionInfo) {
-        if (null == url) {
-            return null;
-        }
-
-        // request invalid bitmap size
+        // Check invalid bitmap size
         if ((0 == width) || (0 == height)) {
             return null;
         }
@@ -999,11 +1003,21 @@ public class MXMediasCache {
         final Bitmap defaultBitmap = (null == aDefaultBitmap) ? mDefaultBitmap : aDefaultBitmap;
         String downloadableUrl;
 
-        // it is not possible to resize an encrypted image
+        // Check and resolve the provided URL.
+        // Note: it is not possible to resize an encrypted image.
         if (null == encryptionInfo) {
             downloadableUrl = downloadableUrl(url, width, height);
         } else {
             downloadableUrl = downloadableUrl(url, -1, -1);
+        }
+
+        // Check whether the url is valid
+        if (null == downloadableUrl) {
+            // Nothing to do
+            if (null != imageView) {
+                imageView.setImageBitmap(defaultBitmap);
+            }
+            return null;
         }
 
         // the thumbnail params are ignored when encrypted

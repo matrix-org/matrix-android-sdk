@@ -67,6 +67,9 @@ android {
             resValue "string", "git_sdk_revision_unix_date", "\"${gitRevisionUnixDate()}\""
             resValue "string", "git_sdk_revision_date", "\"${gitRevisionDate()}\""
 
+            // Set to BODY instead of NONE to enable logging
+            buildConfigField "okhttp3.logging.HttpLoggingInterceptor.Level", "OKHTTP_LOGGING_LEVEL", "okhttp3.logging.HttpLoggingInterceptor.Level.NONE"
+
             minifyEnabled false
         }
 
@@ -74,6 +77,8 @@ android {
             resValue "string", "git_sdk_revision", "\"${gitRevision()}\""
             resValue "string", "git_sdk_revision_unix_date", "\"${gitRevisionUnixDate()}\""
             resValue "string", "git_sdk_revision_date", "\"${gitRevisionDate()}\""
+
+            buildConfigField "okhttp3.logging.HttpLoggingInterceptor.Level", "OKHTTP_LOGGING_LEVEL", "okhttp3.logging.HttpLoggingInterceptor.Level.NONE"
 
             libraryVariants.all { variant ->
                 variant.outputs.each { output ->
@@ -121,6 +126,7 @@ dependencies {
     implementation 'com.squareup.retrofit2:converter-gson:2.4.0'
     implementation 'com.google.code.gson:gson:2.8.2'
     implementation 'com.squareup.okhttp3:okhttp:3.10.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:3.10.0'
     implementation 'com.facebook.stetho:stetho:1.5.0'
     implementation 'com.facebook.stetho:stetho-okhttp3:1.5.0'
 
