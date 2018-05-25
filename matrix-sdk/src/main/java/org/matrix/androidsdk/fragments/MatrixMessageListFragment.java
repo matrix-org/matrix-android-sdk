@@ -974,7 +974,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
-     * Warns that a message sending failed because user content has not been given.
+     * Warns that a message sending failed because user consent has not been given.
      *
      * @param event       the event
      * @param matrixError the MatrixError
