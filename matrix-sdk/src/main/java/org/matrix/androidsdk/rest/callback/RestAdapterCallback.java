@@ -48,6 +48,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
     private final String mEventDescription;
 
     // the callback
+    // FIXME It should be safer if the type was ApiCallback<T>, else onSuccess() has to be overridden
     private final ApiCallback mApiCallback;
 
     // the retry callback
