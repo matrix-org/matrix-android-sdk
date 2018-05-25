@@ -123,16 +123,12 @@ public class PushersRestClient extends RestClient<PushersApi> {
 
         final String description = "manageHttpPusher";
 
-        try {
-            mApi.set(pusher, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, append, withEventIdOnly, addPusher, callback);
-                }
-            }));
-        }  catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        mApi.set(pusher).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                manageHttpPusher(pushkey, appId, profileTag, lang, appDisplayName, deviceDisplayName, url, append, withEventIdOnly, addPusher, callback);
+            }
+        }));
     }
 
     /**
@@ -143,15 +139,11 @@ public class PushersRestClient extends RestClient<PushersApi> {
     public void getPushers(final ApiCallback<PushersResponse> callback) {
         final String description = "getPushers";
 
-        try {
-            mApi.get(new RestAdapterCallback<PushersResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    getPushers(callback);
-                }
-            }));
-        }  catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        mApi.get().enqueue(new RestAdapterCallback<PushersResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                getPushers(callback);
+            }
+        }));
     }
 }

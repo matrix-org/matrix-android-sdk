@@ -1,12 +1,12 @@
-/* 
+/*
  * Copyright 2014 OpenMarket Ltd
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -30,6 +30,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -37,7 +38,7 @@ import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import retrofit.RetrofitError;
+import retrofit2.Response;
 
 /**
  * unsent matrix events manager
@@ -258,17 +259,17 @@ public class UnsentEventsManager {
      * It triggers the error callbacks.
      *
      * @param eventDescription the event description
-     * @param error            the retrofit error
+     * @param exception        the exception
      * @param callback         the callback.
      */
-    private static void triggerErrorCallback(MXDataHandler dataHandler, String eventDescription, RetrofitError error, ApiCallback callback) {
-        if ((null != error) && !TextUtils.isEmpty(error.getMessage())) {
+    private static void triggerErrorCallback(MXDataHandler dataHandler, String eventDescription, Response response, Exception exception, ApiCallback callback) {
+        if ((null != exception) && !TextUtils.isEmpty(exception.getMessage())) {
             // privacy
             //Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl());
-            Log.e(LOG_TAG, error.getLocalizedMessage());
+            Log.e(LOG_TAG, exception.getLocalizedMessage());
         }
 
-        if (null == error) {
+        if (null == exception) {
             try {
                 if (null != eventDescription) {
                     Log.e(LOG_TAG, "Unexpected Error " + eventDescription);
@@ -281,13 +282,13 @@ public class UnsentEventsManager {
                 //Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
                 Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage());
             }
-        } else if (error.isNetworkError()) {
+        } else if (exception instanceof IOException) {
             try {
                 if (null != eventDescription) {
                     Log.e(LOG_TAG, "Network Error " + eventDescription);
                 }
                 if (null != callback) {
-                    callback.onNetworkError(error);
+                    callback.onNetworkError(exception);
                 }
             } catch (Exception e) {
                 // privacy
@@ -298,7 +299,7 @@ public class UnsentEventsManager {
             // Try to convert this into a Matrix error
             MatrixError mxError;
             try {
-                mxError = (MatrixError) error.getBodyAs(MatrixError.class);
+                mxError = JsonUtils.getGson(false).fromJson(response.errorBody().string(), MatrixError.class);
             } catch (Exception e) {
                 mxError = null;
             }
@@ -326,7 +327,7 @@ public class UnsentEventsManager {
                     }
 
                     if (null != callback) {
-                        callback.onUnexpectedError(error);
+                        callback.onUnexpectedError(exception);
                     }
                 } catch (Exception e) {
                     // privacy
@@ -353,11 +354,12 @@ public class UnsentEventsManager {
      *
      * @param eventDescription             the event description
      * @param ignoreEventTimeLifeInOffline tell if the event timelife is ignored in offline mode
-     * @param retrofitError                the retrofit error .
+     * @param response                     Retrofit response
+     * @param exception                    Retrofit Exception
      * @param apiCallback                  the apiCallback.
      * @param requestRetryCallBack         requestRetryCallBack.
      */
-    public void onEventSendingFailed(final String eventDescription, final boolean ignoreEventTimeLifeInOffline, final RetrofitError retrofitError, final ApiCallback apiCallback, final RestAdapterCallback.RequestRetryCallBack requestRetryCallBack) {
+    public void onEventSendingFailed(final String eventDescription, final boolean ignoreEventTimeLifeInOffline, final Response response, final Exception exception, final ApiCallback apiCallback, final RestAdapterCallback.RequestRetryCallBack requestRetryCallBack) {
         boolean isManaged = false;
 
         if (null != eventDescription) {
@@ -371,9 +373,9 @@ public class UnsentEventsManager {
                 // Try to convert this into a Matrix error
                 MatrixError mxError = null;
 
-                if (null != retrofitError) {
+                if (null != response) {
                     try {
-                        mxError = (MatrixError) retrofitError.getBodyAs(MatrixError.class);
+                        mxError = JsonUtils.getGson(false).fromJson(response.errorBody().string(), MatrixError.class);
                     } catch (Exception e) {
                         mxError = null;
                     }
@@ -386,7 +388,7 @@ public class UnsentEventsManager {
                     if (MatrixError.isConfigurationErrorCode(mxError.errcode)) {
                         Log.e(LOG_TAG, "## onEventSendingFailed() : invalid token detected");
                         mDataHandler.onConfigurationError(mxError.errcode);
-                        triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
+                        triggerErrorCallback(mDataHandler, eventDescription, response, exception, apiCallback);
                         return;
                     }
                 }
@@ -397,13 +399,13 @@ public class UnsentEventsManager {
                     matrixRetryTimeout = mxError.retry_after_ms + 200;
                 }
 
-                if ((null != retrofitError) && retrofitError.isNetworkError()) {
-                    UnrecognizedCertificateException unrecCertEx = CertUtil.getCertificateException(retrofitError);
+                if (null != exception) {
+                    UnrecognizedCertificateException unrecCertEx = CertUtil.getCertificateException(exception);
 
                     if (null != unrecCertEx) {
                         Log.e(LOG_TAG, "## onEventSendingFailed() : SSL issue detected");
                         mDataHandler.onSSLCertificateError(unrecCertEx);
-                        triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
+                        triggerErrorCallback(mDataHandler, eventDescription, response, exception, apiCallback);
                         return;
                     }
                 }
@@ -473,7 +475,7 @@ public class UnsentEventsManager {
                                                 mUnsentEvents.remove(fSnapshot);
                                             }
 
-                                            triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
+                                            triggerErrorCallback(mDataHandler, eventDescription, response, exception, apiCallback);
                                         } catch (Exception e) {
                                             Log.e(LOG_TAG, "## onEventSendingFailed() : failure Msg=" + e.getMessage());
                                         }
@@ -493,7 +495,7 @@ public class UnsentEventsManager {
                             mUnsentEvents.remove(snapshot);
 
                             try {
-                                triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
+                                triggerErrorCallback(mDataHandler, eventDescription, response, exception, apiCallback);
                             } catch (Exception e) {
                                 Log.e(LOG_TAG, "## onEventSendingFailed() : failure Msg=" + e.getMessage());
                             }
@@ -521,7 +523,7 @@ public class UnsentEventsManager {
 
         if (!isManaged) {
             Log.d(LOG_TAG, "Cannot resend it");
-            triggerErrorCallback(mDataHandler, eventDescription, retrofitError, apiCallback);
+            triggerErrorCallback(mDataHandler, eventDescription, response, exception, apiCallback);
         }
     }
 

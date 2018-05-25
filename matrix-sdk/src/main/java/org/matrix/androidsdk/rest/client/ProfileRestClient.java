@@ -1,12 +1,13 @@
-/* 
+/*
  * Copyright 2014 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,11 +18,14 @@ package org.matrix.androidsdk.rest.client;
 
 import android.text.TextUtils;
 
+import com.google.gson.JsonObject;
+
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.ProfileApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.model.DeactivateAccountParams;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationParams;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
 import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationParams;
@@ -45,7 +49,7 @@ import org.matrix.androidsdk.util.Log;
 import java.util.List;
 import java.util.Map;
 
-import retrofit.client.Response;
+import retrofit2.Response;
 
 /**
  * Class used to make requests to the profile API.
@@ -62,33 +66,31 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
 
     /**
      * Get the user's display name.
-     * @param userId the user id
+     *
+     * @param userId   the user id
      * @param callback the callback to return the name on success
      */
     public void displayname(final String userId, final ApiCallback<String> callback) {
         final String description = "display name userId : " + userId;
 
-        try {
-            mApi.displayname(userId, new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    displayname(userId, callback);
-                }
-            }) {
-                @Override
-                public void success(User user, Response response) {
-                    onEventSent();
-                    callback.onSuccess(user.displayname);
-                }
-            });
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        mApi.displayname(userId).enqueue(new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                displayname(userId, callback);
+            }
+        }) {
+            @Override
+            public void success(User user, Response<User> response) {
+                onEventSent();
+                callback.onSuccess(user.displayname);
+            }
+        });
     }
 
     /**
      * Update this user's own display name.
-     * @param newName the new name
+     *
+     * @param newName  the new name
      * @param callback the callback if the call succeeds
      */
     public void updateDisplayname(final String newName, final ApiCallback<Void> callback) {
@@ -99,49 +101,43 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         User user = new User();
         user.displayname = newName;
 
-        try {
-            // don't retry if the network comes back
-            // let the user chooses what he want to do
-            mApi.displayname(mCredentials.userId, user, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    updateDisplayname(newName, callback);
-                }
-            }));
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        // don't retry if the network comes back
+        // let the user chooses what he want to do
+        mApi.displayname(mCredentials.userId, user).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                updateDisplayname(newName, callback);
+            }
+        }));
     }
 
     /**
      * Get the user's avatar URL.
-     * @param userId the user id
+     *
+     * @param userId   the user id
      * @param callback the callback to return the URL on success
      */
     public void avatarUrl(final String userId, final ApiCallback<String> callback) {
         final String description = "avatarUrl userId : " + userId;
 
-        try {
-            mApi.avatarUrl(userId, new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    avatarUrl(userId, callback);
-                }
-            }) {
-                @Override
-                public void success(User user, Response response) {
-                    onEventSent();
-                    callback.onSuccess(user.getAvatarUrl());
-                }
-            });
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        mApi.avatarUrl(userId).enqueue(new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                avatarUrl(userId, callback);
+            }
+        }) {
+            @Override
+            public void success(User user, Response response) {
+                onEventSent();
+                callback.onSuccess(user.getAvatarUrl());
+            }
+        });
     }
 
     /**
      * Update this user's own avatar URL.
-     * @param newUrl the new name
+     *
+     * @param newUrl   the new name
      * @param callback the callback if the call succeeds
      */
     public void updateAvatarUrl(final String newUrl, final ApiCallback<Void> callback) {
@@ -152,24 +148,21 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         User user = new User();
         user.setAvatarUrl(newUrl);
 
-        try {
-            mApi.avatarUrl(mCredentials.userId, user, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    updateAvatarUrl(newUrl, callback);
-                }
-            }));
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        mApi.avatarUrl(mCredentials.userId, user).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                updateAvatarUrl(newUrl, callback);
+            }
+        }));
     }
 
     /**
      * Update the password
-     * @param userId the user id
+     *
+     * @param userId      the user id
      * @param oldPassword the former password
      * @param newPassword the new password
-     * @param callback the callback
+     * @param callback    the callback
      */
     public void updatePassword(final String userId, final String oldPassword, final String newPassword, final ApiCallback<Void> callback) {
         // privacy
@@ -179,32 +172,26 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         ChangePasswordParams passwordParams = new ChangePasswordParams();
 
         passwordParams.auth = new AuthParams();
-        passwordParams.auth.type = "m.login.password";
+        passwordParams.auth.type = LoginRestClient.LOGIN_FLOW_TYPE_PASSWORD;
         passwordParams.auth.user = userId;
         passwordParams.auth.password = oldPassword;
         passwordParams.new_password = newPassword;
 
-        try {
-            mApi.updatePassword(passwordParams, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    try {
-                        updatePassword(userId, oldPassword, newPassword, callback);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "## updatePassword() failed" + e.getMessage());
-                    }
-                }
-            }));
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
+        mApi.updatePassword(passwordParams).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                updatePassword(userId, oldPassword, newPassword, callback);
+            }
         }
+        ));
     }
 
     /**
      * Reset the password to a new one.
-     * @param newPassword the new password
+     *
+     * @param newPassword    the new password
      * @param threepid_creds the three pids.
-     * @param callback the callback
+     * @param callback       the callback
      */
     public void resetPassword(final String newPassword, final Map<String, String> threepid_creds, final ApiCallback<Void> callback) {
         // privacy
@@ -218,21 +205,18 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         passwordParams.auth.threepid_creds = threepid_creds;
         passwordParams.new_password = newPassword;
 
-        try {
-            mApi.updatePassword(passwordParams, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.updatePassword(passwordParams).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 resetPassword(newPassword, threepid_creds, callback);
             }
         }));
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
     }
 
     /**
      * Reset the password server side.
-     * @param email the email to send the password reset.
+     *
+     * @param email    the email to send the password reset.
      * @param callback the callback
      */
     public void forgetPassword(final String email, final ApiCallback<ThreePid> callback) {
@@ -247,29 +231,58 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
             forgetPasswordParams.send_attempt = 1;
             forgetPasswordParams.id_server = mHsConfig.getIdentityServerUri().getHost();
 
-            try {
-                mApi.forgetPassword(forgetPasswordParams, new RestAdapterCallback<ForgetPasswordResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                    @Override
-                    public void onRetry() {
-                        forgetPassword(email, callback);
-                    }
-                }) {
-                    @Override
-                    public void success(ForgetPasswordResponse forgetPasswordResponse, Response response) {
-                        onEventSent();
+            mApi.forgetPassword(forgetPasswordParams).enqueue(new RestAdapterCallback<ForgetPasswordResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                @Override
+                public void onRetry() {
+                    forgetPassword(email, callback);
+                }
+            }) {
+                @Override
+                public void success(ForgetPasswordResponse forgetPasswordResponse, Response response) {
+                    onEventSent();
 
-                        pid.sid = forgetPasswordResponse.sid;
-                        callback.onSuccess(pid);
-                    }
-                });
-            } catch (Throwable t) {
-                callback.onUnexpectedError(new Exception(t));
-            }
+                    pid.sid = forgetPasswordResponse.sid;
+                    callback.onSuccess(pid);
+                }
+            });
         }
     }
 
     /**
+     * Deactivate account
+     *
+     * @param type          type of authentication
+     * @param userId        current user id
+     * @param userPassword  current password
+     * @param eraseUserData true to also erase all the user data
+     * @param callback      the callback
+     */
+    public void deactivateAccount(final String type,
+                                  final String userId,
+                                  final String userPassword,
+                                  final boolean eraseUserData,
+                                  final ApiCallback<Void> callback) {
+        final String description = "deactivate account";
+
+        final DeactivateAccountParams params = new DeactivateAccountParams();
+        params.auth = new AuthParams();
+        params.auth.type = type;
+        params.auth.user = userId;
+        params.auth.password = userPassword;
+
+        params.erase = eraseUserData;
+
+        mApi.deactivate(params).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                deactivateAccount(type, userId, userPassword, eraseUserData, callback);
+            }
+        }));
+    }
+
+    /**
      * Attempt a user/password registration.
+     *
      * @param callback the callback success and failure callback
      */
     public void refreshTokens(final ApiCallback<Credentials> callback) {
@@ -278,43 +291,37 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         TokenRefreshParams params = new TokenRefreshParams();
         params.refresh_token = mCredentials.refreshToken;
 
-        try {
-            mApi.tokenrefresh(params, new RestAdapterCallback<TokenRefreshResponse>(description, mUnsentEventsManager, callback, null) {
-                @Override
-                public void success(TokenRefreshResponse tokenreponse, Response response) {
-                    onEventSent();
-                    mCredentials.refreshToken = tokenreponse.refresh_token;
-                    mCredentials.accessToken = tokenreponse.access_token;
-                    if (null != callback) {
-                        callback.onSuccess(mCredentials);
-                    }
+        mApi.tokenrefresh(params).enqueue(new RestAdapterCallback<TokenRefreshResponse>(description, mUnsentEventsManager, callback, null) {
+            @Override
+            public void success(TokenRefreshResponse tokenreponse, Response response) {
+                onEventSent();
+                mCredentials.refreshToken = tokenreponse.refresh_token;
+                mCredentials.accessToken = tokenreponse.access_token;
+                if (null != callback) {
+                    callback.onSuccess(mCredentials);
                 }
-            });
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+            }
+        });
     }
 
     /**
      * List all 3PIDs linked to the Matrix user account.
+     *
      * @param callback the asynchronous callback called with the response
      */
     public void threePIDs(final ApiCallback<List<ThirdPartyIdentifier>> callback) {
         final String description = "threePIDs";
 
-        try {
-            mApi.threePIDs(new RestAdapterCallback<AccountThreePidsResponse>(description, mUnsentEventsManager, callback, null) {
-                @Override
-                public void success(AccountThreePidsResponse threePidsResponse, Response response) {
-                    onEventSent();
-                    if (null != callback) {
-                        callback.onSuccess(threePidsResponse.threepids);
-                    }
+        mApi.threePIDs().enqueue(new RestAdapterCallback<AccountThreePidsResponse>(description, mUnsentEventsManager, callback, null) {
+            @Override
+            public void success(AccountThreePidsResponse accountThreePidsResponse, Response<AccountThreePidsResponse> response) {
+                onEventSent();
+                if (null != callback) {
+                    callback.onSuccess(accountThreePidsResponse.threepids);
                 }
-            });
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+
+            }
+        });
     }
 
     /**
@@ -360,15 +367,11 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
             }
         };
 
-        try {
-            if (isDuringRegistration) {
-                // URL differs in that case
-                mApi.requestEmailValidationForRegistration(params, adapterCallback);
-            } else {
-                mApi.requestEmailValidation(params, adapterCallback);
-            }
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
+        if (isDuringRegistration) {
+            // URL differs in that case
+            mApi.requestEmailValidationForRegistration(params).enqueue(adapterCallback);
+        } else {
+            mApi.requestEmailValidation(params).enqueue(adapterCallback);
         }
     }
 
@@ -412,25 +415,22 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
             }
         };
 
-        try {
-            if (isDuringRegistration) {
-                // URL differs in that case
-                mApi.requestPhoneNumberValidationForRegistration(params, adapterCallback);
-            } else {
-                mApi.requestPhoneNumberValidation(params, adapterCallback);
-            }
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
+        if (isDuringRegistration) {
+            // URL differs in that case
+            mApi.requestPhoneNumberValidationForRegistration(params).enqueue(adapterCallback);
+        } else {
+            mApi.requestPhoneNumberValidation(params).enqueue(adapterCallback);
         }
     }
 
     /**
      * Add an 3Pids to an user
-     * @param pid the 3Pid to add
-     * @param bind bind the email
+     *
+     * @param pid      the 3Pid to add
+     * @param bind     bind the email
      * @param callback the asynchronous callback called with the response
      */
-    public void add3PID(final ThreePid pid, final boolean bind, final ApiCallback<Void>callback) {
+    public void add3PID(final ThreePid pid, final boolean bind, final ApiCallback<Void> callback) {
         final String description = "add3PID";
 
         AddThreePidsParams params = new AddThreePidsParams();
@@ -439,7 +439,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         String identityServerHost = mHsConfig.getIdentityServerUri().toString();
         if (identityServerHost.startsWith("http://")) {
             identityServerHost = identityServerHost.substring("http://".length());
-        } else  if (identityServerHost.startsWith("https://")) {
+        } else if (identityServerHost.startsWith("https://")) {
             identityServerHost = identityServerHost.substring("https://".length());
         }
 
@@ -449,18 +449,13 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
 
         params.bind = bind;
 
-        try {
-            mApi.add3PID(params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback,
-                    new RestAdapterCallback.RequestRetryCallBack() {
-                        @Override
-                        public void onRetry() {
-                            add3PID(pid, bind, callback);
-                        }
+        mApi.add3PID(params).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback,
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        add3PID(pid, bind, callback);
                     }
-            ));
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+                }));
     }
 
     /**
@@ -476,17 +471,13 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         params.medium = pid.medium;
         params.address = pid.address;
 
-        try {
-            mApi.delete3PID(params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback,
-                    new RestAdapterCallback.RequestRetryCallBack() {
-                        @Override
-                        public void onRetry() {
-                            delete3PID(pid, callback);
-                        }
-                    })
-            );
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        mApi.delete3PID(params).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback,
+                new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        delete3PID(pid, callback);
+                    }
+                })
+        );
     }
 }

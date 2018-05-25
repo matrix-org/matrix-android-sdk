@@ -1,3 +1,22 @@
+Changes to Matrix Android SDK in 0.9.4 (2018-05-25)
+=======================================================
+
+Features:
+ * Implement 'reply to' feature.
+ * Add support to "M_CONSENT_NOT_GIVEN" error.
+ * Implement 'send widget' feature.
+
+Improvements:
+ * RestClient: Adding request to deactivate an account.
+ * Javadoc is removed from the source, it is now available as a Jenkins artifact
+
+Bugfixes:
+ * Riot-android sends the wrong content for m.ignored_user_list (vector-im/riot-android#2043)
+ * do not allow non-mxc content URLs (#268).
+
+Build:
+ * Travis CI has been activated to build the Pull request
+
 Changes to Matrix Android SDK in 0.9.3 (2018-04-20)
 =======================================================
 

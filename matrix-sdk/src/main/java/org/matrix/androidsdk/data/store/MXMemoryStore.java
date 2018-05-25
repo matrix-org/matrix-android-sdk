@@ -1590,6 +1590,16 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
+    public void setUserWidgets(Map<String, Object> contentDict) {
+        mMetadata.mUserWidgets = contentDict;
+    }
+
+    @Override
+    public Map<String, Object> getUserWidgets() {
+        return mMetadata.mUserWidgets;
+    }
+
+    @Override
     public Set<String> getRoomsWithoutURLPreviews() {
         return (null != mMetadata.mRoomsListWithoutURLPrevew) ? mMetadata.mRoomsListWithoutURLPrevew : new HashSet<String>();
     }

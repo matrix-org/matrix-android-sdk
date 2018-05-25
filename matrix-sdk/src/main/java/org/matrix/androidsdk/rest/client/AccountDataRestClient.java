@@ -1,12 +1,12 @@
-/* 
+/*
  * Copyright 2015 OpenMarket Ltd
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,6 +31,7 @@ public class AccountDataRestClient extends RestClient<AccountDataApi> {
     public static final String ACCOUNT_DATA_TYPE_IGNORED_USER_LIST = "m.ignored_user_list";
     public static final String ACCOUNT_DATA_TYPE_DIRECT_MESSAGES = "m.direct";
     public static final String ACCOUNT_DATA_TYPE_PREVIEW_URLS = "org.matrix.preview_urls";
+    public static final String ACCOUNT_DATA_TYPE_WIDGETS = "m.widgets";
 
     /**
      * Account data keys
@@ -58,16 +59,12 @@ public class AccountDataRestClient extends RestClient<AccountDataApi> {
         //final String description = "setAccountData userId : " + userId + " type " + type + " params " + params;
         final String description = "setAccountData userId : " + userId + " type " + type;
 
-        try {
-            mApi.setAccountData(userId, type, params, new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    setAccountData(userId, type, params, callback);
-                }
-            }));
-        } catch (Throwable e) {
-            callback.onUnexpectedError(new Exception(e));
-        }
+        mApi.setAccountData(userId, type, params).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                setAccountData(userId, type, params, callback);
+            }
+        }));
     }
 
     /**
@@ -81,15 +78,11 @@ public class AccountDataRestClient extends RestClient<AccountDataApi> {
     public void openIdToken(final String userId, final ApiCallback<Map<Object, Object>> callback) {
         final String description = "openIdToken userId : " + userId;
 
-        try {
-            mApi.openIdToken(userId, new HashMap<>(), new RestAdapterCallback<Map<Object, Object>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    openIdToken(userId, callback);
-                }
-            }));
-        } catch (Throwable e) {
-            callback.onUnexpectedError(new Exception(e));
-        }
+        mApi.openIdToken(userId, new HashMap<>()).enqueue(new RestAdapterCallback<Map<Object, Object>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                openIdToken(userId, callback);
+            }
+        }));
     }
 }

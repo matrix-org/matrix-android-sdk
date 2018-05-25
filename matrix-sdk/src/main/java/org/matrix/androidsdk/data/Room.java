@@ -2105,7 +2105,7 @@ public class Room {
     /**
      * Update the user enabled room url preview
      *
-     * @param status the new status
+     * @param status   the new status
      * @param callback the asynchronous callback
      */
     public void setIsURLPreviewAllowedByUser(boolean status, ApiCallback<Void> callback) {
@@ -2969,9 +2969,9 @@ public class Room {
     private RoomMediaMessagesSender mRoomMediaMessagesSender;
 
     /**
-     * Init the mRoomDataItemsSender instance
+     * Init the mRoomMediaMessagesSender instance
      */
-    private void initRoomDataItemsSender() {
+    private void initRoomMediaMessagesSender() {
         if (null == mRoomMediaMessagesSender) {
             mRoomMediaMessagesSender = new RoomMediaMessagesSender(getStore().getContext(), mDataHandler, this);
         }
@@ -3011,11 +3011,12 @@ public class Room {
      * @param listener          the event creation listener
      */
     private void sendTextMessage(String text, String HTMLFormattedText, String format, String msgType, final RoomMediaMessage.EventCreationListener listener) {
-        initRoomDataItemsSender();
+        initRoomMediaMessagesSender();
 
         RoomMediaMessage roomMediaMessage = new RoomMediaMessage(text, HTMLFormattedText, format);
         roomMediaMessage.setMessageType(msgType);
         roomMediaMessage.setEventCreationListener(listener);
+
         mRoomMediaMessagesSender.send(roomMediaMessage);
     }
 
@@ -3028,7 +3029,7 @@ public class Room {
      * @param listener           the event creation listener
      */
     public void sendMediaMessage(final RoomMediaMessage roomMediaMessage, final int maxThumbnailWidth, final int maxThumbnailHeight, final RoomMediaMessage.EventCreationListener listener) {
-        initRoomDataItemsSender();
+        initRoomMediaMessagesSender();
 
         roomMediaMessage.setThumnailSize(new Pair<>(maxThumbnailWidth, maxThumbnailHeight));
         roomMediaMessage.setEventCreationListener(listener);
@@ -3036,8 +3037,24 @@ public class Room {
         mRoomMediaMessagesSender.send(roomMediaMessage);
     }
 
+    /**
+     * Send a sticker message.
+     *
+     * @param event
+     * @param listener
+     */
+    public void sendStickerMessage(Event event, final RoomMediaMessage.EventCreationListener listener) {
+        initRoomMediaMessagesSender();
+
+        RoomMediaMessage roomMediaMessage = new RoomMediaMessage(event);
+        roomMediaMessage.setMessageType(Event.EVENT_TYPE_STICKER);
+        roomMediaMessage.setEventCreationListener(listener);
+
+        mRoomMediaMessagesSender.send(roomMediaMessage);
+    }
+
     //==============================================================================================================
-    // Unsent events managemenet
+    // Unsent events management
     //==============================================================================================================
 
     /**
@@ -3100,6 +3117,7 @@ public class Room {
 
     /**
      * Tell if room is Direct Chat
+     *
      * @return true if is direct chat
      */
     public boolean isDirect() {

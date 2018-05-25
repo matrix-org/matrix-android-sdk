@@ -66,6 +66,7 @@ import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.view.AutoScrollDownListView;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -74,13 +75,12 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import retrofit.RetrofitError;
 
 /**
  * UI Fragment containing matrix messages for a given room.
  * Contains {@link MatrixMessagesFragment} as a nested fragment to do the work.
  */
-public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener{
+public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener {
 
     // search interface
     public interface OnSearchResultListener {
@@ -124,6 +124,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
          * @param error the crypto error
          */
         void onUnknownDevices(Event event, MXCryptoError error);
+
+        /**
+         * An event sending failed because of consent not given
+         *
+         * @param event       the event
+         * @param matrixError the MatrixError (contains message text and URL)
+         */
+        void onConsentNotGiven(Event event, MatrixError matrixError);
     }
 
     // scroll listener
@@ -289,9 +297,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     // avoid refreshing the whole list for each event
                     // they are often refreshed by bunches.
                     if (mRefreshAfterEventsDecryption) {
-                        Log.d(LOG_TAG, "## onEventDecrypted "+ event.eventId + " : there is a pending refresh");
+                        Log.d(LOG_TAG, "## onEventDecrypted " + event.eventId + " : there is a pending refresh");
                     } else {
-                        Log.d(LOG_TAG, "## onEventDecrypted "+ event.eventId);
+                        Log.d(LOG_TAG, "## onEventDecrypted " + event.eventId);
 
                         mRefreshAfterEventsDecryption = true;
                         getUiHandler().postDelayed(new Runnable() {
@@ -403,17 +411,17 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             View v = mMessageListView.getChildAt((visibleItemCount == mMessageListView.getChildCount()) ? 0 : firstVisibleItem);
 
             if (null != v) {
-               mFirstVisibleRowY = v.getTop();
+                mFirstVisibleRowY = v.getTop();
             }
 
             if ((firstVisibleItem < 10) && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
                 if (!mLockBackPagination) {
-                    Log.d(LOG_TAG, "onScroll - backPaginate firstVisibleItem " + firstVisibleItem + " visibleItemCount " + visibleItemCount + " totalItemCount "+ totalItemCount);
+                    Log.d(LOG_TAG, "onScroll - backPaginate firstVisibleItem " + firstVisibleItem + " visibleItemCount " + visibleItemCount + " totalItemCount " + totalItemCount);
                 }
                 backPaginate(false);
             } else if ((firstVisibleItem + visibleItemCount + 10) >= totalItemCount) {
                 if (!mLockFwdPagination) {
-                    Log.d(LOG_TAG, "onScroll - forwardPaginate firstVisibleItem " + firstVisibleItem + " visibleItemCount " + visibleItemCount + " totalItemCount "+ totalItemCount);
+                    Log.d(LOG_TAG, "onScroll - forwardPaginate firstVisibleItem " + firstVisibleItem + " visibleItemCount " + visibleItemCount + " totalItemCount " + totalItemCount);
                 }
                 forwardPaginate();
             }
@@ -490,7 +498,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             if (!TextUtils.isEmpty(mEventId)) {
                 mEventTimeLine = new EventTimeline(mSession.getDataHandler(), roomId, mEventId);
                 mRoom = mEventTimeLine.getRoom();
-                if (PREVIEW_MODE_UNREAD_MESSAGE.equals(previewMode)){
+                if (PREVIEW_MODE_UNREAD_MESSAGE.equals(previewMode)) {
                     mAdapter.setIsUnreadViewMode(true);
                 }
             }
@@ -561,7 +569,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         super.onActivityCreated(savedInstanceState);
 
         Bundle args = getArguments();
-        FragmentManager fm = getActivity().getSupportFragmentManager();
+        FragmentManager fm = getChildFragmentManager();
         mMatrixMessagesFragment = (MatrixMessagesFragment) fm.findFragmentByTag(getMatrixMessagesFragmentTag());
 
         if (mMatrixMessagesFragment == null) {
@@ -573,8 +581,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         } else {
             Log.d(LOG_TAG, "onActivityCreated - reuse");
 
-            // Reset the listener because this is not done when the system restores the fragment (newInstance is not called)
+            // Set the listener because this is not done when the system restores the fragment (newInstance is not called)
             mMatrixMessagesFragment.setMatrixMessagesListener(this);
+
+            // Also set the session
+            mMatrixMessagesFragment.setMXSession(getSession());
         }
 
         mMatrixMessagesFragment.mKeepRoomHistory = (-1 != mFirstVisibleRow);
@@ -606,11 +617,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         Activity activity = getActivity();
 
         if (activity instanceof IEventSendingListener) {
-            mEventSendingListener = (IEventSendingListener)activity;
+            mEventSendingListener = (IEventSendingListener) activity;
         }
 
         if (activity instanceof IOnScrollListener) {
-            mActivityOnScrollListener = (IOnScrollListener)activity;
+            mActivityOnScrollListener = (IOnScrollListener) activity;
         }
 
         // sanity check
@@ -748,14 +759,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Test if the read marker must be updated with the new message
-     * @param newMessageRow the new message row
+     *
+     * @param newMessageRow        the new message row
      * @param currentReadMarkerRow the current read marker row
      * @return true if the read marker can be updated
      */
     private boolean canUpdateReadMarker(MessageRow newMessageRow, MessageRow currentReadMarkerRow) {
         return (currentReadMarkerRow != null &&
-            mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
-            && newMessageRow.getEvent().getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs);
+                mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
+                && newMessageRow.getEvent().getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs);
     }
 
     /**
@@ -962,6 +974,22 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
+     * Warns that a message sending failed because user consent has not been given.
+     *
+     * @param event       the event
+     * @param matrixError the MatrixError
+     */
+    private void onConsentNotGiven(Event event, MatrixError matrixError) {
+        if (null != mEventSendingListener) {
+            try {
+                mEventSendingListener.onConsentNotGiven(event, matrixError);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "onConsentNotGiven failed " + e.getMessage());
+            }
+        }
+    }
+
+    /**
      * Add a media item in the room.
      */
     private void add(final RoomMediaMessage roomMediaMessage) {
@@ -995,13 +1023,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             if (null != activity) {
                                 // display the error message only if the message cannot be resent
                                 if ((null != event.unsentException) && (event.isUndeliverable())) {
-                                    if ((event.unsentException instanceof RetrofitError) && ((RetrofitError) event.unsentException).isNetworkError()) {
-                                        Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + getActivity().getString(R.string.network_error), Toast.LENGTH_LONG).show();
+                                    if (event.unsentException instanceof IOException) {
+                                        Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + activity.getString(R.string.network_error), Toast.LENGTH_LONG).show();
                                     } else {
                                         Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                                     }
                                 } else if (null != event.unsentMatrixError) {
-                                    String localised = (event.unsentMatrixError instanceof MXCryptoError) ? ((MXCryptoError)event.unsentMatrixError).getDetailedErrorDescription() : event.unsentMatrixError.getLocalizedMessage();
+                                    String localised = (event.unsentMatrixError instanceof MXCryptoError) ? ((MXCryptoError) event.unsentMatrixError).getDetailedErrorDescription() : event.unsentMatrixError.getLocalizedMessage();
                                     Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + localised, Toast.LENGTH_LONG).show();
                                 }
 
@@ -1019,13 +1047,21 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 @Override
                 public void onMatrixError(final MatrixError e) {
-                    // do not display toast if the sending failed because of unknown deviced (e2e issue)
+                    // do not display toast if the sending failed because of unknown device (e2e issue)
                     if (event.mSentState == Event.SentState.FAILED_UNKNOWN_DEVICES) {
                         getUiHandler().post(new Runnable() {
                             @Override
                             public void run() {
                                 mAdapter.notifyDataSetChanged();
                                 onUnknownDevices(event, (MXCryptoError) e);
+                            }
+                        });
+                    } else if (MatrixError.M_CONSENT_NOT_GIVEN.equals(e.errcode)) {
+                        getUiHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mAdapter.notifyDataSetChanged();
+                                onConsentNotGiven(event, e);
                             }
                         });
                     } else {
@@ -1072,6 +1108,15 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      */
     public void sendEmote(String emote, String formattedEmote, String format) {
         mRoom.sendEmoteMessage(emote, formattedEmote, format, mEventCreationListener);
+    }
+
+    /**
+     * Send a sticker message to the room
+     *
+     * @param event
+     */
+    public void sendStickerMessage(Event event) {
+        mRoom.sendStickerMessage(event, mEventCreationListener);
     }
 
     /**
@@ -1140,6 +1185,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * The failure reason
+     *
      * @param errorMessage the message
      */
     private void displayMessageSendingFailed(String errorMessage) {
@@ -1159,6 +1205,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Send a media message in this room
+     *
      * @param roomMediaMessage the media message to send
      */
     public void sendMediaMessage(final RoomMediaMessage roomMediaMessage) {
@@ -1202,7 +1249,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         mRoom.deleteEvents(unsent);
 
-        for(Event event : unsent) {
+        for (Event event : unsent) {
             mAdapter.removeEventById(event.eventId);
         }
 
@@ -1229,7 +1276,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         List<Event> unsent = mRoom.getUnsentEvents();
 
-        for(Event unsentMessage : unsent) {
+        for (Event unsentMessage : unsent) {
             resend(unsentMessage);
         }
     }

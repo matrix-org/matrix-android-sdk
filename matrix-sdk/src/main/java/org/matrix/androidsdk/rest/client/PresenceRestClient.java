@@ -43,15 +43,11 @@ public class PresenceRestClient extends RestClient<PresenceApi> {
     public void getPresence(final String userId, final ApiCallback<User> callback) {
         final String description = "getPresence userId : " + userId;
 
-        try {
-            mApi.presenceStatus(userId, new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    getPresence(userId, callback);
-                }
-            }));
-        } catch (Throwable t) {
-            callback.onUnexpectedError(new Exception(t));
-        }
+        mApi.presenceStatus(userId).enqueue(new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            @Override
+            public void onRetry() {
+                getPresence(userId, callback);
+            }
+        }));
     }
 }

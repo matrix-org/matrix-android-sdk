@@ -28,12 +28,13 @@ import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 
 import java.util.Map;
 
-import retrofit.Callback;
-import retrofit.http.Body;
-import retrofit.http.GET;
-import retrofit.http.POST;
-import retrofit.http.Query;
-import retrofit.http.QueryMap;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.http.Body;
+import retrofit2.http.GET;
+import retrofit2.http.POST;
+import retrofit2.http.Query;
+import retrofit2.http.QueryMap;
 
 /**
  * The events API.
@@ -42,58 +43,50 @@ public interface EventsApi {
 
     /**
      * Perform the initial sync to find the rooms that concern the user, the participants' presence, etc.
-     *
-     * @param params   the GET params.
-     * @param callback The asynchronous callback to call when finished
+     * @param params the GET params.
      */
-    @GET(RestClient.URI_API_PREFIX_PATH_R0 + "/sync")
-    void sync(@QueryMap Map<String, Object> params, Callback<SyncResponse> callback);
+    @GET(RestClient.URI_API_PREFIX_PATH_R0 + "sync")
+    Call<SyncResponse> sync(@QueryMap Map<String, Object> params);
 
 
     /**
      * Get the third party server protocols.
-     *
-     * @param callback The asynchronous callback to call when finished
      */
-    @GET(RestClient.URI_API_PREFIX_PATH_UNSTABLE + "/thirdparty/protocols")
-    void thirdpartyProtocols(Callback<Map<String, ThirdPartyProtocol>> callback);
+    @GET(RestClient.URI_API_PREFIX_PATH_UNSTABLE + "thirdparty/protocols")
+    Call<Map<String, ThirdPartyProtocol>> thirdPartyProtocols();
 
     /**
      * Get the list of public rooms.
      *
      * @param server            the server (might be null)
      * @param publicRoomsParams the request params
-     * @param callback          The asynchronous callback to call when finished
      */
-    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/publicRooms")
-    void publicRooms(@Query("server") String server, @Body PublicRoomsParams publicRoomsParams, Callback<PublicRoomsResponse> callback);
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "publicRooms")
+    Call<PublicRoomsResponse> publicRooms(@Query("server") String server, @Body PublicRoomsParams publicRoomsParams);
 
     /**
      * Perform a search.
      *
      * @param searchParams the search params.
      * @param nextBatch    the next batch token
-     * @param callback     The search result.
      */
-    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/search")
-    void searchEvents(@Body SearchParams searchParams, @Query("next_batch") String nextBatch, Callback<SearchResponse> callback);
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "search")
+    Call<SearchResponse> searchEvents(@Body SearchParams searchParams, @Query("next_batch") String nextBatch);
 
     /**
      * Perform an users search.
      *
      * @param searchUsersParams the search params.
-     * @param callback          The search result.
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/user_directory/search")
-    void searchUsers(@Body SearchUsersParams searchUsersParams, Callback<SearchUsersRequestResponse> callback);
+    Call<SearchUsersRequestResponse> searchUsers(@Body SearchUsersParams searchUsersParams);
 
     /**
      * Retrieve the preview information of an URL.
      *
      * @param url      the URL
      * @param ts       the ts
-     * @param callback the asynchronous callback
      */
     @GET(RestClient.URI_API_PREFIX_PATH_MEDIA_R0 + "/preview_url")
-    void getURLPreview(@Query("url") String url, @Query("ts") long ts, Callback<Map<String, Object>> callback);
+    Call<Map<String, Object>> getURLPreview(@Query("url") String url, @Query("ts") long ts);
 }

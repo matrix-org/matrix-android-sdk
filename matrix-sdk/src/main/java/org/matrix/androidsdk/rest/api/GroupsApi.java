@@ -35,13 +35,13 @@ import org.matrix.androidsdk.rest.model.group.UpdatePubliciseParams;
 import java.util.List;
 import java.util.Map;
 
-import retrofit.Callback;
-import retrofit.http.Body;
-import retrofit.http.DELETE;
-import retrofit.http.GET;
-import retrofit.http.POST;
-import retrofit.http.PUT;
-import retrofit.http.Path;
+import retrofit2.Call;
+import retrofit2.http.Body;
+import retrofit2.http.DELETE;
+import retrofit2.http.GET;
+import retrofit2.http.POST;
+import retrofit2.http.PUT;
+import retrofit2.http.Path;
 
 /**
  * The groups API.
@@ -51,164 +51,146 @@ public interface GroupsApi {
     /**
      * Create a group
      *
-     * @param params   the group creation params
-     * @param callback the asynchronous callback called with the response
+     * @param params the group creation params
      */
-    @POST("/create_group")
-    void createGroup(@Body CreateGroupParams params, Callback<CreateGroupResponse> callback);
+    @POST("create_group")
+    Call<CreateGroupResponse> createGroup(@Body CreateGroupParams params);
 
     /**
      * Invite an user to a group.
      *
-     * @param groupId  the group id
-     * @param userId   the user id
-     * @param params   the invitation parameters
-     * @param callback the asynchronous callback
+     * @param groupId the group id
+     * @param userId  the user id
+     * @param params  the invitation parameters
      */
-    @PUT("/groups/{groupId}/admin/users/invite/{userId}")
-    void inviteUser(@Path("groupId") String groupId, @Path("userId") String userId, @Body GroupInviteUserParams params, Callback<GroupInviteUserResponse> callback);
+    @PUT("groups/{groupId}/admin/users/invite/{userId}")
+    Call<GroupInviteUserResponse> inviteUser(@Path("groupId") String groupId, @Path("userId") String userId, @Body GroupInviteUserParams params);
 
     /**
      * Kick an user from a group.
      *
-     * @param groupId  the group id
-     * @param userId   the user id
-     * @param params   the kick parameters
-     * @param callback the asynchronous callback
+     * @param groupId the group id
+     * @param userId  the user id
+     * @param params  the kick parameters
      */
-    @PUT("/groups/{groupId}/users/remove/{userId}")
-    void kickUser(@Path("groupId") String groupId, @Path("userId") String userId, @Body GroupKickUserParams params, Callback<Void> callback);
+    @PUT("groups/{groupId}/users/remove/{userId}")
+    Call<Void> kickUser(@Path("groupId") String groupId, @Path("userId") String userId, @Body GroupKickUserParams params);
 
     /**
      * Add a room in a group.
      *
-     * @param groupId  the group id
-     * @param roomId   the room id
-     * @param params   the kick parameters
-     * @param callback the asynchronous callback
+     * @param groupId the group id
+     * @param roomId  the room id
+     * @param params  the kick parameters
      */
-    @PUT("/groups/{groupId}/admin/rooms/{roomId}")
-    void addRoom(@Path("groupId") String groupId, @Path("roomId") String roomId, @Body AddGroupParams params, Callback<Void> callback);
+    @PUT("groups/{groupId}/admin/rooms/{roomId}")
+    Call<Void> addRoom(@Path("groupId") String groupId, @Path("roomId") String roomId, @Body AddGroupParams params);
 
     /**
      * Remove a room from a group.
      *
-     * @param groupId  the group id
-     * @param roomId   the room id
-     * @param callback the asynchronous callback
+     * @param groupId the group id
+     * @param roomId  the room id
      */
-    @DELETE("/groups/{groupId}/admin/rooms/{roomId}")
-    void removeRoom(@Path("groupId") String groupId, @Path("roomId") String roomId, Callback<Void> callback);
+    @DELETE("groups/{groupId}/admin/rooms/{roomId}")
+    Call<Void> removeRoom(@Path("groupId") String groupId, @Path("roomId") String roomId);
 
     /**
      * Update the group profile.
      *
-     * @param groupId  the group id
-     * @param profile  the group profile
-     * @param callback the asynchronous callback.
+     * @param groupId the group id
+     * @param profile the group profile
      */
-    @POST("/groups/{groupId}/profile")
-    void updateProfile(@Path("groupId") String groupId, @Body GroupProfile profile, Callback<Void> callback);
+    @POST("groups/{groupId}/profile")
+    Call<Void> updateProfile(@Path("groupId") String groupId, @Body GroupProfile profile);
 
     /**
      * Get the group profile.
      *
-     * @param groupId  the group id
-     * @param callback the asynchronous callback.
+     * @param groupId the group id
      */
-    @GET("/groups/{groupId}/profile")
-    void getProfile(@Path("groupId") String groupId, Callback<GroupProfile> callback);
+    @GET("groups/{groupId}/profile")
+    Call<GroupProfile> getProfile(@Path("groupId") String groupId);
 
     /**
      * Request the invited users list.
      *
-     * @param groupId  the group id
-     * @param callback the asynchronous callback.
+     * @param groupId the group id
      */
-    @GET("/groups/{groupId}/invited_users")
-    void getInvitedUsers(@Path("groupId") String groupId, Callback<GroupUsers> callback);
+    @GET("groups/{groupId}/invited_users")
+    Call<GroupUsers> getInvitedUsers(@Path("groupId") String groupId);
 
     /**
      * Request the users list.
      *
-     * @param groupId  the group id
-     * @param callback the asynchronous callback.
+     * @param groupId the group id
      */
-    @GET("/groups/{groupId}/users")
-    void getUsers(@Path("groupId") String groupId, Callback<GroupUsers> callback);
+    @GET("groups/{groupId}/users")
+    Call<GroupUsers> getUsers(@Path("groupId") String groupId);
 
     /**
      * Request the rooms list.
      *
-     * @param groupId  the group id
-     * @param callback the asynchronous callback.
+     * @param groupId the group id
      */
-    @GET("/groups/{groupId}/rooms")
-    void getRooms(@Path("groupId") String groupId, Callback<GroupRooms> callback);
+    @GET("groups/{groupId}/rooms")
+    Call<GroupRooms> getRooms(@Path("groupId") String groupId);
 
     /**
      * Request a group summary
      *
-     * @param groupId  the group id
-     * @param callback the asynchronous callback.
+     * @param groupId the group id
      */
-    @GET("/groups/{groupId}/summary")
-    void getSummary(@Path("groupId") String groupId, Callback<GroupSummary> callback);
+    @GET("groups/{groupId}/summary")
+    Call<GroupSummary> getSummary(@Path("groupId") String groupId);
 
     /**
      * Accept an invitation in a group.
      *
-     * @param groupId  the group id
-     * @param params   the parameters
-     * @param callback the asynchronous callback
+     * @param groupId the group id
+     * @param params  the parameters
      */
-    @PUT("/groups/{groupId}/self/accept_invite")
-    void acceptInvitation(@Path("groupId") String groupId, @Body AcceptGroupInvitationParams params, Callback<Void> callback);
+    @PUT("groups/{groupId}/self/accept_invite")
+    Call<Void> acceptInvitation(@Path("groupId") String groupId, @Body AcceptGroupInvitationParams params);
 
     /**
      * Leave a group
      *
-     * @param groupId  the group id
-     * @param params   the parameters
-     * @param callback the asynchronous callback
+     * @param groupId the group id
+     * @param params  the parameters
      */
-    @PUT("/groups/{groupId}/self/leave")
-    void leave(@Path("groupId") String groupId, @Body LeaveGroupParams params, Callback<Void> callback);
+    @PUT("groups/{groupId}/self/leave")
+    Call<Void> leave(@Path("groupId") String groupId, @Body LeaveGroupParams params);
 
     /**
      * Update the publicity status.
      *
-     * @param groupId  the group id
-     * @param params   the parameters
-     * @param callback the asynchronous callback
+     * @param groupId the group id
+     * @param params  the parameters
      */
-    @PUT("/groups/{groupId}/self/update_publicity")
-    void updatePublicity(@Path("groupId") String groupId, @Body UpdatePubliciseParams params, Callback<Void> callback);
+    @PUT("groups/{groupId}/self/update_publicity")
+    Call<Void> updatePublicity(@Path("groupId") String groupId, @Body UpdatePubliciseParams params);
 
     /**
      * Request the joined group list.
-     *
-     * @param callback the asynchronous callback.
      */
-    @GET("/joined_groups")
-    void getJoinedGroupIds(Callback<GetGroupsResponse> callback);
+    @GET("joined_groups")
+    Call<GetGroupsResponse> getJoinedGroupIds();
 
     // NOT FEDERATED
     /**
      * Request the publicised groups for an user id.
      *
      * @param userId   the user id
-     * @param callback the asynchronous callback.
      */
-    //@GET("/publicised_groups/{userId}")
-    //void getUserPublicisedGroups(@Path("userId") String userId, Callback<GetUserPublicisedGroupsResponse> callback);
+    //@GET("publicised_groups/{userId}")
+    //Call<GetUserPublicisedGroupsResponse> getUserPublicisedGroups(@Path("userId") String userId);
 
     /**
      * Request the publicised groups for user ids.
      *
-     * @param params   the request params
-     * @param callback the asynchronous callback
+     * @param params the request params
      */
-    @POST("/publicised_groups")
-    void getPublicisedGroups(@Body Map<String, List<String>> params, Callback<GetPublicisedGroupsResponse> callback);
+    @POST("publicised_groups")
+    Call<GetPublicisedGroupsResponse> getPublicisedGroups(@Body Map<String, List<String>> params);
 }

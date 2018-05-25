@@ -17,11 +17,14 @@ package org.matrix.androidsdk.rest.model;
 
 import android.text.TextUtils;
 
+import com.google.gson.annotations.SerializedName;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import retrofit.mime.TypedInput;
+import okhttp3.MediaType;
+import okhttp3.ResponseBody;
 
 /**
  * Represents a standard error response.
@@ -49,6 +52,8 @@ public class MatrixError implements java.io.Serializable {
     public static final String SERVER_NOT_TRUSTED = "M_SERVER_NOT_TRUSTED";
     public static final String TOO_LARGE = "M_TOO_LARGE";
 
+    public static final String M_CONSENT_NOT_GIVEN = "M_CONSENT_NOT_GIVEN";
+
     // custom ones
     public static final String NOT_SUPPORTED = "M_NOT_SUPPORTED";
 
@@ -62,12 +67,15 @@ public class MatrixError implements java.io.Serializable {
     public String error;
     public Integer retry_after_ms;
 
+    @SerializedName("consent_uri")
+    public String consentUri;
+
     // extracted from the error response
     public Integer mStatus;
-    public String mReason;
-    public TypedInput mErrorBody;
+    public String  mReason;
+    public ResponseBody mErrorBody;
     public String mErrorBodyAsString;
-    public String mErrorBodyMimeType;
+    public MediaType mErrorBodyMimeType;
 
     /**
      * Default creator

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,23 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest.api;
 
-import org.matrix.androidsdk.rest.model.User;
+package org.matrix.androidsdk.rest.model;
 
-import retrofit2.Call;
-import retrofit2.http.GET;
-import retrofit2.http.Path;
+public class DeactivateAccountParams {
 
-/**
- * The presence REST API.
- */
-public interface PresenceApi {
-    /**
-     * Get a user's presence state.
-     *
-     * @param userId the user id
-     */
-    @GET("presence/{userId}/status")
-    Call<User> presenceStatus(@Path("userId") String userId);
+    // Auth params
+    public AuthParams auth;
+
+    // Set to true to erase all data of the account
+    public boolean erase;
 }

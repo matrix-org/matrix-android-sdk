@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,6 +53,11 @@ public class IncomingRoomKeyRequest implements Serializable {
      * The runnable to call to accept to share the keys
      */
     public transient Runnable mShare;
+
+    /**
+     * The runnable to call to ignore the key share request.
+     */
+    public transient Runnable mIgnore;
 
     /**
      * Constructor
