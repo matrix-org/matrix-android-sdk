@@ -124,6 +124,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
          * @param error the crypto error
          */
         void onUnknownDevices(Event event, MXCryptoError error);
+
+        /**
+         * An event sending failed because of consent not given
+         *
+         * @param event       the event
+         * @param matrixError the MatrixError (contains message text and URL)
+         */
+        void onConsentNotGiven(Event event, MatrixError matrixError);
     }
 
     // scroll listener
@@ -966,6 +974,22 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
+     * Warns that a message sending failed because user consent has not been given.
+     *
+     * @param event       the event
+     * @param matrixError the MatrixError
+     */
+    private void onConsentNotGiven(Event event, MatrixError matrixError) {
+        if (null != mEventSendingListener) {
+            try {
+                mEventSendingListener.onConsentNotGiven(event, matrixError);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "onConsentNotGiven failed " + e.getMessage());
+            }
+        }
+    }
+
+    /**
      * Add a media item in the room.
      */
     private void add(final RoomMediaMessage roomMediaMessage) {
@@ -1023,13 +1047,21 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                 @Override
                 public void onMatrixError(final MatrixError e) {
-                    // do not display toast if the sending failed because of unknown deviced (e2e issue)
+                    // do not display toast if the sending failed because of unknown device (e2e issue)
                     if (event.mSentState == Event.SentState.FAILED_UNKNOWN_DEVICES) {
                         getUiHandler().post(new Runnable() {
                             @Override
                             public void run() {
                                 mAdapter.notifyDataSetChanged();
                                 onUnknownDevices(event, (MXCryptoError) e);
+                            }
+                        });
+                    } else if (MatrixError.M_CONSENT_NOT_GIVEN.equals(e.errcode)) {
+                        getUiHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mAdapter.notifyDataSetChanged();
+                                onConsentNotGiven(event, e);
                             }
                         });
                     } else {
