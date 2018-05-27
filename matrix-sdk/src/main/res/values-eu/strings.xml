@@ -66,4 +66,6 @@
 
 <string name="summary_user_sent_sticker">%1$s erabiltzaileak eranskailu bat bidali du.</string>
 
+    <string name="message_reply_to_prefix">Honi erantzunez</string>
+
     </resources>
