@@ -56,4 +56,15 @@
     <string name="notice_requested_voip_conference">%1$s bað um VoIP-símafund</string>
     <string name="notice_room_name_removed">%1$s fjarlægði heiti spjallrásar</string>
     <string name="notice_room_topic_removed">%1$s fjarlægði umfjöllunarefni spjallrásar</string>
+    <string name="notice_made_future_room_visibility">%1$s gerði ferilskrá spjallrásar héðan í frá sýnilega fyrir %2$s</string>
+    <string name="notice_event_redacted">"ritstýrði %1$s "</string>
+    <string name="notice_profile_change_redacted">%1$s uppfærði notandasniðið sitt %2$s</string>
+    <string name="notice_room_third_party_invite">%1$s sendi boð til %2$s um þátttöku í spjallrásinni</string>
+    <string name="notice_room_third_party_registered_invite">%1$s samþykkti boð um að taka þátt í %2$s</string>
+
+    <string name="notice_crypto_error_unkwown_inbound_session_id">Tæki sendandans hefur ekki sent okkur dulritunarlyklana fyrir þessi skilaboð.</string>
+
+    <string name="could_not_redact">Gat ekki ritstýrt</string>
+    <string name="room_error_join_failed_empty_room">Ekki er í augnablikinu hægt að taka aftur þátt í spjallrás sem er tóm.</string>
+
     </resources>
