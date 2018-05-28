@@ -29,7 +29,6 @@ import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 import java.util.Map;
 
 import retrofit2.Call;
-import retrofit2.Callback;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
@@ -78,7 +77,7 @@ public interface EventsApi {
      *
      * @param searchUsersParams the search params.
      */
-    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "/user_directory/search")
+    @POST(RestClient.URI_API_PREFIX_PATH_R0 + "user_directory/search")
     Call<SearchUsersRequestResponse> searchUsers(@Body SearchUsersParams searchUsersParams);
 
     /**
@@ -87,6 +86,6 @@ public interface EventsApi {
      * @param url      the URL
      * @param ts       the ts
      */
-    @GET(RestClient.URI_API_PREFIX_PATH_MEDIA_R0 + "/preview_url")
+    @GET(RestClient.URI_API_PREFIX_PATH_MEDIA_R0 + "preview_url")
     Call<Map<String, Object>> getURLPreview(@Query("url") String url, @Query("ts") long ts);
 }
