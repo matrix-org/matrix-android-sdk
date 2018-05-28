@@ -1,6 +1,8 @@
 Changes to Matrix Android SDK in 0.9.5 (2018-XX-XX)
 =======================================================
 
+Bugfix
+ - Fix regression on URL preview, along with regression on searching user. (vector-im/riot-android#2264)
 
 
 
