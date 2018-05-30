@@ -2077,6 +2077,45 @@ public class MXSession {
     }
 
     /**
+     * Deactivate the account.
+     *
+     * @param context       the application context
+     * @param type          type of authentication
+     * @param userId        current user id
+     * @param userPassword  current password
+     * @param eraseUserData true to also erase all the user data
+     * @param callback      the success and failure callback
+     */
+    public void deactivateAccount(final Context context,
+                                  final String type,
+                                  final String userId,
+                                  final String userPassword,
+                                  final boolean eraseUserData,
+                                  final ApiCallback<Void> callback) {
+        mProfileRestClient.deactivateAccount(type, userId, userPassword, eraseUserData, new SimpleApiCallback<Void>(callback) {
+
+            @Override
+            public void onSuccess(Void info) {
+                Log.e(LOG_TAG, "## deactivateAccount() : succeed -> clearing the application data ");
+
+                // Clear crypto data
+                // For security and because it will be no more useful as we will get a new device id
+                // on the next log in
+                enableCrypto(false, null);
+
+                clear(context, new SimpleApiCallback<Void>(callback) {
+                    @Override
+                    public void onSuccess(Void info) {
+                        if (null != callback) {
+                            callback.onSuccess(null);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    /**
      * Update the URL preview status by default
      *
      * @param status   the status
