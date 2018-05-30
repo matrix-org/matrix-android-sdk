@@ -2081,18 +2081,16 @@ public class MXSession {
      *
      * @param context       the application context
      * @param type          type of authentication
-     * @param userId        current user id
      * @param userPassword  current password
      * @param eraseUserData true to also erase all the user data
      * @param callback      the success and failure callback
      */
     public void deactivateAccount(final Context context,
                                   final String type,
-                                  final String userId,
                                   final String userPassword,
                                   final boolean eraseUserData,
                                   final ApiCallback<Void> callback) {
-        mProfileRestClient.deactivateAccount(type, userId, userPassword, eraseUserData, new SimpleApiCallback<Void>(callback) {
+        mProfileRestClient.deactivateAccount(type, getMyUserId(), userPassword, eraseUserData, new SimpleApiCallback<Void>(callback) {
 
             @Override
             public void onSuccess(Void info) {
