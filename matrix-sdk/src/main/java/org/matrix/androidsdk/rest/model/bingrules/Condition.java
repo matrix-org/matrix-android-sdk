@@ -1,6 +1,7 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -32,7 +33,7 @@ public class Condition {
 
     /* 'is': A decimal integer optionally prefixed by one of, '==', '<', '>', '>=' or '<='.
         A prefix of '<' matches rooms where the member count is strictly less than the given number and so forth. If no prefix is present, this matches rooms where the member count is exactly equal to the given number (ie. the same as '==').
-    */
+     */
     public static final String KIND_ROOM_MEMBER_COUNT = "room_member_count";
 
     /* */

@@ -1,7 +1,8 @@
 /*
  * Copyright 2016 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -1565,7 +1566,7 @@ public class EventTimeline {
 
                 // Check whether the current room state depends on this redacted event.
                 boolean isFound = false;
-                for(int index = 0; index < stateEvents.size(); index++) {
+                for (int index = 0; index < stateEvents.size(); index++) {
                     Event stateEvent = stateEvents.get(index);
 
                     if (TextUtils.equals(stateEvent.eventId, eventId)) {

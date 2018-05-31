@@ -218,7 +218,7 @@ public class EventDisplay {
                         // BMA re-enable <ol> and <li> support (https://github.com/vector-im/riot-android/issues/2184)
                         if (!TextUtils.isEmpty(htmlBody)) {
                             // TODO This call may be quite long, we should cache its result
-                            if(mHtmlToolbox != null) {
+                            if (mHtmlToolbox != null) {
                                 text = Html.fromHtml(htmlBody, mHtmlToolbox.getImageGetter(), mHtmlToolbox.getTagHandler(htmlBody));
                             } else {
                                 text = Html.fromHtml(htmlBody);
