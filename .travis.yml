@@ -39,4 +39,6 @@ cache:
     - $HOME/.android/build-cache
 
 # Just build the project for now
-script: ./gradlew clean lintRelease test assembleRelease --stacktrace
+script:
+   - ./gradlew clean lintRelease test assembleRelease --stacktrace
+   - ./tools/check/check_code_quality.sh
