@@ -57,7 +57,7 @@ public class RestClientTest {
                     response = RetrofitUtils.createJsonResponse(BASE_URL + PATH, 200, json);
                 }
                 catch (Exception e) {
-                    assertTrue("Exception thrown: "+e, false);
+                    Assert.assertTrue("Exception thrown: "+e, false);
                 }
                 callback.success(publicRoomsResponse, response);
                 return null;

@@ -3,15 +3,13 @@ package org.matrix.androidsdk;
 import android.support.test.runner.AndroidJUnit4;
 import android.text.TextUtils;
 
+import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.junit.runners.MethodSorters;
 import org.matrix.androidsdk.crypto.MXMegolmExportEncryption;
-
-import static org.junit.Assert.assertTrue;
-
 
 /**
  * Unit tests ExportEncryptionTest.
@@ -32,7 +30,7 @@ public class ExportEncryptionTest {
             failed = true;
         }
 
-        assertTrue(failed);
+        Assert.assertTrue(failed);
     }
 
     @Test
@@ -47,7 +45,7 @@ public class ExportEncryptionTest {
             failed = true;
         }
 
-        assertTrue(failed);
+        Assert.assertTrue(failed);
     }
 
     @Test
@@ -65,7 +63,7 @@ public class ExportEncryptionTest {
             failed = true;
         }
 
-        assertTrue(failed);
+        Assert.assertTrue(failed);
     }
 
     @Test
@@ -78,10 +76,10 @@ public class ExportEncryptionTest {
         try {
             decodedString = MXMegolmExportEncryption.decryptMegolmKeyFile(input.getBytes("UTF-8"), password);
         } catch (Exception e) {
-            assertTrue("## checkExportDecrypt1() failed : " + e.getMessage(), false);
+            Assert.assertTrue("## checkExportDecrypt1() failed : " + e.getMessage(), false);
         }
 
-        assertTrue("## checkExportDecrypt1() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
+        Assert.assertTrue("## checkExportDecrypt1() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
     }
 
     @Test
@@ -94,10 +92,10 @@ public class ExportEncryptionTest {
         try {
             decodedString = MXMegolmExportEncryption.decryptMegolmKeyFile(input.getBytes("UTF-8"), password);
         } catch (Exception e) {
-            assertTrue("## checkExportDecrypt2() failed : " + e.getMessage(), false);
+            Assert.assertTrue("## checkExportDecrypt2() failed : " + e.getMessage(), false);
         }
 
-        assertTrue("## checkExportDecrypt2() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
+        Assert.assertTrue("## checkExportDecrypt2() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
     }
 
     @Test
@@ -110,10 +108,10 @@ public class ExportEncryptionTest {
         try {
             decodedString = MXMegolmExportEncryption.decryptMegolmKeyFile(input.getBytes("UTF-8"), password);
         } catch (Exception e) {
-            assertTrue("## checkExportDecrypt3() failed : " + e.getMessage(), false);
+            Assert.assertTrue("## checkExportDecrypt3() failed : " + e.getMessage(), false);
         }
 
-        assertTrue("## checkExportDecrypt3() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
+        Assert.assertTrue("## checkExportDecrypt3() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
     }
 
     @Test
@@ -125,10 +123,10 @@ public class ExportEncryptionTest {
         try {
             decodedString = MXMegolmExportEncryption.decryptMegolmKeyFile(MXMegolmExportEncryption.encryptMegolmKeyFile(expectedString, password, 1000), password);
         } catch (Exception e) {
-            assertTrue("## checkExportEncrypt1() failed : " + e.getMessage(), false);
+            Assert.assertTrue("## checkExportEncrypt1() failed : " + e.getMessage(), false);
         }
 
-        assertTrue("## checkExportEncrypt1() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
+        Assert.assertTrue("## checkExportEncrypt1() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
     }
 
     @Test
@@ -140,10 +138,10 @@ public class ExportEncryptionTest {
         try {
             decodedString = MXMegolmExportEncryption.decryptMegolmKeyFile(MXMegolmExportEncryption.encryptMegolmKeyFile(expectedString, password, 1000), password);
         } catch (Exception e) {
-            assertTrue("## checkExportEncrypt2() failed : " + e.getMessage(), false);
+            Assert.assertTrue("## checkExportEncrypt2() failed : " + e.getMessage(), false);
         }
 
-        assertTrue("## checkExportEncrypt2() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
+        Assert.assertTrue("## checkExportEncrypt2() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
     }
 
     @Test
@@ -155,10 +153,10 @@ public class ExportEncryptionTest {
         try {
             decodedString = MXMegolmExportEncryption.decryptMegolmKeyFile(MXMegolmExportEncryption.encryptMegolmKeyFile(expectedString, password, 1000), password);
         } catch (Exception e) {
-            assertTrue("## checkExportEncrypt3() failed : " + e.getMessage(), false);
+            Assert.assertTrue("## checkExportEncrypt3() failed : " + e.getMessage(), false);
         }
 
-        assertTrue("## checkExportEncrypt3() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
+        Assert.assertTrue("## checkExportEncrypt3() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
     }
 
     @Test
@@ -170,9 +168,9 @@ public class ExportEncryptionTest {
         try {
             decodedString = MXMegolmExportEncryption.decryptMegolmKeyFile(MXMegolmExportEncryption.encryptMegolmKeyFile(expectedString, password, 1000), password);
         } catch (Exception e) {
-            assertTrue("## checkExportEncrypt4() failed : " + e.getMessage(), false);
+            Assert.assertTrue("## checkExportEncrypt4() failed : " + e.getMessage(), false);
         }
 
-        assertTrue("## checkExportEncrypt4() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
+        Assert.assertTrue("## checkExportEncrypt4() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
     }
 }

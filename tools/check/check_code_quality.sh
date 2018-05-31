@@ -3,7 +3,9 @@
 echo
 echo "Search for forbidden patterns in code..."
 
-./tools/check/search_forbidden_strings.pl ./tools/check/forbidden_strings_in_code.txt ./matrix-sdk/src/main/java
+./tools/check/search_forbidden_strings.pl ./tools/check/forbidden_strings_in_code.txt \
+    ./matrix-sdk/src/main/java \
+    ./matrix-sdk/src/test/java
 
 resultForbiddenStringInCode=$?
 

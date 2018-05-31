@@ -5,6 +5,7 @@ import android.support.test.runner.AndroidJUnit4;
 import android.text.TextUtils;
 import android.util.Base64;
 
+import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -17,9 +18,6 @@ import org.matrix.androidsdk.rest.model.crypto.EncryptedFileKey;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
-
-import static org.junit.Assert.assertTrue;
-
 
 /**
  * Unit tests AttachmentEncryptionTest.
@@ -42,7 +40,7 @@ public class AttachmentEncryptionTest {
 
         InputStream decryptedStream = MXEncryptedAttachments.decryptAttachment(memoryFile.getInputStream(), encryptedFileInfo);
 
-        assertTrue(null != decryptedStream);
+        Assert.assertTrue(null != decryptedStream);
 
         byte[] buffer = new byte[100];
 
@@ -67,7 +65,7 @@ public class AttachmentEncryptionTest {
 
         encryptedFileInfo.iv = "AAAAAAAAAAAAAAAAAAAAAA";
 
-        assertTrue(TextUtils.equals(checkDecryption("", encryptedFileInfo), ""));
+        Assert.assertTrue(TextUtils.equals(checkDecryption("", encryptedFileInfo), ""));
     }
 
     @Test
@@ -86,7 +84,7 @@ public class AttachmentEncryptionTest {
 
         encryptedFileInfo.iv = "//////////8AAAAAAAAAAA";
 
-        assertTrue(TextUtils.equals(checkDecryption("5xJZTt5cQicm+9f4", encryptedFileInfo), "SGVsbG8sIFdvcmxk"));
+        Assert.assertTrue(TextUtils.equals(checkDecryption("5xJZTt5cQicm+9f4", encryptedFileInfo), "SGVsbG8sIFdvcmxk"));
     }
 
     @Test
@@ -105,7 +103,7 @@ public class AttachmentEncryptionTest {
 
         encryptedFileInfo.iv = "//////////8AAAAAAAAAAA";
 
-        assertTrue(TextUtils.equals(checkDecryption(
+        Assert.assertTrue(TextUtils.equals(checkDecryption(
                 "zhtFStAeFx0s+9L/sSQO+WQMtldqYEHqTxMduJrCIpnkyer09kxJJuA4K+adQE4w+7jZe/vR9kIcqj9rOhDR8Q",
                 encryptedFileInfo),
                 "YWxwaGFudW1lcmljYWxseWFscGhhbnVtZXJpY2FsbHlhbHBoYW51bWVyaWNhbGx5YWxwaGFudW1lcmljYWxseQ"));
@@ -127,7 +125,7 @@ public class AttachmentEncryptionTest {
 
         encryptedFileInfo.iv = "/////////////////////w";
 
-        assertTrue(!TextUtils.equals(checkDecryption(
+        Assert.assertTrue(!TextUtils.equals(checkDecryption(
                 "tJVNBVJ/vl36UQt4Y5e5m84bRUrQHhcdLPvS/7EkDvlkDLZXamBB6k8THbiawiKZ5Mnq9PZMSSbgOCvmnUBOMA",
                 encryptedFileInfo),
                 "YWxwaGFudW1lcmljYWxseWFscGhhbnVtZXJpY2FsbHlhbHBoYW51bWVyaWNhbGx5YWxwaGFudW1lcmljYWxseQ"));

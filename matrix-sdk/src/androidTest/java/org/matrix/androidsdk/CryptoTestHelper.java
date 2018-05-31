@@ -19,6 +19,7 @@ package org.matrix.androidsdk;
 import android.content.Context;
 import android.net.Uri;
 
+import org.junit.Assert;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXFileStore;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -33,8 +34,6 @@ import org.matrix.androidsdk.util.JsonUtils;
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.assertTrue;
 
 public class CryptoTestHelper {
     public static final String TESTS_HOME_SERVER_URL = "http://10.0.2.2:8080";
@@ -101,7 +100,7 @@ public class CryptoTestHelper {
 
         String session = (String)params.get("session");
 
-        assertTrue(null != session);
+        Assert.assertTrue(null != session);
 
         registrationParams.username = userName;
         registrationParams.password = password;
@@ -139,7 +138,7 @@ public class CryptoTestHelper {
 
         Credentials credentials = (Credentials)params.get("credentials");
 
-        assertTrue (null != credentials);
+        Assert.assertTrue (null != credentials);
 
         hs.setCredentials(credentials);
 
@@ -166,7 +165,7 @@ public class CryptoTestHelper {
 
         mLock.await(100000, TimeUnit.MILLISECONDS);
 
-        assertTrue(params.containsKey("isInit"));
+        Assert.assertTrue(params.containsKey("isInit"));
 
         return mxSession;
     }
@@ -215,7 +214,7 @@ public class CryptoTestHelper {
 
         Credentials credentials = (Credentials)params.get("credentials");
 
-        assertTrue (null != credentials);
+        Assert.assertTrue (null != credentials);
 
         hs.setCredentials(credentials);
 
@@ -245,8 +244,8 @@ public class CryptoTestHelper {
 
         mLock.await(10000, TimeUnit.MILLISECONDS);
 
-        assertTrue(params.containsKey("isInit"));
-        assertTrue(params.containsKey("onCryptoSyncComplete"));
+        Assert.assertTrue(params.containsKey("isInit"));
+        Assert.assertTrue(params.containsKey("onCryptoSyncComplete"));
 
         return mxSession;
     }
