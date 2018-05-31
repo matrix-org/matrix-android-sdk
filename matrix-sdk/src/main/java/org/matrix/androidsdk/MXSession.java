@@ -559,22 +559,22 @@ public class MXSession {
 
     protected void setEventsApiClient(EventsRestClient eventsRestClient) {
         checkIfAlive();
-        this.mEventsRestClient = eventsRestClient;
+        mEventsRestClient = eventsRestClient;
     }
 
     protected void setProfileApiClient(ProfileRestClient profileRestClient) {
         checkIfAlive();
-        this.mProfileRestClient = profileRestClient;
+        mProfileRestClient = profileRestClient;
     }
 
     protected void setPresenceApiClient(PresenceRestClient presenceRestClient) {
         checkIfAlive();
-        this.mPresenceRestClient = presenceRestClient;
+        mPresenceRestClient = presenceRestClient;
     }
 
     protected void setRoomsApiClient(RoomsRestClient roomsRestClient) {
         checkIfAlive();
-        this.mRoomsRestClient = roomsRestClient;
+        mRoomsRestClient = roomsRestClient;
     }
 
     public MXLatestChatMessageCache getLatestChatMessageCache() {
@@ -1035,7 +1035,7 @@ public class MXSession {
      */
     public void startEventStream(String initialToken) {
         checkIfAlive();
-        startEventStream(null, this.mNetworkConnectivityReceiver, initialToken);
+        startEventStream(null, mNetworkConnectivityReceiver, initialToken);
     }
 
     /**

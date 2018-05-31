@@ -584,7 +584,7 @@ public class RoomState implements Externalizable {
         copy.setPowerLevels((powerLevels == null) ? null : powerLevels.deepCopy());
         copy.aliases = (aliases == null) ? null : new ArrayList<>(aliases);
         copy.mAliasesByDomain = new HashMap<>(mAliasesByDomain);
-        copy.alias = this.alias;
+        copy.alias = alias;
         copy.name = name;
         copy.topic = topic;
         copy.url = url;

@@ -67,7 +67,7 @@ public class PasswordLoginParams extends LoginParams {
         identifier.put(IDENTIFIER_KEY_TYPE, IDENTIFIER_KEY_TYPE_USER);
         identifier.put(IDENTIFIER_KEY_USER, username);
         // For backward compatibility
-        this.user = username;
+        user = username;
 
         setOtherData(password);
     }
@@ -114,8 +114,8 @@ public class PasswordLoginParams extends LoginParams {
      */
     private void setOtherData(@NonNull final String password) {
         this.password = password;
-        this.type = LoginRestClient.LOGIN_FLOW_TYPE_PASSWORD;
-        this.initial_device_display_name = Build.MODEL.trim();
+        type = LoginRestClient.LOGIN_FLOW_TYPE_PASSWORD;
+        initial_device_display_name = Build.MODEL.trim();
     }
 
     /**
@@ -125,9 +125,9 @@ public class PasswordLoginParams extends LoginParams {
      */
     public void setDeviceName(String deviceName) {
         if ((null != deviceName) && !TextUtils.isEmpty(deviceName.trim())) {
-            this.initial_device_display_name = deviceName.trim();
+            initial_device_display_name = deviceName.trim();
         } else {
-            this.initial_device_display_name = Build.MODEL.trim();
+            initial_device_display_name = Build.MODEL.trim();
         }
     }
 }

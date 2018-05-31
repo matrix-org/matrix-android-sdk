@@ -101,11 +101,11 @@ public class ThreePid implements java.io.Serializable {
         this.medium = medium;
         this.emailAddress = emailAddress;
 
-        if (TextUtils.equals(MEDIUM_EMAIL, this.medium) && !TextUtils.isEmpty(emailAddress)) {
-            this.emailAddress = this.emailAddress.toLowerCase();
+        if (TextUtils.equals(MEDIUM_EMAIL, medium) && !TextUtils.isEmpty(emailAddress)) {
+            this.emailAddress = emailAddress.toLowerCase();
         }
 
-        this.clientSecret = UUID.randomUUID().toString();
+        clientSecret = UUID.randomUUID().toString();
     }
 
     /**

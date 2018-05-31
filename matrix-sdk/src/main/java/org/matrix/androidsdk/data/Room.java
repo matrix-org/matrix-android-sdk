@@ -402,11 +402,11 @@ public class Room {
     }
 
     public void setAccountData(RoomAccountData accountData) {
-        this.mAccountData = accountData;
+        mAccountData = accountData;
     }
 
     public RoomAccountData getAccountData() {
-        return this.mAccountData;
+        return mAccountData;
     }
 
     public RoomState getState() {
@@ -532,7 +532,7 @@ public class Room {
     }
 
     public String getTopic() {
-        return this.getState().topic;
+        return getState().topic;
     }
 
     public String getName(String selfUserId) {
@@ -2722,14 +2722,14 @@ public class Room {
      * @param callback the callback for when done
      */
     public void leave(final ApiCallback<Void> callback) {
-        this.mIsLeaving = true;
+        mIsLeaving = true;
         mDataHandler.onRoomInternalUpdate(getRoomId());
 
         mDataHandler.getDataRetriever().getRoomsRestClient().leaveRoom(getRoomId(), new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 if (mDataHandler.isAlive()) {
-                    Room.this.mIsLeaving = false;
+                    mIsLeaving = false;
 
                     // delete references to the room
                     mDataHandler.deleteRoom(getRoomId());
@@ -2751,7 +2751,7 @@ public class Room {
 
             @Override
             public void onNetworkError(Exception e) {
-                Room.this.mIsLeaving = false;
+                mIsLeaving = false;
 
                 try {
                     callback.onNetworkError(e);
@@ -2769,7 +2769,7 @@ public class Room {
                 if (e.mStatus == 404) {
                     onSuccess(null);
                 } else {
-                    Room.this.mIsLeaving = false;
+                    mIsLeaving = false;
 
                     try {
                         callback.onMatrixError(e);
@@ -2783,7 +2783,7 @@ public class Room {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Room.this.mIsLeaving = false;
+                mIsLeaving = false;
 
                 try {
                     callback.onUnexpectedError(e);

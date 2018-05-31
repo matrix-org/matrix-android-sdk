@@ -95,11 +95,11 @@ public class RestAdapterCallback<T> implements Callback<T> {
             Log.d(LOG_TAG, "Trigger the event [" + description + "]");
         }
 
-        this.mEventDescription = description;
-        this.mIgnoreEventTimeLifeInOffline = ignoreEventTimeLifeOffline;
-        this.mApiCallback = apiCallback;
-        this.mRequestRetryCallBack = requestRetryCallBack;
-        this.mUnsentEventsManager = unsentEventsManager;
+        mEventDescription = description;
+        mIgnoreEventTimeLifeInOffline = ignoreEventTimeLifeOffline;
+        mApiCallback = apiCallback;
+        mRequestRetryCallBack = requestRetryCallBack;
+        mUnsentEventsManager = unsentEventsManager;
     }
 
     /**

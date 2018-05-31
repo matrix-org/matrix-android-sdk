@@ -420,7 +420,7 @@ public class EventTimeline {
             state.roomId = mRoomId;
             state.setDataHandler(mDataHandler);
 
-            this.mBackState = this.mState = state;
+            mBackState = mState = state;
         }
 
         if ((null != roomSync.state) && (null != roomSync.state.events) && (roomSync.state.events.size() > 0)) {
@@ -447,8 +447,8 @@ public class EventTimeline {
             // if it is an initial sync, the live state is initialized here
             // so the back state must also be initialized
             if (isRoomInitialSync) {
-                Log.d(LOG_TAG, "## handleJoinedRoomSync() : retrieve " + this.mState.getMembers().size() + " members for room " + mRoomId);
-                this.mBackState = this.mState.deepCopy();
+                Log.d(LOG_TAG, "## handleJoinedRoomSync() : retrieve " + mState.getMembers().size() + " members for room " + mRoomId);
+                mBackState = mState.deepCopy();
             }
         }
 

@@ -1139,7 +1139,7 @@ public class MXMediasCache {
                 task.addDownloadListener(new MXMediaDownloadListener() {
                     @Override
                     public void onDownloadComplete(String downloadId) {
-                        MXMediasCache.this.launchSuspendedTask();
+                        launchSuspendedTask();
                     }
                 });
 

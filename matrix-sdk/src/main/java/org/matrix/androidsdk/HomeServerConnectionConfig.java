@@ -95,15 +95,15 @@ public class HomeServerConnectionConfig {
             }
         }
 
-        this.mHsUri = hsUri;
-        this.mIdentityServerUri = identityServerUri;
+        mHsUri = hsUri;
+        mIdentityServerUri = identityServerUri;
 
         if (null != allowedFingerprints) {
-            this.mAllowedFingerprints = allowedFingerprints;
+            mAllowedFingerprints = allowedFingerprints;
         }
 
-        this.mPin = pin;
-        this.mCredentials = credentials;
+        mPin = pin;
+        mCredentials = credentials;
     }
 
     /**
@@ -158,7 +158,7 @@ public class HomeServerConnectionConfig {
      * @param credentials the new credentials
      */
     public void setCredentials(Credentials credentials) {
-        this.mCredentials = credentials;
+        mCredentials = credentials;
     }
 
     /**

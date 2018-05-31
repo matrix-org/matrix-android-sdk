@@ -475,7 +475,7 @@ public class MXDataHandler implements IMXEventListener {
             mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
-                    MXDataHandler.this.onBingRulesUpdate();
+                    onBingRulesUpdate();
                 }
             });
         }
@@ -538,7 +538,7 @@ public class MXDataHandler implements IMXEventListener {
             mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
-                    MXDataHandler.this.onBingRulesUpdate();
+                    onBingRulesUpdate();
                 }
             });
         }
@@ -1228,7 +1228,7 @@ public class MXDataHandler implements IMXEventListener {
             }
 
             mStore.storeUser(user);
-            this.onPresenceUpdate(presenceEvent, user);
+            onPresenceUpdate(presenceEvent, user);
         }
     }
 
@@ -1258,7 +1258,7 @@ public class MXDataHandler implements IMXEventListener {
      */
     public void deleteRoom(String roomId) {
         // copy the room from a store to another one
-        Room r = this.getStore().getRoom(roomId);
+        Room r = getStore().getRoom(roomId);
 
         if (null != r) {
             if (mAreLeftRoomsSynced) {
@@ -1398,9 +1398,9 @@ public class MXDataHandler implements IMXEventListener {
                                 if (null != participantUserId) {
                                     // Prepare the updated dictionary.
                                     if (null == updatedDirectChatRoomsDict) {
-                                        if (null != this.getStore().getDirectChatRoomsDict()) {
+                                        if (null != getStore().getDirectChatRoomsDict()) {
                                             // Consider the current dictionary.
-                                            updatedDirectChatRoomsDict = new HashMap<>(this.getStore().getDirectChatRoomsDict());
+                                            updatedDirectChatRoomsDict = new HashMap<>(getStore().getDirectChatRoomsDict());
                                         } else {
                                             updatedDirectChatRoomsDict = new HashMap<>();
                                         }
@@ -1492,7 +1492,7 @@ public class MXDataHandler implements IMXEventListener {
 
                         if (!TextUtils.equals(membership, RoomMember.MEMBERSHIP_KICK) && !TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN)) {
                             // ensure that the room data are properly deleted
-                            this.getStore().deleteRoom(roomId);
+                            getStore().deleteRoom(roomId);
                             onLeaveRoom(roomId);
                         } else {
                             onRoomKick(roomId);
@@ -2793,8 +2793,8 @@ public class MXDataHandler implements IMXEventListener {
         final String mParticipantUserId;
 
         public RoomIdsListRetroCompat(String aParticipantUserId, String aRoomId) {
-            this.mParticipantUserId = aParticipantUserId;
-            this.mRoomId = aRoomId;
+            mParticipantUserId = aParticipantUserId;
+            mRoomId = aRoomId;
         }
     }
 

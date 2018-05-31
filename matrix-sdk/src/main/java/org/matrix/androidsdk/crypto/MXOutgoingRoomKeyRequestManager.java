@@ -180,7 +180,7 @@ public class MXOutgoingRoomKeyRequestManager {
     // there are no more requests, or there is an error (in which case, the
     // timer will be restarted before the promise resolves).
     private void sendOutgoingRoomKeyRequests() {
-        if (!this.mClientRunning) {
+        if (!mClientRunning) {
             mSendOutgoingRoomKeyRequestsRunning = false;
             return;
         }

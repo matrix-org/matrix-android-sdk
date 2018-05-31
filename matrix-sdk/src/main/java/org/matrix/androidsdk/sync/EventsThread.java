@@ -125,7 +125,7 @@ public class EventsThread extends Thread {
         mEventsRestClient = apiClient;
         mListener = listener;
         mCurrentToken = initialToken;
-        mSyncObjectByInstance.put(this.toString(), this);
+        mSyncObjectByInstance.put(toString(), this);
         mAlarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         mPowerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
     }
@@ -498,7 +498,7 @@ public class EventsThread extends Thread {
                 Log.d(LOG_TAG, "startSync : start a delay timer ");
 
                 Intent intent = new Intent(mContext, SyncDelayReceiver.class);
-                intent.putExtra(SyncDelayReceiver.EXTRA_INSTANCE_ID, this.toString());
+                intent.putExtra(SyncDelayReceiver.EXTRA_INSTANCE_ID, toString());
                 mPendingDelayedIntent = PendingIntent.getBroadcast(mContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
                 long futureInMillis = SystemClock.elapsedRealtime() + mRequestDelayMs;

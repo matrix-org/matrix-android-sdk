@@ -45,8 +45,8 @@ public class ResourceUtils {
         public String mMimeType;
 
         public Resource(InputStream contentStream, String mimeType) {
-            this.mContentStream = contentStream;
-            this.mMimeType = mimeType;
+            mContentStream = contentStream;
+            mMimeType = mimeType;
         }
 
         /**

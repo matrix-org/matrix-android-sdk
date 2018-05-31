@@ -118,7 +118,7 @@ public class UnsentEventsManager {
                     @Override
                     public void run() {
                         try {
-                            UnsentEventSnapshot.this.mIsResending = true;
+                            mIsResending = true;
 
                             if (null != mEventDescription) {
                                 Log.d(LOG_TAG, "Resend [" + mEventDescription + "]");
@@ -126,7 +126,7 @@ public class UnsentEventsManager {
 
                             mRequestRetryCallBack.onRetry();
                         } catch (Throwable throwable) {
-                            UnsentEventSnapshot.this.mIsResending = false;
+                            mIsResending = false;
                             Log.e(LOG_TAG, "## resendEventAfter() : " + mEventDescription + " + onRetry failed " + throwable.getMessage());
                         }
                     }
