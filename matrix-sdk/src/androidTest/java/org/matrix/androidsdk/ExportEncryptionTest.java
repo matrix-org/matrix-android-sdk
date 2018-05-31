@@ -1,3 +1,19 @@
+/*
+ * Copyright 2018 New Vector Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.matrix.androidsdk;
 
 import android.support.test.runner.AndroidJUnit4;
@@ -7,7 +23,6 @@ import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
 import org.junit.runners.MethodSorters;
 import org.matrix.androidsdk.crypto.MXMegolmExportEncryption;
 
@@ -69,7 +84,8 @@ public class ExportEncryptionTest {
     @Test
     public void checkExportDecrypt1() throws Exception {
         String password = "password";
-        String input =  "-----BEGIN MEGOLM SESSION DATA-----\nAXNhbHRzYWx0c2FsdHNhbHSIiIiIiIiIiIiIiIiIiIiIAAAACmIRUW2OjZ3L2l6j9h0lHlV3M2dx\ncissyYBxjsfsAndErh065A8=\n-----END MEGOLM SESSION DATA-----";
+        String input =  "-----BEGIN MEGOLM SESSION DATA-----\nAXNhbHRzYWx0c2FsdHNhbHSIiIiIiIiIiIiIiIiIiIiIAAAACmIRUW2OjZ3L2l6j9h0lHlV3M2dx\n" +
+                "cissyYBxjsfsAndErh065A8=\n-----END MEGOLM SESSION DATA-----";
         String expectedString = "plain";
 
         String decodedString = null;
@@ -79,13 +95,15 @@ public class ExportEncryptionTest {
             Assert.assertTrue("## checkExportDecrypt1() failed : " + e.getMessage(), false);
         }
 
-        Assert.assertTrue("## checkExportDecrypt1() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
+        Assert.assertTrue("## checkExportDecrypt1() : expectedString " + expectedString + " -- decodedString " + decodedString  ,
+                TextUtils.equals(expectedString, decodedString));
     }
 
     @Test
     public void checkExportDecrypt2() throws Exception {
         String password = "betterpassword";
-        String input =  "-----BEGIN MEGOLM SESSION DATA-----\nAW1vcmVzYWx0bW9yZXNhbHT//////////wAAAAAAAAAAAAAD6KyBpe1Niv5M5NPm4ZATsJo5nghk\nKYu63a0YQ5DRhUWEKk7CcMkrKnAUiZny\n-----END MEGOLM SESSION DATA-----";
+        String input =  "-----BEGIN MEGOLM SESSION DATA-----\nAW1vcmVzYWx0bW9yZXNhbHT//////////wAAAAAAAAAAAAAD6KyBpe1Niv5M5NPm4ZATsJo5nghk\n" +
+                "KYu63a0YQ5DRhUWEKk7CcMkrKnAUiZny\n-----END MEGOLM SESSION DATA-----";
         String expectedString = "Hello, World";
 
         String decodedString = null;
@@ -95,13 +113,15 @@ public class ExportEncryptionTest {
             Assert.assertTrue("## checkExportDecrypt2() failed : " + e.getMessage(), false);
         }
 
-        Assert.assertTrue("## checkExportDecrypt2() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
+        Assert.assertTrue("## checkExportDecrypt2() : expectedString " + expectedString + " -- decodedString " + decodedString  ,
+                TextUtils.equals(expectedString, decodedString));
     }
 
     @Test
     public void checkExportDecrypt3() throws Exception {
         String password = "SWORDFISH";
-        String input =  "-----BEGIN MEGOLM SESSION DATA-----\nAXllc3NhbHR5Z29vZG5lc3P//////////wAAAAAAAAAAAAAD6OIW+Je7gwvjd4kYrb+49gKCfExw\nMgJBMD4mrhLkmgAngwR1pHjbWXaoGybtiAYr0moQ93GrBQsCzPbvl82rZhaXO3iH5uHo/RCEpOqp\nPgg29363BGR+/Ripq/VCLKGNbw==\n-----END MEGOLM SESSION DATA-----";
+        String input =  "-----BEGIN MEGOLM SESSION DATA-----\nAXllc3NhbHR5Z29vZG5lc3P//////////wAAAAAAAAAAAAAD6OIW+Je7gwvjd4kYrb+49gKCfExw\n" +
+                "MgJBMD4mrhLkmgAngwR1pHjbWXaoGybtiAYr0moQ93GrBQsCzPbvl82rZhaXO3iH5uHo/RCEpOqp\nPgg29363BGR+/Ripq/VCLKGNbw==\n-----END MEGOLM SESSION DATA-----";
         String expectedString = "alphanumericallyalphanumericallyalphanumericallyalphanumerically";
 
         String decodedString = null;
@@ -111,7 +131,8 @@ public class ExportEncryptionTest {
             Assert.assertTrue("## checkExportDecrypt3() failed : " + e.getMessage(), false);
         }
 
-        Assert.assertTrue("## checkExportDecrypt3() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
+        Assert.assertTrue("## checkExportDecrypt3() : expectedString " + expectedString + " -- decodedString " + decodedString  ,
+                TextUtils.equals(expectedString, decodedString));
     }
 
     @Test
@@ -121,12 +142,14 @@ public class ExportEncryptionTest {
         String decodedString = null;
 
         try {
-            decodedString = MXMegolmExportEncryption.decryptMegolmKeyFile(MXMegolmExportEncryption.encryptMegolmKeyFile(expectedString, password, 1000), password);
+            decodedString = MXMegolmExportEncryption
+                    .decryptMegolmKeyFile(MXMegolmExportEncryption.encryptMegolmKeyFile(expectedString, password, 1000), password);
         } catch (Exception e) {
             Assert.assertTrue("## checkExportEncrypt1() failed : " + e.getMessage(), false);
         }
 
-        Assert.assertTrue("## checkExportEncrypt1() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
+        Assert.assertTrue("## checkExportEncrypt1() : expectedString " + expectedString
+                + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
     }
 
     @Test
@@ -136,12 +159,14 @@ public class ExportEncryptionTest {
         String decodedString = null;
 
         try {
-            decodedString = MXMegolmExportEncryption.decryptMegolmKeyFile(MXMegolmExportEncryption.encryptMegolmKeyFile(expectedString, password, 1000), password);
+            decodedString = MXMegolmExportEncryption
+                    .decryptMegolmKeyFile(MXMegolmExportEncryption.encryptMegolmKeyFile(expectedString, password, 1000), password);
         } catch (Exception e) {
             Assert.assertTrue("## checkExportEncrypt2() failed : " + e.getMessage(), false);
         }
 
-        Assert.assertTrue("## checkExportEncrypt2() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
+        Assert.assertTrue("## checkExportEncrypt2() : expectedString " + expectedString
+                + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
     }
 
     @Test
@@ -151,26 +176,31 @@ public class ExportEncryptionTest {
         String decodedString = null;
 
         try {
-            decodedString = MXMegolmExportEncryption.decryptMegolmKeyFile(MXMegolmExportEncryption.encryptMegolmKeyFile(expectedString, password, 1000), password);
+            decodedString = MXMegolmExportEncryption
+                    .decryptMegolmKeyFile(MXMegolmExportEncryption.encryptMegolmKeyFile(expectedString, password, 1000), password);
         } catch (Exception e) {
             Assert.assertTrue("## checkExportEncrypt3() failed : " + e.getMessage(), false);
         }
 
-        Assert.assertTrue("## checkExportEncrypt3() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
+        Assert.assertTrue("## checkExportEncrypt3() : expectedString " + expectedString
+                + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
     }
 
     @Test
     public void checkExportEncrypt4() throws Exception {
-        String password = "passwordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpassword";
+        String password = "passwordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpassword" +
+                "passwordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpassword";
         String expectedString = "alphanumericallyalphanumericallyalphanumericallyalphanumerically";
         String decodedString = null;
 
         try {
-            decodedString = MXMegolmExportEncryption.decryptMegolmKeyFile(MXMegolmExportEncryption.encryptMegolmKeyFile(expectedString, password, 1000), password);
+            decodedString = MXMegolmExportEncryption
+                    .decryptMegolmKeyFile(MXMegolmExportEncryption.encryptMegolmKeyFile(expectedString, password, 1000), password);
         } catch (Exception e) {
             Assert.assertTrue("## checkExportEncrypt4() failed : " + e.getMessage(), false);
         }
 
-        Assert.assertTrue("## checkExportEncrypt4() : expectedString " + expectedString + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
+        Assert.assertTrue("## checkExportEncrypt4() : expectedString " + expectedString
+                + " -- decodedString " + decodedString  ,TextUtils.equals(expectedString, decodedString));
     }
 }

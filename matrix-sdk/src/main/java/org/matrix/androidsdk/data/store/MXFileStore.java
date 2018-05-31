@@ -22,23 +22,22 @@ import android.content.Context;
 import android.os.HandlerThread;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.rest.model.group.Group;
-import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
-import org.matrix.androidsdk.util.Log;
-
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.group.Group;
+import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
 import org.matrix.androidsdk.util.ContentUtils;
+import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.MXOsHandler;
 
 import java.io.File;
@@ -431,7 +430,8 @@ public class MXFileStore extends MXMemoryStore {
                                                 Log.e(LOG_TAG, "loadSummaries : the room " + roomId + " does not exist");
                                             } else if (null == room.getMember(mCredentials.userId)) {
                                                 //succeed = false;
-                                                Log.e(LOG_TAG, "loadSummaries) : a summary exists for the roomId " + roomId + " but the user is not anymore a member");
+                                                Log.e(LOG_TAG, "loadSummaries) : a summary exists for the roomId "
+                                                        + roomId + " but the user is not anymore a member");
                                             }
                                         }
                                     }
@@ -1095,7 +1095,8 @@ public class MXFileStore extends MXMemoryStore {
                 ;
 
             if (startIndex > 0) {
-                Log.d(LOG_TAG, "## getSavedEveventsMap() : " + roomId + " reduce the number of messages " + eventsList.size() + " -> " + (eventsList.size() - startIndex));
+                Log.d(LOG_TAG, "## getSavedEveventsMap() : " + roomId + " reduce the number of messages " + eventsList.size()
+                        + " -> " + (eventsList.size() - startIndex));
             }
         }
 
@@ -1159,7 +1160,8 @@ public class MXFileStore extends MXMemoryStore {
                                     saveRoomMessages(roomId);
                                 }
 
-                                Log.d(LOG_TAG, "saveRoomsMessages : " + fRoomsToCommitForMessages.size() + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+                                Log.d(LOG_TAG, "saveRoomsMessages : " + fRoomsToCommitForMessages.size() + " rooms in "
+                                        + (System.currentTimeMillis() - start) + " ms");
                             }
                         }
                     });
@@ -1196,7 +1198,8 @@ public class MXFileStore extends MXMemoryStore {
                 }
 
                 if (events.size() > (2 * MAX_STORED_MESSAGES_COUNT)) {
-                    Log.d(LOG_TAG, "## loadRoomMessages() : the room " + roomId + " has " + events.size() + " stored events : we need to find a way to reduce it.");
+                    Log.d(LOG_TAG, "## loadRoomMessages() : the room " + roomId + " has " + events.size()
+                            + " stored events : we need to find a way to reduce it.");
                 }
 
                 // finalizes the deserialization
@@ -1444,7 +1447,8 @@ public class MXFileStore extends MXMemoryStore {
                                     saveRoomStateEvents(roomId);
                                 }
 
-                                Log.d(LOG_TAG, "saveRoomStatesEvents : " + fRoomsToCommitForStatesEvents.size() + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+                                Log.d(LOG_TAG, "saveRoomStatesEvents : " + fRoomsToCommitForStatesEvents.size() + " rooms in "
+                                 + (System.currentTimeMillis() - start) + " ms");
                             }
                         }
                     });
@@ -1585,7 +1589,8 @@ public class MXFileStore extends MXMemoryStore {
                                     saveRoomState(roomId);
                                 }
 
-                                Log.d(LOG_TAG, "saveRoomsState : " + fRoomsToCommitForStates.size() + " rooms in " + (System.currentTimeMillis() - start) + " ms");
+                                Log.d(LOG_TAG, "saveRoomsState : " + fRoomsToCommitForStates.size() + " rooms in "
+                                        + (System.currentTimeMillis() - start) + " ms");
                             }
                         }
                     });
@@ -1729,7 +1734,8 @@ public class MXFileStore extends MXMemoryStore {
                                     }
                                 }
 
-                                Log.d(LOG_TAG, "saveSummaries : " + fRoomsToCommitForAccountData.size() + " account data in " + (System.currentTimeMillis() - start) + " ms");
+                                Log.d(LOG_TAG, "saveSummaries : " + fRoomsToCommitForAccountData.size() + " account data in "
+                                        + (System.currentTimeMillis() - start) + " ms");
                             }
                         }
                     });
@@ -1881,7 +1887,8 @@ public class MXFileStore extends MXMemoryStore {
                                     }
                                 }
 
-                                Log.d(LOG_TAG, "saveSummaries : " + fRoomsToCommitForSummaries.size() + " summaries in " + (System.currentTimeMillis() - start) + " ms");
+                                Log.d(LOG_TAG, "saveSummaries : " + fRoomsToCommitForSummaries.size() + " summaries in "
+                                        + (System.currentTimeMillis() - start) + " ms");
                             }
                         }
                     });

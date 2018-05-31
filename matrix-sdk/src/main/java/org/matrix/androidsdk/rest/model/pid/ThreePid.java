@@ -1,6 +1,7 @@
 /*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -141,8 +142,10 @@ public class ThreePid implements java.io.Serializable {
      * @param isDuringRegistration true if it is added during a registration
      * @param callback             the callback when the operation is done
      */
-    public void requestEmailValidationToken(final ProfileRestClient restClient, final String nextLink,
-                                            final boolean isDuringRegistration, final ApiCallback<Void> callback) {
+    public void requestEmailValidationToken(final ProfileRestClient restClient,
+                                            final String nextLink,
+                                            final boolean isDuringRegistration,
+                                            final ApiCallback<Void> callback) {
         // sanity check
         if (null != restClient && mValidationState != AUTH_STATE_TOKEN_REQUESTED) {
 
@@ -151,7 +154,8 @@ public class ThreePid implements java.io.Serializable {
             }
 
             mValidationState = AUTH_STATE_TOKEN_REQUESTED;
-            restClient.requestEmailValidationToken(emailAddress, clientSecret, sendAttempt, nextLink, isDuringRegistration, new ApiCallback<RequestEmailValidationResponse>() {
+            restClient.requestEmailValidationToken(emailAddress, clientSecret, sendAttempt, nextLink, isDuringRegistration,
+                    new ApiCallback<RequestEmailValidationResponse>() {
 
                 @Override
                 public void onSuccess(RequestEmailValidationResponse requestEmailValidationResponse) {
@@ -208,7 +212,8 @@ public class ThreePid implements java.io.Serializable {
 
             mValidationState = AUTH_STATE_TOKEN_REQUESTED;
 
-            restClient.requestPhoneNumberValidationToken(phoneNumber, country, clientSecret, sendAttempt, isDuringRegistration, new ApiCallback<RequestPhoneNumberValidationResponse>() {
+            restClient.requestPhoneNumberValidationToken(phoneNumber, country, clientSecret, sendAttempt, isDuringRegistration,
+                    new ApiCallback<RequestPhoneNumberValidationResponse>() {
 
                 @Override
                 public void onSuccess(RequestPhoneNumberValidationResponse requestPhoneNumberValidationResponse) {

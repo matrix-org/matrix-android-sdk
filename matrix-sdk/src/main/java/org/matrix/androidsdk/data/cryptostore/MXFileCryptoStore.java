@@ -1,6 +1,7 @@
 /*
  * Copyright 2015 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,14 +24,13 @@ import android.text.TextUtils;
 
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.OutgoingRoomKeyRequest;
-import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
-import org.matrix.androidsdk.util.Log;
-
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
+import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.ContentUtils;
+import org.matrix.androidsdk.util.Log;
 import org.matrix.olm.OlmAccount;
 import org.matrix.olm.OlmSession;
 
@@ -998,7 +998,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
         // already known
         if (mOutgoingRoomKeyRequests.containsKey(request.mRequestBody)) {
-            Log.d(LOG_TAG, "## getOrAddOutgoingRoomKeyRequest() : `already have key request outstanding for " + request.getRoomId() + " / " + request.getSessionId() + " not sending another");
+            Log.d(LOG_TAG, "## getOrAddOutgoingRoomKeyRequest() : `already have key request outstanding for " + request.getRoomId() + " / "
+                    + request.getSessionId() + " not sending another");
             return mOutgoingRoomKeyRequests.get(request.mRequestBody);
         } else {
             mOutgoingRoomKeyRequests.put(request.mRequestBody, request);
@@ -1304,7 +1305,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     if (null != sessionIds) {
                         for (int j = 0; j < sessionIds.length; j++) {
                             String sessionId = sessionIds[j];
-                            OlmSession olmSession = (OlmSession) loadObject(new File(sessionsDeviceFolder, sessionId), "load the olmSession " + deviceKey + " " + sessionId);
+                            OlmSession olmSession = (OlmSession) loadObject(new File(sessionsDeviceFolder, sessionId), "load the olmSession "
+                                    + deviceKey + " " + sessionId);
 
                             if (null != olmSession) {
                                 olmSessionSubMap.put(decodeFilename(sessionId), olmSession);
@@ -1422,7 +1424,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
             if (null != inboundGroupSessionsAsVoid) {
                 try {
-                    Map<String, Map<String, MXOlmInboundGroupSession2>> inboundGroupSessionsMap = (Map<String, Map<String, MXOlmInboundGroupSession2>>) inboundGroupSessionsAsVoid;
+                    Map<String, Map<String, MXOlmInboundGroupSession2>> inboundGroupSessionsMap
+                            = (Map<String, Map<String, MXOlmInboundGroupSession2>>) inboundGroupSessionsAsVoid;
 
                     mInboundGroupSessions = new HashMap<>();
 
@@ -1624,7 +1627,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             return;
         }
 
-        IncomingRoomKeyRequest request = getIncomingRoomKeyRequest(incomingRoomKeyRequest.mUserId, incomingRoomKeyRequest.mDeviceId, incomingRoomKeyRequest.mRequestId);
+        IncomingRoomKeyRequest request = getIncomingRoomKeyRequest(incomingRoomKeyRequest.mUserId,
+                incomingRoomKeyRequest.mDeviceId, incomingRoomKeyRequest.mRequestId);
 
         if (null == request) {
             return;

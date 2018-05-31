@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +22,6 @@ import android.content.Context;
 import android.graphics.Color;
 import android.os.Build;
 import android.text.TextUtils;
-
-import org.matrix.androidsdk.util.Log;
-
 import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
@@ -41,6 +39,7 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -617,7 +616,8 @@ public class MXChromeCall extends MXCall {
                                     JsonArray lastContentCandidates = lastContent.get("candidates").getAsJsonArray();
                                     JsonArray newContentCandidates = content.get("candidates").getAsJsonArray();
 
-                                    Log.d(LOG_TAG, "Merge candidates from " + lastContentCandidates.size() + " to " + (lastContentCandidates.size() + newContentCandidates.size() + " items."));
+                                    Log.d(LOG_TAG, "Merge candidates from " + lastContentCandidates.size()
+                                            + " to " + (lastContentCandidates.size() + newContentCandidates.size() + " items."));
 
                                     lastContentCandidates.addAll(newContentCandidates);
 
@@ -649,7 +649,8 @@ public class MXChromeCall extends MXCall {
                                             @Override
                                             public void run() {
                                                 try {
-                                                    if (getCallState().equals(IMXCall.CALL_STATE_RINGING) || getCallState().equals(IMXCall.CALL_STATE_INVITE_SENT)) {
+                                                    if (getCallState().equals(IMXCall.CALL_STATE_RINGING)
+                                                            || getCallState().equals(IMXCall.CALL_STATE_INVITE_SENT)) {
                                                         dispatchOnCallError(CALL_ERROR_USER_NOT_RESPONDING);
                                                         hangup(null);
                                                     }

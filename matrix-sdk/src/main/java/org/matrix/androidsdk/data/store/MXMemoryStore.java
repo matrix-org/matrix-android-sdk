@@ -1,6 +1,7 @@
 /*
  * Copyright 2015 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,10 +23,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.rest.model.group.Group;
-import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
-import org.matrix.androidsdk.util.Log;
-
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
@@ -36,7 +33,10 @@ import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.group.Group;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -500,7 +500,8 @@ public class MXMemoryStore implements IMXStore {
                 // update the display name and the avatar url.
                 // the leave and ban events have no displayname and no avatar url.
                 if (TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_JOIN)) {
-                    boolean hasUpdates = !TextUtils.equals(user.displayname, roomMember.displayname) || !TextUtils.equals(user.getAvatarUrl(), roomMember.getAvatarUrl());
+                    boolean hasUpdates = !TextUtils.equals(user.displayname, roomMember.displayname)
+                            || !TextUtils.equals(user.getAvatarUrl(), roomMember.getAvatarUrl());
 
                     if (hasUpdates) {
                         // invite event does not imply that the user uses the application.
@@ -1193,7 +1194,8 @@ public class MXMemoryStore implements IMXStore {
 
             Map<String, ReceiptData> receiptsByUserId;
 
-            //Log.d(LOG_TAG, "## storeReceipt() : roomId " + roomId + " userId " + receipt.userId + " eventId " + receipt.eventId + " originServerTs " + receipt.originServerTs);
+            //Log.d(LOG_TAG, "## storeReceipt() : roomId " + roomId + " userId " + receipt.userId + " eventId " + receipt.eventId
+            // + " originServerTs " + receipt.originServerTs);
 
             synchronized (mReceiptsByRoomIdLock) {
                 if (!mReceiptsByRoomId.containsKey(roomId)) {
@@ -1239,7 +1241,8 @@ public class MXMemoryStore implements IMXStore {
                         int newEventPos = eventIds.indexOf(receipt.eventId);
 
                         if (curEventPos >= newEventPos) {
-                            Log.d(LOG_TAG, "## storeReceipt() : the read message is already read (cur pos " + curEventPos + " receipt event pos " + newEventPos + ")");
+                            Log.d(LOG_TAG, "## storeReceipt() : the read message is already read (cur pos " + curEventPos
+                                    + " receipt event pos " + newEventPos + ")");
                             return false;
                         }
                     }
@@ -1308,7 +1311,8 @@ public class MXMemoryStore implements IMXStore {
 
                         if ((null == eventId) || !TextUtils.equals(event.eventId, eventId)) {
                             // Keep events matching filters
-                            if ((null == allowedTypes || (allowedTypes.indexOf(event.getType()) >= 0)) && !TextUtils.equals(event.getSender(), excludedUserId)) {
+                            if ((null == allowedTypes || (allowedTypes.indexOf(event.getType()) >= 0))
+                                    && !TextUtils.equals(event.getSender(), excludedUserId)) {
                                 events.add(event);
                             }
                         } else {
