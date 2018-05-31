@@ -62,7 +62,8 @@ public class RestClientTest {
                 callback.success(publicRoomsResponse, response);
                 return null;
             }
-        }).when(eventsApi).publicRooms(publicRoomsParams, any(Callback.class));
+        })
+        .when(eventsApi).publicRooms(publicRoomsParams, any(Callback.class));
 
         EventsRestClient client = new EventsRestClient(eventsApi);
         ApiCallback<PublicRoomsResponse> cb = mock(ApiCallback.class);
@@ -107,7 +108,8 @@ public class RestClientTest {
                         JSONUtils.error(500)));
                 return null;
             }
-        }).when(eventsApi).publicRooms(publicRoomsParams, any(Callback.class));
+        })
+        .when(eventsApi).publicRooms(publicRoomsParams, any(Callback.class));
 
         EventsRestClient client = new EventsRestClient(eventsApi);
         ApiCallback<PublicRoomsResponse> cb = mock(ApiCallback.class);
