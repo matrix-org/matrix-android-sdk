@@ -78,9 +78,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private static final String MXFILE_CRYPTO_STORE_OLM_SESSIONS_FILE_TMP = "sessions.tmp";
     private static final String MXFILE_CRYPTO_STORE_OLM_SESSIONS_FOLDER = "olmSessionsFolder";
 
-    private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE = "inboundGroupSessions";
-    private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE_TMP = "inboundGroupSessions.tmp";
-    private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FOLDER = "inboundGroupSessionsFolder";
+    private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSIONS_FILE = "inboundGroupSessions";
+    private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSIONS_FILE_TMP = "inboundGroupSessions.tmp";
+    private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSIONS_FOLDER = "inboundGroupSessionsFolder";
 
     private static final String MXFILE_CRYPTO_STORE_OUTGOING_ROOM_KEY_REQUEST_FILE = "outgoingRoomKeyRequests";
     private static final String MXFILE_CRYPTO_STORE_OUTGOING_ROOM_KEY_REQUEST_FILE_TMP = "outgoingRoomKeyRequests.tmp";
@@ -192,9 +192,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         // each session is now stored in a dedicated file
         mOlmSessionsFolder = new File(mStoreFile, MXFILE_CRYPTO_STORE_OLM_SESSIONS_FOLDER);
 
-        mInboundGroupSessionsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE);
-        mInboundGroupSessionsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE_TMP);
-        mInboundGroupSessionsFolder = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FOLDER);
+        mInboundGroupSessionsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSIONS_FILE);
+        mInboundGroupSessionsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSIONS_FILE_TMP);
+        mInboundGroupSessionsFolder = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSIONS_FOLDER);
 
         mOutgoingRoomKeyRequestsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_OUTGOING_ROOM_KEY_REQUEST_FILE);
         mOutgoingRoomKeyRequestsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_OUTGOING_ROOM_KEY_REQUEST_FILE_TMP);
