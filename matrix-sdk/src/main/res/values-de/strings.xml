@@ -77,4 +77,6 @@
 
 <string name="summary_user_sent_sticker">%1$s sandte einen Sticker.</string>
 
+    <string name="message_reply_to_prefix">Als Antwort auf</string>
+
     </resources>
