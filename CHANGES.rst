@@ -1,7 +1,28 @@
+Changes to Matrix Android SDK in 0.9.6 (2018-XX-XX)
+=======================================================
+
+Features:
+ -
+
+Improvements:
+ -
+
+Bugfix:
+ -
+
+API Change:
+ -
+
+Translations:
+ -
+
+Build:
+ -
+
 Changes to Matrix Android SDK in 0.9.5 (2018-06-01)
 =======================================================
 
-Bugfix
+Bugfix:
  - Fix regression on URL preview, along with regression on searching user. (vector-im/riot-android#2264)
  - Fix bad param format on reporting content request (vector-im/riot-android#2301)
 
