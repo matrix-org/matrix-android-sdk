@@ -646,7 +646,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param eventId  the event id
      * @param score    the metric to let the user rate the severity of the abuse. It ranges from -100 “most offensive” to 0 “inoffensive”
      * @param reason   the reason
-     * @param callback the callback containing the created event if successful
+     * @param callback the callback
      */
     public void reportEvent(final String roomId, final String eventId, final int score, final String reason, final ApiCallback<Void> callback) {
         final String description = "report : roomId " + roomId + " eventId " + eventId;
