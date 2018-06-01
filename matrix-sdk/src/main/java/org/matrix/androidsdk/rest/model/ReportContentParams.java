@@ -24,7 +24,7 @@ import java.util.List;
 public class ReportContentParams {
 
     // The event range from -100 “most offensive” to 0 “inoffensive”.
-    public List<Integer> score;
+    public int score;
 
     // the report reason
     public String reason;

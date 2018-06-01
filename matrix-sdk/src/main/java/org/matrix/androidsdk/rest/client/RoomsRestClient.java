@@ -653,10 +653,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         ReportContentParams content = new ReportContentParams();
 
-        ArrayList<Integer> scores = new ArrayList<>();
-        scores.add(score);
-
-        content.score = scores;
+        content.score = score;
         content.reason = reason;
 
         mApi.reportEvent(roomId, eventId, content).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
