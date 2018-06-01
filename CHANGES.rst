@@ -17,7 +17,7 @@ Translations:
  -
 
 Build:
- -
+ - Add script to check code quality
 
 Changes to Matrix Android SDK in 0.9.5 (2018-06-01)
 =======================================================
