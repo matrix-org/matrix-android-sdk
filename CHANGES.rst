@@ -11,7 +11,7 @@ Bugfix:
  -
 
 API Change:
- -
+ - New API: add device_id param to LoginRestClient.loginWithUser()
 
 Translations:
  -
