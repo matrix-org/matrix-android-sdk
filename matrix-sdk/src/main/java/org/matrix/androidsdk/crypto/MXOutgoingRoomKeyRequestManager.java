@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,13 +21,12 @@ import android.os.Handler;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
+import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequest;
 import org.matrix.androidsdk.util.Log;
-
-import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -180,7 +180,7 @@ public class MXOutgoingRoomKeyRequestManager {
     // there are no more requests, or there is an error (in which case, the
     // timer will be restarted before the promise resolves).
     private void sendOutgoingRoomKeyRequests() {
-        if (!this.mClientRunning) {
+        if (!mClientRunning) {
             mSendOutgoingRoomKeyRequestsRunning = false;
             return;
         }
@@ -208,7 +208,8 @@ public class MXOutgoingRoomKeyRequestManager {
      * @param request the request
      */
     private void sendOutgoingRoomKeyRequest(final OutgoingRoomKeyRequest request) {
-        Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequest() : Requesting keys " + request.mRequestBody + " from " + request.mRecipients + " id " + request.mRequestId);
+        Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequest() : Requesting keys " + request.mRequestBody
+                + " from " + request.mRecipients + " id " + request.mRequestId);
 
         Map<String, Object> requestMessage = new HashMap<>();
         requestMessage.put("action", "request");
@@ -222,7 +223,8 @@ public class MXOutgoingRoomKeyRequestManager {
                     @Override
                     public void run() {
                         if (request.mState != OutgoingRoomKeyRequest.RequestState.UNSENT) {
-                            Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequest() : Cannot update room key request from UNSENT as it was already updated to " + request.mState);
+                            Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequest() : Cannot update room key request from UNSENT as it was already updated to "
+                                    + request.mState);
                         } else {
                             request.mState = state;
                             mCryptoStore.updateOutgoingRoomKeyRequest(request);
@@ -322,7 +324,10 @@ public class MXOutgoingRoomKeyRequestManager {
      * @param transactionId the transaction id
      * @param callback      the asynchronous callback.
      */
-    private void sendMessageToDevices(final Map<String, Object> message, List<Map<String, String>> recipients, String transactionId, final ApiCallback<Void> callback) {
+    private void sendMessageToDevices(final Map<String, Object> message,
+                                      List<Map<String, String>> recipients,
+                                      String transactionId,
+                                      final ApiCallback<Void> callback) {
         MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>();
 
         for (Map<String, String> recipient : recipients) {

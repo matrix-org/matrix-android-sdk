@@ -1,6 +1,7 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -155,7 +156,8 @@ public class DataRetriever {
             t.start();
         } else {
             Log.d(LOG_TAG, "## backPaginate() : trigger a remote request");
-            mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.BACKWARDS, limit, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+            mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.BACKWARDS, limit,
+                    new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
                 @Override
                 public void onSuccess(TokensChunkResponse<Event> events) {
                     String expectedToken = getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
@@ -246,7 +248,8 @@ public class DataRetriever {
     private void forwardPaginate(final IMXStore store, final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
         putPendingToken(mPendingFordwardRequestTokenByRoomId, roomId, token);
 
-        mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.FORWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+        mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.FORWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT,
+                new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> events) {
                 if (TextUtils.equals(getPendingToken(mPendingFordwardRequestTokenByRoomId, roomId), token)) {
@@ -285,10 +288,14 @@ public class DataRetriever {
      * @param paginationCount the number of events to retrieve.
      * @param callback        the onComplete callback
      */
-    public void requestServerRoomHistory(final String roomId, final String token, final int paginationCount, final ApiCallback<TokensChunkResponse<Event>> callback) {
+    public void requestServerRoomHistory(final String roomId,
+                                         final String token,
+                                         final int paginationCount,
+                                         final ApiCallback<TokensChunkResponse<Event>> callback) {
         putPendingToken(mPendingRemoteRequestTokenByRoomId, roomId, token);
 
-        mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.BACKWARDS, paginationCount, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+        mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.BACKWARDS, paginationCount,
+                new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> info) {
 

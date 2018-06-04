@@ -1,6 +1,7 @@
 /*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +26,8 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.URLPreview;
+import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.pid.ThirdPartyProtocol;
 import org.matrix.androidsdk.rest.model.publicroom.PublicRoomsFilter;
 import org.matrix.androidsdk.rest.model.publicroom.PublicRoomsParams;
@@ -36,8 +39,6 @@ import org.matrix.androidsdk.rest.model.search.SearchUsersParams;
 import org.matrix.androidsdk.rest.model.search.SearchUsersRequestResponse;
 import org.matrix.androidsdk.rest.model.search.SearchUsersResponse;
 import org.matrix.androidsdk.rest.model.sync.SyncResponse;
-import org.matrix.androidsdk.rest.model.URLPreview;
-import org.matrix.androidsdk.rest.model.User;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,8 +46,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import retrofit2.Response;
 
 /**
  * Class used to make requests to the events API.
@@ -78,7 +77,9 @@ public class EventsRestClient extends RestClient<EventsApi> {
     public void getThirdPartyServerProtocols(final ApiCallback<Map<String, ThirdPartyProtocol>> callback) {
         final String description = "getThirdPartyServerProtocols";
 
-        mApi.thirdPartyProtocols().enqueue(new RestAdapterCallback<Map<String, ThirdPartyProtocol>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.thirdPartyProtocols()
+                .enqueue(new RestAdapterCallback<Map<String, ThirdPartyProtocol>>(description, mUnsentEventsManager, callback,
+                new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 getThirdPartyServerProtocols(callback);
@@ -116,7 +117,10 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * @param includeAllNetworks   true to search in all the connected network
      * @param callback             the asynchronous callback
      */
-    public void getPublicRoomsCount(final String server, final String thirdPartyInstanceId, final boolean includeAllNetworks, final ApiCallback<Integer> callback) {
+    public void getPublicRoomsCount(final String server,
+                                    final String thirdPartyInstanceId,
+                                    final boolean includeAllNetworks,
+                                    final ApiCallback<Integer> callback) {
         loadPublicRooms(server, thirdPartyInstanceId, includeAllNetworks, null, null, 0, new ApiCallback<PublicRoomsResponse>() {
             @Override
             public void onSuccess(PublicRoomsResponse publicRoomsResponse) {
@@ -151,7 +155,13 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * @param limit                the maximum number of public rooms
      * @param callback             the public rooms callbacks
      */
-    public void loadPublicRooms(final String server, final String thirdPartyInstanceId, final boolean includeAllNetworks, final String pattern, final String since, final int limit, final ApiCallback<PublicRoomsResponse> callback) {
+    public void loadPublicRooms(final String server,
+                                final String thirdPartyInstanceId,
+                                final boolean includeAllNetworks,
+                                final String pattern,
+                                final String since,
+                                final int limit,
+                                final ApiCallback<PublicRoomsResponse> callback) {
         final String description = "loadPublicRooms";
 
         PublicRoomsParams publicRoomsParams = new PublicRoomsParams();
@@ -166,7 +176,9 @@ public class EventsRestClient extends RestClient<EventsApi> {
             publicRoomsParams.filter.generic_search_term = pattern;
         }
 
-        mApi.publicRooms(server, publicRoomsParams).enqueue(new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.publicRooms(server, publicRoomsParams)
+                .enqueue(new RestAdapterCallback<PublicRoomsResponse>(description, mUnsentEventsManager, callback,
+                new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 loadPublicRooms(server, thirdPartyInstanceId, includeAllNetworks, pattern, since, limit, callback);
@@ -194,7 +206,12 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * @param filterId      the ID of a filter created using the filter API (optional).
      * @param callback      The request callback
      */
-    public void syncFromToken(final String token, final int serverTimeout, final int clientTimeout, final String setPresence, final String filterId, final ApiCallback<SyncResponse> callback) {
+    public void syncFromToken(final String token,
+                              final int serverTimeout,
+                              final int clientTimeout,
+                              final String setPresence,
+                              final String filterId,
+                              final ApiCallback<SyncResponse> callback) {
         HashMap<String, Object> params = new HashMap<>();
         int timeout = (EVENT_STREAM_TIMEOUT_MS / 1000);
 
@@ -223,7 +240,9 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
         // Disable retry because it interferes with clientTimeout
         // Let the client manage retries on events streams
-        mApi.sync(params).enqueue(new RestAdapterCallback<SyncResponse>(description, null, false, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.sync(params)
+                .enqueue(new RestAdapterCallback<SyncResponse>(description, null, false, callback,
+                        new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 syncFromToken(token, serverTimeout, clientTimeout, setPresence, filterId, callback);
@@ -241,7 +260,12 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * @param nextBatch   the token to pass for doing pagination from a previous response.
      * @param callback    the request callback
      */
-    public void searchMessagesByText(final String text, final List<String> rooms, final int beforeLimit, final int afterLimit, final String nextBatch, final ApiCallback<SearchResponse> callback) {
+    public void searchMessagesByText(final String text,
+                                     final List<String> rooms,
+                                     final int beforeLimit,
+                                     final int afterLimit,
+                                     final String nextBatch,
+                                     final ApiCallback<SearchResponse> callback) {
         SearchParams searchParams = new SearchParams();
         SearchRoomEventCategoryParams searchEventParams = new SearchRoomEventCategoryParams();
 
@@ -268,7 +292,8 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
         // don't retry to send the request
         // if the search fails, stop it
-        mApi.searchEvents(searchParams, nextBatch).enqueue(new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
+        mApi.searchEvents(searchParams, nextBatch)
+                .enqueue(new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
             /**
              * Tells if the current response for the latest request.
              *
@@ -340,7 +365,12 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * @param nextBatch   the token to pass for doing pagination from a previous response.
      * @param callback    the request callback
      */
-    public void searchMediasByText(final String name, final List<String> rooms, final int beforeLimit, final int afterLimit, final String nextBatch, final ApiCallback<SearchResponse> callback) {
+    public void searchMediasByText(final String name,
+                                   final List<String> rooms,
+                                   final int beforeLimit,
+                                   final int afterLimit,
+                                   final String nextBatch,
+                                   final ApiCallback<SearchResponse> callback) {
         SearchParams searchParams = new SearchParams();
         SearchRoomEventCategoryParams searchEventParams = new SearchRoomEventCategoryParams();
 
@@ -380,7 +410,8 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
         // don't retry to send the request
         // if the search fails, stop it
-        mApi.searchEvents(searchParams, nextBatch).enqueue(new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
+        mApi.searchEvents(searchParams, nextBatch)
+                .enqueue(new RestAdapterCallback<SearchResponse>(description, null, new ApiCallback<SearchResponse>() {
             /**
              * Tells if the current response for the latest request.
              *
@@ -450,7 +481,9 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
         // don't retry to send the request
         // if the search fails, stop it
-        mApi.searchUsers(searchParams).enqueue(new RestAdapterCallback<SearchUsersRequestResponse>(description, null, new ApiCallback<SearchUsersRequestResponse>() {
+        mApi.searchUsers(searchParams)
+                .enqueue(new RestAdapterCallback<SearchUsersRequestResponse>(description, null,
+                        new ApiCallback<SearchUsersRequestResponse>() {
             /**
              * Tells if the current response for the latest request.
              *
@@ -548,7 +581,9 @@ public class EventsRestClient extends RestClient<EventsApi> {
     public void getURLPreview(final String URL, final long ts, final ApiCallback<URLPreview> callback) {
         final String description = "getURLPreview : URL " + URL + " with ts " + ts;
 
-        mApi.getURLPreview(URL, ts).enqueue(new RestAdapterCallback<Map<String, Object>>(description, null, false, new ApiCallback<Map<String, Object>>() {
+        mApi.getURLPreview(URL, ts)
+                .enqueue(new RestAdapterCallback<Map<String, Object>>(description, null, false,
+                        new ApiCallback<Map<String, Object>>() {
             @Override
             public void onSuccess(Map<String, Object> map) {
                 if (null != callback) {

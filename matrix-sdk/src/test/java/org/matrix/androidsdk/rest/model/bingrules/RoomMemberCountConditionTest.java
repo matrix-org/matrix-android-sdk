@@ -15,19 +15,18 @@
  */
 package org.matrix.androidsdk.rest.model.bingrules;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.robolectric.RobolectricTestRunner;
 
 import java.util.ArrayList;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class RoomMemberCountConditionTest {
@@ -63,95 +62,95 @@ public class RoomMemberCountConditionTest {
         rm4.membership = RoomMember.MEMBERSHIP_LEAVE;
         members.add(rm4);
 
-        when(mockRoom.getMembers()).thenReturn(members);
+        Mockito.when(mockRoom.getMembers()).thenReturn(members);
     }
 
     @Test
     public void testRoomMemberCount() {
         condition.is = "3";
         condition.parseIsField();
-        assertTrue(condition.isSatisfied(mockRoom));
+        Assert.assertTrue(condition.isSatisfied(mockRoom));
 
         condition.is = "4";
         condition.parseIsField();
-        assertFalse(condition.isSatisfied(mockRoom));
+        Assert.assertFalse(condition.isSatisfied(mockRoom));
 
         condition.is = "2";
         condition.parseIsField();
-        assertFalse(condition.isSatisfied(mockRoom));
+        Assert.assertFalse(condition.isSatisfied(mockRoom));
     }
 
     @Test
     public void testEquals() {
         condition.is = "==3";
         condition.parseIsField();
-        assertTrue(condition.isSatisfied(mockRoom));
+        Assert.assertTrue(condition.isSatisfied(mockRoom));
 
         condition.is = "==5";
         condition.parseIsField();
-        assertFalse(condition.isSatisfied(mockRoom));
+        Assert.assertFalse(condition.isSatisfied(mockRoom));
     }
 
     @Test
     public void testLess() {
         condition.is = "<5";
         condition.parseIsField();
-        assertTrue(condition.isSatisfied(mockRoom));
+        Assert.assertTrue(condition.isSatisfied(mockRoom));
 
         condition.is = "<3";
         condition.parseIsField();
-        assertFalse(condition.isSatisfied(mockRoom));
+        Assert.assertFalse(condition.isSatisfied(mockRoom));
     }
 
     @Test
     public void testGreater() {
         condition.is = ">2";
         condition.parseIsField();
-        assertTrue(condition.isSatisfied(mockRoom));
+        Assert.assertTrue(condition.isSatisfied(mockRoom));
 
         condition.is = ">3";
         condition.parseIsField();
-        assertFalse(condition.isSatisfied(mockRoom));
+        Assert.assertFalse(condition.isSatisfied(mockRoom));
     }
 
     @Test
     public void testLessOrEqual() {
         condition.is = "<=5";
         condition.parseIsField();
-        assertTrue(condition.isSatisfied(mockRoom));
+        Assert.assertTrue(condition.isSatisfied(mockRoom));
 
         condition.is = "<=3";
         condition.parseIsField();
-        assertTrue(condition.isSatisfied(mockRoom));
+        Assert.assertTrue(condition.isSatisfied(mockRoom));
 
         condition.is = "<=2";
         condition.parseIsField();
-        assertFalse(condition.isSatisfied(mockRoom));
+        Assert.assertFalse(condition.isSatisfied(mockRoom));
     }
 
     @Test
     public void testGreaterOrEqual() {
         condition.is = ">=2";
         condition.parseIsField();
-        assertTrue(condition.isSatisfied(mockRoom));
+        Assert.assertTrue(condition.isSatisfied(mockRoom));
 
         condition.is = ">=3";
         condition.parseIsField();
-        assertTrue(condition.isSatisfied(mockRoom));
+        Assert.assertTrue(condition.isSatisfied(mockRoom));
 
         condition.is = ">=5";
         condition.parseIsField();
-        assertFalse(condition.isSatisfied(mockRoom));
+        Assert.assertFalse(condition.isSatisfied(mockRoom));
     }
 
     @Test
     public void testParseError() {
         condition.is = "f2";
         condition.parseIsField();
-        assertFalse(condition.isSatisfied(mockRoom));
+        Assert.assertFalse(condition.isSatisfied(mockRoom));
 
         condition.is = "x";
         condition.parseIsField();
-        assertFalse(condition.isSatisfied(mockRoom));
+        Assert.assertFalse(condition.isSatisfied(mockRoom));
     }
 }

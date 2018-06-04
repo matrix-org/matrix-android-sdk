@@ -1,7 +1,8 @@
 /*
  * Copyright 2016 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -35,11 +36,10 @@ import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.sync.RoomResponse;
-import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
-import org.matrix.androidsdk.rest.model.sync.RoomSync;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
+import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
+import org.matrix.androidsdk.rest.model.sync.RoomSync;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -420,7 +420,7 @@ public class EventTimeline {
             state.roomId = mRoomId;
             state.setDataHandler(mDataHandler);
 
-            this.mBackState = this.mState = state;
+            mBackState = mState = state;
         }
 
         if ((null != roomSync.state) && (null != roomSync.state.events) && (roomSync.state.events.size() > 0)) {
@@ -447,8 +447,8 @@ public class EventTimeline {
             // if it is an initial sync, the live state is initialized here
             // so the back state must also be initialized
             if (isRoomInitialSync) {
-                Log.d(LOG_TAG, "## handleJoinedRoomSync() : retrieve " + this.mState.getMembers().size() + " members for room " + mRoomId);
-                this.mBackState = this.mState.deepCopy();
+                Log.d(LOG_TAG, "## handleJoinedRoomSync() : retrieve " + mState.getMembers().size() + " members for room " + mRoomId);
+                mBackState = mState.deepCopy();
             }
         }
 
@@ -613,7 +613,8 @@ public class EventTimeline {
                 }
 
                 if ((notifCount != mState.getNotificationCount()) || (mState.getHighlightCount() != highlightCount)) {
-                    Log.d(LOG_TAG, "## handleJoinedRoomSync() : update room state notifs count for room id " + getRoom().getRoomId() + ": highlightCount " + highlightCount + " - notifCount " + notifCount);
+                    Log.d(LOG_TAG, "## handleJoinedRoomSync() : update room state notifs count for room id " + getRoom().getRoomId()
+                            + ": highlightCount " + highlightCount + " - notifCount " + notifCount);
 
                     mState.setNotificationCount(notifCount);
                     mState.setHighlightCount(highlightCount);
@@ -626,7 +627,8 @@ public class EventTimeline {
                 RoomSummary summary = mStore.getSummary(mRoomId);
 
                 if ((null != summary) && ((notifCount != summary.getNotificationCount()) || (summary.getHighlightCount() != highlightCount))) {
-                    Log.d(LOG_TAG, "## handleJoinedRoomSync() : update room summary notifs count for room id " + getRoom().getRoomId() + ": highlightCount " + highlightCount + " - notifCount " + notifCount);
+                    Log.d(LOG_TAG, "## handleJoinedRoomSync() : update room summary notifs count for room id " + getRoom().getRoomId()
+                            + ": highlightCount " + highlightCount + " - notifCount " + notifCount);
 
                     summary.setNotificationCount(notifCount);
                     summary.setHighlightCount(highlightCount);
@@ -826,7 +828,8 @@ public class EventTimeline {
                     }
 
                     if (lifeTime > MXCall.CALL_TIMEOUT_MS) {
-                        Log.d(LOG_TAG, "handleLiveEvent : IGNORED onBingEvent rule id " + bingRule.ruleId + " event id " + event.eventId + " in " + event.roomId);
+                        Log.d(LOG_TAG, "handleLiveEvent : IGNORED onBingEvent rule id " + bingRule.ruleId + " event id " + event.eventId
+                                + " in " + event.roomId);
                         return;
                     }
                 }
@@ -834,7 +837,8 @@ public class EventTimeline {
                 Log.d(LOG_TAG, "handleLiveEvent : onBingEvent rule id " + bingRule.ruleId + " event id " + event.eventId + " in " + event.roomId);
                 mDataHandler.onBingEvent(event, mState, bingRule);
             } else {
-                Log.d(LOG_TAG, "handleLiveEvent :rule id " + bingRule.ruleId + " event id " + event.eventId + " in " + event.roomId + " has a mute notify rule");
+                Log.d(LOG_TAG, "handleLiveEvent :rule id " + bingRule.ruleId + " event id " + event.eventId
+                        + " in " + event.roomId + " has a mute notify rule");
             }
         } else if (outOfTimeEvent) {
             Log.e(LOG_TAG, "handleLiveEvent : outOfTimeEvent for " + event.eventId + " in " + event.roomId);
@@ -911,7 +915,8 @@ public class EventTimeline {
 
                     // if the membership keeps the same value "join".
                     // it should mean that the user profile has been updated.
-                    if (!event.isRedacted() && TextUtils.equals(prevMembership, eventContent.membership) && TextUtils.equals(RoomMember.MEMBERSHIP_JOIN, eventContent.membership)) {
+                    if (!event.isRedacted() && TextUtils.equals(prevMembership, eventContent.membership)
+                            && TextUtils.equals(RoomMember.MEMBERSHIP_JOIN, eventContent.membership)) {
                         // check if the user updates his profile from another device.
 
                         boolean hasAccountInfoUpdated = false;
@@ -1076,7 +1081,11 @@ public class EventTimeline {
                     if (mIsLiveTimeline) {
                         // update the summary is the event has been received after the oldest known event
                         // it might happen after a timeline update (hole in the chat history)
-                        if ((null != summary) && ((null == summary.getLatestReceivedEvent()) || (event.isValidOriginServerTs() && (summary.getLatestReceivedEvent().originServerTs < event.originServerTs) && RoomSummary.isSupportedEvent(event)))) {
+                        if ((null != summary)
+                                && ((null == summary.getLatestReceivedEvent())
+                                || (event.isValidOriginServerTs()
+                                && (summary.getLatestReceivedEvent().originServerTs < event.originServerTs)
+                                && RoomSummary.isSupportedEvent(event)))) {
                             summary.setLatestReceivedEvent(event, getState());
                             mStore.storeSummary(summary);
                             shouldCommitStore = true;
@@ -1186,7 +1195,8 @@ public class EventTimeline {
         final String myUserId = mDataHandler.getUserId();
 
         if (!canBackPaginate()) {
-            Log.d(LOG_TAG, "cannot requestHistory " + mIsBackPaginating + " " + !getState().canBackPaginated(myUserId) + " " + !mCanBackPaginate + " " + !mRoom.isReady());
+            Log.d(LOG_TAG, "cannot requestHistory " + mIsBackPaginating + " " + !getState().canBackPaginated(myUserId)
+                    + " " + !mCanBackPaginate + " " + !mRoom.isReady());
             return false;
         }
 
@@ -1202,7 +1212,10 @@ public class EventTimeline {
         mIsBackPaginating = true;
 
         // enough buffered data
-        if (useCachedOnly || (mSnapshotEvents.size() >= eventCount) || TextUtils.equals(fromBackToken, mBackwardTopToken) || TextUtils.equals(fromBackToken, Event.PAGINATE_BACK_TOKEN_END)) {
+        if (useCachedOnly
+                || (mSnapshotEvents.size() >= eventCount)
+                || TextUtils.equals(fromBackToken, mBackwardTopToken)
+                || TextUtils.equals(fromBackToken, Event.PAGINATE_BACK_TOKEN_END)) {
 
             mIsLastBackChunk = TextUtils.equals(fromBackToken, mBackwardTopToken) || TextUtils.equals(fromBackToken, Event.PAGINATE_BACK_TOKEN_END);
 
@@ -1239,7 +1252,8 @@ public class EventTimeline {
             return true;
         }
 
-        mDataHandler.getDataRetriever().backPaginate(mStore, mRoomId, getBackState().getToken(), eventCount, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+        mDataHandler.getDataRetriever().backPaginate(mStore, mRoomId, getBackState().getToken(), eventCount,
+                new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> response) {
                 if (mDataHandler.isAlive()) {
@@ -1250,7 +1264,10 @@ public class EventTimeline {
                         Log.d(LOG_TAG, "backPaginate : there is no event");
                     }
 
-                    mIsLastBackChunk = ((null != response.chunk) && (0 == response.chunk.size()) && TextUtils.equals(response.end, response.start)) || (null == response.end);
+                    mIsLastBackChunk = ((null != response.chunk)
+                            && (0 == response.chunk.size())
+                            && TextUtils.equals(response.end, response.start))
+                            || (null == response.end);
 
                     if (mIsLastBackChunk && (null != response.end)) {
                         // save its token to avoid useless request
@@ -1331,13 +1348,15 @@ public class EventTimeline {
         }
 
         if (mIsForwardPaginating || mHasReachedHomeServerForwardsPaginationEnd) {
-            Log.d(LOG_TAG, "forwardPaginate " + mIsForwardPaginating + " mHasReachedHomeServerForwardsPaginationEnd " + mHasReachedHomeServerForwardsPaginationEnd);
+            Log.d(LOG_TAG, "forwardPaginate " + mIsForwardPaginating
+                    + " mHasReachedHomeServerForwardsPaginationEnd " + mHasReachedHomeServerForwardsPaginationEnd);
             return false;
         }
 
         mIsForwardPaginating = true;
 
-        mDataHandler.getDataRetriever().paginate(mStore, mRoomId, mForwardsPaginationToken, Direction.FORWARDS, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+        mDataHandler.getDataRetriever().paginate(mStore, mRoomId, mForwardsPaginationToken, Direction.FORWARDS,
+                new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> response) {
                 if (mDataHandler.isAlive()) {
@@ -1565,7 +1584,7 @@ public class EventTimeline {
 
                 // Check whether the current room state depends on this redacted event.
                 boolean isFound = false;
-                for(int index = 0; index < stateEvents.size(); index++) {
+                for (int index = 0; index < stateEvents.size(); index++) {
                     Event stateEvent = stateEvents.get(index);
 
                     if (TextUtils.equals(stateEvent.eventId, eventId)) {
@@ -1645,7 +1664,8 @@ public class EventTimeline {
                 @Override
                 public void onSuccess(Event event) {
                     if ((null != event) && (null != event.stateKey)) {
-                        Log.d(LOG_TAG, "checkStateEventRedactionWithHomeserver : the redacted event is a state event in the past. TODO: prune prev_content of the new state event");
+                        Log.d(LOG_TAG, "checkStateEventRedactionWithHomeserver : the redacted event is a state event in the past." +
+                                " TODO: prune prev_content of the new state event");
 
                     } else {
                         Log.d(LOG_TAG, "checkStateEventRedactionWithHomeserver : the redacted event is a not state event -> job is done");

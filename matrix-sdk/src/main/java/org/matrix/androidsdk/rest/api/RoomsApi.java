@@ -1,6 +1,7 @@
 /*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,15 +26,15 @@ import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContext;
-import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReportContentParams;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.message.Message;
+import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -155,7 +156,10 @@ public interface RoomsApi {
      * @param params     the request parameters
      */
     @PUT("rooms/{roomId}/state/{state_event_type}/{stateKey}")
-    Call<Void> sendStateEvent(@Path("roomId") String roomId, @Path("state_event_type") String stateEventType, @Path("stateKey") String stateKey, @Body Map<String, Object> params);
+    Call<Void> sendStateEvent(@Path("roomId") String roomId,
+                              @Path("state_event_type") String stateEventType,
+                              @Path("stateKey") String stateKey,
+                              @Body Map<String, Object> params);
 
     /**
      * Looks up the contents of a state event in a room
@@ -402,7 +406,10 @@ public interface RoomsApi {
      * @param content the event content
      */
     @PUT("user/{userId}/rooms/{roomId}/account_data/{tag}")
-    Call<Void> updateAccountData(@Path("userId") String userId, @Path("roomId") String roomId, @Path("tag") String subPath, @Body HashMap<String, Object> content);
+    Call<Void> updateAccountData(@Path("userId") String userId,
+                                 @Path("roomId") String roomId,
+                                 @Path("tag") String subPath,
+                                 @Body HashMap<String, Object> content);
 
     /**
      * Get the room ID associated to the room alias.

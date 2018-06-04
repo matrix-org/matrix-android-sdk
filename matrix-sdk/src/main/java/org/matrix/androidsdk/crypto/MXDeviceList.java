@@ -1,5 +1,6 @@
 /*
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -534,7 +535,8 @@ public class MXDeviceList {
             mPendingDownloadKeysRequestToken.put(userId, downloadToken);
         }
 
-        mxSession.getCryptoRestClient().downloadKeysForUsers(filteredUsers, mxSession.getDataHandler().getStore().getEventStreamToken(), new ApiCallback<KeysQueryResponse>() {
+        mxSession.getCryptoRestClient()
+                .downloadKeysForUsers(filteredUsers, mxSession.getDataHandler().getStore().getEventStreamToken(), new ApiCallback<KeysQueryResponse>() {
             @Override
             public void onSuccess(final KeysQueryResponse keysQueryResponse) {
                 mxCrypto.getEncryptingThreadHandler().post(new Runnable() {
@@ -736,7 +738,8 @@ public class MXDeviceList {
         }
 
         if (!isVerified) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : Unable to verify signature on device " + userId + ":" + deviceKeys.deviceId + " with error " + errorMessage);
+            Log.e(LOG_TAG, "## validateDeviceKeys() : Unable to verify signature on device " + userId + ":"
+                    + deviceKeys.deviceId + " with error " + errorMessage);
             return false;
         }
 
@@ -746,7 +749,8 @@ public class MXDeviceList {
                 // best off sticking with the original keys.
                 //
                 // Should we warn the user about it somehow?
-                Log.e(LOG_TAG, "## validateDeviceKeys() : WARNING:Ed25519 key for device " + userId + ":" + deviceKeys.deviceId + " has changed : "
+                Log.e(LOG_TAG, "## validateDeviceKeys() : WARNING:Ed25519 key for device " + userId + ":"
+                        + deviceKeys.deviceId + " has changed : "
                         + previouslyStoredDeviceKeys.fingerprint() + " -> " + signKey);
 
                 Log.e(LOG_TAG, "## validateDeviceKeys() : " + previouslyStoredDeviceKeys + " -> " + deviceKeys);

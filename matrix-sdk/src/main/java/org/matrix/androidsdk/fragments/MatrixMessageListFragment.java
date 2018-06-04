@@ -56,9 +56,9 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.message.MediaMessage;
 import org.matrix.androidsdk.rest.model.message.Message;
-import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.search.SearchResponse;
 import org.matrix.androidsdk.rest.model.search.SearchResult;
 import org.matrix.androidsdk.util.EventDisplay;
@@ -416,12 +416,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             if ((firstVisibleItem < 10) && (visibleItemCount != totalItemCount) && (0 != visibleItemCount)) {
                 if (!mLockBackPagination) {
-                    Log.d(LOG_TAG, "onScroll - backPaginate firstVisibleItem " + firstVisibleItem + " visibleItemCount " + visibleItemCount + " totalItemCount " + totalItemCount);
+                    Log.d(LOG_TAG, "onScroll - backPaginate firstVisibleItem " + firstVisibleItem + " visibleItemCount "
+                            + visibleItemCount + " totalItemCount " + totalItemCount);
                 }
                 backPaginate(false);
             } else if ((firstVisibleItem + visibleItemCount + 10) >= totalItemCount) {
                 if (!mLockFwdPagination) {
-                    Log.d(LOG_TAG, "onScroll - forwardPaginate firstVisibleItem " + firstVisibleItem + " visibleItemCount " + visibleItemCount + " totalItemCount " + totalItemCount);
+                    Log.d(LOG_TAG, "onScroll - forwardPaginate firstVisibleItem " + firstVisibleItem + " visibleItemCount "
+                            + visibleItemCount + " totalItemCount " + totalItemCount);
                 }
                 forwardPaginate();
             }
@@ -1024,13 +1026,18 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                 // display the error message only if the message cannot be resent
                                 if ((null != event.unsentException) && (event.isUndeliverable())) {
                                     if (event.unsentException instanceof IOException) {
-                                        Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + activity.getString(R.string.network_error), Toast.LENGTH_LONG).show();
+                                        Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : "
+                                                + activity.getString(R.string.network_error), Toast.LENGTH_LONG).show();
                                     } else {
-                                        Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                                        Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : "
+                                                + event.unsentException.getLocalizedMessage(), Toast.LENGTH_LONG).show();
                                     }
                                 } else if (null != event.unsentMatrixError) {
-                                    String localised = (event.unsentMatrixError instanceof MXCryptoError) ? ((MXCryptoError) event.unsentMatrixError).getDetailedErrorDescription() : event.unsentMatrixError.getLocalizedMessage();
-                                    Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : " + localised, Toast.LENGTH_LONG).show();
+                                    String localised = (event.unsentMatrixError instanceof MXCryptoError) ?
+                                            ((MXCryptoError) event.unsentMatrixError).getDetailedErrorDescription()
+                                            : event.unsentMatrixError.getLocalizedMessage();
+                                    Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : "
+                                            + localised, Toast.LENGTH_LONG).show();
                                 }
 
                                 mAdapter.notifyDataSetChanged();

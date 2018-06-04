@@ -1,7 +1,8 @@
 /*
  * Copyright 2015 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -570,9 +571,11 @@ public class MXCallsManager {
                                                                 }
 
                                                                 if (null != unknownDevices) {
-                                                                    Log.d(LOG_TAG, "## checkPendingIncomingCalls() : checkUnknownDevices found some unknown devices");
+                                                                    Log.d(LOG_TAG, "## checkPendingIncomingCalls() :" +
+                                                                            " checkUnknownDevices found some unknown devices");
                                                                 } else {
-                                                                    Log.e(LOG_TAG, "## checkPendingIncomingCalls() : checkUnknownDevices failed " + e.getMessage());
+                                                                    Log.e(LOG_TAG, "## checkPendingIncomingCalls() :" +
+                                                                            " checkUnknownDevices failed " + e.getMessage());
                                                                 }
 
                                                                 dispatchOnIncomingCall(call, unknownDevices);
@@ -580,7 +583,8 @@ public class MXCallsManager {
 
                                                             @Override
                                                             public void onUnexpectedError(Exception e) {
-                                                                Log.e(LOG_TAG, "## checkPendingIncomingCalls() : checkUnknownDevices failed " + e.getMessage());
+                                                                Log.e(LOG_TAG, "## checkPendingIncomingCalls() :" +
+                                                                        " checkUnknownDevices failed " + e.getMessage());
                                                                 dispatchOnIncomingCall(call, null);
                                                             }
                                                         });

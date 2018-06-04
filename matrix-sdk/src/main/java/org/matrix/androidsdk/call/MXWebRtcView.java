@@ -4,15 +4,12 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Point;
 import android.support.v4.view.ViewCompat;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
-import android.util.Log;
 
 import com.oney.WebRTCModule.EglUtils;
 import com.oney.WebRTCModule.WebRTCView;
-
-import java.lang.reflect.Method;
-import java.util.List;
 
 import org.webrtc.EglBase;
 import org.webrtc.MediaStream;
@@ -22,6 +19,9 @@ import org.webrtc.RendererCommon.ScalingType;
 import org.webrtc.SurfaceViewRenderer;
 import org.webrtc.VideoRenderer;
 import org.webrtc.VideoTrack;
+
+import java.lang.reflect.Method;
+import java.util.List;
 
 /**
  * Use the older implementation of WebRtcView.
@@ -252,22 +252,22 @@ public class MXWebRtcView extends ViewGroup {
      * @param videoHeight The new height of the rendered video frame.
      * @param rotation    The new rotation of the rendered video frame.
      */
-    private void onFrameResolutionChanged(
-            int videoWidth, int videoHeight,
-            int rotation) {
+    private void onFrameResolutionChanged(int videoWidth,
+                                          int videoHeight,
+                                          int rotation) {
         boolean changed = false;
 
         synchronized (layoutSyncRoot) {
-            if (this.frameHeight != videoHeight) {
-                this.frameHeight = videoHeight;
+            if (frameHeight != videoHeight) {
+                frameHeight = videoHeight;
                 changed = true;
             }
-            if (this.frameRotation != rotation) {
-                this.frameRotation = rotation;
+            if (frameRotation != rotation) {
+                frameRotation = rotation;
                 changed = true;
             }
-            if (this.frameWidth != videoWidth) {
-                this.frameWidth = videoWidth;
+            if (frameWidth != videoWidth) {
+                frameWidth = videoWidth;
                 changed = true;
             }
         }

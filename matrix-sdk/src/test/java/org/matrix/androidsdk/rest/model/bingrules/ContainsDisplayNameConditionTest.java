@@ -17,13 +17,12 @@ package org.matrix.androidsdk.rest.model.bingrules;
 
 import com.google.gson.JsonParser;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.matrix.androidsdk.rest.model.Event;
 import org.robolectric.RobolectricTestRunner;
-
-import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class ContainsDisplayNameConditionTest {
@@ -51,43 +50,43 @@ public class ContainsDisplayNameConditionTest {
     @Test
     public void testTextMessages() {
         setEventTextMessageBody("Bob");
-        assertTrue(condition.isSatisfied(event, displayName));
+        Assert.assertTrue(condition.isSatisfied(event, displayName));
 
         setEventTextMessageBody("bob");
-        assertTrue(condition.isSatisfied(event, displayName));
+        Assert.assertTrue(condition.isSatisfied(event, displayName));
 
         setEventTextMessageBody("Hi Bob!");
-        assertTrue(condition.isSatisfied(event, displayName));
+        Assert.assertTrue(condition.isSatisfied(event, displayName));
 
         setEventTextMessageBody("Hi Bobby!");
-        assertFalse(condition.isSatisfied(event, displayName));
+        Assert.assertFalse(condition.isSatisfied(event, displayName));
 
         setEventTextMessageBody("Hi MrBob");
-        assertFalse(condition.isSatisfied(event, displayName));
+        Assert.assertFalse(condition.isSatisfied(event, displayName));
 
         setEventTextMessageBody("Hi Robert!");
-        assertFalse(condition.isSatisfied(event, displayName));
+        Assert.assertFalse(condition.isSatisfied(event, displayName));
     }
 
     @Test
     public void testOtherMessageTypes() {
         setEventMessage("m.image", "'body': 'Bob.jpeg'");
-        assertTrue(condition.isSatisfied(event, displayName));
+        Assert.assertTrue(condition.isSatisfied(event, displayName));
 
         setEventMessage("m.image", "'url': 'Bob'");
-        assertFalse(condition.isSatisfied(event, displayName));
+        Assert.assertFalse(condition.isSatisfied(event, displayName));
 
         setEventMessage("m.notice", "'body': 'Bob did something or other'");
-        assertTrue(condition.isSatisfied(event, displayName));
+        Assert.assertTrue(condition.isSatisfied(event, displayName));
 
         setEventMessage("m.emote", "'body': 'is angry with Bob'");
-        assertTrue(condition.isSatisfied(event, displayName));
+        Assert.assertTrue(condition.isSatisfied(event, displayName));
     }
 
     @Test
     public void testOtherEventType() {
         event.type = Event.EVENT_TYPE_TYPING;
         setEventTextMessageBody("Bob");
-        assertFalse(condition.isSatisfied(event, displayName));
+        Assert.assertFalse(condition.isSatisfied(event, displayName));
     }
 }

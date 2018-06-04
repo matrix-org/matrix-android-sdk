@@ -19,6 +19,7 @@ package org.matrix.androidsdk.rest.json;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
@@ -30,8 +31,6 @@ import org.matrix.androidsdk.util.JsonUtils;
 import org.robolectric.RobolectricTestRunner;
 
 import java.lang.reflect.Modifier;
-
-import static org.junit.Assert.*;
 
 /**
  * Class for unit testing the ConditionDeserializer.
@@ -51,11 +50,11 @@ public class ConditionDeserializerTest {
         String conditionJson = "{'kind': 'event_match', 'key': 'key1', 'pattern': 'pattern1'}";
         Condition condition = gson.fromJson(conditionJson, Condition.class);
 
-        assertTrue(condition instanceof EventMatchCondition);
+        Assert.assertTrue(condition instanceof EventMatchCondition);
 
         EventMatchCondition eventMatchCondition = (EventMatchCondition) condition;
-        assertEquals("key1", eventMatchCondition.key);
-        assertEquals("pattern1", eventMatchCondition.pattern);
+        Assert.assertEquals("key1", eventMatchCondition.key);
+        Assert.assertEquals("pattern1", eventMatchCondition.pattern);
     }
 
     @Test
@@ -63,10 +62,10 @@ public class ConditionDeserializerTest {
         String conditionJson = "{'kind': 'device', 'profile_tag': 'proftag1'}";
         Condition condition = gson.fromJson(conditionJson, Condition.class);
 
-        assertTrue(condition instanceof DeviceCondition);
+        Assert.assertTrue(condition instanceof DeviceCondition);
 
         DeviceCondition deviceCondition = (DeviceCondition) condition;
-        assertEquals("proftag1", deviceCondition.profileTag);
+        Assert.assertEquals("proftag1", deviceCondition.profileTag);
     }
 
     @Test
@@ -74,10 +73,10 @@ public class ConditionDeserializerTest {
         String conditionJson = "{'kind': 'room_member_count', 'is': 'is1'}";
         Condition condition = gson.fromJson(conditionJson, Condition.class);
 
-        assertTrue(condition instanceof RoomMemberCountCondition);
+        Assert.assertTrue(condition instanceof RoomMemberCountCondition);
 
         RoomMemberCountCondition roomMemberCountConditionCondition = (RoomMemberCountCondition) condition;
-        assertEquals("is1", roomMemberCountConditionCondition.is);
+        Assert.assertEquals("is1", roomMemberCountConditionCondition.is);
     }
 
     @Test
@@ -85,7 +84,7 @@ public class ConditionDeserializerTest {
         String conditionJson = "{'kind': 'contains_display_name'}";
         Condition condition = gson.fromJson(conditionJson, Condition.class);
 
-        assertTrue(condition instanceof ContainsDisplayNameCondition);
+        Assert.assertTrue(condition instanceof ContainsDisplayNameCondition);
     }
 
     @Test
@@ -93,7 +92,7 @@ public class ConditionDeserializerTest {
         String conditionJson = "{'kind': 'strange_unknown_kind'}";
         Condition condition = gson.fromJson(conditionJson, Condition.class);
 
-        assertNotNull(condition);
+        Assert.assertNotNull(condition);
     }
 
     @Test
@@ -101,6 +100,6 @@ public class ConditionDeserializerTest {
         String conditionJson = "{'some_other_field': 'some_value'}";
         Condition condition = gson.fromJson(conditionJson, Condition.class);
 
-        assertNull(condition);
+        Assert.assertNull(condition);
     }
 }

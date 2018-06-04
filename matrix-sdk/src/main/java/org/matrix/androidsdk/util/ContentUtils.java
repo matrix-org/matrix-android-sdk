@@ -160,7 +160,7 @@ public class ContentUtils {
         long lastAccessTime = file.lastModified();
 
         try {
-            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 lastAccessTime = Os.lstat(file.getAbsolutePath()).st_atime;
             } else {
                 Class<?> clazz = Class.forName("libcore.io.Libcore");

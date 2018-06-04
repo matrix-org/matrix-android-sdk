@@ -1,6 +1,7 @@
 /* 
  * Copyright 2015 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -21,33 +22,27 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.Looper;
 import android.support.v4.util.LruCache;
 import android.text.TextUtils;
-
-import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.util.JsonUtils;
-import org.matrix.androidsdk.util.Log;
-
 import android.util.Pair;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
+import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
 import org.matrix.androidsdk.ssl.CertUtil;
 import org.matrix.androidsdk.util.ImageUtils;
-import org.matrix.androidsdk.util.MXOsHandler;
+import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -310,7 +305,13 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      * @param encryptionInfo the encryption information
      * @return true if the bitmap is cached
      */
-    static boolean bitmapForURL(final Context context, final File baseFile, final String url, final int aRotation, final String mimeType, final EncryptedFileInfo encryptionInfo, final SimpleApiCallback<Bitmap> callback) {
+    static boolean bitmapForURL(final Context context,
+                                final File baseFile,
+                                final String url,
+                                final int aRotation,
+                                final String mimeType,
+                                final EncryptedFileInfo encryptionInfo,
+                                final SimpleApiCallback<Bitmap> callback) {
         if (TextUtils.isEmpty(url)) {
             Log.d(LOG_TAG, "bitmapForURL : null url");
             return false;
@@ -440,7 +441,8 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                                         android.graphics.Matrix bitmapMatrix = new android.graphics.Matrix();
                                         bitmapMatrix.postRotate(rotation);
 
-                                        Bitmap transformedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), bitmapMatrix, false);
+                                        Bitmap transformedBitmap = Bitmap.createBitmap(bitmap,
+                                                0, 0, bitmap.getWidth(), bitmap.getHeight(), bitmapMatrix, false);
                                         bitmap.recycle();
                                         bitmap = transformedBitmap;
                                     } catch (OutOfMemoryError ex) {
@@ -513,7 +515,13 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      * @param mimeType                    the mime type.
      * @param encryptedFileInfo           the encryption information
      */
-    public MXMediaDownloadWorkerTask(Context appContext, HomeServerConnectionConfig hsConfig, NetworkConnectivityReceiver networkConnectivityReceiver, File directoryFile, String url, String mimeType, EncryptedFileInfo encryptedFileInfo) {
+    public MXMediaDownloadWorkerTask(Context appContext,
+                                     HomeServerConnectionConfig hsConfig,
+                                     NetworkConnectivityReceiver networkConnectivityReceiver,
+                                     File directoryFile,
+                                     String url,
+                                     String mimeType,
+                                     EncryptedFileInfo encryptedFileInfo) {
         commonInit(appContext, url, mimeType);
         mNetworkConnectivityReceiver = networkConnectivityReceiver;
         mDirectoryFile = directoryFile;
@@ -534,7 +542,14 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      * @param mimeType                    the mime type.
      * @param encryptedFileInfo           the encryption information
      */
-    public MXMediaDownloadWorkerTask(Context appContext, HomeServerConnectionConfig hsConfig, NetworkConnectivityReceiver networkConnectivityReceiver, File directoryFile, String url, int rotation, String mimeType, EncryptedFileInfo encryptedFileInfo) {
+    public MXMediaDownloadWorkerTask(Context appContext,
+                                     HomeServerConnectionConfig hsConfig,
+                                     NetworkConnectivityReceiver networkConnectivityReceiver,
+                                     File directoryFile,
+                                     String url,
+                                     int rotation,
+                                     String mimeType,
+                                     EncryptedFileInfo encryptedFileInfo) {
         commonInit(appContext, url, mimeType);
         mNetworkConnectivityReceiver = networkConnectivityReceiver;
         mImageViewReferences = new ArrayList<>();
@@ -918,7 +933,8 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             // update the linked ImageViews.
             if (isBitmapDownloadTask()) {
                 // retrieve the bitmap from the file s
-                if (!MXMediaDownloadWorkerTask.bitmapForURL(mApplicationContext, mDirectoryFile, mUrl, mRotation, mMimeType, mEncryptedFileInfo, new SimpleApiCallback<Bitmap>() {
+                if (!MXMediaDownloadWorkerTask.bitmapForURL(mApplicationContext, mDirectoryFile, mUrl, mRotation, mMimeType, mEncryptedFileInfo,
+                        new SimpleApiCallback<Bitmap>() {
                     @Override
                     public void onSuccess(Bitmap bitmap) {
                         setBitmap((null == bitmap) ? mDefaultBitmap : bitmap);

@@ -19,21 +19,20 @@ package org.matrix.androidsdk.rest.model;
 
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
-import org.matrix.androidsdk.rest.model.message.FileMessage;
-import org.matrix.androidsdk.rest.model.message.ImageMessage;
-import org.matrix.androidsdk.rest.model.message.Message;
-import org.matrix.androidsdk.rest.model.message.StickerMessage;
-import org.matrix.androidsdk.rest.model.message.VideoMessage;
-import org.matrix.androidsdk.util.Log;
-
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import org.matrix.androidsdk.crypto.MXCryptoError;
+import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
 import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.rest.model.message.FileMessage;
+import org.matrix.androidsdk.rest.model.message.ImageMessage;
+import org.matrix.androidsdk.rest.model.message.Message;
+import org.matrix.androidsdk.rest.model.message.StickerMessage;
+import org.matrix.androidsdk.rest.model.message.VideoMessage;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -1071,11 +1070,11 @@ public class Event implements Externalizable {
             allowedKeys = null;
         }
 
-        this.content = filterInContentWithKeys(getContentAsJsonObject(), allowedKeys);
-        this.prev_content = filterInContentWithKeys(getPrevContentAsJsonObject(), allowedKeys);
+        content = filterInContentWithKeys(getContentAsJsonObject(), allowedKeys);
+        prev_content = filterInContentWithKeys(getPrevContentAsJsonObject(), allowedKeys);
 
-        this.prev_content_as_string = null;
-        this.contentAsString = null;
+        prev_content_as_string = null;
+        contentAsString = null;
 
         if (null != redactionEvent) {
             if (null == unsigned) {

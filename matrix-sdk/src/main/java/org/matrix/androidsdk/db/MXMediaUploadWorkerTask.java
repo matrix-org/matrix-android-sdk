@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +21,6 @@ import android.os.AsyncTask;
 import android.os.Looper;
 import android.util.Pair;
 
-import org.matrix.androidsdk.util.Log;
-
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
@@ -31,6 +30,7 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.ssl.CertUtil;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 
 import java.io.DataOutputStream;
 import java.io.EOFException;
@@ -163,7 +163,12 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
      * @param filename       the dest filename
      * @param listener       the upload listener
      */
-    public MXMediaUploadWorkerTask(ContentManager contentManager, InputStream contentStream, String mimeType, String uploadId, String filename, IMXMediaUploadListener listener) {
+    public MXMediaUploadWorkerTask(ContentManager contentManager,
+                                   InputStream contentStream,
+                                   String mimeType,
+                                   String uploadId,
+                                   String filename,
+                                   IMXMediaUploadListener listener) {
         try {
             contentStream.reset();
         } catch (Exception e) {
@@ -267,7 +272,8 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
         byte[] buffer;
 
         String serverResponse = null;
-        String urlString = mContentManager.getHsConfig().getHomeserverUri().toString() + ContentManager.URI_PREFIX_CONTENT_API + "upload?access_token=" + mContentManager.getHsConfig().getCredentials().accessToken;
+        String urlString = mContentManager.getHsConfig().getHomeserverUri().toString() + ContentManager.URI_PREFIX_CONTENT_API
+                + "upload?access_token=" + mContentManager.getHsConfig().getCredentials().accessToken;
 
         if (null != mFilename) {
             try {

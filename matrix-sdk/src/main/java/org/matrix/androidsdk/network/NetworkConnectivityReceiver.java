@@ -22,6 +22,7 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
 
@@ -146,7 +147,7 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
         List<NetworkInfo> networkInfos = new ArrayList<>();
 
         //
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             Network[] activeNetworks = cm.getAllNetworks();
             if (null != activeNetworks) {
                 for (Network network : activeNetworks) {

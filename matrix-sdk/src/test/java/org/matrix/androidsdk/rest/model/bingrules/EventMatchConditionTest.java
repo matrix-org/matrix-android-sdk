@@ -17,13 +17,12 @@ package org.matrix.androidsdk.rest.model.bingrules;
 
 import com.google.gson.JsonParser;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.matrix.androidsdk.rest.model.Event;
 import org.robolectric.RobolectricTestRunner;
-
-import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class EventMatchConditionTest {
@@ -48,11 +47,11 @@ public class EventMatchConditionTest {
         condition.key = "room_id";
         condition.pattern = TEST_ROOM_ID;
 
-        assertTrue(condition.isSatisfied(event));
+        Assert.assertTrue(condition.isSatisfied(event));
 
         event.roomId = "!otherroomid:matrix.org";
 
-        assertFalse(condition.isSatisfied(event));
+        Assert.assertFalse(condition.isSatisfied(event));
     }
 
     @Test
@@ -60,60 +59,60 @@ public class EventMatchConditionTest {
         condition.key = "user_id";
         condition.pattern = TEST_USER_ID;
 
-        assertTrue(condition.isSatisfied(event));
+        Assert.assertTrue(condition.isSatisfied(event));
 
         event.userId = "!otheruserid:matrix.org";
 
-        assertFalse(condition.isSatisfied(event));
+        Assert.assertFalse(condition.isSatisfied(event));
     }
 
     @Test
     public void testContentBody() {
         condition.key = "content.body";
         condition.pattern = "Nice body!";
-        assertTrue(condition.isSatisfied(event));
+        Assert.assertTrue(condition.isSatisfied(event));
 
         condition.pattern = "Nice";
-        assertTrue(condition.isSatisfied(event));
+        Assert.assertTrue(condition.isSatisfied(event));
 
         condition.pattern = "body";
-        assertTrue(condition.isSatisfied(event));
+        Assert.assertTrue(condition.isSatisfied(event));
 
         condition.pattern = "bo?y"; // Contains a special character so leading and trailing * are not implicit
-        assertFalse(condition.isSatisfied(event));
+        Assert.assertFalse(condition.isSatisfied(event));
 
         condition.pattern = "*bo?y?";
-        assertTrue(condition.isSatisfied(event));
+        Assert.assertTrue(condition.isSatisfied(event));
 
         condition.pattern = "b*y"; // Same as above
-        assertFalse(condition.isSatisfied(event));
+        Assert.assertFalse(condition.isSatisfied(event));
 
         condition.pattern = "*b*y*";
-        assertTrue(condition.isSatisfied(event));
+        Assert.assertTrue(condition.isSatisfied(event));
 
         condition.pattern = "nice";
-        assertTrue(condition.isSatisfied(event)); // Lowercase N
+        Assert.assertTrue(condition.isSatisfied(event)); // Lowercase N
 
         condition.pattern = "ice";
-        assertFalse(condition.isSatisfied(event)); // partial match
+        Assert.assertFalse(condition.isSatisfied(event)); // partial match
 
         condition.pattern = "dog";
-        assertFalse(condition.isSatisfied(event));
+        Assert.assertFalse(condition.isSatisfied(event));
     }
 
     @Test
     public void testRandomField() {
         condition.key = "content.other_field";
         condition.pattern = "other_value";
-        assertTrue(condition.isSatisfied(event));
+        Assert.assertTrue(condition.isSatisfied(event));
 
         condition.pattern = "*value";
-        assertTrue(condition.isSatisfied(event));
+        Assert.assertTrue(condition.isSatisfied(event));
 
         condition.pattern = "value";
-        assertFalse(condition.isSatisfied(event));
+        Assert.assertFalse(condition.isSatisfied(event));
 
         condition.pattern = "?value";
-        assertFalse(condition.isSatisfied(event));
+        Assert.assertFalse(condition.isSatisfied(event));
     }
 }

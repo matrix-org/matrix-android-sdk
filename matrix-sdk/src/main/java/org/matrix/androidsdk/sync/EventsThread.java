@@ -1,6 +1,7 @@
 /*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +28,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
 import android.os.SystemClock;
-import org.matrix.androidsdk.rest.model.sync.RoomsSyncResponse;
-import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
@@ -36,7 +35,9 @@ import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.sync.RoomsSyncResponse;
 import org.matrix.androidsdk.rest.model.sync.SyncResponse;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -124,7 +125,7 @@ public class EventsThread extends Thread {
         mEventsRestClient = apiClient;
         mListener = listener;
         mCurrentToken = initialToken;
-        mSyncObjectByInstance.put(this.toString(), this);
+        mSyncObjectByInstance.put(toString(), this);
         mAlarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         mPowerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
     }
@@ -415,7 +416,8 @@ public class EventsThread extends Thread {
             // Start with initial sync
             while (!mInitialSyncDone) {
                 final CountDownLatch latch = new CountDownLatch(1);
-                mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", DATA_SAVE_MODE_FILTER, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
+                mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", DATA_SAVE_MODE_FILTER,
+                        new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         Log.d(LOG_TAG, "Received initial sync response.");
@@ -496,7 +498,7 @@ public class EventsThread extends Thread {
                 Log.d(LOG_TAG, "startSync : start a delay timer ");
 
                 Intent intent = new Intent(mContext, SyncDelayReceiver.class);
-                intent.putExtra(SyncDelayReceiver.EXTRA_INSTANCE_ID, this.toString());
+                intent.putExtra(SyncDelayReceiver.EXTRA_INSTANCE_ID, toString());
                 mPendingDelayedIntent = PendingIntent.getBroadcast(mContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
                 long futureInMillis = SystemClock.elapsedRealtime() + mRequestDelayMs;
@@ -555,7 +557,8 @@ public class EventsThread extends Thread {
                 final int fServerTimeout = serverTimeout;
                 mNextServerTimeoutms = mDefaultServerTimeoutms;
 
-                mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", inlineFilter, new SimpleApiCallback<SyncResponse>(mFailureCallback) {
+                mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", inlineFilter,
+                        new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                     @Override
                     public void onSuccess(SyncResponse syncResponse) {
                         if (!mKilling) {

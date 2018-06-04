@@ -1,6 +1,7 @@
 /*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,20 +20,19 @@ package org.matrix.androidsdk.data;
 
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.data.store.IMXStore;
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.util.Log;
-
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.call.MXCallsManager;
+import org.matrix.androidsdk.data.store.IMXStore;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -584,7 +584,7 @@ public class RoomState implements Externalizable {
         copy.setPowerLevels((powerLevels == null) ? null : powerLevels.deepCopy());
         copy.aliases = (aliases == null) ? null : new ArrayList<>(aliases);
         copy.mAliasesByDomain = new HashMap<>(mAliasesByDomain);
-        copy.alias = this.alias;
+        copy.alias = alias;
         copy.name = name;
         copy.topic = topic;
         copy.url = url;
@@ -817,7 +817,8 @@ public class RoomState implements Externalizable {
      */
     public boolean isEncrypted() {
         // When a client receives an m.room.encryption event as above, it should set a flag to indicate that messages sent in the room should be encrypted.
-        // This flag should not be cleared if a later m.room.encryption event changes the configuration. This is to avoid a situation where a MITM can simply ask participants to disable encryption. In short: once encryption is enabled in a room, it can never be disabled.
+        // This flag should not be cleared if a later m.room.encryption event changes the configuration. This is to avoid a situation where a MITM can simply
+        // ask participants to disable encryption. In short: once encryption is enabled in a room, it can never be disabled.
         return null != algorithm;
     }
 
@@ -871,8 +872,11 @@ public class RoomState implements Externalizable {
             } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
                 algorithm = JsonUtils.toRoomState(contentToConsider).algorithm;
 
-                // When a client receives an m.room.encryption event as above, it should set a flag to indicate that messages sent in the room should be encrypted.
-                // This flag should not be cleared if a later m.room.encryption event changes the configuration. This is to avoid a situation where a MITM can simply ask participants to disable encryption. In short: once encryption is enabled in a room, it can never be disabled.
+                // When a client receives an m.room.encryption event as above, it should set a flag to indicate that messages sent
+                // in the room should be encrypted.
+                // This flag should not be cleared if a later m.room.encryption event changes the configuration. This is to avoid
+                // a situation where a MITM can simply ask participants to disable encryption. In short: once encryption is enabled
+                // in a room, it can never be disabled.
                 if (null == algorithm) {
                     algorithm = "";
                 }
@@ -921,7 +925,8 @@ public class RoomState implements Externalizable {
 
                         // when a member leaves a room, his avatar / display name is not anymore provided
                         if (null != currentMember) {
-                            if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_LEAVE) || TextUtils.equals(member.membership, (RoomMember.MEMBERSHIP_BAN))) {
+                            if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_LEAVE)
+                                    || TextUtils.equals(member.membership, (RoomMember.MEMBERSHIP_BAN))) {
                                 if (null == member.getAvatarUrl()) {
                                     member.setAvatarUrl(currentMember.getAvatarUrl());
                                 }

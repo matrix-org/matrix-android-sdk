@@ -1,6 +1,7 @@
 /*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,15 +56,15 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.group.InvitedGroupSync;
-import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
-import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
 import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
+import org.matrix.androidsdk.rest.model.group.InvitedGroupSync;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
+import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 import org.matrix.androidsdk.ssl.UnrecognizedCertificateException;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -474,7 +475,7 @@ public class MXDataHandler implements IMXEventListener {
             mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
-                    MXDataHandler.this.onBingRulesUpdate();
+                    onBingRulesUpdate();
                 }
             });
         }
@@ -537,7 +538,7 @@ public class MXDataHandler implements IMXEventListener {
             mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
-                    MXDataHandler.this.onBingRulesUpdate();
+                    onBingRulesUpdate();
                 }
             });
         }
@@ -1227,7 +1228,7 @@ public class MXDataHandler implements IMXEventListener {
             }
 
             mStore.storeUser(user);
-            this.onPresenceUpdate(presenceEvent, user);
+            onPresenceUpdate(presenceEvent, user);
         }
     }
 
@@ -1257,7 +1258,7 @@ public class MXDataHandler implements IMXEventListener {
      */
     public void deleteRoom(String roomId) {
         // copy the room from a store to another one
-        Room r = this.getStore().getRoom(roomId);
+        Room r = getStore().getRoom(roomId);
 
         if (null != r) {
             if (mAreLeftRoomsSynced) {
@@ -1397,9 +1398,9 @@ public class MXDataHandler implements IMXEventListener {
                                 if (null != participantUserId) {
                                     // Prepare the updated dictionary.
                                     if (null == updatedDirectChatRoomsDict) {
-                                        if (null != this.getStore().getDirectChatRoomsDict()) {
+                                        if (null != getStore().getDirectChatRoomsDict()) {
                                             // Consider the current dictionary.
-                                            updatedDirectChatRoomsDict = new HashMap<>(this.getStore().getDirectChatRoomsDict());
+                                            updatedDirectChatRoomsDict = new HashMap<>(getStore().getDirectChatRoomsDict());
                                         } else {
                                             updatedDirectChatRoomsDict = new HashMap<>();
                                         }
@@ -1430,7 +1431,8 @@ public class MXDataHandler implements IMXEventListener {
                     isEmptyResponse = false;
 
                     if (hasChanged) {
-                        mAccountDataRestClient.setAccountData(mCredentials.userId, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, updatedDirectChatRoomsDict, new ApiCallback<Void>() {
+                        mAccountDataRestClient.setAccountData(mCredentials.userId, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES,
+                                updatedDirectChatRoomsDict, new ApiCallback<Void>() {
                             @Override
                             public void onSuccess(Void info) {
                                 Log.d(LOG_TAG, "## manageResponse() : succeeds");
@@ -1490,7 +1492,7 @@ public class MXDataHandler implements IMXEventListener {
 
                         if (!TextUtils.equals(membership, RoomMember.MEMBERSHIP_KICK) && !TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN)) {
                             // ensure that the room data are properly deleted
-                            this.getStore().deleteRoom(roomId);
+                            getStore().deleteRoom(roomId);
                             onLeaveRoom(roomId);
                         } else {
                             onRoomKick(roomId);
@@ -1751,7 +1753,9 @@ public class MXDataHandler implements IMXEventListener {
         // Decrypt event if necessary
         decryptEvent(event, null);
 
-        if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && (null != event.getContent()) && TextUtils.equals(JsonUtils.getMessageMsgType(event.getContent()), "m.bad.encrypted")) {
+        if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)
+                && (null != event.getContent())
+                && TextUtils.equals(JsonUtils.getMessageMsgType(event.getContent()), "m.bad.encrypted")) {
             Log.e(LOG_TAG, "## handleToDeviceEvent() : Warning: Unable to decrypt to-device event : " + event.getContent());
         } else {
             onToDeviceEvent(event);
@@ -1911,7 +1915,9 @@ public class MXDataHandler implements IMXEventListener {
 
         String type = event.getType();
 
-        if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type) && !TextUtils.equals(Event.EVENT_TYPE_RECEIPT, type) && !TextUtils.equals(Event.EVENT_TYPE_TYPING, type)) {
+        if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type)
+                && !TextUtils.equals(Event.EVENT_TYPE_RECEIPT, type)
+                && !TextUtils.equals(Event.EVENT_TYPE_TYPING, type)) {
             synchronized (mUpdatedRoomIdList) {
                 mUpdatedRoomIdList.add(roomState.roomId);
             }
@@ -2787,8 +2793,8 @@ public class MXDataHandler implements IMXEventListener {
         final String mParticipantUserId;
 
         public RoomIdsListRetroCompat(String aParticipantUserId, String aRoomId) {
-            this.mParticipantUserId = aParticipantUserId;
-            this.mRoomId = aRoomId;
+            mParticipantUserId = aParticipantUserId;
+            mRoomId = aRoomId;
         }
     }
 
