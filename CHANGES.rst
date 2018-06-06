@@ -8,7 +8,7 @@ Improvements:
  -
 
 Bugfix:
- -
+ - Prevent crash on KitKat
 
 API Change:
  -

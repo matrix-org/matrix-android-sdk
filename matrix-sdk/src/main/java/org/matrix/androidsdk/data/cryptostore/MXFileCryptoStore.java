@@ -29,6 +29,7 @@ import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.util.CompatUtil;
 import org.matrix.androidsdk.util.ContentUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.olm.OlmAccount;
@@ -380,7 +381,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 }
 
                 FileOutputStream fos = new FileOutputStream(file);
-                GZIPOutputStream gz = new GZIPOutputStream(fos);
+                GZIPOutputStream gz = CompatUtil.createGzipOutputStream(fos);
                 ObjectOutputStream out = new ObjectOutputStream(gz);
 
                 out.writeObject(object);
