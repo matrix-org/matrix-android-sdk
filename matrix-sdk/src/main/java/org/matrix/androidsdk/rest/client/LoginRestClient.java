@@ -18,6 +18,7 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.os.Build;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
@@ -75,17 +76,17 @@ public class LoginRestClient extends RestClient<LoginApi> {
         mApi.login()
                 .enqueue(new RestAdapterCallback<LoginFlowResponse>(description, mUnsentEventsManager, callback,
                         new RestAdapterCallback.RequestRetryCallBack() {
+                            @Override
+                            public void onRetry() {
+                                getSupportedLoginFlows(callback);
+                            }
+                        }) {
                     @Override
-                    public void onRetry() {
-                        getSupportedLoginFlows(callback);
+                    public void success(LoginFlowResponse loginFlowResponse, Response response) {
+                        onEventSent();
+                        callback.onSuccess(loginFlowResponse.flows);
                     }
-                }) {
-            @Override
-            public void success(LoginFlowResponse loginFlowResponse, Response response) {
-                onEventSent();
-                callback.onSuccess(loginFlowResponse.flows);
-            }
-        });
+                });
     }
 
     /**
@@ -119,13 +120,13 @@ public class LoginRestClient extends RestClient<LoginApi> {
                     }
                 }) {
 
-            @Override
-            public void success(JsonObject jsonObject, Response response) {
-                onEventSent();
-                mCredentials = gson.fromJson(jsonObject, Credentials.class);
-                callback.onSuccess(mCredentials);
-            }
-        });
+                    @Override
+                    public void success(JsonObject jsonObject, Response response) {
+                        onEventSent();
+                        mCredentials = gson.fromJson(jsonObject, Credentials.class);
+                        callback.onSuccess(mCredentials);
+                    }
+                });
     }
 
     /**
@@ -136,7 +137,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param callback the callback success and failure callback
      */
     public void loginWithUser(final String user, final String password, final ApiCallback<Credentials> callback) {
-        loginWithUser(user, password, null, callback);
+        loginWithUser(user, password, null, null, callback);
     }
 
     /**
@@ -145,14 +146,20 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param user       the username
      * @param password   the password
      * @param deviceName the device name
+     * @param deviceId   the device id, used for e2e encryption
      * @param callback   the callback success and failure callback
      */
-    public void loginWithUser(final String user, final String password, final String deviceName, final ApiCallback<Credentials> callback) {
+    public void loginWithUser(final String user,
+                              final String password,
+                              final String deviceName,
+                              @Nullable final String deviceId,
+                              final ApiCallback<Credentials> callback) {
         final String description = "loginWithUser : " + user;
 
         PasswordLoginParams params = new PasswordLoginParams();
         params.setUserIdentifier(user, password);
         params.setDeviceName(deviceName);
+        params.setDeviceId(deviceId);
 
         login(params, callback, description);
     }
@@ -166,7 +173,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param callback the callback success and failure callback
      */
     public void loginWith3Pid(final String medium, final String address, final String password, final ApiCallback<Credentials> callback) {
-        loginWith3Pid(medium, address, password, null, callback);
+        loginWith3Pid(medium, address, password, null, null, callback);
     }
 
     /**
@@ -176,18 +183,21 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param address    the address of the 3pid
      * @param password   the password
      * @param deviceName the device name
+     * @param deviceId   the device id, used for e2e encryption
      * @param callback   the callback success and failure callback
      */
     public void loginWith3Pid(final String medium,
                               final String address,
                               final String password,
                               final String deviceName,
+                              @Nullable final String deviceId,
                               final ApiCallback<Credentials> callback) {
         final String description = "loginWith3pid : " + address;
 
         PasswordLoginParams params = new PasswordLoginParams();
         params.setThirdPartyIdentifier(medium, address, password);
         params.setDeviceName(deviceName);
+        params.setDeviceId(deviceId);
 
         login(params, callback, description);
     }
@@ -201,7 +211,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param callback    the callback success and failure callback
      */
     public void loginWithPhoneNumber(final String phoneNumber, final String countryCode, final String password, final ApiCallback<Credentials> callback) {
-        loginWithPhoneNumber(phoneNumber, countryCode, password, null, callback);
+        loginWithPhoneNumber(phoneNumber, countryCode, password, null, null, callback);
     }
 
     /**
@@ -211,18 +221,21 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param countryCode the ISO country code
      * @param password    the password
      * @param deviceName  the device name
+     * @param deviceId    the device id, used for e2e encryption
      * @param callback    the callback success and failure callback
      */
     public void loginWithPhoneNumber(final String phoneNumber,
                                      final String countryCode,
                                      final String password,
                                      final String deviceName,
+                                     @Nullable final String deviceId,
                                      final ApiCallback<Credentials> callback) {
         final String description = "loginWithPhoneNumber : " + phoneNumber;
 
         PasswordLoginParams params = new PasswordLoginParams();
         params.setPhoneIdentifier(phoneNumber, countryCode, password);
         params.setDeviceName(deviceName);
+        params.setDeviceId(deviceId);
 
         login(params, callback, description);
     }
@@ -251,16 +264,14 @@ public class LoginRestClient extends RestClient<LoginApi> {
                     public void onRetry() {
                         login(params, callback, description);
                     }
-                }
-
-        ) {
-            @Override
-            public void success(JsonObject jsonObject, Response<JsonObject> response) {
-                onEventSent();
-                mCredentials = gson.fromJson(jsonObject, Credentials.class);
-                callback.onSuccess(mCredentials);
-            }
-        });
+                }) {
+                    @Override
+                    public void success(JsonObject jsonObject, Response<JsonObject> response) {
+                        onEventSent();
+                        mCredentials = gson.fromJson(jsonObject, Credentials.class);
+                        callback.onSuccess(mCredentials);
+                    }
+                });
     }
 
     /**
@@ -306,15 +317,14 @@ public class LoginRestClient extends RestClient<LoginApi> {
                     public void onRetry() {
                         loginWithToken(user, token, txn_id, callback);
                     }
-                }
-        ) {
-            @Override
-            public void success(JsonObject jsonObject, Response response) {
-                onEventSent();
-                mCredentials = gson.fromJson(jsonObject, Credentials.class);
-                callback.onSuccess(mCredentials);
-            }
-        });
+                }) {
+                    @Override
+                    public void success(JsonObject jsonObject, Response response) {
+                        onEventSent();
+                        mCredentials = gson.fromJson(jsonObject, Credentials.class);
+                        callback.onSuccess(mCredentials);
+                    }
+                });
     }
 
     /**
@@ -332,7 +342,6 @@ public class LoginRestClient extends RestClient<LoginApi> {
                     public void onRetry() {
                         logout(callback);
                     }
-                }
-        ));
+                }));
     }
 }
