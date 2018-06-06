@@ -1,6 +1,7 @@
 /*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,6 +57,7 @@ public class PasswordLoginParams extends LoginParams {
     // A display name to assign to the newly-created device
     public String initial_device_display_name;
 
+    // The device id, used for e2e encryption
     public String device_id;
 
     /**
@@ -136,7 +138,7 @@ public class PasswordLoginParams extends LoginParams {
     /**
      * Set the device Id
      *
-     * @param deviceId the device Id
+     * @param deviceId the device id, used for e2e encryption
      */
     public void setDeviceId(String deviceId) {
         device_id = deviceId;
