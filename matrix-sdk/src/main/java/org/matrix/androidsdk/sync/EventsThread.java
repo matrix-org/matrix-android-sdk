@@ -503,7 +503,8 @@ public class EventsThread extends Thread {
 
                 long futureInMillis = SystemClock.elapsedRealtime() + mRequestDelayMs;
 
-                if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) && mPowerManager.isIgnoringBatteryOptimizations(mContext.getPackageName())) {
+                if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+                        && mPowerManager.isIgnoringBatteryOptimizations(mContext.getPackageName())) {
                     mAlarmManager.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, futureInMillis, mPendingDelayedIntent);
                 } else {
                     mAlarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, futureInMillis, mPendingDelayedIntent);
