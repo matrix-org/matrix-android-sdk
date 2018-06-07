@@ -42,11 +42,11 @@ public interface EventsApi {
 
     /**
      * Perform the initial sync to find the rooms that concern the user, the participants' presence, etc.
+     *
      * @param params the GET params.
      */
     @GET(RestClient.URI_API_PREFIX_PATH_R0 + "sync")
     Call<SyncResponse> sync(@QueryMap Map<String, Object> params);
-
 
     /**
      * Get the third party server protocols.
@@ -83,8 +83,8 @@ public interface EventsApi {
     /**
      * Retrieve the preview information of an URL.
      *
-     * @param url      the URL
-     * @param ts       the ts
+     * @param url the URL
+     * @param ts  the ts
      */
     @GET(RestClient.URI_API_PREFIX_PATH_MEDIA_R0 + "preview_url")
     Call<Map<String, Object>> getURLPreview(@Query("url") String url, @Query("ts") long ts);

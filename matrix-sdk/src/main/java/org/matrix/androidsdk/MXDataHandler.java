@@ -1416,6 +1416,7 @@ public class MXDataHandler implements IMXEventListener {
                     isEmptyResponse = false;
 
                     if (hasChanged) {
+                        // Update account data to add new direct chat room(s)
                         mAccountDataRestClient.setAccountData(mCredentials.userId, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES,
                                 updatedDirectChatRoomsDict, new ApiCallback<Void>() {
                             @Override
