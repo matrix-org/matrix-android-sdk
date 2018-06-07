@@ -56,12 +56,11 @@ public class EventsThread extends Thread {
 
     private static final String DATA_SAVE_MODE_FILTER = "{\"room\": {\"ephemeral\": {\"types\": [\"m.receipt\"]}}, \"presence\":{\"not_types\": [\"*\"]}}";
 
-    private EventsRestClient mEventsRestClient = null;
+    private EventsRestClient mEventsRestClient;
 
-    private EventsThreadListener mListener = null;
-    private String mCurrentToken = null;
+    private EventsThreadListener mListener;
+    private String mCurrentToken;
 
-    private boolean mInitialSyncDone = false;
     private boolean mPaused = true;
     private boolean mIsNetworkSuspended = false;
     private boolean mIsCatchingUp = false;
@@ -400,10 +399,7 @@ public class EventsThread extends Thread {
 
         mPaused = false;
 
-        //
-        mInitialSyncDone = null != mCurrentToken;
-
-        if (mInitialSyncDone) {
+        if (isInitialSyncDone()) {
             // get the latest events asap
             serverTimeout = 0;
             // dummy initial sync
@@ -412,61 +408,62 @@ public class EventsThread extends Thread {
             dummySyncResponse.nextBatch = mCurrentToken;
             mListener.onSyncResponse(dummySyncResponse, null, true);
         } else {
-
             // Start with initial sync
-            while (!mInitialSyncDone) {
+            while (!isInitialSyncDone()) {
                 final CountDownLatch latch = new CountDownLatch(1);
                 mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", DATA_SAVE_MODE_FILTER,
                         new SimpleApiCallback<SyncResponse>(mFailureCallback) {
-                    @Override
-                    public void onSuccess(SyncResponse syncResponse) {
-                        Log.d(LOG_TAG, "Received initial sync response.");
-                        mNextServerTimeoutms = hasDevicesChanged(syncResponse) ? 0 : mDefaultServerTimeoutms;
-                        mListener.onSyncResponse(syncResponse, null, (0 == mNextServerTimeoutms));
-                        mCurrentToken = syncResponse.nextBatch;
-                        mInitialSyncDone = true;
-                        // unblock the events thread
-                        latch.countDown();
-                    }
-
-                    private void sleepAndUnblock() {
-                        Log.i(LOG_TAG, "Waiting a bit before retrying");
-                        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                            public void run() {
+                            @Override
+                            public void onSuccess(SyncResponse syncResponse) {
+                                Log.d(LOG_TAG, "Received initial sync response.");
+                                mNextServerTimeoutms = hasDevicesChanged(syncResponse) ? 0 : mDefaultServerTimeoutms;
+                                mListener.onSyncResponse(syncResponse, null, (0 == mNextServerTimeoutms));
+                                mCurrentToken = syncResponse.nextBatch;
+                                // unblock the events thread
                                 latch.countDown();
                             }
-                        }, RETRY_WAIT_TIME_MS);
-                    }
 
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        if (null != mCurrentToken) {
-                            onSuccess(null);
-                        } else {
-                            Log.e(LOG_TAG, "Sync V2 onNetworkError " + e.getMessage());
-                            super.onNetworkError(e);
-                            sleepAndUnblock();
-                        }
-                    }
+                            private void sleepAndUnblock() {
+                                Log.i(LOG_TAG, "Waiting a bit before retrying");
+                                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                                    public void run() {
+                                        latch.countDown();
+                                    }
+                                }, RETRY_WAIT_TIME_MS);
+                            }
 
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        super.onMatrixError(e);
+                            @Override
+                            public void onNetworkError(Exception e) {
+                                if (isInitialSyncDone()) {
+                                    // Ignore error
+                                    // FIXME I think this is the source of infinite initial sync if a network error occurs
+                                    // FIXME because latch is not counted down. TO BE TESTED
+                                    onSuccess(null);
+                                    } else {
+                                    Log.e(LOG_TAG, "Sync V2 onNetworkError " + e.getMessage());
+                                    super.onNetworkError(e);
+                                    sleepAndUnblock();
+                                }
+                            }
 
-                        if (MatrixError.isConfigurationErrorCode(e.errcode)) {
-                            mListener.onConfigurationError(e.errcode);
-                        } else {
-                            sleepAndUnblock();
-                        }
-                    }
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                                super.onMatrixError(e);
 
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        super.onUnexpectedError(e);
-                        Log.e(LOG_TAG, "Sync V2 onUnexpectedError " + e.getMessage());
-                        sleepAndUnblock();
-                    }
-                });
+                                if (MatrixError.isConfigurationErrorCode(e.errcode)) {
+                                    mListener.onConfigurationError(e.errcode);
+                                } else {
+                                    sleepAndUnblock();
+                                }
+                            }
+
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+                                super.onUnexpectedError(e);
+                                Log.e(LOG_TAG, "Sync V2 onUnexpectedError " + e.getMessage());
+                                sleepAndUnblock();
+                            }
+                        });
 
                 // block until the initial sync callback is invoked.
                 try {
@@ -560,99 +557,99 @@ public class EventsThread extends Thread {
 
                 mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", inlineFilter,
                         new SimpleApiCallback<SyncResponse>(mFailureCallback) {
-                    @Override
-                    public void onSuccess(SyncResponse syncResponse) {
-                        if (!mKilling) {
-                            // poll /sync with timeout=0 until
-                            // we get no to_device messages back.
-                            if (0 == fServerTimeout) {
-                                if (hasDevicesChanged(syncResponse)) {
-                                    if (mIsCatchingUp) {
-                                        Log.d(LOG_TAG, "Some devices have changed but do not set mNextServerTimeoutms to 0 to avoid infinite loops");
-                                    } else {
-                                        Log.d(LOG_TAG, "mNextServerTimeoutms is set to 0 because of hasDevicesChanged " + syncResponse.deviceLists.changed);
-                                        mNextServerTimeoutms = 0;
+                            @Override
+                            public void onSuccess(SyncResponse syncResponse) {
+                                if (!mKilling) {
+                                    // poll /sync with timeout=0 until
+                                    // we get no to_device messages back.
+                                    if (0 == fServerTimeout) {
+                                        if (hasDevicesChanged(syncResponse)) {
+                                            if (mIsCatchingUp) {
+                                                Log.d(LOG_TAG, "Some devices have changed but do not set mNextServerTimeoutms to 0 to avoid infinite loops");
+                                            } else {
+                                                Log.d(LOG_TAG, "mNextServerTimeoutms is set to 0 because of hasDevicesChanged " + syncResponse.deviceLists.changed);
+                                                mNextServerTimeoutms = 0;
+                                            }
+                                        }
                                     }
+
+                                    // the catchup request is suspended when there is no need
+                                    // to loop again
+                                    if (mIsCatchingUp && (0 != mNextServerTimeoutms)) {
+                                        // the catchup triggers sync requests until there are some useful events
+                                        int eventCounts = 0;
+
+                                        if (null != syncResponse.rooms) {
+                                            RoomsSyncResponse roomsSyncResponse = syncResponse.rooms;
+
+                                            if (null != roomsSyncResponse.join) {
+                                                eventCounts += roomsSyncResponse.join.size();
+                                            }
+
+                                            if (null != roomsSyncResponse.invite) {
+                                                eventCounts += roomsSyncResponse.invite.size();
+                                            }
+                                        }
+
+                                        // stop any catch up
+                                        mIsCatchingUp = false;
+                                        mPaused = (0 == mRequestDelayMs);
+                                        Log.d(LOG_TAG, "Got " + eventCounts + " useful events while catching up : mPaused is set to " + mPaused);
+                                    }
+
+                                    Log.d(LOG_TAG, "Got event response");
+                                    mListener.onSyncResponse(syncResponse, mCurrentToken, (0 == mNextServerTimeoutms));
+                                    mCurrentToken = syncResponse.nextBatch;
+                                    Log.d(LOG_TAG, "mCurrentToken is now set to " + mCurrentToken);
+
                                 }
+
+                                // unblock the events thread
+                                latch.countDown();
                             }
 
-                            // the catchup request is suspended when there is no need
-                            // to loop again
-                            if (mIsCatchingUp && (0 != mNextServerTimeoutms)) {
-                                // the catchup triggers sync requests until there are some useful events
-                                int eventCounts = 0;
+                            private void onError(String description) {
+                                boolean isConnected;
+                                Log.d(LOG_TAG, "Got an error while polling events " + description);
 
-                                if (null != syncResponse.rooms) {
-                                    RoomsSyncResponse roomsSyncResponse = syncResponse.rooms;
-
-                                    if (null != roomsSyncResponse.join) {
-                                        eventCounts += roomsSyncResponse.join.size();
-                                    }
-
-                                    if (null != roomsSyncResponse.invite) {
-                                        eventCounts += roomsSyncResponse.invite.size();
-                                    }
+                                synchronized (mSyncObject) {
+                                    isConnected = mbIsConnected;
                                 }
 
-                                // stop any catch up
-                                mIsCatchingUp = false;
-                                mPaused = (0 == mRequestDelayMs);
-                                Log.d(LOG_TAG, "Got " + eventCounts + " useful events while catching up : mPaused is set to " + mPaused);
-                            }
+                                // detected if the device is connected before trying again
+                                if (isConnected) {
+                                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                                        public void run() {
+                                            latch.countDown();
+                                        }
+                                    }, RETRY_WAIT_TIME_MS);
 
-                            Log.d(LOG_TAG, "Got event response");
-                            mListener.onSyncResponse(syncResponse, mCurrentToken, (0 == mNextServerTimeoutms));
-                            mCurrentToken = syncResponse.nextBatch;
-                            Log.d(LOG_TAG, "mCurrentToken is now set to " + mCurrentToken);
-
-                        }
-
-                        // unblock the events thread
-                        latch.countDown();
-                    }
-
-                    private void onError(String description) {
-                        boolean isConnected;
-                        Log.d(LOG_TAG, "Got an error while polling events " + description);
-
-                        synchronized (mSyncObject) {
-                            isConnected = mbIsConnected;
-                        }
-
-                        // detected if the device is connected before trying again
-                        if (isConnected) {
-                            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                                public void run() {
+                                } else {
+                                    // no network -> wait that a network connection comes back.
+                                    mIsNetworkSuspended = true;
                                     latch.countDown();
                                 }
-                            }, RETRY_WAIT_TIME_MS);
+                            }
 
-                        } else {
-                            // no network -> wait that a network connection comes back.
-                            mIsNetworkSuspended = true;
-                            latch.countDown();
-                        }
-                    }
+                            @Override
+                            public void onNetworkError(Exception e) {
+                                onError(e.getLocalizedMessage());
+                            }
 
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        onError(e.getLocalizedMessage());
-                    }
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                                if (MatrixError.isConfigurationErrorCode(e.errcode)) {
+                                    mListener.onConfigurationError(e.errcode);
+                                } else {
+                                    onError(e.getLocalizedMessage());
+                                }
+                            }
 
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        if (MatrixError.isConfigurationErrorCode(e.errcode)) {
-                            mListener.onConfigurationError(e.errcode);
-                        } else {
-                            onError(e.getLocalizedMessage());
-                        }
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        onError(e.getLocalizedMessage());
-                    }
-                });
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+                                onError(e.getLocalizedMessage());
+                            }
+                        });
 
                 // block until the sync callback is invoked.
                 try {
@@ -673,5 +670,14 @@ public class EventsThread extends Thread {
             mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
         }
         Log.d(LOG_TAG, "Event stream terminating.");
+    }
+
+    /**
+     * Ask if the initial sync is done. It means we have a sync token
+     *
+     * @return
+     */
+    private boolean isInitialSyncDone() {
+        return mCurrentToken != null;
     }
 }
