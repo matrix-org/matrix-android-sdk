@@ -640,7 +640,7 @@ public class MXCallsManager {
                             String userId2 = members.get(1).getUserId();
 
                             // force the refresh to ensure that the devices list is up-to-date
-                            mSession.getCrypto().checkUnknownDevices(Arrays.asList(userId1, userId2), new ApiCallback<Void>() {
+                            mSession.getCrypto().checkUnknownDevices(Arrays.asList(userId1, userId2), new SimpleApiCallback<Void>(callback) {
                                 @Override
                                 public void onSuccess(Void anything) {
                                     final IMXCall call = getCallWithCallId(null, true);
@@ -655,27 +655,6 @@ public class MXCallsManager {
                                                 callback.onSuccess(call);
                                             }
                                         });
-                                    }
-                                }
-
-                                @Override
-                                public void onNetworkError(Exception e) {
-                                    if (null != callback) {
-                                        callback.onNetworkError(e);
-                                    }
-                                }
-
-                                @Override
-                                public void onMatrixError(MatrixError e) {
-                                    if (null != callback) {
-                                        callback.onMatrixError(e);
-                                    }
-                                }
-
-                                @Override
-                                public void onUnexpectedError(Exception e) {
-                                    if (null != callback) {
-                                        callback.onUnexpectedError(e);
                                     }
                                 }
                             });

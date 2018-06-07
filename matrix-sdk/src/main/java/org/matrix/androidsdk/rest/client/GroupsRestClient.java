@@ -22,6 +22,7 @@ import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.GroupsApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.group.AcceptGroupInvitationParams;
 import org.matrix.androidsdk.rest.model.group.AddGroupParams;
@@ -379,25 +380,10 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
      * @param callback the asynchronous callback.
      */
     public void getUserPublicisedGroups(final String userId, final ApiCallback<List<String>> callback) {
-        getPublicisedGroups(Arrays.asList(userId), new ApiCallback<Map<String, List<String>>>() {
+        getPublicisedGroups(Arrays.asList(userId), new SimpleApiCallback<Map<String,List<String>>>(callback) {
             @Override
             public void onSuccess(Map<String, List<String>> map) {
                 callback.onSuccess(map.get(userId));
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                callback.onNetworkError(e);
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                callback.onMatrixError(e);
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                callback.onUnexpectedError(e);
             }
         });
     }

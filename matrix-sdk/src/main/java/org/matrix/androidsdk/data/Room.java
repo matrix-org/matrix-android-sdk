@@ -493,28 +493,13 @@ public class Room {
             event = mMemberEventByEventId.get(member.getOriginalEventId());
 
             if (null == event) {
-                mDataHandler.getDataRetriever().getRoomsRestClient().getEvent(getRoomId(), member.getOriginalEventId(), new ApiCallback<Event>() {
+                mDataHandler.getDataRetriever().getRoomsRestClient().getEvent(getRoomId(), member.getOriginalEventId(), new SimpleApiCallback<Event>(callback) {
                     @Override
                     public void onSuccess(Event event) {
                         if (null != event) {
                             mMemberEventByEventId.put(event.eventId, event);
                         }
                         callback.onSuccess(event);
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        callback.onNetworkError(e);
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        callback.onMatrixError(e);
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        callback.onUnexpectedError(e);
                     }
                 });
                 return;
@@ -978,7 +963,7 @@ public class Room {
         params.put("groups", groupIds);
 
         mDataHandler.getDataRetriever().getRoomsRestClient()
-                .sendStateEvent(getRoomId(), Event.EVENT_TYPE_STATE_RELATED_GROUPS, null, params, new ApiCallback<Void>() {
+                .sendStateEvent(getRoomId(), Event.EVENT_TYPE_STATE_RELATED_GROUPS, null, params, new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getLiveState().groups = groupIds;
@@ -986,27 +971,6 @@ public class Room {
 
                 if (null != callback) {
                     callback.onSuccess(null);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
                 }
             }
         });
@@ -1123,7 +1087,7 @@ public class Room {
         RoomsRestClient roomRestApi = mDataHandler.getDataRetriever().getRoomsRestClient();
 
         if (null != roomRestApi) {
-            roomRestApi.getDirectoryVisibility(roomId, new ApiCallback<RoomState>() {
+            roomRestApi.getDirectoryVisibility(roomId, new SimpleApiCallback<RoomState>(callback) {
                 @Override
                 public void onSuccess(RoomState roomState) {
                     RoomState currentRoomState = getState();
@@ -1133,27 +1097,6 @@ public class Room {
 
                     if (null != callback) {
                         callback.onSuccess(roomState.visibility);
-                    }
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    if (null != callback) {
-                        callback.onNetworkError(e);
-                    }
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    if (null != callback) {
-                        callback.onMatrixError(e);
-                    }
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    if (null != callback) {
-                        callback.onUnexpectedError(e);
                     }
                 }
             });
@@ -1547,32 +1490,11 @@ public class Room {
                 }
             });
         } else {
-            mDataHandler.getDataRetriever().getRoomsRestClient().sendReadMarker(getRoomId(), readMarkerEventId, readReceiptEventId, new ApiCallback<Void>() {
+            mDataHandler.getDataRetriever().getRoomsRestClient().sendReadMarker(getRoomId(), readMarkerEventId, readReceiptEventId, new SimpleApiCallback<Void>(callback) {
                 @Override
                 public void onSuccess(Void info) {
                     if (null != callback) {
                         callback.onSuccess(info);
-                    }
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    if (null != callback) {
-                        callback.onNetworkError(e);
-                    }
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    if (null != callback) {
-                        callback.onMatrixError(e);
-                    }
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    if (null != callback) {
-                        callback.onUnexpectedError(e);
                     }
                 }
             });
@@ -2070,28 +1992,12 @@ public class Room {
         else if (((null == oldTag) && (null != newTag)) || TextUtils.equals(oldTag, newTag)) {
             addTag(newTag, newTagOrder, callback);
         } else {
-            removeTag(oldTag, new ApiCallback<Void>() {
+            removeTag(oldTag, new SimpleApiCallback<Void>(callback) {
                 @Override
                 public void onSuccess(Void info) {
                     addTag(newTag, newTagOrder, callback);
                 }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    callback.onNetworkError(e);
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    callback.onMatrixError(e);
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    callback.onUnexpectedError(e);
-                }
             });
-
         }
     }
 
@@ -2569,7 +2475,7 @@ public class Room {
      * @param callback the callback with the redacted event
      */
     public void redact(final String eventId, final ApiCallback<Event> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().redactEvent(getRoomId(), eventId, new ApiCallback<Event>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().redactEvent(getRoomId(), eventId, new SimpleApiCallback<Event>(callback) {
             @Override
             public void onSuccess(Event event) {
                 Event redactedEvent = (null != getStore()) ? getStore().getEvent(eventId, getRoomId()) : null;
@@ -2585,27 +2491,6 @@ public class Room {
 
                 if (null != callback) {
                     callback.onSuccess(redactedEvent);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
                 }
             }
         });
@@ -2676,34 +2561,10 @@ public class Room {
             return;
         }
 
-        final ApiCallback<Void> localCallback = new ApiCallback<Void>() {
+        final ApiCallback<Void> localCallback = new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 invite(identifiers, callback);
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## invite failed " + e.getMessage());
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "## invite failed " + e.getMessage());
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## invite failed " + e.getMessage());
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
             }
         };
 
@@ -2802,7 +2663,7 @@ public class Room {
      * @param callback the callback for when done
      */
     public void forget(final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().forgetRoom(getRoomId(), new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().forgetRoom(getRoomId(), new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 if (mDataHandler.isAlive()) {
@@ -2819,33 +2680,6 @@ public class Room {
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "forget exception " + e.getMessage());
                     }
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                try {
-                    callback.onNetworkError(e);
-                } catch (Exception anException) {
-                    Log.e(LOG_TAG, "forget exception " + anException.getMessage());
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                try {
-                    callback.onMatrixError(e);
-                } catch (Exception anException) {
-                    Log.e(LOG_TAG, "forget exception " + anException.getMessage());
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                try {
-                    callback.onUnexpectedError(e);
-                } catch (Exception anException) {
-                    Log.e(LOG_TAG, "forget exception " + anException.getMessage());
                 }
             }
         });

@@ -42,6 +42,7 @@ import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.MatrixError;
@@ -1871,7 +1872,7 @@ public class MXCrypto {
 
         getOlmDevice().generateOneTimeKeys(keysThisLoop);
 
-        uploadOneTimeKeys(new ApiCallback<KeysUploadResponse>() {
+        uploadOneTimeKeys(new SimpleApiCallback<KeysUploadResponse>(callback) {
             @Override
             public void onSuccess(final KeysUploadResponse response) {
                 getEncryptingThreadHandler().post(new Runnable() {
@@ -1891,27 +1892,6 @@ public class MXCrypto {
                         }
                     }
                 });
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
             }
         });
     }
@@ -2158,7 +2138,7 @@ public class MXCrypto {
 
         // For now, we set the device id explicitly, as we may not be using the
         // same one as used in login.
-        mSession.getCryptoRestClient().uploadKeys(null, oneTimeJson, mMyDevice.deviceId, new ApiCallback<KeysUploadResponse>() {
+        mSession.getCryptoRestClient().uploadKeys(null, oneTimeJson, mMyDevice.deviceId, new SimpleApiCallback<KeysUploadResponse>(callback) {
             @Override
             public void onSuccess(final KeysUploadResponse info) {
                 getEncryptingThreadHandler().post(new Runnable() {
@@ -2179,27 +2159,6 @@ public class MXCrypto {
                         }
                     }
                 });
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
             }
         });
     }
@@ -2471,7 +2430,7 @@ public class MXCrypto {
      */
     public void checkUnknownDevices(List<String> userIds, final ApiCallback<Void> callback) {
         // force the refresh to ensure that the devices list is up-to-date
-        mDevicesList.downloadKeys(userIds, true, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+        mDevicesList.downloadKeys(userIds, true, new SimpleApiCallback<MXUsersDevicesMap<MXDeviceInfo>>(callback) {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> devicesMap) {
                 MXUsersDevicesMap<MXDeviceInfo> unknownDevices = MXCrypto.getUnknownDevices(devicesMap);
@@ -2483,21 +2442,6 @@ public class MXCrypto {
                     callback.onMatrixError(new MXCryptoError(MXCryptoError.UNKNOWN_DEVICES_CODE,
                             MXCryptoError.UNABLE_TO_ENCRYPT, MXCryptoError.UNKNOWN_DEVICES_REASON, unknownDevices));
                 }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                callback.onNetworkError(e);
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                callback.onMatrixError(e);
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                callback.onUnexpectedError(e);
             }
         });
     }

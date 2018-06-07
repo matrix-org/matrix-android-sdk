@@ -469,7 +469,7 @@ public class MXSession {
      * @param callback the callback.
      */
     public void refreshUserPresence(final String userId, final ApiCallback<Void> callback) {
-        mPresenceRestClient.getPresence(userId, new ApiCallback<User>() {
+        mPresenceRestClient.getPresence(userId, new SimpleApiCallback<User>(callback) {
             @Override
             public void onSuccess(User user) {
                 User currentUser = mDataHandler.getStore().getUser(userId);
@@ -486,27 +486,6 @@ public class MXSession {
                 mDataHandler.getStore().storeUser(currentUser);
                 if (null != callback) {
                     callback.onSuccess(null);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
                 }
             }
         });
@@ -1269,7 +1248,7 @@ public class MXSession {
     private void finalizeDMRoomCreation(final String roomId, String userId, final ApiCallback<String> callback) {
         final String fRoomId = roomId;
 
-        toggleDirectChatRoom(roomId, userId, new ApiCallback<Void>() {
+        toggleDirectChatRoom(roomId, userId, new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 Room room = getDataHandler().getRoom(fRoomId);
@@ -1280,27 +1259,6 @@ public class MXSession {
 
                 if (null != callback) {
                     callback.onSuccess(fRoomId);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
                 }
             }
         });
@@ -1321,7 +1279,7 @@ public class MXSession {
 
                 // the creation events are not be called during the creation
                 if (createdRoom.isWaitingInitialSync()) {
-                    createdRoom.setOnInitialSyncCallback(new ApiCallback<Void>() {
+                    createdRoom.setOnInitialSyncCallback(new SimpleApiCallback<Void>(callback) {
                         @Override
                         public void onSuccess(Void info) {
                             createdRoom.markAllAsRead(null);
@@ -1331,21 +1289,6 @@ public class MXSession {
                             } else {
                                 callback.onSuccess(roomId);
                             }
-                        }
-
-                        @Override
-                        public void onNetworkError(Exception e) {
-                            callback.onNetworkError(e);
-                        }
-
-                        @Override
-                        public void onMatrixError(MatrixError e) {
-                            callback.onMatrixError(e);
-                        }
-
-                        @Override
-                        public void onUnexpectedError(Exception e) {
-                            callback.onUnexpectedError(e);
                         }
                     });
                 } else {
@@ -1380,25 +1323,10 @@ public class MXSession {
 
                     // wait until the initial sync is done
                     if (joinedRoom.isWaitingInitialSync()) {
-                        joinedRoom.setOnInitialSyncCallback(new ApiCallback<Void>() {
+                        joinedRoom.setOnInitialSyncCallback(new SimpleApiCallback<Void>(callback) {
                             @Override
                             public void onSuccess(Void info) {
                                 callback.onSuccess(roomId);
-                            }
-
-                            @Override
-                            public void onNetworkError(Exception e) {
-                                callback.onNetworkError(e);
-                            }
-
-                            @Override
-                            public void onMatrixError(MatrixError e) {
-                                callback.onMatrixError(e);
-                            }
-
-                            @Override
-                            public void onUnexpectedError(Exception e) {
-                                callback.onUnexpectedError(e);
                             }
                         });
                     } else {
@@ -1445,31 +1373,10 @@ public class MXSession {
             boolean isRequestSent = false;
 
             if (mNetworkConnectivityReceiver.isConnected()) {
-                isRequestSent = room.markAllAsRead(new ApiCallback<Void>() {
+                isRequestSent = room.markAllAsRead(new SimpleApiCallback<Void>(callback) {
                     @Override
                     public void onSuccess(Void anything) {
                         markRoomsAsRead(roomsIterator, callback);
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        if (null != callback) {
-                            callback.onNetworkError(e);
-                        }
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        if (null != callback) {
-                            callback.onMatrixError(e);
-                        }
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        if (null != callback) {
-                            callback.onUnexpectedError(e);
-                        }
                     }
                 });
             } else {
@@ -2349,33 +2256,12 @@ public class MXSession {
                 fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
                 fileCryptoStore.open();
                 mCrypto = new MXCrypto(this, fileCryptoStore);
-                mCrypto.start(true, new ApiCallback<Void>() {
+                mCrypto.start(true, new SimpleApiCallback<Void>(callback) {
                     @Override
                     public void onSuccess(Void info) {
                         decryptRoomSummaries();
                         if (null != callback) {
                             callback.onSuccess(null);
-                        }
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        if (null != callback) {
-                            callback.onNetworkError(e);
-                        }
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        if (null != callback) {
-                            callback.onMatrixError(e);
-                        }
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        if (null != callback) {
-                            callback.onUnexpectedError(e);
                         }
                     }
                 });
@@ -2430,19 +2316,12 @@ public class MXSession {
      * @param callback the asynchronous callback.
      */
     public void deleteDevice(final String deviceId, final String password, final ApiCallback<Void> callback) {
-        mCryptoRestClient.deleteDevice(deviceId, new DeleteDeviceParams(), new ApiCallback<Void>() {
+        mCryptoRestClient.deleteDevice(deviceId, new DeleteDeviceParams(), new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 // should never happen
                 if (null != callback) {
                     callback.onSuccess(null);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
                 }
             }
 
@@ -2491,13 +2370,6 @@ public class MXSession {
                     }
                 }
             }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
         });
     }
 
@@ -2514,18 +2386,11 @@ public class MXSession {
         params.auth.type = stages.get(0);
         stages.remove(0);
 
-        mCryptoRestClient.deleteDevice(deviceId, params, new ApiCallback<Void>() {
+        mCryptoRestClient.deleteDevice(deviceId, params, new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 if (null != callback) {
                     callback.onSuccess(null);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
                 }
             }
 
@@ -2541,13 +2406,6 @@ public class MXSession {
                     if (null != callback) {
                         callback.onMatrixError(matrixError);
                     }
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
                 }
             }
         });

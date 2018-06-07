@@ -1451,7 +1451,7 @@ public class EventTimeline {
         mForwardsPaginationToken = null;
         mHasReachedHomeServerForwardsPaginationEnd = false;
 
-        mDataHandler.getDataRetriever().getRoomsRestClient().getContextOfEvent(mRoomId, mInitialEventId, limit, new ApiCallback<EventContext>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().getContextOfEvent(mRoomId, mInitialEventId, limit, new SimpleApiCallback<EventContext>(callback) {
             @Override
             public void onSuccess(final EventContext eventContext) {
 
@@ -1543,21 +1543,6 @@ public class EventTimeline {
                         }
                     });
                 }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                callback.onNetworkError(e);
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                callback.onMatrixError(e);
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                callback.onUnexpectedError(e);
             }
         });
     }

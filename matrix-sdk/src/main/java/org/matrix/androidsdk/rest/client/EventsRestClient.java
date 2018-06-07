@@ -24,6 +24,7 @@ import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.EventsApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.URLPreview;
@@ -121,25 +122,10 @@ public class EventsRestClient extends RestClient<EventsApi> {
                                     final String thirdPartyInstanceId,
                                     final boolean includeAllNetworks,
                                     final ApiCallback<Integer> callback) {
-        loadPublicRooms(server, thirdPartyInstanceId, includeAllNetworks, null, null, 0, new ApiCallback<PublicRoomsResponse>() {
+        loadPublicRooms(server, thirdPartyInstanceId, includeAllNetworks, null, null, 0, new SimpleApiCallback<PublicRoomsResponse>(callback) {
             @Override
             public void onSuccess(PublicRoomsResponse publicRoomsResponse) {
                 callback.onSuccess(publicRoomsResponse.total_room_count_estimate);
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                callback.onNetworkError(e);
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                callback.onMatrixError(e);
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                callback.onUnexpectedError(e);
             }
         });
     }
@@ -583,32 +569,11 @@ public class EventsRestClient extends RestClient<EventsApi> {
 
         mApi.getURLPreview(URL, ts)
                 .enqueue(new RestAdapterCallback<Map<String, Object>>(description, null, false,
-                        new ApiCallback<Map<String, Object>>() {
+                        new SimpleApiCallback <Map<String, Object>>(callback) {
             @Override
             public void onSuccess(Map<String, Object> map) {
                 if (null != callback) {
                     callback.onSuccess(new URLPreview(map));
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
                 }
             }
         }, new RestAdapterCallback.RequestRetryCallBack() {

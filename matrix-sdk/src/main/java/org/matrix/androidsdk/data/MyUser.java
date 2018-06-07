@@ -129,32 +129,11 @@ public class MyUser extends User {
      */
     public void add3Pid(final ThreePid pid, final boolean bind, final ApiCallback<Void> callback) {
         if (null != pid) {
-            mDataHandler.getProfileRestClient().add3PID(pid, bind, new ApiCallback<Void>() {
+            mDataHandler.getProfileRestClient().add3PID(pid, bind, new SimpleApiCallback<Void>(callback) {
                 @Override
                 public void onSuccess(Void info) {
                     // refresh the third party identifiers lists
                     refreshThirdPartyIdentifiers(callback);
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    if (null != callback) {
-                        callback.onNetworkError(e);
-                    }
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    if (null != callback) {
-                        callback.onMatrixError(e);
-                    }
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    if (null != callback) {
-                        callback.onUnexpectedError(e);
-                    }
                 }
             });
         }
@@ -168,32 +147,11 @@ public class MyUser extends User {
      */
     public void delete3Pid(final ThirdPartyIdentifier pid, final ApiCallback<Void> callback) {
         if (null != pid) {
-            mDataHandler.getProfileRestClient().delete3PID(pid, new ApiCallback<Void>() {
+            mDataHandler.getProfileRestClient().delete3PID(pid, new SimpleApiCallback<Void>(callback) {
                 @Override
                 public void onSuccess(Void info) {
                     // refresh the third party identifiers lists
                     refreshThirdPartyIdentifiers(callback);
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    if (null != callback) {
-                        callback.onNetworkError(e);
-                    }
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    if (null != callback) {
-                        callback.onMatrixError(e);
-                    }
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    if (null != callback) {
-                        callback.onUnexpectedError(e);
-                    }
                 }
             });
         }

@@ -33,6 +33,7 @@ import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXQueuedEncryption;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -648,7 +649,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
         // have a list of the user's devices, then we already share an e2e room
         // with them, which means that they will have announced any new devices via
         // an m.new_device.
-        mCrypto.getDeviceList().downloadKeys(userIds, false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+        mCrypto.getDeviceList().downloadKeys(userIds, false, new SimpleApiCallback<MXUsersDevicesMap<MXDeviceInfo>>(callback) {
             @Override
             public void onSuccess(final MXUsersDevicesMap<MXDeviceInfo> devices) {
                 mCrypto.getEncryptingThreadHandler().post(new Runnable() {
@@ -707,21 +708,6 @@ public class MXMegolmEncryption implements IMXEncrypting {
                         });
                     }
                 });
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                callback.onNetworkError(e);
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                callback.onMatrixError(e);
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                callback.onUnexpectedError(e);
             }
         });
     }

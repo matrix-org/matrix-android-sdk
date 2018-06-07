@@ -31,6 +31,7 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.api.RoomsApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
@@ -397,73 +398,38 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      */
     public void getEvent(final String roomId, final String eventId, final ApiCallback<Event> callback) {
         // try first with roomid / event id
-        getEventFromRoomIdEventId(roomId, eventId, new ApiCallback<Event>() {
+        getEventFromRoomIdEventId(roomId, eventId, new SimpleApiCallback<Event>(callback) {
             @Override
             public void onSuccess(Event event) {
                 callback.onSuccess(event);
             }
 
             @Override
-            public void onNetworkError(Exception e) {
-                callback.onNetworkError(e);
-            }
-
-            @Override
             public void onMatrixError(MatrixError e) {
                 if (TextUtils.equals(e.errcode, MatrixError.UNRECOGNIZED)) {
-                    getEventFromEventId(eventId, new ApiCallback<Event>() {
+                    getEventFromEventId(eventId, new SimpleApiCallback<Event>(callback) {
                         @Override
                         public void onSuccess(Event event) {
                             callback.onSuccess(event);
                         }
 
                         @Override
-                        public void onNetworkError(Exception e) {
-                            callback.onNetworkError(e);
-                        }
-
-                        @Override
                         public void onMatrixError(MatrixError e) {
                             if (TextUtils.equals(e.errcode, MatrixError.UNRECOGNIZED)) {
-                                getContextOfEvent(roomId, eventId, 1, new ApiCallback<EventContext>() {
+                                getContextOfEvent(roomId, eventId, 1, new SimpleApiCallback<EventContext>(callback) {
                                     @Override
                                     public void onSuccess(EventContext eventContext) {
                                         callback.onSuccess(eventContext.event);
-                                    }
-
-                                    @Override
-                                    public void onNetworkError(Exception e) {
-                                        callback.onNetworkError(e);
-                                    }
-
-                                    @Override
-                                    public void onMatrixError(MatrixError e) {
-                                        callback.onMatrixError(e);
-                                    }
-
-                                    @Override
-                                    public void onUnexpectedError(Exception e) {
-                                        callback.onUnexpectedError(e);
                                     }
                                 });
                             } else {
                                 callback.onMatrixError(e);
                             }
                         }
-
-                        @Override
-                        public void onUnexpectedError(Exception e) {
-                            callback.onUnexpectedError(e);
-                        }
                     });
                 } else {
                     callback.onMatrixError(e);
                 }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                callback.onUnexpectedError(e);
             }
         });
     }
