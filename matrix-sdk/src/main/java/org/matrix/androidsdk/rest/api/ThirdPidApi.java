@@ -35,8 +35,8 @@ public interface ThirdPidApi {
     /**
      * Get the 3rd party id from a medium
      *
-     * @param address  the address.
-     * @param medium   the medium.
+     * @param address the address.
+     * @param medium  the medium.
      */
     @GET("lookup")
     Call<PidResponse> lookup3Pid(@Query("address") String address,
@@ -45,7 +45,7 @@ public interface ThirdPidApi {
     /**
      * Request a bunch of 3PIDs
      *
-     * @param body     teh body request
+     * @param body the body request
      */
     @POST("bulk_lookup")
     Call<BulkLookupResponse> bulkLookup(@Body BulkLookupParams body);

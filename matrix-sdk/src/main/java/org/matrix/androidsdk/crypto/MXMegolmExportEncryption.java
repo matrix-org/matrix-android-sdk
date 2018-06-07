@@ -49,7 +49,7 @@ public class MXMegolmExportEncryption {
     /**
      * Convert a signed byte to a int value
      *
-     * @param bVal teh byte value to convert
+     * @param bVal the byte value to convert
      * @return the matched int value
      */
     private static int byteToInt(byte bVal) {

@@ -1192,7 +1192,7 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Handle a presence event.
      *
-     * @param presenceEvent teh presence event.
+     * @param presenceEvent the presence event.
      */
     private void handlePresenceEvent(Event presenceEvent) {
         // Presence event

@@ -1015,7 +1015,7 @@ public class MXCrypto {
      * The callback is called in the UI thread.
      *
      * @param devicesByUser a map from userid to list of devices.
-     * @param callback      teh asynchronous callback
+     * @param callback      the asynchronous callback
      */
     public void ensureOlmSessionsForDevices(final HashMap<String, ArrayList<MXDeviceInfo>> devicesByUser,
                                             final ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>> callback) {

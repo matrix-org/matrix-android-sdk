@@ -39,7 +39,6 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-// TODO Compare with develop version
 public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
 
     private static final String KEY_SUBMIT_TOKEN_SUCCESS = "success";

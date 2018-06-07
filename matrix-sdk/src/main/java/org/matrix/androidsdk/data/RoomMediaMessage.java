@@ -628,8 +628,8 @@ public class RoomMediaMessage implements Parcelable {
      * Save a file in a dedicated directory.
      * The filename is optional.
      *
-     * @param folder          the destinated folder
-     * @param stream          teh file stream
+     * @param folder          the destination folder
+     * @param stream          the file stream
      * @param defaultFileName the filename, null to generate a new one
      * @param mimeType        the file mimetype.
      * @return the file uri

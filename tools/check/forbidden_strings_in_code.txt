@@ -126,3 +126,9 @@ ButterKnife\.findById\(
 
 # Call invalidateMenu(); instead.
 invalidateOptionsMenu
+
+# Avoid mistake in Retrofit (avoid prefix cut out)
+URI_API_PREFIX_PATH_MEDIA_R0 \+ \"\/
+URI_API_PREFIX_PATH_R0 \+ \"\/
+URI_API_PREFIX_PATH_UNSTABLE \+ \"\/
+URI_API_PREFIX_IDENTITY \+ \"\/

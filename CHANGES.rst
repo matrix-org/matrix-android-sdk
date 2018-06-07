@@ -603,32 +603,7 @@ Bugfixes:
 * GA issue : EventTimeLine.mDataHandler is empty whereas it should be.
 * onInvalidToken should not be triggered when MatrixError.FORBIDDEN is received.
 * #186 : Start chat with a member should use the latest room instead of the first found one.
-* Fix a crash with JingleCall class (when teh libs are not found on the device).
-* The room object was not always initialized when MessagesAdapter is created (tap on a notication whereas the client is not launched).
-* Fix a crash when an incoming call is received and the dedicated permissions are not granted.
-
-Changes to Matrix Android SDK in 0.5.7 (2016-06-21)
-=======================================================
-
-Improvements:
-
-* The room visibility messages are displayed in the room history.
-* Do not refresh the turn servers if the HS does not support it.
-* RoomState : The events_default and users_default default values are now 0.
-
-Features:
-
-* Add some new room settings management (list in Directory, room access, room history)
-* The background sync timeout is now configurable.
-* A sleep can be defined between two sync requests.
-
-Bugfixes:
-
-* #206 : There is no space between some avatars (unexpected avatar).
-* GA issue : EventTimeLine.mDataHandler is empty whereas it should be.
-* onInvalidToken should not be triggered when MatrixError.FORBIDDEN is received.
-* #186 : Start chat with a member should use the latest room instead of the first found one.
-* Fix a crash with JingleCall class (when teh libs are not found on the device).
+* Fix a crash with JingleCall class (when the libs are not found on the device).
 * The room object was not always initialized when MessagesAdapter is created (tap on a notication whereas the client is not launched).
 * Fix a crash when an incoming call is received and the dedicated permissions are not granted.
 
