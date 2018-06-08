@@ -567,7 +567,8 @@ public class EventsThread extends Thread {
                                             if (mIsCatchingUp) {
                                                 Log.d(LOG_TAG, "Some devices have changed but do not set mNextServerTimeoutms to 0 to avoid infinite loops");
                                             } else {
-                                                Log.d(LOG_TAG, "mNextServerTimeoutms is set to 0 because of hasDevicesChanged " + syncResponse.deviceLists.changed);
+                                                Log.d(LOG_TAG, "mNextServerTimeoutms is set to 0 because of hasDevicesChanged "
+                                                        + syncResponse.deviceLists.changed);
                                                 mNextServerTimeoutms = 0;
                                             }
                                         }
