@@ -31,41 +31,47 @@ public class OutgoingRoomKeyRequest implements Serializable {
      *
      * The state machine looks like:
      *
-     *     |         (cancellation sent)
-     *     | .-------------------------------------------------.
-     *     | |                                                 |
-     *     V V       (cancellation requested)                  |
-     *   UNSENT  -----------------------------+                |
-     *     |                                  |                |
-     *     |                                  |                |
-     *     | (send successful)                |  CANCELLATION_PENDING_AND_WILL_RESEND
-     *     V                                  |                Λ
-     *    SENT                                |                |
-     *     |--------------------------------  |  --------------'
-     *     |                                  |  (cancellation requested with intent
-     *     |                                  |   to resend the original request)
-     *     |                                  |
-     *     | (cancellation requested)         |
-     *     V                                  |
-     * CANCELLATION_PENDING                   |
-     *     |                                  |
-     *     | (cancellation sent)              |
-     *     V                                  |
-     * (deleted)  <---------------------------+
+     *      |
+     *      V
+     *    UNSENT  -----------------------------+
+     *      |                                  |
+     *      | (send successful)                | (cancellation requested)
+     *      V                                  |
+     *     SENT                                |
+     *      |--------------------------------  |  --------------+
+     *      |                                  |                |
+     *      |                                  |                | (cancellation requested with intent
+     *      |                                  |                | to resend a new request)
+     *      | (cancellation requested)         |                |
+     *      V                                  |                V
+     *  CANCELLATION_PENDING                   | CANCELLATION_PENDING_AND_WILL_RESEND
+     *      |                                  |                |
+     *      | (cancellation sent)              |                | (cancellation sent. Create new request
+     *      |                                  |                |  in the UNSENT state)
+     *      V                                  |                |
+     *  (deleted)  <---------------------------+----------------+
      */
 
     public enum RequestState {
-        /** request not yet sent */
+        /**
+         * request not yet sent
+         */
         UNSENT,
-        /** request sent, awaiting reply */
+        /**
+         * request sent, awaiting reply
+         */
         SENT,
-        /** reply received, cancellation not yet sent */
+        /**
+         * reply received, cancellation not yet sent
+         */
         CANCELLATION_PENDING,
         /**
          * Cancellation not yet sent, once sent, a new request will be done
          */
         CANCELLATION_PENDING_AND_WILL_RESEND,
-        /** sending failed */
+        /**
+         * sending failed
+         */
         FAILED
     }
 
