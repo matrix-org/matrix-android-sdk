@@ -895,25 +895,10 @@ public class MXDataHandler implements IMXEventListener {
                 }
             });
         } else {
-            mRoomsRestClient.getRoomIdByAlias(roomAlias, new ApiCallback<RoomAliasDescription>() {
+            mRoomsRestClient.getRoomIdByAlias(roomAlias, new SimpleApiCallback<RoomAliasDescription>(callback) {
                 @Override
                 public void onSuccess(RoomAliasDescription info) {
                     callback.onSuccess(info.room_id);
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    callback.onNetworkError(e);
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    callback.onMatrixError(e);
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    callback.onUnexpectedError(e);
                 }
             });
         }
@@ -1192,7 +1177,7 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Handle a presence event.
      *
-     * @param presenceEvent teh presence event.
+     * @param presenceEvent the presence event.
      */
     private void handlePresenceEvent(Event presenceEvent) {
         // Presence event
@@ -1431,6 +1416,7 @@ public class MXDataHandler implements IMXEventListener {
                     isEmptyResponse = false;
 
                     if (hasChanged) {
+                        // Update account data to add new direct chat room(s)
                         mAccountDataRestClient.setAccountData(mCredentials.userId, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES,
                                 updatedDirectChatRoomsDict, new ApiCallback<Void>() {
                             @Override

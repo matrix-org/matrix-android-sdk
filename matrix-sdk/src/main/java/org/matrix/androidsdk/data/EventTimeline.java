@@ -225,7 +225,7 @@ public class EventTimeline {
         mIsHistorical = isHistorical;
     }
 
-    /*    
+    /*
      * @return the unique identifier
      */
     public String getTimelineId() {
@@ -1254,83 +1254,71 @@ public class EventTimeline {
 
         mDataHandler.getDataRetriever().backPaginate(mStore, mRoomId, getBackState().getToken(), eventCount,
                 new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
-            @Override
-            public void onSuccess(TokensChunkResponse<Event> response) {
-                if (mDataHandler.isAlive()) {
+                    @Override
+                    public void onSuccess(TokensChunkResponse<Event> response) {
+                        if (mDataHandler.isAlive()) {
 
-                    if (null != response.chunk) {
-                        Log.d(LOG_TAG, "backPaginate : " + response.chunk.size() + " events are retrieved.");
-                    } else {
-                        Log.d(LOG_TAG, "backPaginate : there is no event");
-                    }
+                            if (null != response.chunk) {
+                                Log.d(LOG_TAG, "backPaginate : " + response.chunk.size() + " events are retrieved.");
+                            } else {
+                                Log.d(LOG_TAG, "backPaginate : there is no event");
+                            }
 
-                    mIsLastBackChunk = ((null != response.chunk)
-                            && (0 == response.chunk.size())
-                            && TextUtils.equals(response.end, response.start))
-                            || (null == response.end);
+                            mIsLastBackChunk = ((null != response.chunk)
+                                    && (0 == response.chunk.size())
+                                    && TextUtils.equals(response.end, response.start))
+                                    || (null == response.end);
 
-                    if (mIsLastBackChunk && (null != response.end)) {
-                        // save its token to avoid useless request
-                        mBackwardTopToken = fromBackToken;
-                    } else {
-                        // the server returns a null pagination token when there is no more available data
-                        if (null == response.end) {
-                            getBackState().setToken(Event.PAGINATE_BACK_TOKEN_END);
+                            if (mIsLastBackChunk && (null != response.end)) {
+                                // save its token to avoid useless request
+                                mBackwardTopToken = fromBackToken;
+                            } else {
+                                // the server returns a null pagination token when there is no more available data
+                                if (null == response.end) {
+                                    getBackState().setToken(Event.PAGINATE_BACK_TOKEN_END);
+                                } else {
+                                    getBackState().setToken(response.end);
+                                }
+                            }
+
+                            addPaginationEvents((null == response.chunk) ? new ArrayList<Event>() : response.chunk, Direction.BACKWARDS, callback);
+
                         } else {
-                            getBackState().setToken(response.end);
+                            Log.d(LOG_TAG, "mDataHandler is not active.");
                         }
                     }
 
-                    addPaginationEvents((null == response.chunk) ? new ArrayList<Event>() : response.chunk, Direction.BACKWARDS, callback);
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        Log.d(LOG_TAG, "backPaginate onMatrixError");
 
-                } else {
-                    Log.d(LOG_TAG, "mDataHandler is not active.");
-                }
-            }
+                        // When we've retrieved all the messages from a room, the pagination token is some invalid value
+                        if (MatrixError.UNKNOWN.equals(e.errcode)) {
+                            mCanBackPaginate = false;
+                        }
+                        mIsBackPaginating = false;
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                Log.d(LOG_TAG, "backPaginate onMatrixError");
+                        super.onMatrixError(e);
+                    }
 
-                // When we've retrieved all the messages from a room, the pagination token is some invalid value
-                if (MatrixError.UNKNOWN.equals(e.errcode)) {
-                    mCanBackPaginate = false;
-                }
-                mIsBackPaginating = false;
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        Log.d(LOG_TAG, "backPaginate onNetworkError");
 
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                } else {
-                    super.onMatrixError(e);
-                }
-            }
+                        mIsBackPaginating = false;
 
-            @Override
-            public void onNetworkError(Exception e) {
-                Log.d(LOG_TAG, "backPaginate onNetworkError");
+                        super.onNetworkError(e);
+                    }
 
-                mIsBackPaginating = false;
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        Log.d(LOG_TAG, "backPaginate onUnexpectedError");
 
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                } else {
-                    super.onNetworkError(e);
-                }
-            }
+                        mIsBackPaginating = false;
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                Log.d(LOG_TAG, "backPaginate onUnexpectedError");
-
-                mIsBackPaginating = false;
-
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                } else {
-                    super.onUnexpectedError(e);
-                }
-            }
-        });
+                        super.onUnexpectedError(e);
+                    }
+                });
 
         return true;
     }
@@ -1357,52 +1345,43 @@ public class EventTimeline {
 
         mDataHandler.getDataRetriever().paginate(mStore, mRoomId, mForwardsPaginationToken, Direction.FORWARDS,
                 new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
-            @Override
-            public void onSuccess(TokensChunkResponse<Event> response) {
-                if (mDataHandler.isAlive()) {
-                    Log.d(LOG_TAG, "forwardPaginate : " + response.chunk.size() + " are retrieved.");
+                    @Override
+                    public void onSuccess(TokensChunkResponse<Event> response) {
+                        if (mDataHandler.isAlive()) {
+                            Log.d(LOG_TAG, "forwardPaginate : " + response.chunk.size() + " are retrieved.");
 
-                    mHasReachedHomeServerForwardsPaginationEnd = (0 == response.chunk.size()) && TextUtils.equals(response.end, response.start);
-                    mForwardsPaginationToken = response.end;
+                            mHasReachedHomeServerForwardsPaginationEnd = (0 == response.chunk.size()) && TextUtils.equals(response.end, response.start);
+                            mForwardsPaginationToken = response.end;
 
-                    addPaginationEvents(response.chunk, Direction.FORWARDS, callback);
+                            addPaginationEvents(response.chunk, Direction.FORWARDS, callback);
 
-                    mIsForwardPaginating = false;
-                } else {
-                    Log.d(LOG_TAG, "mDataHandler is not active.");
-                }
-            }
+                            mIsForwardPaginating = false;
+                        } else {
+                            Log.d(LOG_TAG, "mDataHandler is not active.");
+                        }
+                    }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                mIsForwardPaginating = false;
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                } else {
-                    super.onMatrixError(e);
-                }
-            }
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        mIsForwardPaginating = false;
 
-            @Override
-            public void onNetworkError(Exception e) {
-                mIsForwardPaginating = false;
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                } else {
-                    super.onNetworkError(e);
-                }
-            }
+                        super.onMatrixError(e);
+                    }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                mIsForwardPaginating = false;
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                } else {
-                    super.onUnexpectedError(e);
-                }
-            }
-        });
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        mIsForwardPaginating = false;
+
+                        super.onNetworkError(e);
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        mIsForwardPaginating = false;
+
+                        super.onUnexpectedError(e);
+                    }
+                });
 
         return true;
     }
@@ -1451,7 +1430,7 @@ public class EventTimeline {
         mForwardsPaginationToken = null;
         mHasReachedHomeServerForwardsPaginationEnd = false;
 
-        mDataHandler.getDataRetriever().getRoomsRestClient().getContextOfEvent(mRoomId, mInitialEventId, limit, new ApiCallback<EventContext>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().getContextOfEvent(mRoomId, mInitialEventId, limit, new SimpleApiCallback<EventContext>(callback) {
             @Override
             public void onSuccess(final EventContext eventContext) {
 
@@ -1544,21 +1523,6 @@ public class EventTimeline {
                     });
                 }
             }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                callback.onNetworkError(e);
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                callback.onMatrixError(e);
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                callback.onUnexpectedError(e);
-            }
         });
     }
 
@@ -1614,8 +1578,7 @@ public class EventTimeline {
                     // see https://github.com/matrix-org/matrix-android-sdk/issues/196
 
                     RoomMember member = mState.getMemberByEventId(eventId);
-                    if (member != null)
-                    {
+                    if (member != null) {
                         Log.d(LOG_TAG, "checkStateEventRedaction: the current room members list has been modified by the event redaction");
 
                         // the android SDK does not store stock member events but a representation of them, RoomMember.
@@ -1680,7 +1643,7 @@ public class EventTimeline {
                 @Override
                 public void onMatrixError(MatrixError e) {
                     Log.e(LOG_TAG, "checkStateEventRedactionWithHomeserver : failed to retrieved the redacted event: onNetworkError " + e.getMessage());
-               }
+                }
 
                 @Override
                 public void onUnexpectedError(Exception e) {

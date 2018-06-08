@@ -48,7 +48,7 @@ succes[^s]
 protected Integer
 
 # Prefer comparison the ascending way, when checking for value in range. Use <=
->= .* &&===1
+>= .* &&===3
 
 # It is no integer for id for bank model
 Short\.parseShort
@@ -99,9 +99,6 @@ android\.os\.Build\.
 # DISABLED To re-enable when code will be formatted globally
 #[ ]$
 
-# Use v4 lib
-android.support.v7.app.NotificationCompat
-
 # Deprecated, use retrofit2.HttpException
 import retrofit2\.adapter\.rxjava\.HttpException
 
@@ -129,3 +126,9 @@ ButterKnife\.findById\(
 
 # Call invalidateMenu(); instead.
 invalidateOptionsMenu
+
+# Avoid mistake in Retrofit (avoid prefix cut out)
+URI_API_PREFIX_PATH_MEDIA_R0 \+ \"\/
+URI_API_PREFIX_PATH_R0 \+ \"\/
+URI_API_PREFIX_PATH_UNSTABLE \+ \"\/
+URI_API_PREFIX_IDENTITY \+ \"\/

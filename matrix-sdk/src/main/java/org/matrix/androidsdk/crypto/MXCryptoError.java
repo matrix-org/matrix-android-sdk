@@ -67,7 +67,7 @@ public class MXCryptoError extends MatrixError {
     public static final String MISSING_FIELDS_REASON = "Missing fields in input";
     public static final String MISSING_CIPHER_TEXT_REASON = "Missing ciphertext";
     public static final String NOT_INCLUDED_IN_RECIPIENT_REASON = "Not included in recipients";
-    public static final String BAD_RECIPIENT_REASON = "Message was intented for %1$s";
+    public static final String BAD_RECIPIENT_REASON = "Message was intended for %1$s";
     public static final String BAD_RECIPIENT_KEY_REASON = "Message not intended for this device";
     public static final String FORWARDED_MESSAGE_REASON = "Message forwarded from %1$s";
     public static final String BAD_ROOM_REASON = "Message intended for room %1$s";

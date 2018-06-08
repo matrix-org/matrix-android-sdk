@@ -379,11 +379,11 @@ public class Room {
     public void requestServerRoomHistory(final String token, final int paginationCount, final ApiCallback<TokensChunkResponse<Event>> callback) {
         mDataHandler.getDataRetriever()
                 .requestServerRoomHistory(getRoomId(), token, paginationCount, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
-            @Override
-            public void onSuccess(TokensChunkResponse<Event> info) {
-                callback.onSuccess(info);
-            }
-        });
+                    @Override
+                    public void onSuccess(TokensChunkResponse<Event> info) {
+                        callback.onSuccess(info);
+                    }
+                });
     }
 
     /**
@@ -493,28 +493,13 @@ public class Room {
             event = mMemberEventByEventId.get(member.getOriginalEventId());
 
             if (null == event) {
-                mDataHandler.getDataRetriever().getRoomsRestClient().getEvent(getRoomId(), member.getOriginalEventId(), new ApiCallback<Event>() {
+                mDataHandler.getDataRetriever().getRoomsRestClient().getEvent(getRoomId(), member.getOriginalEventId(), new SimpleApiCallback<Event>(callback) {
                     @Override
                     public void onSuccess(Event event) {
                         if (null != event) {
                             mMemberEventByEventId.put(event.eventId, event);
                         }
                         callback.onSuccess(event);
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        callback.onNetworkError(e);
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        callback.onMatrixError(e);
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        callback.onUnexpectedError(e);
                     }
                 });
                 return;
@@ -686,60 +671,60 @@ public class Room {
 
         mDataHandler.getDataRetriever().getRoomsRestClient()
                 .joinRoom((null != roomAlias) ? roomAlias : getRoomId(), extraParams, new SimpleApiCallback<RoomResponse>(callback) {
-            @Override
-            public void onSuccess(final RoomResponse aResponse) {
-                try {
-                    // the join request did not get the room initial history
-                    if (isWaitingInitialSync()) {
-                        Log.d(LOG_TAG, "the room " + getRoomId() + " is joined but wait after initial sync");
+                    @Override
+                    public void onSuccess(final RoomResponse aResponse) {
+                        try {
+                            // the join request did not get the room initial history
+                            if (isWaitingInitialSync()) {
+                                Log.d(LOG_TAG, "the room " + getRoomId() + " is joined but wait after initial sync");
 
-                        // wait the server sends the events chunk before calling the callback
-                        setOnInitialSyncCallback(callback);
-                    } else {
-                        Log.d(LOG_TAG, "the room " + getRoomId() + " is joined : the initial sync has been done");
-                        // to initialise the notification counters
-                        markAllAsRead(null);
-                        // already got the initial sync
-                        callback.onSuccess(null);
+                                // wait the server sends the events chunk before calling the callback
+                                setOnInitialSyncCallback(callback);
+                            } else {
+                                Log.d(LOG_TAG, "the room " + getRoomId() + " is joined : the initial sync has been done");
+                                // to initialise the notification counters
+                                markAllAsRead(null);
+                                // already got the initial sync
+                                callback.onSuccess(null);
+                            }
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "join exception " + e.getMessage());
+                        }
                     }
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "join exception " + e.getMessage());
-                }
-            }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "join onNetworkError " + e.getMessage());
-                callback.onNetworkError(e);
-            }
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        Log.e(LOG_TAG, "join onNetworkError " + e.getMessage());
+                        callback.onNetworkError(e);
+                    }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "join onMatrixError " + e.getMessage());
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        Log.e(LOG_TAG, "join onMatrixError " + e.getMessage());
 
-                if (MatrixError.UNKNOWN.equals(e.errcode) && TextUtils.equals("No known servers", e.error)) {
-                    // minging kludge until https://matrix.org/jira/browse/SYN-678 is fixed
-                    // 'Error when trying to join an empty room should be more explicit
-                    e.error = getStore().getContext().getString(org.matrix.androidsdk.R.string.room_error_join_failed_empty_room);
-                }
+                        if (MatrixError.UNKNOWN.equals(e.errcode) && TextUtils.equals("No known servers", e.error)) {
+                            // minging kludge until https://matrix.org/jira/browse/SYN-678 is fixed
+                            // 'Error when trying to join an empty room should be more explicit
+                            e.error = getStore().getContext().getString(org.matrix.androidsdk.R.string.room_error_join_failed_empty_room);
+                        }
 
-                // if the alias is not found
-                // try with the room id
-                if ((e.mStatus == 404) && !TextUtils.isEmpty(roomAlias)) {
-                    Log.e(LOG_TAG, "Retry without the room alias");
-                    join(null, extraParams, callback);
-                    return;
-                }
+                        // if the alias is not found
+                        // try with the room id
+                        if ((e.mStatus == 404) && !TextUtils.isEmpty(roomAlias)) {
+                            Log.e(LOG_TAG, "Retry without the room alias");
+                            join(null, extraParams, callback);
+                            return;
+                        }
 
-                callback.onMatrixError(e);
-            }
+                        callback.onMatrixError(e);
+                    }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "join onUnexpectedError " + e.getMessage());
-                callback.onUnexpectedError(e);
-            }
-        });
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        Log.e(LOG_TAG, "join onUnexpectedError " + e.getMessage());
+                        callback.onUnexpectedError(e);
+                    }
+                });
     }
 
     /**
@@ -978,38 +963,17 @@ public class Room {
         params.put("groups", groupIds);
 
         mDataHandler.getDataRetriever().getRoomsRestClient()
-                .sendStateEvent(getRoomId(), Event.EVENT_TYPE_STATE_RELATED_GROUPS, null, params, new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                getLiveState().groups = groupIds;
-                getDataHandler().getStore().storeLiveStateForRoom(getRoomId());
+                .sendStateEvent(getRoomId(), Event.EVENT_TYPE_STATE_RELATED_GROUPS, null, params, new SimpleApiCallback<Void>(callback) {
+                    @Override
+                    public void onSuccess(Void info) {
+                        getLiveState().groups = groupIds;
+                        getDataHandler().getStore().storeLiveStateForRoom(getRoomId());
 
-                if (null != callback) {
-                    callback.onSuccess(null);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
-            }
-        });
+                        if (null != callback) {
+                            callback.onSuccess(null);
+                        }
+                    }
+                });
     }
 
 
@@ -1088,12 +1052,12 @@ public class Room {
     public void updateHistoryVisibility(final String historyVisibility, final ApiCallback<Void> callback) {
         mDataHandler.getDataRetriever().getRoomsRestClient()
                 .updateHistoryVisibility(getRoomId(), historyVisibility, new RoomInfoUpdateCallback<Void>(callback) {
-            @Override
-            public void onSuccess(Void info) {
-                getState().history_visibility = historyVisibility;
-                super.onSuccess(info);
-            }
-        });
+                    @Override
+                    public void onSuccess(Void info) {
+                        getState().history_visibility = historyVisibility;
+                        super.onSuccess(info);
+                    }
+                });
     }
 
     /**
@@ -1123,7 +1087,7 @@ public class Room {
         RoomsRestClient roomRestApi = mDataHandler.getDataRetriever().getRoomsRestClient();
 
         if (null != roomRestApi) {
-            roomRestApi.getDirectoryVisibility(roomId, new ApiCallback<RoomState>() {
+            roomRestApi.getDirectoryVisibility(roomId, new SimpleApiCallback<RoomState>(callback) {
                 @Override
                 public void onSuccess(RoomState roomState) {
                     RoomState currentRoomState = getState();
@@ -1133,27 +1097,6 @@ public class Room {
 
                     if (null != callback) {
                         callback.onSuccess(roomState.visibility);
-                    }
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    if (null != callback) {
-                        callback.onNetworkError(e);
-                    }
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    if (null != callback) {
-                        callback.onMatrixError(e);
-                    }
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    if (null != callback) {
-                        callback.onUnexpectedError(e);
                     }
                 }
             });
@@ -1363,7 +1306,7 @@ public class Room {
                 if ((0 != summary.getUnreadEventsCount()) ||
                         (0 != summary.getHighlightCount()) ||
                         (0 != summary.getNotificationCount())) {
-                    Log.e(LOG_TAG, "## markAllAsRead() : the summary events counters should be cleared for " + getRoomId() + " should have been cleared");
+                    Log.e(LOG_TAG, "## markAllAsRead() : the summary events counters should be cleared for " + getRoomId());
 
                     Event latestEvent = getStore().getLatestEvent(getRoomId());
                     summary.setLatestReceivedEvent(latestEvent);
@@ -1547,35 +1490,15 @@ public class Room {
                 }
             });
         } else {
-            mDataHandler.getDataRetriever().getRoomsRestClient().sendReadMarker(getRoomId(), readMarkerEventId, readReceiptEventId, new ApiCallback<Void>() {
-                @Override
-                public void onSuccess(Void info) {
-                    if (null != callback) {
-                        callback.onSuccess(info);
-                    }
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    if (null != callback) {
-                        callback.onNetworkError(e);
-                    }
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    if (null != callback) {
-                        callback.onMatrixError(e);
-                    }
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    if (null != callback) {
-                        callback.onUnexpectedError(e);
-                    }
-                }
-            });
+            mDataHandler.getDataRetriever().getRoomsRestClient().sendReadMarker(getRoomId(), readMarkerEventId, readReceiptEventId,
+                    new SimpleApiCallback<Void>(callback) {
+                        @Override
+                        public void onSuccess(Void info) {
+                            if (null != callback) {
+                                callback.onSuccess(info);
+                            }
+                        }
+                    });
         }
     }
 
@@ -2070,28 +1993,12 @@ public class Room {
         else if (((null == oldTag) && (null != newTag)) || TextUtils.equals(oldTag, newTag)) {
             addTag(newTag, newTagOrder, callback);
         } else {
-            removeTag(oldTag, new ApiCallback<Void>() {
+            removeTag(oldTag, new SimpleApiCallback<Void>(callback) {
                 @Override
                 public void onSuccess(Void info) {
                     addTag(newTag, newTagOrder, callback);
                 }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    callback.onNetworkError(e);
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    callback.onMatrixError(e);
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    callback.onUnexpectedError(e);
-                }
             });
-
         }
     }
 
@@ -2472,55 +2379,55 @@ public class Room {
             // Encrypt the content before sending
             mDataHandler.getCrypto()
                     .encryptEventContent(event.getContent().getAsJsonObject(), event.getType(), this, new ApiCallback<MXEncryptEventContentResult>() {
-                @Override
-                public void onSuccess(MXEncryptEventContentResult encryptEventContentResult) {
-                    // update the event content with the encrypted data
-                    event.type = encryptEventContentResult.mEventType;
-                    event.updateContent(encryptEventContentResult.mEventContent.getAsJsonObject());
-                    mDataHandler.decryptEvent(event, null);
+                        @Override
+                        public void onSuccess(MXEncryptEventContentResult encryptEventContentResult) {
+                            // update the event content with the encrypted data
+                            event.type = encryptEventContentResult.mEventType;
+                            event.updateContent(encryptEventContentResult.mEventContent.getAsJsonObject());
+                            mDataHandler.decryptEvent(event, null);
 
-                    // sending in progress
-                    mDataHandler.updateEventState(event, Event.SentState.SENDING);
-                    mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(event.originServerTs + "", getRoomId(),
-                            encryptEventContentResult.mEventType, encryptEventContentResult.mEventContent.getAsJsonObject(), localCB);
-                }
+                            // sending in progress
+                            mDataHandler.updateEventState(event, Event.SentState.SENDING);
+                            mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(event.originServerTs + "", getRoomId(),
+                                    encryptEventContentResult.mEventType, encryptEventContentResult.mEventContent.getAsJsonObject(), localCB);
+                        }
 
-                @Override
-                public void onNetworkError(Exception e) {
-                    event.unsentException = e;
-                    mDataHandler.updateEventState(event, Event.SentState.UNDELIVERABLE);
+                        @Override
+                        public void onNetworkError(Exception e) {
+                            event.unsentException = e;
+                            mDataHandler.updateEventState(event, Event.SentState.UNDELIVERABLE);
 
-                    if (null != callback) {
-                        callback.onNetworkError(e);
-                    }
-                }
+                            if (null != callback) {
+                                callback.onNetworkError(e);
+                            }
+                        }
 
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    // update the sent state if the message encryption failed because there are unknown devices.
-                    if ((e instanceof MXCryptoError) && TextUtils.equals(((MXCryptoError) e).errcode, MXCryptoError.UNKNOWN_DEVICES_CODE)) {
-                        event.mSentState = Event.SentState.FAILED_UNKNOWN_DEVICES;
-                    } else {
-                        event.mSentState = Event.SentState.UNDELIVERABLE;
-                    }
-                    event.unsentMatrixError = e;
-                    mDataHandler.onEventSentStateUpdated(event);
+                        @Override
+                        public void onMatrixError(MatrixError e) {
+                            // update the sent state if the message encryption failed because there are unknown devices.
+                            if ((e instanceof MXCryptoError) && TextUtils.equals(((MXCryptoError) e).errcode, MXCryptoError.UNKNOWN_DEVICES_CODE)) {
+                                event.mSentState = Event.SentState.FAILED_UNKNOWN_DEVICES;
+                            } else {
+                                event.mSentState = Event.SentState.UNDELIVERABLE;
+                            }
+                            event.unsentMatrixError = e;
+                            mDataHandler.onEventSentStateUpdated(event);
 
-                    if (null != callback) {
-                        callback.onMatrixError(e);
-                    }
-                }
+                            if (null != callback) {
+                                callback.onMatrixError(e);
+                            }
+                        }
 
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    event.unsentException = e;
-                    mDataHandler.updateEventState(event, Event.SentState.UNDELIVERABLE);
+                        @Override
+                        public void onUnexpectedError(Exception e) {
+                            event.unsentException = e;
+                            mDataHandler.updateEventState(event, Event.SentState.UNDELIVERABLE);
 
-                    if (null != callback) {
-                        callback.onUnexpectedError(e);
-                    }
-                }
-            });
+                            if (null != callback) {
+                                callback.onUnexpectedError(e);
+                            }
+                        }
+                    });
         } else {
             mDataHandler.updateEventState(event, Event.SentState.SENDING);
 
@@ -2569,7 +2476,7 @@ public class Room {
      * @param callback the callback with the redacted event
      */
     public void redact(final String eventId, final ApiCallback<Event> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().redactEvent(getRoomId(), eventId, new ApiCallback<Event>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().redactEvent(getRoomId(), eventId, new SimpleApiCallback<Event>(callback) {
             @Override
             public void onSuccess(Event event) {
                 Event redactedEvent = (null != getStore()) ? getStore().getEvent(eventId, getRoomId()) : null;
@@ -2585,27 +2492,6 @@ public class Room {
 
                 if (null != callback) {
                     callback.onSuccess(redactedEvent);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
                 }
             }
         });
@@ -2676,34 +2562,10 @@ public class Room {
             return;
         }
 
-        final ApiCallback<Void> localCallback = new ApiCallback<Void>() {
+        final ApiCallback<Void> localCallback = new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 invite(identifiers, callback);
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## invite failed " + e.getMessage());
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                Log.e(LOG_TAG, "## invite failed " + e.getMessage());
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## invite failed " + e.getMessage());
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
             }
         };
 
@@ -2802,7 +2664,7 @@ public class Room {
      * @param callback the callback for when done
      */
     public void forget(final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().forgetRoom(getRoomId(), new ApiCallback<Void>() {
+        mDataHandler.getDataRetriever().getRoomsRestClient().forgetRoom(getRoomId(), new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 if (mDataHandler.isAlive()) {
@@ -2819,33 +2681,6 @@ public class Room {
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "forget exception " + e.getMessage());
                     }
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                try {
-                    callback.onNetworkError(e);
-                } catch (Exception anException) {
-                    Log.e(LOG_TAG, "forget exception " + anException.getMessage());
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                try {
-                    callback.onMatrixError(e);
-                } catch (Exception anException) {
-                    Log.e(LOG_TAG, "forget exception " + anException.getMessage());
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                try {
-                    callback.onUnexpectedError(e);
-                } catch (Exception anException) {
-                    Log.e(LOG_TAG, "forget exception " + anException.getMessage());
                 }
             }
         });
@@ -2935,35 +2770,35 @@ public class Room {
 
             mDataHandler.getDataRetriever().getRoomsRestClient()
                     .sendStateEvent(getRoomId(), Event.EVENT_TYPE_MESSAGE_ENCRYPTION, null, params, new ApiCallback<Void>() {
-                @Override
-                public void onSuccess(Void info) {
-                    // Wait for the event coming back from the hs
-                }
+                        @Override
+                        public void onSuccess(Void info) {
+                            // Wait for the event coming back from the hs
+                        }
 
-                @Override
-                public void onNetworkError(Exception e) {
-                    if (null != callback) {
-                        callback.onNetworkError(e);
-                        removeEventListener(mEncryptionListener);
-                    }
-                }
+                        @Override
+                        public void onNetworkError(Exception e) {
+                            if (null != callback) {
+                                callback.onNetworkError(e);
+                                removeEventListener(mEncryptionListener);
+                            }
+                        }
 
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    if (null != callback) {
-                        callback.onMatrixError(e);
-                        removeEventListener(mEncryptionListener);
-                    }
-                }
+                        @Override
+                        public void onMatrixError(MatrixError e) {
+                            if (null != callback) {
+                                callback.onMatrixError(e);
+                                removeEventListener(mEncryptionListener);
+                            }
+                        }
 
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    if (null != callback) {
-                        callback.onUnexpectedError(e);
-                        removeEventListener(mEncryptionListener);
-                    }
-                }
-            });
+                        @Override
+                        public void onUnexpectedError(Exception e) {
+                            if (null != callback) {
+                                callback.onUnexpectedError(e);
+                                removeEventListener(mEncryptionListener);
+                            }
+                        }
+                    });
         } else if (null != callback) {
             if (null == mDataHandler.getCrypto()) {
                 callback.onMatrixError(new MXCryptoError(MXCryptoError.ENCRYPTING_NOT_ENABLED_ERROR_CODE,

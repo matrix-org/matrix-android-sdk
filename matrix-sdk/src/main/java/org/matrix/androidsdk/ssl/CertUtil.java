@@ -191,7 +191,7 @@ public class CertUtil {
     /**
      * Create a Host name verifier for a hs config.
      *
-     * @param hsConfig teh hs config.
+     * @param hsConfig the hs config.
      * @return a new HostnameVerifier.
      */
     public static HostnameVerifier newHostnameVerifier(HomeServerConnectionConfig hsConfig) {

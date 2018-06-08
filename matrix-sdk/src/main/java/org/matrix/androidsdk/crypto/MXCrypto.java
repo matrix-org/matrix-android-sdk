@@ -21,9 +21,11 @@ package org.matrix.androidsdk.crypto;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
+import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXSession;
@@ -42,6 +44,7 @@ import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.MatrixError;
@@ -1015,7 +1018,7 @@ public class MXCrypto {
      * The callback is called in the UI thread.
      *
      * @param devicesByUser a map from userid to list of devices.
-     * @param callback      teh asynchronous callback
+     * @param callback      the asynchronous callback
      */
     public void ensureOlmSessionsForDevices(final HashMap<String, ArrayList<MXDeviceInfo>> devicesByUser,
                                             final ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>> callback) {
@@ -1871,7 +1874,7 @@ public class MXCrypto {
 
         getOlmDevice().generateOneTimeKeys(keysThisLoop);
 
-        uploadOneTimeKeys(new ApiCallback<KeysUploadResponse>() {
+        uploadOneTimeKeys(new SimpleApiCallback<KeysUploadResponse>(callback) {
             @Override
             public void onSuccess(final KeysUploadResponse response) {
                 getEncryptingThreadHandler().post(new Runnable() {
@@ -1891,27 +1894,6 @@ public class MXCrypto {
                         }
                     }
                 });
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
             }
         });
     }
@@ -2158,7 +2140,7 @@ public class MXCrypto {
 
         // For now, we set the device id explicitly, as we may not be using the
         // same one as used in login.
-        mSession.getCryptoRestClient().uploadKeys(null, oneTimeJson, mMyDevice.deviceId, new ApiCallback<KeysUploadResponse>() {
+        mSession.getCryptoRestClient().uploadKeys(null, oneTimeJson, mMyDevice.deviceId, new SimpleApiCallback<KeysUploadResponse>(callback) {
             @Override
             public void onSuccess(final KeysUploadResponse info) {
                 getEncryptingThreadHandler().post(new Runnable() {
@@ -2179,27 +2161,6 @@ public class MXCrypto {
                         }
                     }
                 });
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
             }
         });
     }
@@ -2471,7 +2432,7 @@ public class MXCrypto {
      */
     public void checkUnknownDevices(List<String> userIds, final ApiCallback<Void> callback) {
         // force the refresh to ensure that the devices list is up-to-date
-        mDevicesList.downloadKeys(userIds, true, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+        mDevicesList.downloadKeys(userIds, true, new SimpleApiCallback<MXUsersDevicesMap<MXDeviceInfo>>(callback) {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> devicesMap) {
                 MXUsersDevicesMap<MXDeviceInfo> unknownDevices = MXCrypto.getUnknownDevices(devicesMap);
@@ -2483,21 +2444,6 @@ public class MXCrypto {
                     callback.onMatrixError(new MXCryptoError(MXCryptoError.UNKNOWN_DEVICES_CODE,
                             MXCryptoError.UNABLE_TO_ENCRYPT, MXCryptoError.UNKNOWN_DEVICES_REASON, unknownDevices));
                 }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                callback.onNetworkError(e);
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                callback.onMatrixError(e);
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                callback.onUnexpectedError(e);
             }
         });
     }
@@ -2721,6 +2667,34 @@ public class MXCrypto {
                 mOutgoingRoomKeyRequestManager.cancelRoomKeyRequest(requestBody);
             }
         });
+    }
+
+    /**
+     * Re request the encryption keys required to decrypt an event.
+     *
+     * @param event the event to decrypt again.
+     */
+    public void reRequestRoomKeyForEvent(@NonNull final Event event) {
+        if (event.getWireContent().isJsonObject()) {
+            JsonObject wireContent = event.getWireContent().getAsJsonObject();
+
+            final String algorithm = wireContent.get("algorithm").getAsString();
+            final String sender_key = wireContent.get("sender_key").getAsString();
+            final String session_id = wireContent.get("session_id").getAsString();
+
+            getEncryptingThreadHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    Map<String, String> requestBody = new HashMap<>();
+                    requestBody.put("room_id", event.roomId);
+                    requestBody.put("algorithm", algorithm);
+                    requestBody.put("sender_key", sender_key);
+                    requestBody.put("session_id", session_id);
+
+                    mOutgoingRoomKeyRequestManager.resendRoomKeyRequest(requestBody);
+                }
+            });
+        }
     }
 
     /**
