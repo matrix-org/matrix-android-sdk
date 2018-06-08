@@ -21,9 +21,11 @@ package org.matrix.androidsdk.crypto;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
+import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXSession;
@@ -2665,6 +2667,34 @@ public class MXCrypto {
                 mOutgoingRoomKeyRequestManager.cancelRoomKeyRequest(requestBody);
             }
         });
+    }
+
+    /**
+     * Re request the encryption keys required to decrypt an event.
+     *
+     * @param event the event to decrypt again.
+     */
+    public void reRequestRoomKeyForEvent(@NonNull final Event event) {
+        if (event.getWireContent().isJsonObject()) {
+            JsonObject wireContent = event.getWireContent().getAsJsonObject();
+
+            final String algorithm = wireContent.get("algorithm").getAsString();
+            final String sender_key = wireContent.get("sender_key").getAsString();
+            final String session_id = wireContent.get("session_id").getAsString();
+
+            getEncryptingThreadHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    Map<String, String> requestBody = new HashMap<>();
+                    requestBody.put("room_id", event.roomId);
+                    requestBody.put("algorithm", algorithm);
+                    requestBody.put("sender_key", sender_key);
+                    requestBody.put("session_id", session_id);
+
+                    mOutgoingRoomKeyRequestManager.resendRoomKeyRequest(requestBody);
+                }
+            });
+        }
     }
 
     /**

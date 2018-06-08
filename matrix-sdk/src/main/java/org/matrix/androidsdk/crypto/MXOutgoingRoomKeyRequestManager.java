@@ -126,6 +126,25 @@ public class MXOutgoingRoomKeyRequestManager {
      * @param requestBody requestBody
      */
     public void cancelRoomKeyRequest(final Map<String, String> requestBody) {
+        cancelRoomKeyRequest(requestBody, false);
+    }
+
+    /**
+     * Cancel room key requests, if any match the given details, and resend
+     *
+     * @param requestBody requestBody
+     */
+    public void resendRoomKeyRequest(final Map<String, String> requestBody) {
+        cancelRoomKeyRequest(requestBody, true);
+    }
+
+    /**
+     * Cancel room key requests, if any match the given details, and resend
+     *
+     * @param requestBody requestBody
+     * @param andResend   true to resend the key request
+     */
+    private void cancelRoomKeyRequest(final Map<String, String> requestBody, boolean andResend) {
         OutgoingRoomKeyRequest req = mCryptoStore.getOutgoingRoomKeyRequest(requestBody);
 
         if (null == req) {
@@ -133,15 +152,19 @@ public class MXOutgoingRoomKeyRequestManager {
             return;
         }
 
-        if (req.mState == OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING) {
+        if (req.mState == OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING
+                || req.mState == OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING_AND_WILL_RESEND) {
             // nothing to do here
-            return;
         } else if ((req.mState == OutgoingRoomKeyRequest.RequestState.UNSENT) ||
                 (req.mState == OutgoingRoomKeyRequest.RequestState.FAILED)) {
             Log.d(LOG_TAG, "## cancelRoomKeyRequest() : deleting unnecessary room key request for " + requestBody);
             mCryptoStore.deleteOutgoingRoomKeyRequest(req.mRequestId);
         } else if (req.mState == OutgoingRoomKeyRequest.RequestState.SENT) {
-            req.mState = OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING;
+            if (andResend) {
+                req.mState = OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING_AND_WILL_RESEND;
+            } else {
+                req.mState = OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING;
+            }
             req.mCancellationTxnId = makeTxnId();
             mCryptoStore.updateOutgoingRoomKeyRequest(req);
             sendOutgoingRoomKeyRequestCancellation(req);
@@ -187,7 +210,9 @@ public class MXOutgoingRoomKeyRequestManager {
 
         Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequests() :  Looking for queued outgoing room key requests");
         OutgoingRoomKeyRequest outgoingRoomKeyRequest = mCryptoStore.getOutgoingRoomKeyRequestByState(
-                new HashSet<>(Arrays.asList(OutgoingRoomKeyRequest.RequestState.UNSENT, OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING)));
+                new HashSet<>(Arrays.asList(OutgoingRoomKeyRequest.RequestState.UNSENT,
+                        OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING,
+                        OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING_AND_WILL_RESEND)));
 
         if (null == outgoingRoomKeyRequest) {
             Log.e(LOG_TAG, "## sendOutgoingRoomKeyRequests() : No more outgoing room key requests");
@@ -293,7 +318,14 @@ public class MXOutgoingRoomKeyRequestManager {
             @Override
             public void onSuccess(Void info) {
                 Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequestCancellation() : done");
+                boolean resend = request.mState == OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING_AND_WILL_RESEND;
+
                 onDone();
+
+                // Resend the request with a new ID
+                if (resend) {
+                    sendRoomKeyRequest(request.mRequestBody, request.mRecipients);
+                }
             }
 
             @Override

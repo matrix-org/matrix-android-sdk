@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,17 +26,24 @@ import java.util.Map;
  */
 public class OutgoingRoomKeyRequest implements Serializable {
 
-    /** possible states for a room key request
+    /**
+     * possible states for a room key request
      *
      * The state machine looks like:
      *
-     *     |
-     *     V         (cancellation requested)
-     *   UNSENT  -----------------------------+
-     *     |                                  |
-     *     | (send successful)                |
-     *     V                                  |
-     *    SENT                                |
+     *     |         (cancellation sent)
+     *     | .-------------------------------------------------.
+     *     | |                                                 |
+     *     V V       (cancellation requested)                  |
+     *   UNSENT  -----------------------------+                |
+     *     |                                  |                |
+     *     |                                  |                |
+     *     | (send successful)                |  CANCELLATION_PENDING_AND_WILL_RESEND
+     *     V                                  |                Λ
+     *    SENT                                |                |
+     *     |--------------------------------  |  --------------'
+     *     |                                  |  (cancellation requested with intent
+     *     |                                  |   to resend the original request)
      *     |                                  |
      *     | (cancellation requested)         |
      *     V                                  |
@@ -44,18 +52,20 @@ public class OutgoingRoomKeyRequest implements Serializable {
      *     | (cancellation sent)              |
      *     V                                  |
      * (deleted)  <---------------------------+
-     *
-     *
-     **/
+     */
 
     public enum RequestState {
-        // request not yet sent
+        /** request not yet sent */
         UNSENT,
-        // request sent, awaiting reply
+        /** request sent, awaiting reply */
         SENT,
-        // reply received, cancellation not yet sent
+        /** reply received, cancellation not yet sent */
         CANCELLATION_PENDING,
-        // sending failed
+        /**
+         * Cancellation not yet sent, once sent, a new request will be done
+         */
+        CANCELLATION_PENDING_AND_WILL_RESEND,
+        /** sending failed */
         FAILED
     }
 
@@ -73,7 +83,7 @@ public class OutgoingRoomKeyRequest implements Serializable {
     // RequestBody
     public Map<String, String> mRequestBody;
 
-    // current state of this request (states are defined
+    // current state of this request
     public RequestState mState;
 
     public OutgoingRoomKeyRequest(Map<String, String> requestBody, List<Map<String, String>> recipients, String requestId, RequestState state) {
