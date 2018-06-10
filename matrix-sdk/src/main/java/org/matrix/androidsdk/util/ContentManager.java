@@ -32,12 +32,17 @@ public class ContentManager {
     public static final String METHOD_SCALE = "scale";
 
     public static final String URI_PREFIX_CONTENT_API = "/_matrix/media/v1/";
+    private static final String URI_PREFIX_MEDIA_PROXY_API = "/_matrix/media_proxy/unstable/";
 
     // HS config
     private final HomeServerConnectionConfig mHsConfig;
 
     // the unsent events Manager
     private final UnsentEventsManager mUnsentEventsManager;
+
+    // AV scanner handling
+    private boolean mIsAvScannerEnabled = false;
+    private String mDownloadUrlPrefix = null;
 
     /**
      * Default constructor.
@@ -48,6 +53,29 @@ public class ContentManager {
     public ContentManager(HomeServerConnectionConfig hsConfig, UnsentEventsManager unsentEventsManager) {
         mHsConfig = hsConfig;
         mUnsentEventsManager = unsentEventsManager;
+        // The AV scanner is disabled by default
+        configureAntiVirusScanner(false);
+    }
+
+    /**
+     * Configure the anti-virus scanner.
+     * If the anti-virus server url is different than the home server url,
+     * it must be provided in HomeServerConnectionConfig.
+     * The home server url is considered by default.
+     *
+     * @param isEnabled true to enable the anti-virus scanner, false otherwise.
+     */
+    public void configureAntiVirusScanner(boolean isEnabled) {
+        mIsAvScannerEnabled = isEnabled;
+        if (isEnabled) {
+            mDownloadUrlPrefix = mHsConfig.getAntiVirusServerUri().toString() + URI_PREFIX_MEDIA_PROXY_API;
+        } else {
+            mDownloadUrlPrefix = mHsConfig.getHomeserverUri().toString() + URI_PREFIX_CONTENT_API;
+        }
+    }
+
+    public boolean isIsAvScannerEnabled() {
+        return mIsAvScannerEnabled;
     }
 
     /**
@@ -97,20 +125,63 @@ public class ContentManager {
     }
 
     /**
+     * Returns the task identifier used to download the content at a Matrix media content URI
+     * (in the form of "mxc://...").
+     *
+     * @param contentUrl the matrix content url.
+     * @return the task identifier, or null if the url is invalid..
+     */
+    @Nullable
+    public String downloadTaskIdForMatrixMediaContent(String contentUrl) {
+        if (isValidMatrixContentUrl(contentUrl)) {
+            // We extract the server name and the media id from the matrix content url
+            // to define a unique download task id
+            return contentUrl.substring(MATRIX_CONTENT_URI_SCHEME.length());
+        }
+
+        // do not allow non-mxc content URLs: we should not be making requests out to whatever
+        // http urls people send us
+        return null;
+    }
+
+    /**
      * Get the actual URL for accessing the full-size image of a Matrix media content URI.
+     *
+     * @deprecated See getDownloadableUrl(contentUrl, isEncrypted).
      *
      * @param contentUrl the Matrix media content URI (in the form of "mxc://...").
      * @return the URL to access the described resource, or null if the url is invalid.
      */
     @Nullable
     public String getDownloadableUrl(String contentUrl) {
+        // Suppose here by default that the content is not encrypted.
+        // FIXME this method should be removed as soon as possible
+        return getDownloadableUrl(contentUrl, false);
+    }
+
+    /**
+     * Get the actual URL for accessing the full-size image of a Matrix media content URI.
+     *
+     * @param contentUrl the Matrix media content URI (in the form of "mxc://...").
+     * @param isEncrypted tell whether the related content is encrypted (This information is
+     *                    required when the anti-virus scanner is enabled).
+     * @return the URL to access the described resource, or null if the url is invalid.
+     */
+    @Nullable
+    public String getDownloadableUrl(String contentUrl, boolean isEncrypted) {
         if (isValidMatrixContentUrl(contentUrl)) {
-            String mediaServerAndId = contentUrl.substring(MATRIX_CONTENT_URI_SCHEME.length());
-            return mHsConfig.getHomeserverUri().toString() + URI_PREFIX_CONTENT_API + "download/" + mediaServerAndId;
-        } else {
-            // do not allow non-mxc content URLs: we should not be making requests out to whatever http urls people send us
-            return null;
+            if (!isEncrypted || !mIsAvScannerEnabled) {
+                String mediaServerAndId = contentUrl.substring(MATRIX_CONTENT_URI_SCHEME.length());
+                return mDownloadUrlPrefix + "download/" + mediaServerAndId;
+            } else {
+                // In case of encrypted content, a unique url is used when the scanner is enabled
+                // The encryption info must be sent in the body of the request.
+                return mDownloadUrlPrefix + "download_encrypted";
+            }
         }
+
+        // do not allow non-mxc content URLs
+        return null;
     }
 
     /**
@@ -132,6 +203,7 @@ public class ContentManager {
                 mediaServerAndId = mediaServerAndId.substring(0, mediaServerAndId.length() - "#auto".length());
             }
 
+            // Thumbnail url still go to the media repo since they don’t need virus scanning
             String url = mHsConfig.getHomeserverUri().toString() + URI_PREFIX_CONTENT_API;
 
             // identicon server has no thumbnail path
@@ -144,9 +216,9 @@ public class ContentManager {
             url += "&height=" + height;
             url += "&method=" + method;
             return url;
-        } else {
-            // do not allow non-mxc content URLs: we should not be making requests out to whatever http urls people send us
-            return null;
         }
+
+        // do not allow non-mxc content URLs
+        return null;
     }
 }

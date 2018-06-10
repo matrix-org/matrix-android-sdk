@@ -297,24 +297,6 @@ public class MXMediasCache {
     }
 
     /**
-     * Resolve a Matrix media content URI (in the form of "mxc://...") into an HTTP URL.
-     *
-     * @param url    the matrix url.
-     * @param width  the expected image width
-     * @param height the expected image height
-     * @return the URL to access the described resource, or null if the url is invalid.
-     */
-    @Nullable
-    private String downloadableUrl(String url, int width, int height) {
-        // Let the content manager check if the Url is a matrix one
-        if ((width > 0) && (height > 0)) {
-            return mContentManager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_SCALE);
-        } else {
-            return mContentManager.getDownloadableUrl(url);
-        }
-    }
-
-    /**
      * Provide the thumbnail file.
      *
      * @param url  the thumbnail url/
@@ -323,11 +305,14 @@ public class MXMediasCache {
      */
     @Nullable
     public File thumbnailCacheFile(String url, int size) {
-        // Check and resolve the provided URL
-        String downloadableUrl = downloadableUrl(url, size, size);
+        // We use the download task id to define a cache id
+        String thumbnailCacheId = mContentManager.downloadTaskIdForMatrixMediaContent(url);
 
-        if (null != downloadableUrl) {
-            String filename = MXMediaDownloadWorkerTask.buildFileName(downloadableUrl, "image/jpeg");
+        if (null != thumbnailCacheId) {
+            if (size > 0) {
+                thumbnailCacheId += "?width=" + size + "&height=" + size;
+            }
+            String filename = MXMediaDownloadWorkerTask.buildFileName(thumbnailCacheId, "image/jpeg");
 
             try {
                 File file = new File(getThumbnailsFolderFile(), filename);
@@ -363,9 +348,13 @@ public class MXMediasCache {
         if (url.startsWith("file:")) {
             filename = url;
         } else {
-            String downloadableUrl = downloadableUrl(url, width, height);
-            if (null != downloadableUrl) {
-                filename = MXMediaDownloadWorkerTask.buildFileName(downloadableUrl, mimeType);
+            // We use the download task id to define a cache id
+            String cacheId = mContentManager.downloadTaskIdForMatrixMediaContent(url);
+            if (null != cacheId) {
+                if ((width > 0) && (height > 0)) {
+                    cacheId += "?width=" + width + "&height=" + height;
+                }
+                filename = MXMediaDownloadWorkerTask.buildFileName(cacheId, mimeType);
             } else {
                 return null;
             }
@@ -641,11 +630,13 @@ public class MXMediasCache {
      * @param keepSource keep the source file
      */
     public void saveFileMediaForUrl(String mediaUrl, String fileUrl, int width, int height, String mimeType, boolean keepSource) {
-        // Check and resolve the provided URL
-        String downloadableUrl = downloadableUrl(mediaUrl, width, height);
-
-        if (null != downloadableUrl) {
-            String filename = MXMediaDownloadWorkerTask.buildFileName(downloadableUrl, mimeType);
+        // We use the download task id to define a cache id
+        String cacheId = mContentManager.downloadTaskIdForMatrixMediaContent(mediaUrl);
+        if (null != cacheId) {
+            if ((width > 0) && (height > 0)) {
+                cacheId += "?width=" + width + "&height=" + height;
+            }
+            String filename = MXMediaDownloadWorkerTask.buildFileName(cacheId, mimeType);
 
             try {
                 // delete the current content
@@ -719,21 +710,23 @@ public class MXMediasCache {
      * Tells if the avatar is cached
      *
      * @param url  the avatar url to test
-     * @param side the thumbnail side
+     * @param size the thumbnail size
      * @return true if the avatar bitmap is cached.
      */
-    public boolean isAvatarThumbnailCached(String url, int side) {
+    public boolean isAvatarThumbnailCached(String url, int size) {
         boolean isCached = false;
 
-        // Check and resolve the provided URL
-        String thumbnailUrl = downloadableUrl(url, side, side);
-
-        if (null != thumbnailUrl) {
-            isCached = MXMediaDownloadWorkerTask.isUrlCached(thumbnailUrl);
+        // We use the download task id to define a cache id
+        String thumbnailCacheId = mContentManager.downloadTaskIdForMatrixMediaContent(url);
+        if (null != thumbnailCacheId) {
+            if (size > 0) {
+                thumbnailCacheId += "?width=" + size + "&height=" + size;
+            }
+            isCached = MXMediaDownloadWorkerTask.isMediaCached(thumbnailCacheId);
 
             if (!isCached) {
                 try {
-                    isCached = (new File(getThumbnailsFolderFile(), MXMediaDownloadWorkerTask.buildFileName(thumbnailUrl, "image/jpeg"))).exists();
+                    isCached = (new File(getThumbnailsFolderFile(), MXMediaDownloadWorkerTask.buildFileName(thumbnailCacheId, "image/jpeg"))).exists();
                 } catch (Throwable t) {
                     Log.e(LOG_TAG, "## isAvatarThumbnailCached() : failed " + t.getMessage());
                 }
@@ -834,15 +827,16 @@ public class MXMediasCache {
     private final List<MXMediaDownloadWorkerTask> mSuspendedTasks = new ArrayList<>();
 
     /**
-     * Returns the download ID from the media URL.
+     * Check whether a download is in progress for the content at a Matrix media content URI
+     * (in the form of "mxc://..."). Returns the identifier of the download task if any.
      *
-     * @param url the media url
+     * @param contentUrl the matrix media url
      * @return the download ID if there is a pending download or null
      */
     @Nullable
-    public String downloadIdFromUrl(String url) {
+    public String downloadIdFromUrl(String contentUrl) {
         // Check and resolve the provided URL, the resulting URL is used as download identifier.
-        String downloadId = downloadableUrl(url, -1, -1);
+        String downloadId = mContentManager.downloadTaskIdForMatrixMediaContent(contentUrl);
 
         if (null != downloadId && null != MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadId)) {
             return downloadId;
@@ -887,26 +881,25 @@ public class MXMediasCache {
             return null;
         }
 
-        // Check and resolve the provided URL
-        String downloadableUrl = downloadableUrl(url, -1, -1);
+        // Check the provided URL
+        String downloadId = mContentManager.downloadTaskIdForMatrixMediaContent(url);
 
-        // Return if the media url is not valid, or if the media is already downloaded.
-        if (null == downloadableUrl || isMediaCached(url, mimeType)) {
+        // Return if the media url is not valid, or if the media is already downloaded
+        if (null == downloadId || isMediaCached(url, mimeType)) {
             return null;
         }
 
-        // download it in background
-        MXMediaDownloadWorkerTask task = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadableUrl);
-
-        // is the media downloading  ?
+        // is the media downloading?
+        MXMediaDownloadWorkerTask task = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadId);
         if (null != task) {
             task.addDownloadListener(listener);
-            return downloadableUrl;
+            return downloadId;
         }
 
-        // download it in background
-        task = new MXMediaDownloadWorkerTask(context, hsConfig, mNetworkConnectivityReceiver, getFolderFile(mimeType), downloadableUrl, mimeType,
-                encryptionInfo);
+        // Download it in background
+        String downloadableUrl = mContentManager.getDownloadableUrl(url, null != encryptionInfo);
+        task = new MXMediaDownloadWorkerTask(context, hsConfig, mNetworkConnectivityReceiver, getFolderFile(mimeType), downloadableUrl, downloadId, 0, mimeType,
+                encryptionInfo, mContentManager.isIsAvScannerEnabled());
         task.addDownloadListener(listener);
 
         // avoid crash if there are too many running task
@@ -931,7 +924,7 @@ public class MXMediasCache {
             }
         }
 
-        return downloadableUrl;
+        return downloadId;
     }
 
     /**
@@ -1060,18 +1053,10 @@ public class MXMediasCache {
         }
 
         final Bitmap defaultBitmap = (null == aDefaultBitmap) ? mDefaultBitmap : aDefaultBitmap;
-        String downloadableUrl;
-
-        // Check and resolve the provided URL.
-        // Note: it is not possible to resize an encrypted image.
-        if (null == encryptionInfo) {
-            downloadableUrl = downloadableUrl(url, width, height);
-        } else {
-            downloadableUrl = downloadableUrl(url, -1, -1);
-        }
 
         // Check whether the url is valid
-        if (null == downloadableUrl) {
+        String downloadId = mContentManager.downloadTaskIdForMatrixMediaContent(url);
+        if (null == downloadId) {
             // Nothing to do
             if (null != imageView) {
                 imageView.setImageBitmap(defaultBitmap);
@@ -1079,19 +1064,31 @@ public class MXMediasCache {
             return null;
         }
 
+        // Resolve the provided URL.
+        // Note: it is not possible to resize an encrypted image.
+        String downloadableUrl;
+        if (null == encryptionInfo && width > 0 && height > 0) {
+            downloadableUrl = mContentManager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_SCALE);
+            downloadId += "?width=" + width + "&height=" + height;
+        } else {
+            downloadableUrl = mContentManager.getDownloadableUrl(url, true);
+        }
+
         // the thumbnail params are ignored when encrypted
         if ((null == encryptionInfo)
                 && (rotationAngle == Integer.MAX_VALUE)
                 && (orientation != ExifInterface.ORIENTATION_UNDEFINED)
                 && (orientation != ExifInterface.ORIENTATION_NORMAL)) {
-            if (downloadableUrl.indexOf("?") != -1) {
+            if (downloadableUrl.contains("?")) {
                 downloadableUrl += "&apply_orientation=true";
+                downloadId += "&apply_orientation=true";
             } else {
                 downloadableUrl += "?apply_orientation=true";
+                downloadId += "?apply_orientation=true";
             }
         }
 
-        final String fDownloadableUrl = downloadableUrl;
+        final String fDownloadableUrl = downloadId;
 
         if (null != imageView) {
             imageView.setTag(fDownloadableUrl);
@@ -1103,7 +1100,7 @@ public class MXMediasCache {
         }
 
         boolean isCached = MXMediaDownloadWorkerTask.bitmapForURL(context.getApplicationContext(),
-                folderFile, downloadableUrl, rotationAngle, mimeType, encryptionInfo, new SimpleApiCallback<Bitmap>() {
+                folderFile, downloadableUrl, downloadId, rotationAngle, mimeType, encryptionInfo, new SimpleApiCallback<Bitmap>() {
             @Override
             public void onSuccess(Bitmap bitmap) {
                 if (null != imageView) {
@@ -1116,18 +1113,18 @@ public class MXMediasCache {
         });
 
         if (isCached) {
-            downloadableUrl = null;
+            downloadId = null;
         } else {
-            MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadableUrl);
+            MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadId);
 
             if (null != currentTask) {
                 if (null != imageView) {
                     currentTask.addImageView(imageView);
                 }
             } else {
-                // download it in background
+                // Download it in background
                 MXMediaDownloadWorkerTask task = new MXMediaDownloadWorkerTask(context,
-                        hsConfig, mNetworkConnectivityReceiver, folderFile, downloadableUrl, rotationAngle, mimeType, encryptionInfo);
+                        hsConfig, mNetworkConnectivityReceiver, folderFile, downloadableUrl, downloadId, rotationAngle, mimeType, encryptionInfo, mContentManager.isIsAvScannerEnabled());
 
                 if (null != imageView) {
                     task.addImageView(imageView);
@@ -1165,7 +1162,7 @@ public class MXMediasCache {
             }
         }
 
-        return downloadableUrl;
+        return downloadId;
     }
 
     /**
