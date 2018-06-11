@@ -26,6 +26,7 @@ import com.google.gson.JsonParser;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
 import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
 import org.matrix.androidsdk.rest.model.message.FileMessage;
 import org.matrix.androidsdk.rest.model.message.ImageMessage;
 import org.matrix.androidsdk.rest.model.message.Message;
@@ -655,7 +656,6 @@ public class Event implements Externalizable {
                 if (null != imageMessage.getUrl()) {
                     urls.add(imageMessage.getUrl());
                 }
-
                 if (null != imageMessage.getThumbnailUrl()) {
                     urls.add(imageMessage.getThumbnailUrl());
                 }
@@ -671,6 +671,9 @@ public class Event implements Externalizable {
                 if (null != videoMessage.getUrl()) {
                     urls.add(videoMessage.getUrl());
                 }
+                if (null != videoMessage.getThumbnailUrl()) {
+                    urls.add(videoMessage.getThumbnailUrl());
+                }
             }
         } else if (Event.EVENT_TYPE_STICKER.equals(getType())) {
             StickerMessage stickerMessage = JsonUtils.toStickerMessage(getContent());
@@ -681,6 +684,59 @@ public class Event implements Externalizable {
 
             if (null != stickerMessage.getThumbnailUrl()) {
                 urls.add(stickerMessage.getThumbnailUrl());
+            }
+        }
+
+        return urls;
+    }
+
+    /**
+     * @return all the encrypted file infos defined in the event.
+     */
+    public List<EncryptedFileInfo> getEncryptedFileInfos() {
+        ArrayList<EncryptedFileInfo> urls = new ArrayList<>();
+
+        if (!isEncrypted()) {
+            // return empty array
+            return urls;
+        }
+
+        if (Event.EVENT_TYPE_MESSAGE.equals(getType())) {
+            String msgType = JsonUtils.getMessageMsgType(getContent());
+
+            if (Message.MSGTYPE_IMAGE.equals(msgType)) {
+                ImageMessage imageMessage = JsonUtils.toImageMessage(getContent());
+
+                if (null != imageMessage.file) {
+                    urls.add(imageMessage.file);
+                }
+                if (null != imageMessage.info && null != imageMessage.info.thumbnail_file) {
+                    urls.add(imageMessage.info.thumbnail_file);
+                }
+            } else if (Message.MSGTYPE_FILE.equals(msgType) || Message.MSGTYPE_AUDIO.equals(msgType)) {
+                FileMessage fileMessage = JsonUtils.toFileMessage(getContent());
+
+                if (null != fileMessage.file) {
+                    urls.add(fileMessage.file);
+                }
+            } else if (Message.MSGTYPE_VIDEO.equals(msgType)) {
+                VideoMessage videoMessage = JsonUtils.toVideoMessage(getContent());
+
+                if (null != videoMessage.file) {
+                    urls.add(videoMessage.file);
+                }
+                if (null != videoMessage.info && null != videoMessage.info.thumbnail_file) {
+                    urls.add(videoMessage.info.thumbnail_file);
+                }
+            }
+        } else if (Event.EVENT_TYPE_STICKER.equals(getType())) {
+            StickerMessage stickerMessage = JsonUtils.toStickerMessage(getContent());
+
+            if (null != stickerMessage.file) {
+                urls.add(stickerMessage.file);
+            }
+            if (null != stickerMessage.info && null != stickerMessage.info.thumbnail_file) {
+                urls.add(stickerMessage.info.thumbnail_file);
             }
         }
 

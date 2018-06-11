@@ -19,6 +19,7 @@ package org.matrix.androidsdk.util;
 import android.support.annotation.Nullable;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
+import org.matrix.androidsdk.RestClient;
 
 /**
  * Class for accessing content from the current session.
@@ -32,7 +33,6 @@ public class ContentManager {
     public static final String METHOD_SCALE = "scale";
 
     public static final String URI_PREFIX_CONTENT_API = "/_matrix/media/v1/";
-    private static final String URI_PREFIX_MEDIA_PROXY_API = "/_matrix/media_proxy/unstable/";
 
     // HS config
     private final HomeServerConnectionConfig mHsConfig;
@@ -68,7 +68,7 @@ public class ContentManager {
     public void configureAntiVirusScanner(boolean isEnabled) {
         mIsAvScannerEnabled = isEnabled;
         if (isEnabled) {
-            mDownloadUrlPrefix = mHsConfig.getAntiVirusServerUri().toString() + URI_PREFIX_MEDIA_PROXY_API;
+            mDownloadUrlPrefix = mHsConfig.getAntiVirusServerUri().toString() + "/" + RestClient.URI_API_PREFIX_PATH_MEDIA_PROXY_UNSTABLE;
         } else {
             mDownloadUrlPrefix = mHsConfig.getHomeserverUri().toString() + URI_PREFIX_CONTENT_API;
         }
@@ -120,7 +120,7 @@ public class ContentManager {
      * @param contentUrl the content URL (in the form of "mxc://...").
      * @return true if contentUrl is valid.
      */
-    public boolean isValidMatrixContentUrl(String contentUrl) {
+    public static boolean isValidMatrixContentUrl(String contentUrl) {
         return (null != contentUrl && contentUrl.startsWith(MATRIX_CONTENT_URI_SCHEME));
     }
 
