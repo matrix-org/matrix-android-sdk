@@ -56,7 +56,7 @@ public class HomeServerConnectionConfig {
 
     /**
      * @param hsUri       The URI to use to connect to the homeserver
-     * @param credentials The credentials to use, if needed.
+     * @param credentials The credentials to use, if needed. Can be null.
      */
     public HomeServerConnectionConfig(Uri hsUri, @Nullable Credentials credentials) {
         this(hsUri, null, credentials, new ArrayList<Fingerprint>(), false);
@@ -140,7 +140,11 @@ public class HomeServerConnectionConfig {
      * @return the identity server uri
      */
     public Uri getIdentityServerUri() {
-        return (null == mIdentityServerUri) ? mHsUri : mIdentityServerUri;
+        if (null != mIdentityServerUri) {
+            return mIdentityServerUri;
+        }
+        // Else consider the HS uri by default.
+        return mHsUri;
     }
 
     /**
@@ -156,8 +160,11 @@ public class HomeServerConnectionConfig {
      * @return the anti-virus server uri
      */
     public Uri getAntiVirusServerUri() {
-        // Consider the HS uri by default.
-        return (null == mAntiVirusServerUri) ? mHsUri : mAntiVirusServerUri;
+        if (null != mAntiVirusServerUri) {
+            return mAntiVirusServerUri;
+        }
+        // Else consider the HS uri by default.
+        return mHsUri;
     }
 
     /**
@@ -214,7 +221,9 @@ public class HomeServerConnectionConfig {
 
         json.put("home_server_url", mHsUri.toString());
         json.put("identity_server_url", getIdentityServerUri().toString());
-        if (mAntiVirusServerUri != null) json.put("antivirus_server_url", mAntiVirusServerUri.toString());
+        if (mAntiVirusServerUri != null) {
+            json.put("antivirus_server_url", mAntiVirusServerUri.toString());
+        }
 
         json.put("pin", mPin);
 

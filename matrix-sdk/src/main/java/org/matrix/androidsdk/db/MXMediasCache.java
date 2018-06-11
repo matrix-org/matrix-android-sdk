@@ -199,7 +199,9 @@ public class MXMediasCache {
         AsyncTask<Void, Void, Long> task = new AsyncTask<Void, Void, Long>() {
             @Override
             protected Long doInBackground(Void... params) {
-                return ContentUtils.getDirectorySize(context, new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER_NEW), 1);
+                return ContentUtils.getDirectorySize(context,
+                        new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER_NEW),
+                        1);
             }
 
             @Override
@@ -310,7 +312,7 @@ public class MXMediasCache {
 
         if (null != thumbnailCacheId) {
             if (size > 0) {
-                thumbnailCacheId += "?width=" + size + "&height=" + size;
+                thumbnailCacheId += "_w_" + size + "_h_" + size;
             }
             String filename = MXMediaDownloadWorkerTask.buildFileName(thumbnailCacheId, "image/jpeg");
 
@@ -352,7 +354,7 @@ public class MXMediasCache {
             String cacheId = mContentManager.downloadTaskIdForMatrixMediaContent(url);
             if (null != cacheId) {
                 if ((width > 0) && (height > 0)) {
-                    cacheId += "?width=" + width + "&height=" + height;
+                    cacheId += "_w_" + width + "_h_" + height;
                 }
                 filename = MXMediaDownloadWorkerTask.buildFileName(cacheId, mimeType);
             } else {
@@ -634,7 +636,7 @@ public class MXMediasCache {
         String cacheId = mContentManager.downloadTaskIdForMatrixMediaContent(mediaUrl);
         if (null != cacheId) {
             if ((width > 0) && (height > 0)) {
-                cacheId += "?width=" + width + "&height=" + height;
+                cacheId += "_w_" + width + "_h_" + height;
             }
             String filename = MXMediaDownloadWorkerTask.buildFileName(cacheId, mimeType);
 
@@ -720,7 +722,7 @@ public class MXMediasCache {
         String thumbnailCacheId = mContentManager.downloadTaskIdForMatrixMediaContent(url);
         if (null != thumbnailCacheId) {
             if (size > 0) {
-                thumbnailCacheId += "?width=" + size + "&height=" + size;
+                thumbnailCacheId += "_w_" + size + "_h_" + size;
             }
             isCached = MXMediaDownloadWorkerTask.isMediaCached(thumbnailCacheId);
 
@@ -899,7 +901,7 @@ public class MXMediasCache {
         // Download it in background
         String downloadableUrl = mContentManager.getDownloadableUrl(url, null != encryptionInfo);
         task = new MXMediaDownloadWorkerTask(context, hsConfig, mNetworkConnectivityReceiver, getFolderFile(mimeType), downloadableUrl, downloadId, 0, mimeType,
-                encryptionInfo, mContentManager.isIsAvScannerEnabled());
+                encryptionInfo, mContentManager.isAvScannerEnabled());
         task.addDownloadListener(listener);
 
         // avoid crash if there are too many running task
@@ -1069,7 +1071,7 @@ public class MXMediasCache {
         String downloadableUrl;
         if (null == encryptionInfo && width > 0 && height > 0) {
             downloadableUrl = mContentManager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_SCALE);
-            downloadId += "?width=" + width + "&height=" + height;
+            downloadId += "_w_" + width + "_h_" + height;
         } else {
             downloadableUrl = mContentManager.getDownloadableUrl(url, true);
         }
@@ -1081,11 +1083,10 @@ public class MXMediasCache {
                 && (orientation != ExifInterface.ORIENTATION_NORMAL)) {
             if (downloadableUrl.contains("?")) {
                 downloadableUrl += "&apply_orientation=true";
-                downloadId += "&apply_orientation=true";
             } else {
                 downloadableUrl += "?apply_orientation=true";
-                downloadId += "?apply_orientation=true";
             }
+            downloadId += "_apply_orientation";
         }
 
         final String fDownloadableUrl = downloadId;
@@ -1124,7 +1125,7 @@ public class MXMediasCache {
             } else {
                 // Download it in background
                 MXMediaDownloadWorkerTask task = new MXMediaDownloadWorkerTask(context,
-                        hsConfig, mNetworkConnectivityReceiver, folderFile, downloadableUrl, downloadId, rotationAngle, mimeType, encryptionInfo, mContentManager.isIsAvScannerEnabled());
+                        hsConfig, mNetworkConnectivityReceiver, folderFile, downloadableUrl, downloadId, rotationAngle, mimeType, encryptionInfo, mContentManager.isAvScannerEnabled());
 
                 if (null != imageView) {
                     task.addImageView(imageView);

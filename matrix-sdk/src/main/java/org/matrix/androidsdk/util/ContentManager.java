@@ -74,7 +74,7 @@ public class ContentManager {
         }
     }
 
-    public boolean isIsAvScannerEnabled() {
+    public boolean isAvScannerEnabled() {
         return mIsAvScannerEnabled;
     }
 

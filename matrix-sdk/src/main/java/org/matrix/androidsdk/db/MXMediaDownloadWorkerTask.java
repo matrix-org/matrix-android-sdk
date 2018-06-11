@@ -189,7 +189,6 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      * Clear the internal cache.
      */
     public static void clearBitmapsCache() {
-        // sMemoryCache can be null if no bitmap have been downloaded.
         if (null != mBitmapByDownloadIdCache) {
             mBitmapByDownloadIdCache.evictAll();
         }
