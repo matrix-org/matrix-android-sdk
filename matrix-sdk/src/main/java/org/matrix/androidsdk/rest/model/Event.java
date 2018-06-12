@@ -625,12 +625,20 @@ public class Event implements Externalizable {
     }
 
     /**
-     * Tells if the message sending failed because some unknown devices have benn detected.
+     * Tells if the message sending failed because some unknown devices have been detected.
      *
-     * @return true if some unknown devices have benn detected.
+     * @return true if some unknown devices have been detected.
      */
-    public boolean isUnkownDevice() {
+    public boolean isUnknownDevice() {
         return (mSentState == SentState.FAILED_UNKNOWN_DEVICES);
+    }
+
+    /**
+     * @deprecated call isUnknownDevice()
+     */
+    @Deprecated
+    public boolean isUnkownDevice() {
+        return isUnknownDevice();
     }
 
     /**
