@@ -16,6 +16,9 @@ API Change:
 Translations:
  -
 
+Others:
+ - Media cache is flushed because of the new format of ids.
+
 Build:
  - Add script to check code quality
 

@@ -50,6 +50,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.RejectedExecutionException;
@@ -61,8 +62,14 @@ public class MXMediasCache {
     /**
      * The medias folders.
      */
-    private static final String MXMEDIA_STORE_FOLDER_OLD = "MXMediaStore";
-    private static final String MXMEDIA_STORE_FOLDER_NEW = "MXMediaStore2";
+    // Put the previous folders used for cache here. Every time the cache management change (change of id format, etc.),
+    // append the current cache folder to this list, and change value of MXMEDIA_STORE_FOLDER (typically increment the value)
+    private static final List<String> sPreviousMediaCacheFolders = Arrays.asList(
+            "MXMediaStore",
+            "MXMediaStore2"
+    );
+
+    private static final String MXMEDIA_STORE_FOLDER = "MXMediaStore3";
     private static final String MXMEDIA_STORE_MEMBER_THUMBNAILS_FOLDER = "MXMemberThumbnailsStore";
     private static final String MXMEDIA_STORE_IMAGES_FOLDER = "Images";
     private static final String MXMEDIA_STORE_OTHERS_FOLDER = "Others";
@@ -103,13 +110,18 @@ public class MXMediasCache {
         mContentManager = contentManager;
         mNetworkConnectivityReceiver = networkConnectivityReceiver;
 
-        File mediaBaseFolderFile = new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER_OLD);
+        File mediaBaseFolderFile;
 
-        if (mediaBaseFolderFile.exists()) {
-            ContentUtils.deleteDirectory(mediaBaseFolderFile);
+        // Clear previous cache
+        for(String previousMediaCacheFolder: sPreviousMediaCacheFolders) {
+            mediaBaseFolderFile = new File(context.getApplicationContext().getFilesDir(), previousMediaCacheFolder);
+
+            if (mediaBaseFolderFile.exists()) {
+                ContentUtils.deleteDirectory(mediaBaseFolderFile);
+            }
         }
 
-        mediaBaseFolderFile = new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER_NEW);
+        mediaBaseFolderFile = new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER);
 
         if (!mediaBaseFolderFile.exists()) {
             mediaBaseFolderFile.mkdirs();
@@ -200,7 +212,7 @@ public class MXMediasCache {
             @Override
             protected Long doInBackground(Void... params) {
                 return ContentUtils.getDirectorySize(context,
-                        new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER_NEW),
+                        new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_FOLDER),
                         1);
             }
 
@@ -294,7 +306,7 @@ public class MXMediasCache {
      * @param applicationContext the application context
      */
     public static void clearThumbnailsCache(Context applicationContext) {
-        ContentUtils.deleteDirectory(new File(new File(applicationContext.getApplicationContext().getFilesDir(), MXMediasCache.MXMEDIA_STORE_FOLDER_NEW),
+        ContentUtils.deleteDirectory(new File(new File(applicationContext.getApplicationContext().getFilesDir(), MXMediasCache.MXMEDIA_STORE_FOLDER),
                 MXMEDIA_STORE_MEMBER_THUMBNAILS_FOLDER));
     }
 
@@ -1102,16 +1114,16 @@ public class MXMediasCache {
 
         boolean isCached = MXMediaDownloadWorkerTask.bitmapForURL(context.getApplicationContext(),
                 folderFile, downloadableUrl, downloadId, rotationAngle, mimeType, encryptionInfo, new SimpleApiCallback<Bitmap>() {
-            @Override
-            public void onSuccess(Bitmap bitmap) {
-                if (null != imageView) {
-                    if (TextUtils.equals(fDownloadableUrl, (String) imageView.getTag())) {
-                        // display it
-                        imageView.setImageBitmap((null != bitmap) ? bitmap : defaultBitmap);
+                    @Override
+                    public void onSuccess(Bitmap bitmap) {
+                        if (null != imageView) {
+                            if (TextUtils.equals(fDownloadableUrl, (String) imageView.getTag())) {
+                                // display it
+                                imageView.setImageBitmap((null != bitmap) ? bitmap : defaultBitmap);
+                            }
+                        }
                     }
-                }
-            }
-        });
+                });
 
         if (isCached) {
             downloadId = null;
