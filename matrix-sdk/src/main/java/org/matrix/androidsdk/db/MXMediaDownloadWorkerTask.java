@@ -729,7 +729,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                 Log.e(LOG_TAG, "bitmapForURL : fail to open the connection " + e.getMessage());
                 defaultError.error = e.getLocalizedMessage();
 
-                InputStream errorStream = ((HttpsURLConnection) connection).getErrorStream();
+                InputStream errorStream = connection.getErrorStream();
 
                 if (null != errorStream) {
                     try {
