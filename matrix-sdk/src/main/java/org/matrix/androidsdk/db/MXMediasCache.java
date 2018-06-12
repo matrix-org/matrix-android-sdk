@@ -1073,7 +1073,7 @@ public class MXMediasCache {
             downloadableUrl = mContentManager.getDownloadableThumbnailUrl(url, width, height, ContentManager.METHOD_SCALE);
             downloadId += "_w_" + width + "_h_" + height;
         } else {
-            downloadableUrl = mContentManager.getDownloadableUrl(url, true);
+            downloadableUrl = mContentManager.getDownloadableUrl(url, null != encryptionInfo);
         }
 
         // the thumbnail params are ignored when encrypted
