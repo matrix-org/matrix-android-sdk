@@ -20,6 +20,7 @@ import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.MediaScanApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.DefaultRetrofit2CallbackWrapper;
+import org.matrix.androidsdk.rest.model.EncryptedMediaScanBody;
 import org.matrix.androidsdk.rest.model.MediaScanResult;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
 
@@ -50,11 +51,11 @@ public class MediaScanRestClient extends RestClient<MediaScanApi> {
     /**
      * Scan an encrypted file.
      *
-     * @param encryptedFileInfo the encryption information
+     * @param encryptedMediaScanBody the encryption information required to decrypt the content before scanning it.
      * @param callback on success callback containing a MediaScanResult object
      */
-    public void scanEncryptedFile(final EncryptedFileInfo encryptedFileInfo, final ApiCallback<MediaScanResult> callback) {
+    public void scanEncryptedFile(final EncryptedMediaScanBody encryptedMediaScanBody, final ApiCallback<MediaScanResult> callback) {
 
-        mApi.scanEncrypted(encryptedFileInfo).enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
+        mApi.scanEncrypted(encryptedMediaScanBody).enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
     }
 }

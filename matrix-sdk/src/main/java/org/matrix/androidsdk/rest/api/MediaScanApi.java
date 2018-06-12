@@ -15,8 +15,8 @@
  */
 package org.matrix.androidsdk.rest.api;
 
+import org.matrix.androidsdk.rest.model.EncryptedMediaScanBody;
 import org.matrix.androidsdk.rest.model.MediaScanResult;
-import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
 
 import retrofit2.Call;
 import retrofit2.http.Body;
@@ -40,8 +40,8 @@ public interface MediaScanApi {
     /**
      * Scan an encrypted file.
      *
-     * @param encryptedFileInfo the encrypted file information
+     * @param encryptedMediaScanBody the encryption information required to decrypt the content before scanning it.
      */
     @POST("scan_encrypted")
-    Call<MediaScanResult> scanEncrypted(@Body EncryptedFileInfo encryptedFileInfo);
+    Call<MediaScanResult> scanEncrypted(@Body EncryptedMediaScanBody encryptedMediaScanBody);
 }

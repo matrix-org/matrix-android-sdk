@@ -213,15 +213,13 @@ public class RestClient<T> {
     private String makeEndpoint(HomeServerConnectionConfig hsConfig, String uriPrefix, EndPointServer endPointServer) {
         String baseUrl;
         switch (endPointServer) {
-            case HOME_SERVER:
-                baseUrl = hsConfig.getHomeserverUri().toString();
-                break;
             case IDENTITY_SERVER:
                 baseUrl = hsConfig.getIdentityServerUri().toString();
                 break;
             case ANTIVIRUS_SERVER:
                 baseUrl = hsConfig.getAntiVirusServerUri().toString();
                 break;
+            case HOME_SERVER:
             default:
                 baseUrl = hsConfig.getHomeserverUri().toString();
 

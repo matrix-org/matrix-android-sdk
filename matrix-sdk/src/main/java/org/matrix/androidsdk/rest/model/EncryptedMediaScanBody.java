@@ -15,12 +15,15 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import com.google.gson.annotations.SerializedName;
+
+import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
+
 /**
- * Class to contain the anti-virus scan result of a matrix content.
+ * Class to prepare the request body used to scan an encrypted content.
  */
-public class MediaScanResult {
-    // If true, the script ran with an exit code of 0. Otherwise it ran with a non-zero exit code.
-    public boolean clean;
-    // Human-readable information about the result.
-    public String info;
+public class EncryptedMediaScanBody {
+    // The encryption information used to decrypt the content before scanning it
+    @SerializedName("file")
+    public EncryptedFileInfo encryptedFileInfo;
 }
