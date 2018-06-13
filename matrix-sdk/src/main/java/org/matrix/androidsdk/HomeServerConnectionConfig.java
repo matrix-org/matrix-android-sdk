@@ -70,7 +70,11 @@ public class HomeServerConnectionConfig {
      * @param pin                 If true only allow certs matching given fingerprints, otherwise fallback to
      *                            standard X509 checks.
      */
-    public HomeServerConnectionConfig(Uri hsUri, @Nullable Uri identityServerUri, @Nullable Credentials credentials, List<Fingerprint> allowedFingerprints, boolean pin) {
+    public HomeServerConnectionConfig(Uri hsUri,
+                                      @Nullable Uri identityServerUri,
+                                      @Nullable Credentials credentials,
+                                      List<Fingerprint> allowedFingerprints,
+                                      boolean pin) {
         if (hsUri == null || (!"http".equals(hsUri.getScheme()) && !"https".equals(hsUri.getScheme()))) {
             throw new RuntimeException("Invalid home server URI: " + hsUri);
         }

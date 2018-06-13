@@ -113,7 +113,7 @@ public class MXMediasCache {
         File mediaBaseFolderFile;
 
         // Clear previous cache
-        for(String previousMediaCacheFolder: sPreviousMediaCacheFolders) {
+        for (String previousMediaCacheFolder: sPreviousMediaCacheFolders) {
             mediaBaseFolderFile = new File(context.getApplicationContext().getFilesDir(), previousMediaCacheFolder);
 
             if (mediaBaseFolderFile.exists()) {
@@ -1137,7 +1137,15 @@ public class MXMediasCache {
             } else {
                 // Download it in background
                 MXMediaDownloadWorkerTask task = new MXMediaDownloadWorkerTask(context,
-                        hsConfig, mNetworkConnectivityReceiver, folderFile, downloadableUrl, downloadId, rotationAngle, mimeType, encryptionInfo, mContentManager.isAvScannerEnabled());
+                        hsConfig,
+                        mNetworkConnectivityReceiver,
+                        folderFile,
+                        downloadableUrl,
+                        downloadId,
+                        rotationAngle,
+                        mimeType,
+                        encryptionInfo,
+                        mContentManager.isAvScannerEnabled());
 
                 if (null != imageView) {
                     task.addImageView(imageView);
