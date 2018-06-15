@@ -2,7 +2,7 @@ Changes to Matrix Android SDK in 0.9.6 (2018-XX-XX)
 =======================================================
 
 Features:
- -
+ - ContentManager: support a potential anti-virus scanner (PR #283).
 
 Improvements:
  - MXCrypto: Add reRequestRoomKeyForEvent to re-request encryption keys to decrypt an event (vector-im/riot-android#2319).
@@ -15,6 +15,9 @@ API Change:
 
 Translations:
  -
+
+Others:
+ - Media cache is flushed because of the new format of ids.
 
 Build:
  - Add script to check code quality

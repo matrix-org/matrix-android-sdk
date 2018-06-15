@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +18,7 @@
 package org.matrix.androidsdk;
 
 import android.net.Uri;
+import android.support.annotation.Nullable;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -36,6 +38,8 @@ public class HomeServerConnectionConfig {
     private Uri mHsUri;
     // the identity server URI
     private Uri mIdentityServerUri;
+    // the anti-virus server URI
+    private Uri mAntiVirusServerUri;
     // allowed fingerprints
     private List<Fingerprint> mAllowedFingerprints = new ArrayList<>();
     // the credentials
@@ -54,7 +58,7 @@ public class HomeServerConnectionConfig {
      * @param hsUri       The URI to use to connect to the homeserver
      * @param credentials The credentials to use, if needed. Can be null.
      */
-    public HomeServerConnectionConfig(Uri hsUri, Credentials credentials) {
+    public HomeServerConnectionConfig(Uri hsUri, @Nullable Credentials credentials) {
         this(hsUri, null, credentials, new ArrayList<Fingerprint>(), false);
     }
 
@@ -66,7 +70,11 @@ public class HomeServerConnectionConfig {
      * @param pin                 If true only allow certs matching given fingerprints, otherwise fallback to
      *                            standard X509 checks.
      */
-    public HomeServerConnectionConfig(Uri hsUri, Uri identityServerUri, Credentials credentials, List<Fingerprint> allowedFingerprints, boolean pin) {
+    public HomeServerConnectionConfig(Uri hsUri,
+                                      @Nullable Uri identityServerUri,
+                                      @Nullable Credentials credentials,
+                                      List<Fingerprint> allowedFingerprints,
+                                      boolean pin) {
         if (hsUri == null || (!"http".equals(hsUri.getScheme()) && !"https".equals(hsUri.getScheme()))) {
             throw new RuntimeException("Invalid home server URI: " + hsUri);
         }
@@ -97,6 +105,7 @@ public class HomeServerConnectionConfig {
 
         mHsUri = hsUri;
         mIdentityServerUri = identityServerUri;
+        mAntiVirusServerUri = null;
 
         if (null != allowedFingerprints) {
             mAllowedFingerprints = allowedFingerprints;
@@ -135,7 +144,31 @@ public class HomeServerConnectionConfig {
      * @return the identity server uri
      */
     public Uri getIdentityServerUri() {
-        return (null == mIdentityServerUri) ? mHsUri : mIdentityServerUri;
+        if (null != mIdentityServerUri) {
+            return mIdentityServerUri;
+        }
+        // Else consider the HS uri by default.
+        return mHsUri;
+    }
+
+    /**
+     * Update the anti-virus server URI.
+     *
+     * @param uri the new anti-virus uri
+     */
+    public void setAntiVirusServerUri(Uri uri) {
+        mAntiVirusServerUri = uri;
+    }
+
+    /**
+     * @return the anti-virus server uri
+     */
+    public Uri getAntiVirusServerUri() {
+        if (null != mAntiVirusServerUri) {
+            return mAntiVirusServerUri;
+        }
+        // Else consider the HS uri by default.
+        return mHsUri;
     }
 
     /**
@@ -174,6 +207,7 @@ public class HomeServerConnectionConfig {
         return "HomeserverConnectionConfig{" +
                 "mHsUri=" + mHsUri +
                 ", mIdentityServerUri=" + mIdentityServerUri +
+                ", mAntiVirusServerUri=" + mAntiVirusServerUri +
                 ", mAllowedFingerprints size=" + mAllowedFingerprints.size() +
                 ", mCredentials=" + mCredentials +
                 ", mPin=" + mPin +
@@ -191,6 +225,9 @@ public class HomeServerConnectionConfig {
 
         json.put("home_server_url", mHsUri.toString());
         json.put("identity_server_url", getIdentityServerUri().toString());
+        if (mAntiVirusServerUri != null) {
+            json.put("antivirus_server_url", mAntiVirusServerUri.toString());
+        }
 
         json.put("pin", mPin);
 
@@ -233,6 +270,11 @@ public class HomeServerConnectionConfig {
                 creds,
                 fingerprints,
                 jsonObject.optBoolean("pin", false));
+
+        // Set the anti-virus server uri if any
+        if (jsonObject.has("antivirus_server_url")) {
+            config.setAntiVirusServerUri(Uri.parse(jsonObject.getString("antivirus_server_url")));
+        }
 
         return config;
     }
