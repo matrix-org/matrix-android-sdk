@@ -63,7 +63,7 @@ public class MXOlmDevice {
     // They are not stored in 'store' to avoid to remember to which devices we sent the session key.
     // Plus, in cryptography, it is good to refresh sessions from time to time.
     // The key is the session id, the value the outbound group session.
-    private final HashMap<String, OlmOutboundGroupSession> mOutboundGroupSessionStore;
+    private final Map<String, OlmOutboundGroupSession> mOutboundGroupSessionStore;
 
     // Store a set of decrypted message indexes for each group session.
     // This partially mitigates a replay attack where a MITM resends a group
@@ -77,7 +77,7 @@ public class MXOlmDevice {
     // The first level keys are timeline ids.
     // The second level keys are strings of form "<senderKey>|<session_id>|<message_index>"
     // Values are true.
-    private final HashMap<String, HashMap<String, Boolean>> mInboundGroupSessionMessageIndexes;
+    private final Map<String, Map<String, Boolean>> mInboundGroupSessionMessageIndexes;
 
     /**
      * inboundGroupSessionWithId error
@@ -317,7 +317,7 @@ public class MXOlmDevice {
                 Log.d(LOG_TAG, "## createInboundSession() : decryptMessage failed " + e.getMessage());
             }
 
-            HashMap<String, String> res = new HashMap<>();
+            Map<String, String> res = new HashMap<>();
 
             if (!TextUtils.isEmpty(payloadString)) {
                 res.put("payload", payloadString);
@@ -368,7 +368,7 @@ public class MXOlmDevice {
         Set<String> sessionIds = getSessionIds(theirDeviceIdentityKey);
 
         if ((null != sessionIds) && (0 != sessionIds.size())) {
-            ArrayList<String> sessionIdsList = new ArrayList<>(sessionIds);
+            List<String> sessionIdsList = new ArrayList<>(sessionIds);
             Collections.sort(sessionIdsList);
             sessionId = sessionIdsList.get(0);
         }
@@ -385,7 +385,7 @@ public class MXOlmDevice {
      * @return the cipher text
      */
     public Map<String, Object> encryptMessage(String theirDeviceIdentityKey, String sessionId, String payloadString) {
-        HashMap<String, Object> res = null;
+        Map<String, Object> res = null;
         OlmMessage olmMessage;
         OlmSession olmSession = getSessionForDevice(theirDeviceIdentityKey, sessionId);
 

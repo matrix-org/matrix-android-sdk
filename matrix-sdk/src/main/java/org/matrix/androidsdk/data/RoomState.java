@@ -187,7 +187,7 @@ public class RoomState implements Externalizable {
     private transient Object mDataHandler = null;
 
     // member display cache
-    private transient HashMap<String, String> mMemberDisplayNameByUserId = new HashMap<>();
+    private transient Map<String, String> mMemberDisplayNameByUserId = new HashMap<>();
 
     // get the guest access
     // avoid the null case
@@ -247,7 +247,7 @@ public class RoomState implements Externalizable {
      * @return a copy of the room members list.
      */
     public Collection<RoomMember> getMembers() {
-        ArrayList<RoomMember> res;
+        List<RoomMember> res;
 
         synchronized (this) {
             // make a copy to avoid concurrency modifications
@@ -342,7 +342,7 @@ public class RoomState implements Externalizable {
         RoomMember conferenceUserId = getMember(MXCallsManager.getConferenceUserId(roomId));
 
         if (null != conferenceUserId) {
-            ArrayList<RoomMember> membersList = new ArrayList<>(members);
+            List<RoomMember> membersList = new ArrayList<>(members);
             membersList.remove(conferenceUserId);
             members = membersList;
         }
@@ -1042,7 +1042,7 @@ public class RoomState implements Externalizable {
             displayName = member.displayname;
 
             synchronized (this) {
-                ArrayList<String> matrixIds = new ArrayList<>();
+                List<String> matrixIds = new ArrayList<>();
 
                 // Disambiguate users who have the same display name in the room
                 for (RoomMember aMember : mMembers.values()) {

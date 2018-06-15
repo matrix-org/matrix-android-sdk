@@ -68,7 +68,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
         final String description = "uploadKeys";
 
         String encodedDeviceId = JsonUtils.convertToUTF8(deviceId);
-        HashMap<String, Object> params = new HashMap<>();
+        Map<String, Object> params = new HashMap<>();
 
         if (null != deviceKeys) {
             params.put("device_keys", deviceKeys);
@@ -109,7 +109,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
     public void downloadKeysForUsers(final List<String> userIds, final String token, final ApiCallback<KeysQueryResponse> callback) {
         final String description = "downloadKeysForUsers";
 
-        HashMap<String, Map<String, Object>> downloadQuery = new HashMap<>();
+        Map<String, Map<String, Object>> downloadQuery = new HashMap<>();
 
         if (null != userIds) {
             for (String userId : userIds) {
@@ -117,7 +117,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
             }
         }
 
-        HashMap<String, Object> parameters = new HashMap<>();
+        Map<String, Object> parameters = new HashMap<>();
         parameters.put("device_keys", downloadQuery);
 
         if (!TextUtils.isEmpty(token)) {
@@ -145,7 +145,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
             final ApiCallback<MXUsersDevicesMap<MXKey>> callback) {
         final String description = "claimOneTimeKeysForUsersDevices";
 
-        HashMap<String, Object> params = new HashMap<>();
+        Map<String, Object> params = new HashMap<>();
         params.put("one_time_keys", usersDevicesKeyTypesMap.getMap());
 
         mApi.claimOneTimeKeysForUsersDevices(params)
@@ -160,13 +160,13 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
             public void success(KeysClaimResponse keysClaimResponse, Response response) {
                 onEventSent();
 
-                HashMap<String, Map<String, MXKey>> map = new HashMap();
+                Map<String, Map<String, MXKey>> map = new HashMap();
 
                 if (null != keysClaimResponse.oneTimeKeys) {
                     for (String userId : keysClaimResponse.oneTimeKeys.keySet()) {
                         Map<String, Map<String, Map<String, Object>>> mapByUserId = keysClaimResponse.oneTimeKeys.get(userId);
 
-                        HashMap<String, MXKey> keysMap = new HashMap<>();
+                        Map<String, MXKey> keysMap = new HashMap<>();
 
                         for (String deviceId : mapByUserId.keySet()) {
                             try {
@@ -212,7 +212,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
                              final ApiCallback<Void> callback) {
         final String description = "sendToDevice " + eventType;
 
-        HashMap<String, Object> content = new HashMap<>();
+        Map<String, Object> content = new HashMap<>();
         content.put("messages", contentMap.getMap());
 
         mApi.sendToDevice(eventType, transactionId, content)
@@ -273,7 +273,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
                               final ApiCallback<Void> callback) {
         final String description = "setDeviceName";
 
-        HashMap<String, String> params = new HashMap<>();
+        Map<String, String> params = new HashMap<>();
         params.put("display_name", TextUtils.isEmpty(deviceName) ? "" : deviceName);
 
         mApi.updateDeviceInfo(deviceId, params)

@@ -48,7 +48,6 @@ import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -210,7 +209,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
             identityServer = identityServer.substring("https://".length());
         }
 
-        HashMap<String, String> parameters = new HashMap<>();
+        Map<String, String> parameters = new HashMap<>();
         parameters.put("id_server", identityServer);
         parameters.put("medium", medium);
         parameters.put("address", address);
@@ -241,7 +240,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param params        the joining parameters.
      * @param callback      the async callback
      */
-    public void joinRoom(final String roomIdOrAlias, final HashMap<String, Object> params, final ApiCallback<RoomResponse> callback) {
+    public void joinRoom(final String roomIdOrAlias, final Map<String, Object> params, final ApiCallback<RoomResponse> callback) {
         final String description = "joinRoom : roomId " + roomIdOrAlias;
 
         mApi.joinRoomByAliasOrId(roomIdOrAlias, (null == params) ? new HashMap<String, Object>() : params)
@@ -793,7 +792,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void updateAvatarUrl(final String roomId, final String avatarUrl, final ApiCallback<Void> callback) {
         final String description = "updateAvatarUrl : roomId " + roomId + " avatarUrl " + avatarUrl;
 
-        HashMap<String, String> params = new HashMap<>();
+        Map<String, String> params = new HashMap<>();
         params.put("url", avatarUrl);
 
         mApi.setRoomAvatarUrl(roomId, params)
@@ -847,7 +846,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void addTag(final String roomId, final String tag, final Double order, final ApiCallback<Void> callback) {
         final String description = "addTag : roomId " + roomId + " - tag " + tag + " - order " + order;
 
-        HashMap<String, Object> hashMap = new HashMap<>();
+        Map<String, Object> hashMap = new HashMap<>();
         hashMap.put("order", order);
 
         mApi.addTag(mCredentials.userId, roomId, tag, hashMap)
@@ -888,7 +887,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void updateURLPreviewStatus(final String roomId, final boolean status, final ApiCallback<Void> callback) {
         final String description = "updateURLPreviewStatus : roomId " + roomId + " - status " + status;
 
-        HashMap<String, Object> params = new HashMap<>();
+        Map<String, Object> params = new HashMap<>();
         params.put(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE, !status);
 
         mApi.updateAccountData(mCredentials.userId, roomId, Event.EVENT_TYPE_URL_PREVIEW, params)

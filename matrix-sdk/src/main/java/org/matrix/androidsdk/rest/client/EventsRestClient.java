@@ -198,7 +198,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
                               final String setPresence,
                               final String filterId,
                               final ApiCallback<SyncResponse> callback) {
-        HashMap<String, Object> params = new HashMap<>();
+        Map<String, Object> params = new HashMap<>();
         int timeout = (EVENT_STREAM_TIMEOUT_MS / 1000);
 
         if (!TextUtils.isEmpty(token)) {
@@ -374,7 +374,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
             searchEventParams.filter.put("rooms", rooms);
         }
 
-        ArrayList<String> types = new ArrayList<>();
+        List<String> types = new ArrayList<>();
         types.add(Event.EVENT_TYPE_MESSAGE);
         searchEventParams.filter.put("types", types);
 

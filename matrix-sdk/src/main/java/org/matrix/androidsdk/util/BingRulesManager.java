@@ -366,7 +366,7 @@ public class BingRulesManager {
         }
 
         // GA issue
-        final ArrayList<BingRule> rules;
+        final List<BingRule> rules;
 
         synchronized (this) {
             rules = new ArrayList<>(mRules);
@@ -969,7 +969,7 @@ public class BingRulesManager {
      * @return the room rules list
      */
     private List<BingRule> getPushRulesForRoomId(String roomId) {
-        ArrayList<BingRule> rules = new ArrayList<>();
+        List<BingRule> rules = new ArrayList<>();
 
         // sanity checks
         if (!TextUtils.isEmpty(roomId) && (null != mRulesSet)) {

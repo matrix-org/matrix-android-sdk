@@ -152,7 +152,7 @@ public class MXDataHandler implements IMXEventListener {
     private boolean mAreLeftRoomsSynced;
 
     //
-    private final ArrayList<ApiCallback<Void>> mLeftRoomsRefreshCallbacks = new ArrayList<>();
+    private final List<ApiCallback<Void>> mLeftRoomsRefreshCallbacks = new ArrayList<>();
     private boolean mIsRetrievingLeftRooms;
 
     // the left rooms are saved in a dedicated store.
@@ -839,7 +839,7 @@ public class MXDataHandler implements IMXEventListener {
      * @return the room summaries
      */
     public Collection<RoomSummary> getSummaries(boolean withLeftOnes) {
-        ArrayList<RoomSummary> summaries = new ArrayList<>();
+        List<RoomSummary> summaries = new ArrayList<>();
 
         summaries.addAll(getStore().getSummaries());
 
@@ -1259,7 +1259,7 @@ public class MXDataHandler implements IMXEventListener {
                 // copy events and receiptData
                 // it is not required but it is better, it could be useful later
                 // the room summary should be enough to be displayed in the recent pages
-                ArrayList<ReceiptData> receipts = new ArrayList<>();
+                List<ReceiptData> receipts = new ArrayList<>();
                 Collection<Event> events = getStore().getRoomMessages(roomId);
 
                 if (null != events) {
@@ -1352,7 +1352,7 @@ public class MXDataHandler implements IMXEventListener {
 
                     Set<String> roomIds = syncResponse.rooms.invite.keySet();
 
-                    HashMap<String, List<String>> updatedDirectChatRoomsDict = null;
+                    Map<String, List<String>> updatedDirectChatRoomsDict = null;
                     boolean hasChanged = false;
 
                     for (String roomId : roomIds) {
@@ -1391,7 +1391,7 @@ public class MXDataHandler implements IMXEventListener {
                                         }
                                     }
 
-                                    ArrayList<String> roomIdsList;
+                                    List<String> roomIdsList;
                                     if (updatedDirectChatRoomsDict.containsKey(participantUserId)) {
                                         roomIdsList = new ArrayList<>(updatedDirectChatRoomsDict.get(participantUserId));
                                     } else {
@@ -2689,7 +2689,7 @@ public class MXDataHandler implements IMXEventListener {
             }
         } else {
             // background compatibility heuristic (named looksLikeDirectMessageRoom in the JS)
-            ArrayList<RoomIdsListRetroCompat> directChatRoomIdsListRetValue = new ArrayList<>();
+            List<RoomIdsListRetroCompat> directChatRoomIdsListRetValue = new ArrayList<>();
             getDirectChatRoomIdsListRetroCompat(store, directChatRoomIdsListRetValue);
 
             // force direct chat room list to be updated with retro compatibility rooms values
@@ -2790,12 +2790,12 @@ public class MXDataHandler implements IMXEventListener {
      * @param aStore                         store instance
      * @param aDirectChatRoomIdsListRetValue the other participants in the 1:1 room
      */
-    private void getDirectChatRoomIdsListRetroCompat(IMXStore aStore, ArrayList<RoomIdsListRetroCompat> aDirectChatRoomIdsListRetValue) {
+    private void getDirectChatRoomIdsListRetroCompat(IMXStore aStore, List<RoomIdsListRetroCompat> aDirectChatRoomIdsListRetValue) {
         RoomIdsListRetroCompat item;
 
         if ((null != aStore) && (null != aDirectChatRoomIdsListRetValue)) {
-            ArrayList<Room> rooms = new ArrayList<>(aStore.getRooms());
-            ArrayList<RoomMember> members;
+            List<Room> rooms = new ArrayList<>(aStore.getRooms());
+            List<RoomMember> members;
             int otherParticipantIndex;
 
             for (Room r : rooms) {
@@ -2835,11 +2835,11 @@ public class MXDataHandler implements IMXEventListener {
      * @return the list of the direct chat room Id
      */
     public List<String> getDirectChatRoomIdsList(String aSearchedUserId) {
-        ArrayList<String> directChatRoomIdsList = new ArrayList<>();
+        List<String> directChatRoomIdsList = new ArrayList<>();
         IMXStore store = getStore();
         Room room;
 
-        HashMap<String, List<String>> params;
+        Map<String, List<String>> params;
 
         if (null != store.getDirectChatRoomsDict()) {
             params = new HashMap<>(store.getDirectChatRoomsDict());

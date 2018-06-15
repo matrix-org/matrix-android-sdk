@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -61,7 +62,7 @@ public class UnsentEventsManager {
     // the network receiver
     private final NetworkConnectivityReceiver mNetworkConnectivityReceiver;
     // faster way to check if the event is already sent
-    private final HashMap<Object, UnsentEventSnapshot> mUnsentEventsMap = new HashMap<>();
+    private final Map<Object, UnsentEventSnapshot> mUnsentEventsMap = new HashMap<>();
     // get the sending order
     private final List<UnsentEventSnapshot> mUnsentEvents = new ArrayList<>();
     // true of the device is connected to a data network

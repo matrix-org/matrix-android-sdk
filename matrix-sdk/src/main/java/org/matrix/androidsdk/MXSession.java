@@ -277,7 +277,7 @@ public class MXSession {
             @Override
             public void onReadReceiptsLoaded(final String roomId) {
                 final List<ReceiptData> receipts = mDataHandler.getStore().getEventReceipts(roomId, null, false, false);
-                final ArrayList<String> senders = new ArrayList<>();
+                final List<String> senders = new ArrayList<>();
 
                 for (ReceiptData receipt : receipts) {
                     senders.add(receipt.userId);
@@ -1564,7 +1564,7 @@ public class MXSession {
      * @return the rooms list.
      */
     public List<Room> roomsWithTag(final String tag) {
-        ArrayList<Room> taggedRooms = new ArrayList<>();
+        List<Room> taggedRooms = new ArrayList<>();
 
         // sanity check
         if (null == mDataHandler.getStore()) {
@@ -1719,7 +1719,7 @@ public class MXSession {
         Room room = store.getRoom(roomId);
 
         if (null != room) {
-            HashMap<String, List<String>> params;
+            Map<String, List<String>> params;
 
             if (null != store.getDirectChatRoomsDict()) {
                 params = new HashMap<>(store.getDirectChatRoomsDict());
@@ -1857,7 +1857,7 @@ public class MXSession {
      * @param userIds  the userIds to ignore
      * @param callback the callback
      */
-    private void updateUsers(ArrayList<String> userIds, ApiCallback<Void> callback) {
+    private void updateUsers(List<String> userIds, ApiCallback<Void> callback) {
         Map<String, Object> ignoredUsersDict = new HashMap<>();
 
         for (String userId : userIds) {
@@ -1890,9 +1890,9 @@ public class MXSession {
      * @param userIds  the user ids list to ignore
      * @param callback the result callback
      */
-    public void ignoreUsers(ArrayList<String> userIds, ApiCallback<Void> callback) {
+    public void ignoreUsers(List<String> userIds, ApiCallback<Void> callback) {
         List<String> curUserIdsToIgnore = getDataHandler().getIgnoredUserIds();
-        ArrayList<String> userIdsToIgnore = new ArrayList<>(getDataHandler().getIgnoredUserIds());
+        List<String> userIdsToIgnore = new ArrayList<>(getDataHandler().getIgnoredUserIds());
 
         // something to add
         if ((null != userIds) && (userIds.size() > 0)) {
@@ -1916,9 +1916,9 @@ public class MXSession {
      * @param userIds  the user ids list to unignore
      * @param callback the result callback
      */
-    public void unIgnoreUsers(ArrayList<String> userIds, ApiCallback<Void> callback) {
+    public void unIgnoreUsers(List<String> userIds, ApiCallback<Void> callback) {
         List<String> curUserIdsToIgnore = getDataHandler().getIgnoredUserIds();
-        ArrayList<String> userIdsToIgnore = new ArrayList<>(getDataHandler().getIgnoredUserIds());
+        List<String> userIdsToIgnore = new ArrayList<>(getDataHandler().getIgnoredUserIds());
 
         // something to add
         if ((null != userIds) && (userIds.size() > 0)) {

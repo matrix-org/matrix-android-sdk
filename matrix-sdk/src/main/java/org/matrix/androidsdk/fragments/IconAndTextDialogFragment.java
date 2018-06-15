@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +30,7 @@ import org.matrix.androidsdk.adapters.IconAndTextAdapter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * A dialog fragment showing a list of icon + text entry
@@ -59,8 +61,8 @@ public class IconAndTextDialogFragment extends DialogFragment {
 
     private ListView mListView;
 
-    private ArrayList<Integer> mIconResourcesList;
-    private ArrayList<Integer> mTextResourcesList;
+    private List<Integer> mIconResourcesList;
+    private List<Integer> mTextResourcesList;
     private Integer mBackgroundColor = null;
     private Integer mTextColor = null;
 

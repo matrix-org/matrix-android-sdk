@@ -9,7 +9,6 @@ import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
 import org.junit.runners.MethodSorters;
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
@@ -18,6 +17,7 @@ import org.matrix.androidsdk.rest.model.crypto.EncryptedFileKey;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Unit tests AttachmentEncryptionTest.
@@ -53,7 +53,7 @@ public class AttachmentEncryptionTest {
     public void checkDecrypt1() throws Exception {
         EncryptedFileInfo encryptedFileInfo = new EncryptedFileInfo();
         encryptedFileInfo.v = "v1";
-        HashMap<String, String> hashMap = new HashMap<>();
+        Map<String, String> hashMap = new HashMap<>();
         hashMap.put("sha256", "47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU");
         encryptedFileInfo.hashes = hashMap;
 
@@ -72,7 +72,7 @@ public class AttachmentEncryptionTest {
     public void checkDecrypt2() throws Exception {
         EncryptedFileInfo encryptedFileInfo = new EncryptedFileInfo();
         encryptedFileInfo.v = "v1";
-        HashMap<String, String> hashMap = new HashMap<>();
+        Map<String, String> hashMap = new HashMap<>();
         hashMap.put("sha256", "YzF08lARDdOCzJpzuSwsjTNlQc4pHxpdHcXiD/wpK6k");
         encryptedFileInfo.hashes = hashMap;
 
@@ -91,7 +91,7 @@ public class AttachmentEncryptionTest {
     public void checkDecrypt3() throws Exception {
         EncryptedFileInfo encryptedFileInfo = new EncryptedFileInfo();
         encryptedFileInfo.v = "v2";
-        HashMap<String, String> hashMap = new HashMap<>();
+        Map<String, String> hashMap = new HashMap<>();
         hashMap.put("sha256", "IOq7/dHHB+mfHfxlRY5XMeCWEwTPmlf4cJcgrkf6fVU");
         encryptedFileInfo.hashes = hashMap;
 
@@ -113,7 +113,7 @@ public class AttachmentEncryptionTest {
     public void checkDecrypt4() throws Exception {
         EncryptedFileInfo encryptedFileInfo = new EncryptedFileInfo();
         encryptedFileInfo.v = "v1";
-        HashMap<String, String> hashMap = new HashMap<>();
+        Map<String, String> hashMap = new HashMap<>();
         hashMap.put("sha256", "LYG/orOViuFwovJpv2YMLSsmVKwLt7pY3f8SYM7KU5E");
         encryptedFileInfo.hashes = hashMap;
 

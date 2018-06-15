@@ -593,17 +593,17 @@ public class Room {
             task.setListener(new UrlPostTask.IPostTaskListener() {
                 @Override
                 public void onSucceed(JsonObject object) {
-                    HashMap<String, Object> map = null;
+                    Map<String, Object> map = null;
 
                     try {
-                        map = new Gson().fromJson(object, new TypeToken<HashMap<String, Object>>() {
+                        map = new Gson().fromJson(object, new TypeToken<Map<String, Object>>() {
                         }.getType());
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "joinWithThirdPartySigned :  Gson().fromJson failed" + e.getMessage());
                     }
 
                     if (null != map) {
-                        HashMap<String, Object> joinMap = new HashMap<>();
+                        Map<String, Object> joinMap = new HashMap<>();
                         joinMap.put("third_party_signed", map);
                         join(alias, joinMap, callback);
                     } else {
@@ -666,7 +666,7 @@ public class Room {
      * @param extraParams the join extra params
      * @param callback    the callback for when done
      */
-    private void join(final String roomAlias, final HashMap<String, Object> extraParams, final ApiCallback<Void> callback) {
+    private void join(final String roomAlias, final Map<String, Object> extraParams, final ApiCallback<Void> callback) {
         Log.d(LOG_TAG, "Join the room " + getRoomId() + " with alias " + roomAlias);
 
         mDataHandler.getDataRetriever().getRoomsRestClient()
@@ -959,7 +959,7 @@ public class Room {
      * @param callback the asynchronous callback
      */
     public void updateRelatedGroups(final List<String> groupIds, final ApiCallback<Void> callback) {
-        HashMap<String, Object> params = new HashMap<>();
+        Map<String, Object> params = new HashMap<>();
         params.put("groups", groupIds);
 
         mDataHandler.getDataRetriever().getRoomsRestClient()
@@ -1196,20 +1196,20 @@ public class Room {
             // value : dict key $UserId
             //              value dict key ts
             //                    dict value ts value
-            Type type = new TypeToken<HashMap<String, HashMap<String, HashMap<String, HashMap<String, Object>>>>>() {
+            Type type = new TypeToken<Map<String, Map<String, Map<String, Map<String, Object>>>>>() {
             }.getType();
-            HashMap<String, HashMap<String, HashMap<String, HashMap<String, Object>>>> receiptsDict = gson.fromJson(event.getContent(), type);
+            Map<String, Map<String, Map<String, Map<String, Object>>>> receiptsDict = gson.fromJson(event.getContent(), type);
 
             for (String eventId : receiptsDict.keySet()) {
-                HashMap<String, HashMap<String, HashMap<String, Object>>> receiptDict = receiptsDict.get(eventId);
+                Map<String, Map<String, Map<String, Object>>> receiptDict = receiptsDict.get(eventId);
 
                 for (String receiptType : receiptDict.keySet()) {
                     // only the read receipts are managed
                     if (TextUtils.equals(receiptType, "m.read")) {
-                        HashMap<String, HashMap<String, Object>> userIdsDict = receiptDict.get(receiptType);
+                        Map<String, Map<String, Object>> userIdsDict = receiptDict.get(receiptType);
 
                         for (String userID : userIdsDict.keySet()) {
-                            HashMap<String, Object> paramsDict = userIdsDict.get(userID);
+                            Map<String, Object> paramsDict = userIdsDict.get(userID);
 
                             for (String paramName : paramsDict.keySet()) {
                                 if (TextUtils.equals("ts", paramName)) {
@@ -2760,7 +2760,7 @@ public class Room {
     public void enableEncryptionWithAlgorithm(final String algorithm, final ApiCallback<Void> callback) {
         // ensure that the crypto has been update
         if (null != mDataHandler.getCrypto() && !TextUtils.isEmpty(algorithm)) {
-            HashMap<String, Object> params = new HashMap<>();
+            Map<String, Object> params = new HashMap<>();
             params.put("algorithm", algorithm);
 
             if (null != callback) {

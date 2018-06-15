@@ -30,7 +30,6 @@ import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
@@ -67,7 +66,7 @@ public class MXOlmEncryption implements IMXEncrypting {
         ensureSession(userIds, new SimpleApiCallback<Void>(callback) {
                     @Override
                     public void onSuccess(Void info) {
-                        ArrayList<MXDeviceInfo> deviceInfos = new ArrayList<>();
+                        List<MXDeviceInfo> deviceInfos = new ArrayList<>();
 
                         for (String userId : userIds) {
                             List<MXDeviceInfo> devices = getUserDevices(userId);
@@ -91,7 +90,7 @@ public class MXOlmEncryption implements IMXEncrypting {
                             }
                         }
 
-                        HashMap<String, Object> messageMap = new HashMap<>();
+                        Map<String, Object> messageMap = new HashMap<>();
                         messageMap.put("room_id", mRoomId);
                         messageMap.put("type", eventType);
                         messageMap.put("content", eventContent);

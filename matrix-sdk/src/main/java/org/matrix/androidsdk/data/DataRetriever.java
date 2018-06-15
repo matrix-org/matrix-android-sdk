@@ -30,6 +30,7 @@ import org.matrix.androidsdk.util.Log;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Layer for retrieving data either from the storage implementation, or from the server if the information is not available.
@@ -39,9 +40,9 @@ public class DataRetriever {
 
     private RoomsRestClient mRestClient;
 
-    private final HashMap<String, String> mPendingFordwardRequestTokenByRoomId = new HashMap<>();
-    private final HashMap<String, String> mPendingBackwardRequestTokenByRoomId = new HashMap<>();
-    private final HashMap<String, String> mPendingRemoteRequestTokenByRoomId = new HashMap<>();
+    private final Map<String, String> mPendingFordwardRequestTokenByRoomId = new HashMap<>();
+    private final Map<String, String> mPendingBackwardRequestTokenByRoomId = new HashMap<>();
+    private final Map<String, String> mPendingRemoteRequestTokenByRoomId = new HashMap<>();
 
     public RoomsRestClient getRoomsRestClient() {
         return mRestClient;
@@ -322,7 +323,7 @@ public class DataRetriever {
      * @param dict   the token cache
      * @param roomId the room id
      */
-    private void clearPendingToken(HashMap<String, String> dict, String roomId) {
+    private void clearPendingToken(Map<String, String> dict, String roomId) {
         Log.d(LOG_TAG, "## clearPendingToken() : roomId " + roomId);
 
         if (null != roomId) {
@@ -339,7 +340,7 @@ public class DataRetriever {
      * @param roomId the room Id
      * @return the token
      */
-    private String getPendingToken(HashMap<String, String> dict, String roomId) {
+    private String getPendingToken(Map<String, String> dict, String roomId) {
         String expectedToken = "Not a valid token";
 
         synchronized (dict) {
@@ -364,7 +365,7 @@ public class DataRetriever {
      * @param roomId the room id
      * @param token  the token
      */
-    private void putPendingToken(HashMap<String, String> dict, String roomId, String token) {
+    private void putPendingToken(Map<String, String> dict, String roomId, String token) {
         Log.d(LOG_TAG, "## putPendingToken() : roomId " + roomId + " token " + token);
 
         synchronized (dict) {

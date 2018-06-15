@@ -72,6 +72,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -219,7 +220,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     private boolean mLockBackPagination = false;
     private boolean mLockFwdPagination = true;
 
-    private final HashMap<String, Timer> mPendingRelaunchTimersByEventId = new HashMap<>();
+    private final Map<String, Timer> mPendingRelaunchTimersByEventId = new HashMap<>();
 
     // scroll to to the dedicated index when the device has been rotated
     private int mFirstVisibleRow = -1;
@@ -1864,8 +1865,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             int firstPos = mMessageListView.getFirstVisiblePosition();
             int lastPos = mMessageListView.getLastVisiblePosition();
 
-            ArrayList<String> senders = new ArrayList<>();
-            ArrayList<String> eventIds = new ArrayList<>();
+            List<String> senders = new ArrayList<>();
+            List<String> eventIds = new ArrayList<>();
 
             for (int index = firstPos; index <= lastPos; index++) {
                 Event event = mAdapter.getItem(index).getEvent();
@@ -2209,7 +2210,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      */
     protected void onSearchResponse(final SearchResponse searchResponse, final OnSearchResultListener onSearchResultListener) {
         List<SearchResult> searchResults = searchResponse.searchCategories.roomEvents.results;
-        ArrayList<MessageRow> messageRows = new ArrayList<>(searchResults.size());
+        List<MessageRow> messageRows = new ArrayList<>(searchResults.size());
 
         for (SearchResult searchResult : searchResults) {
             RoomState roomState = null;

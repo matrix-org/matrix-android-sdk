@@ -13,6 +13,7 @@ Bugfix:
 API Change:
  - New API: add device_id param to LoginRestClient.loginWithUser()
  - API change: Event.isUnkownDevice() as been renamed to Event.isUnknownDevice() (typo)
+ - Some APIs has changed to use interface instead of implementation as type (ex: "Map" instead of "HashMap")
 
 Translations:
  -

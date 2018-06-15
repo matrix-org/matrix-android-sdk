@@ -61,6 +61,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -88,7 +89,7 @@ public class CryptoTest {
         Log.e(LOG_TAG, "test01_testCryptoNoDeviceId");
 
         Context context = InstrumentationRegistry.getContext();
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
         createBobAccount();
 
         Assert.assertTrue(null == mBobSession.getCrypto());
@@ -130,7 +131,7 @@ public class CryptoTest {
     public void test02_testCryptoPersistenceInStore() throws Exception {
         Log.e(LOG_TAG, "test02_testCryptoPersistenceInStore");
         Context context = InstrumentationRegistry.getContext();
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
 
         createBobAccount();
         mBobSession.getCredentials().deviceId = "BobDevice";
@@ -257,7 +258,7 @@ public class CryptoTest {
         Log.e(LOG_TAG, "test03_testKeysUploadAndDownload");
 
         Context context = InstrumentationRegistry.getContext();
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
 
         createAliceAccount();
         mAliceSession.getCredentials().deviceId = "AliceDevice";
@@ -538,7 +539,7 @@ public class CryptoTest {
         Context context = InstrumentationRegistry.getContext();
 
         createAliceAccount();
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
 
         mAliceSession.getCredentials().deviceId = "AliceDevice";
 
@@ -776,7 +777,7 @@ public class CryptoTest {
         Log.e(LOG_TAG, "test05_testRoomIsEncrypted");
 
         Context context = InstrumentationRegistry.getContext();
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
 
         createBobAccount();
 
@@ -920,7 +921,7 @@ public class CryptoTest {
         Log.e(LOG_TAG, "test07_testAliceAndBobInACryptedRoom");
 
         Context context = InstrumentationRegistry.getContext();
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
 
         doE2ETestWithAliceAndBobInARoom(true);
 
@@ -1073,7 +1074,7 @@ public class CryptoTest {
         mReceivedMessagesFromAlice = 0;
         mReceivedMessagesFromBob = 0;
 
-        final ArrayList<CountDownLatch> list = new ArrayList<>();
+        final List<CountDownLatch> list = new ArrayList<>();
 
         MXEventListener bobEventListener = new MXEventListener() {
             @Override
@@ -1130,7 +1131,7 @@ public class CryptoTest {
         roomFromAlicePOV.addEventListener(aliceEventListener);
 
         list.add(new CountDownLatch(2));
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
 
         mBobSession.getDataHandler().addListener(new MXEventListener() {
             @Override
@@ -1171,7 +1172,7 @@ public class CryptoTest {
         Log.e(LOG_TAG, "test09_testAliceInACryptedRoomAfterInitialSync");
 
         Context context = InstrumentationRegistry.getContext();
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
 
         doE2ETestWithAliceInARoom();
 
@@ -1302,7 +1303,7 @@ public class CryptoTest {
         Log.e(LOG_TAG, "test10_testAliceDecryptOldMessageWithANewDeviceInACryptedRoom");
 
         Context context = InstrumentationRegistry.getContext();
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
 
         doE2ETestWithAliceInARoom();
 
@@ -1430,7 +1431,7 @@ public class CryptoTest {
         Log.e(LOG_TAG, "test11_testAliceAndBobInACryptedRoomBackPaginationFromMemoryStore");
 
         Context context = InstrumentationRegistry.getContext();
-        final HashMap<String, Object> results = new HashMap();
+        final Map<String, Object> results = new HashMap();
 
         doE2ETestWithAliceAndBobInARoomWithCryptedMessages(true);
 
@@ -1475,7 +1476,7 @@ public class CryptoTest {
         Room roomFromBobPOV = bobSession2.getDataHandler().getRoom(mRoomId);
 
         final CountDownLatch lock2 = new CountDownLatch(6);
-        final ArrayList<Event> receivedEvents = new ArrayList<>();
+        final List<Event> receivedEvents = new ArrayList<>();
 
         EventTimeline.EventTimelineListener eventTimelineListener = new EventTimeline.EventTimelineListener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
@@ -1531,7 +1532,7 @@ public class CryptoTest {
         Log.e(LOG_TAG, "test12_testAliceAndBobInACryptedRoomBackPaginationFromHomeServer");
 
         Context context = InstrumentationRegistry.getContext();
-        final HashMap<String, Object> results = new HashMap();
+        final Map<String, Object> results = new HashMap();
 
         doE2ETestWithAliceAndBobInARoomWithCryptedMessages(true);
 
@@ -1540,7 +1541,7 @@ public class CryptoTest {
         EventTimeline timeline = new EventTimeline(mBobSession.getDataHandler(), mRoomId, eventId);
 
         final CountDownLatch lock2 = new CountDownLatch(6);
-        final ArrayList<Event> receivedEvents = new ArrayList<>();
+        final List<Event> receivedEvents = new ArrayList<>();
 
         EventTimeline.EventTimelineListener eventTimelineListener = new EventTimeline.EventTimelineListener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
@@ -1594,7 +1595,7 @@ public class CryptoTest {
     public void test13_testAliceAndNotCryptedBobInACryptedRoom() throws Exception {
         Log.e(LOG_TAG, "test13_testAliceAndNotCryptedBobInACryptedRoom");
 
-        final HashMap<String, Object> results = new HashMap();
+        final Map<String, Object> results = new HashMap();
 
         doE2ETestWithAliceAndBobInARoom(false);
 
@@ -1700,7 +1701,7 @@ public class CryptoTest {
         Log.e(LOG_TAG, "test14_testCryptoDeviceBlockAndLeave");
 
         Context context = InstrumentationRegistry.getContext();
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
 
         doE2ETestWithAliceAndBobAndSamInARoom();
 
@@ -1988,7 +1989,7 @@ public class CryptoTest {
     @Test
     public void test15_testReplayAttack() throws Exception {
         Log.e(LOG_TAG, "test15_testReplayAttack");
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
 
         doE2ETestWithAliceAndBobInARoom(true);
 
@@ -2067,7 +2068,7 @@ public class CryptoTest {
     public void test16_testRoomKeyReshare() throws Exception {
         Log.e(LOG_TAG, "test16_testRoomKeyReshare");
 
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
 
         doE2ETestWithAliceAndBobInARoom(true);
 
@@ -2096,7 +2097,7 @@ public class CryptoTest {
 
         mBobSession.getDataHandler().addListener(bobEventListener);
 
-        final ArrayList<Event> receivedEvents = new ArrayList<>();
+        final List<Event> receivedEvents = new ArrayList<>();
         EventTimeline.EventTimelineListener eventTimelineListener = new EventTimeline.EventTimelineListener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
@@ -2157,7 +2158,7 @@ public class CryptoTest {
     public void test17_testLateRoomKey() throws Exception {
         Log.e(LOG_TAG, "test17_testLateRoomKey");
 
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
 
         doE2ETestWithAliceAndBobInARoom(true);
 
@@ -2185,7 +2186,7 @@ public class CryptoTest {
 
         mBobSession.getDataHandler().addListener(bobEventListener);
 
-        final ArrayList<Event> receivedEvents = new ArrayList<>();
+        final List<Event> receivedEvents = new ArrayList<>();
         EventTimeline.EventTimelineListener eventTimelineListener = new EventTimeline.EventTimelineListener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
@@ -2269,7 +2270,7 @@ public class CryptoTest {
         Log.e(LOG_TAG, "test18_testAliceAndBobWithNewDevice");
 
         Context context = InstrumentationRegistry.getContext();
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
         doE2ETestWithAliceAndBobInARoom(true);
 
         mBobSession.getCrypto().setWarnOnUnknownDevices(false);
@@ -2296,7 +2297,7 @@ public class CryptoTest {
 
         mBobSession.getDataHandler().addListener(bobEventListener);
 
-        final ArrayList<Event> receivedEvents = new ArrayList<>();
+        final List<Event> receivedEvents = new ArrayList<>();
         EventTimeline.EventTimelineListener eventTimelineListener = new EventTimeline.EventTimelineListener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
@@ -2391,7 +2392,7 @@ public class CryptoTest {
         final Room roomFromBobPOV2 = bobSession2.getDataHandler().getRoom(mRoomId);
         Assert.assertTrue(null != roomFromBobPOV2);
 
-        final ArrayList<Event> receivedEvents4 = new ArrayList<>();
+        final List<Event> receivedEvents4 = new ArrayList<>();
         final CountDownLatch lock4 = new CountDownLatch(1);
 
         EventTimeline.EventTimelineListener eventTimelineListener4 = new EventTimeline.EventTimelineListener() {
@@ -2439,7 +2440,7 @@ public class CryptoTest {
         Log.e(LOG_TAG, "test19_testAliceWithNewDeviceAndBobWithNewDevice");
 
         Context context = InstrumentationRegistry.getContext();
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
         doE2ETestWithAliceAndBobInARoom(true);
 
         mBobSession.getCrypto().setWarnOnUnknownDevices(false);
@@ -2467,7 +2468,7 @@ public class CryptoTest {
 
         mBobSession.getDataHandler().addListener(bobEventListener);
 
-        final ArrayList<Event> receivedEvents = new ArrayList<>();
+        final List<Event> receivedEvents = new ArrayList<>();
         EventTimeline.EventTimelineListener eventTimelineListener = new EventTimeline.EventTimelineListener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
@@ -2579,7 +2580,7 @@ public class CryptoTest {
         Assert.assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE));
 
         final CountDownLatch lock4 = new CountDownLatch(1);
-        final ArrayList<Event> receivedEvents2 = new ArrayList<>();
+        final List<Event> receivedEvents2 = new ArrayList<>();
         EventTimeline.EventTimelineListener eventTimelineListener2 = new EventTimeline.EventTimelineListener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
@@ -2619,7 +2620,7 @@ public class CryptoTest {
     @Test
     public void test20_testAliceAndBlockedBob() throws Exception {
         Log.e(LOG_TAG, "test20_testAliceAndBlockedBob");
-        final HashMap<String, String> results = new HashMap<>();
+        final Map<String, String> results = new HashMap<>();
 
         doE2ETestWithAliceAndBobInARoom(true);
 
@@ -2634,7 +2635,7 @@ public class CryptoTest {
 
         final CountDownLatch lock1 = new CountDownLatch(1);
 
-        final ArrayList<Event> receivedEvents = new ArrayList<>();
+        final List<Event> receivedEvents = new ArrayList<>();
         EventTimeline.EventTimelineListener eventTimelineListener = new EventTimeline.EventTimelineListener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
@@ -2704,7 +2705,7 @@ public class CryptoTest {
         ///
         final CountDownLatch lock2 = new CountDownLatch(1);
 
-        final ArrayList<Event> receivedEvents2 = new ArrayList<>();
+        final List<Event> receivedEvents2 = new ArrayList<>();
         EventTimeline.EventTimelineListener eventTimelineListener2 = new EventTimeline.EventTimelineListener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
@@ -2775,7 +2776,7 @@ public class CryptoTest {
         ///
         final CountDownLatch lock3 = new CountDownLatch(1);
 
-        final ArrayList<Event> receivedEvents3 = new ArrayList<>();
+        final List<Event> receivedEvents3 = new ArrayList<>();
         EventTimeline.EventTimelineListener eventTimelineListener3 = new EventTimeline.EventTimelineListener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
@@ -2819,7 +2820,7 @@ public class CryptoTest {
     public void test21_testDownloadKeysWithUnreachableHS() throws Exception {
         Log.e(LOG_TAG, "test21_testDownloadKeysWithUnreachableHS");
 
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
         doE2ETestWithAliceAndBobInARoom(true);
 
         mBobSession.getCrypto().setWarnOnUnknownDevices(false);
@@ -2877,7 +2878,7 @@ public class CryptoTest {
     public void test22_testDownloadKeysForUserWithNoDevice() throws Exception {
         Log.e(LOG_TAG, "test22_testDownloadKeysForUserWithNoDevice");
 
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
         doE2ETestWithAliceAndBobInARoom(false);
 
         mAliceSession.getCrypto().setWarnOnUnknownDevices(false);
@@ -2954,7 +2955,7 @@ public class CryptoTest {
         Context context = InstrumentationRegistry.getContext();
         final String messageFromAlice = "Hello I'm Alice!";
 
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
         doE2ETestWithAliceAndBobInARoom(true);
 
         mBobSession.getCrypto().setWarnOnUnknownDevices(false);
@@ -3039,7 +3040,7 @@ public class CryptoTest {
     public void test24_testExportImport() throws Exception {
         Log.e(LOG_TAG, "test24_testExportImport");
         Context context = InstrumentationRegistry.getContext();
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
 
         doE2ETestWithAliceInARoom();
 
@@ -3274,7 +3275,7 @@ public class CryptoTest {
         final String messageFromAlice = "Hello I'm Alice!";
         final String message2FromAlice = "I'm still Alice!";
 
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
 
         createAliceAccount();
         createBobAccount();
@@ -3415,7 +3416,7 @@ public class CryptoTest {
 
         Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
         final CountDownLatch lock3 = new CountDownLatch(1);
-        final ArrayList<Event> receivedEvents = new ArrayList<>();
+        final List<Event> receivedEvents = new ArrayList<>();
         EventTimeline.EventTimelineListener eventTimelineListener = new EventTimeline.EventTimelineListener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
@@ -3515,7 +3516,7 @@ public class CryptoTest {
         Room roomFromBobPOV2 = bobSession2.getDataHandler().getRoom(mRoomId);
 
         final CountDownLatch lock6 = new CountDownLatch(1);
-        final ArrayList<Event> receivedEvents2 = new ArrayList<>();
+        final List<Event> receivedEvents2 = new ArrayList<>();
         EventTimeline.EventTimelineListener eventTimelineListener2 = new EventTimeline.EventTimelineListener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
@@ -3577,7 +3578,7 @@ public class CryptoTest {
         Log.e(LOG_TAG, "test26_testBlackListUnverifiedDevices");
 
         Context context = InstrumentationRegistry.getContext();
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
 
         doE2ETestWithAliceAndBobAndSamInARoom();
 
@@ -4080,7 +4081,7 @@ public class CryptoTest {
     public void test27_testEnableEncryptionAfterNonCryptedMessages() throws Exception {
         Log.e(LOG_TAG, "test27_testEnableEncryptionAfterNonCryptedMessages");
         Context context = InstrumentationRegistry.getContext();
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
 
         final String messageFromAlice = "Hello I'm Alice!";
         final String message2FromAlice = "I'm still Alice!";
@@ -4262,7 +4263,7 @@ public class CryptoTest {
         Room roomFromBobPOV2 = bobSession2.getDataHandler().getRoom(mRoomId);
 
         final CountDownLatch lock4 = new CountDownLatch(1);
-        final ArrayList<Event> receivedEvents2 = new ArrayList<>();
+        final List<Event> receivedEvents2 = new ArrayList<>();
         EventTimeline.EventTimelineListener eventTimelineListener2 = new EventTimeline.EventTimelineListener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
@@ -4313,7 +4314,7 @@ public class CryptoTest {
     public void test28_testLeftBobAndAliceWithNewDevice() throws Exception {
         Log.e(LOG_TAG, "test28_testLeftBobAndAliceWithNewDevice");
         Context context = InstrumentationRegistry.getContext();
-        final HashMap<String, Object> results = new HashMap();
+        final Map<String, Object> results = new HashMap();
 
         doE2ETestWithAliceAndBobInARoomWithCryptedMessages(true);
 
@@ -4521,7 +4522,7 @@ public class CryptoTest {
     }
 
     private void doE2ETestWithAliceInARoom() throws Exception {
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
 
         createAliceAccount();
 
@@ -4611,7 +4612,7 @@ public class CryptoTest {
     }
 
     private void doE2ETestWithAliceAndBobInARoom(boolean cryptedBob) throws Exception {
-        final HashMap<String, String> statuses = new HashMap<>();
+        final Map<String, String> statuses = new HashMap<>();
 
         doE2ETestWithAliceInARoom();
 
@@ -4740,7 +4741,7 @@ public class CryptoTest {
     }
 
     private void doE2ETestWithAliceAndBobAndSamInARoom() throws Exception {
-        final HashMap<String, String> statuses = new HashMap<>();
+        final Map<String, String> statuses = new HashMap<>();
 
         doE2ETestWithAliceAndBobInARoom(true);
 
@@ -4876,7 +4877,7 @@ public class CryptoTest {
 
         mMessagesCount = 0;
 
-        final ArrayList<CountDownLatch> list = new ArrayList<>();
+        final List<CountDownLatch> list = new ArrayList<>();
 
         MXEventListener bobEventsListener = new MXEventListener() {
             @Override
@@ -4912,7 +4913,7 @@ public class CryptoTest {
             }
         };
 
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
 
         CountDownLatch lock = new CountDownLatch(3);
         list.clear();

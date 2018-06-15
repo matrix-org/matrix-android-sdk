@@ -1,6 +1,7 @@
 /*
  * Copyright 2016 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +26,7 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -64,7 +66,7 @@ public class User implements java.io.Serializable {
     protected transient MXDataHandler mDataHandler;
 
     // events listeners list
-    private transient ArrayList<IMXEventListener> mPendingListeners = new ArrayList<>();
+    private transient List<IMXEventListener> mPendingListeners = new ArrayList<>();
 
     // hash key to store the user in the file system;
     private Integer mStorageHashKey = null;
@@ -118,7 +120,7 @@ public class User implements java.io.Serializable {
      *
      * @return the pending listener
      */
-    private ArrayList<IMXEventListener> getPendingListeners() {
+    private List<IMXEventListener> getPendingListeners() {
         if (null == mPendingListeners) {
             mPendingListeners = new ArrayList<>();
         }

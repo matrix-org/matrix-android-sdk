@@ -176,7 +176,7 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
 
         BulkLookupParams threePidsParams = new BulkLookupParams();
 
-        ArrayList<List<String>> list = new ArrayList<>();
+        List<List<String>> list = new ArrayList<>();
 
         for (int i = 0; i < addresses.size(); i++) {
             list.add(Arrays.asList(mediums.get(i), addresses.get(i)));
@@ -228,7 +228,7 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
             ApiCallback<List<String>> callback
     ) {
         BulkLookupResponse bulkLookupResponse = response.body();
-        HashMap<String, String> mxidByAddress = new HashMap<>();
+        Map<String, String> mxidByAddress = new HashMap<>();
 
         if (null != bulkLookupResponse.threepids) {
             for (int i = 0; i < bulkLookupResponse.threepids.size(); i++) {
@@ -240,7 +240,7 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
             }
         }
 
-        ArrayList<String> matrixIds = new ArrayList<>();
+        List<String> matrixIds = new ArrayList<>();
 
         for (String address : addresses) {
             if (mxidByAddress.containsKey(address)) {

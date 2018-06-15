@@ -36,6 +36,7 @@ import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -195,7 +196,7 @@ public class MXOlmDecryption implements IMXDecrypting {
     private String decryptMessage(Map<String, Object> message, String theirDeviceIdentityKey) {
         Set<String> sessionIdsSet = mOlmDevice.getSessionIds(theirDeviceIdentityKey);
 
-        ArrayList<String> sessionIds;
+        List<String> sessionIds;
 
         if (null == sessionIdsSet) {
             sessionIds = new ArrayList<>();

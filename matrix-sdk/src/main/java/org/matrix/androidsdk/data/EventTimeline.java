@@ -565,7 +565,7 @@ public class EventTimeline {
                     }
                     // try to build a summary from the state events
                     else if ((null != roomSync.state) && (null != roomSync.state.events) && (roomSync.state.events.size() > 0)) {
-                        ArrayList<Event> events = new ArrayList<>(roomSync.state.events);
+                        List<Event> events = new ArrayList<>(roomSync.state.events);
 
                         Collections.reverse(events);
 
@@ -725,7 +725,7 @@ public class EventTimeline {
 
                     // search the latest displayable event
                     // to replace the summary text
-                    ArrayList<Event> events = new ArrayList<>(mStore.getRoomMessages(event.roomId));
+                    List<Event> events = new ArrayList<>(mStore.getRoomMessages(event.roomId));
                     for (int index = events.size() - 1; index >= 0; index--) {
                         Event anEvent = events.get(index);
                         if (RoomSummary.isSupportedEvent(anEvent)) {
@@ -993,7 +993,7 @@ public class EventTimeline {
 
     // avoid adding to many events
     // the room history request can provide more than expected event.
-    private final ArrayList<SnapshotEvent> mSnapshotEvents = new ArrayList<>();
+    private final List<SnapshotEvent> mSnapshotEvents = new ArrayList<>();
 
     /**
      * Send MAX_EVENT_COUNT_PER_PAGINATION events to the caller.
@@ -1446,7 +1446,7 @@ public class EventTimeline {
                         initHistory();
 
                         // build the events list
-                        ArrayList<Event> events = new ArrayList<>();
+                        List<Event> events = new ArrayList<>();
 
                         Collections.reverse(eventContext.eventsAfter);
                         events.addAll(eventContext.eventsAfter);
@@ -1464,7 +1464,7 @@ public class EventTimeline {
                         // create dummy forward events list
                         // to center the selected event id
                         // else if might be out of screen
-                        ArrayList<SnapshotEvent> nextSnapshotEvents = new ArrayList<>(mSnapshotEvents.subList(0, (mSnapshotEvents.size() + 1) / 2));
+                        List<SnapshotEvent> nextSnapshotEvents = new ArrayList<>(mSnapshotEvents.subList(0, (mSnapshotEvents.size() + 1) / 2));
 
                         // put in the right order
                         Collections.reverse(nextSnapshotEvents);
@@ -1657,7 +1657,7 @@ public class EventTimeline {
     // onEvent listener management.
     //==============================================================================================================
 
-    private final ArrayList<EventTimelineListener> mEventTimelineListeners = new ArrayList<>();
+    private final List<EventTimelineListener> mEventTimelineListeners = new ArrayList<>();
 
     /**
      * Add an events listener.
@@ -1705,7 +1705,7 @@ public class EventTimeline {
                 }
             });
         } else {
-            ArrayList<EventTimelineListener> listeners;
+            List<EventTimelineListener> listeners;
 
             synchronized (this) {
                 listeners = new ArrayList<>(mEventTimelineListeners);

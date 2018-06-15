@@ -58,6 +58,8 @@ import java.net.URL;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -75,12 +77,12 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
     /**
      * Pending media URLs
      */
-    private static final HashMap<String, MXMediaDownloadWorkerTask> mPendingDownloadById = new HashMap<>();
+    private static final Map<String, MXMediaDownloadWorkerTask> mPendingDownloadById = new HashMap<>();
 
     /**
      * List of unreachable media urls.
      */
-    private static final ArrayList<String> mUnreachableUrls = new ArrayList<>();
+    private static final List<String> mUnreachableUrls = new ArrayList<>();
 
     // avoid sync on "this" because it might differ if there is a timer.
     private static final Object mSyncObject = new Object();
@@ -93,12 +95,12 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
     /**
      * The downloaded media callbacks.
      */
-    private final ArrayList<IMXMediaDownloadListener> mDownloadListeners = new ArrayList<>();
+    private final List<IMXMediaDownloadListener> mDownloadListeners = new ArrayList<>();
 
     /**
      * The ImageView list to refresh when the media is downloaded.
      */
-    private final ArrayList<WeakReference<ImageView>> mImageViewReferences;
+    private final List<WeakReference<ImageView>> mImageViewReferences;
 
     /**
      * The media URL.

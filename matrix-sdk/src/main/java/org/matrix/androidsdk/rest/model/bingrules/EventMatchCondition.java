@@ -1,6 +1,7 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -23,6 +24,7 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.rest.model.Event;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 public class EventMatchCondition extends Condition {
@@ -30,7 +32,7 @@ public class EventMatchCondition extends Condition {
     public String key;
     public String pattern;
 
-    private static HashMap<String, Pattern> mPatternByRule = null;
+    private static Map<String, Pattern> mPatternByRule = null;
 
     public EventMatchCondition() {
         kind = Condition.KIND_EVENT_MATCH;

@@ -26,6 +26,7 @@ import org.matrix.androidsdk.util.Log;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MXCryptoAlgorithms {
 
@@ -42,10 +43,10 @@ public class MXCryptoAlgorithms {
     public static final String MXCRYPTO_ALGORITHM_MEGOLM = "m.megolm.v1.aes-sha2";
 
     // encryptors map
-    private final HashMap<String, Class<IMXEncrypting>> mEncryptors;
+    private final Map<String, Class<IMXEncrypting>> mEncryptors;
 
     // decryptors map
-    private final HashMap<String, Class<IMXDecrypting>> mDecryptors;
+    private final Map<String, Class<IMXDecrypting>> mDecryptors;
 
     // shared instance
     private static MXCryptoAlgorithms mSharedInstance = null;
