@@ -258,7 +258,7 @@ Improvements:
 
 * Improve the catchup synchronisation (reduce the number of stored events)
 * Refactor the state events storage format to reduce its size.
-* Improve the backward / fordward management to avoid having UI lags.
+* Improve the backward / forward management to avoid having UI lags.
 
 Bugfixes:
 

@@ -40,7 +40,7 @@ public class DataRetriever {
 
     private RoomsRestClient mRestClient;
 
-    private final Map<String, String> mPendingFordwardRequestTokenByRoomId = new HashMap<>();
+    private final Map<String, String> mPendingForwardRequestTokenByRoomId = new HashMap<>();
     private final Map<String, String> mPendingBackwardRequestTokenByRoomId = new HashMap<>();
     private final Map<String, String> mPendingRemoteRequestTokenByRoomId = new HashMap<>();
 
@@ -71,7 +71,7 @@ public class DataRetriever {
     public void cancelHistoryRequest(String roomId) {
         Log.d(LOG_TAG, "## cancelHistoryRequest() : roomId " + roomId);
 
-        clearPendingToken(mPendingFordwardRequestTokenByRoomId, roomId);
+        clearPendingToken(mPendingForwardRequestTokenByRoomId, roomId);
         clearPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
     }
 
@@ -247,14 +247,14 @@ public class DataRetriever {
      * @param callback the callback
      */
     private void forwardPaginate(final IMXStore store, final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
-        putPendingToken(mPendingFordwardRequestTokenByRoomId, roomId, token);
+        putPendingToken(mPendingForwardRequestTokenByRoomId, roomId, token);
 
         mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.FORWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT,
                 new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> events) {
-                if (TextUtils.equals(getPendingToken(mPendingFordwardRequestTokenByRoomId, roomId), token)) {
-                    clearPendingToken(mPendingFordwardRequestTokenByRoomId, roomId);
+                if (TextUtils.equals(getPendingToken(mPendingForwardRequestTokenByRoomId, roomId), token)) {
+                    clearPendingToken(mPendingForwardRequestTokenByRoomId, roomId);
                     store.storeRoomEvents(roomId, events, EventTimeline.Direction.FORWARDS);
                     callback.onSuccess(events);
                 }
