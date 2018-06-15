@@ -124,10 +124,11 @@ ButterKnife\.findById\(
 # DISABLED (min API to low)
 #\"UTF-
 
-# Call invalidateMenu(); instead.
-invalidateOptionsMenu
 
-# Avoid mistake in Retrofit (avoid prefix cut out)
+### Use AlertDialog form v7 compat lib
+android\.app\.AlertDialog
+
+### Avoid mistake in Retrofit (avoid prefix cut out)
 URI_API_PREFIX_PATH_MEDIA_R0 \+ \"\/
 URI_API_PREFIX_PATH_R0 \+ \"\/
 URI_API_PREFIX_PATH_UNSTABLE \+ \"\/
