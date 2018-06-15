@@ -22,6 +22,7 @@ Others:
 
 Build:
  - Add script to check code quality
+ - Travis will now check if CHANGES.rst has been modified for each PR
 
 Changes to Matrix Android SDK in 0.9.5 (2018-06-01)
 =======================================================

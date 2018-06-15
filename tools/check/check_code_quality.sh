@@ -30,8 +30,6 @@ else
   wget https://raw.githubusercontent.com/matrix-org/matrix-dev-tools/develop/bin/search_forbidden_strings.pl -O ${searchForbiddenStringsScript}
 fi
 
-echo
-
 if [ -x ${searchForbiddenStringsScript} ]; then
   echo "${searchForbiddenStringsScript} is already executable"
 else
@@ -70,8 +68,6 @@ else
   echo "Get the script"
   wget https://raw.githubusercontent.com/matrix-org/matrix-dev-tools/develop/bin/check_long_files.pl -O ${checkLongFilesScript}
 fi
-
-echo
 
 if [ -x ${checkLongFilesScript} ]; then
   echo "${checkLongFilesScript} is already executable"
