@@ -882,7 +882,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             private void onError() {
                 if (null != getActivity()) {
-                    Toast.makeText(getActivity(), getActivity().getString(R.string.could_not_redact), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getActivity(), R.string.could_not_redact, Toast.LENGTH_SHORT).show();
                 }
             }
 

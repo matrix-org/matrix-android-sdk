@@ -124,6 +124,8 @@ ButterKnife\.findById\(
 # DISABLED (min API to low)
 #\"UTF-
 
+### Directly use getString() in a Fragment
+getActivity\(\)\.getString\(
 
 ### Use AlertDialog form v7 compat lib
 android\.app\.AlertDialog
