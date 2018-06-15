@@ -1248,7 +1248,7 @@ public class MXMediasCache {
      * Upload a file
      *
      * @param contentStream the stream to upload
-     * @param filename      the dst fileanme
+     * @param filename      the dst filename
      * @param mimeType      the mimetype
      * @param uploadId      the upload id
      * @param listener      the upload progress listener
