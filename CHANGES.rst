@@ -10,6 +10,7 @@ Improvements:
 Bugfix:
  - Prevent crash on KitKat
  - Prevent leaking of filenames in uploads to E2EE rooms
+ - Prefer message text instead of subject
 
 API Change:
  - New API: add device_id param to LoginRestClient.loginWithUser()
