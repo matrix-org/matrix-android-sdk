@@ -628,6 +628,8 @@ class RoomMediaMessagesSender {
                 final Uri encryptedUri;
                 InputStream stream;
 
+                String filename = null;
+
                 try {
                     stream = new FileInputStream(new File(uri.getPath()));
                     if (mRoom.isEncrypted() && mDataHandler.isCryptoEnabled() && (null != stream)) {
@@ -656,6 +658,8 @@ class RoomMediaMessagesSender {
                             return;
                         }
                     } else {
+                        // Only pass filename string to server in non-encrypted rooms to prevent leaking filename
+                        filename = mediaMessage.isThumbnailLocalContent() ? ("thumb" + message.body) : message.body;
                         encryptionResult = null;
                         encryptedUri = null;
                     }
@@ -666,7 +670,7 @@ class RoomMediaMessagesSender {
 
                 mDataHandler.updateEventState(roomMediaMessage.getEvent(), Event.SentState.SENDING);
 
-                mediasCache.uploadContent(stream, mediaMessage.isThumbnailLocalContent() ? ("thumb" + message.body) : message.body, mimeType, url,
+                mediasCache.uploadContent(stream, filename, mimeType, url,
                         new MXMediaUploadListener() {
                     @Override
                     public void onUploadStart(final String uploadId) {
