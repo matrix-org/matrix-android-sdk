@@ -34,7 +34,7 @@ public class MXRestExecutorService extends AbstractExecutorService {
     private MXOsHandler mHandler;
 
     public MXRestExecutorService() {
-        mHandlerThread = new HandlerThread("MXRestExecutor" + this.hashCode(), Thread.MIN_PRIORITY);
+        mHandlerThread = new HandlerThread("MXRestExecutor" + hashCode(), Thread.MIN_PRIORITY);
         mHandlerThread.start();
         mHandler = new MXOsHandler(mHandlerThread.getLooper());
     }

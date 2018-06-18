@@ -1,6 +1,7 @@
 /*
  * Copyright 2015 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +29,7 @@ import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.util.JsonUtils;
 
@@ -55,11 +57,14 @@ public class MXOlmEncryption implements IMXEncrypting {
     }
 
     @Override
-    public void encryptEventContent(final JsonElement eventContent, final String eventType, final List<String> userIds, final ApiCallback<JsonElement> callback) {
+    public void encryptEventContent(final JsonElement eventContent,
+                                    final String eventType,
+                                    final List<String> userIds,
+                                    final ApiCallback<JsonElement> callback) {
         // pick the list of recipients based on the membership list.
         //
         // TODO: there is a race condition here! What if a new user turns up
-        ensureSession(userIds, new ApiCallback<Void>() {
+        ensureSession(userIds, new SimpleApiCallback<Void>(callback) {
                     @Override
                     public void onSuccess(Void info) {
                         ArrayList<MXDeviceInfo> deviceInfos = new ArrayList<>();
@@ -94,27 +99,6 @@ public class MXOlmEncryption implements IMXEncrypting {
                         mCrypto.encryptMessage(messageMap, deviceInfos);
                         callback.onSuccess(JsonUtils.getGson(false).toJsonTree(messageMap));
                     }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        if (null != callback) {
-                            callback.onNetworkError(e);
-                        }
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        if (null != callback) {
-                            callback.onMatrixError(e);
-                        }
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        if (null != callback) {
-                            callback.onUnexpectedError(e);
-                        }
-                    }
                 }
         );
     }
@@ -126,59 +110,17 @@ public class MXOlmEncryption implements IMXEncrypting {
      * @param callback the asynchronous callback
      */
     private void ensureSession(final List<String> users, final ApiCallback<Void> callback) {
-        mCrypto.getDeviceList().downloadKeys(users, false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+        mCrypto.getDeviceList().downloadKeys(users, false, new SimpleApiCallback<MXUsersDevicesMap<MXDeviceInfo>>(callback) {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
-                mCrypto.ensureOlmSessionsForUsers(users, new ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>>() {
+                mCrypto.ensureOlmSessionsForUsers(users, new SimpleApiCallback<MXUsersDevicesMap<MXOlmSessionResult>>(callback) {
                     @Override
                     public void onSuccess(MXUsersDevicesMap<MXOlmSessionResult> result) {
                         if (null != callback) {
                             callback.onSuccess(null);
                         }
                     }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        if (null != callback) {
-                            callback.onNetworkError(e);
-                        }
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        if (null != callback) {
-                            callback.onMatrixError(e);
-                        }
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        if (null != callback) {
-                            callback.onUnexpectedError(e);
-                        }
-                    }
                 });
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
             }
         });
     }

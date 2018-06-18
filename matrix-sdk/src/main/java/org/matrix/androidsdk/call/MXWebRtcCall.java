@@ -1,6 +1,7 @@
 /*
  * Copyright 2015 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +22,6 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
-
-import org.matrix.androidsdk.util.Log;
-
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.widget.RelativeLayout;
@@ -35,6 +33,7 @@ import com.oney.WebRTCModule.EglUtils;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.util.Log;
 import org.webrtc.AudioSource;
 import org.webrtc.AudioTrack;
 import org.webrtc.Camera1Enumerator;
@@ -264,7 +263,8 @@ public class MXWebRtcCall extends MXCall {
                 @Override
                 public void run() {
                     mCallView = new RelativeLayout(mContext);
-                    mCallView.setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
+                    mCallView.setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,
+                            RelativeLayout.LayoutParams.MATCH_PARENT));
                     mCallView.setBackgroundColor(ContextCompat.getColor(mContext, android.R.color.black));
                     mCallView.setVisibility(View.GONE);
 
@@ -717,7 +717,8 @@ public class MXWebRtcCall extends MXCall {
                                                 JsonArray lastContentCandidates = lastContent.get("candidates").getAsJsonArray();
                                                 JsonArray newContentCandidates = content.get("candidates").getAsJsonArray();
 
-                                                Log.d(LOG_TAG, "Merge candidates from " + lastContentCandidates.size() + " to " + (lastContentCandidates.size() + newContentCandidates.size() + " items."));
+                                                Log.d(LOG_TAG, "Merge candidates from " + lastContentCandidates.size()
+                                                        + " to " + (lastContentCandidates.size() + newContentCandidates.size() + " items."));
 
                                                 lastContentCandidates.addAll(newContentCandidates);
 
@@ -734,7 +735,8 @@ public class MXWebRtcCall extends MXCall {
                                     }
 
                                     if (addIt) {
-                                        Event event = new Event(Event.EVENT_TYPE_CALL_CANDIDATES, content, mSession.getCredentials().userId, mCallSignalingRoom.getRoomId());
+                                        Event event = new Event(Event.EVENT_TYPE_CALL_CANDIDATES, content, mSession.getCredentials().userId,
+                                                mCallSignalingRoom.getRoomId());
 
                                         mPendingEvents.add(event);
                                         sendNextEvent();
@@ -1103,11 +1105,13 @@ public class MXWebRtcCall extends MXCall {
 
                 mFullScreenRTCView = new MXWebRtcView(mContext);
                 mFullScreenRTCView.setBackgroundColor(ContextCompat.getColor(mContext, android.R.color.black));
-                mCallView.addView(mFullScreenRTCView, new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
+                mCallView.addView(mFullScreenRTCView,
+                        new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
                 mFullScreenRTCView.setVisibility(View.GONE);
 
                 mPipRTCView = new MXWebRtcView(mContext);
-                mCallView.addView(mPipRTCView, new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
+                mCallView.addView(mPipRTCView,
+                        new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
                 mPipRTCView.setBackgroundColor(ContextCompat.getColor(mContext, android.R.color.transparent));
                 mPipRTCView.setVisibility(View.GONE);
 

@@ -92,5 +92,5 @@ public class RetrofitUtils {
         Converter converter = new GsonConverter(gson);
         return  RetrofitError.httpError(url, response, converter, MatrixError.class);
     }
-    */
+     */
 }

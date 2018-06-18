@@ -1,6 +1,7 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -102,7 +103,8 @@ public class CreateRoomParams {
     /**
      * Convenience parameter for setting various default state events based on a preset. Must be either:
      * private_chat => join_rules is set to invite. history_visibility is set to shared.
-     * trusted_private_chat => join_rules is set to invite. history_visibility is set to shared. All invitees are given the same power level as the room creator.
+     * trusted_private_chat => join_rules is set to invite. history_visibility is set to shared. All invitees are given the same power level as the
+     * room creator.
      * public_chat: => join_rules is set to public. history_visibility is set to shared. One of: ["private_chat", "public_chat", "trusted_private_chat"]
      */
     public String preset;

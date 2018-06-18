@@ -1,6 +1,7 @@
 /*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,6 +57,9 @@ public class PasswordLoginParams extends LoginParams {
     // A display name to assign to the newly-created device
     public String initial_device_display_name;
 
+    // The device id, used for e2e encryption
+    public String device_id;
+
     /**
      * Set login params for username/password
      *
@@ -67,7 +71,7 @@ public class PasswordLoginParams extends LoginParams {
         identifier.put(IDENTIFIER_KEY_TYPE, IDENTIFIER_KEY_TYPE_USER);
         identifier.put(IDENTIFIER_KEY_USER, username);
         // For backward compatibility
-        this.user = username;
+        user = username;
 
         setOtherData(password);
     }
@@ -114,8 +118,8 @@ public class PasswordLoginParams extends LoginParams {
      */
     private void setOtherData(@NonNull final String password) {
         this.password = password;
-        this.type = LoginRestClient.LOGIN_FLOW_TYPE_PASSWORD;
-        this.initial_device_display_name = Build.MODEL.trim();
+        type = LoginRestClient.LOGIN_FLOW_TYPE_PASSWORD;
+        initial_device_display_name = Build.MODEL.trim();
     }
 
     /**
@@ -125,9 +129,18 @@ public class PasswordLoginParams extends LoginParams {
      */
     public void setDeviceName(String deviceName) {
         if ((null != deviceName) && !TextUtils.isEmpty(deviceName.trim())) {
-            this.initial_device_display_name = deviceName.trim();
+            initial_device_display_name = deviceName.trim();
         } else {
-            this.initial_device_display_name = Build.MODEL.trim();
+            initial_device_display_name = Build.MODEL.trim();
         }
+    }
+
+    /**
+     * Set the device Id
+     *
+     * @param deviceId the device id, used for e2e encryption
+     */
+    public void setDeviceId(String deviceId) {
+        device_id = deviceId;
     }
 }

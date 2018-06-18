@@ -17,12 +17,12 @@ package org.matrix.androidsdk.rest.model.bingrules;
 
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.util.JsonUtils;
-import org.matrix.androidsdk.util.Log;
-
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
+
+import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -75,11 +75,11 @@ public class BingRule {
     public String kind = null;
 
     public BingRule(boolean isDefaultValue) {
-        this.isDefault = isDefaultValue;
+        isDefault = isDefaultValue;
     }
 
     public BingRule() {
-        this.isDefault = false;
+        isDefault = false;
     }
 
     @Override

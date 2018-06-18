@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,7 +49,11 @@ public class TestsHelper {
      * @param callback the callback
      * @throws Exception an exception if the account cannot be created
      */
-    public static void createAccountAndSync(Context context, String userName, String password, boolean startSession, ApiCallback<MXSession> callback) throws Exception {
+    public static void createAccountAndSync(Context context,
+                                            String userName,
+                                            String password,
+                                            boolean startSession,
+                                            ApiCallback<MXSession> callback) throws Exception {
         RestClient.mUseMXExececutor = true;
 
         Uri uri = Uri.parse(TESTS_HOME_SERVER_URL);

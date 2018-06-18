@@ -70,7 +70,10 @@ public class RestAdapterCallback<T> implements Callback<T> {
      * @param apiCallback          the callback
      * @param requestRetryCallBack the retry callback
      */
-    public RestAdapterCallback(String description, UnsentEventsManager unsentEventsManager, ApiCallback apiCallback, RequestRetryCallBack requestRetryCallBack) {
+    public RestAdapterCallback(String description,
+                               UnsentEventsManager unsentEventsManager,
+                               ApiCallback apiCallback,
+                               RequestRetryCallBack requestRetryCallBack) {
         this(description, unsentEventsManager, false, apiCallback, requestRetryCallBack);
     }
 
@@ -83,16 +86,20 @@ public class RestAdapterCallback<T> implements Callback<T> {
      * @param apiCallback                the callback
      * @param requestRetryCallBack       the retry callback
      */
-    public RestAdapterCallback(String description, UnsentEventsManager unsentEventsManager, boolean ignoreEventTimeLifeOffline, ApiCallback apiCallback, RequestRetryCallBack requestRetryCallBack) {
+    public RestAdapterCallback(String description,
+                               UnsentEventsManager unsentEventsManager,
+                               boolean ignoreEventTimeLifeOffline,
+                               ApiCallback apiCallback,
+                               RequestRetryCallBack requestRetryCallBack) {
         if (null != description) {
             Log.d(LOG_TAG, "Trigger the event [" + description + "]");
         }
 
-        this.mEventDescription = description;
-        this.mIgnoreEventTimeLifeInOffline = ignoreEventTimeLifeOffline;
-        this.mApiCallback = apiCallback;
-        this.mRequestRetryCallBack = requestRetryCallBack;
-        this.mUnsentEventsManager = unsentEventsManager;
+        mEventDescription = description;
+        mIgnoreEventTimeLifeInOffline = ignoreEventTimeLifeOffline;
+        mApiCallback = apiCallback;
+        mRequestRetryCallBack = requestRetryCallBack;
+        mUnsentEventsManager = unsentEventsManager;
     }
 
     /**
@@ -198,7 +205,8 @@ public class RestAdapterCallback<T> implements Callback<T> {
 
         if (retry && (null != mUnsentEventsManager)) {
             Log.d(LOG_TAG, "Add it to the UnsentEventsManager");
-            mUnsentEventsManager.onEventSendingFailed(mEventDescription, mIgnoreEventTimeLifeInOffline, response, exception, mApiCallback, mRequestRetryCallBack);
+            mUnsentEventsManager.onEventSendingFailed(mEventDescription, mIgnoreEventTimeLifeInOffline, response, exception, mApiCallback,
+                    mRequestRetryCallBack);
         } else {
             if (exception != null && exception instanceof IOException) {
                 try {
@@ -234,7 +242,8 @@ public class RestAdapterCallback<T> implements Callback<T> {
                 }
                 if (mxError != null) {
                     if (MatrixError.LIMIT_EXCEEDED.equals(mxError.errcode) && (null != mUnsentEventsManager)) {
-                        mUnsentEventsManager.onEventSendingFailed(mEventDescription, mIgnoreEventTimeLifeInOffline, response, exception, mApiCallback, mRequestRetryCallBack);
+                        mUnsentEventsManager.onEventSendingFailed(mEventDescription, mIgnoreEventTimeLifeInOffline, response, exception, mApiCallback,
+                                mRequestRetryCallBack);
                     } else if (MatrixError.isConfigurationErrorCode(mxError.errcode) && (null != mUnsentEventsManager)) {
                         mUnsentEventsManager.onConfigurationErrorCode(mxError.errcode, mEventDescription);
                     } else {

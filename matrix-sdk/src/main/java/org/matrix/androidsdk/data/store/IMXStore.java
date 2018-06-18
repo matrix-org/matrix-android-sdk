@@ -588,7 +588,7 @@ public interface IMXStore {
 
     /**
      * Update the rooms list which don't have URL previews
-     * @param roomIds teh room ids list
+     * @param roomIds the room ids list
      */
     void setRoomsWithoutURLPreview(Set<String> roomIds);
 

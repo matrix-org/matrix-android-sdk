@@ -19,9 +19,6 @@ package org.matrix.androidsdk.call;
 import android.content.Context;
 import android.os.Handler;
 import android.text.TextUtils;
-
-import org.matrix.androidsdk.util.Log;
-
 import android.view.View;
 
 import com.google.gson.JsonElement;
@@ -33,6 +30,7 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -651,7 +649,7 @@ public class MXCall implements IMXCall {
         JsonObject hangupContent = new JsonObject();
 
         hangupContent.add("version", new JsonPrimitive(0));
-        hangupContent.add("call_id", new JsonPrimitive(this.mCallId));
+        hangupContent.add("call_id", new JsonPrimitive(mCallId));
 
         if (!TextUtils.isEmpty(reason)) {
             hangupContent.add("reason", new JsonPrimitive(reason));

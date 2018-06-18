@@ -1,7 +1,8 @@
 /*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
-
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -45,7 +46,6 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
 
 import okhttp3.Dispatcher;
-import okhttp3.HttpUrl;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -61,6 +61,7 @@ public class RestClient<T> {
     private static final String LOG_TAG = RestClient.class.getSimpleName();
 
     public static final String URI_API_PREFIX_PATH_MEDIA_R0 = "_matrix/media/r0/";
+    public static final String URI_API_PREFIX_PATH_MEDIA_PROXY_UNSTABLE = "_matrix/media_proxy/unstable/";
     public static final String URI_API_PREFIX_PATH_R0 = "_matrix/client/r0/";
     public static final String URI_API_PREFIX_PATH_UNSTABLE = "_matrix/client/unstable/";
 
@@ -68,6 +69,15 @@ public class RestClient<T> {
      * Prefix used in path of identity server API requests.
      */
     public static final String URI_API_PREFIX_IDENTITY = "_matrix/identity/api/v1/";
+
+    /**
+     * List the servers which should be used to define the base url.
+     */
+    public enum EndPointServer {
+        HOME_SERVER,
+        IDENTITY_SERVER,
+        ANTIVIRUS_SERVER
+    }
 
     protected static final int CONNECTION_TIMEOUT_MS = 30000;
     private static final int READ_TIMEOUT_MS = 60000;
@@ -93,7 +103,7 @@ public class RestClient<T> {
     private OkHttpClient mOkHttpClient = new OkHttpClient();
 
     public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization) {
-        this(hsConfig, type, uriPrefix, withNullSerialization, false);
+        this(hsConfig, type, uriPrefix, withNullSerialization, EndPointServer.HOME_SERVER);
     }
 
     /**
@@ -106,6 +116,19 @@ public class RestClient<T> {
      * @param useIdentityServer     true to use the identity server URL as base request
      */
     public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization, boolean useIdentityServer) {
+        this(hsConfig, type, uriPrefix, withNullSerialization, useIdentityServer ? EndPointServer.IDENTITY_SERVER : EndPointServer.HOME_SERVER);
+    }
+
+    /**
+     * Public constructor.
+     *
+     * @param hsConfig              the home server configuration.
+     * @param type                  the REST type
+     * @param uriPrefix             the URL request prefix
+     * @param withNullSerialization true to serialise class member with null value
+     * @param endPointServer        tell which server is used to define the base url
+     */
+    public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization, EndPointServer endPointServer) {
         // The JSON -> object mapper
         gson = JsonUtils.getGson(withNullSerialization);
 
@@ -172,7 +195,7 @@ public class RestClient<T> {
         }
 
         mOkHttpClient = okHttpClientBuilder.build();
-        final String endPoint = makeEndpoint(hsConfig, uriPrefix, useIdentityServer);
+        final String endPoint = makeEndpoint(hsConfig, uriPrefix, endPointServer);
 
         // Rest adapter for turning API interfaces into actual REST-calling objects
         Retrofit.Builder builder = new Retrofit.Builder()
@@ -187,10 +210,20 @@ public class RestClient<T> {
     }
 
     @NonNull
-    private String makeEndpoint(HomeServerConnectionConfig hsConfig, String uriPrefix, boolean useIdentityServer) {
-        String baseUrl = useIdentityServer
-                ? hsConfig.getIdentityServerUri().toString()
-                : hsConfig.getHomeserverUri().toString();
+    private String makeEndpoint(HomeServerConnectionConfig hsConfig, String uriPrefix, EndPointServer endPointServer) {
+        String baseUrl;
+        switch (endPointServer) {
+            case IDENTITY_SERVER:
+                baseUrl = hsConfig.getIdentityServerUri().toString();
+                break;
+            case ANTIVIRUS_SERVER:
+                baseUrl = hsConfig.getAntiVirusServerUri().toString();
+                break;
+            case HOME_SERVER:
+            default:
+                baseUrl = hsConfig.getHomeserverUri().toString();
+
+        }
         baseUrl = sanitizeBaseUrl(baseUrl);
         String dynamicPath = sanitizeDynamicPath(uriPrefix);
         return baseUrl + dynamicPath;
@@ -247,7 +280,8 @@ public class RestClient<T> {
 
         // if there is no user agent or cannot parse it
         if ((null == sUserAgent) || (sUserAgent.lastIndexOf(")") == -1) || (sUserAgent.indexOf("(") == -1)) {
-            sUserAgent = appName + "/" + appVersion + " ( Flavour " + appContext.getString(R.string.flavor_description) + "; MatrixAndroidSDK " + BuildConfig.VERSION_NAME + ")";
+            sUserAgent = appName + "/" + appVersion + " ( Flavour " + appContext.getString(R.string.flavor_description)
+                    + "; MatrixAndroidSDK " + BuildConfig.VERSION_NAME + ")";
         } else {
             // update
             sUserAgent = appName + "/" + appVersion + " " +

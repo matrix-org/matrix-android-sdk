@@ -18,8 +18,8 @@ package org.matrix.androidsdk.fragments;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.support.v4.app.DialogFragment;
 import android.os.Bundle;
+import android.support.v4.app.DialogFragment;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
@@ -121,7 +121,7 @@ public class IconAndTextDialogFragment extends DialogFragment {
                     mOnItemClickListener.onItemClick(IconAndTextDialogFragment.this, position);
                 }
 
-                IconAndTextDialogFragment.this.dismiss();
+                dismiss();
             }
         });
 

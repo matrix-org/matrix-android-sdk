@@ -628,8 +628,8 @@ public class RoomMediaMessage implements Parcelable {
      * Save a file in a dedicated directory.
      * The filename is optional.
      *
-     * @param folder          the destinated folder
-     * @param stream          teh file stream
+     * @param folder          the destination folder
+     * @param stream          the file stream
      * @param defaultFileName the filename, null to generate a new one
      * @param mimeType        the file mimetype.
      * @return the file uri
@@ -768,27 +768,23 @@ public class RoomMediaMessage implements Parcelable {
             // chrome adds many items when sharing an web page link
             // so, test first the type
             if (TextUtils.equals(intent.getType(), ClipDescription.MIMETYPE_TEXT_PLAIN)) {
-                String text = intent.getStringExtra(Intent.EXTRA_TEXT);
+                String message = intent.getStringExtra(Intent.EXTRA_TEXT);
 
-                if (null == text) {
+                if (null == message) {
                     CharSequence sequence = intent.getCharSequenceExtra(Intent.EXTRA_TEXT);
                     if (null != sequence) {
-                        text = sequence.toString();
+                        message = sequence.toString();
                     }
                 }
 
                 String subject = intent.getStringExtra(Intent.EXTRA_SUBJECT);
 
-                String message = "";
-
                 if (!TextUtils.isEmpty(subject)) {
-                    message = subject;
-                }
-
-                if (TextUtils.isEmpty(message)) {
-                    message = text;
-                } else if (!TextUtils.isEmpty(text) && android.util.Patterns.WEB_URL.matcher(text).matches()) {
-                    message += "\n" + text;
+                    if (TextUtils.isEmpty(message)) {
+                        message = subject;
+                    } else if (android.util.Patterns.WEB_URL.matcher(message).matches()) {
+                        message = subject + "\n" + message;
+                    }
                 }
 
                 if (!TextUtils.isEmpty(message)) {

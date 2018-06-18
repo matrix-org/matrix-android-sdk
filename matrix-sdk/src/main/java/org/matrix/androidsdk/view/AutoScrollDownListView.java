@@ -50,7 +50,7 @@ public class AutoScrollDownListView extends ListView {
             // check if the keyboard is displayed
             // we don't want that the list scrolls to the bottom when the keyboard is hidden.
             if (yNew < yOld) {
-                this.postDelayed(new Runnable() {
+                postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         setSelection(getCount() - 1);

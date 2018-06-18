@@ -1,6 +1,7 @@
 /*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,15 +21,12 @@ import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.ThirdPidApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
+import org.matrix.androidsdk.rest.callback.DefaultRetrofit2ResponseHandler;
 import org.matrix.androidsdk.rest.model.BulkLookupParams;
 import org.matrix.androidsdk.rest.model.BulkLookupResponse;
-import org.matrix.androidsdk.rest.model.pid.PidResponse;
-import org.matrix.androidsdk.rest.callback.DefaultRetrofit2ResponseHandler;
-import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.HttpError;
 import org.matrix.androidsdk.rest.model.HttpException;
-import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
-import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationResponse;
+import org.matrix.androidsdk.rest.model.pid.PidResponse;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,7 +39,6 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-// TODO Compare with develop version
 public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
 
     private static final String KEY_SUBMIT_TOKEN_SUCCESS = "success";
@@ -110,7 +107,11 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
      * @param sid          the sid for the session
      * @param callback     asynchronous callback response
      */
-    public void submitValidationToken(final String medium, final String token, final String clientSecret, final String sid, final ApiCallback<Boolean> callback) {
+    public void submitValidationToken(final String medium,
+                                      final String token,
+                                      final String clientSecret,
+                                      final String sid,
+                                      final ApiCallback<Boolean> callback) {
         mApi.requestOwnershipValidation(medium, token, clientSecret, sid).enqueue(new Callback<Map<String, Object>>() {
             @Override
             public void onResponse(Call<Map<String, Object>> call, Response<Map<String, Object>> response) {

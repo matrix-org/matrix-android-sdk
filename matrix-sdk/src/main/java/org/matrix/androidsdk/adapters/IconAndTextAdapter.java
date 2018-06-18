@@ -69,7 +69,7 @@ public class IconAndTextAdapter extends ArrayAdapter<IconAndTextAdapter.Entry> {
      * @param textResourceId the entry text resourceId
      */
     public void add(int iconResourceId, int textResourceId) {
-        this.add(new Entry(iconResourceId, textResourceId));
+        add(new Entry(iconResourceId, textResourceId));
     }
 
     /**

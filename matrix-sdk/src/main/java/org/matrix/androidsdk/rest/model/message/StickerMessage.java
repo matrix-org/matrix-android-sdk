@@ -25,10 +25,10 @@ public class StickerMessage extends ImageMessage {
 
     public StickerMessage(StickerJsonMessage stickerJsonMessage) {
         this();
-        this.info = stickerJsonMessage.info;
-        this.url = stickerJsonMessage.url;
-        this.body = stickerJsonMessage.body;
-        this.format = stickerJsonMessage.format;
+        info = stickerJsonMessage.info;
+        url = stickerJsonMessage.url;
+        body = stickerJsonMessage.body;
+        format = stickerJsonMessage.format;
     }
 
     /**

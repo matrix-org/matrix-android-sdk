@@ -1,6 +1,7 @@
 /*
  * Copyright 2016 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -66,15 +67,17 @@ public class MXCryptoError extends MatrixError {
     public static final String MISSING_FIELDS_REASON = "Missing fields in input";
     public static final String MISSING_CIPHER_TEXT_REASON = "Missing ciphertext";
     public static final String NOT_INCLUDED_IN_RECIPIENT_REASON = "Not included in recipients";
-    public static final String BAD_RECIPIENT_REASON = "Message was intented for %1$s";
+    public static final String BAD_RECIPIENT_REASON = "Message was intended for %1$s";
     public static final String BAD_RECIPIENT_KEY_REASON = "Message not intended for this device";
     public static final String FORWARDED_MESSAGE_REASON = "Message forwarded from %1$s";
     public static final String BAD_ROOM_REASON = "Message intended for room %1$s";
     public static final String BAD_ENCRYPTED_MESSAGE_REASON = "Bad Encrypted Message";
     public static final String DUPLICATE_MESSAGE_INDEX_REASON = "Duplicate message index, possible replay attack %1$s";
     public static final String ERROR_MISSING_PROPERTY_REASON = "No '%1$s' property. Cannot prevent unknown-key attack";
-    public static final String UNKNOWN_DEVICES_REASON = "This room contains unknown devices which have not been verified. \nWe strongly recommend you verify them before continuing.";
-    public static final String NO_MORE_ALGORITHM_REASON = "Room was previously configured to use encryption, but is no longer. Perhaps the homeserver is hiding the configuration event.";
+    public static final String UNKNOWN_DEVICES_REASON = "This room contains unknown devices which have not been verified.\n" +
+            "We strongly recommend you verify them before continuing.";
+    public static final String NO_MORE_ALGORITHM_REASON = "Room was previously configured to use encryption, but is no longer." +
+            " Perhaps the homeserver is hiding the configuration event.";
 
     /**
      * Describe the error with more details
