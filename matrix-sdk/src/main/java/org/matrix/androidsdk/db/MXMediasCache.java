@@ -1101,10 +1101,10 @@ public class MXMediasCache {
             downloadId += "_apply_orientation";
         }
 
-        final String fDownloadableUrl = downloadId;
+        final String fDownloadId = downloadId;
 
         if (null != imageView) {
-            imageView.setTag(fDownloadableUrl);
+            imageView.setTag(fDownloadId);
         }
 
         // if the mime type is not provided, assume it is a jpeg file
@@ -1117,7 +1117,7 @@ public class MXMediasCache {
                     @Override
                     public void onSuccess(Bitmap bitmap) {
                         if (null != imageView) {
-                            if (TextUtils.equals(fDownloadableUrl, (String) imageView.getTag())) {
+                            if (TextUtils.equals(fDownloadId, (String) imageView.getTag())) {
                                 // display it
                                 imageView.setImageBitmap((null != bitmap) ? bitmap : defaultBitmap);
                             }

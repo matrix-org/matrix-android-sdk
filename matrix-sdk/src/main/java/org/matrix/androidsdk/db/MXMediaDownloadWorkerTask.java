@@ -37,6 +37,7 @@ import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.model.EncryptedMediaScanBody;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
 import org.matrix.androidsdk.ssl.CertUtil;
@@ -51,7 +52,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -714,12 +715,20 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                 if (mIsAvScannerEnabled && null != mEncryptedFileInfo) {
                     // POST the encryption info to let the av scanner decrypt and scan the content.
                     connection.setRequestMethod("POST");
+                    connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                    connection.setDoOutput(true);
+                    connection.setUseCaches(false);
+
+                    EncryptedMediaScanBody encryptedMediaScanBody = new EncryptedMediaScanBody();
+                    encryptedMediaScanBody.encryptedFileInfo = mEncryptedFileInfo;
+
+                    OutputStream outputStream = connection.getOutputStream();
                     try {
-                        ObjectOutputStream body = new ObjectOutputStream(connection.getOutputStream());
-                        body.writeObject(mEncryptedFileInfo);
-                        body.close();
+                        outputStream.write(JsonUtils.getCanonicalizedJsonString(encryptedMediaScanBody).getBytes("UTF-8"));
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "doInBackground Failed to serialize encryption info " + e.getMessage());
+                    } finally {
+                        outputStream.close();
                     }
                 }
 
@@ -954,7 +963,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             for (WeakReference<ImageView> weakRef : mImageViewReferences) {
                 final ImageView imageView = weakRef.get();
 
-                if (imageView != null && TextUtils.equals(mUrl, (String) imageView.getTag())) {
+                if (imageView != null && TextUtils.equals(mDownloadId, (String) imageView.getTag())) {
                     imageView.setImageBitmap(bitmap);
                 }
             }
