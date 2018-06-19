@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +19,8 @@ package org.matrix.androidsdk.rest.model.group;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 /**
  * This class represents the group users in the server response.
@@ -42,7 +43,7 @@ public class GroupUsers implements Serializable {
         } else if (null == mFilteredUsers) {
             mFilteredUsers = new ArrayList<>();
 
-            HashMap<String, GroupUser> map = new HashMap<>();
+            Map<String, GroupUser> map = new HashMap<>();
 
             for (GroupUser user : chunk) {
                 if (null != user.userId) {

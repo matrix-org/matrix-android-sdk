@@ -63,8 +63,8 @@ public class MXMegolmDecryption implements IMXDecrypting {
      * Events which we couldn't decrypt due to unknown sessions / indexes: map from
      * senderKey|sessionId to timelines to list of MatrixEvents.
      */
-    private HashMap<String, /* senderKey|sessionId */
-            HashMap<String /* timelineId */, ArrayList<Event>>> mPendingEvents;
+    private Map<String, /* senderKey|sessionId */
+            Map<String /* timelineId */, List<Event>>> mPendingEvents;
 
     /**
      * Init the object fields
@@ -207,7 +207,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
         }
 
         if (!mPendingEvents.containsKey(k)) {
-            mPendingEvents.put(k, new HashMap<String, ArrayList<Event>>());
+            mPendingEvents.put(k, new HashMap<String, List<Event>>());
         }
 
         if (!mPendingEvents.get(k).containsKey(timelineId)) {
@@ -304,7 +304,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
     public void onNewSession(String senderKey, String sessionId) {
         String k = senderKey + "|" + sessionId;
 
-        HashMap<String, ArrayList<Event>> pending = mPendingEvents.get(k);
+        Map<String, List<Event>> pending = mPendingEvents.get(k);
 
         if (null != pending) {
             // Have another go at decrypting events sent with this session.
@@ -313,7 +313,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
             Set<String> timelineIds = pending.keySet();
 
             for (String timelineId : timelineIds) {
-                ArrayList<Event> events = pending.get(timelineId);
+                List<Event> events = pending.get(timelineId);
 
                 for (Event event : events) {
                     MXEventDecryptionResult result = null;
@@ -367,7 +367,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
                 if (null != deviceInfo) {
                     final RoomKeyRequestBody body = request.mRequestBody;
 
-                    HashMap<String, ArrayList<MXDeviceInfo>> devicesByUser = new HashMap<>();
+                    Map<String, List<MXDeviceInfo>> devicesByUser = new HashMap<>();
                     devicesByUser.put(userId, new ArrayList<>(Arrays.asList(deviceInfo)));
 
                     mSession.getCrypto().ensureOlmSessionsForDevices(devicesByUser, new ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>>() {

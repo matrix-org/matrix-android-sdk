@@ -36,7 +36,6 @@ import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import retrofit2.Call;
@@ -196,7 +195,7 @@ public interface RoomsApi {
      * @param params the parameters
      */
     @POST("rooms/{roomId}/invite")
-    Call<Void> invite(@Path("roomId") String roomId, @Body HashMap<String, String> params);
+    Call<Void> invite(@Path("roomId") String roomId, @Body Map<String, String> params);
 
     /**
      * Join the given room.
@@ -214,7 +213,7 @@ public interface RoomsApi {
      * @param params        the extra join param
      */
     @POST("join/{roomAliasOrId}")
-    Call<RoomResponse> joinRoomByAliasOrId(@Path("roomAliasOrId") String roomAliasOrId, @Body HashMap<String, Object> params);
+    Call<RoomResponse> joinRoomByAliasOrId(@Path("roomAliasOrId") String roomAliasOrId, @Body Map<String, Object> params);
 
     /**
      * Leave the given room.
@@ -355,7 +354,7 @@ public interface RoomsApi {
      * @param params the put params.
      */
     @PUT("rooms/{roomId}/state/m.room.avatar")
-    Call<Void> setRoomAvatarUrl(@Path("roomId") String roomId, @Body HashMap<String, String> params);
+    Call<Void> setRoomAvatarUrl(@Path("roomId") String roomId, @Body Map<String, String> params);
 
     /**
      * Send a read receipt.
@@ -385,7 +384,7 @@ public interface RoomsApi {
      * @param content the event content
      */
     @PUT("user/{userId}/rooms/{roomId}/tags/{tag}")
-    Call<Void> addTag(@Path("userId") String userId, @Path("roomId") String roomId, @Path("tag") String tag, @Body HashMap<String, Object> content);
+    Call<Void> addTag(@Path("userId") String userId, @Path("roomId") String roomId, @Path("tag") String tag, @Body Map<String, Object> content);
 
     /**
      * Remove a tag to a room
@@ -409,7 +408,7 @@ public interface RoomsApi {
     Call<Void> updateAccountData(@Path("userId") String userId,
                                  @Path("roomId") String roomId,
                                  @Path("tag") String subPath,
-                                 @Body HashMap<String, Object> content);
+                                 @Body Map<String, Object> content);
 
     /**
      * Get the room ID associated to the room alias.

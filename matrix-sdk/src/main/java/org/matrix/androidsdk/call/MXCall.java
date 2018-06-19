@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,6 +36,7 @@ import org.matrix.androidsdk.util.Log;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.Timer;
 
@@ -102,7 +104,7 @@ public class MXCall implements IMXCall {
     /**
      * List of events to sends to mCallSignalingRoom
      */
-    protected final ArrayList<Event> mPendingEvents = new ArrayList<>();
+    protected final List<Event> mPendingEvents = new ArrayList<>();
 
     /**
      * The sending eevent.

@@ -625,12 +625,20 @@ public class Event implements Externalizable {
     }
 
     /**
-     * Tells if the message sending failed because some unknown devices have benn detected.
+     * Tells if the message sending failed because some unknown devices have been detected.
      *
-     * @return true if some unknown devices have benn detected.
+     * @return true if some unknown devices have been detected.
      */
-    public boolean isUnkownDevice() {
+    public boolean isUnknownDevice() {
         return (mSentState == SentState.FAILED_UNKNOWN_DEVICES);
+    }
+
+    /**
+     * @deprecated call isUnknownDevice()
+     */
+    @Deprecated
+    public boolean isUnkownDevice() {
+        return isUnknownDevice();
     }
 
     /**
@@ -1066,7 +1074,7 @@ public class Event implements Externalizable {
      * @param allowedKeys the allowed keys list.
      * @return the filtered JsonObject
      */
-    private static JsonObject filterInContentWithKeys(JsonObject aContent, ArrayList<String> allowedKeys) {
+    private static JsonObject filterInContentWithKeys(JsonObject aContent, List<String> allowedKeys) {
         // sanity check
         if (null == aContent) {
             return null;
@@ -1101,7 +1109,7 @@ public class Event implements Externalizable {
      */
     public void prune(Event redactionEvent) {
         // Filter in event by keeping only the following keys
-        ArrayList<String> allowedKeys;
+        List<String> allowedKeys;
 
         // Add filtered content, allowed keys in content depends on the event type
         if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type)) {

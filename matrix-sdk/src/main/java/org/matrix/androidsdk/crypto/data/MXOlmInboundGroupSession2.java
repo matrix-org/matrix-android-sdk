@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,11 +21,9 @@ import android.text.TextUtils;
 
 import org.matrix.androidsdk.crypto.MXCryptoAlgorithms;
 import org.matrix.androidsdk.util.Log;
-
 import org.matrix.olm.OlmInboundGroupSession;
 
 import java.io.Serializable;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -115,7 +114,7 @@ public class MXOlmInboundGroupSession2 implements Serializable {
      * @return the inbound group session as map if the operation succeeds
      */
     public Map<String, Object> exportKeys() {
-        HashMap<String, Object> map = new HashMap<>();
+        Map<String, Object> map = new HashMap<>();
 
         try {
             if (null == mForwardingCurve25519KeyChain) {

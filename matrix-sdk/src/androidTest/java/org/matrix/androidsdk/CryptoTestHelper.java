@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +33,7 @@ import org.matrix.androidsdk.rest.model.login.RegistrationParams;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -53,7 +55,7 @@ public class CryptoTestHelper {
         HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
         LoginRestClient loginRestClient = new LoginRestClient(hs);
 
-        final HashMap<String, Object> params = new HashMap<>();
+        final Map<String, Object> params = new HashMap<>();
         RegistrationParams registrationParams = new RegistrationParams();
 
         mLock = new CountDownLatch(1);
@@ -104,7 +106,7 @@ public class CryptoTestHelper {
 
         registrationParams.username = userName;
         registrationParams.password = password;
-        HashMap<String, Object> authParams = new HashMap<>();
+        Map<String, Object> authParams = new HashMap<>();
         authParams.put("session", session);
         authParams.put("type", LoginRestClient.LOGIN_FLOW_TYPE_DUMMY);
 
@@ -182,7 +184,7 @@ public class CryptoTestHelper {
         HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
         LoginRestClient loginRestClient = new LoginRestClient(hs);
 
-        final HashMap<String, Object> params = new HashMap<>();
+        final Map<String, Object> params = new HashMap<>();
 
         mLock = new CountDownLatch(1);
 

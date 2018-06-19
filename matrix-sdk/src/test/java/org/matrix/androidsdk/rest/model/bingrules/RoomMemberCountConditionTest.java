@@ -1,6 +1,7 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -27,6 +28,7 @@ import org.mockito.MockitoAnnotations;
 import org.robolectric.RobolectricTestRunner;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @RunWith(RobolectricTestRunner.class)
 public class RoomMemberCountConditionTest {
@@ -43,7 +45,7 @@ public class RoomMemberCountConditionTest {
     }
 
     private void setUpThreeRoomMembers() {
-        ArrayList<RoomMember> members = new ArrayList<>();
+        List<RoomMember> members = new ArrayList<>();
 
         RoomMember rm1 = new RoomMember();
         rm1.membership = RoomMember.MEMBERSHIP_JOIN;

@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +20,6 @@ package org.matrix.androidsdk.crypto.data;
 import android.text.TextUtils;
 
 import java.io.Serializable;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,12 +29,12 @@ import java.util.Set;
 public class MXUsersDevicesMap<E> implements Serializable {
 
     // The device keys as returned by the homeserver: a map of a map (userId -> deviceId -> Object).
-    private final HashMap<String, HashMap<String, E>> mMap = new HashMap<>();
+    private final Map<String, Map<String, E>> mMap = new HashMap<>();
 
     /**
      * @return the inner map
      */
-    public HashMap<String, HashMap<String, E>> getMap() {
+    public Map<String, Map<String, E>> getMap() {
         return mMap;
     }
 
@@ -119,7 +119,7 @@ public class MXUsersDevicesMap<E> implements Serializable {
      */
     public void setObject(E object, String userId, String deviceId) {
         if ((null != object) && !TextUtils.isEmpty(userId) && !TextUtils.isEmpty(deviceId)) {
-            HashMap<String, E> subMap = mMap.get(userId);
+            Map<String, E> subMap = mMap.get(userId);
 
             if (null == subMap) {
                 subMap = new HashMap<>();

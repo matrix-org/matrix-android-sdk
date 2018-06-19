@@ -41,6 +41,8 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -56,10 +58,10 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
     private static final String LOG_TAG = MXMediaUploadWorkerTask.class.getSimpleName();
 
     // upload ID -> task
-    private static final HashMap<String, MXMediaUploadWorkerTask> mPendingUploadByUploadId = new HashMap<>();
+    private static final Map<String, MXMediaUploadWorkerTask> mPendingUploadByUploadId = new HashMap<>();
 
     // progress listener
-    private final ArrayList<IMXMediaUploadListener> mUploadListeners = new ArrayList<>();
+    private final List<IMXMediaUploadListener> mUploadListeners = new ArrayList<>();
 
     // the upload stats
     private IMXMediaUploadListener.UploadStats mUploadStats;

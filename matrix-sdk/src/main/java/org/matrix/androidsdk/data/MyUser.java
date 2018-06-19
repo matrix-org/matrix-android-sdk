@@ -1,7 +1,8 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -45,7 +46,7 @@ public class MyUser extends User {
 
     // the account info is refreshed in one row
     // so, if there is a pending refresh the listeners are added to this list.
-    private transient ArrayList<ApiCallback<Void>> mRefreshListeners;
+    private transient List<ApiCallback<Void>> mRefreshListeners;
 
     private transient final Handler mUiHandler;
 

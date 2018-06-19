@@ -1,6 +1,7 @@
 /* 
  * Copyright 2016 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -31,6 +32,8 @@ import android.os.Parcelable;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.text.TextUtils;
+import android.util.Pair;
+import android.webkit.MimeTypeMap;
 
 import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -40,15 +43,11 @@ import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.ResourceUtils;
 
-import android.util.Pair;
-import android.webkit.MimeTypeMap;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * RoomMediaMessage encapsulates the media information to be sent.
@@ -794,7 +793,7 @@ public class RoomMediaMessage implements Parcelable {
             }
 
             ClipData clipData = null;
-            ArrayList<String> mimetypes = null;
+            List<String> mimetypes = null;
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
                 clipData = intent.getClipData();

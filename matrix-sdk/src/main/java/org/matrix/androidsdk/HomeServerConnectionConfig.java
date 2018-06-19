@@ -233,7 +233,7 @@ public class HomeServerConnectionConfig {
 
         if (mCredentials != null) json.put("credentials", mCredentials.toJson());
         if (mAllowedFingerprints != null) {
-            ArrayList<JSONObject> fingerprints = new ArrayList<>(mAllowedFingerprints.size());
+            List<JSONObject> fingerprints = new ArrayList<>(mAllowedFingerprints.size());
 
             for (Fingerprint fingerprint : mAllowedFingerprints) {
                 fingerprints.add(fingerprint.toJson());
@@ -254,7 +254,7 @@ public class HomeServerConnectionConfig {
      */
     public static HomeServerConnectionConfig fromJson(JSONObject jsonObject) throws JSONException {
         JSONArray fingerprintArray = jsonObject.optJSONArray("fingerprints");
-        ArrayList<Fingerprint> fingerprints = new ArrayList<>();
+        List<Fingerprint> fingerprints = new ArrayList<>();
         if (fingerprintArray != null) {
             for (int i = 0; i < fingerprintArray.length(); i++) {
                 fingerprints.add(Fingerprint.fromJson(fingerprintArray.getJSONObject(i)));

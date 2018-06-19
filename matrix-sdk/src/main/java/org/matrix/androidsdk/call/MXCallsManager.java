@@ -52,6 +52,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -80,7 +81,7 @@ public class MXCallsManager {
     private CallClass mPreferredCallClass = CallClass.WEBRTC_CLASS;
 
     // active calls
-    private final HashMap<String, IMXCall> mCallsByCallId = new HashMap<>();
+    private final Map<String, IMXCall> mCallsByCallId = new HashMap<>();
 
     // listeners
     private final Set<IMXCallsManagerListener> mListeners = new HashSet<>();
@@ -168,7 +169,7 @@ public class MXCallsManager {
      * @return the list of supported classes
      */
     public Collection<CallClass> supportedClass() {
-        ArrayList<CallClass> list = new ArrayList<>();
+        List<CallClass> list = new ArrayList<>();
 
         /*if (MXChromeCall.isSupported()) {
             list.add(CallClass.CHROME_CLASS);
@@ -244,7 +245,7 @@ public class MXCallsManager {
      * @return the IMXCall if it exists
      */
     public IMXCall getCallWithRoomId(String roomId) {
-        ArrayList<IMXCall> calls;
+        List<IMXCall> calls;
 
         synchronized (this) {
             calls = new ArrayList<>(mCallsByCallId.values());
@@ -348,7 +349,7 @@ public class MXCallsManager {
      */
     public boolean hasActiveCalls() {
         synchronized (this) {
-            ArrayList<String> callIdsToRemove = new ArrayList<>();
+            List<String> callIdsToRemove = new ArrayList<>();
 
             Set<String> callIds = mCallsByCallId.keySet();
 
@@ -949,7 +950,7 @@ public class MXCallsManager {
     // at docs/conferencing.md for more info.
     private static final String USER_PREFIX = "fs_";
     private static final String DOMAIN = "matrix.org";
-    private static final HashMap<String, String> mConferenceUserIdByRoomId = new HashMap<>();
+    private static final Map<String, String> mConferenceUserIdByRoomId = new HashMap<>();
 
     /**
      * Return the id of the conference user dedicated for a room Id

@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -77,7 +78,7 @@ public class CryptoRestTest {
         Context context = InstrumentationRegistry.getContext();
 
         createBobAccount();
-        final HashMap<String, Object> results = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
 
         String ed25519key = "wV5E3EUSHpHuoZLljNzojlabjGdXT3Mz7rugG9zgbkI";
 
@@ -85,7 +86,7 @@ public class CryptoRestTest {
         bobDevice.userId = mBobSession.getMyUserId();
         bobDevice.algorithms = Arrays.asList(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM);
 
-        HashMap<String, String> keysMap = new HashMap();
+        Map<String, String> keysMap = new HashMap();
         keysMap.put("ed25519:" + bobDevice.deviceId, ed25519key);
         bobDevice.keys = keysMap;
 
@@ -175,8 +176,8 @@ public class CryptoRestTest {
 
         createBobAccount();
 
-        final HashMap<String, Object> results = new HashMap<>();
-        final HashMap<String, Object> otks = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
+        final Map<String, Object> otks = new HashMap<>();
 
         otks.put("curve25519:AAAABQ", "ueuHES/Q0P1MZ4J3IUpC8iQTkgQNX66ZpxVLUaTDuB8");
         otks.put("curve25519:AAAABA", "PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs");
@@ -224,16 +225,16 @@ public class CryptoRestTest {
         createBobAccount();
         createAliceAccount();
 
-        final HashMap<String, Object> results = new HashMap<>();
-        final HashMap<String, Object> otks = new HashMap<>();
+        final Map<String, Object> results = new HashMap<>();
+        final Map<String, Object> otks = new HashMap<>();
 
         {
-            HashMap<String, Object> map = new HashMap<>();
+            Map<String, Object> map = new HashMap<>();
             map.put("key", "ueuHES/Q0P1MZ4J3IUpC8iQTkgQNX66ZpxVLUaTDuB8");
 
-            HashMap<String, String> signaturesubMap = new HashMap<>();
+            Map<String, String> signaturesubMap = new HashMap<>();
             signaturesubMap.put("ed25519:deviceId1", "signature1");
-            HashMap<String, Object> signatureMap = new HashMap<>();
+            Map<String, Object> signatureMap = new HashMap<>();
             signatureMap.put("@user1", signaturesubMap);
             map.put("signatures", signatureMap);
 
@@ -241,12 +242,12 @@ public class CryptoRestTest {
         }
 
         {
-            HashMap<String, Object> map = new HashMap<>();
+            Map<String, Object> map = new HashMap<>();
             map.put("key", "PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs");
 
-            HashMap<String, String> signaturesubMap = new HashMap<>();
+            Map<String, String> signaturesubMap = new HashMap<>();
             signaturesubMap.put("ed25519:deviceId2", "signature2");
-            HashMap<String, Object> signatureMap = new HashMap<>();
+            Map<String, Object> signatureMap = new HashMap<>();
             signatureMap.put("@user2", signaturesubMap);
             map.put("signatures", signatureMap);
 
@@ -325,7 +326,7 @@ public class CryptoRestTest {
         Assert.assertTrue(TextUtils.equals(bobOtk.value, "PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs"));
         Assert.assertTrue(null != bobOtk.signatures);
 
-        ArrayList<String> keys = new ArrayList<>(bobOtk.signatures.keySet());
+        List<String> keys = new ArrayList<>(bobOtk.signatures.keySet());
         Assert.assertTrue(keys.size() == 1);
 
 

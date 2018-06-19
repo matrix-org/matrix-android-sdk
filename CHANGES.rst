@@ -14,6 +14,8 @@ Bugfix:
 
 API Change:
  - New API: add device_id param to LoginRestClient.loginWithUser()
+ - API change: Event.isUnkownDevice() as been renamed to Event.isUnknownDevice() (typo)
+ - Some APIs has changed to use interface instead of implementation as type (ex: "Map" instead of "HashMap")
 
 Translations:
  -
@@ -23,6 +25,7 @@ Others:
 
 Build:
  - Add script to check code quality
+ - Travis will now check if CHANGES.rst has been modified for each PR
 
 Changes to Matrix Android SDK in 0.9.5 (2018-06-01)
 =======================================================
@@ -257,7 +260,7 @@ Improvements:
 
 * Improve the catchup synchronisation (reduce the number of stored events)
 * Refactor the state events storage format to reduce its size.
-* Improve the backward / fordward management to avoid having UI lags.
+* Improve the backward / forward management to avoid having UI lags.
 
 Bugfixes:
 

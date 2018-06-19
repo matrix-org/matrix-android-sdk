@@ -54,6 +54,7 @@ import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -554,7 +555,7 @@ public class MXWebRtcCall extends MXCall {
         }
 
         // build ICE servers list
-        ArrayList<PeerConnection.IceServer> iceServers = new ArrayList<>();
+        List<PeerConnection.IceServer> iceServers = new ArrayList<>();
 
         if (null != mTurnServer) {
             try {
@@ -1423,7 +1424,7 @@ public class MXWebRtcCall extends MXCall {
         Log.d(LOG_TAG, "## onNewCandidates(): call state " + getCallState() + " with candidates " + candidates);
 
         if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mPeerConnection)) {
-            ArrayList<IceCandidate> candidatesList = new ArrayList<>();
+            List<IceCandidate> candidatesList = new ArrayList<>();
 
             // convert the JSON to IceCandidate
             for (int index = 0; index < candidates.size(); index++) {

@@ -97,11 +97,11 @@ public class MXCrypto {
     public IMXCryptoStore mCryptoStore;
 
     // MXEncrypting instance for each room.
-    private final HashMap<String, IMXEncrypting> mRoomEncryptors;
+    private final Map<String, IMXEncrypting> mRoomEncryptors;
 
     // A map from algorithm to MXDecrypting instance, for each room
-    private final HashMap<String, /* room id */
-            HashMap<String /* algorithm */, IMXDecrypting>> mRoomDecryptors;
+    private final Map<String, /* room id */
+            Map<String /* algorithm */, IMXDecrypting>> mRoomDecryptors;
 
     // Our device keys
     private MXDeviceInfo mMyDevice;
@@ -162,7 +162,7 @@ public class MXCrypto {
     };
 
     // initialization callbacks
-    private final ArrayList<ApiCallback<Void>> mInitializationCallbacks = new ArrayList();
+    private final List<ApiCallback<Void>> mInitializationCallbacks = new ArrayList();
 
     // Warn the user if some new devices are detected while encrypting a message.
     private boolean mWarnOnUnknownDevices = true;
@@ -212,7 +212,7 @@ public class MXCrypto {
 
         mDevicesList = new MXDeviceList(matrixSession, this);
 
-        HashMap<String, String> keys = new HashMap<>();
+        Map<String, String> keys = new HashMap<>();
 
         if (!TextUtils.isEmpty(mOlmDevice.getDeviceEd25519Key())) {
             keys.put("ed25519:" + mSession.getCredentials().deviceId, mOlmDevice.getDeviceEd25519Key());
@@ -230,7 +230,7 @@ public class MXCrypto {
         // Add our own deviceinfo to the store
         Map<String, MXDeviceInfo> endToEndDevicesForUser = mCryptoStore.getUserDevices(mSession.getMyUserId());
 
-        HashMap<String, MXDeviceInfo> myDevices;
+        Map<String, MXDeviceInfo> myDevices;
 
         if (null != endToEndDevicesForUser) {
             myDevices = new HashMap<>(endToEndDevicesForUser);
@@ -664,7 +664,7 @@ public class MXCrypto {
             }
 
             if (!TextUtils.isEmpty(userId)) {
-                final ArrayList<MXDeviceInfo> result = new ArrayList<>();
+                final List<MXDeviceInfo> result = new ArrayList<>();
                 final CountDownLatch lock = new CountDownLatch(1);
 
                 getDecryptingThreadHandler().post(new Runnable() {
@@ -813,7 +813,7 @@ public class MXCrypto {
             return;
         }
 
-        final ArrayList<String> userRoomIds = new ArrayList<>();
+        final List<String> userRoomIds = new ArrayList<>();
 
         Collection<Room> rooms = mSession.getDataHandler().getStore().getRooms();
 
@@ -985,7 +985,7 @@ public class MXCrypto {
     public void ensureOlmSessionsForUsers(List<String> users, final ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>> callback) {
         Log.d(LOG_TAG, "## ensureOlmSessionsForUsers() : ensureOlmSessionsForUsers " + users);
 
-        HashMap<String /* userId */, ArrayList<MXDeviceInfo>> devicesByUser = new HashMap<>();
+        Map<String /* userId */, List<MXDeviceInfo>> devicesByUser = new HashMap<>();
 
         for (String userId : users) {
             devicesByUser.put(userId, new ArrayList<MXDeviceInfo>());
@@ -1020,16 +1020,16 @@ public class MXCrypto {
      * @param devicesByUser a map from userid to list of devices.
      * @param callback      the asynchronous callback
      */
-    public void ensureOlmSessionsForDevices(final HashMap<String, ArrayList<MXDeviceInfo>> devicesByUser,
+    public void ensureOlmSessionsForDevices(final Map<String, List<MXDeviceInfo>> devicesByUser,
                                             final ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>> callback) {
-        ArrayList<MXDeviceInfo> devicesWithoutSession = new ArrayList<>();
+        List<MXDeviceInfo> devicesWithoutSession = new ArrayList<>();
 
         final MXUsersDevicesMap<MXOlmSessionResult> results = new MXUsersDevicesMap<>();
 
         Set<String> userIds = devicesByUser.keySet();
 
         for (String userId : userIds) {
-            ArrayList<MXDeviceInfo> deviceInfos = devicesByUser.get(userId);
+            List<MXDeviceInfo> deviceInfos = devicesByUser.get(userId);
 
             for (MXDeviceInfo deviceInfo : deviceInfos) {
                 String deviceId = deviceInfo.deviceId;
@@ -1087,7 +1087,7 @@ public class MXCrypto {
                             Set<String> userIds = devicesByUser.keySet();
 
                             for (String userId : userIds) {
-                                ArrayList<MXDeviceInfo> deviceInfos = devicesByUser.get(userId);
+                                List<MXDeviceInfo> deviceInfos = devicesByUser.get(userId);
 
                                 for (MXDeviceInfo deviceInfo : deviceInfos) {
 
@@ -1262,7 +1262,7 @@ public class MXCrypto {
         }
 
         // just as you are sending a secret message?
-        final ArrayList<String> userdIds = new ArrayList<>();
+        final List<String> userdIds = new ArrayList<>();
 
         Collection<RoomMember> joinedMembers = room.getJoinedMembers();
 
@@ -1447,15 +1447,15 @@ public class MXCrypto {
             return new HashMap<>();
         }
 
-        HashMap<String, MXDeviceInfo> deviceInfoParticipantKey = new HashMap<>();
-        ArrayList<String> participantKeys = new ArrayList<>();
+        Map<String, MXDeviceInfo> deviceInfoParticipantKey = new HashMap<>();
+        List<String> participantKeys = new ArrayList<>();
 
         for (MXDeviceInfo di : deviceInfos) {
             participantKeys.add(di.identityKey());
             deviceInfoParticipantKey.put(di.identityKey(), di);
         }
 
-        HashMap<String, Object> payloadJson = new HashMap<>(payloadFields);
+        Map<String, Object> payloadJson = new HashMap<>(payloadFields);
 
         payloadJson.put("sender", mSession.getMyUserId());
         payloadJson.put("sender_device", mSession.getCredentials().deviceId);
@@ -1468,11 +1468,11 @@ public class MXCrypto {
         // homeserver signed by the ed25519 key this proves that
         // the curve25519 key and the ed25519 key are owned by
         // the same device.
-        HashMap<String, String> keysMap = new HashMap<>();
+        Map<String, String> keysMap = new HashMap<>();
         keysMap.put("ed25519", mOlmDevice.getDeviceEd25519Key());
         payloadJson.put("keys", keysMap);
 
-        HashMap<String, Object> ciphertext = new HashMap<>();
+        Map<String, Object> ciphertext = new HashMap<>();
 
         for (String deviceKey : participantKeys) {
             String sessionId = mOlmDevice.getSessionId(deviceKey);
@@ -1483,7 +1483,7 @@ public class MXCrypto {
 
                 payloadJson.put("recipient", deviceInfo.userId);
 
-                HashMap<String, String> recipientsKeysMap = new HashMap<>();
+                Map<String, String> recipientsKeysMap = new HashMap<>();
                 recipientsKeysMap.put("ed25519", deviceInfo.fingerprint());
                 payloadJson.put("recipient_keys", recipientsKeysMap);
 
@@ -1493,7 +1493,7 @@ public class MXCrypto {
             }
         }
 
-        HashMap<String, Object> res = new HashMap<>();
+        Map<String, Object> res = new HashMap<>();
 
         res.put("algorithm", MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM);
         res.put("sender_key", mOlmDevice.getDeviceCurve25519Key());
@@ -1541,7 +1541,7 @@ public class MXCrypto {
      * @return {Object<string>} userid->userid map (should be a Set but argh ES6)
      */
     private List<String> getE2eRoomMembers() {
-        HashSet<String> list = new HashSet<>();
+        Set<String> list = new HashSet<>();
         List<Room> rooms = getE2eRooms();
 
         for (Room r : rooms) {
@@ -1836,10 +1836,10 @@ public class MXCrypto {
         // Sign it
         String signature = mOlmDevice.signJSON(mMyDevice.signalableJSONDictionary());
 
-        HashMap<String, String> submap = new HashMap<>();
+        Map<String, String> submap = new HashMap<>();
         submap.put("ed25519:" + mMyDevice.deviceId, signature);
 
-        HashMap<String, Map<String, String>> map = new HashMap<>();
+        Map<String, Map<String, String>> map = new HashMap<>();
         map.put(mSession.getMyUserId(), submap);
 
         mMyDevice.signatures = map;
@@ -2116,21 +2116,21 @@ public class MXCrypto {
      */
     private void uploadOneTimeKeys(final ApiCallback<KeysUploadResponse> callback) {
         final Map<String, Map<String, String>> oneTimeKeys = mOlmDevice.getOneTimeKeys();
-        HashMap<String, Object> oneTimeJson = new HashMap<>();
+        Map<String, Object> oneTimeJson = new HashMap<>();
 
         Map<String, String> curve25519Map = oneTimeKeys.get("curve25519");
 
         if (null != curve25519Map) {
             for (String key_id : curve25519Map.keySet()) {
-                HashMap<String, Object> k = new HashMap<>();
+                Map<String, Object> k = new HashMap<>();
                 k.put("key", curve25519Map.get(key_id));
 
                 // the key is also signed
                 String signature = mOlmDevice.signJSON(k);
-                HashMap<String, String> submap = new HashMap<>();
+                Map<String, String> submap = new HashMap<>();
                 submap.put("ed25519:" + mMyDevice.deviceId, signature);
 
-                HashMap<String, Map<String, String>> map = new HashMap<>();
+                Map<String, Map<String, String>> map = new HashMap<>();
                 map.put(mSession.getMyUserId(), submap);
                 k.put("signatures", map);
 
@@ -2260,7 +2260,7 @@ public class MXCrypto {
                     return;
                 }
 
-                ArrayList<Map<String, Object>> exportedSessions = new ArrayList<>();
+                List<Map<String, Object>> exportedSessions = new ArrayList<>();
 
                 List<MXOlmInboundGroupSession2> inboundGroupSessions = mCryptoStore.getInboundGroupSessions();
 
@@ -2459,7 +2459,7 @@ public class MXCrypto {
      */
     public void setGlobalBlacklistUnverifiedDevices(final boolean block, final ApiCallback<Void> callback) {
         final String userId = mSession.getMyUserId();
-        final ArrayList<String> userRoomIds = new ArrayList<>();
+        final List<String> userRoomIds = new ArrayList<>();
 
         Collection<Room> rooms = mSession.getDataHandler().getStore().getRooms();
 

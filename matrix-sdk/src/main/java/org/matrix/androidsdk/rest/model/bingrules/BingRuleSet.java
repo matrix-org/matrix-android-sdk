@@ -1,6 +1,7 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -163,7 +164,7 @@ public class BingRuleSet {
      * @return the content rules list.
      */
     public List<BingRule> getContentRules() {
-        ArrayList<BingRule> res = new ArrayList<>();
+        List<BingRule> res = new ArrayList<>();
 
         if (null != content) {
             for (BingRule rule : content) {

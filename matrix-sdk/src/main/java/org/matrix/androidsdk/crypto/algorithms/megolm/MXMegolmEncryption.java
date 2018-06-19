@@ -64,7 +64,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
     // true when there is an HTTP operation in progress
     private boolean mShareOperationIsProgress;
 
-    private final ArrayList<MXQueuedEncryption> mPendingEncryptions = new ArrayList<>();
+    private final List<MXQueuedEncryption> mPendingEncryptions = new ArrayList<>();
 
     // Session rotation periods
     private int mSessionRotationPeriodMsgs;
@@ -88,7 +88,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
      * @return a snapshot of the pending encryptions
      */
     private List<MXQueuedEncryption> getPendingEncryptions() {
-        ArrayList<MXQueuedEncryption> list = new ArrayList<>();
+        List<MXQueuedEncryption> list = new ArrayList<>();
 
         synchronized (mPendingEncryptions) {
             list.addAll(mPendingEncryptions);
@@ -231,7 +231,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
         MXOlmDevice olmDevice = mCrypto.getOlmDevice();
         final String sessionId = olmDevice.createOutboundGroupSession();
 
-        HashMap<String, String> keysClaimedMap = new HashMap<>();
+        Map<String, String> keysClaimedMap = new HashMap<>();
         keysClaimedMap.put("ed25519", olmDevice.getDeviceEd25519Key());
 
         olmDevice.addInboundGroupSession(sessionId, olmDevice.getSessionKey(sessionId), mRoomId, olmDevice.getDeviceCurve25519Key(),
@@ -265,7 +265,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
         final MXOutboundSessionInfo fSession = session;
 
-        HashMap<String, /* userId */ArrayList<MXDeviceInfo>> shareMap = new HashMap<>();
+        Map<String, /* userId */List<MXDeviceInfo>> shareMap = new HashMap<>();
 
         List<String> userIds = devicesInRoom.getUserIds();
 
@@ -335,7 +335,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
      * @param callback       the asynchronous callback
      */
     private void shareKey(final MXOutboundSessionInfo session,
-                          final HashMap<String, ArrayList<MXDeviceInfo>> devicesByUsers,
+                          final Map<String, List<MXDeviceInfo>> devicesByUsers,
                           final ApiCallback<Void> callback) {
         // nothing to send, the task is done
         if (0 == devicesByUsers.size()) {
@@ -354,13 +354,13 @@ public class MXMegolmEncryption implements IMXEncrypting {
         }
 
         // reduce the map size to avoid request timeout when there are too devices (Users size  * devices per user)
-        HashMap<String, ArrayList<MXDeviceInfo>> subMap = new HashMap<>();
+        Map<String, List<MXDeviceInfo>> subMap = new HashMap<>();
 
-        final ArrayList<String> userIds = new ArrayList<>();
+        final List<String> userIds = new ArrayList<>();
         int devicesCount = 0;
 
         for (String userId : devicesByUsers.keySet()) {
-            ArrayList<MXDeviceInfo> devicesList = devicesByUsers.get(userId);
+            List<MXDeviceInfo> devicesList = devicesByUsers.get(userId);
 
             userIds.add(userId);
             subMap.put(userId, devicesList);
@@ -421,19 +421,19 @@ public class MXMegolmEncryption implements IMXEncrypting {
      * @param callback      the asynchronous callback
      */
     private void shareUserDevicesKey(final MXOutboundSessionInfo session,
-                                     final HashMap<String, ArrayList<MXDeviceInfo>> devicesByUser,
+                                     final Map<String, List<MXDeviceInfo>> devicesByUser,
                                      final ApiCallback<Void> callback) {
         final String sessionKey = mCrypto.getOlmDevice().getSessionKey(session.mSessionId);
         final int chainIndex = mCrypto.getOlmDevice().getMessageIndex(session.mSessionId);
 
-        HashMap<String, Object> submap = new HashMap<>();
+        Map<String, Object> submap = new HashMap<>();
         submap.put("algorithm", MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM);
         submap.put("room_id", mRoomId);
         submap.put("session_id", session.mSessionId);
         submap.put("session_key", sessionKey);
         submap.put("chain_index", chainIndex);
 
-        final HashMap<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("type", Event.EVENT_TYPE_ROOM_KEY);
         payload.put("content", submap);
 
@@ -453,7 +453,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                         List<String> userIds = results.getUserIds();
 
                         for (String userId : userIds) {
-                            ArrayList<MXDeviceInfo> devicesToShareWith = devicesByUser.get(userId);
+                            List<MXDeviceInfo> devicesToShareWith = devicesByUser.get(userId);
 
                             for (MXDeviceInfo deviceInfo : devicesToShareWith) {
                                 String deviceID = deviceInfo.deviceId;
@@ -601,7 +601,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
             // Everything is in place, encrypt all pending events
             for (MXQueuedEncryption queuedEncryption : queuedEncryptions) {
-                HashMap<String, Object> payloadJson = new HashMap<>();
+                Map<String, Object> payloadJson = new HashMap<>();
 
                 payloadJson.put("room_id", mRoomId);
                 payloadJson.put("type", queuedEncryption.mEventType);
@@ -610,7 +610,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                 String payloadString = JsonUtils.convertToUTF8(JsonUtils.canonicalize(JsonUtils.getGson(false).toJsonTree(payloadJson)).toString());
                 String ciphertext = mCrypto.getOlmDevice().encryptGroupMessage(session.mSessionId, payloadString);
 
-                final HashMap<String, Object> map = new HashMap<>();
+                final Map<String, Object> map = new HashMap<>();
                 map.put("algorithm", MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM);
                 map.put("sender_key", mCrypto.getOlmDevice().getDeviceCurve25519Key());
                 map.put("ciphertext", ciphertext);
