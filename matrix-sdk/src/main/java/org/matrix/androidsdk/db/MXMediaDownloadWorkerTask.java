@@ -763,7 +763,8 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
 
                 // if some medias are not found
                 // do not try to reload them until the next application launch.
-                // Ignore here the case where the media is encrypted and the av scanner is enabled because the same url is used for all encrypted media.
+                // Apply this only for unencrypted media when the av scanner is enabled
+                // because the same url is used for all encrypted media.
                 if (null == mEncryptedFileInfo || !mIsAvScannerEnabled) {
                     synchronized (mUnreachableUrls) {
                         mUnreachableUrls.add(mUrl);
@@ -779,7 +780,8 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
 
                 // if some medias are not found
                 // do not try to reload them until the next application launch.
-                // Ignore here the case where the media is encrypted and the av scanner is enabled because the same url is used for all encrypted media.
+                // Apply this only for unencrypted media when the av scanner is enabled
+                // because the same url is used for all encrypted media.
                 if (null == mEncryptedFileInfo || !mIsAvScannerEnabled) {
                     synchronized (mUnreachableUrls) {
                         mUnreachableUrls.add(mUrl);
