@@ -761,11 +761,12 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                 //Log.d(LOG_TAG, "MediaWorkerTask " + mUrl + " does not exist");
                 Log.d(LOG_TAG, "MediaWorkerTask an url does not exist");
 
-                // if some medias are not found
+                // If some medias are not found,
                 // do not try to reload them until the next application launch.
-                // Apply this only for unencrypted media when the av scanner is enabled
-                // because the same url is used for all encrypted media.
-                if (null == mEncryptedFileInfo || !mIsAvScannerEnabled) {
+                // We mark this url as unreachable.
+                // We can do this only if the av scanner is disabled or if the media is unencrypted,
+                // (because the same url is used for all encrypted media when the av scanner is enabled).
+                if (!mIsAvScannerEnabled || null == mEncryptedFileInfo) {
                     synchronized (mUnreachableUrls) {
                         mUnreachableUrls.add(mUrl);
                     }
@@ -780,9 +781,10 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
 
                 // if some medias are not found
                 // do not try to reload them until the next application launch.
-                // Apply this only for unencrypted media when the av scanner is enabled
-                // because the same url is used for all encrypted media.
-                if (null == mEncryptedFileInfo || !mIsAvScannerEnabled) {
+                // We mark this url as unreachable.
+                // We can do this only if the av scanner is disabled or if the media is unencrypted,
+                // (because the same url is used for all encrypted media when the av scanner is enabled).
+                if (!mIsAvScannerEnabled || null == mEncryptedFileInfo) {
                     synchronized (mUnreachableUrls) {
                         mUnreachableUrls.add(mUrl);
                     }
