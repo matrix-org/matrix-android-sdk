@@ -922,7 +922,7 @@ public class MXCrypto {
 
             Room room = mSession.getDataHandler().getRoom(roomId);
             if (null != room) {
-                Collection<RoomMember> members = room.getJoinedMembers();
+                Collection<RoomMember> members = room.getActiveMembers();
                 List<String> userIds = new ArrayList<>();
 
                 for (RoomMember m : members) {
@@ -1264,9 +1264,9 @@ public class MXCrypto {
         // just as you are sending a secret message?
         final List<String> userdIds = new ArrayList<>();
 
-        Collection<RoomMember> joinedMembers = room.getJoinedMembers();
+        Collection<RoomMember> activeMembers = room.getActiveMembers();
 
-        for (RoomMember m : joinedMembers) {
+        for (RoomMember m : activeMembers) {
             userdIds.add(m.getUserId());
         }
 
