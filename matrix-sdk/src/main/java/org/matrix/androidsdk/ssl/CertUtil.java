@@ -26,6 +26,7 @@ import java.security.MessageDigest;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Collections;
 import java.util.List;
 
 import javax.net.ssl.HostnameVerifier;
@@ -37,6 +38,10 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+
+import okhttp3.CipherSuite;
+import okhttp3.ConnectionSpec;
+import okhttp3.TlsVersion;
 
 /**
  * Various utility classes for dealing with X509Certificates
@@ -222,5 +227,33 @@ public class CertUtil {
                 return false;
             }
         };
+    }
+
+    /**
+     * Create a list of accepted TLS specifications for a hs config.
+     *
+     * @param hsConfig the hs config.
+     * @return a list of accepted TLS specifications.
+     */
+    public static List<ConnectionSpec> newConnectionSpecs(HomeServerConnectionConfig hsConfig) {
+        final ConnectionSpec.Builder builder = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS);
+
+        final List<TlsVersion> tlsVersions = hsConfig.getAcceptedTlsVersions();
+        if (null != tlsVersions) {
+            builder.tlsVersions(tlsVersions.toArray(new TlsVersion[0]));
+        } else {
+            builder.allEnabledTlsVersions();
+        }
+
+        final List<CipherSuite> tlsCipherSuites = hsConfig.getAcceptedTlsCipherSuites();
+        if (null != tlsCipherSuites) {
+            builder.cipherSuites(tlsCipherSuites.toArray(new CipherSuite[0]));
+        } else {
+            builder.allEnabledCipherSuites();
+        }
+
+        builder.supportsTlsExtensions(hsConfig.shouldAcceptTlsExtensions());
+
+        return Collections.singletonList(builder.build());
     }
 }

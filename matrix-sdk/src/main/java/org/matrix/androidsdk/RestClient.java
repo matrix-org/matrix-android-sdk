@@ -190,6 +190,7 @@ public class RestClient<T> {
             Pair<SSLSocketFactory, X509TrustManager> pair = CertUtil.newPinnedSSLSocketFactory(hsConfig);
             okHttpClientBuilder.sslSocketFactory(pair.first, pair.second);
             okHttpClientBuilder.hostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
+            okHttpClientBuilder.connectionSpecs(CertUtil.newConnectionSpecs(hsConfig));
         } catch (Exception e) {
             Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage());
         }
