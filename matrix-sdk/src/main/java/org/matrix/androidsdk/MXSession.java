@@ -24,12 +24,14 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCrypto;
+import org.matrix.androidsdk.crypto.MXCryptoConfig;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
@@ -2180,6 +2182,17 @@ public class MXSession {
     }
 
     /**
+     * Optional set of parameters used to configure/customize the e2e encryption
+     */
+    private MXCryptoConfig mCryptoConfig = null;
+    public void setCryptoConfig(@Nullable MXCryptoConfig cryptoConfig) {
+        mCryptoConfig = cryptoConfig;
+        if (null != mCrypto) {
+            mCrypto.setCryptoConfig(mCryptoConfig);
+        }
+    }
+
+    /**
      * When the encryption is toogled, the room summaries must be updated
      * to display the right messages.
      */
@@ -2231,6 +2244,7 @@ public class MXSession {
             }
 
             mCrypto = new MXCrypto(MXSession.this, fileCryptoStore);
+            mCrypto.setCryptoConfig(mCryptoConfig);
             mDataHandler.setCrypto(mCrypto);
             // the room summaries are not stored with decrypted content
             decryptRoomSummaries();
@@ -2256,6 +2270,7 @@ public class MXSession {
                 fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
                 fileCryptoStore.open();
                 mCrypto = new MXCrypto(this, fileCryptoStore);
+                mCrypto.setCryptoConfig(mCryptoConfig);
                 mCrypto.start(true, new SimpleApiCallback<Void>(callback) {
                     @Override
                     public void onSuccess(Void info) {
