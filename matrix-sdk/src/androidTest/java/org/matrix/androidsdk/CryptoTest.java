@@ -144,7 +144,7 @@ public class CryptoTest {
         final List<MXDeviceInfo> myUserDevices = mBobSession.getCrypto().getUserDevices(mBobSession.getMyUserId());
 
         Assert.assertNotNull(myUserDevices);
-        Assert.assertTrue(1 == myUserDevices.size());
+        Assert.assertEquals(1, myUserDevices.size());
 
         final Credentials bobCredentials = mBobSession.getCredentials();
 
@@ -216,7 +216,7 @@ public class CryptoTest {
         Assert.assertTrue(TextUtils.equals(deviceEd25519Key, crypto.getOlmDevice().getDeviceEd25519Key()));
 
         List<MXDeviceInfo> myUserDevices2 = bobSession2.getCrypto().getUserDevices(bobSession2.getMyUserId());
-        Assert.assertTrue(1 == myUserDevices2.size());
+        Assert.assertEquals(1, myUserDevices2.size());
         Assert.assertTrue(TextUtils.equals(myUserDevices2.get(0).deviceId, myUserDevices.get(0).deviceId));
 
         mBobSession.clear(context);
@@ -273,8 +273,8 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("downloadKeys"));
         MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = (MXUsersDevicesMap<MXDeviceInfo>) results.get("downloadKeys");
 
-        Assert.assertTrue(2 == usersDevicesInfoMap.getUserIds().size());
-        Assert.assertTrue(1 == usersDevicesInfoMap.getUserDeviceIds(mAliceSession.getMyUserId()).size());
+        Assert.assertEquals(2, usersDevicesInfoMap.getUserIds().size());
+        Assert.assertEquals(1, usersDevicesInfoMap.getUserDeviceIds(mAliceSession.getMyUserId()).size());
 
         MXDeviceInfo aliceDeviceFromBobPOV = usersDevicesInfoMap.getObject("AliceDevice", mAliceSession.getMyUserId());
         Assert.assertNotNull(aliceDeviceFromBobPOV);
@@ -478,7 +478,7 @@ public class CryptoTest {
 
         MXUsersDevicesMap<MXOlmSessionResult> result = (MXUsersDevicesMap<MXOlmSessionResult>) results.get("ensureOlmSessionsForUsers");
 
-        Assert.assertTrue(result.getUserIds().size() == 1);
+        Assert.assertEquals(1, result.getUserIds().size());
 
         MXOlmSessionResult sessionWithAliceDevice = result.getObject("AliceDevice", mAliceSession.getMyUserId());
 
@@ -689,7 +689,7 @@ public class CryptoTest {
         Assert.assertTrue(TextUtils.equals(error.errcode, MXCryptoError.UNKNOWN_DEVICES_CODE));
         MXUsersDevicesMap<MXDeviceInfo> unknownDevices = (MXUsersDevicesMap<MXDeviceInfo>) error.mExceptionData;
         List<String> deviceInfos = unknownDevices.getUserDeviceIds(mBobSession.getMyUserId());
-        Assert.assertTrue(1 == deviceInfos.size());
+        Assert.assertEquals(1, deviceInfos.size());
         Assert.assertTrue(TextUtils.equals(deviceInfos.get(0), mBobSession.getCrypto().getMyDevice().deviceId));
 
         CountDownLatch lock2 = new CountDownLatch(1);
@@ -737,11 +737,11 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
         Assert.assertTrue(results.containsKey("onLiveEvent"));
 
-        Assert.assertTrue(mBobSession.getCrypto().getDeviceTrackingStatus(mBobSession.getMyUserId()) == MXDeviceList.TRACKING_STATUS_UP_TO_DATE);
-        Assert.assertTrue(mBobSession.getCrypto().getDeviceTrackingStatus(mAliceSession.getMyUserId()) == MXDeviceList.TRACKING_STATUS_UP_TO_DATE);
+        Assert.assertEquals(MXDeviceList.TRACKING_STATUS_UP_TO_DATE, mBobSession.getCrypto().getDeviceTrackingStatus(mBobSession.getMyUserId()));
+        Assert.assertEquals(MXDeviceList.TRACKING_STATUS_UP_TO_DATE, mBobSession.getCrypto().getDeviceTrackingStatus(mAliceSession.getMyUserId()));
 
-        Assert.assertTrue(mAliceSession.getCrypto().getDeviceTrackingStatus(mBobSession.getMyUserId()) == MXDeviceList.TRACKING_STATUS_UP_TO_DATE);
-        Assert.assertTrue(mAliceSession.getCrypto().getDeviceTrackingStatus(mAliceSession.getMyUserId()) == MXDeviceList.TRACKING_STATUS_UP_TO_DATE);
+        Assert.assertEquals(MXDeviceList.TRACKING_STATUS_UP_TO_DATE, mAliceSession.getCrypto().getDeviceTrackingStatus(mBobSession.getMyUserId()));
+        Assert.assertEquals(MXDeviceList.TRACKING_STATUS_UP_TO_DATE, mAliceSession.getCrypto().getDeviceTrackingStatus(mAliceSession.getMyUserId()));
 
         mBobSession.clear(context);
     }
@@ -834,27 +834,27 @@ public class CryptoTest {
         roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(mReceivedMessagesFromAlice), mAliceSession), callback);
         list.get(list.size() - 1).await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
-        Assert.assertTrue(1 == mReceivedMessagesFromAlice);
+        Assert.assertEquals(1, mReceivedMessagesFromAlice);
 
         list.add(new CountDownLatch(1));
         roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(mReceivedMessagesFromBob), mBobSession), callback);
         list.get(list.size() - 1).await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(1 == mReceivedMessagesFromBob);
+        Assert.assertEquals(1, mReceivedMessagesFromBob);
 
         list.add(new CountDownLatch(1));
         roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(mReceivedMessagesFromBob), mBobSession), callback);
         list.get(list.size() - 1).await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(2 == mReceivedMessagesFromBob);
+        Assert.assertEquals(2, mReceivedMessagesFromBob);
 
         list.add(new CountDownLatch(1));
         roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(mReceivedMessagesFromBob), mBobSession), callback);
         list.get(list.size() - 1).await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(3 == mReceivedMessagesFromBob);
+        Assert.assertEquals(3, mReceivedMessagesFromBob);
 
         list.add(new CountDownLatch(1));
         roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(mReceivedMessagesFromAlice), mAliceSession), callback);
         list.get(list.size() - 1).await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(2 == mReceivedMessagesFromAlice);
+        Assert.assertEquals(2, mReceivedMessagesFromAlice);
     }
 
     @Test
@@ -1159,7 +1159,7 @@ public class CryptoTest {
 
         lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("backPaginate"));
-        Assert.assertTrue(receivedEvents.size() + " instead of 5", 5 == receivedEvents.size());
+        Assert.assertEquals(receivedEvents.size() + " instead of 5", 5, receivedEvents.size());
 
         checkEncryptedEvent(receivedEvents.get(0), mRoomId, messagesFromAlice.get(1), mAliceSession);
 
@@ -1211,7 +1211,7 @@ public class CryptoTest {
 
         lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("backPaginate"));
-        Assert.assertTrue(5 == receivedEvents.size());
+        Assert.assertEquals(5, receivedEvents.size());
 
         checkEncryptedEvent(receivedEvents.get(0), mRoomId, messagesFromAlice.get(1), mAliceSession);
 
@@ -1675,7 +1675,7 @@ public class CryptoTest {
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
-        Assert.assertTrue(1 == receivedEvents.size());
+        Assert.assertEquals(1, receivedEvents.size());
 
         Event event = receivedEvents.get(0);
         Assert.assertTrue(checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession));
@@ -1764,7 +1764,7 @@ public class CryptoTest {
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
-        Assert.assertTrue(1 == receivedEvents.size());
+        Assert.assertEquals(1, receivedEvents.size());
 
         Event event = receivedEvents.get(0);
         Assert.assertTrue(checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession));
@@ -1805,7 +1805,7 @@ public class CryptoTest {
         // the message should be decrypted later
         lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onEventDecrypted"));
-        Assert.assertTrue(1 == receivedEvents.size());
+        Assert.assertEquals(1, receivedEvents.size());
 
         Assert.assertTrue(checkEncryptedEvent(receivedEvents.get(0), mRoomId, messageFromAlice, mAliceSession));
         Assert.assertNull(receivedEvents.get(0).getCryptoError());
@@ -1877,7 +1877,7 @@ public class CryptoTest {
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
-        Assert.assertTrue(1 == receivedEvents.size());
+        Assert.assertEquals(1, receivedEvents.size());
 
         Event event = receivedEvents.get(0);
         Assert.assertTrue(checkEncryptedEvent(event, mRoomId, aliceMessage1, mAliceSession));
@@ -1960,7 +1960,7 @@ public class CryptoTest {
         });
 
         lock4.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue("received event of type " + results.get("event4"), 1 == receivedEvents4.size());
+        Assert.assertEquals("received event of type " + results.get("event4"), 1, receivedEvents4.size());
 
         event = receivedEvents4.get(0);
         Assert.assertTrue(checkEncryptedEvent(event, mRoomId, aliceMessage2, mAliceSession));
@@ -2033,7 +2033,7 @@ public class CryptoTest {
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
-        Assert.assertTrue(1 == receivedEvents.size());
+        Assert.assertEquals(1, receivedEvents.size());
 
         Event event = receivedEvents.get(0);
         Assert.assertTrue(checkEncryptedEvent(event, mRoomId, aliceMessage1, mAliceSession));
@@ -2112,7 +2112,7 @@ public class CryptoTest {
         });
 
         lock4.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(1 == receivedEvents2.size());
+        Assert.assertEquals(1, receivedEvents2.size());
 
         event = receivedEvents2.get(0);
         Assert.assertTrue(checkEncryptedEvent(event, mRoomId, messageFromAlice2, aliceSession2));
@@ -2169,7 +2169,7 @@ public class CryptoTest {
         });
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(1 == receivedEvents.size());
+        Assert.assertEquals(1, receivedEvents.size());
 
         Event event = receivedEvents.get(0);
         Assert.assertTrue(checkEncryptedEvent(event, mRoomId, aliceMessage1, mAliceSession));
@@ -2224,7 +2224,7 @@ public class CryptoTest {
         });
 
         lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(1 == receivedEvents2.size());
+        Assert.assertEquals(1, receivedEvents2.size());
 
         event = receivedEvents2.get(0);
         Assert.assertNull(event.getClearEvent());
@@ -2280,7 +2280,7 @@ public class CryptoTest {
         });
 
         lock3.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(1 == receivedEvents3.size());
+        Assert.assertEquals(1, receivedEvents3.size());
 
         event = receivedEvents3.get(0);
         Assert.assertTrue(checkEncryptedEvent(event, mRoomId, aliceMessage3, mAliceSession));
@@ -2338,7 +2338,7 @@ public class CryptoTest {
         MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = (MXUsersDevicesMap<MXDeviceInfo>) results.get("downloadKeys");
 
         // We can get info only get for Bob
-        Assert.assertTrue(usersDevicesInfoMap.getMap().size() == 1);
+        Assert.assertEquals(1, usersDevicesInfoMap.getMap().size());
 
         List<String> bobDevices = usersDevicesInfoMap.getUserDeviceIds(mBobSession.getMyUserId());
 
@@ -2360,7 +2360,7 @@ public class CryptoTest {
                     @Override
                     public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
                         results.put("downloadKeys", info);
-    super.onSuccess(info);
+                        super.onSuccess(info);
                     }
                 });
 
@@ -2372,7 +2372,7 @@ public class CryptoTest {
         // MXCrypto.downloadKeys should return @[] for Bob to distinguish him from an unknown user
         List<String> bobDevices = usersDevicesInfoMap.getUserDeviceIds(mBobSession.getMyUserId());
         Assert.assertNotNull(bobDevices);
-        Assert.assertTrue(0 == bobDevices.size());
+        Assert.assertTrue(bobDevices.isEmpty());
 
         // try again
         // it should not failed
@@ -2742,7 +2742,7 @@ public class CryptoTest {
         });
 
         lock3.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(1 == receivedEvents.size());
+        Assert.assertEquals(1, receivedEvents.size());
 
         Event event = receivedEvents.get(0);
         Assert.assertTrue(checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession));
@@ -2812,7 +2812,7 @@ public class CryptoTest {
         });
 
         lock6.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(1 == receivedEvents2.size());
+        Assert.assertEquals(1, receivedEvents2.size());
 
         event = receivedEvents2.get(0);
         Assert.assertTrue(checkEncryptedEvent(event, mRoomId, message2FromAlice, mAliceSession));
@@ -2876,12 +2876,12 @@ public class CryptoTest {
 
         // only one bob device
         List<String> deviceInfos = unknownDevices.getUserDeviceIds(mBobSession.getMyUserId());
-        Assert.assertTrue(1 == deviceInfos.size());
+        Assert.assertEquals(1, deviceInfos.size());
         Assert.assertTrue(deviceInfos.contains(mBobSession.getCrypto().getMyDevice().deviceId));
 
         // only one Sam device
         deviceInfos = unknownDevices.getUserDeviceIds(mSamSession.getMyUserId());
-        Assert.assertTrue(1 == deviceInfos.size());
+        Assert.assertEquals(1, deviceInfos.size());
         Assert.assertTrue(deviceInfos.contains(mSamSession.getCrypto().getMyDevice().deviceId));
 
         CountDownLatch lock2 = new CountDownLatch(1);
@@ -3270,7 +3270,7 @@ public class CryptoTest {
         });
 
         lock4.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(1 == receivedEvents2.size());
+        Assert.assertEquals(1, receivedEvents2.size());
 
         Event event = receivedEvents2.get(0);
         Assert.assertTrue(checkEncryptedEvent(event, mRoomId, message2FromAlice, mAliceSession));
@@ -3705,7 +3705,7 @@ public class CryptoTest {
         roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(0), mAliceSession), callback);
         lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
-        Assert.assertTrue(mMessagesCount == 1);
+        Assert.assertEquals(1, mMessagesCount);
 
         lock = new CountDownLatch(1);
         list.clear();
@@ -3714,7 +3714,7 @@ public class CryptoTest {
         // android does not echo the messages sent from itself
         mMessagesCount++;
         lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(mMessagesCount == 2);
+        Assert.assertEquals(2, mMessagesCount);
 
         lock = new CountDownLatch(1);
         list.clear();
@@ -3723,7 +3723,7 @@ public class CryptoTest {
         // android does not echo the messages sent from itself
         mMessagesCount++;
         lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(mMessagesCount == 3);
+        Assert.assertEquals(3, mMessagesCount);
 
         lock = new CountDownLatch(1);
         list.clear();
@@ -3732,14 +3732,14 @@ public class CryptoTest {
         // android does not echo the messages sent from itself
         mMessagesCount++;
         lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(mMessagesCount == 4);
+        Assert.assertEquals(4, mMessagesCount);
 
         lock = new CountDownLatch(2);
         list.clear();
         list.add(lock);
         roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(1), mAliceSession), callback);
         lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(mMessagesCount == 5);
+        Assert.assertEquals(5, mMessagesCount);
     }
 
     private boolean checkEncryptedEvent(Event event, String roomId, String clearMessage, MXSession senderSession) throws Exception {
@@ -3758,7 +3758,7 @@ public class CryptoTest {
 
         Assert.assertTrue(TextUtils.equals(eventWireContent.get("device_id").getAsString(), senderSession.getCredentials().deviceId));
 
-        Assert.assertTrue(event.eventId != null);
+        Assert.assertNotNull(event.eventId);
         Assert.assertTrue(TextUtils.equals(event.roomId, roomId));
         Assert.assertTrue(TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE));
         Assert.assertTrue(event.getAge() < 10000);

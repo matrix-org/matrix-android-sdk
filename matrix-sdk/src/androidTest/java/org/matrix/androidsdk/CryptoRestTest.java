@@ -31,8 +31,6 @@ import org.matrix.androidsdk.crypto.MXCryptoAlgorithms;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXKey;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
 
@@ -105,8 +103,8 @@ public class CryptoRestTest {
         Assert.assertNotNull(keysUploadResponse);
         Assert.assertNotNull(keysUploadResponse.oneTimeKeyCounts);
 
-        Assert.assertTrue(0 == keysUploadResponse.oneTimeKeyCounts.size());
-        Assert.assertTrue(0 == keysUploadResponse.oneTimeKeyCountsForAlgorithm("deded"));
+        Assert.assertTrue(keysUploadResponse.oneTimeKeyCounts.isEmpty());
+        Assert.assertEquals(0, keysUploadResponse.oneTimeKeyCountsForAlgorithm("deded"));
 
         CountDownLatch lock1 = new CountDownLatch(1);
         mBobSession.getCryptoRestClient().downloadKeysForUsers(Arrays.asList(mBobSession.getMyUserId()), null, new TestApiCallback<KeysQueryResponse>(lock1) {
@@ -126,11 +124,11 @@ public class CryptoRestTest {
         MXUsersDevicesMap<MXDeviceInfo> deviceInfos = new MXUsersDevicesMap<>(keysQueryResponse.deviceKeys);
 
         Assert.assertNotNull(deviceInfos.getUserIds());
-        Assert.assertTrue(1 == deviceInfos.getUserIds().size());
+        Assert.assertEquals(1, deviceInfos.getUserIds().size());
 
         List<String> deviceIds = deviceInfos.getUserDeviceIds(mBobSession.getMyUserId());
         Assert.assertNotNull(deviceIds);
-        Assert.assertTrue(1 == deviceIds.size());
+        Assert.assertEquals(1, deviceIds.size());
 
         MXDeviceInfo bobDevice2 = deviceInfos.getObject("dev1", mBobSession.getMyUserId());
         Assert.assertNotNull(bobDevice2);
@@ -165,10 +163,10 @@ public class CryptoRestTest {
         KeysUploadResponse keysUploadResponse = (KeysUploadResponse) results.get("keysUploadResponse");
         Assert.assertNotNull(keysUploadResponse);
         Assert.assertNotNull(keysUploadResponse.oneTimeKeyCounts);
-        Assert.assertTrue(1 == keysUploadResponse.oneTimeKeyCounts.size());
+        Assert.assertEquals(1, keysUploadResponse.oneTimeKeyCounts.size());
 
-        Assert.assertTrue(2 == keysUploadResponse.oneTimeKeyCountsForAlgorithm("curve25519"));
-        Assert.assertTrue(0 == keysUploadResponse.oneTimeKeyCountsForAlgorithm("deded"));
+        Assert.assertEquals(2, keysUploadResponse.oneTimeKeyCountsForAlgorithm("curve25519"));
+        Assert.assertEquals(0, keysUploadResponse.oneTimeKeyCountsForAlgorithm("deded"));
 
         mBobSession.clear(context);
     }
@@ -240,7 +238,7 @@ public class CryptoRestTest {
         MXUsersDevicesMap<MXKey> oneTimeKeys = (MXUsersDevicesMap<MXKey>) results.get("usersDevicesMap");
         Assert.assertNotNull(oneTimeKeys);
         Assert.assertNotNull(oneTimeKeys.getMap());
-        Assert.assertTrue(1 == oneTimeKeys.getMap().size());
+        Assert.assertEquals(1, oneTimeKeys.getMap().size());
 
         MXKey bobOtk = oneTimeKeys.getObject("dev1", mBobSession.getMyUserId());
         Assert.assertNotNull(bobOtk);
@@ -252,7 +250,7 @@ public class CryptoRestTest {
         Assert.assertNotNull(bobOtk.signatures);
 
         List<String> keys = new ArrayList<>(bobOtk.signatures.keySet());
-        Assert.assertTrue(keys.size() == 1);
+        Assert.assertEquals(1, keys.size());
 
 
         mBobSession.clear(context);
