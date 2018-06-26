@@ -92,7 +92,7 @@ public class CryptoTest {
         final Map<String, Object> results = new HashMap<>();
         createBobAccount();
 
-        Assert.assertTrue(null == mBobSession.getCrypto());
+        Assert.assertNull(mBobSession.getCrypto());
         mBobSession.getCredentials().deviceId = null;
 
         final CountDownLatch lock1 = new CountDownLatch(1);
@@ -121,8 +121,8 @@ public class CryptoTest {
         lock1.await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("enableCrypto"));
 
-        Assert.assertTrue(null != mBobSession.getCrypto());
-        Assert.assertTrue(null != mBobSession.getCredentials().deviceId);
+        Assert.assertNotNull(mBobSession.getCrypto());
+        Assert.assertNotNull(mBobSession.getCredentials().deviceId);
 
         mBobSession.clear(context);
     }
@@ -136,7 +136,7 @@ public class CryptoTest {
         createBobAccount();
         mBobSession.getCredentials().deviceId = "BobDevice";
 
-        Assert.assertTrue(null == mBobSession.getCrypto());
+        Assert.assertNull(mBobSession.getCrypto());
 
         final CountDownLatch lock0 = new CountDownLatch(1);
         mBobSession.enableCrypto(true, new ApiCallback<Void>() {
@@ -164,7 +164,7 @@ public class CryptoTest {
         lock0.await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("enableCrypto"));
 
-        Assert.assertTrue(null != mBobSession.getCrypto());
+        Assert.assertNotNull(mBobSession.getCrypto());
 
         SystemClock.sleep(1000);
 
@@ -173,7 +173,7 @@ public class CryptoTest {
 
         final List<MXDeviceInfo> myUserDevices = mBobSession.getCrypto().getUserDevices(mBobSession.getMyUserId());
 
-        Assert.assertTrue(null != myUserDevices);
+        Assert.assertNotNull(myUserDevices);
         Assert.assertTrue(1 == myUserDevices.size());
 
         final Credentials bobCredentials = mBobSession.getCredentials();
@@ -352,11 +352,11 @@ public class CryptoTest {
         Assert.assertTrue(1 == usersDevicesInfoMap.getUserDeviceIds(mAliceSession.getMyUserId()).size());
 
         MXDeviceInfo aliceDeviceFromBobPOV = usersDevicesInfoMap.getObject("AliceDevice", mAliceSession.getMyUserId());
-        Assert.assertTrue(null != aliceDeviceFromBobPOV);
+        Assert.assertNotNull(aliceDeviceFromBobPOV);
         Assert.assertTrue(TextUtils.equals(aliceDeviceFromBobPOV.fingerprint(), mAliceSession.getCrypto().getOlmDevice().getDeviceEd25519Key()));
 
         // Continue testing other methods
-        Assert.assertTrue(null != mBobSession.getCrypto().deviceWithIdentityKey(mAliceSession.getCrypto().getOlmDevice().getDeviceCurve25519Key(),
+        Assert.assertNotNull(mBobSession.getCrypto().deviceWithIdentityKey(mAliceSession.getCrypto().getOlmDevice().getDeviceCurve25519Key(),
                 mAliceSession.getMyUserId(), MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM));
         Assert.assertTrue(aliceDeviceFromBobPOV.isUnknown());
 
@@ -487,7 +487,7 @@ public class CryptoTest {
                 .deviceWithIdentityKey(mAliceSession.getCrypto().getOlmDevice().getDeviceCurve25519Key(),
                         mAliceSession.getMyUserId(), MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM);
 
-        Assert.assertTrue(null != aliceDeviceFromBobPOV2);
+        Assert.assertNotNull(aliceDeviceFromBobPOV2);
         Assert.assertTrue(TextUtils.equals(aliceDeviceFromBobPOV2.fingerprint(), mAliceSession.getCrypto().getOlmDevice().getDeviceEd25519Key()));
         Assert.assertTrue(aliceDeviceFromBobPOV2.mVerified + " instead of " + MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED,
                 aliceDeviceFromBobPOV2.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED);
@@ -523,7 +523,7 @@ public class CryptoTest {
         MXDeviceInfo aliceDeviceFromBobPOV3 = bobSession2.getCrypto().deviceWithIdentityKey(mAliceSession.getCrypto().getOlmDevice().getDeviceCurve25519Key(),
                 mAliceSession.getMyUserId(), MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM);
 
-        Assert.assertTrue(null != aliceDeviceFromBobPOV3);
+        Assert.assertNotNull(aliceDeviceFromBobPOV3);
         Assert.assertTrue(TextUtils.equals(aliceDeviceFromBobPOV3.fingerprint(), mAliceSession.getCrypto().getOlmDevice().getDeviceEd25519Key()));
         Assert.assertTrue(aliceDeviceFromBobPOV3.isBlocked());
 
@@ -662,8 +662,8 @@ public class CryptoTest {
 
         MXOlmSessionResult sessionWithAliceDevice = result.getObject("AliceDevice", mAliceSession.getMyUserId());
 
-        Assert.assertTrue(null != sessionWithAliceDevice);
-        Assert.assertTrue(null != sessionWithAliceDevice.mSessionId);
+        Assert.assertNotNull(sessionWithAliceDevice);
+        Assert.assertNotNull(sessionWithAliceDevice.mSessionId);
         Assert.assertTrue(TextUtils.equals(sessionWithAliceDevice.mDevice.deviceId, "AliceDevice"));
 
         Credentials bobCredentials = mBobSession.getCredentials();
@@ -763,8 +763,8 @@ public class CryptoTest {
         MXUsersDevicesMap<MXOlmSessionResult> result2 = (MXUsersDevicesMap<MXOlmSessionResult>) results.get("ensureOlmSessionsForUsers2");
 
         MXOlmSessionResult sessionWithAliceDevice2 = result2.getObject("AliceDevice", mAliceSession.getMyUserId());
-        Assert.assertTrue(null != sessionWithAliceDevice2);
-        Assert.assertTrue(null != sessionWithAliceDevice2.mSessionId);
+        Assert.assertNotNull(sessionWithAliceDevice2);
+        Assert.assertNotNull(sessionWithAliceDevice2.mSessionId);
         Assert.assertTrue(TextUtils.equals(sessionWithAliceDevice2.mDevice.deviceId, "AliceDevice"));
 
         mBobSession.clear(context);
@@ -833,7 +833,7 @@ public class CryptoTest {
         });
 
         lock1.await(1000, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(null != mRoomId);
+        Assert.assertNotNull(mRoomId);
 
         Room room = mBobSession.getDataHandler().getRoom(mRoomId);
 
@@ -1414,14 +1414,14 @@ public class CryptoTest {
 
         Room roomFromAlicePOV2 = aliceSession2.getDataHandler().getRoom(mRoomId);
 
-        Assert.assertTrue(null != roomFromAlicePOV2);
+        Assert.assertNotNull(roomFromAlicePOV2);
         Assert.assertTrue(roomFromAlicePOV2.getLiveState().isEncrypted());
 
         Event event = roomFromAlicePOV2.getDataHandler().getStore().getLatestEvent(mRoomId);
-        Assert.assertTrue(null != event);
+        Assert.assertNotNull(event);
         Assert.assertTrue(event.isEncrypted());
-        Assert.assertTrue(null == event.getClearEvent());
-        Assert.assertTrue(null != event.getCryptoError());
+        Assert.assertNull(event.getClearEvent());
+        Assert.assertNotNull(event.getCryptoError());
         Assert.assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE));
         aliceSession2.clear(context);
     }
@@ -1471,7 +1471,7 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("onInitialSyncComplete"));
         Assert.assertTrue(results.containsKey("onCryptoSyncComplete"));
 
-        Assert.assertTrue(null != bobSession2.getCrypto());
+        Assert.assertNotNull(bobSession2.getCrypto());
 
         Room roomFromBobPOV = bobSession2.getDataHandler().getRoom(mRoomId);
 
@@ -1647,10 +1647,10 @@ public class CryptoTest {
         Event event = (Event) results.get("bobEcho");
         Assert.assertTrue(event.isEncrypted());
         Assert.assertTrue(TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED));
-        Assert.assertTrue(null != event.getContentAsJsonObject());
+        Assert.assertNotNull(event.getContentAsJsonObject());
         Assert.assertTrue(!event.getContentAsJsonObject().has("body"));
 
-        Assert.assertTrue(null != event.getCryptoError());
+        Assert.assertNotNull(event.getCryptoError());
         Assert.assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.ENCRYPTING_NOT_ENABLED_ERROR_CODE));
 
         final CountDownLatch lock2 = new CountDownLatch(1);
@@ -1713,9 +1713,9 @@ public class CryptoTest {
         final Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
         final Room roomFromSamPOV = mSamSession.getDataHandler().getRoom(mRoomId);
 
-        Assert.assertTrue(null != roomFromBobPOV);
-        Assert.assertTrue(null != roomFromAlicePOV);
-        Assert.assertTrue(null != roomFromSamPOV);
+        Assert.assertNotNull(roomFromBobPOV);
+        Assert.assertNotNull(roomFromAlicePOV);
+        Assert.assertNotNull(roomFromSamPOV);
 
         final CountDownLatch lock0 = new CountDownLatch(3);
         MXEventListener aliceEventsListener0 = new MXEventListener() {
@@ -1822,7 +1822,7 @@ public class CryptoTest {
 
         List<MXDeviceInfo> list = mBobSession.getCrypto().getUserDevices(mAliceSession.getMyUserId());
 
-        Assert.assertTrue(null != list);
+        Assert.assertNotNull(list);
         Assert.assertTrue(list.size() > 0);
 
         final CountDownLatch lock1b = new CountDownLatch(1);
@@ -2056,7 +2056,7 @@ public class CryptoTest {
 
         Event decryptedEvent = (Event) results.get("decrypted");
 
-        Assert.assertTrue(null == decryptedEvent.getClearEvent());
+        Assert.assertNull(decryptedEvent.getClearEvent());
         Assert.assertTrue(TextUtils.equals(decryptedEvent.getCryptoError().errcode, MXCryptoError.DUPLICATED_MESSAGE_INDEX_ERROR_CODE));
 
         // Decrypting it with no replay attack mitigation must still work
@@ -2262,7 +2262,7 @@ public class CryptoTest {
         Assert.assertTrue(1 == receivedEvents.size());
 
         Assert.assertTrue(checkEncryptedEvent(receivedEvents.get(0), mRoomId, messageFromAlice, mAliceSession));
-        Assert.assertTrue(null == receivedEvents.get(0).getCryptoError());
+        Assert.assertNull(receivedEvents.get(0).getCryptoError());
     }
 
     @Test
@@ -2390,7 +2390,7 @@ public class CryptoTest {
         SystemClock.sleep(1000);
 
         final Room roomFromBobPOV2 = bobSession2.getDataHandler().getRoom(mRoomId);
-        Assert.assertTrue(null != roomFromBobPOV2);
+        Assert.assertNotNull(roomFromBobPOV2);
 
         final List<Event> receivedEvents4 = new ArrayList<>();
         final CountDownLatch lock4 = new CountDownLatch(1);
@@ -2561,11 +2561,11 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("alicelogout"));
 
         MXSession bobSession2 = CryptoTestHelper.logAccountAndSync(context, bobUserId1, MXTESTS_BOB_PWD);
-        Assert.assertTrue(null != bobSession2);
+        Assert.assertNotNull(bobSession2);
         bobSession2.getCrypto().setWarnOnUnknownDevices(false);
 
         MXSession aliceSession2 = CryptoTestHelper.logAccountAndSync(context, aliceUserId1, MXTESTS_ALICE_PWD);
-        Assert.assertTrue(null != aliceSession2);
+        Assert.assertNotNull(aliceSession2);
         aliceSession2.getCrypto().setWarnOnUnknownDevices(false);
 
         Room roomFromBob2POV = bobSession2.getDataHandler().getRoom(mRoomId);
@@ -2573,10 +2573,10 @@ public class CryptoTest {
 
         Assert.assertTrue(roomFromBob2POV.isEncrypted());
         event = bobSession2.getDataHandler().getStore().getLatestEvent(mRoomId);
-        Assert.assertTrue(null != event);
+        Assert.assertNotNull(event);
         Assert.assertTrue(event.isEncrypted());
-        Assert.assertTrue(null == event.getClearEvent());
-        Assert.assertTrue(null != event.getCryptoError());
+        Assert.assertNull(event.getClearEvent());
+        Assert.assertNotNull(event.getCryptoError());
         Assert.assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE));
 
         final CountDownLatch lock4 = new CountDownLatch(1);
@@ -2741,8 +2741,8 @@ public class CryptoTest {
         Assert.assertTrue(1 == receivedEvents2.size());
 
         event = receivedEvents2.get(0);
-        Assert.assertTrue(null == event.getClearEvent());
-        Assert.assertTrue(null != event.getCryptoError());
+        Assert.assertNull(event.getClearEvent());
+        Assert.assertNotNull(event.getCryptoError());
         Assert.assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE));
 
         // unblock the bob's device
@@ -2871,7 +2871,7 @@ public class CryptoTest {
 
         List<String> bobDevices = usersDevicesInfoMap.getUserDeviceIds(mBobSession.getMyUserId());
 
-        Assert.assertTrue(null != bobDevices);
+        Assert.assertNotNull(bobDevices);
     }
 
     @Test
@@ -2915,7 +2915,7 @@ public class CryptoTest {
 
         // MXCrypto.downloadKeys should return @[] for Bob to distinguish him from an unknown user
         List<String> bobDevices = usersDevicesInfoMap.getUserDeviceIds(mBobSession.getMyUserId());
-        Assert.assertTrue(null != bobDevices);
+        Assert.assertNotNull(bobDevices);
         Assert.assertTrue(0 == bobDevices.size());
 
         // try again
@@ -3179,14 +3179,14 @@ public class CryptoTest {
 
         Room roomFromAlicePOV2 = aliceSession2.getDataHandler().getRoom(mRoomId);
 
-        Assert.assertTrue(null != roomFromAlicePOV2);
+        Assert.assertNotNull(roomFromAlicePOV2);
         Assert.assertTrue(roomFromAlicePOV2.getLiveState().isEncrypted());
 
         Event event = roomFromAlicePOV2.getDataHandler().getStore().getLatestEvent(mRoomId);
-        Assert.assertTrue(null != event);
+        Assert.assertNotNull(event);
         Assert.assertTrue(event.isEncrypted());
-        Assert.assertTrue(null == event.getClearEvent());
-        Assert.assertTrue(null != event.getCryptoError());
+        Assert.assertNull(event.getClearEvent());
+        Assert.assertNotNull(event.getCryptoError());
         Assert.assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE));
 
         // import the e2e keys
@@ -3223,10 +3223,10 @@ public class CryptoTest {
 
         // check that the message cannot be decrypted
         event = roomFromAlicePOV2.getDataHandler().getStore().getLatestEvent(mRoomId);
-        Assert.assertTrue(null != event);
+        Assert.assertNotNull(event);
         Assert.assertTrue(event.isEncrypted());
-        Assert.assertTrue(null == event.getClearEvent());
-        Assert.assertTrue(null != event.getCryptoError());
+        Assert.assertNull(event.getClearEvent());
+        Assert.assertNotNull(event.getCryptoError());
         Assert.assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE));
 
         final CountDownLatch lock4 = new CountDownLatch(1);
@@ -3257,10 +3257,10 @@ public class CryptoTest {
 
         // check that the message CAN be decrypted
         event = roomFromAlicePOV2.getDataHandler().getStore().getLatestEvent(mRoomId);
-        Assert.assertTrue(null != event);
+        Assert.assertNotNull(event);
         Assert.assertTrue(event.isEncrypted());
-        Assert.assertTrue(null != event.getClearEvent());
-        Assert.assertTrue(null == event.getCryptoError());
+        Assert.assertNotNull(event.getClearEvent());
+        Assert.assertNull(event.getCryptoError());
         Assert.assertTrue(checkEncryptedEvent(event, mRoomId, message, mAliceSession));
 
         aliceSession2.clear(context);
@@ -3326,8 +3326,8 @@ public class CryptoTest {
         });
 
         lock_1.await(2000, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(null != mAliceSession.getCrypto());
-        Assert.assertTrue(null != mBobSession.getCrypto());
+        Assert.assertNotNull(mAliceSession.getCrypto());
+        Assert.assertNotNull(mBobSession.getCrypto());
 
         mAliceSession.getCrypto().setWarnOnUnknownDevices(false);
         mBobSession.getCrypto().setWarnOnUnknownDevices(false);
@@ -3482,7 +3482,7 @@ public class CryptoTest {
         mBobSession.clear(context);
 
         MXSession bobSession2 = CryptoTestHelper.logAccountAndSync(context, bobCredentials.userId, MXTESTS_BOB_PWD);
-        Assert.assertTrue(null != bobSession2);
+        Assert.assertNotNull(bobSession2);
         Assert.assertTrue(bobSession2.isCryptoEnabled());
         Assert.assertTrue(!TextUtils.equals(bobSession2.getCrypto().getMyDevice().deviceId, bobCredentials.deviceId));
         bobSession2.getCrypto().setWarnOnUnknownDevices(false);
@@ -4229,7 +4229,7 @@ public class CryptoTest {
         mBobSession.clear(context);
 
         MXSession bobSession2 = CryptoTestHelper.logAccountAndSync(context, bobCredentials.userId, MXTESTS_BOB_PWD);
-        Assert.assertTrue(null != bobSession2);
+        Assert.assertNotNull(bobSession2);
         Assert.assertTrue(bobSession2.isCryptoEnabled());
         Assert.assertTrue(!TextUtils.equals(bobSession2.getCrypto().getMyDevice().deviceId, bobCredentials.deviceId));
         bobSession2.getCrypto().setWarnOnUnknownDevices(false);
@@ -4350,7 +4350,7 @@ public class CryptoTest {
 
         // - Alice adds a new device
         final MXSession aliceSession2 = CryptoTestHelper.logAccountAndSync(context, mAliceSession.getMyUserId(), MXTESTS_ALICE_PWD);
-        Assert.assertTrue(null != aliceSession2);
+        Assert.assertNotNull(aliceSession2);
 
         // - Alice and Bob start sharing a room again
         final CountDownLatch lock3 = new CountDownLatch(1);
@@ -4378,7 +4378,7 @@ public class CryptoTest {
                     }
                 });
         lock3.await(1000, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(null != mRoomId);
+        Assert.assertNotNull(mRoomId);
 
         Room roomFromAlicePOV = aliceSession2.getDataHandler().getRoom(mRoomId);
         final CountDownLatch lock4 = new CountDownLatch(1);
@@ -4502,7 +4502,7 @@ public class CryptoTest {
         mBobSession = null;
         mBobSession = CryptoTestHelper.createAccountAndSync(context,
                 MXTESTS_BOB + System.currentTimeMillis() + UUID.randomUUID().toString(), MXTESTS_BOB_PWD, true);
-        Assert.assertTrue(null != mBobSession);
+        Assert.assertNotNull(mBobSession);
     }
 
     public void createAliceAccount() throws Exception {
@@ -4510,7 +4510,7 @@ public class CryptoTest {
         mAliceSession = null;
         mAliceSession = CryptoTestHelper.createAccountAndSync(context,
                 MXTESTS_ALICE + System.currentTimeMillis() + UUID.randomUUID().toString(), MXTESTS_ALICE_PWD, true);
-        Assert.assertTrue(null != mAliceSession);
+        Assert.assertNotNull(mAliceSession);
     }
 
     public void createSamAccount() throws Exception {
@@ -4518,7 +4518,7 @@ public class CryptoTest {
         mSamSession = null;
         mSamSession = CryptoTestHelper.createAccountAndSync(context,
                 MXTESTS_SAM + System.currentTimeMillis() + UUID.randomUUID().toString(), MXTESTS_SAM_PWD, true);
-        Assert.assertTrue(null != mSamSession);
+        Assert.assertNotNull(mSamSession);
     }
 
     private void doE2ETestWithAliceInARoom() throws Exception {
@@ -4580,7 +4580,7 @@ public class CryptoTest {
         });
 
         lock1.await(1000, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(null != mRoomId);
+        Assert.assertNotNull(mRoomId);
 
         Room room = mAliceSession.getDataHandler().getRoom(mRoomId);
 
@@ -4970,16 +4970,16 @@ public class CryptoTest {
     private boolean checkEncryptedEvent(Event event, String roomId, String clearMessage, MXSession senderSession) throws Exception {
 
         Assert.assertTrue(TextUtils.equals(event.getWireType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED));
-        Assert.assertTrue(null != event.getWireContent());
+        Assert.assertNotNull(event.getWireContent());
 
         JsonObject eventWireContent = event.getWireContent().getAsJsonObject();
 
-        Assert.assertTrue(null == eventWireContent.get("body"));
+        Assert.assertNull(eventWireContent.get("body"));
         Assert.assertTrue(TextUtils.equals(eventWireContent.get("algorithm").getAsString(), MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM));
 
-        Assert.assertTrue(null != eventWireContent.get("ciphertext"));
-        Assert.assertTrue(null != eventWireContent.get("session_id"));
-        Assert.assertTrue(null != eventWireContent.get("sender_key"));
+        Assert.assertNotNull(eventWireContent.get("ciphertext"));
+        Assert.assertNotNull(eventWireContent.get("session_id"));
+        Assert.assertNotNull(eventWireContent.get("sender_key"));
 
         Assert.assertTrue(TextUtils.equals(eventWireContent.get("device_id").getAsString(), senderSession.getCredentials().deviceId));
 

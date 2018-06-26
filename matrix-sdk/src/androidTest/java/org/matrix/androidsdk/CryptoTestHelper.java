@@ -103,7 +103,7 @@ public class CryptoTestHelper {
 
         String session = (String) params.get("session");
 
-        Assert.assertTrue(null != session);
+        Assert.assertNotNull(session);
 
         registrationParams.username = userName;
         registrationParams.password = password;
@@ -141,7 +141,7 @@ public class CryptoTestHelper {
 
         Credentials credentials = (Credentials) params.get("credentials");
 
-        Assert.assertTrue(null != credentials);
+        Assert.assertNotNull(credentials);
 
         hs.setCredentials(credentials);
 
@@ -218,7 +218,7 @@ public class CryptoTestHelper {
 
         Credentials credentials = (Credentials) params.get("credentials");
 
-        Assert.assertTrue(null != credentials);
+        Assert.assertNotNull(credentials);
 
         hs.setCredentials(credentials);
 

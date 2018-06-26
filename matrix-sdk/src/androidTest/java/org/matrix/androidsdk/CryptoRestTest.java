@@ -63,7 +63,7 @@ public class CryptoRestTest {
         mBobSession = null;
         mBobSession = CryptoTestHelper.createAccountAndSync(context,
                 MXTESTS_BOB + System.currentTimeMillis() + UUID.randomUUID().toString(), MXTESTS_BOB_PWD, true);
-        Assert.assertTrue(null != mBobSession);
+        Assert.assertNotNull(mBobSession);
     }
 
     public void createAliceAccount() throws Exception {
@@ -71,7 +71,7 @@ public class CryptoRestTest {
         mAliceSession = null;
         mAliceSession = CryptoTestHelper.createAccountAndSync(context,
                 MXTESTS_ALICE + System.currentTimeMillis() + UUID.randomUUID().toString(), MXTESTS_ALICE_PWD, true);
-        Assert.assertTrue(null != mAliceSession);
+        Assert.assertNotNull(mAliceSession);
     }
 
     public void test01_testDeviceKeys() throws Exception {
@@ -117,8 +117,8 @@ public class CryptoRestTest {
 
         KeysUploadResponse keysUploadResponse = (KeysUploadResponse) results.get("keysUploadResponse");
 
-        Assert.assertTrue(null != keysUploadResponse);
-        Assert.assertTrue(null != keysUploadResponse.oneTimeKeyCounts);
+        Assert.assertNotNull(keysUploadResponse);
+        Assert.assertNotNull(keysUploadResponse.oneTimeKeyCounts);
 
         Assert.assertTrue(0 == keysUploadResponse.oneTimeKeyCounts.size());
         Assert.assertTrue(0 == keysUploadResponse.oneTimeKeyCountsForAlgorithm("deded"));
@@ -150,20 +150,20 @@ public class CryptoRestTest {
         lock1.await(1000, TimeUnit.MILLISECONDS);
         KeysQueryResponse keysQueryResponse = (KeysQueryResponse) results.get("keysQueryResponse");
 
-        Assert.assertTrue(null != keysQueryResponse);
-        Assert.assertTrue(null != keysQueryResponse.deviceKeys);
+        Assert.assertNotNull(keysQueryResponse);
+        Assert.assertNotNull(keysQueryResponse.deviceKeys);
 
         MXUsersDevicesMap<MXDeviceInfo> deviceInfos = new MXUsersDevicesMap<>(keysQueryResponse.deviceKeys);
 
-        Assert.assertTrue(null != deviceInfos.getUserIds());
+        Assert.assertNotNull(deviceInfos.getUserIds());
         Assert.assertTrue(1 == deviceInfos.getUserIds().size());
 
         List<String> deviceIds = deviceInfos.getUserDeviceIds(mBobSession.getMyUserId());
-        Assert.assertTrue(null != deviceIds);
+        Assert.assertNotNull(deviceIds);
         Assert.assertTrue(1 == deviceIds.size());
 
         MXDeviceInfo bobDevice2 = deviceInfos.getObject("dev1", mBobSession.getMyUserId());
-        Assert.assertTrue(null != bobDevice2);
+        Assert.assertNotNull(bobDevice2);
         Assert.assertTrue(TextUtils.equals(bobDevice2.deviceId, "dev1"));
         Assert.assertTrue(TextUtils.equals(bobDevice2.userId, mBobSession.getMyUserId()));
 
@@ -208,8 +208,8 @@ public class CryptoRestTest {
         lock1.await(1000, TimeUnit.MILLISECONDS);
 
         KeysUploadResponse keysUploadResponse = (KeysUploadResponse) results.get("keysUploadResponse");
-        Assert.assertTrue(null != keysUploadResponse);
-        Assert.assertTrue(null != keysUploadResponse.oneTimeKeyCounts);
+        Assert.assertNotNull(keysUploadResponse);
+        Assert.assertNotNull(keysUploadResponse.oneTimeKeyCounts);
         Assert.assertTrue(1 == keysUploadResponse.oneTimeKeyCounts.size());
 
         Assert.assertTrue(2 == keysUploadResponse.oneTimeKeyCountsForAlgorithm("curve25519"));
@@ -281,7 +281,7 @@ public class CryptoRestTest {
         lock1.await(1000, TimeUnit.MILLISECONDS);
 
         KeysUploadResponse bobKeysUploadResponse = (KeysUploadResponse) results.get("keysUploadResponse");
-        Assert.assertTrue(null != bobKeysUploadResponse);
+        Assert.assertNotNull(bobKeysUploadResponse);
 
         MXUsersDevicesMap<String> usersDevicesKeyTypesMap = new MXUsersDevicesMap<>();
         usersDevicesKeyTypesMap.setObject("curve25519", mBobSession.getMyUserId(), "dev1");
@@ -313,18 +313,18 @@ public class CryptoRestTest {
         lock2.await(1000, TimeUnit.MILLISECONDS);
 
         MXUsersDevicesMap<MXKey> oneTimeKeys = (MXUsersDevicesMap<MXKey>) results.get("usersDevicesMap");
-        Assert.assertTrue(null != oneTimeKeys);
-        Assert.assertTrue(null != oneTimeKeys.getMap());
+        Assert.assertNotNull(oneTimeKeys);
+        Assert.assertNotNull(oneTimeKeys.getMap());
         Assert.assertTrue(1 == oneTimeKeys.getMap().size());
 
         MXKey bobOtk = oneTimeKeys.getObject("dev1", mBobSession.getMyUserId());
-        Assert.assertTrue(null != bobOtk);
+        Assert.assertNotNull(bobOtk);
 
         Assert.assertTrue(TextUtils.equals(bobOtk.type, MXKey.KEY_CURVE_25519_TYPE));
         Assert.assertTrue(TextUtils.equals(bobOtk.keyId, "AAAABA"));
         Assert.assertTrue(TextUtils.equals(bobOtk.getKeyFullId(), "curve25519:AAAABA"));
         Assert.assertTrue(TextUtils.equals(bobOtk.value, "PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs"));
-        Assert.assertTrue(null != bobOtk.signatures);
+        Assert.assertNotNull(bobOtk.signatures);
 
         List<String> keys = new ArrayList<>(bobOtk.signatures.keySet());
         Assert.assertTrue(keys.size() == 1);

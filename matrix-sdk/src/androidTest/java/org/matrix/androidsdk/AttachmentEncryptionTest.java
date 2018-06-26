@@ -42,7 +42,7 @@ public class AttachmentEncryptionTest {
 
         InputStream decryptedStream = MXEncryptedAttachments.decryptAttachment(inputStream, encryptedFileInfo);
 
-        Assert.assertTrue(null != decryptedStream);
+        Assert.assertNotNull(decryptedStream);
 
         byte[] buffer = new byte[100];
 
