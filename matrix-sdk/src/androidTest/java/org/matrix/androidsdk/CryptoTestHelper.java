@@ -44,9 +44,10 @@ public class CryptoTestHelper {
 
     /**
      * Create an account and a dedicated session
-     * @param context the context
-     * @param userName the account username
-     * @param password the password
+     *
+     * @param context      the context
+     * @param userName     the account username
+     * @param password     the password
      * @param startSession true to perform an initial sync
      * @throws Exception an exception if the account creation failed
      */
@@ -100,7 +101,7 @@ public class CryptoTestHelper {
 
         mLock.await(10000, TimeUnit.MILLISECONDS);
 
-        String session = (String)params.get("session");
+        String session = (String) params.get("session");
 
         Assert.assertTrue(null != session);
 
@@ -138,13 +139,13 @@ public class CryptoTestHelper {
 
         mLock.await(10000, TimeUnit.MILLISECONDS);
 
-        Credentials credentials = (Credentials)params.get("credentials");
+        Credentials credentials = (Credentials) params.get("credentials");
 
-        Assert.assertTrue (null != credentials);
+        Assert.assertTrue(null != credentials);
 
         hs.setCredentials(credentials);
 
-        IMXStore store =  new MXFileStore(hs, context);
+        IMXStore store = new MXFileStore(hs, context);
 
         MXSession mxSession = new MXSession(hs, new MXDataHandler(store, credentials), context);
 
@@ -174,7 +175,8 @@ public class CryptoTestHelper {
 
     /**
      * Start an account login
-     * @param context the context
+     *
+     * @param context  the context
      * @param userName the account username
      * @param password the password
      * @throws Exception an exception if the account cannot be synced
@@ -214,13 +216,13 @@ public class CryptoTestHelper {
 
         mLock.await(10000, TimeUnit.MILLISECONDS);
 
-        Credentials credentials = (Credentials)params.get("credentials");
+        Credentials credentials = (Credentials) params.get("credentials");
 
-        Assert.assertTrue (null != credentials);
+        Assert.assertTrue(null != credentials);
 
         hs.setCredentials(credentials);
 
-        IMXStore store =  new MXFileStore(hs, context);
+        IMXStore store = new MXFileStore(hs, context);
 
         MXSession mxSession = new MXSession(hs, new MXDataHandler(store, credentials), context);
 

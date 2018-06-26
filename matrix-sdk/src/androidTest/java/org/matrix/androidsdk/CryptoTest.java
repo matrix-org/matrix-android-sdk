@@ -75,7 +75,7 @@ public class CryptoTest {
     private static final List<String> messagesFromAlice = Arrays.asList("0 - Hello I'm Alice!", "4 - Go!");
     private static final List<String> messagesFromBob = Arrays.asList("1 - Hello I'm Bob!", "2 - Isn't life grand?", "3 - Let's go to the opera.");
 
-    private static final String MXTESTS_BOB  = "mxBob";
+    private static final String MXTESTS_BOB = "mxBob";
     private static final String MXTESTS_BOB_PWD = "bobbob";
 
     private static final String MXTESTS_ALICE = "mxAlice";
@@ -121,8 +121,8 @@ public class CryptoTest {
         lock1.await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("enableCrypto"));
 
-        Assert.assertTrue (null != mBobSession.getCrypto());
-        Assert.assertTrue (null != mBobSession.getCredentials().deviceId);
+        Assert.assertTrue(null != mBobSession.getCrypto());
+        Assert.assertTrue(null != mBobSession.getCredentials().deviceId);
 
         mBobSession.clear(context);
     }
@@ -136,7 +136,7 @@ public class CryptoTest {
         createBobAccount();
         mBobSession.getCredentials().deviceId = "BobDevice";
 
-        Assert.assertTrue (null == mBobSession.getCrypto());
+        Assert.assertTrue(null == mBobSession.getCrypto());
 
         final CountDownLatch lock0 = new CountDownLatch(1);
         mBobSession.enableCrypto(true, new ApiCallback<Void>() {
@@ -164,7 +164,7 @@ public class CryptoTest {
         lock0.await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("enableCrypto"));
 
-        Assert.assertTrue (null != mBobSession.getCrypto());
+        Assert.assertTrue(null != mBobSession.getCrypto());
 
         SystemClock.sleep(1000);
 
@@ -173,8 +173,8 @@ public class CryptoTest {
 
         final List<MXDeviceInfo> myUserDevices = mBobSession.getCrypto().getUserDevices(mBobSession.getMyUserId());
 
-        Assert.assertTrue (null != myUserDevices);
-        Assert.assertTrue (1 == myUserDevices.size());
+        Assert.assertTrue(null != myUserDevices);
+        Assert.assertTrue(1 == myUserDevices.size());
 
         final Credentials bobCredentials = mBobSession.getCredentials();
 
@@ -182,13 +182,13 @@ public class CryptoTest {
         HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
         hs.setCredentials(bobCredentials);
 
-        IMXStore store =  new MXFileStore(hs, context);
+        IMXStore store = new MXFileStore(hs, context);
 
         MXSession bobSession2 = new MXSession(hs, new MXDataHandler(store, bobCredentials), context);
 
 
         final CountDownLatch lock1 = new CountDownLatch(1);
-        MXStoreListener listener = new  MXStoreListener() {
+        MXStoreListener listener = new MXStoreListener() {
             @Override
             public void postProcess(String accountId) {
             }
@@ -205,7 +205,7 @@ public class CryptoTest {
             }
 
             @Override
-            public void  onStoreOOM(String accountId, String description) {
+            public void onStoreOOM(String accountId, String description) {
                 lock1.countDown();
             }
         };
@@ -215,8 +215,8 @@ public class CryptoTest {
         bobSession2.getDataHandler().getStore().open();
         lock1.await(1000, TimeUnit.MILLISECONDS);
 
-        Assert.assertTrue (results.containsKey("onStoreReady"));
-        Assert.assertTrue (bobSession2.isCryptoEnabled());
+        Assert.assertTrue(results.containsKey("onStoreReady"));
+        Assert.assertTrue(bobSession2.isCryptoEnabled());
 
         final CountDownLatch lock2 = new CountDownLatch(2);
 
@@ -236,18 +236,18 @@ public class CryptoTest {
         bobSession2.getDataHandler().addListener(eventsListener);
         bobSession2.startEventStream(null);
         lock2.await(1000, TimeUnit.MILLISECONDS);
-        Assert.assertTrue (results.containsKey("onInitialSyncComplete"));
-        Assert.assertTrue (results.containsKey("onCryptoSyncComplete"));
+        Assert.assertTrue(results.containsKey("onInitialSyncComplete"));
+        Assert.assertTrue(results.containsKey("onCryptoSyncComplete"));
 
         MXCrypto crypto = bobSession2.getCrypto();
         Assert.assertNotNull(crypto);
 
-        Assert.assertTrue (TextUtils.equals(deviceCurve25519Key, crypto.getOlmDevice().getDeviceCurve25519Key()));
-        Assert.assertTrue (TextUtils.equals(deviceEd25519Key, crypto.getOlmDevice().getDeviceEd25519Key()));
+        Assert.assertTrue(TextUtils.equals(deviceCurve25519Key, crypto.getOlmDevice().getDeviceCurve25519Key()));
+        Assert.assertTrue(TextUtils.equals(deviceEd25519Key, crypto.getOlmDevice().getDeviceEd25519Key()));
 
         List<MXDeviceInfo> myUserDevices2 = bobSession2.getCrypto().getUserDevices(bobSession2.getMyUserId());
-        Assert.assertTrue (1 == myUserDevices2.size());
-        Assert.assertTrue (TextUtils.equals(myUserDevices2.get(0).deviceId, myUserDevices.get(0).deviceId));
+        Assert.assertTrue(1 == myUserDevices2.size());
+        Assert.assertTrue(TextUtils.equals(myUserDevices2.get(0).deviceId, myUserDevices.get(0).deviceId));
 
         mBobSession.clear(context);
         bobSession2.clear(context);
@@ -322,43 +322,43 @@ public class CryptoTest {
                 .getDeviceList()
                 .downloadKeys(Arrays.asList(mBobSession.getMyUserId(), mAliceSession.getMyUserId()),
                         false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
-            @Override
-            public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
-                results.put("downloadKeys", info);
-                lock3.countDown();
-            }
+                            @Override
+                            public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
+                                results.put("downloadKeys", info);
+                                lock3.countDown();
+                            }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                lock3.countDown();
-            }
+                            @Override
+                            public void onNetworkError(Exception e) {
+                                lock3.countDown();
+                            }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock3.countDown();
-            }
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                                lock3.countDown();
+                            }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock3.countDown();
-            }
-        });
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+                                lock3.countDown();
+                            }
+                        });
 
         lock3.await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("downloadKeys"));
-        MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = (MXUsersDevicesMap<MXDeviceInfo> )results.get("downloadKeys");
+        MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = (MXUsersDevicesMap<MXDeviceInfo>) results.get("downloadKeys");
 
-        Assert.assertTrue (2 == usersDevicesInfoMap.getUserIds().size());
-        Assert.assertTrue (1 == usersDevicesInfoMap.getUserDeviceIds(mAliceSession.getMyUserId()).size());
+        Assert.assertTrue(2 == usersDevicesInfoMap.getUserIds().size());
+        Assert.assertTrue(1 == usersDevicesInfoMap.getUserDeviceIds(mAliceSession.getMyUserId()).size());
 
         MXDeviceInfo aliceDeviceFromBobPOV = usersDevicesInfoMap.getObject("AliceDevice", mAliceSession.getMyUserId());
-        Assert.assertTrue (null != aliceDeviceFromBobPOV);
-        Assert.assertTrue (TextUtils.equals(aliceDeviceFromBobPOV.fingerprint(), mAliceSession.getCrypto().getOlmDevice().getDeviceEd25519Key()));
+        Assert.assertTrue(null != aliceDeviceFromBobPOV);
+        Assert.assertTrue(TextUtils.equals(aliceDeviceFromBobPOV.fingerprint(), mAliceSession.getCrypto().getOlmDevice().getDeviceEd25519Key()));
 
         // Continue testing other methods
-        Assert.assertTrue (null != mBobSession.getCrypto().deviceWithIdentityKey(mAliceSession.getCrypto().getOlmDevice().getDeviceCurve25519Key(),
-                        mAliceSession.getMyUserId(), MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM));
-        Assert.assertTrue (aliceDeviceFromBobPOV.isUnknown());
+        Assert.assertTrue(null != mBobSession.getCrypto().deviceWithIdentityKey(mAliceSession.getCrypto().getOlmDevice().getDeviceCurve25519Key(),
+                mAliceSession.getMyUserId(), MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM));
+        Assert.assertTrue(aliceDeviceFromBobPOV.isUnknown());
 
         final CountDownLatch lock3a = new CountDownLatch(1);
         mBobSession.getCrypto().setDevicesKnown(Arrays.asList(aliceDeviceFromBobPOV),
@@ -387,7 +387,7 @@ public class CryptoTest {
         );
         lock3a.await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("setDevicesKnown"));
-        Assert.assertTrue (aliceDeviceFromBobPOV.isUnverified());
+        Assert.assertTrue(aliceDeviceFromBobPOV.isUnverified());
 
         final CountDownLatch lock3b = new CountDownLatch(1);
         mBobSession.getCrypto().setDeviceVerification(
@@ -419,7 +419,7 @@ public class CryptoTest {
         );
         lock3b.await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("setDeviceVerification1"));
-        Assert.assertTrue (aliceDeviceFromBobPOV.isBlocked());
+        Assert.assertTrue(aliceDeviceFromBobPOV.isBlocked());
 
         Credentials bobCredentials = mBobSession.getCredentials();
 
@@ -427,7 +427,7 @@ public class CryptoTest {
         HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
         hs.setCredentials(bobCredentials);
 
-        IMXStore store =  new MXFileStore(hs, context);
+        IMXStore store = new MXFileStore(hs, context);
 
         MXSession bobSession2 = new MXSession(hs, new MXDataHandler(store, bobCredentials), context);
 
@@ -450,7 +450,7 @@ public class CryptoTest {
             }
 
             @Override
-            public void  onStoreOOM(String accountId, String description) {
+            public void onStoreOOM(String accountId, String description) {
                 lock4.countDown();
             }
         };
@@ -487,44 +487,44 @@ public class CryptoTest {
                 .deviceWithIdentityKey(mAliceSession.getCrypto().getOlmDevice().getDeviceCurve25519Key(),
                         mAliceSession.getMyUserId(), MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM);
 
-        Assert.assertTrue (null != aliceDeviceFromBobPOV2);
-        Assert.assertTrue (TextUtils.equals(aliceDeviceFromBobPOV2.fingerprint(), mAliceSession.getCrypto().getOlmDevice().getDeviceEd25519Key()));
-        Assert.assertTrue (aliceDeviceFromBobPOV2.mVerified + " instead of " + MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED,
+        Assert.assertTrue(null != aliceDeviceFromBobPOV2);
+        Assert.assertTrue(TextUtils.equals(aliceDeviceFromBobPOV2.fingerprint(), mAliceSession.getCrypto().getOlmDevice().getDeviceEd25519Key()));
+        Assert.assertTrue(aliceDeviceFromBobPOV2.mVerified + " instead of " + MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED,
                 aliceDeviceFromBobPOV2.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED);
 
         // Download again alice device
         final CountDownLatch lock5 = new CountDownLatch(1);
         bobSession2.getCrypto().getDeviceList().downloadKeys(Arrays.asList(mAliceSession.getMyUserId()), true,
                 new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
-            @Override
-            public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
-                results.put("downloadKeys2", info);
-                lock5.countDown();
-            }
+                    @Override
+                    public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
+                        results.put("downloadKeys2", info);
+                        lock5.countDown();
+                    }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                lock5.countDown();
-            }
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        lock5.countDown();
+                    }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock5.countDown();
-            }
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        lock5.countDown();
+                    }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock5.countDown();
-            }
-        });
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        lock5.countDown();
+                    }
+                });
         lock5.await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("downloadKeys2"));
 
         MXDeviceInfo aliceDeviceFromBobPOV3 = bobSession2.getCrypto().deviceWithIdentityKey(mAliceSession.getCrypto().getOlmDevice().getDeviceCurve25519Key(),
                 mAliceSession.getMyUserId(), MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM);
 
-        Assert.assertTrue (null != aliceDeviceFromBobPOV3);
-        Assert.assertTrue (TextUtils.equals(aliceDeviceFromBobPOV3.fingerprint(), mAliceSession.getCrypto().getOlmDevice().getDeviceEd25519Key()));
+        Assert.assertTrue(null != aliceDeviceFromBobPOV3);
+        Assert.assertTrue(TextUtils.equals(aliceDeviceFromBobPOV3.fingerprint(), mAliceSession.getCrypto().getOlmDevice().getDeviceEd25519Key()));
         Assert.assertTrue(aliceDeviceFromBobPOV3.isBlocked());
 
         mAliceSession.clear(context);
@@ -603,27 +603,27 @@ public class CryptoTest {
         final CountDownLatch lock3 = new CountDownLatch(1);
         mBobSession.getCrypto().getDeviceList().downloadKeys(Arrays.asList(mBobSession.getMyUserId(), mAliceSession.getMyUserId()), false,
                 new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
-            @Override
-            public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> map) {
-                results.put("downloadKeys", map);
-                lock3.countDown();
-            }
+                    @Override
+                    public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> map) {
+                        results.put("downloadKeys", map);
+                        lock3.countDown();
+                    }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                lock3.countDown();
-            }
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        lock3.countDown();
+                    }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock3.countDown();
-            }
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        lock3.countDown();
+                    }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock3.countDown();
-            }
-        });
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        lock3.countDown();
+                    }
+                });
 
         lock3.await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("downloadKeys"));
@@ -631,40 +631,40 @@ public class CryptoTest {
         final CountDownLatch lock4 = new CountDownLatch(1);
         mBobSession.getCrypto().ensureOlmSessionsForUsers(Arrays.asList(mBobSession.getMyUserId(), mAliceSession.getMyUserId()),
                 new ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>>() {
-            @Override
-            public void onSuccess(MXUsersDevicesMap<MXOlmSessionResult> info) {
-                results.put("ensureOlmSessionsForUsers", info);
-                lock4.countDown();
-            }
+                    @Override
+                    public void onSuccess(MXUsersDevicesMap<MXOlmSessionResult> info) {
+                        results.put("ensureOlmSessionsForUsers", info);
+                        lock4.countDown();
+                    }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                lock4.countDown();
-            }
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        lock4.countDown();
+                    }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock4.countDown();
-            }
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        lock4.countDown();
+                    }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock4.countDown();
-            }
-        });
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        lock4.countDown();
+                    }
+                });
 
         lock4.await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("ensureOlmSessionsForUsers"));
 
-        MXUsersDevicesMap<MXOlmSessionResult> result = (MXUsersDevicesMap<MXOlmSessionResult>)results.get("ensureOlmSessionsForUsers");
+        MXUsersDevicesMap<MXOlmSessionResult> result = (MXUsersDevicesMap<MXOlmSessionResult>) results.get("ensureOlmSessionsForUsers");
 
-        Assert.assertTrue (result.getUserIds().size() == 1);
+        Assert.assertTrue(result.getUserIds().size() == 1);
 
         MXOlmSessionResult sessionWithAliceDevice = result.getObject("AliceDevice", mAliceSession.getMyUserId());
 
-        Assert.assertTrue (null != sessionWithAliceDevice);
-        Assert.assertTrue (null != sessionWithAliceDevice.mSessionId);
-        Assert.assertTrue (TextUtils.equals(sessionWithAliceDevice.mDevice.deviceId, "AliceDevice"));
+        Assert.assertTrue(null != sessionWithAliceDevice);
+        Assert.assertTrue(null != sessionWithAliceDevice.mSessionId);
+        Assert.assertTrue(TextUtils.equals(sessionWithAliceDevice.mDevice.deviceId, "AliceDevice"));
 
         Credentials bobCredentials = mBobSession.getCredentials();
 
@@ -672,7 +672,7 @@ public class CryptoTest {
         HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
         hs.setCredentials(bobCredentials);
 
-        IMXStore store =  new MXFileStore(hs, context);
+        IMXStore store = new MXFileStore(hs, context);
 
         MXSession bobSession2 = new MXSession(hs, new MXDataHandler(store, bobCredentials), context);
 
@@ -695,7 +695,7 @@ public class CryptoTest {
             }
 
             @Override
-            public void  onStoreOOM(String accountId, String description) {
+            public void onStoreOOM(String accountId, String description) {
                 lock5.countDown();
             }
         };
@@ -736,36 +736,36 @@ public class CryptoTest {
         final CountDownLatch lock6 = new CountDownLatch(1);
         bobSession2.getCrypto().ensureOlmSessionsForUsers(Arrays.asList(bobSession2.getMyUserId(), mAliceSession.getMyUserId()),
                 new ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>>() {
-            @Override
-            public void onSuccess(MXUsersDevicesMap<MXOlmSessionResult> info) {
-                results.put("ensureOlmSessionsForUsers2", info);
-                lock6.countDown();
-            }
+                    @Override
+                    public void onSuccess(MXUsersDevicesMap<MXOlmSessionResult> info) {
+                        results.put("ensureOlmSessionsForUsers2", info);
+                        lock6.countDown();
+                    }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                lock6.countDown();
-            }
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        lock6.countDown();
+                    }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock6.countDown();
-            }
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        lock6.countDown();
+                    }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock6.countDown();
-            }
-        });
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        lock6.countDown();
+                    }
+                });
         lock6.await(1000, TimeUnit.MILLISECONDS);
-        Assert.assertTrue (results.containsKey("ensureOlmSessionsForUsers2"));
+        Assert.assertTrue(results.containsKey("ensureOlmSessionsForUsers2"));
 
-        MXUsersDevicesMap<MXOlmSessionResult> result2 = (MXUsersDevicesMap<MXOlmSessionResult>)results.get("ensureOlmSessionsForUsers2");
+        MXUsersDevicesMap<MXOlmSessionResult> result2 = (MXUsersDevicesMap<MXOlmSessionResult>) results.get("ensureOlmSessionsForUsers2");
 
         MXOlmSessionResult sessionWithAliceDevice2 = result2.getObject("AliceDevice", mAliceSession.getMyUserId());
-        Assert.assertTrue (null != sessionWithAliceDevice2);
-        Assert.assertTrue (null != sessionWithAliceDevice2.mSessionId);
-        Assert.assertTrue (TextUtils.equals(sessionWithAliceDevice2.mDevice.deviceId, "AliceDevice"));
+        Assert.assertTrue(null != sessionWithAliceDevice2);
+        Assert.assertTrue(null != sessionWithAliceDevice2.mSessionId);
+        Assert.assertTrue(TextUtils.equals(sessionWithAliceDevice2.mDevice.deviceId, "AliceDevice"));
 
         mBobSession.clear(context);
         mAliceSession.clear(context);
@@ -805,7 +805,7 @@ public class CryptoTest {
             }
         });
         lock0.await(1000, TimeUnit.MILLISECONDS);
-        Assert.assertTrue (results.containsKey("enableCrypto"));
+        Assert.assertTrue(results.containsKey("enableCrypto"));
         mRoomId = null;
 
         final CountDownLatch lock1 = new CountDownLatch(1);
@@ -833,11 +833,11 @@ public class CryptoTest {
         });
 
         lock1.await(1000, TimeUnit.MILLISECONDS);
-        Assert.assertTrue (null != mRoomId);
+        Assert.assertTrue(null != mRoomId);
 
         Room room = mBobSession.getDataHandler().getRoom(mRoomId);
 
-        Assert.assertTrue (!room.isEncrypted());
+        Assert.assertTrue(!room.isEncrypted());
 
         final CountDownLatch lock2 = new CountDownLatch(1);
         room.enableEncryptionWithAlgorithm(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, new ApiCallback<Void>() {
@@ -863,9 +863,9 @@ public class CryptoTest {
             }
         });
         lock2.await(1000, TimeUnit.MILLISECONDS);
-        Assert.assertTrue (results.containsKey("enableEncryptionWithAlgorithm"));
+        Assert.assertTrue(results.containsKey("enableEncryptionWithAlgorithm"));
 
-        Assert.assertTrue (room.isEncrypted());
+        Assert.assertTrue(room.isEncrypted());
 
         mBobSession.clear(context);
     }
@@ -882,7 +882,7 @@ public class CryptoTest {
 
         Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
 
-        Assert.assertTrue (roomFromAlicePOV.isEncrypted());
+        Assert.assertTrue(roomFromAlicePOV.isEncrypted());
 
         final CountDownLatch lock1 = new CountDownLatch(1);
 
@@ -928,7 +928,7 @@ public class CryptoTest {
         final String messageFromAlice = "Hello I'm Alice!";
 
         Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
-        Room roomFromAlicePOV =  mAliceSession.getDataHandler().getRoom(mRoomId);
+        Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
 
         Assert.assertTrue(roomFromBobPOV.isEncrypted());
         Assert.assertTrue(roomFromAlicePOV.isEncrypted());
@@ -960,9 +960,9 @@ public class CryptoTest {
 
         lock1.await(2000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("sendEventError"));
-        MXCryptoError error = (MXCryptoError)results.get("sendEventError");
+        MXCryptoError error = (MXCryptoError) results.get("sendEventError");
         Assert.assertTrue(TextUtils.equals(error.errcode, MXCryptoError.UNKNOWN_DEVICES_CODE));
-        MXUsersDevicesMap<MXDeviceInfo> unknownDevices = (MXUsersDevicesMap<MXDeviceInfo> )error.mExceptionData;
+        MXUsersDevicesMap<MXDeviceInfo> unknownDevices = (MXUsersDevicesMap<MXDeviceInfo>) error.mExceptionData;
         List<String> deviceInfos = unknownDevices.getUserDeviceIds(mBobSession.getMyUserId());
         Assert.assertTrue(1 == deviceInfos.size());
         Assert.assertTrue(TextUtils.equals(deviceInfos.get(0), mBobSession.getCrypto().getMyDevice().deviceId));
@@ -1083,7 +1083,7 @@ public class CryptoTest {
                     try {
                         if (checkEncryptedEvent(event, mRoomId, messagesFromAlice.get(mReceivedMessagesFromAlice), mAliceSession)) {
                             mReceivedMessagesFromAlice++;
-                            list.get(list.size()-1).countDown();
+                            list.get(list.size() - 1).countDown();
                         }
                     } catch (Exception e) {
 
@@ -1101,7 +1101,7 @@ public class CryptoTest {
                             mReceivedMessagesFromBob++;
                         }
 
-                        list.get(list.size()-1).countDown();
+                        list.get(list.size() - 1).countDown();
                     } catch (Exception e) {
 
                     }
@@ -1142,28 +1142,28 @@ public class CryptoTest {
         });
 
         roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(mReceivedMessagesFromAlice), mAliceSession), callback);
-        list.get(list.size()-1).await(1000, TimeUnit.MILLISECONDS);
+        list.get(list.size() - 1).await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
         Assert.assertTrue(1 == mReceivedMessagesFromAlice);
 
         list.add(new CountDownLatch(1));
         roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(mReceivedMessagesFromBob), mBobSession), callback);
-        list.get(list.size()-1).await(1000, TimeUnit.MILLISECONDS);
+        list.get(list.size() - 1).await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(1 == mReceivedMessagesFromBob);
 
         list.add(new CountDownLatch(1));
         roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(mReceivedMessagesFromBob), mBobSession), callback);
-        list.get(list.size()-1).await(1000, TimeUnit.MILLISECONDS);
+        list.get(list.size() - 1).await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(2 == mReceivedMessagesFromBob);
 
         list.add(new CountDownLatch(1));
         roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(mReceivedMessagesFromBob), mBobSession), callback);
-        list.get(list.size()-1).await(1000, TimeUnit.MILLISECONDS);
+        list.get(list.size() - 1).await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(3 == mReceivedMessagesFromBob);
 
         list.add(new CountDownLatch(1));
         roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(mReceivedMessagesFromAlice), mAliceSession), callback);
-        list.get(list.size()-1).await(1000, TimeUnit.MILLISECONDS);
+        list.get(list.size() - 1).await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(2 == mReceivedMessagesFromAlice);
     }
 
@@ -1188,7 +1188,7 @@ public class CryptoTest {
         HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
         hs.setCredentials(aliceCredentials);
 
-        IMXStore store =  new MXFileStore(hs, context);
+        IMXStore store = new MXFileStore(hs, context);
 
         final CountDownLatch lock1 = new CountDownLatch(1);
 
@@ -1211,7 +1211,7 @@ public class CryptoTest {
             }
 
             @Override
-            public void  onStoreOOM(String accountId, String description) {
+            public void onStoreOOM(String accountId, String description) {
                 lock1.countDown();
             }
         };
@@ -1219,7 +1219,7 @@ public class CryptoTest {
         aliceSession2.getDataHandler().getStore().addMXStoreListener(listener);
         aliceSession2.getDataHandler().getStore().open();
         lock1.await(1000, TimeUnit.MILLISECONDS);
-        Assert.assertTrue (results.containsKey("onStoreReady"));
+        Assert.assertTrue(results.containsKey("onStoreReady"));
 
         final CountDownLatch lock1b = new CountDownLatch(2);
         MXEventListener eventListener = new MXEventListener() {
@@ -1239,8 +1239,8 @@ public class CryptoTest {
         aliceSession2.getDataHandler().addListener(eventListener);
         aliceSession2.startEventStream(null);
         lock1b.await(1000, TimeUnit.MILLISECONDS);
-        Assert.assertTrue (results.containsKey("onInitialSyncComplete"));
-        Assert.assertTrue (results.containsKey("onCryptoSyncComplete"));
+        Assert.assertTrue(results.containsKey("onInitialSyncComplete"));
+        Assert.assertTrue(results.containsKey("onCryptoSyncComplete"));
 
         Room roomFromAlicePOV2 = aliceSession2.getDataHandler().getRoom(mRoomId);
 
@@ -1355,7 +1355,7 @@ public class CryptoTest {
         HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
         hs.setCredentials(aliceCredentials2);
 
-        IMXStore store =  new MXFileStore(hs, context);
+        IMXStore store = new MXFileStore(hs, context);
 
         MXSession aliceSession2 = new MXSession(hs, new MXDataHandler(store, aliceCredentials2), context);
 
@@ -1379,7 +1379,7 @@ public class CryptoTest {
             }
 
             @Override
-            public void  onStoreOOM(String accountId, String description) {
+            public void onStoreOOM(String accountId, String description) {
                 lock1b.countDown();
             }
         };
@@ -1409,12 +1409,12 @@ public class CryptoTest {
 
         lock2.await(1000, TimeUnit.MILLISECONDS);
 
-        Assert.assertTrue (results.containsKey("onInitialSyncComplete"));
-        Assert.assertTrue (results.containsKey("onCryptoSyncComplete"));
+        Assert.assertTrue(results.containsKey("onInitialSyncComplete"));
+        Assert.assertTrue(results.containsKey("onCryptoSyncComplete"));
 
         Room roomFromAlicePOV2 = aliceSession2.getDataHandler().getRoom(mRoomId);
 
-        Assert.assertTrue (null != roomFromAlicePOV2);
+        Assert.assertTrue(null != roomFromAlicePOV2);
         Assert.assertTrue(roomFromAlicePOV2.getLiveState().isEncrypted());
 
         Event event = roomFromAlicePOV2.getDataHandler().getStore().getLatestEvent(mRoomId);
@@ -1442,7 +1442,7 @@ public class CryptoTest {
         HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
         hs.setCredentials(bobCredentials);
 
-        IMXStore store =  new MXFileStore(hs, context);
+        IMXStore store = new MXFileStore(hs, context);
 
         final CountDownLatch lock1 = new CountDownLatch(2);
 
@@ -1468,10 +1468,10 @@ public class CryptoTest {
 
         lock1.await(1000, TimeUnit.MILLISECONDS);
 
-        Assert.assertTrue (results.containsKey("onInitialSyncComplete"));
-        Assert.assertTrue (results.containsKey("onCryptoSyncComplete"));
+        Assert.assertTrue(results.containsKey("onInitialSyncComplete"));
+        Assert.assertTrue(results.containsKey("onCryptoSyncComplete"));
 
-        Assert.assertTrue (null != bobSession2.getCrypto());
+        Assert.assertTrue(null != bobSession2.getCrypto());
 
         Room roomFromBobPOV = bobSession2.getDataHandler().getRoom(mRoomId);
 
@@ -1511,7 +1511,7 @@ public class CryptoTest {
 
         lock2.await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("backPaginate"));
-        Assert.assertTrue(receivedEvents.size() + " instead of 5",5 == receivedEvents.size());
+        Assert.assertTrue(receivedEvents.size() + " instead of 5", 5 == receivedEvents.size());
 
         checkEncryptedEvent(receivedEvents.get(0), mRoomId, messagesFromAlice.get(1), mAliceSession);
 
@@ -1644,7 +1644,7 @@ public class CryptoTest {
         lock1.await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("bobEcho"));
 
-        Event event = (Event)results.get("bobEcho");
+        Event event = (Event) results.get("bobEcho");
         Assert.assertTrue(event.isEncrypted());
         Assert.assertTrue(TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED));
         Assert.assertTrue(null != event.getContentAsJsonObject());
@@ -1692,7 +1692,7 @@ public class CryptoTest {
         lock2.await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("aliceEcho"));
 
-        event = (Event)results.get("aliceEcho");
+        event = (Event) results.get("aliceEcho");
         Assert.assertTrue(!event.isEncrypted());
     }
 
@@ -1713,9 +1713,9 @@ public class CryptoTest {
         final Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
         final Room roomFromSamPOV = mSamSession.getDataHandler().getRoom(mRoomId);
 
-        Assert.assertTrue (null != roomFromBobPOV);
-        Assert.assertTrue (null != roomFromAlicePOV);
-        Assert.assertTrue (null != roomFromSamPOV);
+        Assert.assertTrue(null != roomFromBobPOV);
+        Assert.assertTrue(null != roomFromAlicePOV);
+        Assert.assertTrue(null != roomFromSamPOV);
 
         final CountDownLatch lock0 = new CountDownLatch(3);
         MXEventListener aliceEventsListener0 = new MXEventListener() {
@@ -1788,7 +1788,7 @@ public class CryptoTest {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
                     results.put("sam1", "sam1");
                     lock1.countDown();
-                }  else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
+                } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
                     lock1.countDown();
                 }
             }
@@ -1828,27 +1828,27 @@ public class CryptoTest {
         final CountDownLatch lock1b = new CountDownLatch(1);
         mBobSession.getCrypto().setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED, list.get(0).deviceId, mAliceSession.getMyUserId(),
                 new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                results.put("setDeviceVerification10", "setDeviceVerification10");
-                lock1b.countDown();
-            }
+                    @Override
+                    public void onSuccess(Void info) {
+                        results.put("setDeviceVerification10", "setDeviceVerification10");
+                        lock1b.countDown();
+                    }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1b.countDown();
-            }
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        lock1b.countDown();
+                    }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1b.countDown();
-            }
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        lock1b.countDown();
+                    }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1b.countDown();
-            }
-        });
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        lock1b.countDown();
+                    }
+                });
         lock1b.await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("setDeviceVerification10"));
 
@@ -2054,7 +2054,7 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("bobEcho"));
         Assert.assertTrue(results.containsKey("decrypted"));
 
-        Event decryptedEvent = (Event)results.get("decrypted");
+        Event decryptedEvent = (Event) results.get("decrypted");
 
         Assert.assertTrue(null == decryptedEvent.getClearEvent());
         Assert.assertTrue(TextUtils.equals(decryptedEvent.getCryptoError().errcode, MXCryptoError.DUPLICATED_MESSAGE_INDEX_ERROR_CODE));
@@ -2136,7 +2136,7 @@ public class CryptoTest {
 
         // Reinject a modified version of the received room_key event from Alice.
         // From Bob pov, that mimics Alice resharing her keys but with an advanced outbound group session.
-        Event toDeviceEvent = (Event)results.get("onToDeviceEvent");
+        Event toDeviceEvent = (Event) results.get("onToDeviceEvent");
         String sessionId = toDeviceEvent.getContentAsJsonObject().get("session_id").getAsString();
         String newSessionKey = mAliceSession.getCrypto().getOlmDevice().getSessionKey(sessionId);
 
@@ -2225,7 +2225,7 @@ public class CryptoTest {
 
         // Reinject a modified version of the received room_key event from Alice.
         // From Bob pov, that mimics Alice resharing her keys but with an advanced outbound group session.
-        Event toDeviceEvent = (Event)results.get("onToDeviceEvent");
+        Event toDeviceEvent = (Event) results.get("onToDeviceEvent");
         String sessionId = toDeviceEvent.getContentAsJsonObject().get("session_id").getAsString();
         String senderKey = toDeviceEvent.senderKey();
 
@@ -2678,27 +2678,27 @@ public class CryptoTest {
         mAliceSession.getCrypto()
                 .setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED, mBobSession.getCredentials().deviceId, mBobSession.getMyUserId(),
                         new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                results.put("setDeviceVerification20", "setDeviceVerification20");
-                lock1b.countDown();
-            }
+                            @Override
+                            public void onSuccess(Void info) {
+                                results.put("setDeviceVerification20", "setDeviceVerification20");
+                                lock1b.countDown();
+                            }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1b.countDown();
-            }
+                            @Override
+                            public void onNetworkError(Exception e) {
+                                lock1b.countDown();
+                            }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1b.countDown();
-            }
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                                lock1b.countDown();
+                            }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1b.countDown();
-            }
-        });
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+                                lock1b.countDown();
+                            }
+                        });
         lock1b.await();
         Assert.assertTrue(results.containsKey("setDeviceVerification20"));
 
@@ -2750,27 +2750,27 @@ public class CryptoTest {
         mAliceSession.getCrypto()
                 .setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_UNVERIFIED, mBobSession.getCredentials().deviceId, mBobSession.getMyUserId(),
                         new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                results.put("setDeviceVerification40", "setDeviceVerification40");
-                lock2b.countDown();
-            }
+                            @Override
+                            public void onSuccess(Void info) {
+                                results.put("setDeviceVerification40", "setDeviceVerification40");
+                                lock2b.countDown();
+                            }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                lock2b.countDown();
-            }
+                            @Override
+                            public void onNetworkError(Exception e) {
+                                lock2b.countDown();
+                            }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock2b.countDown();
-            }
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                                lock2b.countDown();
+                            }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock2b.countDown();
-            }
-        });
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+                                lock2b.countDown();
+                            }
+                        });
         lock2b.await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("setDeviceVerification40"));
         ///
@@ -2836,35 +2836,35 @@ public class CryptoTest {
         mAliceSession.getCrypto().getDeviceList()
                 .downloadKeys(Arrays.asList(mBobSession.getMyUserId(), "@pppppppppppp:matrix.org"), false,
                         new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
-            @Override
-            public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
-                results.put("downloadKeys", info);
-                lock1.countDown();
-            }
+                            @Override
+                            public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
+                                results.put("downloadKeys", info);
+                                lock1.countDown();
+                            }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                results.put("downloadKeysError", e);
-                lock1.countDown();
-            }
+                            @Override
+                            public void onNetworkError(Exception e) {
+                                results.put("downloadKeysError", e);
+                                lock1.countDown();
+                            }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                results.put("downloadKeysError", e);
-                lock1.countDown();
-            }
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                                results.put("downloadKeysError", e);
+                                lock1.countDown();
+                            }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                results.put("downloadKeysError", e);
-                lock1.countDown();
-            }
-        });
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+                                results.put("downloadKeysError", e);
+                                lock1.countDown();
+                            }
+                        });
 
         lock1.await(40000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results + "", results.containsKey("downloadKeys"));
 
-        MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = (MXUsersDevicesMap<MXDeviceInfo>)results.get("downloadKeys");
+        MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = (MXUsersDevicesMap<MXDeviceInfo>) results.get("downloadKeys");
 
         // We can get info only get for Bob
         Assert.assertTrue(usersDevicesInfoMap.getMap().size() == 1);
@@ -2886,32 +2886,32 @@ public class CryptoTest {
         final CountDownLatch lock1 = new CountDownLatch(1);
         mAliceSession.getCrypto().getDeviceList().downloadKeys(Arrays.asList(mBobSession.getMyUserId()), false,
                 new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
-            @Override
-            public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
-                results.put("downloadKeys", info);
-                lock1.countDown();
-            }
+                    @Override
+                    public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
+                        results.put("downloadKeys", info);
+                        lock1.countDown();
+                    }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        lock1.countDown();
+                    }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        lock1.countDown();
+                    }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
-            }
-        });
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        lock1.countDown();
+                    }
+                });
 
         lock1.await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("downloadKeys"));
 
-        MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = (MXUsersDevicesMap<MXDeviceInfo>)results.get("downloadKeys");
+        MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = (MXUsersDevicesMap<MXDeviceInfo>) results.get("downloadKeys");
 
         // MXCrypto.downloadKeys should return @[] for Bob to distinguish him from an unknown user
         List<String> bobDevices = usersDevicesInfoMap.getUserDeviceIds(mBobSession.getMyUserId());
@@ -2923,27 +2923,27 @@ public class CryptoTest {
         final CountDownLatch lock2 = new CountDownLatch(1);
         mAliceSession.getCrypto().getDeviceList().downloadKeys(Arrays.asList(mBobSession.getMyUserId()), false,
                 new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
-            @Override
-            public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
-                results.put("downloadKeys2", info);
-                lock2.countDown();
-            }
+                    @Override
+                    public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
+                        results.put("downloadKeys2", info);
+                        lock2.countDown();
+                    }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                lock2.countDown();
-            }
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        lock2.countDown();
+                    }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock2.countDown();
-            }
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        lock2.countDown();
+                    }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock2.countDown();
-            }
-        });
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        lock2.countDown();
+                    }
+                });
 
         lock2.await(1000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("downloadKeys2"));
@@ -3120,7 +3120,7 @@ public class CryptoTest {
         HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
         hs.setCredentials(aliceCredentials2);
 
-        IMXStore store =  new MXFileStore(hs, context);
+        IMXStore store = new MXFileStore(hs, context);
 
         MXSession aliceSession2 = new MXSession(hs, new MXDataHandler(store, aliceCredentials2), context);
 
@@ -3144,7 +3144,7 @@ public class CryptoTest {
             }
 
             @Override
-            public void  onStoreOOM(String accountId, String description) {
+            public void onStoreOOM(String accountId, String description) {
                 lock1b.countDown();
             }
         };
@@ -3174,12 +3174,12 @@ public class CryptoTest {
 
         lock2.await(1000, TimeUnit.MILLISECONDS);
 
-        Assert.assertTrue (results.containsKey("onInitialSyncComplete"));
-        Assert.assertTrue (results.containsKey("onCryptoSyncComplete"));
+        Assert.assertTrue(results.containsKey("onInitialSyncComplete"));
+        Assert.assertTrue(results.containsKey("onCryptoSyncComplete"));
 
         Room roomFromAlicePOV2 = aliceSession2.getDataHandler().getRoom(mRoomId);
 
-        Assert.assertTrue (null != roomFromAlicePOV2);
+        Assert.assertTrue(null != roomFromAlicePOV2);
         Assert.assertTrue(roomFromAlicePOV2.getLiveState().isEncrypted());
 
         Event event = roomFromAlicePOV2.getDataHandler().getStore().getLatestEvent(mRoomId);
@@ -3326,8 +3326,8 @@ public class CryptoTest {
         });
 
         lock_1.await(2000, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(null !=  mAliceSession.getCrypto());
-        Assert.assertTrue(null !=  mBobSession.getCrypto());
+        Assert.assertTrue(null != mAliceSession.getCrypto());
+        Assert.assertTrue(null != mBobSession.getCrypto());
 
         mAliceSession.getCrypto().setWarnOnUnknownDevices(false);
         mBobSession.getCrypto().setWarnOnUnknownDevices(false);
@@ -3335,27 +3335,27 @@ public class CryptoTest {
         final CountDownLatch lock0 = new CountDownLatch(1);
         mAliceSession.createRoom(null, null, RoomState.DIRECTORY_VISIBILITY_PUBLIC, null, RoomState.GUEST_ACCESS_CAN_JOIN,
                 RoomState.HISTORY_VISIBILITY_SHARED, null, new ApiCallback<String>() {
-            @Override
-            public void onSuccess(String roomId) {
-                results.put("roomId", roomId);
-                lock0.countDown();
-            }
+                    @Override
+                    public void onSuccess(String roomId) {
+                        results.put("roomId", roomId);
+                        lock0.countDown();
+                    }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                lock0.countDown();
-            }
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        lock0.countDown();
+                    }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock0.countDown();
-            }
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        lock0.countDown();
+                    }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock0.countDown();
-            }
-        });
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        lock0.countDown();
+                    }
+                });
         lock0.await(2000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("roomId"));
         mRoomId = (String) results.get("roomId");
@@ -3585,7 +3585,7 @@ public class CryptoTest {
         final String messageFromAlice = "Hello I'm Alice!";
 
         Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
-        Room roomFromAlicePOV =  mAliceSession.getDataHandler().getRoom(mRoomId);
+        Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
         Room roomFromSamPOV = mSamSession.getDataHandler().getRoom(mRoomId);
 
         Assert.assertTrue(roomFromBobPOV.isEncrypted());
@@ -3619,9 +3619,9 @@ public class CryptoTest {
 
         lock1.await(3000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("sendEventError"));
-        MXCryptoError error = (MXCryptoError)results.get("sendEventError");
+        MXCryptoError error = (MXCryptoError) results.get("sendEventError");
         Assert.assertTrue(TextUtils.equals(error.errcode, MXCryptoError.UNKNOWN_DEVICES_CODE));
-        MXUsersDevicesMap<MXDeviceInfo> unknownDevices = (MXUsersDevicesMap<MXDeviceInfo> )error.mExceptionData;
+        MXUsersDevicesMap<MXDeviceInfo> unknownDevices = (MXUsersDevicesMap<MXDeviceInfo>) error.mExceptionData;
 
         // only one bob device
         List<String> deviceInfos = unknownDevices.getUserDeviceIds(mBobSession.getMyUserId());
@@ -3636,27 +3636,27 @@ public class CryptoTest {
         final CountDownLatch lock2 = new CountDownLatch(1);
         mAliceSession.getCrypto().setDevicesKnown(Arrays.asList(mBobSession.getCrypto().getMyDevice(), mSamSession.getCrypto().getMyDevice()),
                 new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                results.put("setDevicesKnown", "setDevicesKnown");
-                lock2.countDown();
-            }
+                    @Override
+                    public void onSuccess(Void info) {
+                        results.put("setDevicesKnown", "setDevicesKnown");
+                        lock2.countDown();
+                    }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                lock2.countDown();
-            }
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        lock2.countDown();
+                    }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock2.countDown();
-            }
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        lock2.countDown();
+                    }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock2.countDown();
-            }
-        });
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        lock2.countDown();
+                    }
+                });
 
         lock2.await(3000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("setDevicesKnown"));
@@ -4134,7 +4134,7 @@ public class CryptoTest {
             public void onUnexpectedError(Exception e) {
                 lock00b.countDown();
             }
-        }) ;
+        });
         lock00b.await(5000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("enableCrypto2"));
         Assert.assertTrue(results.containsKey("enableCrypto1"));
@@ -4145,27 +4145,27 @@ public class CryptoTest {
         final CountDownLatch lock0 = new CountDownLatch(1);
         mAliceSession.createRoom(null, null, RoomState.DIRECTORY_VISIBILITY_PUBLIC, null, RoomState.GUEST_ACCESS_CAN_JOIN,
                 RoomState.HISTORY_VISIBILITY_SHARED, null, new ApiCallback<String>() {
-            @Override
-            public void onSuccess(String roomId) {
-                results.put("roomId", roomId);
-                lock0.countDown();
-            }
+                    @Override
+                    public void onSuccess(String roomId) {
+                        results.put("roomId", roomId);
+                        lock0.countDown();
+                    }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                lock0.countDown();
-            }
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        lock0.countDown();
+                    }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock0.countDown();
-            }
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        lock0.countDown();
+                    }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock0.countDown();
-            }
-        });
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        lock0.countDown();
+                    }
+                });
         lock0.await(2000, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("roomId"));
         mRoomId = (String) results.get("roomId");
@@ -4269,7 +4269,7 @@ public class CryptoTest {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
                     receivedEvents2.add(event);
                     lock4.countDown();
-                } else  if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
+                } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
                     lock4.countDown();
                 }
             }
@@ -4346,39 +4346,39 @@ public class CryptoTest {
         });
 
         lock1.await(1000, TimeUnit.MILLISECONDS);
-        Assert.assertTrue (results.containsKey("lock1"));
+        Assert.assertTrue(results.containsKey("lock1"));
 
         // - Alice adds a new device
         final MXSession aliceSession2 = CryptoTestHelper.logAccountAndSync(context, mAliceSession.getMyUserId(), MXTESTS_ALICE_PWD);
-        Assert.assertTrue (null != aliceSession2);
+        Assert.assertTrue(null != aliceSession2);
 
         // - Alice and Bob start sharing a room again
         final CountDownLatch lock3 = new CountDownLatch(1);
         aliceSession2.createRoom(null, null, RoomState.DIRECTORY_VISIBILITY_PUBLIC, null, RoomState.GUEST_ACCESS_CAN_JOIN,
                 RoomState.HISTORY_VISIBILITY_SHARED, null, new ApiCallback<String>() {
-            @Override
-            public void onSuccess(String info) {
-                mRoomId = info;
-                lock3.countDown();
-            }
+                    @Override
+                    public void onSuccess(String info) {
+                        mRoomId = info;
+                        lock3.countDown();
+                    }
 
-            @Override
-            public void onNetworkError(Exception e) {
-                lock3.countDown();
-            }
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        lock3.countDown();
+                    }
 
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock3.countDown();
-            }
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        lock3.countDown();
+                    }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock3.countDown();
-            }
-        });
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        lock3.countDown();
+                    }
+                });
         lock3.await(1000, TimeUnit.MILLISECONDS);
-        Assert.assertTrue (null != mRoomId);
+        Assert.assertTrue(null != mRoomId);
 
         Room roomFromAlicePOV = aliceSession2.getDataHandler().getRoom(mRoomId);
         final CountDownLatch lock4 = new CountDownLatch(1);
@@ -4405,7 +4405,7 @@ public class CryptoTest {
             }
         });
         lock4.await(1000, TimeUnit.MILLISECONDS);
-        Assert.assertTrue (results.containsKey("lock4"));
+        Assert.assertTrue(results.containsKey("lock4"));
 
         final CountDownLatch lock5 = new CountDownLatch(1);
         mBobSession.joinRoom(mRoomId, new ApiCallback<String>() {
@@ -4431,7 +4431,7 @@ public class CryptoTest {
             }
         });
         lock5.await(1000, TimeUnit.MILLISECONDS);
-        Assert.assertTrue (results.containsKey("lock5"));
+        Assert.assertTrue(results.containsKey("lock5"));
 
         // - Bob has an out of date list of Alice's devices
         Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
@@ -4491,7 +4491,7 @@ public class CryptoTest {
 
     private MXSession mBobSession;
     private MXSession mAliceSession;
-    private MXSession  mSamSession;
+    private MXSession mSamSession;
     private String mRoomId;
     private int mMessagesCount;
     private int mReceivedMessagesFromAlice;
@@ -4502,7 +4502,7 @@ public class CryptoTest {
         mBobSession = null;
         mBobSession = CryptoTestHelper.createAccountAndSync(context,
                 MXTESTS_BOB + System.currentTimeMillis() + UUID.randomUUID().toString(), MXTESTS_BOB_PWD, true);
-        Assert.assertTrue (null != mBobSession);
+        Assert.assertTrue(null != mBobSession);
     }
 
     public void createAliceAccount() throws Exception {
@@ -4510,7 +4510,7 @@ public class CryptoTest {
         mAliceSession = null;
         mAliceSession = CryptoTestHelper.createAccountAndSync(context,
                 MXTESTS_ALICE + System.currentTimeMillis() + UUID.randomUUID().toString(), MXTESTS_ALICE_PWD, true);
-        Assert.assertTrue (null != mAliceSession);
+        Assert.assertTrue(null != mAliceSession);
     }
 
     public void createSamAccount() throws Exception {
@@ -4518,7 +4518,7 @@ public class CryptoTest {
         mSamSession = null;
         mSamSession = CryptoTestHelper.createAccountAndSync(context,
                 MXTESTS_SAM + System.currentTimeMillis() + UUID.randomUUID().toString(), MXTESTS_SAM_PWD, true);
-        Assert.assertTrue (null != mSamSession);
+        Assert.assertTrue(null != mSamSession);
     }
 
     private void doE2ETestWithAliceInARoom() throws Exception {

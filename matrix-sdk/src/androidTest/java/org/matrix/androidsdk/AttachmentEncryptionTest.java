@@ -27,7 +27,7 @@ import java.util.Map;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class AttachmentEncryptionTest {
 
-    private String checkDecryption(String input, EncryptedFileInfo encryptedFileInfo) throws Exception  {
+    private String checkDecryption(String input, EncryptedFileInfo encryptedFileInfo) throws Exception {
         byte[] in = Base64.decode(input, Base64.DEFAULT);
 
         InputStream inputStream;
@@ -60,9 +60,9 @@ public class AttachmentEncryptionTest {
         encryptedFileInfo.hashes = hashMap;
 
         encryptedFileInfo.key = new EncryptedFileKey();
-        encryptedFileInfo.key.alg =  "A256CTR";
+        encryptedFileInfo.key.alg = "A256CTR";
         encryptedFileInfo.key.k = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-        encryptedFileInfo.key.key_ops = Arrays.asList("encrypt","decrypt");
+        encryptedFileInfo.key.key_ops = Arrays.asList("encrypt", "decrypt");
         encryptedFileInfo.key.kty = "oct";
 
         encryptedFileInfo.iv = "AAAAAAAAAAAAAAAAAAAAAA";
@@ -79,9 +79,9 @@ public class AttachmentEncryptionTest {
         encryptedFileInfo.hashes = hashMap;
 
         encryptedFileInfo.key = new EncryptedFileKey();
-        encryptedFileInfo.key.alg =  "A256CTR";
+        encryptedFileInfo.key.alg = "A256CTR";
         encryptedFileInfo.key.k = "__________________________________________8";
-        encryptedFileInfo.key.key_ops = Arrays.asList("encrypt","decrypt");
+        encryptedFileInfo.key.key_ops = Arrays.asList("encrypt", "decrypt");
         encryptedFileInfo.key.kty = "oct";
 
         encryptedFileInfo.iv = "//////////8AAAAAAAAAAA";
@@ -100,7 +100,7 @@ public class AttachmentEncryptionTest {
         encryptedFileInfo.key = new EncryptedFileKey();
         encryptedFileInfo.key.alg = "A256CTR";
         encryptedFileInfo.key.k = "__________________________________________8";
-        encryptedFileInfo.key.key_ops = Arrays.asList("encrypt","decrypt");
+        encryptedFileInfo.key.key_ops = Arrays.asList("encrypt", "decrypt");
         encryptedFileInfo.key.kty = "oct";
 
         encryptedFileInfo.iv = "//////////8AAAAAAAAAAA";
@@ -120,9 +120,9 @@ public class AttachmentEncryptionTest {
         encryptedFileInfo.hashes = hashMap;
 
         encryptedFileInfo.key = new EncryptedFileKey();
-        encryptedFileInfo.key.alg =  "A256CTR";
+        encryptedFileInfo.key.alg = "A256CTR";
         encryptedFileInfo.key.k = "__________________________________________8";
-        encryptedFileInfo.key.key_ops = Arrays.asList("encrypt","decrypt");
+        encryptedFileInfo.key.key_ops = Arrays.asList("encrypt", "decrypt");
         encryptedFileInfo.key.kty = "oct";
 
         encryptedFileInfo.iv = "/////////////////////w";
