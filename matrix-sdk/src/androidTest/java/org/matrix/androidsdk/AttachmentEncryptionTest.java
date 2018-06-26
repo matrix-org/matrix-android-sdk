@@ -14,6 +14,7 @@ import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileKey;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -29,16 +30,17 @@ public class AttachmentEncryptionTest {
     private String checkDecryption(String input, EncryptedFileInfo encryptedFileInfo) throws Exception  {
         byte[] in = Base64.decode(input, Base64.DEFAULT);
 
-        MemoryFile memoryFile;
+        InputStream inputStream;
 
         if (0 == in.length) {
-            memoryFile = new MemoryFile("file" + System.currentTimeMillis(), 0);
+            inputStream = new ByteArrayInputStream(in);
         } else {
-            memoryFile = new MemoryFile("file" + System.currentTimeMillis(), in.length);
+            MemoryFile memoryFile = new MemoryFile("file" + System.currentTimeMillis(), in.length);
             memoryFile.getOutputStream().write(in);
+            inputStream = memoryFile.getInputStream();
         }
 
-        InputStream decryptedStream = MXEncryptedAttachments.decryptAttachment(memoryFile.getInputStream(), encryptedFileInfo);
+        InputStream decryptedStream = MXEncryptedAttachments.decryptAttachment(inputStream, encryptedFileInfo);
 
         Assert.assertTrue(null != decryptedStream);
 
