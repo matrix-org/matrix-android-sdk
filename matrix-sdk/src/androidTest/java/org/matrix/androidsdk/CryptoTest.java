@@ -95,27 +95,12 @@ public class CryptoTest {
         Assert.assertNull(mBobSession.getCrypto());
         mBobSession.getCredentials().deviceId = null;
 
-        final CountDownLatch lock1 = new CountDownLatch(1);
-        mBobSession.enableCrypto(true, new ApiCallback<Void>() {
+        CountDownLatch lock1 = new CountDownLatch(1);
+        mBobSession.enableCrypto(true, new TestApiCallback<Void>(lock1) {
             @Override
             public void onSuccess(Void info) {
                 results.put("enableCrypto", "enableCrypto");
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
+                super.onSuccess(info);
             }
         });
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -138,27 +123,12 @@ public class CryptoTest {
 
         Assert.assertNull(mBobSession.getCrypto());
 
-        final CountDownLatch lock0 = new CountDownLatch(1);
-        mBobSession.enableCrypto(true, new ApiCallback<Void>() {
+        CountDownLatch lock0 = new CountDownLatch(1);
+        mBobSession.enableCrypto(true, new TestApiCallback<Void>(lock0) {
             @Override
             public void onSuccess(Void info) {
                 results.put("enableCrypto", "enableCrypto");
-                lock0.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock0.countDown();
+                super.onSuccess(info);
             }
         });
         lock0.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -263,84 +233,39 @@ public class CryptoTest {
         createAliceAccount();
         mAliceSession.getCredentials().deviceId = "AliceDevice";
 
-        final CountDownLatch lock0 = new CountDownLatch(1);
-        mAliceSession.enableCrypto(true, new ApiCallback<Void>() {
+        CountDownLatch lock0 = new CountDownLatch(1);
+        mAliceSession.enableCrypto(true, new TestApiCallback<Void>(lock0) {
             @Override
             public void onSuccess(Void info) {
                 results.put("enableCrypto", "enableCrypto");
-                lock0.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock0.countDown();
+                super.onSuccess(info);
             }
         });
         lock0.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("enableCrypto"));
 
         createBobAccount();
-        final CountDownLatch lock2 = new CountDownLatch(1);
+        CountDownLatch lock2 = new CountDownLatch(1);
         mBobSession.getCredentials().deviceId = "BobDevice";
-        mBobSession.enableCrypto(true, new ApiCallback<Void>() {
+        mBobSession.enableCrypto(true, new TestApiCallback<Void>(lock2) {
             @Override
             public void onSuccess(Void info) {
                 results.put("enableCrypto2", "enableCrypto2");
-                lock2.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock2.countDown();
+                super.onSuccess(info);
             }
         });
         lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("enableCrypto2"));
 
-        final CountDownLatch lock3 = new CountDownLatch(1);
+        CountDownLatch lock3 = new CountDownLatch(1);
         mBobSession.getCrypto()
                 .getDeviceList()
                 .downloadKeys(Arrays.asList(mBobSession.getMyUserId(), mAliceSession.getMyUserId()),
-                        false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+                        false, new TestApiCallback<MXUsersDevicesMap<MXDeviceInfo>>(lock3) {
                             @Override
                             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
                                 results.put("downloadKeys", info);
-                                lock3.countDown();
-                            }
-
-                            @Override
-                            public void onNetworkError(Exception e) {
-                                lock3.countDown();
-                            }
-
-                            @Override
-                            public void onMatrixError(MatrixError e) {
-                                lock3.countDown();
-                            }
-
-                            @Override
-                            public void onUnexpectedError(Exception e) {
-                                lock3.countDown();
+                                super.onSuccess(info);
                             }
                         });
 
@@ -360,28 +285,13 @@ public class CryptoTest {
                 mAliceSession.getMyUserId(), MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM));
         Assert.assertTrue(aliceDeviceFromBobPOV.isUnknown());
 
-        final CountDownLatch lock3a = new CountDownLatch(1);
+        CountDownLatch lock3a = new CountDownLatch(1);
         mBobSession.getCrypto().setDevicesKnown(Arrays.asList(aliceDeviceFromBobPOV),
-                new ApiCallback<Void>() {
+                new TestApiCallback<Void>(lock3a) {
                     @Override
                     public void onSuccess(Void info) {
                         results.put("setDevicesKnown", info);
-                        lock3a.countDown();
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        lock3a.countDown();
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        lock3a.countDown();
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        lock3a.countDown();
+                        super.onSuccess(info);
                     }
                 }
         );
@@ -389,31 +299,16 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("setDevicesKnown"));
         Assert.assertTrue(aliceDeviceFromBobPOV.isUnverified());
 
-        final CountDownLatch lock3b = new CountDownLatch(1);
+        CountDownLatch lock3b = new CountDownLatch(1);
         mBobSession.getCrypto().setDeviceVerification(
                 MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED,
                 aliceDeviceFromBobPOV.deviceId,
                 mAliceSession.getMyUserId(),
-                new ApiCallback<Void>() {
+                new TestApiCallback<Void>(lock3b) {
                     @Override
                     public void onSuccess(Void info) {
                         results.put("setDeviceVerification1", info);
-                        lock3b.countDown();
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        lock3b.countDown();
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        lock3b.countDown();
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        lock3b.countDown();
+                        super.onSuccess(info);
                     }
                 }
         );
@@ -493,28 +388,13 @@ public class CryptoTest {
                 aliceDeviceFromBobPOV2.mVerified == MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED);
 
         // Download again alice device
-        final CountDownLatch lock5 = new CountDownLatch(1);
+        CountDownLatch lock5 = new CountDownLatch(1);
         bobSession2.getCrypto().getDeviceList().downloadKeys(Arrays.asList(mAliceSession.getMyUserId()), true,
-                new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+                new TestApiCallback<MXUsersDevicesMap<MXDeviceInfo>>(lock5) {
                     @Override
                     public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
                         results.put("downloadKeys2", info);
-                        lock5.countDown();
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        lock5.countDown();
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        lock5.countDown();
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        lock5.countDown();
+                        super.onSuccess(info);
                     }
                 });
         lock5.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -543,28 +423,13 @@ public class CryptoTest {
 
         mAliceSession.getCredentials().deviceId = "AliceDevice";
 
-        final CountDownLatch lock0 = new CountDownLatch(1);
+        CountDownLatch lock0 = new CountDownLatch(1);
 
-        mAliceSession.enableCrypto(true, new ApiCallback<Void>() {
+        mAliceSession.enableCrypto(true, new TestApiCallback<Void>(lock0) {
             @Override
             public void onSuccess(Void info) {
                 results.put("enableCryptoAlice", "enableCryptoAlice");
-                lock0.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock0.countDown();
+                super.onSuccess(info);
             }
         });
 
@@ -573,83 +438,38 @@ public class CryptoTest {
 
         createBobAccount();
 
-        final CountDownLatch lock2 = new CountDownLatch(1);
-        mBobSession.enableCrypto(true, new ApiCallback<Void>() {
+        CountDownLatch lock2 = new CountDownLatch(1);
+        mBobSession.enableCrypto(true, new TestApiCallback<Void>(lock2) {
             @Override
             public void onSuccess(Void info) {
                 results.put("enableCryptoBob", "enableCryptoAlice");
-                lock2.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock2.countDown();
+                super.onSuccess(info);
             }
         });
 
         lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("enableCryptoBob"));
 
-        final CountDownLatch lock3 = new CountDownLatch(1);
+        CountDownLatch lock3 = new CountDownLatch(1);
         mBobSession.getCrypto().getDeviceList().downloadKeys(Arrays.asList(mBobSession.getMyUserId(), mAliceSession.getMyUserId()), false,
-                new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+                new TestApiCallback<MXUsersDevicesMap<MXDeviceInfo>>(lock3) {
                     @Override
                     public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> map) {
                         results.put("downloadKeys", map);
-                        lock3.countDown();
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        lock3.countDown();
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        lock3.countDown();
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        lock3.countDown();
+                        super.onSuccess(map);
                     }
                 });
 
         lock3.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("downloadKeys"));
 
-        final CountDownLatch lock4 = new CountDownLatch(1);
+        CountDownLatch lock4 = new CountDownLatch(1);
         mBobSession.getCrypto().ensureOlmSessionsForUsers(Arrays.asList(mBobSession.getMyUserId(), mAliceSession.getMyUserId()),
-                new ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>>() {
+                new TestApiCallback<MXUsersDevicesMap<MXOlmSessionResult>>(lock4) {
                     @Override
                     public void onSuccess(MXUsersDevicesMap<MXOlmSessionResult> info) {
                         results.put("ensureOlmSessionsForUsers", info);
-                        lock4.countDown();
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        lock4.countDown();
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        lock4.countDown();
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        lock4.countDown();
+                        super.onSuccess(info);
                     }
                 });
 
@@ -733,28 +553,13 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("onInitialSyncComplete"));
         Assert.assertTrue(results.containsKey("onCryptoSyncComplete"));
 
-        final CountDownLatch lock6 = new CountDownLatch(1);
+        CountDownLatch lock6 = new CountDownLatch(1);
         bobSession2.getCrypto().ensureOlmSessionsForUsers(Arrays.asList(bobSession2.getMyUserId(), mAliceSession.getMyUserId()),
-                new ApiCallback<MXUsersDevicesMap<MXOlmSessionResult>>() {
+                new TestApiCallback<MXUsersDevicesMap<MXOlmSessionResult>>(lock6) {
                     @Override
                     public void onSuccess(MXUsersDevicesMap<MXOlmSessionResult> info) {
                         results.put("ensureOlmSessionsForUsers2", info);
-                        lock6.countDown();
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        lock6.countDown();
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        lock6.countDown();
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        lock6.countDown();
+                        super.onSuccess(info);
                     }
                 });
         lock6.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -781,54 +586,24 @@ public class CryptoTest {
 
         createBobAccount();
 
-        final CountDownLatch lock0 = new CountDownLatch(1);
-        mBobSession.enableCrypto(true, new ApiCallback<Void>() {
+        CountDownLatch lock0 = new CountDownLatch(1);
+        mBobSession.enableCrypto(true, new TestApiCallback<Void>(lock0) {
             @Override
             public void onSuccess(Void info) {
                 results.put("enableCrypto", "enableCrypto");
-                lock0.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock0.countDown();
+                super.onSuccess(info);
             }
         });
         lock0.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("enableCrypto"));
         mRoomId = null;
 
-        final CountDownLatch lock1 = new CountDownLatch(1);
-        mBobSession.createRoom(new ApiCallback<String>() {
+        CountDownLatch lock1 = new CountDownLatch(1);
+        mBobSession.createRoom(new TestApiCallback<String>(lock1) {
             @Override
             public void onSuccess(String info) {
                 mRoomId = info;
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
+                super.onSuccess(info);
             }
         });
 
@@ -839,27 +614,12 @@ public class CryptoTest {
 
         Assert.assertFalse(room.isEncrypted());
 
-        final CountDownLatch lock2 = new CountDownLatch(1);
-        room.enableEncryptionWithAlgorithm(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, new ApiCallback<Void>() {
+        CountDownLatch lock2 = new CountDownLatch(1);
+        room.enableEncryptionWithAlgorithm(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, new TestApiCallback<Void>(lock2) {
             @Override
             public void onSuccess(Void info) {
                 results.put("enableEncryptionWithAlgorithm", "enableEncryptionWithAlgorithm");
-                lock2.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock2.countDown();
+                super.onSuccess(info);
             }
         });
         lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -884,32 +644,12 @@ public class CryptoTest {
 
         Assert.assertTrue(roomFromAlicePOV.isEncrypted());
 
-        final CountDownLatch lock1 = new CountDownLatch(1);
+        CountDownLatch lock1 = new CountDownLatch(1);
 
         // the IOS client echoes the message
         // the android client does not
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(message, mAliceSession), new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
-            }
-        });
+        roomFromAlicePOV.sendEvent(buildTextEvent(message, mAliceSession), new TestApiCallback<Void>(lock1));
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
@@ -933,28 +673,13 @@ public class CryptoTest {
         Assert.assertTrue(roomFromBobPOV.isEncrypted());
         Assert.assertTrue(roomFromAlicePOV.isEncrypted());
 
-        final CountDownLatch lock1 = new CountDownLatch(1);
+        CountDownLatch lock1 = new CountDownLatch(1);
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new TestApiCallback<Void>(lock1) {
             @Override
             public void onMatrixError(MatrixError e) {
                 results.put("sendEventError", e);
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
+                super.onMatrixError(e);
             }
         });
 
@@ -967,27 +692,12 @@ public class CryptoTest {
         Assert.assertTrue(1 == deviceInfos.size());
         Assert.assertTrue(TextUtils.equals(deviceInfos.get(0), mBobSession.getCrypto().getMyDevice().deviceId));
 
-        final CountDownLatch lock2 = new CountDownLatch(1);
-        mAliceSession.getCrypto().setDevicesKnown(Arrays.asList(mBobSession.getCrypto().getMyDevice()), new ApiCallback<Void>() {
+        CountDownLatch lock2 = new CountDownLatch(1);
+        mAliceSession.getCrypto().setDevicesKnown(Arrays.asList(mBobSession.getCrypto().getMyDevice()), new TestApiCallback<Void>(lock2) {
             @Override
             public void onSuccess(Void info) {
                 results.put("setDevicesKnown", "setDevicesKnown");
-                lock2.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock2.countDown();
+                super.onSuccess(info);
             }
         });
 
@@ -1021,27 +731,7 @@ public class CryptoTest {
 
         roomFromBobPOV.addEventListener(eventListener);
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                lock3.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock3.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock3.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock3.countDown();
-            }
-        });
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new TestApiCallback<Void>(lock3));
 
         lock3.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
@@ -1269,26 +959,11 @@ public class CryptoTest {
 
         // the IOS client echoes the message
         // the android client does not
-        roomFromAlicePOV2.sendEvent(buildTextEvent(message, aliceSession2), new ApiCallback<Void>() {
+        roomFromAlicePOV2.sendEvent(buildTextEvent(message, aliceSession2), new TestApiCallback<Void>(lock2) {
             @Override
             public void onSuccess(Void info) {
                 results.put("sendEvent", "sendEvent");
-                lock2.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock2.countDown();
+                super.onSuccess(info);
             }
         });
 
@@ -1313,27 +988,12 @@ public class CryptoTest {
 
         Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
 
-        final CountDownLatch lock1 = new CountDownLatch(1);
-        roomFromAlicePOV.sendEvent(buildTextEvent(message, mAliceSession), new ApiCallback<Void>() {
+        CountDownLatch lock1 = new CountDownLatch(1);
+        roomFromAlicePOV.sendEvent(buildTextEvent(message, mAliceSession), new TestApiCallback<Void>(lock1) {
             @Override
             public void onSuccess(Void info) {
                 results.put("sendEvent", "sendEvent");
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
+                super.onSuccess(info);
             }
         });
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -1489,23 +1149,11 @@ public class CryptoTest {
 
         roomFromBobPOV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener);
 
-        roomFromBobPOV.getLiveTimeLine().backPaginate(new ApiCallback<Integer>() {
+        roomFromBobPOV.getLiveTimeLine().backPaginate(new TestApiCallback<Integer>(lock2) {
             @Override
             public void onSuccess(Integer info) {
                 results.put("backPaginate", "backPaginate");
-                lock2.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
+                super.onSuccess(info);
             }
         });
 
@@ -1553,23 +1201,11 @@ public class CryptoTest {
         };
 
         timeline.addEventTimelineListener(eventTimelineListener);
-        timeline.backPaginate(new ApiCallback<Integer>() {
+        timeline.backPaginate(new TestApiCallback<Integer>(lock2) {
             @Override
             public void onSuccess(Integer info) {
                 results.put("backPaginate", "backPaginate");
-                lock2.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
+                super.onSuccess(info);
             }
         });
 
@@ -1741,26 +1377,11 @@ public class CryptoTest {
         roomFromSamPOV.addEventListener(samEventsListener0);
 
         // even if the device blocked, the message must be decrypted until there is a session id rolling
-        roomFromBobPOV.sendEvent(buildTextEvent("msg1", mBobSession), new ApiCallback<Void>() {
+        roomFromBobPOV.sendEvent(buildTextEvent("msg1", mBobSession), new TestApiCallback<Void>(lock0) {
             @Override
             public void onSuccess(Void info) {
                 results.put("send0", "send0");
-                lock0.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock0.countDown();
+                super.onSuccess(info);
             }
         });
         lock0.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -1795,26 +1416,11 @@ public class CryptoTest {
         };
         roomFromSamPOV.addEventListener(samEventsListener1);
 
-        roomFromAlicePOV.sendEvent(buildTextEvent("msg1", mAliceSession), new ApiCallback<Void>() {
+        roomFromAlicePOV.sendEvent(buildTextEvent("msg1", mAliceSession), new TestApiCallback<Void>(lock1) {
             @Override
             public void onSuccess(Void info) {
                 results.put("send1", "send1");
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
+                super.onSuccess(info);
             }
         });
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -1825,28 +1431,13 @@ public class CryptoTest {
         Assert.assertNotNull(list);
         Assert.assertTrue(list.size() > 0);
 
-        final CountDownLatch lock1b = new CountDownLatch(1);
+        CountDownLatch lock1b = new CountDownLatch(1);
         mBobSession.getCrypto().setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED, list.get(0).deviceId, mAliceSession.getMyUserId(),
-                new ApiCallback<Void>() {
+                new TestApiCallback<Void>(lock1b) {
                     @Override
                     public void onSuccess(Void info) {
                         results.put("setDeviceVerification10", "setDeviceVerification10");
-                        lock1b.countDown();
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        lock1b.countDown();
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        lock1b.countDown();
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        lock1b.countDown();
+                        super.onSuccess(info);
                     }
                 });
         lock1b.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -1876,26 +1467,11 @@ public class CryptoTest {
         roomFromSamPOV.addEventListener(samEventsListener2);
 
         // even if the device blocked, the message must be decrypted until there is a session id rolling
-        roomFromBobPOV.sendEvent(buildTextEvent("msg2", mBobSession), new ApiCallback<Void>() {
+        roomFromBobPOV.sendEvent(buildTextEvent("msg2", mBobSession), new TestApiCallback<Void>(lock2) {
             @Override
             public void onSuccess(Void info) {
                 results.put("send2", "send2");
-                lock2.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock2.countDown();
+                super.onSuccess(info);
             }
         });
 
@@ -1916,26 +1492,11 @@ public class CryptoTest {
         };
         roomFromBobPOV.addEventListener(bobLeaveEventsListener);
 
-        roomFromSamPOV.leave(new ApiCallback<Void>() {
+        roomFromSamPOV.leave(new TestApiCallback<Void>(lock3) {
             @Override
             public void onSuccess(Void info) {
                 results.put("leave", "leave");
-                lock3.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock3.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock3.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock3.countDown();
+                super.onSuccess(info);
             }
         });
 
@@ -1955,26 +1516,11 @@ public class CryptoTest {
         roomFromAlicePOV.addEventListener(aliceEventsListener3);
 
         // even if the device blocked, the message must be decrypted until there is a session id rolling
-        roomFromBobPOV.sendEvent(buildTextEvent("msg3", mBobSession), new ApiCallback<Void>() {
+        roomFromBobPOV.sendEvent(buildTextEvent("msg3", mBobSession), new TestApiCallback<Void>(lock4) {
             @Override
             public void onSuccess(Void info) {
                 results.put("send3", "send3");
-                lock4.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock4.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock4.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock4.countDown();
+                super.onSuccess(info);
             }
         });
 
@@ -2337,28 +1883,13 @@ public class CryptoTest {
         Assert.assertTrue(checkEncryptedEvent(event, mRoomId, aliceMessage1, mAliceSession));
 
         // logout
-        final CountDownLatch lock2 = new CountDownLatch(1);
+        CountDownLatch lock2 = new CountDownLatch(1);
         String bobId = mBobSession.getCredentials().userId;
-        mBobSession.logout(context, new ApiCallback<Void>() {
+        mBobSession.logout(context, new TestApiCallback<Void>(lock2) {
             @Override
             public void onSuccess(Void info) {
                 results.put("logout", "logout");
-                lock2.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-
+                super.onSuccess(info);
             }
         });
         lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -2508,53 +2039,23 @@ public class CryptoTest {
         Assert.assertTrue(checkEncryptedEvent(event, mRoomId, aliceMessage1, mAliceSession));
 
         // logout
-        final CountDownLatch lock2 = new CountDownLatch(1);
-        mBobSession.logout(context, new ApiCallback<Void>() {
+        CountDownLatch lock2 = new CountDownLatch(1);
+        mBobSession.logout(context, new TestApiCallback<Void>(lock2) {
             @Override
             public void onSuccess(Void info) {
                 results.put("boblogout", "boblogout");
-                lock2.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-
+                super.onSuccess(info);
             }
         });
         lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("boblogout"));
 
-        final CountDownLatch lock3 = new CountDownLatch(1);
-        mAliceSession.logout(context, new ApiCallback<Void>() {
+        CountDownLatch lock3 = new CountDownLatch(1);
+        mAliceSession.logout(context, new TestApiCallback<Void>(lock3) {
             @Override
             public void onSuccess(Void info) {
                 results.put("alicelogout", "alicelogout");
-                lock3.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-
+                super.onSuccess(info);
             }
         });
         lock3.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -2674,29 +2175,14 @@ public class CryptoTest {
         Assert.assertTrue(checkEncryptedEvent(event, mRoomId, aliceMessage1, mAliceSession));
 
         // block the bob's device
-        final CountDownLatch lock1b = new CountDownLatch(1);
+        CountDownLatch lock1b = new CountDownLatch(1);
         mAliceSession.getCrypto()
                 .setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_BLOCKED, mBobSession.getCredentials().deviceId, mBobSession.getMyUserId(),
-                        new ApiCallback<Void>() {
+                        new TestApiCallback<Void>(lock1b) {
                             @Override
                             public void onSuccess(Void info) {
                                 results.put("setDeviceVerification20", "setDeviceVerification20");
-                                lock1b.countDown();
-                            }
-
-                            @Override
-                            public void onNetworkError(Exception e) {
-                                lock1b.countDown();
-                            }
-
-                            @Override
-                            public void onMatrixError(MatrixError e) {
-                                lock1b.countDown();
-                            }
-
-                            @Override
-                            public void onUnexpectedError(Exception e) {
-                                lock1b.countDown();
+                                super.onSuccess(info);
                             }
                         });
         lock1b.await();
@@ -2746,29 +2232,14 @@ public class CryptoTest {
         Assert.assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE));
 
         // unblock the bob's device
-        final CountDownLatch lock2b = new CountDownLatch(1);
+        CountDownLatch lock2b = new CountDownLatch(1);
         mAliceSession.getCrypto()
                 .setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_UNVERIFIED, mBobSession.getCredentials().deviceId, mBobSession.getMyUserId(),
-                        new ApiCallback<Void>() {
+                        new TestApiCallback<Void>(lock2b) {
                             @Override
                             public void onSuccess(Void info) {
                                 results.put("setDeviceVerification40", "setDeviceVerification40");
-                                lock2b.countDown();
-                            }
-
-                            @Override
-                            public void onNetworkError(Exception e) {
-                                lock2b.countDown();
-                            }
-
-                            @Override
-                            public void onMatrixError(MatrixError e) {
-                                lock2b.countDown();
-                            }
-
-                            @Override
-                            public void onUnexpectedError(Exception e) {
-                                lock2b.countDown();
+                                super.onSuccess(info);
                             }
                         });
         lock2b.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -2832,32 +2303,32 @@ public class CryptoTest {
         Assert.assertTrue(roomFromBobPOV.isEncrypted());
         Assert.assertTrue(roomFromAlicePOV.isEncrypted());
 
-        final CountDownLatch lock1 = new CountDownLatch(1);
+        CountDownLatch lock1 = new CountDownLatch(1);
         mAliceSession.getCrypto().getDeviceList()
                 .downloadKeys(Arrays.asList(mBobSession.getMyUserId(), "@pppppppppppp:matrix.org"), false,
-                        new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+                        new TestApiCallback<MXUsersDevicesMap<MXDeviceInfo>>(lock1) {
                             @Override
                             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
                                 results.put("downloadKeys", info);
-                                lock1.countDown();
+                                super.onSuccess(info);
                             }
 
                             @Override
                             public void onNetworkError(Exception e) {
                                 results.put("downloadKeysError", e);
-                                lock1.countDown();
+                                super.onNetworkError(e);
                             }
 
                             @Override
                             public void onMatrixError(MatrixError e) {
                                 results.put("downloadKeysError", e);
-                                lock1.countDown();
+                                super.onMatrixError(e);
                             }
 
                             @Override
                             public void onUnexpectedError(Exception e) {
                                 results.put("downloadKeysError", e);
-                                lock1.countDown();
+                                super.onUnexpectedError(e);
                             }
                         });
 
@@ -2883,28 +2354,13 @@ public class CryptoTest {
 
         mAliceSession.getCrypto().setWarnOnUnknownDevices(false);
 
-        final CountDownLatch lock1 = new CountDownLatch(1);
+        CountDownLatch lock1 = new CountDownLatch(1);
         mAliceSession.getCrypto().getDeviceList().downloadKeys(Arrays.asList(mBobSession.getMyUserId()), false,
-                new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+                new TestApiCallback<MXUsersDevicesMap<MXDeviceInfo>>(lock1) {
                     @Override
                     public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
                         results.put("downloadKeys", info);
-                        lock1.countDown();
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        lock1.countDown();
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        lock1.countDown();
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        lock1.countDown();
+    super.onSuccess(info);
                     }
                 });
 
@@ -2920,28 +2376,13 @@ public class CryptoTest {
 
         // try again
         // it should not failed
-        final CountDownLatch lock2 = new CountDownLatch(1);
+        CountDownLatch lock2 = new CountDownLatch(1);
         mAliceSession.getCrypto().getDeviceList().downloadKeys(Arrays.asList(mBobSession.getMyUserId()), false,
-                new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+                new TestApiCallback<MXUsersDevicesMap<MXDeviceInfo>>(lock2) {
                     @Override
                     public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> info) {
                         results.put("downloadKeys2", info);
-                        lock2.countDown();
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        lock2.countDown();
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        lock2.countDown();
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        lock2.countDown();
+                        super.onSuccess(info);
                     }
                 });
 
@@ -2972,28 +2413,13 @@ public class CryptoTest {
         // wait that the bob session is really suspended
         SystemClock.sleep(30000);
 
-        final CountDownLatch lock0 = new CountDownLatch(1);
+        CountDownLatch lock0 = new CountDownLatch(1);
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new ApiCallback<Void>() {
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new TestApiCallback<Void>(lock0) {
             @Override
             public void onSuccess(Void info) {
                 results.put("sendEvent", "sendEvent");
-                lock0.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock0.countDown();
+                super.onSuccess(info);
             }
         });
 
@@ -3051,27 +2477,12 @@ public class CryptoTest {
 
         Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
 
-        final CountDownLatch lock1 = new CountDownLatch(1);
-        roomFromAlicePOV.sendEvent(buildTextEvent(message, mAliceSession), new ApiCallback<Void>() {
+        CountDownLatch lock1 = new CountDownLatch(1);
+        roomFromAlicePOV.sendEvent(buildTextEvent(message, mAliceSession), new TestApiCallback<Void>(lock1) {
             @Override
             public void onSuccess(Void info) {
                 results.put("sendEvent", "sendEvent");
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
+                super.onSuccess(info);
             }
         });
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -3080,27 +2491,12 @@ public class CryptoTest {
         Credentials aliceCredentials = mAliceSession.getCredentials();
         Credentials aliceCredentials2 = new Credentials();
 
-        final CountDownLatch lock1a = new CountDownLatch(1);
-        mAliceSession.getCrypto().exportRoomKeys(password, new ApiCallback<byte[]>() {
+        CountDownLatch lock1a = new CountDownLatch(1);
+        mAliceSession.getCrypto().exportRoomKeys(password, new TestApiCallback<byte[]>(lock1a) {
             @Override
             public void onSuccess(byte[] info) {
                 results.put("exportRoomKeys", info);
-                lock1a.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1a.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1a.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1a.countDown();
+                super.onSuccess(info);
             }
         });
 
@@ -3191,30 +2587,30 @@ public class CryptoTest {
 
         // import the e2e keys
         // test with a wrong password
-        final CountDownLatch lock3 = new CountDownLatch(1);
-        aliceSession2.getCrypto().importRoomKeys((byte[]) results.get("exportRoomKeys"), "wrong password", new ApiCallback<Void>() {
+        CountDownLatch lock3 = new CountDownLatch(1);
+        aliceSession2.getCrypto().importRoomKeys((byte[]) results.get("exportRoomKeys"), "wrong password", new TestApiCallback<Void>(lock3) {
             @Override
             public void onSuccess(Void info) {
                 results.put("importRoomKeys", "importRoomKeys");
-                lock3.countDown();
+                super.onSuccess(info);
             }
 
             @Override
             public void onNetworkError(Exception e) {
                 results.put("importRoomKeys_failed", "importRoomKeys_failed");
-                lock3.countDown();
+                super.onNetworkError(e);
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
                 results.put("importRoomKeys_failed", "importRoomKeys_failed");
-                lock3.countDown();
+                super.onMatrixError(e);
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
                 results.put("importRoomKeys_failed", "importRoomKeys_failed");
-                lock3.countDown();
+                super.onUnexpectedError(e);
             }
         });
         lock3.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -3229,27 +2625,12 @@ public class CryptoTest {
         Assert.assertNotNull(event.getCryptoError());
         Assert.assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE));
 
-        final CountDownLatch lock4 = new CountDownLatch(1);
-        aliceSession2.getCrypto().importRoomKeys((byte[]) results.get("exportRoomKeys"), password, new ApiCallback<Void>() {
+        CountDownLatch lock4 = new CountDownLatch(1);
+        aliceSession2.getCrypto().importRoomKeys((byte[]) results.get("exportRoomKeys"), password, new TestApiCallback<Void>(lock4) {
             @Override
             public void onSuccess(Void info) {
                 results.put("importRoomKeys", "importRoomKeys");
-                lock4.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock4.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock4.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock4.countDown();
+                super.onSuccess(info);
             }
         });
         lock4.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -3280,50 +2661,10 @@ public class CryptoTest {
         createAliceAccount();
         createBobAccount();
 
-        final CountDownLatch lock_1 = new CountDownLatch(2);
-        mAliceSession.enableCrypto(true, new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                lock_1.countDown();
-            }
+        CountDownLatch lock_1 = new CountDownLatch(2);
 
-            @Override
-            public void onNetworkError(Exception e) {
-                lock_1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock_1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock_1.countDown();
-            }
-        });
-
-        mBobSession.enableCrypto(true, new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                lock_1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock_1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock_1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock_1.countDown();
-            }
-        });
+        mAliceSession.enableCrypto(true, new TestApiCallback<Void>(lock_1));
+        mBobSession.enableCrypto(true, new TestApiCallback<Void>(lock_1));
 
         lock_1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertNotNull(mAliceSession.getCrypto());
@@ -3332,28 +2673,13 @@ public class CryptoTest {
         mAliceSession.getCrypto().setWarnOnUnknownDevices(false);
         mBobSession.getCrypto().setWarnOnUnknownDevices(false);
 
-        final CountDownLatch lock0 = new CountDownLatch(1);
+        CountDownLatch lock0 = new CountDownLatch(1);
         mAliceSession.createRoom(null, null, RoomState.DIRECTORY_VISIBILITY_PUBLIC, null, RoomState.GUEST_ACCESS_CAN_JOIN,
-                RoomState.HISTORY_VISIBILITY_SHARED, null, new ApiCallback<String>() {
+                RoomState.HISTORY_VISIBILITY_SHARED, null, new TestApiCallback<String>(lock0) {
                     @Override
                     public void onSuccess(String roomId) {
                         results.put("roomId", roomId);
-                        lock0.countDown();
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        lock0.countDown();
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        lock0.countDown();
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        lock0.countDown();
+                        super.onSuccess(roomId);
                     }
                 });
         lock0.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -3362,53 +2688,23 @@ public class CryptoTest {
 
         Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
 
-        final CountDownLatch lock1 = new CountDownLatch(1);
-        roomFromAlicePOV.enableEncryptionWithAlgorithm(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, new ApiCallback<Void>() {
+        CountDownLatch lock1 = new CountDownLatch(1);
+        roomFromAlicePOV.enableEncryptionWithAlgorithm(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, new TestApiCallback<Void>(lock1) {
             @Override
             public void onSuccess(Void info) {
                 results.put("enableEncryptionWithAlgorithm", "enableEncryptionWithAlgorithm");
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
+                super.onSuccess(info);
             }
         });
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("enableEncryptionWithAlgorithm"));
 
-        final CountDownLatch lock2 = new CountDownLatch(1);
-        mBobSession.joinRoom(mRoomId, new ApiCallback<String>() {
+        CountDownLatch lock2 = new CountDownLatch(1);
+        mBobSession.joinRoom(mRoomId, new TestApiCallback<String>(lock2) {
             @Override
             public void onSuccess(String info) {
                 results.put("joinRoom", "joinRoom");
-                lock2.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock2.countDown();
+                super.onSuccess(info);
             }
         });
         lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -3451,27 +2747,12 @@ public class CryptoTest {
         Event event = receivedEvents.get(0);
         Assert.assertTrue(checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession));
 
-        final CountDownLatch lock4 = new CountDownLatch(1);
-        roomFromBobPOV.leave(new ApiCallback<Void>() {
+        CountDownLatch lock4 = new CountDownLatch(1);
+        roomFromBobPOV.leave(new TestApiCallback<Void>(lock4) {
             @Override
             public void onSuccess(Void info) {
                 results.put("leave", "leave");
-                lock4.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock4.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock4.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock4.countDown();
+                super.onSuccess(info);
             }
         });
         lock4.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -3487,27 +2768,12 @@ public class CryptoTest {
         Assert.assertFalse(TextUtils.equals(bobSession2.getCrypto().getMyDevice().deviceId, bobCredentials.deviceId));
         bobSession2.getCrypto().setWarnOnUnknownDevices(false);
 
-        final CountDownLatch lock5 = new CountDownLatch(1);
-        bobSession2.joinRoom(mRoomId, new ApiCallback<String>() {
+        CountDownLatch lock5 = new CountDownLatch(1);
+        bobSession2.joinRoom(mRoomId, new TestApiCallback<String>(lock5) {
             @Override
             public void onSuccess(String info) {
                 results.put("joinRoom2", "joinRoom2");
-                lock5.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock5.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock5.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock5.countDown();
+                super.onSuccess(info);
             }
         });
         lock5.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -3592,28 +2858,13 @@ public class CryptoTest {
         Assert.assertTrue(roomFromAlicePOV.isEncrypted());
         Assert.assertTrue(roomFromSamPOV.isEncrypted());
 
-        final CountDownLatch lock1 = new CountDownLatch(1);
+        CountDownLatch lock1 = new CountDownLatch(1);
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new TestApiCallback<Void>(lock1) {
             @Override
             public void onMatrixError(MatrixError e) {
                 results.put("sendEventError", e);
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
+                super.onMatrixError(e);
             }
         });
 
@@ -3633,28 +2884,13 @@ public class CryptoTest {
         Assert.assertTrue(1 == deviceInfos.size());
         Assert.assertTrue(deviceInfos.contains(mSamSession.getCrypto().getMyDevice().deviceId));
 
-        final CountDownLatch lock2 = new CountDownLatch(1);
+        CountDownLatch lock2 = new CountDownLatch(1);
         mAliceSession.getCrypto().setDevicesKnown(Arrays.asList(mBobSession.getCrypto().getMyDevice(), mSamSession.getCrypto().getMyDevice()),
-                new ApiCallback<Void>() {
+                new TestApiCallback<Void>(lock2) {
                     @Override
                     public void onSuccess(Void info) {
                         results.put("setDevicesKnown", "setDevicesKnown");
-                        lock2.countDown();
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        lock2.countDown();
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        lock2.countDown();
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        lock2.countDown();
+                        super.onSuccess(info);
                     }
                 });
 
@@ -3712,24 +2948,9 @@ public class CryptoTest {
         roomFromBobPOV.addEventListener(eventListenerBob1);
         roomFromSamPOV.addEventListener(eventListenerSam1);
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new ApiCallback<Void>() {
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new TestApiCallback<Void>(lock3) {
             @Override
             public void onSuccess(Void info) {
-                lock3.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock3.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock3.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
                 lock3.countDown();
             }
         });
@@ -3786,27 +3007,12 @@ public class CryptoTest {
         roomFromBobPOV.addEventListener(eventListenerBob2);
         roomFromSamPOV.addEventListener(eventListenerSam2);
 
-        final CountDownLatch lock4 = new CountDownLatch(1);
-        mAliceSession.getCrypto().setGlobalBlacklistUnverifiedDevices(true, new ApiCallback<Void>() {
+        CountDownLatch lock4 = new CountDownLatch(1);
+        mAliceSession.getCrypto().setGlobalBlacklistUnverifiedDevices(true, new TestApiCallback<Void>(lock4) {
             @Override
             public void onSuccess(Void info) {
                 results.put("setGlobalBlacklistUnverifiedDevicesTrue", "setGlobalBlacklistUnverifiedDevices");
-                lock4.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock4.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock4.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock4.countDown();
+                super.onSuccess(info);
             }
         });
         lock4.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -3814,34 +3020,14 @@ public class CryptoTest {
 
         // ensure that there is no received message
         results.clear();
-        final CountDownLatch lock5 = new CountDownLatch(3);
+        CountDownLatch lock5 = new CountDownLatch(3);
         activeLock.clear();
         activeLock.add(lock5);
 
         activeMessage.clear();
         activeMessage.add("message 1");
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(activeMessage.get(0), mAliceSession), new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                lock5.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock5.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock5.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock5.countDown();
-            }
-        });
+        roomFromAlicePOV.sendEvent(buildTextEvent(activeMessage.get(0), mAliceSession), new TestApiCallback<Void>(lock5));
 
         lock5.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertFalse(results.containsKey("eventListenerBob2"));
@@ -3849,27 +3035,12 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("eventListenerEncyptedBob2"));
         Assert.assertTrue(results.containsKey("eventListenerEncyptedSam2"));
 
-        final CountDownLatch lock6 = new CountDownLatch(1);
-        mAliceSession.getCrypto().setGlobalBlacklistUnverifiedDevices(false, new ApiCallback<Void>() {
+        CountDownLatch lock6 = new CountDownLatch(1);
+        mAliceSession.getCrypto().setGlobalBlacklistUnverifiedDevices(false, new TestApiCallback<Void>(lock6) {
             @Override
             public void onSuccess(Void info) {
                 results.put("setGlobalBlacklistUnverifiedDevicesfalse", "setGlobalBlacklistUnverifiedDevices");
-                lock6.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock6.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock6.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock6.countDown();
+                super.onSuccess(info);
             }
         });
         lock6.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -3877,34 +3048,14 @@ public class CryptoTest {
 
         // ensure that the messages are received
         results.clear();
-        final CountDownLatch lock7 = new CountDownLatch(3);
+        CountDownLatch lock7 = new CountDownLatch(3);
         activeLock.clear();
         activeLock.add(lock7);
 
         activeMessage.clear();
         activeMessage.add("message 2");
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(activeMessage.get(0), mAliceSession), new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                lock7.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock7.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock7.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock7.countDown();
-            }
-        });
+        roomFromAlicePOV.sendEvent(buildTextEvent(activeMessage.get(0), mAliceSession), new TestApiCallback<Void>(lock7));
 
         lock7.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("eventListenerBob2"));
@@ -3913,56 +3064,26 @@ public class CryptoTest {
         Assert.assertFalse(results.containsKey("eventListenerEncyptedSam2"));
 
         // verify the bob device
-        final CountDownLatch lock8 = new CountDownLatch(3);
+        CountDownLatch lock8 = new CountDownLatch(3);
         mAliceSession.getCrypto().setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED,
                 mBobSession.getCrypto().getMyDevice().deviceId,
-                mBobSession.getMyUserId(), new ApiCallback<Void>() {
+                mBobSession.getMyUserId(), new TestApiCallback<Void>(lock8) {
                     @Override
                     public void onSuccess(Void info) {
                         results.put("setDeviceVerificationBob", "setDeviceVerificationBob");
-                        lock8.countDown();
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        lock8.countDown();
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        lock8.countDown();
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        lock8.countDown();
+                        super.onSuccess(info);
                     }
                 }
         );
         lock8.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("setDeviceVerificationBob"));
 
-        final CountDownLatch lock9 = new CountDownLatch(3);
-        mAliceSession.getCrypto().setRoomBlacklistUnverifiedDevices(roomFromAlicePOV.getRoomId(), new ApiCallback<Void>() {
+        CountDownLatch lock9 = new CountDownLatch(3);
+        mAliceSession.getCrypto().setRoomBlacklistUnverifiedDevices(roomFromAlicePOV.getRoomId(), new TestApiCallback<Void>(lock9) {
             @Override
             public void onSuccess(Void info) {
                 results.put("setRoomBlacklistUnverifiedDevices", "setRoomBlacklistUnverifiedDevices");
-                lock9.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock9.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock9.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock9.countDown();
+                super.onSuccess(info);
             }
         });
         lock9.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -3970,34 +3091,14 @@ public class CryptoTest {
 
         // ensure that the messages are received
         results.clear();
-        final CountDownLatch lock10 = new CountDownLatch(3);
+        CountDownLatch lock10 = new CountDownLatch(3);
         activeLock.clear();
         activeLock.add(lock10);
 
         activeMessage.clear();
         activeMessage.add("message 3");
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(activeMessage.get(0), mAliceSession), new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                lock10.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock10.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock10.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock10.countDown();
-            }
-        });
+        roomFromAlicePOV.sendEvent(buildTextEvent(activeMessage.get(0), mAliceSession), new TestApiCallback<Void>(lock10));
 
         lock10.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("eventListenerBob2"));
@@ -4005,27 +3106,12 @@ public class CryptoTest {
         Assert.assertFalse(results.containsKey("eventListenerEncyptedBob2"));
         Assert.assertTrue(results.containsKey("eventListenerEncyptedSam2"));
 
-        final CountDownLatch lock11 = new CountDownLatch(3);
-        mAliceSession.getCrypto().setRoomUnblacklistUnverifiedDevices(roomFromAlicePOV.getRoomId(), new ApiCallback<Void>() {
+        CountDownLatch lock11 = new CountDownLatch(3);
+        mAliceSession.getCrypto().setRoomUnblacklistUnverifiedDevices(roomFromAlicePOV.getRoomId(), new TestApiCallback<Void>(lock11) {
             @Override
             public void onSuccess(Void info) {
                 results.put("setRoomUnblacklistUnverifiedDevices", "setRoomUnblacklistUnverifiedDevices");
-                lock11.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock11.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock11.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock11.countDown();
+                super.onSuccess(info);
             }
         });
         lock11.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -4033,34 +3119,14 @@ public class CryptoTest {
 
         // ensure that the messages are received
         results.clear();
-        final CountDownLatch lock12 = new CountDownLatch(3);
+        CountDownLatch lock12 = new CountDownLatch(3);
         activeLock.clear();
         activeLock.add(lock12);
 
         activeMessage.clear();
         activeMessage.add("message 3");
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(activeMessage.get(0), mAliceSession), new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                lock12.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock12.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock12.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock12.countDown();
-            }
-        });
+        roomFromAlicePOV.sendEvent(buildTextEvent(activeMessage.get(0), mAliceSession), new TestApiCallback<Void>(lock12));
 
         lock12.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("eventListenerBob2"));
@@ -4089,50 +3155,19 @@ public class CryptoTest {
         createAliceAccount();
         createBobAccount();
 
-        final CountDownLatch lock00b = new CountDownLatch(2);
-        mAliceSession.enableCrypto(true, new ApiCallback<Void>() {
+        CountDownLatch lock00b = new CountDownLatch(2);
+        mAliceSession.enableCrypto(true, new TestApiCallback<Void>(lock00b) {
             @Override
             public void onSuccess(Void info) {
                 results.put("enableCrypto1", "enableCrypto1");
-                lock00b.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock00b.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock00b.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock00b.countDown();
+                super.onSuccess(info);
             }
         });
 
-        mBobSession.enableCrypto(true, new ApiCallback<Void>() {
+        mBobSession.enableCrypto(true, new TestApiCallback<Void>(lock00b) {
             @Override
             public void onSuccess(Void info) {
                 results.put("enableCrypto2", "enableCrypto2");
-                lock00b.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock00b.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock00b.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock00b.countDown();
             }
         });
         lock00b.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -4142,55 +3177,25 @@ public class CryptoTest {
         mAliceSession.getCrypto().setWarnOnUnknownDevices(false);
         mBobSession.getCrypto().setWarnOnUnknownDevices(false);
 
-        final CountDownLatch lock0 = new CountDownLatch(1);
+        CountDownLatch lock0 = new CountDownLatch(1);
         mAliceSession.createRoom(null, null, RoomState.DIRECTORY_VISIBILITY_PUBLIC, null, RoomState.GUEST_ACCESS_CAN_JOIN,
-                RoomState.HISTORY_VISIBILITY_SHARED, null, new ApiCallback<String>() {
+                RoomState.HISTORY_VISIBILITY_SHARED, null, new TestApiCallback<String>(lock0) {
                     @Override
                     public void onSuccess(String roomId) {
                         results.put("roomId", roomId);
-                        lock0.countDown();
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        lock0.countDown();
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        lock0.countDown();
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        lock0.countDown();
+                        super.onSuccess(roomId);
                     }
                 });
         lock0.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("roomId"));
         mRoomId = (String) results.get("roomId");
 
-        final CountDownLatch lock1 = new CountDownLatch(1);
-        mBobSession.joinRoom(mRoomId, new ApiCallback<String>() {
+        CountDownLatch lock1 = new CountDownLatch(1);
+        mBobSession.joinRoom(mRoomId, new TestApiCallback<String>(lock1) {
             @Override
             public void onSuccess(String info) {
                 results.put("joinRoom", "joinRoom");
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
+                super.onSuccess(info);
             }
         });
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -4198,27 +3203,12 @@ public class CryptoTest {
 
         Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
 
-        final CountDownLatch lock2 = new CountDownLatch(1);
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new ApiCallback<Void>() {
+        CountDownLatch lock2 = new CountDownLatch(1);
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new TestApiCallback<Void>(lock2) {
             @Override
             public void onSuccess(Void info) {
                 results.put("sendEvent1", "sendEvent1");
-                lock2.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock2.countDown();
+                super.onSuccess(info);
             }
         });
         lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -4234,27 +3224,12 @@ public class CryptoTest {
         Assert.assertFalse(TextUtils.equals(bobSession2.getCrypto().getMyDevice().deviceId, bobCredentials.deviceId));
         bobSession2.getCrypto().setWarnOnUnknownDevices(false);
 
-        final CountDownLatch lock3 = new CountDownLatch(1);
-        roomFromAlicePOV.enableEncryptionWithAlgorithm(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, new ApiCallback<Void>() {
+        CountDownLatch lock3 = new CountDownLatch(1);
+        roomFromAlicePOV.enableEncryptionWithAlgorithm(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, new TestApiCallback<Void>(lock3) {
             @Override
             public void onSuccess(Void info) {
                 results.put("enableEncryptionWithAlgorithm", "enableEncryptionWithAlgorithm");
-                lock3.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock3.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock3.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock3.countDown();
+                super.onSuccess(info);
             }
         });
         lock3.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -4319,29 +3294,14 @@ public class CryptoTest {
         doE2ETestWithAliceAndBobInARoomWithCryptedMessages(true);
 
         // - Bob leaves the room, so stops getting updates
-        final CountDownLatch lock1 = new CountDownLatch(1);
+        CountDownLatch lock1 = new CountDownLatch(1);
 
         final Room bobLeftRoom = mBobSession.getDataHandler().getRoom(mRoomId);
-        bobLeftRoom.leave(new ApiCallback<Void>() {
+        bobLeftRoom.leave(new TestApiCallback<Void>(lock1) {
             @Override
             public void onSuccess(Void info) {
                 results.put("lock1", "lock1");
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
+                super.onSuccess(info);
             }
         });
 
@@ -4353,81 +3313,36 @@ public class CryptoTest {
         Assert.assertNotNull(aliceSession2);
 
         // - Alice and Bob start sharing a room again
-        final CountDownLatch lock3 = new CountDownLatch(1);
+        CountDownLatch lock3 = new CountDownLatch(1);
         aliceSession2.createRoom(null, null, RoomState.DIRECTORY_VISIBILITY_PUBLIC, null, RoomState.GUEST_ACCESS_CAN_JOIN,
-                RoomState.HISTORY_VISIBILITY_SHARED, null, new ApiCallback<String>() {
+                RoomState.HISTORY_VISIBILITY_SHARED, null, new TestApiCallback<String>(lock3) {
                     @Override
                     public void onSuccess(String info) {
                         mRoomId = info;
-                        lock3.countDown();
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        lock3.countDown();
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        lock3.countDown();
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        lock3.countDown();
+                        super.onSuccess(info);
                     }
                 });
         lock3.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertNotNull(mRoomId);
 
         Room roomFromAlicePOV = aliceSession2.getDataHandler().getRoom(mRoomId);
-        final CountDownLatch lock4 = new CountDownLatch(1);
-        roomFromAlicePOV.enableEncryptionWithAlgorithm(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, new ApiCallback<Void>() {
+        CountDownLatch lock4 = new CountDownLatch(1);
+        roomFromAlicePOV.enableEncryptionWithAlgorithm(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, new TestApiCallback<Void>(lock4) {
             @Override
             public void onSuccess(Void info) {
                 results.put("lock4", "lock4");
-                lock4.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock4.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock4.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock4.countDown();
+                super.onSuccess(info);
             }
         });
         lock4.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("lock4"));
 
-        final CountDownLatch lock5 = new CountDownLatch(1);
-        mBobSession.joinRoom(mRoomId, new ApiCallback<String>() {
+        CountDownLatch lock5 = new CountDownLatch(1);
+        mBobSession.joinRoom(mRoomId, new TestApiCallback<String>(lock5) {
             @Override
             public void onSuccess(String info) {
                 results.put("lock5", "lock5");
-                lock5.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock5.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock5.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock5.countDown();
+                super.onSuccess(info);
             }
         });
         lock5.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -4454,27 +3369,7 @@ public class CryptoTest {
 
         roomFromAlicePOV.addEventListener(eventListener);
 
-        roomFromBobPOV.sendEvent(buildTextEvent(messageFromBob, mBobSession), new ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void info) {
-                lock6.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock6.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock6.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock6.countDown();
-            }
-        });
+        roomFromBobPOV.sendEvent(buildTextEvent(messageFromBob, mBobSession), new TestApiCallback<Void>(lock6));
 
         lock6.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("lock6"));
@@ -4526,56 +3421,26 @@ public class CryptoTest {
 
         createAliceAccount();
 
-        final CountDownLatch lock0 = new CountDownLatch(1);
+        CountDownLatch lock0 = new CountDownLatch(1);
 
-        mAliceSession.enableCrypto(true, new ApiCallback<Void>() {
+        mAliceSession.enableCrypto(true, new TestApiCallback<Void>(lock0) {
             @Override
             public void onSuccess(Void info) {
                 results.put("enableCrypto", "enableCrypto");
-                lock0.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock0.countDown();
+                super.onSuccess(info);
             }
         });
         lock0.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("enableCrypto"));
 
         mRoomId = null;
-        final CountDownLatch lock1 = new CountDownLatch(1);
+        CountDownLatch lock1 = new CountDownLatch(1);
 
-        mAliceSession.createRoom(new ApiCallback<String>() {
+        mAliceSession.createRoom(new TestApiCallback<String>(lock1) {
             @Override
             public void onSuccess(String roomId) {
                 mRoomId = roomId;
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
+                super.onSuccess(roomId);
             }
         });
 
@@ -4584,27 +3449,12 @@ public class CryptoTest {
 
         Room room = mAliceSession.getDataHandler().getRoom(mRoomId);
 
-        final CountDownLatch lock2 = new CountDownLatch(1);
-        room.enableEncryptionWithAlgorithm(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, new ApiCallback<Void>() {
+        CountDownLatch lock2 = new CountDownLatch(1);
+        room.enableEncryptionWithAlgorithm(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, new TestApiCallback<Void>(lock2) {
             @Override
             public void onSuccess(Void info) {
                 results.put("enableEncryptionWithAlgorithm", "enableEncryptionWithAlgorithm");
-                lock2.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock2.countDown();
+                super.onSuccess(info);
             }
         });
         lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -4619,28 +3469,13 @@ public class CryptoTest {
         Room room = mAliceSession.getDataHandler().getRoom(mRoomId);
 
         createBobAccount();
-        final CountDownLatch lock0 = new CountDownLatch(1);
+        CountDownLatch lock0 = new CountDownLatch(1);
 
-        mBobSession.enableCrypto(cryptedBob, new ApiCallback<Void>() {
+        mBobSession.enableCrypto(cryptedBob, new TestApiCallback<Void>(lock0) {
             @Override
             public void onSuccess(Void info) {
                 statuses.put("enableCrypto", "enableCrypto");
-                lock0.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock0.countDown();
+                super.onSuccess(info);
             }
         });
         lock0.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -4661,26 +3496,11 @@ public class CryptoTest {
 
         mBobSession.getDataHandler().addListener(bobEventListener);
 
-        room.invite(mBobSession.getMyUserId(), new ApiCallback<Void>() {
+        room.invite(mBobSession.getMyUserId(), new TestApiCallback<Void>(lock1) {
             @Override
             public void onSuccess(Void info) {
                 statuses.put("invite", "invite");
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
+                super.onSuccess(info);
             }
         });
 
@@ -4692,29 +3512,29 @@ public class CryptoTest {
 
         final CountDownLatch lock2 = new CountDownLatch(2);
 
-        mBobSession.joinRoom(mRoomId, new ApiCallback<String>() {
+        mBobSession.joinRoom(mRoomId, new TestApiCallback<String>(lock2) {
             @Override
             public void onSuccess(String info) {
                 statuses.put("joinRoom", "joinRoom");
-                lock2.countDown();
+                super.onSuccess(info);
             }
 
             @Override
             public void onNetworkError(Exception e) {
                 statuses.put("onNetworkError", e.getMessage());
-                lock2.countDown();
+                super.onNetworkError(e);
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
                 statuses.put("onMatrixError", e.getMessage());
-                lock2.countDown();
+                super.onMatrixError(e);
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
                 statuses.put("onUnexpectedError", e.getMessage());
-                lock2.countDown();
+                super.onUnexpectedError(e);
             }
         });
 
@@ -4748,28 +3568,13 @@ public class CryptoTest {
         Room room = mAliceSession.getDataHandler().getRoom(mRoomId);
 
         createSamAccount();
-        final CountDownLatch lock0 = new CountDownLatch(1);
+        CountDownLatch lock0 = new CountDownLatch(1);
 
-        mSamSession.enableCrypto(true, new ApiCallback<Void>() {
+        mSamSession.enableCrypto(true, new TestApiCallback<Void>(lock0) {
             @Override
             public void onSuccess(Void info) {
                 statuses.put("enableCrypto", "enableCrypto");
-                lock0.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock0.countDown();
+                super.onSuccess(info);
             }
         });
         lock0.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -4790,26 +3595,11 @@ public class CryptoTest {
 
         mSamSession.getDataHandler().addListener(samEventListener);
 
-        room.invite(mSamSession.getMyUserId(), new ApiCallback<Void>() {
+        room.invite(mSamSession.getMyUserId(), new TestApiCallback<Void>(lock1) {
             @Override
             public void onSuccess(Void info) {
                 statuses.put("invite", "invite");
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
+                super.onSuccess(info);
             }
         });
 
@@ -4819,28 +3609,13 @@ public class CryptoTest {
 
         mSamSession.getDataHandler().removeListener(samEventListener);
 
-        final CountDownLatch lock2 = new CountDownLatch(1);
+        CountDownLatch lock2 = new CountDownLatch(1);
 
-        mSamSession.joinRoom(mRoomId, new ApiCallback<String>() {
+        mSamSession.joinRoom(mRoomId, new TestApiCallback<String>(lock2) {
             @Override
             public void onSuccess(String info) {
                 statuses.put("joinRoom", "joinRoom");
-                lock2.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock2.countDown();
+                super.onSuccess(info);
             }
         });
 

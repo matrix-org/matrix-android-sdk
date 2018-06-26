@@ -90,27 +90,12 @@ public class CryptoRestTest {
         keysMap.put("ed25519:" + bobDevice.deviceId, ed25519key);
         bobDevice.keys = keysMap;
 
-        final CountDownLatch lock0 = new CountDownLatch(1);
-        mBobSession.getCryptoRestClient().uploadKeys(bobDevice.JSONDictionary(), null, "dev1", new ApiCallback<KeysUploadResponse>() {
+        CountDownLatch lock0 = new CountDownLatch(1);
+        mBobSession.getCryptoRestClient().uploadKeys(bobDevice.JSONDictionary(), null, "dev1", new TestApiCallback<KeysUploadResponse>(lock0) {
             @Override
             public void onSuccess(KeysUploadResponse keysUploadResponse) {
                 results.put("keysUploadResponse", keysUploadResponse);
-                lock0.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock0.countDown();
+                super.onSuccess(keysUploadResponse);
             }
         });
         lock0.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -123,27 +108,12 @@ public class CryptoRestTest {
         Assert.assertTrue(0 == keysUploadResponse.oneTimeKeyCounts.size());
         Assert.assertTrue(0 == keysUploadResponse.oneTimeKeyCountsForAlgorithm("deded"));
 
-        final CountDownLatch lock1 = new CountDownLatch(1);
-        mBobSession.getCryptoRestClient().downloadKeysForUsers(Arrays.asList(mBobSession.getMyUserId()), null, new ApiCallback<KeysQueryResponse>() {
+        CountDownLatch lock1 = new CountDownLatch(1);
+        mBobSession.getCryptoRestClient().downloadKeysForUsers(Arrays.asList(mBobSession.getMyUserId()), null, new TestApiCallback<KeysQueryResponse>(lock1) {
             @Override
             public void onSuccess(KeysQueryResponse keysQueryResponse) {
                 results.put("keysQueryResponse", keysQueryResponse);
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
+                super.onSuccess(keysQueryResponse);
             }
         });
 
@@ -182,27 +152,12 @@ public class CryptoRestTest {
         otks.put("curve25519:AAAABQ", "ueuHES/Q0P1MZ4J3IUpC8iQTkgQNX66ZpxVLUaTDuB8");
         otks.put("curve25519:AAAABA", "PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs");
 
-        final CountDownLatch lock1 = new CountDownLatch(1);
-        mBobSession.getCryptoRestClient().uploadKeys(null, otks, "dev1", new ApiCallback<KeysUploadResponse>() {
+        CountDownLatch lock1 = new CountDownLatch(1);
+        mBobSession.getCryptoRestClient().uploadKeys(null, otks, "dev1", new TestApiCallback<KeysUploadResponse>(lock1) {
             @Override
             public void onSuccess(KeysUploadResponse keysUploadResponse) {
                 results.put("keysUploadResponse", keysUploadResponse);
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
+                super.onSuccess(keysUploadResponse);
             }
         });
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -254,27 +209,12 @@ public class CryptoRestTest {
             otks.put("curve25519:AAAABA", map);
         }
 
-        final CountDownLatch lock1 = new CountDownLatch(1);
-        mBobSession.getCryptoRestClient().uploadKeys(null, otks, "dev1", new ApiCallback<KeysUploadResponse>() {
+        CountDownLatch lock1 = new CountDownLatch(1);
+        mBobSession.getCryptoRestClient().uploadKeys(null, otks, "dev1", new TestApiCallback<KeysUploadResponse>(lock1) {
             @Override
             public void onSuccess(KeysUploadResponse keysUploadResponse) {
                 results.put("keysUploadResponse", keysUploadResponse);
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
+                super.onSuccess(keysUploadResponse);
             }
         });
 
@@ -286,27 +226,12 @@ public class CryptoRestTest {
         MXUsersDevicesMap<String> usersDevicesKeyTypesMap = new MXUsersDevicesMap<>();
         usersDevicesKeyTypesMap.setObject("curve25519", mBobSession.getMyUserId(), "dev1");
 
-        final CountDownLatch lock2 = new CountDownLatch(1);
-        mAliceSession.getCryptoRestClient().claimOneTimeKeysForUsersDevices(usersDevicesKeyTypesMap, new ApiCallback<MXUsersDevicesMap<MXKey>>() {
+        CountDownLatch lock2 = new CountDownLatch(1);
+        mAliceSession.getCryptoRestClient().claimOneTimeKeysForUsersDevices(usersDevicesKeyTypesMap, new TestApiCallback<MXUsersDevicesMap<MXKey>>(lock2) {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXKey> usersDevicesMap) {
                 results.put("usersDevicesMap", usersDevicesMap);
-                lock2.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock2.countDown();
+                super.onSuccess(usersDevicesMap);
             }
         });
 
