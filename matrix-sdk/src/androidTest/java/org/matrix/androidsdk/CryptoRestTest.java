@@ -113,7 +113,7 @@ public class CryptoRestTest {
                 lock0.countDown();
             }
         });
-        lock0.await(1000, TimeUnit.MILLISECONDS);
+        lock0.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
         KeysUploadResponse keysUploadResponse = (KeysUploadResponse) results.get("keysUploadResponse");
 
@@ -147,7 +147,7 @@ public class CryptoRestTest {
             }
         });
 
-        lock1.await(1000, TimeUnit.MILLISECONDS);
+        lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         KeysQueryResponse keysQueryResponse = (KeysQueryResponse) results.get("keysQueryResponse");
 
         Assert.assertNotNull(keysQueryResponse);
@@ -205,7 +205,7 @@ public class CryptoRestTest {
                 lock1.countDown();
             }
         });
-        lock1.await(1000, TimeUnit.MILLISECONDS);
+        lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
         KeysUploadResponse keysUploadResponse = (KeysUploadResponse) results.get("keysUploadResponse");
         Assert.assertNotNull(keysUploadResponse);
@@ -278,7 +278,7 @@ public class CryptoRestTest {
             }
         });
 
-        lock1.await(1000, TimeUnit.MILLISECONDS);
+        lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
         KeysUploadResponse bobKeysUploadResponse = (KeysUploadResponse) results.get("keysUploadResponse");
         Assert.assertNotNull(bobKeysUploadResponse);
@@ -310,7 +310,7 @@ public class CryptoRestTest {
             }
         });
 
-        lock2.await(1000, TimeUnit.MILLISECONDS);
+        lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
         MXUsersDevicesMap<MXKey> oneTimeKeys = (MXUsersDevicesMap<MXKey>) results.get("usersDevicesMap");
         Assert.assertNotNull(oneTimeKeys);
