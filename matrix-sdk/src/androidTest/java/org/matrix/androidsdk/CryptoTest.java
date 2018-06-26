@@ -837,7 +837,7 @@ public class CryptoTest {
 
         Room room = mBobSession.getDataHandler().getRoom(mRoomId);
 
-        Assert.assertTrue(!room.isEncrypted());
+        Assert.assertFalse(room.isEncrypted());
 
         final CountDownLatch lock2 = new CountDownLatch(1);
         room.enableEncryptionWithAlgorithm(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, new ApiCallback<Void>() {
@@ -1648,7 +1648,7 @@ public class CryptoTest {
         Assert.assertTrue(event.isEncrypted());
         Assert.assertTrue(TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED));
         Assert.assertNotNull(event.getContentAsJsonObject());
-        Assert.assertTrue(!event.getContentAsJsonObject().has("body"));
+        Assert.assertFalse(event.getContentAsJsonObject().has("body"));
 
         Assert.assertNotNull(event.getCryptoError());
         Assert.assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.ENCRYPTING_NOT_ENABLED_ERROR_CODE));
@@ -1693,7 +1693,7 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("aliceEcho"));
 
         event = (Event) results.get("aliceEcho");
-        Assert.assertTrue(!event.isEncrypted());
+        Assert.assertFalse(event.isEncrypted());
     }
 
     @Test
@@ -2235,7 +2235,7 @@ public class CryptoTest {
         event.setClearData(null);
 
         // check that the message cannot be decrypted
-        Assert.assertTrue(!mBobSession.getDataHandler().decryptEvent(event, null));
+        Assert.assertFalse(mBobSession.getDataHandler().decryptEvent(event, null));
         // check the error code
         Assert.assertTrue(TextUtils.equals(event.getCryptoError().errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE));
 
@@ -2381,7 +2381,7 @@ public class CryptoTest {
         MXSession bobSession2 = CryptoTestHelper.logAccountAndSync(context, bobId, MXTESTS_BOB_PWD);
 
         String bobDeviceId2 = bobSession2.getCredentials().deviceId;
-        Assert.assertTrue(!TextUtils.equals(bobDeviceId2, bobDeviceId1));
+        Assert.assertFalse(TextUtils.equals(bobDeviceId2, bobDeviceId1));
 
         // before sending a message, wait that the device event is received.
         lock3.await(TestConstants.AWAIT_TIME_OUT_LONG_MILLIS, TimeUnit.MILLISECONDS);
@@ -3218,7 +3218,7 @@ public class CryptoTest {
             }
         });
         lock3.await(TestConstants.AWAIT_TIME_OUT_LONG_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(!results.containsKey("importRoomKeys"));
+        Assert.assertFalse(results.containsKey("importRoomKeys"));
         Assert.assertTrue(results.containsKey("importRoomKeys_failed"));
 
         // check that the message cannot be decrypted
@@ -3484,7 +3484,7 @@ public class CryptoTest {
         MXSession bobSession2 = CryptoTestHelper.logAccountAndSync(context, bobCredentials.userId, MXTESTS_BOB_PWD);
         Assert.assertNotNull(bobSession2);
         Assert.assertTrue(bobSession2.isCryptoEnabled());
-        Assert.assertTrue(!TextUtils.equals(bobSession2.getCrypto().getMyDevice().deviceId, bobCredentials.deviceId));
+        Assert.assertFalse(TextUtils.equals(bobSession2.getCrypto().getMyDevice().deviceId, bobCredentials.deviceId));
         bobSession2.getCrypto().setWarnOnUnknownDevices(false);
 
         final CountDownLatch lock5 = new CountDownLatch(1);
@@ -3844,8 +3844,8 @@ public class CryptoTest {
         });
 
         lock5.await(3 * TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(!results.containsKey("eventListenerBob2"));
-        Assert.assertTrue(!results.containsKey("eventListenerSam2"));
+        Assert.assertFalse(results.containsKey("eventListenerBob2"));
+        Assert.assertFalse(results.containsKey("eventListenerSam2"));
         Assert.assertTrue(results.containsKey("eventListenerEncyptedBob2"));
         Assert.assertTrue(results.containsKey("eventListenerEncyptedSam2"));
 
@@ -3909,8 +3909,8 @@ public class CryptoTest {
         lock7.await(3 * TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("eventListenerBob2"));
         Assert.assertTrue(results.containsKey("eventListenerSam2"));
-        Assert.assertTrue(!results.containsKey("eventListenerEncyptedBob2"));
-        Assert.assertTrue(!results.containsKey("eventListenerEncyptedSam2"));
+        Assert.assertFalse(results.containsKey("eventListenerEncyptedBob2"));
+        Assert.assertFalse(results.containsKey("eventListenerEncyptedSam2"));
 
         // verify the bob device
         final CountDownLatch lock8 = new CountDownLatch(3);
@@ -4001,8 +4001,8 @@ public class CryptoTest {
 
         lock10.await(3 * TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("eventListenerBob2"));
-        Assert.assertTrue(!results.containsKey("eventListenerSam2"));
-        Assert.assertTrue(!results.containsKey("eventListenerEncyptedBob2"));
+        Assert.assertFalse(results.containsKey("eventListenerSam2"));
+        Assert.assertFalse(results.containsKey("eventListenerEncyptedBob2"));
         Assert.assertTrue(results.containsKey("eventListenerEncyptedSam2"));
 
         final CountDownLatch lock11 = new CountDownLatch(3);
@@ -4065,8 +4065,8 @@ public class CryptoTest {
         lock12.await(3 * TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("eventListenerBob2"));
         Assert.assertTrue(results.containsKey("eventListenerSam2"));
-        Assert.assertTrue(!results.containsKey("eventListenerEncyptedBob2"));
-        Assert.assertTrue(!results.containsKey("eventListenerEncyptedSam2"));
+        Assert.assertFalse(results.containsKey("eventListenerEncyptedBob2"));
+        Assert.assertFalse(results.containsKey("eventListenerEncyptedSam2"));
 
         mBobSession.clear(context);
     }
@@ -4231,7 +4231,7 @@ public class CryptoTest {
         MXSession bobSession2 = CryptoTestHelper.logAccountAndSync(context, bobCredentials.userId, MXTESTS_BOB_PWD);
         Assert.assertNotNull(bobSession2);
         Assert.assertTrue(bobSession2.isCryptoEnabled());
-        Assert.assertTrue(!TextUtils.equals(bobSession2.getCrypto().getMyDevice().deviceId, bobCredentials.deviceId));
+        Assert.assertFalse(TextUtils.equals(bobSession2.getCrypto().getMyDevice().deviceId, bobCredentials.deviceId));
         bobSession2.getCrypto().setWarnOnUnknownDevices(false);
 
         final CountDownLatch lock3 = new CountDownLatch(1);

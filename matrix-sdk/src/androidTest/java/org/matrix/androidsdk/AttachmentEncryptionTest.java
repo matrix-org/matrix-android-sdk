@@ -127,7 +127,7 @@ public class AttachmentEncryptionTest {
 
         encryptedFileInfo.iv = "/////////////////////w";
 
-        Assert.assertTrue(!TextUtils.equals(checkDecryption(
+        Assert.assertFalse(TextUtils.equals(checkDecryption(
                 "tJVNBVJ/vl36UQt4Y5e5m84bRUrQHhcdLPvS/7EkDvlkDLZXamBB6k8THbiawiKZ5Mnq9PZMSSbgOCvmnUBOMA",
                 encryptedFileInfo),
                 "YWxwaGFudW1lcmljYWxseWFscGhhbnVtZXJpY2FsbHlhbHBoYW51bWVyaWNhbGx5YWxwaGFudW1lcmljYWxseQ"));
