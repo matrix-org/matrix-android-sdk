@@ -42,7 +42,8 @@ echo "Search for forbidden patterns in code..."
 
 ${searchForbiddenStringsScript} ./tools/check/forbidden_strings_in_code.txt \
     ./matrix-sdk/src/main/java \
-    ./matrix-sdk/src/test/java
+    ./matrix-sdk/src/test/java \
+    ./matrix-sdk/src/androidTest/java
 
 resultForbiddenStringInCode=$?
 
