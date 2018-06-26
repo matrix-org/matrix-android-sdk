@@ -71,6 +71,7 @@ public class CryptoRestTest {
         Assert.assertNotNull(mAliceSession);
     }
 
+    @Test
     public void test01_testDeviceKeys() throws Exception {
         Context context = InstrumentationRegistry.getContext();
 
