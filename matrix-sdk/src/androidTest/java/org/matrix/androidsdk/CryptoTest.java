@@ -2384,7 +2384,7 @@ public class CryptoTest {
         Assert.assertTrue(!TextUtils.equals(bobDeviceId2, bobDeviceId1));
 
         // before sending a message, wait that the device event is received.
-        lock3.await(10000, TimeUnit.MILLISECONDS);
+        lock3.await(TestConstants.AWAIT_TIME_OUT_LONG_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent2"));
 
         SystemClock.sleep(1000);
@@ -3028,7 +3028,7 @@ public class CryptoTest {
 
         mBobSession.resumeEventStream();
 
-        lock2.await(10000, TimeUnit.MILLISECONDS);
+        lock2.await(TestConstants.AWAIT_TIME_OUT_LONG_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
         Assert.assertTrue(results.containsKey("onLiveEvent"));
 
@@ -3104,7 +3104,7 @@ public class CryptoTest {
             }
         });
 
-        lock1a.await(10000, TimeUnit.MILLISECONDS);
+        lock1a.await(TestConstants.AWAIT_TIME_OUT_LONG_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("exportRoomKeys"));
 
         // close the session and clear the data
@@ -3217,7 +3217,7 @@ public class CryptoTest {
                 lock3.countDown();
             }
         });
-        lock3.await(10000, TimeUnit.MILLISECONDS);
+        lock3.await(TestConstants.AWAIT_TIME_OUT_LONG_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(!results.containsKey("importRoomKeys"));
         Assert.assertTrue(results.containsKey("importRoomKeys_failed"));
 
@@ -3252,7 +3252,7 @@ public class CryptoTest {
                 lock4.countDown();
             }
         });
-        lock4.await(10000, TimeUnit.MILLISECONDS);
+        lock4.await(TestConstants.AWAIT_TIME_OUT_LONG_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("importRoomKeys"));
 
         // check that the message CAN be decrypted

@@ -99,7 +99,7 @@ public class CryptoTestHelper {
             }
         });
 
-        mLock.await(10000, TimeUnit.MILLISECONDS);
+        mLock.await(TestConstants.AWAIT_TIME_OUT_LONG_MILLIS, TimeUnit.MILLISECONDS);
 
         String session = (String) params.get("session");
 
@@ -137,7 +137,7 @@ public class CryptoTestHelper {
             }
         });
 
-        mLock.await(10000, TimeUnit.MILLISECONDS);
+        mLock.await(TestConstants.AWAIT_TIME_OUT_LONG_MILLIS, TimeUnit.MILLISECONDS);
 
         Credentials credentials = (Credentials) params.get("credentials");
 
@@ -214,7 +214,7 @@ public class CryptoTestHelper {
             }
         });
 
-        mLock.await(10000, TimeUnit.MILLISECONDS);
+        mLock.await(TestConstants.AWAIT_TIME_OUT_LONG_MILLIS, TimeUnit.MILLISECONDS);
 
         Credentials credentials = (Credentials) params.get("credentials");
 
@@ -246,7 +246,7 @@ public class CryptoTestHelper {
         mxSession.getDataHandler().getStore().open();
         mxSession.startEventStream(null);
 
-        mLock.await(10000, TimeUnit.MILLISECONDS);
+        mLock.await(TestConstants.AWAIT_TIME_OUT_LONG_MILLIS, TimeUnit.MILLISECONDS);
 
         Assert.assertTrue(params.containsKey("isInit"));
         Assert.assertTrue(params.containsKey("onCryptoSyncComplete"));
