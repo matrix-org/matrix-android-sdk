@@ -18,5 +18,5 @@ package org.matrix.androidsdk;
 
 class TestConstants {
     // Time out to use when waiting for server response
-    public static final int AWAIT_TIME_OUT_MILLIS = 10000;
+    public static final int AWAIT_TIME_OUT_MILLIS = 30000;
 }
