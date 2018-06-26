@@ -166,7 +166,7 @@ public class CryptoTestHelper {
             }
         });
 
-        mLock.await(100000, TimeUnit.MILLISECONDS);
+        mLock.await(10 * TestConstants.AWAIT_TIME_OUT_LONG_MILLIS, TimeUnit.MILLISECONDS);
 
         Assert.assertTrue(params.containsKey("isInit"));
 
