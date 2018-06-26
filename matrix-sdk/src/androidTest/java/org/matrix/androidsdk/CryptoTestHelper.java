@@ -40,8 +40,6 @@ import java.util.concurrent.TimeUnit;
 public class CryptoTestHelper {
     public static final String TESTS_HOME_SERVER_URL = "http://10.0.2.2:8080";
 
-    private static CountDownLatch mLock;
-
     /**
      * Create an account and a dedicated session
      *
@@ -59,20 +57,10 @@ public class CryptoTestHelper {
         final Map<String, Object> params = new HashMap<>();
         RegistrationParams registrationParams = new RegistrationParams();
 
-        mLock = new CountDownLatch(1);
+        CountDownLatch lock = new CountDownLatch(1);
 
         // get the registration session id
-        loginRestClient.register(registrationParams, new ApiCallback<Credentials>() {
-            @Override
-            public void onSuccess(Credentials credentials) {
-                mLock.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                mLock.countDown();
-            }
-
+        loginRestClient.register(registrationParams, new TestApiCallback<Credentials>(lock) {
             @Override
             public void onMatrixError(MatrixError e) {
                 // detect if a parameter is expected
@@ -90,16 +78,12 @@ public class CryptoTestHelper {
                 if (null != registrationFlowResponse) {
                     params.put("session", registrationFlowResponse.session);
                 }
-                mLock.countDown();
-            }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                mLock.countDown();
+                super.onMatrixError(e);
             }
         });
 
-        mLock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
         String session = (String) params.get("session");
 
@@ -113,31 +97,16 @@ public class CryptoTestHelper {
 
         registrationParams.auth = authParams;
 
-        mLock = new CountDownLatch(1);
-        loginRestClient.register(registrationParams, new ApiCallback<Credentials>() {
+        lock = new CountDownLatch(1);
+        loginRestClient.register(registrationParams, new TestApiCallback<Credentials>(lock) {
             @Override
             public void onSuccess(Credentials credentials) {
                 params.put("credentials", credentials);
-                mLock.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                mLock.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                mLock.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                mLock.countDown();
+                super.onSuccess(credentials);
             }
         });
 
-        mLock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
         Credentials credentials = (Credentials) params.get("credentials");
 
@@ -157,16 +126,16 @@ public class CryptoTestHelper {
         mxSession.getDataHandler().getStore().open();
         mxSession.startEventStream(null);
 
-        mLock = new CountDownLatch(1);
+        final CountDownLatch lock2 = new CountDownLatch(1);
         mxSession.getDataHandler().addListener(new MXEventListener() {
             @Override
             public void onInitialSyncComplete(String toToken) {
                 params.put("isInit", true);
-                mLock.countDown();
+                lock2.countDown();
             }
         });
 
-        mLock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
         Assert.assertTrue(params.containsKey("isInit"));
 
@@ -188,33 +157,18 @@ public class CryptoTestHelper {
 
         final Map<String, Object> params = new HashMap<>();
 
-        mLock = new CountDownLatch(1);
+        CountDownLatch lock = new CountDownLatch(1);
 
         // get the registration session id
-        loginRestClient.loginWithUser(userName, password, new ApiCallback<Credentials>() {
+        loginRestClient.loginWithUser(userName, password, new TestApiCallback<Credentials>(lock) {
             @Override
             public void onSuccess(Credentials credentials) {
                 params.put("credentials", credentials);
-                mLock.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                mLock.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                mLock.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                mLock.countDown();
+                super.onSuccess(credentials);
             }
         });
 
-        mLock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
         Credentials credentials = (Credentials) params.get("credentials");
 
@@ -228,25 +182,25 @@ public class CryptoTestHelper {
 
         mxSession.enableCryptoWhenStarting();
 
-        mLock = new CountDownLatch(2);
+        final CountDownLatch lock2 = new CountDownLatch(2);
         mxSession.getDataHandler().addListener(new MXEventListener() {
             @Override
             public void onInitialSyncComplete(String toToken) {
                 params.put("isInit", true);
-                mLock.countDown();
+                lock2.countDown();
             }
 
             @Override
             public void onCryptoSyncComplete() {
                 params.put("onCryptoSyncComplete", true);
-                mLock.countDown();
+                lock2.countDown();
             }
         });
 
         mxSession.getDataHandler().getStore().open();
         mxSession.startEventStream(null);
 
-        mLock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
         Assert.assertTrue(params.containsKey("isInit"));
         Assert.assertTrue(params.containsKey("onCryptoSyncComplete"));

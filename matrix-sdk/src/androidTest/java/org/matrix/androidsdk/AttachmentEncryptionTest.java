@@ -2,7 +2,6 @@ package org.matrix.androidsdk;
 
 import android.os.MemoryFile;
 import android.support.test.runner.AndroidJUnit4;
-import android.text.TextUtils;
 import android.util.Base64;
 
 import org.junit.Assert;
@@ -67,7 +66,7 @@ public class AttachmentEncryptionTest {
 
         encryptedFileInfo.iv = "AAAAAAAAAAAAAAAAAAAAAA";
 
-        Assert.assertTrue(TextUtils.equals(checkDecryption("", encryptedFileInfo), ""));
+        Assert.assertEquals("", checkDecryption("", encryptedFileInfo));
     }
 
     @Test
@@ -86,7 +85,7 @@ public class AttachmentEncryptionTest {
 
         encryptedFileInfo.iv = "//////////8AAAAAAAAAAA";
 
-        Assert.assertTrue(TextUtils.equals(checkDecryption("5xJZTt5cQicm+9f4", encryptedFileInfo), "SGVsbG8sIFdvcmxk"));
+        Assert.assertEquals("SGVsbG8sIFdvcmxk", checkDecryption("5xJZTt5cQicm+9f4", encryptedFileInfo));
     }
 
     @Test
@@ -105,10 +104,9 @@ public class AttachmentEncryptionTest {
 
         encryptedFileInfo.iv = "//////////8AAAAAAAAAAA";
 
-        Assert.assertTrue(TextUtils.equals(checkDecryption(
-                "zhtFStAeFx0s+9L/sSQO+WQMtldqYEHqTxMduJrCIpnkyer09kxJJuA4K+adQE4w+7jZe/vR9kIcqj9rOhDR8Q",
-                encryptedFileInfo),
-                "YWxwaGFudW1lcmljYWxseWFscGhhbnVtZXJpY2FsbHlhbHBoYW51bWVyaWNhbGx5YWxwaGFudW1lcmljYWxseQ"));
+        Assert.assertEquals("YWxwaGFudW1lcmljYWxseWFscGhhbnVtZXJpY2FsbHlhbHBoYW51bWVyaWNhbGx5YWxwaGFudW1lcmljYWxseQ",
+                checkDecryption("zhtFStAeFx0s+9L/sSQO+WQMtldqYEHqTxMduJrCIpnkyer09kxJJuA4K+adQE4w+7jZe/vR9kIcqj9rOhDR8Q",
+                        encryptedFileInfo));
     }
 
     @Test
@@ -127,9 +125,8 @@ public class AttachmentEncryptionTest {
 
         encryptedFileInfo.iv = "/////////////////////w";
 
-        Assert.assertFalse(TextUtils.equals(checkDecryption(
-                "tJVNBVJ/vl36UQt4Y5e5m84bRUrQHhcdLPvS/7EkDvlkDLZXamBB6k8THbiawiKZ5Mnq9PZMSSbgOCvmnUBOMA",
-                encryptedFileInfo),
-                "YWxwaGFudW1lcmljYWxseWFscGhhbnVtZXJpY2FsbHlhbHBoYW51bWVyaWNhbGx5YWxwaGFudW1lcmljYWxseQ"));
+        Assert.assertNotEquals("YWxwaGFudW1lcmljYWxseWFscGhhbnVtZXJpY2FsbHlhbHBoYW51bWVyaWNhbGx5YWxwaGFudW1lcmljYWxseQ",
+                checkDecryption("tJVNBVJ/vl36UQt4Y5e5m84bRUrQHhcdLPvS/7EkDvlkDLZXamBB6k8THbiawiKZ5Mnq9PZMSSbgOCvmnUBOMA",
+                encryptedFileInfo));
     }
 }

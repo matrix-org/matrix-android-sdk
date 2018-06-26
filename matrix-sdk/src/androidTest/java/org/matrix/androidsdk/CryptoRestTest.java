@@ -20,7 +20,6 @@ package org.matrix.androidsdk;
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
-import android.text.TextUtils;
 
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
@@ -132,8 +131,8 @@ public class CryptoRestTest {
 
         MXDeviceInfo bobDevice2 = deviceInfos.getObject("dev1", mBobSession.getMyUserId());
         Assert.assertNotNull(bobDevice2);
-        Assert.assertTrue(TextUtils.equals(bobDevice2.deviceId, "dev1"));
-        Assert.assertTrue(TextUtils.equals(bobDevice2.userId, mBobSession.getMyUserId()));
+        Assert.assertEquals("dev1", bobDevice2.deviceId);
+        Assert.assertEquals(bobDevice2.userId, mBobSession.getMyUserId());
 
         mBobSession.clear(context);
     }
@@ -243,15 +242,14 @@ public class CryptoRestTest {
         MXKey bobOtk = oneTimeKeys.getObject("dev1", mBobSession.getMyUserId());
         Assert.assertNotNull(bobOtk);
 
-        Assert.assertTrue(TextUtils.equals(bobOtk.type, MXKey.KEY_CURVE_25519_TYPE));
-        Assert.assertTrue(TextUtils.equals(bobOtk.keyId, "AAAABA"));
-        Assert.assertTrue(TextUtils.equals(bobOtk.getKeyFullId(), "curve25519:AAAABA"));
-        Assert.assertTrue(TextUtils.equals(bobOtk.value, "PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs"));
+        Assert.assertEquals(MXKey.KEY_CURVE_25519_TYPE, bobOtk.type);
+        Assert.assertEquals("AAAABA", bobOtk.keyId);
+        Assert.assertEquals("curve25519:AAAABA", bobOtk.getKeyFullId());
+        Assert.assertEquals("PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs", bobOtk.value);
         Assert.assertNotNull(bobOtk.signatures);
 
         List<String> keys = new ArrayList<>(bobOtk.signatures.keySet());
         Assert.assertEquals(1, keys.size());
-
 
         mBobSession.clear(context);
         mAliceSession.clear(context);

@@ -17,7 +17,6 @@
 package org.matrix.androidsdk;
 
 import android.support.test.runner.AndroidJUnit4;
-import android.text.TextUtils;
 
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
@@ -92,11 +91,12 @@ public class ExportEncryptionTest {
         try {
             decodedString = MXMegolmExportEncryption.decryptMegolmKeyFile(input.getBytes("UTF-8"), password);
         } catch (Exception e) {
-            Assert.assertTrue("## checkExportDecrypt1() failed : " + e.getMessage(), false);
+            Assert.fail("## checkExportDecrypt1() failed : " + e.getMessage());
         }
 
-        Assert.assertTrue("## checkExportDecrypt1() : expectedString " + expectedString + " -- decodedString " + decodedString,
-                TextUtils.equals(expectedString, decodedString));
+        Assert.assertEquals("## checkExportDecrypt1() : expectedString " + expectedString + " -- decodedString " + decodedString,
+                expectedString,
+                decodedString);
     }
 
     @Test
@@ -110,11 +110,12 @@ public class ExportEncryptionTest {
         try {
             decodedString = MXMegolmExportEncryption.decryptMegolmKeyFile(input.getBytes("UTF-8"), password);
         } catch (Exception e) {
-            Assert.assertTrue("## checkExportDecrypt2() failed : " + e.getMessage(), false);
+            Assert.fail("## checkExportDecrypt2() failed : " + e.getMessage());
         }
 
-        Assert.assertTrue("## checkExportDecrypt2() : expectedString " + expectedString + " -- decodedString " + decodedString,
-                TextUtils.equals(expectedString, decodedString));
+        Assert.assertEquals("## checkExportDecrypt2() : expectedString " + expectedString + " -- decodedString " + decodedString,
+                expectedString,
+                decodedString);
     }
 
     @Test
@@ -128,11 +129,12 @@ public class ExportEncryptionTest {
         try {
             decodedString = MXMegolmExportEncryption.decryptMegolmKeyFile(input.getBytes("UTF-8"), password);
         } catch (Exception e) {
-            Assert.assertTrue("## checkExportDecrypt3() failed : " + e.getMessage(), false);
+            Assert.fail("## checkExportDecrypt3() failed : " + e.getMessage());
         }
 
-        Assert.assertTrue("## checkExportDecrypt3() : expectedString " + expectedString + " -- decodedString " + decodedString,
-                TextUtils.equals(expectedString, decodedString));
+        Assert.assertEquals("## checkExportDecrypt3() : expectedString " + expectedString + " -- decodedString " + decodedString,
+                expectedString,
+                decodedString);
     }
 
     @Test
@@ -145,11 +147,12 @@ public class ExportEncryptionTest {
             decodedString = MXMegolmExportEncryption
                     .decryptMegolmKeyFile(MXMegolmExportEncryption.encryptMegolmKeyFile(expectedString, password, 1000), password);
         } catch (Exception e) {
-            Assert.assertTrue("## checkExportEncrypt1() failed : " + e.getMessage(), false);
+            Assert.fail("## checkExportEncrypt1() failed : " + e.getMessage());
         }
 
-        Assert.assertTrue("## checkExportEncrypt1() : expectedString " + expectedString
-                + " -- decodedString " + decodedString, TextUtils.equals(expectedString, decodedString));
+        Assert.assertEquals("## checkExportEncrypt1() : expectedString " + expectedString + " -- decodedString " + decodedString,
+                expectedString,
+                decodedString);
     }
 
     @Test
@@ -162,11 +165,12 @@ public class ExportEncryptionTest {
             decodedString = MXMegolmExportEncryption
                     .decryptMegolmKeyFile(MXMegolmExportEncryption.encryptMegolmKeyFile(expectedString, password, 1000), password);
         } catch (Exception e) {
-            Assert.assertTrue("## checkExportEncrypt2() failed : " + e.getMessage(), false);
+            Assert.fail("## checkExportEncrypt2() failed : " + e.getMessage());
         }
 
-        Assert.assertTrue("## checkExportEncrypt2() : expectedString " + expectedString
-                + " -- decodedString " + decodedString, TextUtils.equals(expectedString, decodedString));
+        Assert.assertEquals("## checkExportEncrypt2() : expectedString " + expectedString + " -- decodedString " + decodedString,
+                expectedString,
+                decodedString);
     }
 
     @Test
@@ -179,11 +183,12 @@ public class ExportEncryptionTest {
             decodedString = MXMegolmExportEncryption
                     .decryptMegolmKeyFile(MXMegolmExportEncryption.encryptMegolmKeyFile(expectedString, password, 1000), password);
         } catch (Exception e) {
-            Assert.assertTrue("## checkExportEncrypt3() failed : " + e.getMessage(), false);
+            Assert.fail("## checkExportEncrypt3() failed : " + e.getMessage());
         }
 
-        Assert.assertTrue("## checkExportEncrypt3() : expectedString " + expectedString
-                + " -- decodedString " + decodedString, TextUtils.equals(expectedString, decodedString));
+        Assert.assertEquals("## checkExportEncrypt3() : expectedString " + expectedString + " -- decodedString " + decodedString,
+                expectedString,
+                decodedString);
     }
 
     @Test
@@ -197,10 +202,11 @@ public class ExportEncryptionTest {
             decodedString = MXMegolmExportEncryption
                     .decryptMegolmKeyFile(MXMegolmExportEncryption.encryptMegolmKeyFile(expectedString, password, 1000), password);
         } catch (Exception e) {
-            Assert.assertTrue("## checkExportEncrypt4() failed : " + e.getMessage(), false);
+            Assert.fail("## checkExportEncrypt4() failed : " + e.getMessage());
         }
 
-        Assert.assertTrue("## checkExportEncrypt4() : expectedString " + expectedString
-                + " -- decodedString " + decodedString, TextUtils.equals(expectedString, decodedString));
+        Assert.assertEquals("## checkExportEncrypt4() : expectedString " + expectedString + " -- decodedString " + decodedString,
+                expectedString,
+                decodedString);
     }
 }
