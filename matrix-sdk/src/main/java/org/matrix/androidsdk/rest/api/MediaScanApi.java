@@ -16,6 +16,7 @@
 package org.matrix.androidsdk.rest.api;
 
 import org.matrix.androidsdk.rest.model.EncryptedMediaScanBody;
+import org.matrix.androidsdk.rest.model.MediaScanPublicKeyResult;
 import org.matrix.androidsdk.rest.model.MediaScanResult;
 
 import retrofit2.Call;
@@ -28,6 +29,12 @@ import retrofit2.http.Path;
  * The matrix content scanner REST API.
  */
 public interface MediaScanApi {
+    /**
+     * Get the current public curve25519 key that the AV server is advertising.
+     */
+    @GET("public_key")
+    Call<MediaScanPublicKeyResult> getServerPublicKey();
+
     /**
      * Scan an unencrypted file.
      *

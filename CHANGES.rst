@@ -6,6 +6,7 @@ Features:
 
 Improvements:
  - MXCrypto: Encrypt the messages for invited members according to the history visibility (if the option is enabled in MXCryptoConfig).
+ - Add a method to MediaScanRestClient to get the public key of the media scanner server
 
 Bugfix:
  -

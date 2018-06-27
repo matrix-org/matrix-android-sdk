@@ -4,9 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,8 +21,8 @@ import org.matrix.androidsdk.rest.api.MediaScanApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.DefaultRetrofit2CallbackWrapper;
 import org.matrix.androidsdk.rest.model.EncryptedMediaScanBody;
+import org.matrix.androidsdk.rest.model.MediaScanPublicKeyResult;
 import org.matrix.androidsdk.rest.model.MediaScanResult;
-import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
 
 /**
  * Class used to make requests to the anti-virus scanner API.
@@ -37,14 +37,22 @@ public class MediaScanRestClient extends RestClient<MediaScanApi> {
     }
 
     /**
+     * Get the current public curve25519 key that the AV server is advertising.
+     *
+     * @param callback on success callback containing a MediaScanPublicKeyResult object
+     */
+    public void getServerPublicKey(final ApiCallback<MediaScanPublicKeyResult> callback) {
+        mApi.getServerPublicKey().enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
+    }
+
+    /**
      * Scan an unencrypted file.
      *
      * @param domain   the server name extracted from the matrix content uri
-     * @param mediaId   the media id extracted from the matrix content uri
+     * @param mediaId  the media id extracted from the matrix content uri
      * @param callback on success callback containing a MediaScanResult object
      */
     public void scanUnencryptedFile(final String domain, final String mediaId, final ApiCallback<MediaScanResult> callback) {
-
         mApi.scanUnencrypted(domain, mediaId).enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
     }
 
@@ -52,10 +60,9 @@ public class MediaScanRestClient extends RestClient<MediaScanApi> {
      * Scan an encrypted file.
      *
      * @param encryptedMediaScanBody the encryption information required to decrypt the content before scanning it.
-     * @param callback on success callback containing a MediaScanResult object
+     * @param callback               on success callback containing a MediaScanResult object
      */
     public void scanEncryptedFile(final EncryptedMediaScanBody encryptedMediaScanBody, final ApiCallback<MediaScanResult> callback) {
-
         mApi.scanEncrypted(encryptedMediaScanBody).enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
     }
 }
