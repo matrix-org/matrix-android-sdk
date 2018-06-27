@@ -20,7 +20,6 @@ package org.matrix.androidsdk;
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
-import android.text.TextUtils;
 
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
@@ -31,8 +30,6 @@ import org.matrix.androidsdk.crypto.MXCryptoAlgorithms;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXKey;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
 
@@ -49,7 +46,7 @@ import java.util.concurrent.TimeUnit;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class CryptoRestTest {
 
-    private static final String MXTESTS_BOB  = "mxBob";
+    private static final String MXTESTS_BOB = "mxBob";
     private static final String MXTESTS_BOB_PWD = "bobbob";
 
     private static final String MXTESTS_ALICE = "mxAlice";
@@ -63,7 +60,7 @@ public class CryptoRestTest {
         mBobSession = null;
         mBobSession = CryptoTestHelper.createAccountAndSync(context,
                 MXTESTS_BOB + System.currentTimeMillis() + UUID.randomUUID().toString(), MXTESTS_BOB_PWD, true);
-        Assert.assertTrue (null != mBobSession);
+        Assert.assertNotNull(mBobSession);
     }
 
     public void createAliceAccount() throws Exception {
@@ -71,9 +68,10 @@ public class CryptoRestTest {
         mAliceSession = null;
         mAliceSession = CryptoTestHelper.createAccountAndSync(context,
                 MXTESTS_ALICE + System.currentTimeMillis() + UUID.randomUUID().toString(), MXTESTS_ALICE_PWD, true);
-        Assert.assertTrue (null != mAliceSession);
+        Assert.assertNotNull(mAliceSession);
     }
 
+    @Test
     public void test01_testDeviceKeys() throws Exception {
         Context context = InstrumentationRegistry.getContext();
 
@@ -90,82 +88,52 @@ public class CryptoRestTest {
         keysMap.put("ed25519:" + bobDevice.deviceId, ed25519key);
         bobDevice.keys = keysMap;
 
-        final CountDownLatch lock0 = new CountDownLatch(1);
-        mBobSession.getCryptoRestClient().uploadKeys(bobDevice.JSONDictionary(), null, "dev1", new ApiCallback<KeysUploadResponse>() {
+        CountDownLatch lock0 = new CountDownLatch(1);
+        mBobSession.getCryptoRestClient().uploadKeys(bobDevice.JSONDictionary(), null, "dev1", new TestApiCallback<KeysUploadResponse>(lock0) {
             @Override
             public void onSuccess(KeysUploadResponse keysUploadResponse) {
                 results.put("keysUploadResponse", keysUploadResponse);
-                lock0.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock0.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock0.countDown();
+                super.onSuccess(keysUploadResponse);
             }
         });
-        lock0.await(1000, TimeUnit.MILLISECONDS);
+        lock0.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
-        KeysUploadResponse keysUploadResponse = (KeysUploadResponse)results.get("keysUploadResponse");
+        KeysUploadResponse keysUploadResponse = (KeysUploadResponse) results.get("keysUploadResponse");
 
-        Assert.assertTrue (null != keysUploadResponse);
-        Assert.assertTrue(null != keysUploadResponse.oneTimeKeyCounts);
+        Assert.assertNotNull(keysUploadResponse);
+        Assert.assertNotNull(keysUploadResponse.oneTimeKeyCounts);
 
-        Assert.assertTrue(0 == keysUploadResponse.oneTimeKeyCounts.size());
-        Assert.assertTrue(0 == keysUploadResponse.oneTimeKeyCountsForAlgorithm("deded"));
+        Assert.assertTrue(keysUploadResponse.oneTimeKeyCounts.isEmpty());
+        Assert.assertEquals(0, keysUploadResponse.oneTimeKeyCountsForAlgorithm("deded"));
 
-        final CountDownLatch lock1 = new CountDownLatch(1);
-        mBobSession.getCryptoRestClient().downloadKeysForUsers(Arrays.asList(mBobSession.getMyUserId()), null, new ApiCallback<KeysQueryResponse>() {
+        CountDownLatch lock1 = new CountDownLatch(1);
+        mBobSession.getCryptoRestClient().downloadKeysForUsers(Arrays.asList(mBobSession.getMyUserId()), null, new TestApiCallback<KeysQueryResponse>(lock1) {
             @Override
             public void onSuccess(KeysQueryResponse keysQueryResponse) {
                 results.put("keysQueryResponse", keysQueryResponse);
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
+                super.onSuccess(keysQueryResponse);
             }
         });
 
-        lock1.await(1000, TimeUnit.MILLISECONDS);
-        KeysQueryResponse keysQueryResponse = (KeysQueryResponse)results.get("keysQueryResponse");
+        lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        KeysQueryResponse keysQueryResponse = (KeysQueryResponse) results.get("keysQueryResponse");
 
-        Assert.assertTrue (null != keysQueryResponse);
-        Assert.assertTrue (null != keysQueryResponse.deviceKeys);
+        Assert.assertNotNull(keysQueryResponse);
+        Assert.assertNotNull(keysQueryResponse.deviceKeys);
 
         MXUsersDevicesMap<MXDeviceInfo> deviceInfos = new MXUsersDevicesMap<>(keysQueryResponse.deviceKeys);
 
-        Assert.assertTrue (null != deviceInfos.getUserIds());
-        Assert.assertTrue (1 == deviceInfos.getUserIds().size());
+        Assert.assertNotNull(deviceInfos.getUserIds());
+        Assert.assertEquals(1, deviceInfos.getUserIds().size());
 
         List<String> deviceIds = deviceInfos.getUserDeviceIds(mBobSession.getMyUserId());
-        Assert.assertTrue (null != deviceIds);
-        Assert.assertTrue (1 == deviceIds.size());
+        Assert.assertNotNull(deviceIds);
+        Assert.assertEquals(1, deviceIds.size());
 
         MXDeviceInfo bobDevice2 = deviceInfos.getObject("dev1", mBobSession.getMyUserId());
-        Assert.assertTrue (null != bobDevice2);
-        Assert.assertTrue(TextUtils.equals(bobDevice2.deviceId, "dev1"));
-        Assert.assertTrue(TextUtils.equals(bobDevice2.userId, mBobSession.getMyUserId()));
+        Assert.assertNotNull(bobDevice2);
+        Assert.assertEquals("dev1", bobDevice2.deviceId);
+        Assert.assertEquals(bobDevice2.userId, mBobSession.getMyUserId());
 
         mBobSession.clear(context);
     }
@@ -182,38 +150,23 @@ public class CryptoRestTest {
         otks.put("curve25519:AAAABQ", "ueuHES/Q0P1MZ4J3IUpC8iQTkgQNX66ZpxVLUaTDuB8");
         otks.put("curve25519:AAAABA", "PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs");
 
-        final CountDownLatch lock1 = new CountDownLatch(1);
-        mBobSession.getCryptoRestClient().uploadKeys(null, otks, "dev1", new ApiCallback<KeysUploadResponse>() {
+        CountDownLatch lock1 = new CountDownLatch(1);
+        mBobSession.getCryptoRestClient().uploadKeys(null, otks, "dev1", new TestApiCallback<KeysUploadResponse>(lock1) {
             @Override
             public void onSuccess(KeysUploadResponse keysUploadResponse) {
                 results.put("keysUploadResponse", keysUploadResponse);
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
+                super.onSuccess(keysUploadResponse);
             }
         });
-        lock1.await(1000, TimeUnit.MILLISECONDS);
+        lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
-        KeysUploadResponse keysUploadResponse = (KeysUploadResponse)results.get("keysUploadResponse");
-        Assert.assertTrue (null != keysUploadResponse);
-        Assert.assertTrue (null != keysUploadResponse.oneTimeKeyCounts);
-        Assert.assertTrue (1 == keysUploadResponse.oneTimeKeyCounts.size());
+        KeysUploadResponse keysUploadResponse = (KeysUploadResponse) results.get("keysUploadResponse");
+        Assert.assertNotNull(keysUploadResponse);
+        Assert.assertNotNull(keysUploadResponse.oneTimeKeyCounts);
+        Assert.assertEquals(1, keysUploadResponse.oneTimeKeyCounts.size());
 
-        Assert.assertTrue (2 == keysUploadResponse.oneTimeKeyCountsForAlgorithm("curve25519"));
-        Assert.assertTrue (0 == keysUploadResponse.oneTimeKeyCountsForAlgorithm("deded"));
+        Assert.assertEquals(2, keysUploadResponse.oneTimeKeyCountsForAlgorithm("curve25519"));
+        Assert.assertEquals(0, keysUploadResponse.oneTimeKeyCountsForAlgorithm("deded"));
 
         mBobSession.clear(context);
     }
@@ -254,81 +207,50 @@ public class CryptoRestTest {
             otks.put("curve25519:AAAABA", map);
         }
 
-        final CountDownLatch lock1 = new CountDownLatch(1);
-        mBobSession.getCryptoRestClient().uploadKeys(null, otks, "dev1", new ApiCallback<KeysUploadResponse>() {
+        CountDownLatch lock1 = new CountDownLatch(1);
+        mBobSession.getCryptoRestClient().uploadKeys(null, otks, "dev1", new TestApiCallback<KeysUploadResponse>(lock1) {
             @Override
             public void onSuccess(KeysUploadResponse keysUploadResponse) {
                 results.put("keysUploadResponse", keysUploadResponse);
-                lock1.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock1.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock1.countDown();
+                super.onSuccess(keysUploadResponse);
             }
         });
 
-        lock1.await(1000, TimeUnit.MILLISECONDS);
+        lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
-        KeysUploadResponse bobKeysUploadResponse = (KeysUploadResponse)results.get("keysUploadResponse");
-        Assert.assertTrue (null != bobKeysUploadResponse);
+        KeysUploadResponse bobKeysUploadResponse = (KeysUploadResponse) results.get("keysUploadResponse");
+        Assert.assertNotNull(bobKeysUploadResponse);
 
         MXUsersDevicesMap<String> usersDevicesKeyTypesMap = new MXUsersDevicesMap<>();
         usersDevicesKeyTypesMap.setObject("curve25519", mBobSession.getMyUserId(), "dev1");
 
-        final CountDownLatch lock2 = new CountDownLatch(1);
-        mAliceSession.getCryptoRestClient().claimOneTimeKeysForUsersDevices(usersDevicesKeyTypesMap, new ApiCallback<MXUsersDevicesMap<MXKey>>() {
+        CountDownLatch lock2 = new CountDownLatch(1);
+        mAliceSession.getCryptoRestClient().claimOneTimeKeysForUsersDevices(usersDevicesKeyTypesMap, new TestApiCallback<MXUsersDevicesMap<MXKey>>(lock2) {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXKey> usersDevicesMap) {
                 results.put("usersDevicesMap", usersDevicesMap);
-                lock2.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                lock2.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                lock2.countDown();
+                super.onSuccess(usersDevicesMap);
             }
         });
 
-        lock2.await(1000, TimeUnit.MILLISECONDS);
+        lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
-        MXUsersDevicesMap<MXKey> oneTimeKeys = (MXUsersDevicesMap<MXKey>)results.get("usersDevicesMap");
-        Assert.assertTrue (null != oneTimeKeys);
-        Assert.assertTrue (null !=  oneTimeKeys.getMap());
-        Assert.assertTrue (1 ==  oneTimeKeys.getMap().size());
+        MXUsersDevicesMap<MXKey> oneTimeKeys = (MXUsersDevicesMap<MXKey>) results.get("usersDevicesMap");
+        Assert.assertNotNull(oneTimeKeys);
+        Assert.assertNotNull(oneTimeKeys.getMap());
+        Assert.assertEquals(1, oneTimeKeys.getMap().size());
 
         MXKey bobOtk = oneTimeKeys.getObject("dev1", mBobSession.getMyUserId());
-        Assert.assertTrue (null != bobOtk);
+        Assert.assertNotNull(bobOtk);
 
-        Assert.assertTrue(TextUtils.equals(bobOtk.type, MXKey.KEY_CURVE_25519_TYPE));
-        Assert.assertTrue(TextUtils.equals(bobOtk.keyId, "AAAABA"));
-        Assert.assertTrue(TextUtils.equals(bobOtk.getKeyFullId(), "curve25519:AAAABA"));
-        Assert.assertTrue(TextUtils.equals(bobOtk.value, "PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs"));
-        Assert.assertTrue(null != bobOtk.signatures);
+        Assert.assertEquals(MXKey.KEY_CURVE_25519_TYPE, bobOtk.type);
+        Assert.assertEquals("AAAABA", bobOtk.keyId);
+        Assert.assertEquals("curve25519:AAAABA", bobOtk.getKeyFullId());
+        Assert.assertEquals("PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs", bobOtk.value);
+        Assert.assertNotNull(bobOtk.signatures);
 
         List<String> keys = new ArrayList<>(bobOtk.signatures.keySet());
-        Assert.assertTrue(keys.size() == 1);
-
+        Assert.assertEquals(1, keys.size());
 
         mBobSession.clear(context);
         mAliceSession.clear(context);
