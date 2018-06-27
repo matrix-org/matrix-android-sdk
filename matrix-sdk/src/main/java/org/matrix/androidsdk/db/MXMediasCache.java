@@ -113,7 +113,7 @@ public class MXMediasCache {
         File mediaBaseFolderFile;
 
         // Clear previous cache
-        for (String previousMediaCacheFolder: sPreviousMediaCacheFolders) {
+        for (String previousMediaCacheFolder : sPreviousMediaCacheFolders) {
             mediaBaseFolderFile = new File(context.getApplicationContext().getFilesDir(), previousMediaCacheFolder);
 
             if (mediaBaseFolderFile.exists()) {
@@ -918,7 +918,7 @@ public class MXMediasCache {
 
         // avoid crash if there are too many running task
         try {
-            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Integer[]) null);
+            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } catch (RejectedExecutionException e) {
             // too many tasks have been launched
             synchronized (mSuspendedTasks) {
@@ -947,34 +947,30 @@ public class MXMediasCache {
     private void launchSuspendedTask() {
         synchronized (mSuspendedTasks) {
             // some task have been suspended because there were too many running ones ?
-            if (mSuspendedTasks.size() > 0) {
+            if (!mSuspendedTasks.isEmpty()) {
+                MXMediaDownloadWorkerTask task = mSuspendedTasks.get(0);
 
-                if (mSuspendedTasks.size() > 0) {
-                    MXMediaDownloadWorkerTask task = mSuspendedTasks.get(0);
+                // privacy
+                //Log.d(LOG_TAG, "Restart the task " + task.getUrl());
+                Log.d(LOG_TAG, "Restart a task ");
+
+                // avoid crash if there are too many running task
+                try {
+                    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                    mSuspendedTasks.remove(task);
+                } catch (RejectedExecutionException e) {
+                    task.cancel(true);
+
+                    mSuspendedTasks.remove(task);
+                    // create a new task from the existing one
+                    task = new MXMediaDownloadWorkerTask(task);
+                    mSuspendedTasks.add(task);
 
                     // privacy
-                    //Log.d(LOG_TAG, "Restart the task " + task.getUrl());
-                    Log.d(LOG_TAG, "Restart a task ");
-
-                    // avoid crash if there are too many running task
-                    try {
-                        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Integer[]) null);
-                        mSuspendedTasks.remove(task);
-                    } catch (RejectedExecutionException e) {
-                        task.cancel(true);
-
-                        mSuspendedTasks.remove(task);
-                        // create a new task from the existing one
-                        task = new MXMediaDownloadWorkerTask(task);
-                        mSuspendedTasks.add(task);
-
-                        // privacy
-                        //Log.d(LOG_TAG, "Suspend again the task " + task.getUrl() + " - " + task.getStatus());
-                        Log.d(LOG_TAG, "Suspend again the task " + task.getStatus());
-
-                    } catch (Exception e) {
-                        Log.d(LOG_TAG, "Try to Restart a task fails " + e.getMessage());
-                    }
+                    //Log.d(LOG_TAG, "Suspend again the task " + task.getUrl() + " - " + task.getStatus());
+                    Log.d(LOG_TAG, "Suspend again the task " + task.getStatus());
+                } catch (Exception e) {
+                    Log.d(LOG_TAG, "Try to Restart a task fails " + e.getMessage());
                 }
             }
         }
@@ -1164,7 +1160,7 @@ public class MXMediasCache {
 
                 // avoid crash if there are too many running task
                 try {
-                    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Integer[]) null);
+                    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
                 } catch (RejectedExecutionException e) {
                     // too many tasks have been launched
                     synchronized (mSuspendedTasks) {
@@ -1207,11 +1203,12 @@ public class MXMediasCache {
      * @param downloadId the downloadId provided by loadBitmap;
      * @return the download stats
      */
+    @Nullable
     public IMXMediaDownloadListener.DownloadStats getStatsForDownloadId(String downloadId) {
-        MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadId);
+        MXMediaDownloadWorkerTask task = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadId);
 
-        if (null != currentTask) {
-            return currentTask.getDownloadStats();
+        if (null != task) {
+            return task.getDownloadStats();
         }
 
         return null;
@@ -1224,11 +1221,12 @@ public class MXMediasCache {
      * @param listener   the download listener.
      */
     public void addDownloadListener(String downloadId, IMXMediaDownloadListener listener) {
-        MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadId);
+        MXMediaDownloadWorkerTask task = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadId);
 
-        if (null != currentTask) {
-            currentTask.addDownloadListener(listener);
+        if (null != task) {
+            task.addDownloadListener(listener);
         }
+        // Else consider calling listener.onDownloadComplete(downloadId) ?
     }
 
     /**
@@ -1237,10 +1235,10 @@ public class MXMediasCache {
      * @param downloadId the download id.
      */
     public void cancelDownload(String downloadId) {
-        MXMediaDownloadWorkerTask currentTask = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadId);
+        MXMediaDownloadWorkerTask task = MXMediaDownloadWorkerTask.getMediaDownloadWorkerTask(downloadId);
 
-        if (null != currentTask) {
-            currentTask.cancelDownload();
+        if (null != task) {
+            task.cancelDownload();
         }
     }
 
@@ -1272,10 +1270,10 @@ public class MXMediasCache {
      * @return the upload percentage. -1 means there is no pending upload.
      */
     public int getProgressValueForUploadId(String uploadId) {
-        MXMediaUploadWorkerTask uploadTask = MXMediaUploadWorkerTask.getMediaDUploadWorkerTask(uploadId);
+        MXMediaUploadWorkerTask task = MXMediaUploadWorkerTask.getMediaDUploadWorkerTask(uploadId);
 
-        if (null != uploadTask) {
-            return uploadTask.getProgress();
+        if (null != task) {
+            return task.getProgress();
         }
 
         return -1;
@@ -1288,10 +1286,10 @@ public class MXMediasCache {
      * @return the upload stats
      */
     public IMXMediaUploadListener.UploadStats getStatsForUploadId(String uploadId) {
-        MXMediaUploadWorkerTask uploadTask = MXMediaUploadWorkerTask.getMediaDUploadWorkerTask(uploadId);
+        MXMediaUploadWorkerTask task = MXMediaUploadWorkerTask.getMediaDUploadWorkerTask(uploadId);
 
-        if (null != uploadTask) {
-            return uploadTask.getStats();
+        if (null != task) {
+            return task.getStats();
         }
 
         return null;
@@ -1305,10 +1303,10 @@ public class MXMediasCache {
      * @param listener the upload listener
      */
     public void addUploadListener(String uploadId, IMXMediaUploadListener listener) {
-        MXMediaUploadWorkerTask uploadTask = MXMediaUploadWorkerTask.getMediaDUploadWorkerTask(uploadId);
+        MXMediaUploadWorkerTask task = MXMediaUploadWorkerTask.getMediaDUploadWorkerTask(uploadId);
 
-        if (null != uploadTask) {
-            uploadTask.addListener(listener);
+        if (null != task) {
+            task.addListener(listener);
         }
     }
 
@@ -1318,10 +1316,10 @@ public class MXMediasCache {
      * @param uploadId the upload Id
      */
     public void cancelUpload(String uploadId) {
-        MXMediaUploadWorkerTask uploadTask = MXMediaUploadWorkerTask.getMediaDUploadWorkerTask(uploadId);
+        MXMediaUploadWorkerTask task = MXMediaUploadWorkerTask.getMediaDUploadWorkerTask(uploadId);
 
-        if (null != uploadTask) {
-            uploadTask.cancelUpload();
+        if (null != task) {
+            task.cancelUpload();
         }
     }
 }

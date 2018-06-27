@@ -22,7 +22,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Looper;
 import android.support.v4.util.LruCache;
 import android.text.TextUtils;
 import android.util.Pair;
@@ -58,6 +57,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,8 +70,10 @@ import javax.net.ssl.X509TrustManager;
 
 /**
  * This class manages the media downloading in background.
+ * <p>
+ * JsonElement:  Error message if not null.
  */
-class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListener.DownloadStats, Void> {
+class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
 
     private static final String LOG_TAG = MXMediaDownloadWorkerTask.class.getSimpleName();
 
@@ -116,7 +118,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
     /**
      * Tells if the anti-virus scanner is enabled.
      */
-    private boolean mIsAvScannerEnabled = false;
+    private boolean mIsAvScannerEnabled;
 
     /**
      * The media mime type
@@ -131,12 +133,12 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
     /**
      * The directory in which the media must be stored.
      */
-    private File mDirectoryFile = null;
+    private File mDirectoryFile;
 
     /**
      * The rotation to apply.
      */
-    private int mRotation = 0;
+    private int mRotation;
 
     /**
      * The download stats.
@@ -146,17 +148,12 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
     /**
      * Tells the download has been cancelled.
      */
-    private boolean mIsDownloadCancelled = false;
+    private boolean mIsDownloadCancelled;
 
     /**
      * Tells if the download has been completed
      */
-    private boolean mIsDone = false;
-
-    /**
-     * Error message.
-     */
-    private JsonElement mErrorAsJsonElement;
+    private boolean mIsDone;
 
     /**
      * The home server config.
@@ -253,7 +250,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      * @return the cache filename
      */
     static String buildFileName(String downloadId, String mimeType) {
-        String name = "file_" + MXMediaDownloadWorkerTask.uniqueId(downloadId);
+        String name = "file_" + uniqueId(downloadId);
 
         if (!TextUtils.isEmpty(mimeType)) {
             String fileExtension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
@@ -526,19 +523,21 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                                      EncryptedFileInfo encryptedFileInfo,
                                      boolean isAvScannerEnabled) {
         mApplicationContext = appContext;
+        mHsConfig = hsConfig;
+        mNetworkConnectivityReceiver = networkConnectivityReceiver;
+        mDirectoryFile = directoryFile;
         mUrl = url;
         mDownloadId = downloadId;
+        mRotation = rotation;
+        mMimeType = mimeType;
+        mEncryptedFileInfo = encryptedFileInfo;
+        mIsAvScannerEnabled = isAvScannerEnabled;
+
+        mImageViewReferences = new ArrayList<>();
+
         synchronized (mPendingDownloadById) {
             mPendingDownloadById.put(downloadId, this);
         }
-        mMimeType = mimeType;
-        mNetworkConnectivityReceiver = networkConnectivityReceiver;
-        mImageViewReferences = new ArrayList<>();
-        mDirectoryFile = directoryFile;
-        mRotation = rotation;
-        mHsConfig = hsConfig;
-        mEncryptedFileInfo = encryptedFileInfo;
-        mIsAvScannerEnabled = isAvScannerEnabled;
     }
 
     /**
@@ -548,19 +547,21 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      */
     public MXMediaDownloadWorkerTask(MXMediaDownloadWorkerTask task) {
         mApplicationContext = task.mApplicationContext;
+        mHsConfig = task.mHsConfig;
+        mNetworkConnectivityReceiver = task.mNetworkConnectivityReceiver;
+        mDirectoryFile = task.mDirectoryFile;
         mUrl = task.mUrl;
         mDownloadId = task.mDownloadId;
+        mRotation = task.mRotation;
+        mMimeType = task.mMimeType;
+        mEncryptedFileInfo = task.mEncryptedFileInfo;
+        mIsAvScannerEnabled = task.mIsAvScannerEnabled;
+
+        mImageViewReferences = task.mImageViewReferences;
+
         synchronized (mPendingDownloadById) {
             mPendingDownloadById.put(mDownloadId, this);
         }
-        mMimeType = task.mMimeType;
-        mNetworkConnectivityReceiver = task.mNetworkConnectivityReceiver;
-        mImageViewReferences = task.mImageViewReferences;
-        mDirectoryFile = task.mDirectoryFile;
-        mRotation = task.mRotation;
-        mHsConfig = task.mHsConfig;
-        mEncryptedFileInfo = task.mEncryptedFileInfo;
-        mIsAvScannerEnabled = task.mIsAvScannerEnabled;
     }
 
     /**
@@ -637,7 +638,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      * @return true if the current task is an image one.
      */
     private boolean isBitmapDownloadTask() {
-        return (null != mMimeType) && mMimeType.startsWith("image/");
+        return null != mMimeType && mMimeType.startsWith("image/");
     }
 
     /**
@@ -645,7 +646,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
      *
      * @param startDownloadTime the start download time.
      */
-    private void publishProgress(long startDownloadTime) {
+    private void updateAndPublishProgress(long startDownloadTime) {
         mDownloadStats.mElapsedTime = (int) ((System.currentTimeMillis() - startDownloadTime) / 1000);
 
         if (mDownloadStats.mFileSize > 0) {
@@ -673,12 +674,19 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
 
         Log.d(LOG_TAG, "publishProgress " + this + " : " + mDownloadStats.mProgress);
 
-        publishProgress(mDownloadStats);
+        publishProgress();
     }
 
-    // Decode image in background.
+    /**
+     * Download and decode media in background.
+     *
+     * @param params
+     * @return JsonElement if an error occurs
+     */
     @Override
-    protected Void doInBackground(Integer... params) {
+    protected JsonElement doInBackground(Void... params) {
+        JsonElement jsonElementResult = null;
+
         MatrixError defaultError = new MatrixError();
         defaultError.errcode = MatrixError.UNKNOWN;
 
@@ -753,7 +761,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                             responseStrBuilder.append(inputStr);
                         }
 
-                        mErrorAsJsonElement = new JsonParser().parse(responseStrBuilder.toString());
+                        jsonElementResult = new JsonParser().parse(responseStrBuilder.toString());
                     } catch (Exception ee) {
                         Log.e(LOG_TAG, "bitmapForURL : Error parsing error " + ee.getMessage());
                     }
@@ -778,8 +786,8 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             dispatchDownloadStart();
 
             // failed to open the remote stream without having exception
-            if ((null == stream) && (null == mErrorAsJsonElement)) {
-                mErrorAsJsonElement = new JsonParser().parse("Cannot open " + mUrl);
+            if ((null == stream) && (null == jsonElementResult)) {
+                jsonElementResult = new JsonParser().parse("Cannot open " + mUrl);
 
                 // if some medias are not found
                 // do not try to reload them until the next application launch.
@@ -794,10 +802,10 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             }
 
             // test if the download has not been cancelled
-            if (!isDownloadCancelled() && (null == mErrorAsJsonElement)) {
+            if (!isDownloadCancelled() && (null == jsonElementResult)) {
                 final long startDownloadTime = System.currentTimeMillis();
 
-                String filename = MXMediaDownloadWorkerTask.buildFileName(mDownloadId, mMimeType) + ".tmp";
+                String filename = buildFileName(mDownloadId, mMimeType) + ".tmp";
                 FileOutputStream fos = new FileOutputStream(new File(mDirectoryFile, filename));
 
                 mDownloadStats.mDownloadId = mDownloadId;
@@ -808,32 +816,18 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                 mDownloadStats.mEstimatedRemainingTime = -1;
                 mDownloadStats.mBitRate = 0;
 
-                final android.os.Handler uiHandler = new android.os.Handler(Looper.getMainLooper());
 
+                // Publish progress every 100ms
                 final Timer refreshTimer = new Timer();
 
-                uiHandler.post(new Runnable() {
+                refreshTimer.scheduleAtFixedRate(new TimerTask() {
                     @Override
                     public void run() {
-                        try {
-                            refreshTimer.scheduleAtFixedRate(new TimerTask() {
-                                @Override
-                                public void run() {
-                                    uiHandler.post(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            if (!mIsDone) {
-                                                publishProgress(startDownloadTime);
-                                            }
-                                        }
-                                    });
-                                }
-                            }, new java.util.Date(), 100);
-                        } catch (Throwable throwable) {
-                            Log.e(LOG_TAG, "scheduleAtFixedRate failed " + throwable.getMessage());
+                        if (!mIsDone) {
+                            updateAndPublishProgress(startDownloadTime);
                         }
                     }
-                });
+                }, new Date(), 100);
 
                 try {
                     byte[] buf = new byte[DOWNLOAD_BUFFER_READ_SIZE];
@@ -860,22 +854,17 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
                 fos.flush();
                 fos.close();
 
-                uiHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        refreshTimer.cancel();
-                    }
-                });
+                refreshTimer.cancel();
 
                 if ((null != connection) && (connection instanceof HttpsURLConnection)) {
-                    ((HttpsURLConnection) connection).disconnect();
+                    connection.disconnect();
                 }
 
                 // the file has been successfully downloaded
                 if (mDownloadStats.mProgress == 100) {
                     try {
                         File originalFile = new File(mDirectoryFile, filename);
-                        String newFileName = MXMediaDownloadWorkerTask.buildFileName(mDownloadId, mMimeType);
+                        String newFileName = buildFileName(mDownloadId, mMimeType);
                         File newFile = new File(mDirectoryFile, newFileName);
                         if (newFile.exists()) {
                             // Or you could throw here.
@@ -892,8 +881,8 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             if (mDownloadStats.mProgress == 100) {
                 Log.d(LOG_TAG, "The download " + this + " is done.");
             } else {
-                if (null != mErrorAsJsonElement) {
-                    Log.d(LOG_TAG, "The download " + this + " failed : mErrorAsJsonElement " + mErrorAsJsonElement.toString());
+                if (null != jsonElementResult) {
+                    Log.d(LOG_TAG, "The download " + this + " failed : mErrorAsJsonElement " + jsonElementResult.toString());
                 } else {
                     Log.d(LOG_TAG, "The download " + this + " failed.");
                 }
@@ -905,15 +894,15 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
 
         // build a JSON from the error
         if (!TextUtils.isEmpty(defaultError.error)) {
-            mErrorAsJsonElement = JsonUtils.getGson(false).toJsonTree(defaultError);
+            jsonElementResult = JsonUtils.getGson(false).toJsonTree(defaultError);
         }
 
-        // remove the image from the loading one
+        // remove the task from the loading one
         synchronized (mPendingDownloadById) {
             mPendingDownloadById.remove(mDownloadId);
         }
 
-        return null;
+        return jsonElementResult;
     }
 
     /**
@@ -930,16 +919,16 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
     }
 
     @Override
-    protected void onProgressUpdate(IMXMediaDownloadListener.DownloadStats... progress) {
-        super.onProgressUpdate(progress);
+    protected void onProgressUpdate(Void... aVoid) {
+        super.onProgressUpdate();
         dispatchOnDownloadProgress(mDownloadStats);
     }
 
     // Once complete, see if ImageView is still around and set bitmap.
     @Override
-    protected void onPostExecute(Void nothing) {
-        if (null != mErrorAsJsonElement) {
-            dispatchOnDownloadError(mErrorAsJsonElement);
+    protected void onPostExecute(JsonElement jsonElementError) {
+        if (null != jsonElementError) {
+            dispatchOnDownloadError(jsonElementError);
         } else if (isDownloadCancelled()) {
             dispatchDownloadCancel();
         } else {
@@ -949,7 +938,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Integer, IMXMediaDownloadListe
             // update the linked ImageViews.
             if (isBitmapDownloadTask()) {
                 // retrieve the bitmap from the file s
-                if (!MXMediaDownloadWorkerTask.bitmapForURL(mApplicationContext, mDirectoryFile, mUrl, mDownloadId, mRotation, mMimeType, mEncryptedFileInfo,
+                if (!bitmapForURL(mApplicationContext, mDirectoryFile, mUrl, mDownloadId, mRotation, mMimeType, mEncryptedFileInfo,
                         new SimpleApiCallback<Bitmap>() {
                             @Override
                             public void onSuccess(Bitmap bitmap) {
