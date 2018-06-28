@@ -53,6 +53,8 @@ public class MXFileStoreMetaData implements java.io.Serializable {
     // crypto
     public boolean mEndToEndDeviceAnnounced = false;
 
+    public String mMediaServerPublicKey;
+
     public MXFileStoreMetaData deepCopy() {
         MXFileStoreMetaData copy = new MXFileStoreMetaData();
 
@@ -71,6 +73,8 @@ public class MXFileStoreMetaData implements java.io.Serializable {
         copy.mIgnoredUsers = mIgnoredUsers;
         copy.mDirectChatRoomsMap = mDirectChatRoomsMap;
         copy.mEndToEndDeviceAnnounced = mEndToEndDeviceAnnounced;
+
+        copy.mMediaServerPublicKey = mMediaServerPublicKey;
 
         copy.mIsUrlPreviewEnabled = mIsUrlPreviewEnabled;
         copy.mUserWidgets = mUserWidgets;
