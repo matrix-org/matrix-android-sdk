@@ -20,6 +20,7 @@ package org.matrix.androidsdk.crypto;
  */
 public class MXCryptoConfig {
     // Tell whether the event content must be encrypted for invited members too.
+    // By default, we encrypt messages only for joined members.
     // Presently the encryption for the invited members succeeds only if you already got some deviceId.
-    public boolean mEnableCryptoForInvitedMembers = false;
+    public boolean mEncryptMessagesForInvitedMembers = false;
 }

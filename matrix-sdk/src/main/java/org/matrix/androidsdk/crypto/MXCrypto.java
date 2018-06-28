@@ -936,7 +936,7 @@ public class MXCrypto {
             if (null != room) {
                 Collection<RoomMember> members;
                 // Check here whether the event content must be encrypted for the invited members.
-                if (mCryptoConfig.mEnableCryptoForInvitedMembers) {
+                if (mCryptoConfig.mEncryptMessagesForInvitedMembers) {
                     members = room.getActiveMembers();
                 } else {
                     members = room.getJoinedMembers();
@@ -1285,7 +1285,7 @@ public class MXCrypto {
 
         Collection<RoomMember> members;
         // Check here whether the event content must be encrypted for the invited members.
-        if (mCryptoConfig.mEnableCryptoForInvitedMembers) {
+        if (mCryptoConfig.mEncryptMessagesForInvitedMembers) {
             members = room.getActiveMembers();
         } else {
             members = room.getJoinedMembers();

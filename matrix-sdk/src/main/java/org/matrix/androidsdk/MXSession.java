@@ -2184,14 +2184,15 @@ public class MXSession {
     /**
      * Optional set of parameters used to configure/customize the e2e encryption
      */
-    private static MXCryptoConfig mCryptoConfig = null;
+    @Nullable
+    private static MXCryptoConfig sCryptoConfig;
 
     /**
      * Define the set of parameters used to configure/customize the e2e encryption
      * This configuration must be set before instantiating the session
      */
     public static void setCryptoConfig(@Nullable MXCryptoConfig cryptoConfig) {
-        mCryptoConfig = cryptoConfig;
+        sCryptoConfig = cryptoConfig;
     }
 
     /**
@@ -2245,7 +2246,7 @@ public class MXSession {
                 return;
             }
 
-            mCrypto = new MXCrypto(MXSession.this, fileCryptoStore, mCryptoConfig);
+            mCrypto = new MXCrypto(MXSession.this, fileCryptoStore, sCryptoConfig);
             mDataHandler.setCrypto(mCrypto);
             // the room summaries are not stored with decrypted content
             decryptRoomSummaries();
@@ -2270,7 +2271,7 @@ public class MXSession {
                 MXFileCryptoStore fileCryptoStore = new MXFileCryptoStore();
                 fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
                 fileCryptoStore.open();
-                mCrypto = new MXCrypto(this, fileCryptoStore, mCryptoConfig);
+                mCrypto = new MXCrypto(this, fileCryptoStore, sCryptoConfig);
                 mCrypto.start(true, new SimpleApiCallback<Void>(callback) {
                     @Override
                     public void onSuccess(Void info) {
