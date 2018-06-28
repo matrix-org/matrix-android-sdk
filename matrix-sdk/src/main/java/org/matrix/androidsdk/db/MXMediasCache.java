@@ -428,8 +428,16 @@ public class MXMediasCache {
      * @param callback          the asynchronous callback
      * @return true if the file is cached
      */
-    public boolean createTmpMediaFile(String url, String mimeType, EncryptedFileInfo encryptedFileInfo, SimpleApiCallback<File> callback) {
-        return createTmpMediaFile(url, -1, -1, mimeType, encryptedFileInfo, callback);
+    public boolean createTmpMediaFile(String url,
+                                      String mimeType,
+                                      EncryptedFileInfo encryptedFileInfo,
+                                      SimpleApiCallback<File> callback) {
+        return createTmpMediaFile(url,
+                -1,
+                -1,
+                mimeType,
+                encryptedFileInfo,
+                callback);
     }
 
     /**
@@ -614,8 +622,14 @@ public class MXMediasCache {
      * @param mimeType the mimeType.
      * @param fileUrl  the file which replaces the cached media.
      */
-    public void saveFileMediaForUrl(String mediaUrl, String fileUrl, String mimeType) {
-        saveFileMediaForUrl(mediaUrl, fileUrl, -1, -1, mimeType);
+    public void saveFileMediaForUrl(String mediaUrl,
+                                    String fileUrl,
+                                    String mimeType) {
+        saveFileMediaForUrl(mediaUrl,
+                fileUrl,
+                -1,
+                -1,
+                mimeType);
     }
 
     /**
@@ -628,8 +642,17 @@ public class MXMediasCache {
      * @param height   the expected image height
      * @param mimeType the mimeType.
      */
-    public void saveFileMediaForUrl(String mediaUrl, String fileUrl, int width, int height, String mimeType) {
-        saveFileMediaForUrl(mediaUrl, fileUrl, width, height, mimeType, false);
+    public void saveFileMediaForUrl(String mediaUrl,
+                                    String fileUrl,
+                                    int width,
+                                    int height,
+                                    String mimeType) {
+        saveFileMediaForUrl(mediaUrl,
+                fileUrl,
+                width,
+                height,
+                mimeType,
+                false);
     }
 
     /**
@@ -643,7 +666,12 @@ public class MXMediasCache {
      * @param mimeType   the mimeType.
      * @param keepSource keep the source file
      */
-    public void saveFileMediaForUrl(String mediaUrl, String fileUrl, int width, int height, String mimeType, boolean keepSource) {
+    public void saveFileMediaForUrl(String mediaUrl,
+                                    String fileUrl,
+                                    int width,
+                                    int height,
+                                    String mimeType,
+                                    boolean keepSource) {
         // We use the download task id to define a cache id
         String cacheId = mContentManager.downloadTaskIdForMatrixMediaContent(mediaUrl);
         if (null != cacheId) {
@@ -806,7 +834,15 @@ public class MXMediasCache {
                              int orientation,
                              String mimeType,
                              EncryptedFileInfo encryptionInfo) {
-        return loadBitmap(hsConfig, imageView, url, -1, -1, rotationAngle, orientation, mimeType, encryptionInfo);
+        return loadBitmap(hsConfig,
+                imageView,
+                url,
+                -1,
+                -1,
+                rotationAngle,
+                orientation,
+                mimeType,
+                encryptionInfo);
     }
 
     /**
@@ -829,7 +865,16 @@ public class MXMediasCache {
                              int orientation,
                              String mimeType,
                              EncryptedFileInfo encryptionInfo) {
-        return loadBitmap(context, hsConfig, null, url, -1, -1, rotationAngle, orientation, mimeType, getFolderFile(mimeType),
+        return loadBitmap(context,
+                hsConfig,
+                null,
+                url,
+                -1,
+                -1,
+                rotationAngle,
+                orientation,
+                mimeType,
+                getFolderFile(mimeType),
                 encryptionInfo);
     }
 
@@ -904,8 +949,17 @@ public class MXMediasCache {
      * @param encryptionInfo the encryption information
      * @return the download identifier if there is a pending download else null
      */
-    public String downloadMedia(Context context, HomeServerConnectionConfig hsConfig, String url, String mimeType, EncryptedFileInfo encryptionInfo) {
-        return downloadMedia(context, hsConfig, url, mimeType, encryptionInfo, null);
+    public String downloadMedia(Context context,
+                                HomeServerConnectionConfig hsConfig,
+                                String url,
+                                String mimeType,
+                                EncryptedFileInfo encryptionInfo) {
+        return downloadMedia(context,
+                hsConfig,
+                url,
+                mimeType,
+                encryptionInfo,
+                null);
     }
 
     /**
@@ -947,8 +1001,16 @@ public class MXMediasCache {
 
         // Download it in background
         String downloadableUrl = mContentManager.getDownloadableUrl(url, null != encryptionInfo);
-        task = new MXMediaDownloadWorkerTask(context, hsConfig, mNetworkConnectivityReceiver, getFolderFile(mimeType), downloadableUrl, downloadId, 0, mimeType,
-                encryptionInfo, mContentManager.isAvScannerEnabled());
+        task = new MXMediaDownloadWorkerTask(context,
+                hsConfig,
+                mNetworkConnectivityReceiver,
+                getFolderFile(mimeType),
+                downloadableUrl,
+                downloadId,
+                0,
+                mimeType,
+                encryptionInfo,
+                mContentManager.isAvScannerEnabled());
         task.addDownloadListener(listener);
 
         // avoid crash if there are too many running task
@@ -1049,7 +1111,17 @@ public class MXMediasCache {
                              String mimeType,
                              File folderFile,
                              EncryptedFileInfo encryptionInfo) {
-        return loadBitmap(context, hsConfig, imageView, url, width, height, rotationAngle, orientation, mimeType, folderFile, null,
+        return loadBitmap(context,
+                hsConfig,
+                imageView,
+                url,
+                width,
+                height,
+                rotationAngle,
+                orientation,
+                mimeType,
+                folderFile,
+                null,
                 encryptionInfo);
     }
 
@@ -1286,9 +1358,18 @@ public class MXMediasCache {
      * @param uploadId      the upload id
      * @param listener      the upload progress listener
      */
-    public void uploadContent(InputStream contentStream, String filename, String mimeType, String uploadId, IMXMediaUploadListener listener) {
+    public void uploadContent(InputStream contentStream,
+                              String filename,
+                              String mimeType,
+                              String uploadId,
+                              IMXMediaUploadListener listener) {
         try {
-            new MXMediaUploadWorkerTask(mContentManager, contentStream, mimeType, uploadId, filename, listener)
+            new MXMediaUploadWorkerTask(mContentManager,
+                    contentStream,
+                    mimeType,
+                    uploadId,
+                    filename,
+                    listener)
                     .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } catch (Exception e) {
             // cannot start the task
