@@ -180,7 +180,7 @@ public class MXCrypto {
     private final List<IncomingRoomKeyRequest> mReceivedRoomKeyRequestCancellations = new ArrayList<>();
 
     // Set of parameters used to configure/customize the end-to-end crypto.
-    private MXCryptoConfig mCryptoConfig = new MXCryptoConfig();
+    private MXCryptoConfig mCryptoConfig;
 
     /**
      * Constructor
