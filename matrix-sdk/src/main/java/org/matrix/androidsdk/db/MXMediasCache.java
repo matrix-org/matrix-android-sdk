@@ -78,17 +78,17 @@ public class MXMediasCache {
     /**
      * The content manager
      */
-    private ContentManager mContentManager = null;
+    private ContentManager mContentManager;
 
     /**
      * The medias folders list.
      */
-    private File mMediasFolderFile = null;
-    private File mImagesFolderFile = null;
-    private File mOthersFolderFile = null;
-    private File mThumbnailsFolderFile = null;
+    private File mMediasFolderFile;
+    private File mImagesFolderFile;
+    private File mOthersFolderFile;
+    private File mThumbnailsFolderFile;
 
-    private File mTmpFolderFile = null;
+    private File mTmpFolderFile;
 
     // track the network updates
     private final NetworkConnectivityReceiver mNetworkConnectivityReceiver;
@@ -699,9 +699,21 @@ public class MXMediasCache {
      * @param side      the avatar thumbnail side
      * @return a download identifier if the image is not cached else null.
      */
-    public String loadAvatarThumbnail(HomeServerConnectionConfig hsConfig, ImageView imageView, String url, int side) {
-        return loadBitmap(imageView.getContext(), hsConfig, imageView, url, side, side, 0, ExifInterface.ORIENTATION_UNDEFINED,
-                null, getThumbnailsFolderFile(), null);
+    public String loadAvatarThumbnail(HomeServerConnectionConfig hsConfig,
+                                      ImageView imageView,
+                                      String url,
+                                      int side) {
+        return loadBitmap(imageView.getContext(),
+                hsConfig,
+                imageView,
+                url,
+                side,
+                side,
+                0,
+                ExifInterface.ORIENTATION_UNDEFINED,
+                null,
+                getThumbnailsFolderFile(),
+                null);
     }
 
     /**
@@ -715,9 +727,23 @@ public class MXMediasCache {
      * @param aDefaultAvatar the avatar to use when the Url is not reachable.
      * @return a download identifier if the image is not cached else null.
      */
-    public String loadAvatarThumbnail(HomeServerConnectionConfig hsConfig, ImageView imageView, String url, int side, Bitmap aDefaultAvatar) {
-        return loadBitmap(imageView.getContext(), hsConfig, imageView, url, side, side, 0, ExifInterface.ORIENTATION_UNDEFINED,
-                null, getThumbnailsFolderFile(), aDefaultAvatar, null);
+    public String loadAvatarThumbnail(HomeServerConnectionConfig hsConfig,
+                                      ImageView imageView,
+                                      String url,
+                                      int side,
+                                      Bitmap aDefaultAvatar) {
+        return loadBitmap(imageView.getContext(),
+                hsConfig,
+                imageView,
+                url,
+                side,
+                side,
+                0,
+                ExifInterface.ORIENTATION_UNDEFINED,
+                null,
+                getThumbnailsFolderFile(),
+                aDefaultAvatar,
+                null);
     }
 
     /**
@@ -833,7 +859,16 @@ public class MXMediasCache {
                              int orientation,
                              String mimeType,
                              EncryptedFileInfo encryptionInfo) {
-        return loadBitmap(imageView.getContext(), hsConfig, imageView, url, width, height, rotationAngle, orientation, mimeType, getFolderFile(mimeType),
+        return loadBitmap(imageView.getContext(),
+                hsConfig,
+                imageView,
+                url,
+                width,
+                height,
+                rotationAngle,
+                orientation,
+                mimeType,
+                getFolderFile(mimeType),
                 encryptionInfo);
     }
 

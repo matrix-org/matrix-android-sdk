@@ -41,8 +41,8 @@ public class ContentManager {
     private final UnsentEventsManager mUnsentEventsManager;
 
     // AV scanner handling
-    private boolean mIsAvScannerEnabled = false;
-    private String mDownloadUrlPrefix = null;
+    private boolean mIsAvScannerEnabled;
+    private String mDownloadUrlPrefix;
 
     /**
      * Default constructor.
