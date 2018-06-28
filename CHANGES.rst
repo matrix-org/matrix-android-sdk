@@ -6,6 +6,7 @@ Features:
 
 Improvements:
  - MXCrypto: Add reRequestRoomKeyForEvent to re-request encryption keys to decrypt an event (vector-im/riot-android#2319).
+ - MXCrypto: Add MXCryptoConfig class to customize/configure the e2e encryption.
 
 Bugfix:
  - Prevent crash on KitKat

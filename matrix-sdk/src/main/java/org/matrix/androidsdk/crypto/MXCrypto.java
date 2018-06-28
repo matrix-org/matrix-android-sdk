@@ -22,6 +22,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.JsonElement;
@@ -178,15 +179,26 @@ public class MXCrypto {
     private final List<IncomingRoomKeyRequest> mReceivedRoomKeyRequests = new ArrayList<>();
     private final List<IncomingRoomKeyRequest> mReceivedRoomKeyRequestCancellations = new ArrayList<>();
 
+    // Set of parameters used to configure/customize the end-to-end crypto.
+    private MXCryptoConfig mCryptoConfig;
+
     /**
      * Constructor
      *
      * @param matrixSession the session
      * @param cryptoStore   the crypto store
+     * @param cryptoConfig  the optional set of parameters used to configure the e2e encryption.
      */
-    public MXCrypto(MXSession matrixSession, IMXCryptoStore cryptoStore) {
+    public MXCrypto(MXSession matrixSession, IMXCryptoStore cryptoStore, @Nullable MXCryptoConfig cryptoConfig) {
         mSession = matrixSession;
         mCryptoStore = cryptoStore;
+
+        if (null != cryptoConfig) {
+            mCryptoConfig = cryptoConfig;
+        } else {
+            // Consider the default configuration value
+            mCryptoConfig = new MXCryptoConfig();
+        }
 
         mOlmDevice = new MXOlmDevice(mCryptoStore);
         mRoomEncryptors = new HashMap<>();
@@ -922,7 +934,14 @@ public class MXCrypto {
 
             Room room = mSession.getDataHandler().getRoom(roomId);
             if (null != room) {
-                Collection<RoomMember> members = room.getJoinedMembers();
+                Collection<RoomMember> members;
+                // Check here whether the event content must be encrypted for the invited members.
+                if (mCryptoConfig.mEncryptMessagesForInvitedMembers) {
+                    members = room.getActiveMembers();
+                } else {
+                    members = room.getJoinedMembers();
+                }
+
                 List<String> userIds = new ArrayList<>();
 
                 for (RoomMember m : members) {
@@ -1264,9 +1283,15 @@ public class MXCrypto {
         // just as you are sending a secret message?
         final List<String> userdIds = new ArrayList<>();
 
-        Collection<RoomMember> joinedMembers = room.getJoinedMembers();
+        Collection<RoomMember> members;
+        // Check here whether the event content must be encrypted for the invited members.
+        if (mCryptoConfig.mEncryptMessagesForInvitedMembers) {
+            members = room.getActiveMembers();
+        } else {
+            members = room.getJoinedMembers();
+        }
 
-        for (RoomMember m : joinedMembers) {
+        for (RoomMember m : members) {
             userdIds.add(m.getUserId());
         }
 
@@ -1501,62 +1526,6 @@ public class MXCrypto {
 
         return res;
     }
-
-    /**
-     * Provides the list of e2e rooms
-     *
-     * @return the list of e2e rooms
-     */
-    private List<Room> getE2eRooms() {
-        List<Room> e2eRooms = new ArrayList<>();
-
-        // sanity checks
-        if ((null == mSession.getDataHandler()) || (null == mSession.getDataHandler().getStore())) {
-            return e2eRooms;
-        }
-
-        List<Room> rooms = new ArrayList<>(mSession.getDataHandler().getStore().getRooms());
-        for (Room r : rooms) {
-            if (r.isEncrypted()) {
-                RoomMember me = r.getMember(mSession.getMyUserId());
-
-                if (null != me) {
-                    String membership = me.membership;
-
-                    // ignore any rooms which we have left
-                    if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_JOIN) ||
-                            TextUtils.equals(membership, RoomMember.MEMBERSHIP_INVITE)) {
-                        e2eRooms.add(r);
-                    }
-                }
-            }
-        }
-
-        return e2eRooms;
-    }
-
-    /**
-     * get the users we share an e2e-enabled room with
-     *
-     * @return {Object<string>} userid->userid map (should be a Set but argh ES6)
-     */
-    private List<String> getE2eRoomMembers() {
-        Set<String> list = new HashSet<>();
-        List<Room> rooms = getE2eRooms();
-
-        for (Room r : rooms) {
-            Collection<RoomMember> activeMembers = r.getActiveMembers();
-
-            for (RoomMember m : activeMembers) {
-                // add only the matrix id
-                if (MXSession.PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER.matcher(m.getUserId()).matches()) {
-                    list.add(m.getUserId());
-                }
-            }
-        }
-        return new ArrayList<>(list);
-    }
-
 
     /**
      * Handle the 'toDevice' event

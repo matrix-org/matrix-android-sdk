@@ -24,12 +24,14 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCrypto;
+import org.matrix.androidsdk.crypto.MXCryptoConfig;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
@@ -2180,6 +2182,20 @@ public class MXSession {
     }
 
     /**
+     * Optional set of parameters used to configure/customize the e2e encryption
+     */
+    @Nullable
+    private static MXCryptoConfig sCryptoConfig;
+
+    /**
+     * Define the set of parameters used to configure/customize the e2e encryption
+     * This configuration must be set before instantiating the session
+     */
+    public static void setCryptoConfig(@Nullable MXCryptoConfig cryptoConfig) {
+        sCryptoConfig = cryptoConfig;
+    }
+
+    /**
      * When the encryption is toogled, the room summaries must be updated
      * to display the right messages.
      */
@@ -2230,7 +2246,7 @@ public class MXSession {
                 return;
             }
 
-            mCrypto = new MXCrypto(MXSession.this, fileCryptoStore);
+            mCrypto = new MXCrypto(MXSession.this, fileCryptoStore, sCryptoConfig);
             mDataHandler.setCrypto(mCrypto);
             // the room summaries are not stored with decrypted content
             decryptRoomSummaries();
@@ -2255,7 +2271,7 @@ public class MXSession {
                 MXFileCryptoStore fileCryptoStore = new MXFileCryptoStore();
                 fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
                 fileCryptoStore.open();
-                mCrypto = new MXCrypto(this, fileCryptoStore);
+                mCrypto = new MXCrypto(this, fileCryptoStore, sCryptoConfig);
                 mCrypto.start(true, new SimpleApiCallback<Void>(callback) {
                     @Override
                     public void onSuccess(Void info) {
