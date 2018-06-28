@@ -1,2 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources></resources>
+<?xml version='1.0' encoding='UTF-8'?>
+<resources><string name="medium_email">Enderezo de correo</string>
+    <string name="message_failed_to_upload">Fallo ao subir a páxina</string>
+
+    </resources>
