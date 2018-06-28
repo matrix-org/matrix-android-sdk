@@ -1270,7 +1270,7 @@ public class MXMediasCache {
      * @return the upload percentage. -1 means there is no pending upload.
      */
     public int getProgressValueForUploadId(String uploadId) {
-        MXMediaUploadWorkerTask task = MXMediaUploadWorkerTask.getMediaDUploadWorkerTask(uploadId);
+        MXMediaUploadWorkerTask task = MXMediaUploadWorkerTask.getMediaUploadWorkerTask(uploadId);
 
         if (null != task) {
             return task.getProgress();
@@ -1286,7 +1286,7 @@ public class MXMediasCache {
      * @return the upload stats
      */
     public IMXMediaUploadListener.UploadStats getStatsForUploadId(String uploadId) {
-        MXMediaUploadWorkerTask task = MXMediaUploadWorkerTask.getMediaDUploadWorkerTask(uploadId);
+        MXMediaUploadWorkerTask task = MXMediaUploadWorkerTask.getMediaUploadWorkerTask(uploadId);
 
         if (null != task) {
             return task.getStats();
@@ -1303,7 +1303,7 @@ public class MXMediasCache {
      * @param listener the upload listener
      */
     public void addUploadListener(String uploadId, IMXMediaUploadListener listener) {
-        MXMediaUploadWorkerTask task = MXMediaUploadWorkerTask.getMediaDUploadWorkerTask(uploadId);
+        MXMediaUploadWorkerTask task = MXMediaUploadWorkerTask.getMediaUploadWorkerTask(uploadId);
 
         if (null != task) {
             task.addListener(listener);
@@ -1316,7 +1316,7 @@ public class MXMediasCache {
      * @param uploadId the upload Id
      */
     public void cancelUpload(String uploadId) {
-        MXMediaUploadWorkerTask task = MXMediaUploadWorkerTask.getMediaDUploadWorkerTask(uploadId);
+        MXMediaUploadWorkerTask task = MXMediaUploadWorkerTask.getMediaUploadWorkerTask(uploadId);
 
         if (null != task) {
             task.cancelUpload();

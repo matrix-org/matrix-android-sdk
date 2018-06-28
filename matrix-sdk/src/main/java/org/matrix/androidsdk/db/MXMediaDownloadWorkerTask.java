@@ -690,6 +690,8 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
         MatrixError defaultError = new MatrixError();
         defaultError.errcode = MatrixError.UNKNOWN;
 
+        // TODO No need for access token here?
+
         try {
             URL url = new URL(mUrl);
             Log.d(LOG_TAG, "MXMediaDownloadWorkerTask " + this + " starts");
@@ -815,7 +817,6 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
                 mDownloadStats.mElapsedTime = 0;
                 mDownloadStats.mEstimatedRemainingTime = -1;
                 mDownloadStats.mBitRate = 0;
-
 
                 // Publish progress every 100ms
                 final Timer refreshTimer = new Timer();
