@@ -181,24 +181,24 @@ public class MXCrypto {
 
     // Set of parameters used to configure/customize the end-to-end crypto.
     private MXCryptoConfig mCryptoConfig = new MXCryptoConfig();
-    public void setCryptoConfig(@Nullable MXCryptoConfig cryptoConfig) {
-        if (null != cryptoConfig) {
-            mCryptoConfig = cryptoConfig;
-        } else {
-            // Consider the default configuration value
-            mCryptoConfig = new MXCryptoConfig();
-        }
-    }
 
     /**
      * Constructor
      *
      * @param matrixSession the session
      * @param cryptoStore   the crypto store
+     * @param cryptoConfig  the optional set of parameters used to configure the e2e encryption.
      */
-    public MXCrypto(MXSession matrixSession, IMXCryptoStore cryptoStore) {
+    public MXCrypto(MXSession matrixSession, IMXCryptoStore cryptoStore, @Nullable MXCryptoConfig cryptoConfig) {
         mSession = matrixSession;
         mCryptoStore = cryptoStore;
+
+        if (null != cryptoConfig) {
+            mCryptoConfig = cryptoConfig;
+        } else {
+            // Consider the default configuration value
+            mCryptoConfig = new MXCryptoConfig();
+        }
 
         mOlmDevice = new MXOlmDevice(mCryptoStore);
         mRoomEncryptors = new HashMap<>();
