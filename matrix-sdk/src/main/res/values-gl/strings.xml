@@ -53,7 +53,7 @@
     <string name="notice_crypto_unable_to_decrypt">** Imposíbel descifrar: %s **</string>
     <string name="notice_crypto_error_unkwown_inbound_session_id">O dispositivo do que envía non enviou as chaves desta mensaxe.</string>
 
-    <string name="message_reply_to_prefix">Respostar A...</string>
+    <string name="message_reply_to_prefix">Respondéndolle a</string>
 
     <string name="could_not_redact">Non se puido redactar</string>
     <string name="unable_to_send_message">Non foi posíbel enviar a mensaxe</string>
