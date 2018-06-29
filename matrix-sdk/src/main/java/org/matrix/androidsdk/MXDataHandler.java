@@ -2687,37 +2687,6 @@ public class MXDataHandler implements IMXEventListener {
                     }
                 }
             }
-        } else {
-            // background compatibility heuristic (named looksLikeDirectMessageRoom in the JS)
-            List<RoomIdsListRetroCompat> directChatRoomIdsListRetValue = new ArrayList<>();
-            getDirectChatRoomIdsListRetroCompat(store, directChatRoomIdsListRetValue);
-
-            // force direct chat room list to be updated with retro compatibility rooms values
-            if (0 != directChatRoomIdsListRetValue.size()) {
-                forceDirectChatRoomValue(directChatRoomIdsListRetValue, new ApiCallback<Void>() {
-                    @Override
-                    public void onSuccess(Void info) {
-                        Log.d(LOG_TAG, "## getDirectChatRoomIdsList(): background compatibility heuristic => account_data update succeed");
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        if (MatrixError.FORBIDDEN.equals(e.errcode)) {
-                            Log.e(LOG_TAG, "## getDirectChatRoomIdsList(): onMatrixError Msg=" + e.error);
-                        }
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "## getDirectChatRoomIdsList(): onNetworkError Msg=" + e.getMessage());
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        Log.e(LOG_TAG, "## getDirectChatRoomIdsList(): onUnexpectedError Msg=" + e.getMessage());
-                    }
-                });
-            }
         }
 
         return mLocalDirectChatRoomIdsList = directChatRoomIdsList;
@@ -2745,33 +2714,6 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
-     * For the value account_data with the rooms list passed in aRoomIdsListToAdd for a given user ID (aParticipantUserId)<br>
-     * WARNING: this method must be used with care because it erases the account_data object.
-     *
-     * @param aRoomParticipantUserIdList the couple direct chat rooms ID / user IDs
-     * @param callback                   the asynchronous response callback
-     */
-    private void forceDirectChatRoomValue(List<RoomIdsListRetroCompat> aRoomParticipantUserIdList, ApiCallback<Void> callback) {
-        Map<String, List<String>> params = new HashMap<>();
-        List<String> roomIdsList;
-
-        if (null != aRoomParticipantUserIdList) {
-            for (RoomIdsListRetroCompat item : aRoomParticipantUserIdList) {
-                if (params.containsKey(item.mParticipantUserId)) {
-                    roomIdsList = new ArrayList<>(params.get(item.mParticipantUserId));
-                    roomIdsList.add(item.mRoomId);
-                } else {
-                    roomIdsList = new ArrayList<>();
-                    roomIdsList.add(item.mRoomId);
-                }
-                params.put(item.mParticipantUserId, roomIdsList);
-            }
-
-            mAccountDataRestClient.setAccountData(getMyUser().user_id, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, params, callback);
-        }
-    }
-
-    /**
      * This class defines a direct chat backward compliancyc structure
      */
     private class RoomIdsListRetroCompat {
@@ -2781,49 +2723,6 @@ public class MXDataHandler implements IMXEventListener {
         public RoomIdsListRetroCompat(String aParticipantUserId, String aRoomId) {
             mParticipantUserId = aParticipantUserId;
             mRoomId = aRoomId;
-        }
-    }
-
-    /**
-     * Return the direct chat room list for retro compatibility with 1:1 rooms.
-     *
-     * @param aStore                         store instance
-     * @param aDirectChatRoomIdsListRetValue the other participants in the 1:1 room
-     */
-    private void getDirectChatRoomIdsListRetroCompat(IMXStore aStore, List<RoomIdsListRetroCompat> aDirectChatRoomIdsListRetValue) {
-        RoomIdsListRetroCompat item;
-
-        if ((null != aStore) && (null != aDirectChatRoomIdsListRetValue)) {
-            List<Room> rooms = new ArrayList<>(aStore.getRooms());
-            List<RoomMember> members;
-            int otherParticipantIndex;
-
-            for (Room r : rooms) {
-                // Show 1:1 chats in separate "Direct Messages" section as long as they haven't
-                // been moved to a different tag section
-                if ((r.getActiveMembers().size() == 2) && (null != r.getAccountData()) && (!r.getAccountData().hasTags())) {
-                    RoomMember roomMember = r.getMember(getMyUser().user_id);
-                    members = new ArrayList<>(r.getActiveMembers());
-
-                    if (null != roomMember) {
-                        String membership = roomMember.membership;
-
-                        if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_JOIN) ||
-                                TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN) ||
-                                TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE)) {
-
-                            if (TextUtils.equals(members.get(0).getUserId(), getMyUser().user_id)) {
-                                otherParticipantIndex = 1;
-                            } else {
-                                otherParticipantIndex = 0;
-                            }
-
-                            item = new RoomIdsListRetroCompat(members.get(otherParticipantIndex).getUserId(), r.getRoomId());
-                            aDirectChatRoomIdsListRetValue.add(item);
-                        }
-                    }
-                }
-            }
         }
     }
 
