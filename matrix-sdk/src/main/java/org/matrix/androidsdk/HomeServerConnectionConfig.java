@@ -351,7 +351,7 @@ public class HomeServerConnectionConfig {
         if (jsonObject.has("tls_versions")) {
             List<TlsVersion> tlsVersions = new ArrayList<>();
             JSONArray tlsVersionsArray = jsonObject.optJSONArray("tls_versions");
-            if(tlsVersionsArray != null) {
+            if (tlsVersionsArray != null) {
                 for (int i = 0; i < tlsVersionsArray.length(); i++) {
                     tlsVersions.add(TlsVersion.forJavaName(tlsVersionsArray.getString(i)));
                 }
@@ -366,7 +366,7 @@ public class HomeServerConnectionConfig {
         if (jsonObject.has("tls_cipher_suites")) {
             List<CipherSuite> tlsCipherSuites = new ArrayList<>();
             JSONArray tlsCipherSuitesArray = jsonObject.optJSONArray("tls_cipher_suites");
-            if(tlsCipherSuitesArray != null) {
+            if (tlsCipherSuitesArray != null) {
                 for (int i = 0; i < tlsCipherSuitesArray.length(); i++) {
                     tlsCipherSuites.add(CipherSuite.forJavaName(tlsCipherSuitesArray.getString(i)));
                 }
