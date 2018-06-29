@@ -2559,8 +2559,8 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
-    public void setMediaServerPublicKey(@Nullable String key) {
-        super.setMediaServerPublicKey(key);
+    public void setAntivirusServerPublicKey(@Nullable String key) {
+        super.setAntivirusServerPublicKey(key);
         mMetaDataHasChanged = true;
     }
 }

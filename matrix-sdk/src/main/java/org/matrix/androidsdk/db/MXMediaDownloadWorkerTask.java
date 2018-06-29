@@ -22,6 +22,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.support.annotation.Nullable;
 import android.support.v4.util.LruCache;
 import android.text.TextUtils;
 import android.util.Pair;
@@ -35,14 +36,20 @@ import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.client.MediaScanRestClient;
 import org.matrix.androidsdk.rest.model.EncryptedMediaScanBody;
+import org.matrix.androidsdk.rest.model.EncryptedMediaScanEncryptedBody;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.crypto.EncryptedBodyFileInfo;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
 import org.matrix.androidsdk.ssl.CertUtil;
 import org.matrix.androidsdk.util.ImageUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
+import org.matrix.olm.OlmPkEncryption;
+import org.matrix.olm.OlmPkMessage;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -63,6 +70,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
@@ -174,6 +183,12 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
      * Network updates tracker
      */
     private final NetworkConnectivityReceiver mNetworkConnectivityReceiver;
+
+    /**
+     * Rest client to retrieve public antivirus server key
+     */
+    @Nullable
+    private MediaScanRestClient mMediaScanRestClient;
 
     /**
      * Download constants
@@ -510,6 +525,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
      * @param rotation                    the rotation angle (degrees), use 0 by default
      * @param mimeType                    the mime type.
      * @param encryptedFileInfo           the encryption information
+     * @param mediaScanRestClient         the media scan rest client
      * @param isAvScannerEnabled          tell whether an anti-virus scanner is enabled
      */
     public MXMediaDownloadWorkerTask(Context appContext,
@@ -521,6 +537,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
                                      int rotation,
                                      String mimeType,
                                      EncryptedFileInfo encryptedFileInfo,
+                                     @Nullable MediaScanRestClient mediaScanRestClient,
                                      boolean isAvScannerEnabled) {
         mApplicationContext = appContext;
         mHsConfig = hsConfig;
@@ -531,6 +548,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
         mRotation = rotation;
         mMimeType = mimeType;
         mEncryptedFileInfo = encryptedFileInfo;
+        mMediaScanRestClient = mediaScanRestClient;
         mIsAvScannerEnabled = isAvScannerEnabled;
 
         mImageViewReferences = new ArrayList<>();
@@ -556,6 +574,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
         mMimeType = task.mMimeType;
         mEncryptedFileInfo = task.mEncryptedFileInfo;
         mIsAvScannerEnabled = task.mIsAvScannerEnabled;
+        mMediaScanRestClient = task.mMediaScanRestClient;
 
         mImageViewReferences = task.mImageViewReferences;
 
@@ -690,7 +709,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
         MatrixError defaultError = new MatrixError();
         defaultError.errcode = MatrixError.UNKNOWN;
 
-        // TODO No need for access token here?
+        // Note: No need for access token here
 
         try {
             URL url = new URL(mUrl);
@@ -734,9 +753,31 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
                     EncryptedMediaScanBody encryptedMediaScanBody = new EncryptedMediaScanBody();
                     encryptedMediaScanBody.encryptedFileInfo = mEncryptedFileInfo;
 
+                    String data = JsonUtils.getCanonicalizedJsonString(encryptedMediaScanBody);
+
+                    // Encrypt the data, if antivirus server supports it
+                    String publicServerKey = getAntivirusServerPublicKey();
+
+                    if (publicServerKey == null) {
+                        // Error
+                        throw new Exception("Unable to get public key");
+                    } else if (!TextUtils.isEmpty(publicServerKey)) {
+                        OlmPkEncryption olmPkEncryption = new OlmPkEncryption();
+
+                        olmPkEncryption.setRecipientKey(publicServerKey);
+
+                        OlmPkMessage message = olmPkEncryption.encrypt(data);
+
+                        EncryptedMediaScanEncryptedBody encryptedMediaScanEncryptedBody = new EncryptedMediaScanEncryptedBody();
+                        encryptedMediaScanEncryptedBody.encryptedBodyFileInfo = new EncryptedBodyFileInfo(message);
+
+                        data = JsonUtils.getCanonicalizedJsonString(encryptedMediaScanEncryptedBody);
+                    }
+                    // Else: no public key on this server, do not encrypt data
+
                     OutputStream outputStream = connection.getOutputStream();
                     try {
-                        outputStream.write(JsonUtils.getCanonicalizedJsonString(encryptedMediaScanBody).getBytes("UTF-8"));
+                        outputStream.write(data.getBytes("UTF-8"));
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "doInBackground Failed to serialize encryption info " + e.getMessage());
                     } finally {
@@ -749,6 +790,11 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
             } catch (Exception e) {
                 Log.e(LOG_TAG, "bitmapForURL : fail to open the connection " + e.getMessage());
                 defaultError.error = e.getLocalizedMessage();
+
+                // In case of 403, revert the key
+                if (connection.getResponseCode() == 403 && mMediaScanRestClient != null) {
+                    mMediaScanRestClient.resetServerPublicKey();
+                }
 
                 InputStream errorStream = connection.getErrorStream();
 
@@ -904,6 +950,52 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
         }
 
         return jsonElementResult;
+    }
+
+    /**
+     * Get the public key of the antivirus server
+     *
+     * @return either empty string if server does not provide the public key, null in case of error, or the public server key
+     */
+    private String getAntivirusServerPublicKey() {
+        // Make async request sync with a CountDownLatch
+        final CountDownLatch latch = new CountDownLatch(1);
+        final String[] publicServerKey = new String[1];
+
+        if (mMediaScanRestClient == null) {
+            return "";
+        }
+
+        mMediaScanRestClient.getServerPublicKey(new ApiCallback<String>() {
+            @Override
+            public void onSuccess(String info) {
+                publicServerKey[0] = info;
+                latch.countDown();
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                latch.countDown();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                latch.countDown();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                latch.countDown();
+            }
+        });
+
+        try {
+            latch.await(30, TimeUnit.SECONDS);
+        } catch (InterruptedException ie) {
+
+        }
+
+        return publicServerKey[0];
     }
 
     /**

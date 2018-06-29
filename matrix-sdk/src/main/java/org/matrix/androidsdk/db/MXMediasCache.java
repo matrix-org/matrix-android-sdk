@@ -38,6 +38,7 @@ import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
 import org.matrix.androidsdk.listeners.MXMediaDownloadListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.rest.client.MediaScanRestClient;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.ContentUtils;
@@ -97,6 +98,8 @@ public class MXMediasCache {
     static HandlerThread mDecryptingHandlerThread = null;
     static MXOsHandler mDecryptingHandler = null;
     static android.os.Handler mUIHandler = null;
+
+    private MediaScanRestClient mMediaScanRestClient;
 
     /**
      * Constructor
@@ -1010,6 +1013,7 @@ public class MXMediasCache {
                 0,
                 mimeType,
                 encryptionInfo,
+                mMediaScanRestClient,
                 mContentManager.isAvScannerEnabled());
         task.addDownloadListener(listener);
 
@@ -1248,6 +1252,7 @@ public class MXMediasCache {
                         rotationAngle,
                         mimeType,
                         encryptionInfo,
+                        mMediaScanRestClient,
                         mContentManager.isAvScannerEnabled());
 
                 if (null != imageView) {
@@ -1437,6 +1442,15 @@ public class MXMediasCache {
         if (null != task) {
             task.cancelUpload();
         }
+    }
+
+    /**
+     * Set MediaScan rest client
+     *
+     * @param mediaScanRestClient
+     */
+    public void setMediaScanRestClient(MediaScanRestClient mediaScanRestClient) {
+        mMediaScanRestClient = mediaScanRestClient;
     }
 }
 

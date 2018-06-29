@@ -56,6 +56,7 @@ import org.matrix.androidsdk.rest.client.CryptoRestClient;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.client.GroupsRestClient;
 import org.matrix.androidsdk.rest.client.LoginRestClient;
+import org.matrix.androidsdk.rest.client.MediaScanRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
@@ -130,6 +131,7 @@ public class MXSession {
     private final CryptoRestClient mCryptoRestClient;
     private final LoginRestClient mLoginRestClient;
     private final GroupsRestClient mGroupsRestClient;
+    private final MediaScanRestClient mMediaScanRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -226,6 +228,7 @@ public class MXSession {
         mCryptoRestClient = new CryptoRestClient(hsConfig);
         mLoginRestClient = new LoginRestClient(hsConfig);
         mGroupsRestClient = new GroupsRestClient(hsConfig);
+        mMediaScanRestClient = new MediaScanRestClient(hsConfig);
     }
 
     /**
@@ -337,6 +340,9 @@ public class MXSession {
         mLatestChatMessageCache = new MXLatestChatMessageCache(mCredentials.userId);
         mMediasCache = new MXMediasCache(mContentManager, mNetworkConnectivityReceiver, mCredentials.userId, appContext);
         mDataHandler.setMediasCache(mMediasCache);
+
+        mMediaScanRestClient.setMxStore(mDataHandler.getStore());
+        mMediasCache.setMediaScanRestClient(mMediaScanRestClient);
 
         mGroupsManager = new GroupsManager(mDataHandler, mGroupsRestClient);
         mDataHandler.setGroupsManager(mGroupsManager);
@@ -536,6 +542,11 @@ public class MXSession {
     public RoomsRestClient getRoomsApiClient() {
         checkIfAlive();
         return mRoomsRestClient;
+    }
+
+    public MediaScanRestClient getMediaScanRestClient() {
+        checkIfAlive();
+        return mMediaScanRestClient;
     }
 
     protected void setEventsApiClient(EventsRestClient eventsRestClient) {

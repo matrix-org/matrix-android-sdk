@@ -1610,13 +1610,13 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public void setMediaServerPublicKey(@Nullable String key) {
-        mMetadata.mMediaServerPublicKey = key;
+    public void setAntivirusServerPublicKey(@Nullable String key) {
+        mMetadata.mAntivirusServerPublicKey = key;
     }
 
     @Override
     @Nullable
-    public String getMediaServerPublicKey() {
-        return mMetadata.mMediaServerPublicKey;
+    public String getAntivirusServerPublicKey() {
+        return mMetadata.mAntivirusServerPublicKey;
     }
 }

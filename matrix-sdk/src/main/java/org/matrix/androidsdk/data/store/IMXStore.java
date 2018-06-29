@@ -610,13 +610,13 @@ public interface IMXStore {
     Set<String> getRoomsWithoutURLPreviews();
 
     /**
-     * Set the public key of the media server
+     * Set the public key of the antivirus server
      */
-    void setMediaServerPublicKey(@Nullable String key);
+    void setAntivirusServerPublicKey(@Nullable String key);
 
     /**
-     * @return the public key api of the media server
+     * @return the public key of the antivirus server
      */
     @Nullable
-    String getMediaServerPublicKey();
+    String getAntivirusServerPublicKey();
 }
