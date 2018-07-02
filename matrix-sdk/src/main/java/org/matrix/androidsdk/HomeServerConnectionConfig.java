@@ -208,7 +208,7 @@ public class HomeServerConnectionConfig {
 
     /**
      * @return whether we should reject X509 certs that were issued by trusts CAs and only trust
-     * certs with matching fingerprints.
+     *         certs with matching fingerprints.
      */
     public boolean shouldPin() {
         return mPin;
@@ -219,13 +219,18 @@ public class HomeServerConnectionConfig {
      *
      * @param tlsVersions the set of TLS versions accepted.
      */
-    public void setAcceptedTlsVersions(List<TlsVersion> tlsVersions) {
-        mTlsVersions = Collections.unmodifiableList(tlsVersions);
+    public void setAcceptedTlsVersions(@Nullable List<TlsVersion> tlsVersions) {
+        if (tlsVersions == null) {
+            mTlsVersions = null;
+        } else {
+            mTlsVersions = Collections.unmodifiableList(tlsVersions);
+        }
     }
 
     /**
      * TLS versions accepted for TLS connections with the home server.
      */
+    @Nullable
     public List<TlsVersion> getAcceptedTlsVersions() {
         return mTlsVersions;
     }
@@ -235,13 +240,18 @@ public class HomeServerConnectionConfig {
      *
      * @param tlsCipherSuites the set of TLS cipher suites accepted.
      */
-    public void setAcceptedTlsCipherSuites(List<CipherSuite> tlsCipherSuites) {
-        mTlsCipherSuites = Collections.unmodifiableList(tlsCipherSuites);
+    public void setAcceptedTlsCipherSuites(@Nullable List<CipherSuite> tlsCipherSuites) {
+        if (tlsCipherSuites == null) {
+            mTlsCipherSuites = null;
+        } else {
+            mTlsCipherSuites = Collections.unmodifiableList(tlsCipherSuites);
+        }
     }
 
     /**
      * TLS cipher suites accepted for TLS connections with the home server.
      */
+    @Nullable
     public List<CipherSuite> getAcceptedTlsCipherSuites() {
         return mTlsCipherSuites;
     }
