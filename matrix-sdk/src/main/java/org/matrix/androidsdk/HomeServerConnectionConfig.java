@@ -55,7 +55,7 @@ public class HomeServerConnectionConfig {
     // the accepted TLS cipher suites
     private List<CipherSuite> mTlsCipherSuites;
     // should accept TLS extensions
-    private boolean mTlsExtensions;
+    private boolean mShouldAcceptTlsExtensions;
 
     /**
      * @param hsUri The URI to use to connect to the homeserver
@@ -69,7 +69,7 @@ public class HomeServerConnectionConfig {
      * @param credentials The credentials to use, if needed. Can be null.
      */
     public HomeServerConnectionConfig(Uri hsUri, @Nullable Credentials credentials) {
-        this(hsUri, null, credentials, new ArrayList<Fingerprint>(), false, true);
+        this(hsUri, null, credentials, new ArrayList<Fingerprint>(), false);
     }
 
     /**
@@ -85,24 +85,6 @@ public class HomeServerConnectionConfig {
                                       @Nullable Credentials credentials,
                                       List<Fingerprint> allowedFingerprints,
                                       boolean pin) {
-        this(hsUri, null, credentials, new ArrayList<Fingerprint>(), false, true);
-    }
-
-    /**
-     * @param hsUri               The URI to use to connect to the homeserver
-     * @param identityServerUri   The URI to use to manage identity
-     * @param credentials         The credentials to use, if needed. Can be null.
-     * @param allowedFingerprints If using SSL, allow server certs that match these fingerprints.
-     * @param pin                 If true only allow certs matching given fingerprints, otherwise fallback to
-     *                            standard X509 checks.
-     * @param tlsExtensions       If true TLS extensions will can be used by SSL sockets
-     */
-    public HomeServerConnectionConfig(Uri hsUri,
-                                      @Nullable Uri identityServerUri,
-                                      @Nullable Credentials credentials,
-                                      List<Fingerprint> allowedFingerprints,
-                                      boolean pin,
-                                      boolean tlsExtensions) {
         if (hsUri == null || (!"http".equals(hsUri.getScheme()) && !"https".equals(hsUri.getScheme()))) {
             throw new RuntimeException("Invalid home server URI: " + hsUri);
         }
@@ -142,7 +124,7 @@ public class HomeServerConnectionConfig {
         mPin = pin;
         mCredentials = credentials;
 
-        mTlsExtensions = tlsExtensions;
+        mShouldAcceptTlsExtensions = true;
     }
 
     /**
@@ -232,19 +214,51 @@ public class HomeServerConnectionConfig {
         return mPin;
     }
 
-    public void setAcceptedTlsVersions(List<TlsVersion> tlsVersions) { mTlsVersions = Collections.unmodifiableList(tlsVersions); }
-    public List<TlsVersion> getAcceptedTlsVersions() { return mTlsVersions; }
+    /**
+     * Update the set of TLS versions accepted for TLS connections with the home server.
+     *
+     * @param tlsVersions the set of TLS versions accepted.
+     */
+    public void setAcceptedTlsVersions(List<TlsVersion> tlsVersions) {
+        mTlsVersions = Collections.unmodifiableList(tlsVersions);
+    }
 
-    public void setAcceptedTlsCipherSuites(List<CipherSuite> tlsCipherSuites) { mTlsCipherSuites = Collections.unmodifiableList(tlsCipherSuites); }
-    public List<CipherSuite> getAcceptedTlsCipherSuites() { return mTlsCipherSuites; }
+    /**
+     * TLS versions accepted for TLS connections with the home server.
+     */
+    public List<TlsVersion> getAcceptedTlsVersions() {
+        return mTlsVersions;
+    }
 
-    public void setShouldAcceptTlsExtensions(boolean shouldAcceptTlsExtensions) { mTlsExtensions = shouldAcceptTlsExtensions; }
+    /**
+     * Update the set of TLS cipher suites accepted for TLS connections with the home server.
+     *
+     * @param tlsCipherSuites the set of TLS cipher suites accepted.
+     */
+    public void setAcceptedTlsCipherSuites(List<CipherSuite> tlsCipherSuites) {
+        mTlsCipherSuites = Collections.unmodifiableList(tlsCipherSuites);
+    }
+
+    /**
+     * TLS cipher suites accepted for TLS connections with the home server.
+     */
+    public List<CipherSuite> getAcceptedTlsCipherSuites() {
+        return mTlsCipherSuites;
+    }
+
+    /**
+     * @param shouldAcceptTlsExtensions if true TLS extensions will be accepted for TLS
+     *                                  connections with the home server.
+     */
+    public void setShouldAcceptTlsExtensions(boolean shouldAcceptTlsExtensions) {
+        mShouldAcceptTlsExtensions = shouldAcceptTlsExtensions;
+    }
 
     /**
      * @return whether we should accept TLS extensions.
      */
     public boolean shouldAcceptTlsExtensions() {
-        return mTlsExtensions;
+        return mShouldAcceptTlsExtensions;
     }
 
     @Override
@@ -256,7 +270,7 @@ public class HomeServerConnectionConfig {
                 ", mAllowedFingerprints size=" + mAllowedFingerprints.size() +
                 ", mCredentials=" + mCredentials +
                 ", mPin=" + mPin +
-                ", mTlsExtensions=" + mTlsExtensions +
+                ", mShouldAcceptTlsExtensions=" + mShouldAcceptTlsExtensions +
                 ", mTlsVersions=" + (null == mTlsVersions ? "" : mTlsVersions.size()) +
                 ", mTlsCipherSuitess=" + (null == mTlsCipherSuites ? "" : mTlsCipherSuites.size()) +
                 '}';
@@ -290,7 +304,7 @@ public class HomeServerConnectionConfig {
             json.put("fingerprints", new JSONArray(fingerprints));
         }
 
-        json.put("tls_extensions", mTlsExtensions);
+        json.put("tls_extensions", mShouldAcceptTlsExtensions);
 
         if (mTlsVersions != null) {
             List<String> tlsVersions = new ArrayList<>(mTlsVersions.size());
@@ -339,13 +353,14 @@ public class HomeServerConnectionConfig {
                 jsonObject.has("identity_server_url") ? Uri.parse(jsonObject.getString("identity_server_url")) : null,
                 creds,
                 fingerprints,
-                jsonObject.optBoolean("pin", false),
-                jsonObject.optBoolean("tls_extensions", true));
+                jsonObject.optBoolean("pin", false));
 
         // Set the anti-virus server uri if any
         if (jsonObject.has("antivirus_server_url")) {
             config.setAntiVirusServerUri(Uri.parse(jsonObject.getString("antivirus_server_url")));
         }
+
+        config.setShouldAcceptTlsExtensions(jsonObject.optBoolean("tls_extensions", true));
 
         // Set the TLS versions if any
         if (jsonObject.has("tls_versions")) {

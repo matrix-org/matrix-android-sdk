@@ -241,15 +241,11 @@ public class CertUtil {
         final List<TlsVersion> tlsVersions = hsConfig.getAcceptedTlsVersions();
         if (null != tlsVersions) {
             builder.tlsVersions(tlsVersions.toArray(new TlsVersion[0]));
-        } else {
-            builder.allEnabledTlsVersions();
         }
 
         final List<CipherSuite> tlsCipherSuites = hsConfig.getAcceptedTlsCipherSuites();
         if (null != tlsCipherSuites) {
             builder.cipherSuites(tlsCipherSuites.toArray(new CipherSuite[0]));
-        } else {
-            builder.allEnabledCipherSuites();
         }
 
         builder.supportsTlsExtensions(hsConfig.shouldAcceptTlsExtensions());
