@@ -27,7 +27,11 @@ import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.ssl.Fingerprint;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+
+import okhttp3.CipherSuite;
+import okhttp3.TlsVersion;
 
 /**
  * Represents how to connect to a specific Homeserver, may include credentials to use.
@@ -46,6 +50,12 @@ public class HomeServerConnectionConfig {
     private Credentials mCredentials;
     // tell whether we should reject X509 certs that were issued by trusts CAs and only trustcerts with matching fingerprints.
     private boolean mPin;
+    // the accepted TLS versions
+    private List<TlsVersion> mTlsVersions;
+    // the accepted TLS cipher suites
+    private List<CipherSuite> mTlsCipherSuites;
+    // should accept TLS extensions
+    private boolean mShouldAcceptTlsExtensions;
 
     /**
      * @param hsUri The URI to use to connect to the homeserver
@@ -113,6 +123,8 @@ public class HomeServerConnectionConfig {
 
         mPin = pin;
         mCredentials = credentials;
+
+        mShouldAcceptTlsExtensions = true;
     }
 
     /**
@@ -202,6 +214,53 @@ public class HomeServerConnectionConfig {
         return mPin;
     }
 
+    /**
+     * Update the set of TLS versions accepted for TLS connections with the home server.
+     *
+     * @param tlsVersions the set of TLS versions accepted.
+     */
+    public void setAcceptedTlsVersions(List<TlsVersion> tlsVersions) {
+        mTlsVersions = Collections.unmodifiableList(tlsVersions);
+    }
+
+    /**
+     * TLS versions accepted for TLS connections with the home server.
+     */
+    public List<TlsVersion> getAcceptedTlsVersions() {
+        return mTlsVersions;
+    }
+
+    /**
+     * Update the set of TLS cipher suites accepted for TLS connections with the home server.
+     *
+     * @param tlsCipherSuites the set of TLS cipher suites accepted.
+     */
+    public void setAcceptedTlsCipherSuites(List<CipherSuite> tlsCipherSuites) {
+        mTlsCipherSuites = Collections.unmodifiableList(tlsCipherSuites);
+    }
+
+    /**
+     * TLS cipher suites accepted for TLS connections with the home server.
+     */
+    public List<CipherSuite> getAcceptedTlsCipherSuites() {
+        return mTlsCipherSuites;
+    }
+
+    /**
+     * @param shouldAcceptTlsExtensions if true TLS extensions will be accepted for TLS
+     *                                  connections with the home server.
+     */
+    public void setShouldAcceptTlsExtensions(boolean shouldAcceptTlsExtensions) {
+        mShouldAcceptTlsExtensions = shouldAcceptTlsExtensions;
+    }
+
+    /**
+     * @return whether we should accept TLS extensions.
+     */
+    public boolean shouldAcceptTlsExtensions() {
+        return mShouldAcceptTlsExtensions;
+    }
+
     @Override
     public String toString() {
         return "HomeserverConnectionConfig{" +
@@ -211,6 +270,9 @@ public class HomeServerConnectionConfig {
                 ", mAllowedFingerprints size=" + mAllowedFingerprints.size() +
                 ", mCredentials=" + mCredentials +
                 ", mPin=" + mPin +
+                ", mShouldAcceptTlsExtensions=" + mShouldAcceptTlsExtensions +
+                ", mTlsVersions=" + (null == mTlsVersions ? "" : mTlsVersions.size()) +
+                ", mTlsCipherSuitess=" + (null == mTlsCipherSuites ? "" : mTlsCipherSuites.size()) +
                 '}';
     }
 
@@ -240,6 +302,28 @@ public class HomeServerConnectionConfig {
             }
 
             json.put("fingerprints", new JSONArray(fingerprints));
+        }
+
+        json.put("tls_extensions", mShouldAcceptTlsExtensions);
+
+        if (mTlsVersions != null) {
+            List<String> tlsVersions = new ArrayList<>(mTlsVersions.size());
+
+            for (TlsVersion tlsVersion : mTlsVersions) {
+                tlsVersions.add(tlsVersion.javaName());
+            }
+
+            json.put("tls_versions", new JSONArray(tlsVersions));
+        }
+
+        if (mTlsCipherSuites != null) {
+            List<String> tlsCipherSuites = new ArrayList<>(mTlsCipherSuites.size());
+
+            for (CipherSuite tlsCipherSuite : mTlsCipherSuites) {
+                tlsCipherSuites.add(tlsCipherSuite.javaName());
+            }
+
+            json.put("tls_cipher_suites", new JSONArray(tlsCipherSuites));
         }
 
         return json;
@@ -274,6 +358,37 @@ public class HomeServerConnectionConfig {
         // Set the anti-virus server uri if any
         if (jsonObject.has("antivirus_server_url")) {
             config.setAntiVirusServerUri(Uri.parse(jsonObject.getString("antivirus_server_url")));
+        }
+
+        config.setShouldAcceptTlsExtensions(jsonObject.optBoolean("tls_extensions", true));
+
+        // Set the TLS versions if any
+        if (jsonObject.has("tls_versions")) {
+            List<TlsVersion> tlsVersions = new ArrayList<>();
+            JSONArray tlsVersionsArray = jsonObject.optJSONArray("tls_versions");
+            if (tlsVersionsArray != null) {
+                for (int i = 0; i < tlsVersionsArray.length(); i++) {
+                    tlsVersions.add(TlsVersion.forJavaName(tlsVersionsArray.getString(i)));
+                }
+            }
+            config.setAcceptedTlsVersions(tlsVersions);
+        } else {
+            config.setAcceptedTlsVersions(null);
+        }
+
+        // Set the TLS cipher suites if any
+
+        if (jsonObject.has("tls_cipher_suites")) {
+            List<CipherSuite> tlsCipherSuites = new ArrayList<>();
+            JSONArray tlsCipherSuitesArray = jsonObject.optJSONArray("tls_cipher_suites");
+            if (tlsCipherSuitesArray != null) {
+                for (int i = 0; i < tlsCipherSuitesArray.length(); i++) {
+                    tlsCipherSuites.add(CipherSuite.forJavaName(tlsCipherSuitesArray.getString(i)));
+                }
+            }
+            config.setAcceptedTlsCipherSuites(tlsCipherSuites);
+        } else {
+            config.setAcceptedTlsCipherSuites(null);
         }
 
         return config;
