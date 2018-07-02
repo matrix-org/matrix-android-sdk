@@ -14,6 +14,7 @@ Bugfix:
  - Prefer message text instead of subject
  - Fix issue with notification count in a RoomSummary
  - Fix NullPointerException reported by GooglePlay (vector-im/riot-android#2382)
+ - Fix crash in CallSoundsManager
 
 API Change:
  - New API: add device_id param to LoginRestClient.loginWithUser()
