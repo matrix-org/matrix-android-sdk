@@ -17,6 +17,8 @@
  */
 package org.matrix.androidsdk.util;
 
+import android.support.annotation.Nullable;
+
 import com.google.gson.FieldNamingStrategy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -645,5 +647,20 @@ public class JsonUtils {
         }
 
         return out;
+    }
+
+    /**
+     * Returns a dedicated parameter as a string
+     *
+     * @param paramName the parameter name
+     * @return the string value, or null if not define or not a String
+     */
+    @Nullable
+    public static String getAsString(Map<String, Object> map, String paramName) {
+        if (map.containsKey(paramName) && map.get(paramName) instanceof String) {
+            return (String) map.get(paramName);
+        }
+
+        return null;
     }
 }
