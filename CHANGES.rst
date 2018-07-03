@@ -1,4 +1,4 @@
-Changes to Matrix Android SDK in 0.9.6 (2018-XX-XX)
+Changes to Matrix Android SDK in 0.9.6 (2018-07-03)
 =======================================================
 
 Features:
@@ -21,9 +21,6 @@ API Change:
  - New API: add device_id param to LoginRestClient.loginWithUser()
  - API change: Event.isUnkownDevice() as been renamed to Event.isUnknownDevice() (typo)
  - Some APIs has changed to use interface instead of implementation as type (ex: "Map" instead of "HashMap")
-
-Translations:
- -
 
 Others:
  - Media cache is flushed because of the new format of ids.
