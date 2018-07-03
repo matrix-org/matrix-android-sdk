@@ -653,7 +653,7 @@ public class JsonUtils {
      * Returns a dedicated parameter as a string
      *
      * @param paramName the parameter name
-     * @return the string value, or null if not define or not a String
+     * @return the string value, or null if not defined or not a String
      */
     @Nullable
     public static String getAsString(Map<String, Object> map, String paramName) {

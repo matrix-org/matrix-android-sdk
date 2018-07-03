@@ -63,6 +63,7 @@ public class URLPreview implements java.io.Serializable {
      * Constructor
      *
      * @param map the constructor parameters
+     * @param url the original url, will be used if the map does not contain OG_URL field
      */
     public URLPreview(Map<String, Object> map, String url) {
         mDescription = JsonUtils.getAsString(map, OG_DESCRIPTION);
