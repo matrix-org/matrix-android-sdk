@@ -3,15 +3,19 @@ Changes to Matrix Android SDK in 0.9.6 (2018-XX-XX)
 
 Features:
  - ContentManager: support a potential anti-virus scanner (PR #283).
+ - HomeServerConnectionConfig: allow configuration of TLS parameters (PR#293).
 
 Improvements:
  - MXCrypto: Add reRequestRoomKeyForEvent to re-request encryption keys to decrypt an event (vector-im/riot-android#2319).
+ - MXCrypto: Add MXCryptoConfig class to customize/configure the e2e encryption.
 
 Bugfix:
  - Prevent crash on KitKat
  - Prevent leaking of filenames in uploads to E2EE rooms
  - Prefer message text instead of subject
  - Fix issue with notification count in a RoomSummary
+ - Fix NullPointerException reported by GooglePlay (vector-im/riot-android#2382)
+ - Fix crash in CallSoundsManager
 
 API Change:
  - New API: add device_id param to LoginRestClient.loginWithUser()

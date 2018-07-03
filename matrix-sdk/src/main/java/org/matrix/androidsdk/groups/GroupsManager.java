@@ -18,6 +18,7 @@ package org.matrix.androidsdk.groups;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXDataHandler;
@@ -104,7 +105,7 @@ public class GroupsManager {
      */
     public void onSessionResumed() {
         refreshGroupProfiles((SimpleApiCallback<Void>) null);
-        getUserPublicisedGroups(mDataHandler.getUserId(), true, null);
+        getUserPublicisedGroups(mDataHandler.getUserId(), true, new SimpleApiCallback<Set<String>>());
 
         mGroupProfileByGroupId.clear();
         mGroupProfileCallback.clear();
@@ -554,7 +555,9 @@ public class GroupsManager {
      * @param forceRefresh true to do not use the cached data
      * @param callback     the asynchronous callback.
      */
-    public void getUserPublicisedGroups(final String userId, final boolean forceRefresh, final ApiCallback<Set<String>> callback) {
+    public void getUserPublicisedGroups(final String userId,
+                                        final boolean forceRefresh,
+                                        @NonNull final ApiCallback<Set<String>> callback) {
         Log.d(LOG_TAG, "## getUserPublicisedGroups() : " + userId);
 
         // sanity check
