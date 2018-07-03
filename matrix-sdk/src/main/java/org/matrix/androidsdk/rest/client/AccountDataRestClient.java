@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,7 +60,8 @@ public class AccountDataRestClient extends RestClient<AccountDataApi> {
         //final String description = "setAccountData userId : " + userId + " type " + type + " params " + params;
         final String description = "setAccountData userId : " + userId + " type " + type;
 
-        mApi.setAccountData(userId, type, params).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.setAccountData(userId, type, params)
+                .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 setAccountData(userId, type, params, callback);
@@ -78,7 +80,9 @@ public class AccountDataRestClient extends RestClient<AccountDataApi> {
     public void openIdToken(final String userId, final ApiCallback<Map<Object, Object>> callback) {
         final String description = "openIdToken userId : " + userId;
 
-        mApi.openIdToken(userId, new HashMap<>()).enqueue(new RestAdapterCallback<Map<Object, Object>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.openIdToken(userId, new HashMap<>())
+                .enqueue(new RestAdapterCallback<Map<Object, Object>>(description, mUnsentEventsManager, callback,
+                new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 openIdToken(userId, callback);

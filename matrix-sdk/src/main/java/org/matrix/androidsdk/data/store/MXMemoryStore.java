@@ -1,6 +1,7 @@
 /*
  * Copyright 2015 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,10 +23,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.rest.model.group.Group;
-import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
-import org.matrix.androidsdk.util.Log;
-
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
@@ -36,7 +33,10 @@ import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.group.Group;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -86,13 +86,13 @@ public class MXMemoryStore implements IMXStore {
     protected Context mContext;
 
     //
-    private final HashMap<String, Event> mTemporaryEventsList = new HashMap<>();
+    private final Map<String, Event> mTemporaryEventsList = new HashMap<>();
 
     protected Credentials mCredentials;
 
     protected String mEventStreamToken = null;
 
-    protected final ArrayList<IMXStoreListener> mListeners = new ArrayList<>();
+    protected final List<IMXStoreListener> mListeners = new ArrayList<>();
 
     // Meta data about the store. It is defined only if the passed MXCredentials contains all information.
     // When nil, nothing is stored on the file system.
@@ -500,7 +500,8 @@ public class MXMemoryStore implements IMXStore {
                 // update the display name and the avatar url.
                 // the leave and ban events have no displayname and no avatar url.
                 if (TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_JOIN)) {
-                    boolean hasUpdates = !TextUtils.equals(user.displayname, roomMember.displayname) || !TextUtils.equals(user.getAvatarUrl(), roomMember.getAvatarUrl());
+                    boolean hasUpdates = !TextUtils.equals(user.displayname, roomMember.displayname)
+                            || !TextUtils.equals(user.getAvatarUrl(), roomMember.getAvatarUrl());
 
                     if (hasUpdates) {
                         // invite event does not imply that the user uses the application.
@@ -727,7 +728,7 @@ public class MXMemoryStore implements IMXStore {
                     LinkedHashMap<String, Event> eventMap = mRoomEvents.get(roomId);
 
                     if (null != eventMap) {
-                        ArrayList<Event> events = new ArrayList<>(eventMap.values());
+                        List<Event> events = new ArrayList<>(eventMap.values());
 
                         for (Event event : events) {
                             if (event.mSentState == Event.SentState.SENT) {
@@ -924,7 +925,7 @@ public class MXMemoryStore implements IMXStore {
         // For now, we return everything we have for the original null token request
         // For older requests (providing a token), returning null for now
         if (null != roomId) {
-            ArrayList<Event> eventsList;
+            List<Event> eventsList;
 
             synchronized (mRoomEventsLock) {
                 LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
@@ -942,7 +943,7 @@ public class MXMemoryStore implements IMXStore {
             }
 
 
-            ArrayList<Event> subEventsList = new ArrayList<>();
+            List<Event> subEventsList = new ArrayList<>();
 
             // search from the latest to the oldest events
             Collections.reverse(eventsList);
@@ -1051,7 +1052,7 @@ public class MXMemoryStore implements IMXStore {
 
             // contain some events
             if ((null != events) && (events.size() > 0)) {
-                ArrayList<Event> eventsList = new ArrayList<>(events.values());
+                List<Event> eventsList = new ArrayList<>(events.values());
 
                 for (int index = events.size() - 1; index >= 0; index--) {
                     Event event = eventsList.get(index);
@@ -1083,7 +1084,7 @@ public class MXMemoryStore implements IMXStore {
 
             // contain some events
             if ((null != events) && (events.size() > 0)) {
-                ArrayList<Event> eventsList = new ArrayList<>(events.values());
+                List<Event> eventsList = new ArrayList<>(events.values());
 
                 for (int index = events.size() - 1; index >= 0; index--) {
                     Event event = eventsList.get(index);
@@ -1113,12 +1114,12 @@ public class MXMemoryStore implements IMXStore {
 
             // contain some events
             if ((null != events) && (events.size() > 0)) {
-                ArrayList<Event> eventsList = new ArrayList<>(events.values());
+                List<Event> eventsList = new ArrayList<>(events.values());
 
                 for (int index = events.size() - 1; index >= 0; index--) {
                     Event event = eventsList.get(index);
 
-                    if (event.isUnkownDevice()) {
+                    if (event.isUnknownDevice()) {
                         unknownDeviceEvents.add(event);
                     }
                 }
@@ -1142,7 +1143,7 @@ public class MXMemoryStore implements IMXStore {
      */
     @Override
     public List<ReceiptData> getEventReceipts(String roomId, String eventId, boolean excludeSelf, boolean sort) {
-        ArrayList<ReceiptData> receipts = new ArrayList<>();
+        List<ReceiptData> receipts = new ArrayList<>();
 
         synchronized (mReceiptsByRoomIdLock) {
             if (mReceiptsByRoomId.containsKey(roomId)) {
@@ -1150,7 +1151,7 @@ public class MXMemoryStore implements IMXStore {
 
                 Map<String, ReceiptData> receiptsByUserId = mReceiptsByRoomId.get(roomId);
                 // copy the user id list to avoid having update while looping
-                ArrayList<String> userIds = new ArrayList<>(receiptsByUserId.keySet());
+                List<String> userIds = new ArrayList<>(receiptsByUserId.keySet());
 
                 if (null == eventId) {
                     receipts.addAll(receiptsByUserId.values());
@@ -1193,7 +1194,8 @@ public class MXMemoryStore implements IMXStore {
 
             Map<String, ReceiptData> receiptsByUserId;
 
-            //Log.d(LOG_TAG, "## storeReceipt() : roomId " + roomId + " userId " + receipt.userId + " eventId " + receipt.eventId + " originServerTs " + receipt.originServerTs);
+            //Log.d(LOG_TAG, "## storeReceipt() : roomId " + roomId + " userId " + receipt.userId + " eventId " + receipt.eventId
+            // + " originServerTs " + receipt.originServerTs);
 
             synchronized (mReceiptsByRoomIdLock) {
                 if (!mReceiptsByRoomId.containsKey(roomId)) {
@@ -1233,13 +1235,14 @@ public class MXMemoryStore implements IMXStore {
 
                     // test if the event is know
                     if ((null != eventsMap) && eventsMap.containsKey(receipt.eventId)) {
-                        ArrayList<String> eventIds = new ArrayList<>(eventsMap.keySet());
+                        List<String> eventIds = new ArrayList<>(eventsMap.keySet());
 
                         int curEventPos = eventIds.indexOf(curReceipt.eventId);
                         int newEventPos = eventIds.indexOf(receipt.eventId);
 
                         if (curEventPos >= newEventPos) {
-                            Log.d(LOG_TAG, "## storeReceipt() : the read message is already read (cur pos " + curEventPos + " receipt event pos " + newEventPos + ")");
+                            Log.d(LOG_TAG, "## storeReceipt() : the read message is already read (cur pos " + curEventPos
+                                    + " receipt event pos " + newEventPos + ")");
                             return false;
                         }
                     }
@@ -1292,7 +1295,7 @@ public class MXMemoryStore implements IMXStore {
      */
     private List<Event> eventsAfter(String roomId, String eventId, String excludedUserId, List<String> allowedTypes) {
         // events list
-        ArrayList<Event> events = new ArrayList<>();
+        List<Event> events = new ArrayList<>();
 
         // sanity check
         if (null != roomId) {
@@ -1308,7 +1311,8 @@ public class MXMemoryStore implements IMXStore {
 
                         if ((null == eventId) || !TextUtils.equals(event.eventId, eventId)) {
                             // Keep events matching filters
-                            if ((null == allowedTypes || (allowedTypes.indexOf(event.getType()) >= 0)) && !TextUtils.equals(event.getSender(), excludedUserId)) {
+                            if ((null == allowedTypes || (allowedTypes.indexOf(event.getType()) >= 0))
+                                    && !TextUtils.equals(event.getSender(), excludedUserId)) {
                                 events.add(event);
                             }
                         } else {
@@ -1359,7 +1363,7 @@ public class MXMemoryStore implements IMXStore {
                         // check if the event is known
                         if (eventsMap.containsKey(eventIdTotest) && receiptsByUserId.containsKey(userId)) {
                             ReceiptData data = receiptsByUserId.get(userId);
-                            ArrayList<String> eventIds = new ArrayList<>(eventsMap.keySet());
+                            List<String> eventIds = new ArrayList<>(eventsMap.keySet());
 
                             // the message has been read if it was sent before the latest read one
                             res = eventIds.indexOf(eventIdTotest) <= eventIds.indexOf(data.eventId);
@@ -1409,7 +1413,7 @@ public class MXMemoryStore implements IMXStore {
      * @return the current listeners
      */
     private List<IMXStoreListener> getListeners() {
-        ArrayList<IMXStoreListener> listeners;
+        List<IMXStoreListener> listeners;
 
         synchronized (this) {
             listeners = new ArrayList<>(mListeners);

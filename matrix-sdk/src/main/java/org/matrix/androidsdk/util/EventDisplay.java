@@ -38,9 +38,9 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.interfaces.HtmlToolbox;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
-import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.RedactedBecause;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
 
 /**
@@ -155,7 +155,8 @@ public class EventDisplay {
                 }
             } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(eventType)) {
                 CharSequence subpart;
-                String historyVisibility = (null != jsonEventContent.get("history_visibility")) ? jsonEventContent.get("history_visibility").getAsString() : RoomState.HISTORY_VISIBILITY_SHARED;
+                String historyVisibility = (null != jsonEventContent.get("history_visibility")) ?
+                        jsonEventContent.get("history_visibility").getAsString() : RoomState.HISTORY_VISIBILITY_SHARED;
 
                 if (TextUtils.equals(historyVisibility, RoomState.HISTORY_VISIBILITY_SHARED)) {
                     subpart = mContext.getString(R.string.notice_room_visibility_shared);
@@ -218,7 +219,7 @@ public class EventDisplay {
                         // BMA re-enable <ol> and <li> support (https://github.com/vector-im/riot-android/issues/2184)
                         if (!TextUtils.isEmpty(htmlBody)) {
                             // TODO This call may be quite long, we should cache its result
-                            if(mHtmlToolbox != null) {
+                            if (mHtmlToolbox != null) {
                                 text = Html.fromHtml(htmlBody, mHtmlToolbox.getImageGetter(), mHtmlToolbox.getTagHandler(htmlBody));
                             } else {
                                 text = Html.fromHtml(htmlBody);
@@ -238,8 +239,10 @@ public class EventDisplay {
                     text = new SpannableStringBuilder(mContext.getString(R.string.summary_message, userDisplayName, text));
 
                     if (null != displayNameColor) {
-                        ((SpannableStringBuilder) text).setSpan(new ForegroundColorSpan(displayNameColor), 0, userDisplayName.length() + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        ((SpannableStringBuilder) text).setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, userDisplayName.length() + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        ((SpannableStringBuilder) text).setSpan(new ForegroundColorSpan(displayNameColor),
+                                0, userDisplayName.length() + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        ((SpannableStringBuilder) text).setSpan(new StyleSpan(android.graphics.Typeface.BOLD),
+                                0, userDisplayName.length() + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
                 }
             } else if (Event.EVENT_TYPE_STICKER.equals(eventType)) {
@@ -378,7 +381,8 @@ public class EventDisplay {
 
             if (!TextUtils.isEmpty(redactedReason)) {
                 if (!TextUtils.isEmpty(redactedBy)) {
-                    redactedBy = context.getString(R.string.notice_event_redacted_by, redactedBy) + context.getString(R.string.notice_event_redacted_reason, redactedReason);
+                    redactedBy = context.getString(R.string.notice_event_redacted_by, redactedBy)
+                            + context.getString(R.string.notice_event_redacted_reason, redactedReason);
                 } else {
                     redactedBy = context.getString(R.string.notice_event_redacted_reason, redactedReason);
                 }
@@ -406,7 +410,8 @@ public class EventDisplay {
 
         if (!event.isRedacted()) {
             if (null != roomState) {
-                // Consider first the current display name defined in provided room state (Note: this room state is supposed to not take the new event into account)
+                // Consider first the current display name defined in provided room state
+                // (Note: this room state is supposed to not take the new event into account)
                 senderDisplayName = roomState.getMemberName(event.getSender());
             }
 
@@ -415,8 +420,9 @@ public class EventDisplay {
                 // detect if it is displayname update
                 // a display name update is detected when the previous state was join and there was a displayname
                 if (!TextUtils.isEmpty(eventContent.displayname) ||
-                        ((null != prevEventContent) && TextUtils.equals(RoomMember.MEMBERSHIP_JOIN, prevEventContent.membership) && !TextUtils.isEmpty(prevEventContent.displayname))
-                        ) {
+                        ((null != prevEventContent)
+                                && TextUtils.equals(RoomMember.MEMBERSHIP_JOIN, prevEventContent.membership)
+                                && !TextUtils.isEmpty(prevEventContent.displayname))) {
                     senderDisplayName = eventContent.displayname;
                 }
             }

@@ -1,6 +1,7 @@
 /*
  * Copyright 2015 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,14 +24,14 @@ import android.text.TextUtils;
 
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.OutgoingRoomKeyRequest;
-import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
-import org.matrix.androidsdk.util.Log;
-
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
+import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.util.CompatUtil;
 import org.matrix.androidsdk.util.ContentUtils;
+import org.matrix.androidsdk.util.Log;
 import org.matrix.olm.OlmAccount;
 import org.matrix.olm.OlmSession;
 
@@ -78,9 +79,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private static final String MXFILE_CRYPTO_STORE_OLM_SESSIONS_FILE_TMP = "sessions.tmp";
     private static final String MXFILE_CRYPTO_STORE_OLM_SESSIONS_FOLDER = "olmSessionsFolder";
 
-    private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE = "inboundGroupSessions";
-    private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE_TMP = "inboundGroupSessions.tmp";
-    private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FOLDER = "inboundGroupSessionsFolder";
+    private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSIONS_FILE = "inboundGroupSessions";
+    private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSIONS_FILE_TMP = "inboundGroupSessions.tmp";
+    private static final String MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSIONS_FOLDER = "inboundGroupSessionsFolder";
 
     private static final String MXFILE_CRYPTO_STORE_OUTGOING_ROOM_KEY_REQUEST_FILE = "outgoingRoomKeyRequests";
     private static final String MXFILE_CRYPTO_STORE_OUTGOING_ROOM_KEY_REQUEST_FILE_TMP = "outgoingRoomKeyRequests.tmp";
@@ -102,19 +103,19 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private final Object mUsersDevicesInfoMapLock = new Object();
 
     // The algorithms used in rooms
-    private HashMap<String, String> mRoomsAlgorithms;
+    private Map<String, String> mRoomsAlgorithms;
 
     // the tracking statuses
-    private HashMap<String, Integer> mTrackingStatuses;
+    private Map<String, Integer> mTrackingStatuses;
 
     // The olm sessions (<device identity key> -> (<olm session id> -> <olm session>)
-    private HashMap<String /*deviceKey*/,
-            HashMap<String /*olmSessionId*/, OlmSession>> mOlmSessions;
+    private Map<String /*deviceKey*/,
+            Map<String /*olmSessionId*/, OlmSession>> mOlmSessions;
     private static final Object mOlmSessionsLock = new Object();
 
     // The inbound group megolm sessions (<senderKey> -> (<inbound group session id> -> <inbound group megolm session>)
-    private HashMap<String /*senderKey*/,
-            HashMap<String /*inboundGroupSessionId*/, MXOlmInboundGroupSession2>> mInboundGroupSessions;
+    private Map<String /*senderKey*/,
+            Map<String /*inboundGroupSessionId*/, MXOlmInboundGroupSession2>> mInboundGroupSessions;
     private final Object mInboundGroupSessionsLock = new Object();
 
     private final Map<Map<String, String>, OutgoingRoomKeyRequest> mOutgoingRoomKeyRequests = new HashMap<>();
@@ -192,9 +193,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         // each session is now stored in a dedicated file
         mOlmSessionsFolder = new File(mStoreFile, MXFILE_CRYPTO_STORE_OLM_SESSIONS_FOLDER);
 
-        mInboundGroupSessionsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE);
-        mInboundGroupSessionsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FILE_TMP);
-        mInboundGroupSessionsFolder = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSSIONS_FOLDER);
+        mInboundGroupSessionsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSIONS_FILE);
+        mInboundGroupSessionsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSIONS_FILE_TMP);
+        mInboundGroupSessionsFolder = new File(mStoreFile, MXFILE_CRYPTO_STORE_INBOUND_GROUP_SESSIONS_FOLDER);
 
         mOutgoingRoomKeyRequestsFile = new File(mStoreFile, MXFILE_CRYPTO_STORE_OUTGOING_ROOM_KEY_REQUEST_FILE);
         mOutgoingRoomKeyRequestsFileTmp = new File(mStoreFile, MXFILE_CRYPTO_STORE_OUTGOING_ROOM_KEY_REQUEST_FILE_TMP);
@@ -380,7 +381,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 }
 
                 FileOutputStream fos = new FileOutputStream(file);
-                GZIPOutputStream gz = new GZIPOutputStream(fos);
+                GZIPOutputStream gz = CompatUtil.createGzipOutputStream(fos);
                 ObjectOutputStream out = new ObjectOutputStream(gz);
 
                 out.writeObject(object);
@@ -518,7 +519,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             return;
         }
 
-        final HashMap<String, MXDeviceInfo> devicesMap;
+        final Map<String, MXDeviceInfo> devicesMap;
 
         loadUserDevices(userId);
 
@@ -870,7 +871,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             return null;
         }
 
-        ArrayList<MXOlmInboundGroupSession2> inboundGroupSessions = new ArrayList<>();
+        List<MXOlmInboundGroupSession2> inboundGroupSessions = new ArrayList<>();
 
         synchronized (mInboundGroupSessionsLock) {
             for (String senderKey : mInboundGroupSessions.keySet()) {
@@ -884,10 +885,10 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     @Override
     public void close() {
         // release JNI objects
-        ArrayList<OlmSession> olmSessions = new ArrayList<>();
-        Collection<HashMap<String, OlmSession>> sessionValues = mOlmSessions.values();
+        List<OlmSession> olmSessions = new ArrayList<>();
+        Collection<Map<String, OlmSession>> sessionValues = mOlmSessions.values();
 
-        for (HashMap<String, OlmSession> value : sessionValues) {
+        for (Map<String, OlmSession> value : sessionValues) {
             olmSessions.addAll(value.values());
         }
 
@@ -896,10 +897,10 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         }
         mOlmSessions.clear();
 
-        ArrayList<MXOlmInboundGroupSession2> groupSessions = new ArrayList<>();
-        Collection<HashMap<String, MXOlmInboundGroupSession2>> groupSessionsValues = mInboundGroupSessions.values();
+        List<MXOlmInboundGroupSession2> groupSessions = new ArrayList<>();
+        Collection<Map<String, MXOlmInboundGroupSession2>> groupSessionsValues = mInboundGroupSessions.values();
 
-        for (HashMap<String, MXOlmInboundGroupSession2> map : groupSessionsValues) {
+        for (Map<String, MXOlmInboundGroupSession2> map : groupSessionsValues) {
             groupSessions.addAll(map.values());
         }
 
@@ -998,7 +999,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
         // already known
         if (mOutgoingRoomKeyRequests.containsKey(request.mRequestBody)) {
-            Log.d(LOG_TAG, "## getOrAddOutgoingRoomKeyRequest() : `already have key request outstanding for " + request.getRoomId() + " / " + request.getSessionId() + " not sending another");
+            Log.d(LOG_TAG, "## getOrAddOutgoingRoomKeyRequest() : `already have key request outstanding for " + request.getRoomId() + " / "
+                    + request.getSessionId() + " not sending another");
             return mOutgoingRoomKeyRequests.get(request.mRequestBody);
         } else {
             mOutgoingRoomKeyRequests.put(request.mRequestBody, request);
@@ -1211,7 +1213,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             mDevicesFolder.mkdirs();
 
             if (null != mUsersDevicesInfoMap) {
-                HashMap<String, HashMap<String, MXDeviceInfo>> map = mUsersDevicesInfoMap.getMap();
+                Map<String, Map<String, MXDeviceInfo>> map = mUsersDevicesInfoMap.getMap();
 
                 Set<String> userIds = map.keySet();
 
@@ -1296,7 +1298,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 for (int i = 0; i < olmSessionFiles.length; i++) {
                     String deviceKey = olmSessionFiles[i];
 
-                    HashMap<String, OlmSession> olmSessionSubMap = new HashMap<>();
+                    Map<String, OlmSession> olmSessionSubMap = new HashMap<>();
 
                     File sessionsDeviceFolder = new File(mOlmSessionsFolder, deviceKey);
                     String[] sessionIds = sessionsDeviceFolder.list();
@@ -1304,7 +1306,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     if (null != sessionIds) {
                         for (int j = 0; j < sessionIds.length; j++) {
                             String sessionId = sessionIds[j];
-                            OlmSession olmSession = (OlmSession) loadObject(new File(sessionsDeviceFolder, sessionId), "load the olmSession " + deviceKey + " " + sessionId);
+                            OlmSession olmSession = (OlmSession) loadObject(new File(sessionsDeviceFolder, sessionId), "load the olmSession "
+                                    + deviceKey + " " + sessionId);
 
                             if (null != olmSession) {
                                 olmSessionSubMap.put(decodeFilename(sessionId), olmSession);
@@ -1375,7 +1378,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 for (int i = 0; i < keysFolder.length; i++) {
                     File keyFolder = new File(mInboundGroupSessionsFolder, keysFolder[i]);
 
-                    HashMap<String, MXOlmInboundGroupSession2> submap = new HashMap<>();
+                    Map<String, MXOlmInboundGroupSession2> submap = new HashMap<>();
 
                     String[] sessionIds = keyFolder.list();
 
@@ -1422,7 +1425,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
             if (null != inboundGroupSessionsAsVoid) {
                 try {
-                    Map<String, Map<String, MXOlmInboundGroupSession2>> inboundGroupSessionsMap = (Map<String, Map<String, MXOlmInboundGroupSession2>>) inboundGroupSessionsAsVoid;
+                    Map<String, Map<String, MXOlmInboundGroupSession2>> inboundGroupSessionsMap
+                            = (Map<String, Map<String, MXOlmInboundGroupSession2>>) inboundGroupSessionsAsVoid;
 
                     mInboundGroupSessions = new HashMap<>();
 
@@ -1624,7 +1628,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             return;
         }
 
-        IncomingRoomKeyRequest request = getIncomingRoomKeyRequest(incomingRoomKeyRequest.mUserId, incomingRoomKeyRequest.mDeviceId, incomingRoomKeyRequest.mRequestId);
+        IncomingRoomKeyRequest request = getIncomingRoomKeyRequest(incomingRoomKeyRequest.mUserId,
+                incomingRoomKeyRequest.mDeviceId, incomingRoomKeyRequest.mRequestId);
 
         if (null == request) {
             return;

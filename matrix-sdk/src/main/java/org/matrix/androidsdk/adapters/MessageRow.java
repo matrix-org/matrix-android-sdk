@@ -33,8 +33,8 @@ public class MessageRow {
      * @param roomState the room state
      */
     public MessageRow(Event event, RoomState roomState) {
-        this.mEvent = event;
-        this.mRoomState = roomState;
+        mEvent = event;
+        mRoomState = roomState;
     }
 
 

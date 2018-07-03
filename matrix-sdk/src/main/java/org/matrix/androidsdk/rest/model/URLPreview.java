@@ -17,6 +17,10 @@
 
 package org.matrix.androidsdk.rest.model;
 
+import android.text.TextUtils;
+
+import org.matrix.androidsdk.util.JsonUtils;
+
 import java.util.Map;
 
 /**
@@ -56,34 +60,29 @@ public class URLPreview implements java.io.Serializable {
     private boolean mIsDismissed;
 
     /**
-     * Returns a dedicated parameter as a string
-     *
-     * @param paramName the parameter name
-     * @return the string value
-     */
-    private static String getAsString(Map<String, Object> map, String paramName) {
-        if (map.containsKey(paramName) && (map.get(paramName) instanceof String)) {
-            return (String) map.get(paramName);
-        }
-
-        return null;
-    }
-
-    /**
      * Constructor
      *
      * @param map the constructor parameters
+     * @param url the original url, will be used if the map does not contain OG_URL field
      */
-    public URLPreview(Map<String, Object> map) {
-        mDescription = getAsString(map, OG_DESCRIPTION);
-        mTitle = getAsString(map, OG_TITLE);
-        mType = getAsString(map, OG_TYPE);
+    public URLPreview(Map<String, Object> map, String url) {
+        mDescription = JsonUtils.getAsString(map, OG_DESCRIPTION);
+        mTitle = JsonUtils.getAsString(map, OG_TITLE);
+        mType = JsonUtils.getAsString(map, OG_TYPE);
 
-        mSiteName = getAsString(map, OG_SITE_NAME);
-        mRequestedURL = getAsString(map, OG_URL);
+        mSiteName = JsonUtils.getAsString(map, OG_SITE_NAME);
 
-        mThumbnailURL = getAsString(map, OG_IMAGE);
-        mThumbnailMimeType = getAsString(map, OG_IMAGE_TYPE);
+        String requestedUrl = JsonUtils.getAsString(map, OG_URL);
+
+        if (TextUtils.isEmpty(requestedUrl)) {
+            // Fallback: use url
+            mRequestedURL = url;
+        } else {
+            mRequestedURL = requestedUrl;
+        }
+
+        mThumbnailURL = JsonUtils.getAsString(map, OG_IMAGE);
+        mThumbnailMimeType = JsonUtils.getAsString(map, OG_IMAGE_TYPE);
     }
 
 

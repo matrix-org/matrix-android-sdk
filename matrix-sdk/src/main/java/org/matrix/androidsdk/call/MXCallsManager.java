@@ -1,7 +1,8 @@
 /*
  * Copyright 2015 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -51,6 +52,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -79,7 +81,7 @@ public class MXCallsManager {
     private CallClass mPreferredCallClass = CallClass.WEBRTC_CLASS;
 
     // active calls
-    private final HashMap<String, IMXCall> mCallsByCallId = new HashMap<>();
+    private final Map<String, IMXCall> mCallsByCallId = new HashMap<>();
 
     // listeners
     private final Set<IMXCallsManagerListener> mListeners = new HashSet<>();
@@ -167,7 +169,7 @@ public class MXCallsManager {
      * @return the list of supported classes
      */
     public Collection<CallClass> supportedClass() {
-        ArrayList<CallClass> list = new ArrayList<>();
+        List<CallClass> list = new ArrayList<>();
 
         /*if (MXChromeCall.isSupported()) {
             list.add(CallClass.CHROME_CLASS);
@@ -243,7 +245,7 @@ public class MXCallsManager {
      * @return the IMXCall if it exists
      */
     public IMXCall getCallWithRoomId(String roomId) {
-        ArrayList<IMXCall> calls;
+        List<IMXCall> calls;
 
         synchronized (this) {
             calls = new ArrayList<>(mCallsByCallId.values());
@@ -347,7 +349,7 @@ public class MXCallsManager {
      */
     public boolean hasActiveCalls() {
         synchronized (this) {
-            ArrayList<String> callIdsToRemove = new ArrayList<>();
+            List<String> callIdsToRemove = new ArrayList<>();
 
             Set<String> callIds = mCallsByCallId.keySet();
 
@@ -570,9 +572,11 @@ public class MXCallsManager {
                                                                 }
 
                                                                 if (null != unknownDevices) {
-                                                                    Log.d(LOG_TAG, "## checkPendingIncomingCalls() : checkUnknownDevices found some unknown devices");
+                                                                    Log.d(LOG_TAG, "## checkPendingIncomingCalls() :" +
+                                                                            " checkUnknownDevices found some unknown devices");
                                                                 } else {
-                                                                    Log.e(LOG_TAG, "## checkPendingIncomingCalls() : checkUnknownDevices failed " + e.getMessage());
+                                                                    Log.e(LOG_TAG, "## checkPendingIncomingCalls() :" +
+                                                                            " checkUnknownDevices failed " + e.getMessage());
                                                                 }
 
                                                                 dispatchOnIncomingCall(call, unknownDevices);
@@ -580,7 +584,8 @@ public class MXCallsManager {
 
                                                             @Override
                                                             public void onUnexpectedError(Exception e) {
-                                                                Log.e(LOG_TAG, "## checkPendingIncomingCalls() : checkUnknownDevices failed " + e.getMessage());
+                                                                Log.e(LOG_TAG, "## checkPendingIncomingCalls() :" +
+                                                                        " checkUnknownDevices failed " + e.getMessage());
                                                                 dispatchOnIncomingCall(call, null);
                                                             }
                                                         });
@@ -636,7 +641,7 @@ public class MXCallsManager {
                             String userId2 = members.get(1).getUserId();
 
                             // force the refresh to ensure that the devices list is up-to-date
-                            mSession.getCrypto().checkUnknownDevices(Arrays.asList(userId1, userId2), new ApiCallback<Void>() {
+                            mSession.getCrypto().checkUnknownDevices(Arrays.asList(userId1, userId2), new SimpleApiCallback<Void>(callback) {
                                 @Override
                                 public void onSuccess(Void anything) {
                                     final IMXCall call = getCallWithCallId(null, true);
@@ -651,27 +656,6 @@ public class MXCallsManager {
                                                 callback.onSuccess(call);
                                             }
                                         });
-                                    }
-                                }
-
-                                @Override
-                                public void onNetworkError(Exception e) {
-                                    if (null != callback) {
-                                        callback.onNetworkError(e);
-                                    }
-                                }
-
-                                @Override
-                                public void onMatrixError(MatrixError e) {
-                                    if (null != callback) {
-                                        callback.onMatrixError(e);
-                                    }
-                                }
-
-                                @Override
-                                public void onUnexpectedError(Exception e) {
-                                    if (null != callback) {
-                                        callback.onUnexpectedError(e);
                                     }
                                 }
                             });
@@ -966,7 +950,7 @@ public class MXCallsManager {
     // at docs/conferencing.md for more info.
     private static final String USER_PREFIX = "fs_";
     private static final String DOMAIN = "matrix.org";
-    private static final HashMap<String, String> mConferenceUserIdByRoomId = new HashMap<>();
+    private static final Map<String, String> mConferenceUserIdByRoomId = new HashMap<>();
 
     /**
      * Return the id of the conference user dedicated for a room Id

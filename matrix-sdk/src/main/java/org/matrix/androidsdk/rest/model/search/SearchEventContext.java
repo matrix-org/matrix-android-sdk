@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +18,8 @@ package org.matrix.androidsdk.rest.model.search;
 
 import org.matrix.androidsdk.rest.model.Event;
 
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * subclass representing a search API response
@@ -48,5 +49,5 @@ public class SearchEventContext {
      * The historic profile information of the users that sent the events returned.
      * The key is the user id, the value the user profile.
      */
-    public HashMap<String, SearchUserProfile> profileInfo;
+    public Map<String, SearchUserProfile> profileInfo;
 }

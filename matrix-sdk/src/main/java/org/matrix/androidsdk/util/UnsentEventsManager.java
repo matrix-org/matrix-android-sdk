@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,21 +20,20 @@ package org.matrix.androidsdk.util;
 import android.content.Context;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.ssl.CertUtil;
-import org.matrix.androidsdk.ssl.UnrecognizedCertificateException;
-import org.matrix.androidsdk.util.Log;
-
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.ssl.CertUtil;
+import org.matrix.androidsdk.ssl.UnrecognizedCertificateException;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -62,7 +62,7 @@ public class UnsentEventsManager {
     // the network receiver
     private final NetworkConnectivityReceiver mNetworkConnectivityReceiver;
     // faster way to check if the event is already sent
-    private final HashMap<Object, UnsentEventSnapshot> mUnsentEventsMap = new HashMap<>();
+    private final Map<Object, UnsentEventSnapshot> mUnsentEventsMap = new HashMap<>();
     // get the sending order
     private final List<UnsentEventSnapshot> mUnsentEvents = new ArrayList<>();
     // true of the device is connected to a data network
@@ -119,7 +119,7 @@ public class UnsentEventsManager {
                     @Override
                     public void run() {
                         try {
-                            UnsentEventSnapshot.this.mIsResending = true;
+                            mIsResending = true;
 
                             if (null != mEventDescription) {
                                 Log.d(LOG_TAG, "Resend [" + mEventDescription + "]");
@@ -127,7 +127,7 @@ public class UnsentEventsManager {
 
                             mRequestRetryCallBack.onRetry();
                         } catch (Throwable throwable) {
-                            UnsentEventSnapshot.this.mIsResending = false;
+                            mIsResending = false;
                             Log.e(LOG_TAG, "## resendEventAfter() : " + mEventDescription + " + onRetry failed " + throwable.getMessage());
                         }
                     }
@@ -359,7 +359,12 @@ public class UnsentEventsManager {
      * @param apiCallback                  the apiCallback.
      * @param requestRetryCallBack         requestRetryCallBack.
      */
-    public void onEventSendingFailed(final String eventDescription, final boolean ignoreEventTimeLifeInOffline, final Response response, final Exception exception, final ApiCallback apiCallback, final RestAdapterCallback.RequestRetryCallBack requestRetryCallBack) {
+    public void onEventSendingFailed(final String eventDescription,
+                                     final boolean ignoreEventTimeLifeInOffline,
+                                     final Response response,
+                                     final Exception exception,
+                                     final ApiCallback apiCallback,
+                                     final RestAdapterCallback.RequestRetryCallBack requestRetryCallBack) {
         boolean isManaged = false;
 
         if (null != eventDescription) {
@@ -513,7 +518,8 @@ public class UnsentEventsManager {
                         //    It never happens, so the message is never resent.
                         //
                         if (mbIsConnected) {
-                            int jitterTime = ((int) Math.pow(2, snapshot.mRetryCount)) + (Math.abs(new Random(System.currentTimeMillis()).nextInt()) % RETRY_JITTER_MS);
+                            int jitterTime = ((int) Math.pow(2, snapshot.mRetryCount))
+                                    + (Math.abs(new Random(System.currentTimeMillis()).nextInt()) % RETRY_JITTER_MS);
                             isManaged = snapshot.resendEventAfter((matrixRetryTimeout > 0) ? matrixRetryTimeout : jitterTime);
                         }
                     }

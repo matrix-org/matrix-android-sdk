@@ -1,6 +1,7 @@
 /* 
  * Copyright 2015 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -19,9 +20,8 @@ package org.matrix.androidsdk.db;
 import android.content.Context;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.util.Log;
-
 import org.matrix.androidsdk.util.ContentUtils;
+import org.matrix.androidsdk.util.Log;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -29,6 +29,7 @@ import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.HashMap;
+import java.util.Map;
 
 public class MXLatestChatMessageCache {
     private static final String LOG_TAG = MXLatestChatMessageCache.class.getSimpleName();
@@ -36,7 +37,7 @@ public class MXLatestChatMessageCache {
 
     final String MXLATESTMESSAGES_STORE_FOLDER = "MXLatestMessagesStore";
 
-    private HashMap<String, String> mLatestMesssageByRoomId = null;
+    private Map<String, String> mLatestMesssageByRoomId = null;
     private String mUserId = null;
     private File mLatestMessagesDirectory = null;
     private File mLatestMessagesFile = null;
@@ -96,7 +97,7 @@ public class MXLatestChatMessageCache {
             if (mLatestMessagesFile.exists()) {
                 FileInputStream fis = new FileInputStream(mLatestMessagesFile);
                 ObjectInputStream ois = new ObjectInputStream(fis);
-                mLatestMesssageByRoomId = (HashMap) ois.readObject();
+                mLatestMesssageByRoomId = (Map) ois.readObject();
                 ois.close();
                 fis.close();
             }

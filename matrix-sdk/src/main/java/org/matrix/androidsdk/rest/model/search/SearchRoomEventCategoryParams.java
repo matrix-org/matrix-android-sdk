@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +17,7 @@
 
 package org.matrix.androidsdk.rest.model.search;
 
-import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Class representing the room events search category parameters
@@ -29,8 +30,8 @@ public class SearchRoomEventCategoryParams {
     public String order_by;
 
     // the event context
-    public HashMap<String, Object> event_context;
+    public Map<String, Object> event_context;
 
     // the search filters
-    public HashMap<String, Object> filter;
+    public Map<String, Object> filter;
 }

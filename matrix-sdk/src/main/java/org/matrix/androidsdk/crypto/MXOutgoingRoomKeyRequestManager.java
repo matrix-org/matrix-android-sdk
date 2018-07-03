@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,13 +21,12 @@ import android.os.Handler;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
+import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequest;
 import org.matrix.androidsdk.util.Log;
-
-import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -126,6 +126,25 @@ public class MXOutgoingRoomKeyRequestManager {
      * @param requestBody requestBody
      */
     public void cancelRoomKeyRequest(final Map<String, String> requestBody) {
+        cancelRoomKeyRequest(requestBody, false);
+    }
+
+    /**
+     * Cancel room key requests, if any match the given details, and resend
+     *
+     * @param requestBody requestBody
+     */
+    public void resendRoomKeyRequest(final Map<String, String> requestBody) {
+        cancelRoomKeyRequest(requestBody, true);
+    }
+
+    /**
+     * Cancel room key requests, if any match the given details, and resend
+     *
+     * @param requestBody requestBody
+     * @param andResend   true to resend the key request
+     */
+    private void cancelRoomKeyRequest(final Map<String, String> requestBody, boolean andResend) {
         OutgoingRoomKeyRequest req = mCryptoStore.getOutgoingRoomKeyRequest(requestBody);
 
         if (null == req) {
@@ -133,15 +152,19 @@ public class MXOutgoingRoomKeyRequestManager {
             return;
         }
 
-        if (req.mState == OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING) {
+        if (req.mState == OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING
+                || req.mState == OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING_AND_WILL_RESEND) {
             // nothing to do here
-            return;
         } else if ((req.mState == OutgoingRoomKeyRequest.RequestState.UNSENT) ||
                 (req.mState == OutgoingRoomKeyRequest.RequestState.FAILED)) {
             Log.d(LOG_TAG, "## cancelRoomKeyRequest() : deleting unnecessary room key request for " + requestBody);
             mCryptoStore.deleteOutgoingRoomKeyRequest(req.mRequestId);
         } else if (req.mState == OutgoingRoomKeyRequest.RequestState.SENT) {
-            req.mState = OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING;
+            if (andResend) {
+                req.mState = OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING_AND_WILL_RESEND;
+            } else {
+                req.mState = OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING;
+            }
             req.mCancellationTxnId = makeTxnId();
             mCryptoStore.updateOutgoingRoomKeyRequest(req);
             sendOutgoingRoomKeyRequestCancellation(req);
@@ -180,14 +203,16 @@ public class MXOutgoingRoomKeyRequestManager {
     // there are no more requests, or there is an error (in which case, the
     // timer will be restarted before the promise resolves).
     private void sendOutgoingRoomKeyRequests() {
-        if (!this.mClientRunning) {
+        if (!mClientRunning) {
             mSendOutgoingRoomKeyRequestsRunning = false;
             return;
         }
 
         Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequests() :  Looking for queued outgoing room key requests");
         OutgoingRoomKeyRequest outgoingRoomKeyRequest = mCryptoStore.getOutgoingRoomKeyRequestByState(
-                new HashSet<>(Arrays.asList(OutgoingRoomKeyRequest.RequestState.UNSENT, OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING)));
+                new HashSet<>(Arrays.asList(OutgoingRoomKeyRequest.RequestState.UNSENT,
+                        OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING,
+                        OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING_AND_WILL_RESEND)));
 
         if (null == outgoingRoomKeyRequest) {
             Log.e(LOG_TAG, "## sendOutgoingRoomKeyRequests() : No more outgoing room key requests");
@@ -208,7 +233,8 @@ public class MXOutgoingRoomKeyRequestManager {
      * @param request the request
      */
     private void sendOutgoingRoomKeyRequest(final OutgoingRoomKeyRequest request) {
-        Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequest() : Requesting keys " + request.mRequestBody + " from " + request.mRecipients + " id " + request.mRequestId);
+        Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequest() : Requesting keys " + request.mRequestBody
+                + " from " + request.mRecipients + " id " + request.mRequestId);
 
         Map<String, Object> requestMessage = new HashMap<>();
         requestMessage.put("action", "request");
@@ -222,7 +248,8 @@ public class MXOutgoingRoomKeyRequestManager {
                     @Override
                     public void run() {
                         if (request.mState != OutgoingRoomKeyRequest.RequestState.UNSENT) {
-                            Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequest() : Cannot update room key request from UNSENT as it was already updated to " + request.mState);
+                            Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequest() : Cannot update room key request from UNSENT as it was already updated to "
+                                    + request.mState);
                         } else {
                             request.mState = state;
                             mCryptoStore.updateOutgoingRoomKeyRequest(request);
@@ -291,7 +318,14 @@ public class MXOutgoingRoomKeyRequestManager {
             @Override
             public void onSuccess(Void info) {
                 Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequestCancellation() : done");
+                boolean resend = request.mState == OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING_AND_WILL_RESEND;
+
                 onDone();
+
+                // Resend the request with a new ID
+                if (resend) {
+                    sendRoomKeyRequest(request.mRequestBody, request.mRecipients);
+                }
             }
 
             @Override
@@ -322,7 +356,10 @@ public class MXOutgoingRoomKeyRequestManager {
      * @param transactionId the transaction id
      * @param callback      the asynchronous callback.
      */
-    private void sendMessageToDevices(final Map<String, Object> message, List<Map<String, String>> recipients, String transactionId, final ApiCallback<Void> callback) {
+    private void sendMessageToDevices(final Map<String, Object> message,
+                                      List<Map<String, String>> recipients,
+                                      String transactionId,
+                                      final ApiCallback<Void> callback) {
         MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>();
 
         for (Map<String, String> recipient : recipients) {

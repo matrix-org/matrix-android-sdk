@@ -18,6 +18,7 @@
 
 package org.matrix.androidsdk.data;
 
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.JsonElement;
@@ -25,8 +26,8 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
-import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.util.Log;
 
 /**
@@ -81,7 +82,10 @@ public class RoomSummary implements java.io.Serializable {
      * @param roomState   the room state - used to display the event
      * @param userId      our own user id - used to display the room name
      */
-    public RoomSummary(RoomSummary fromSummary, Event event, RoomState roomState, String userId) {
+    public RoomSummary(@Nullable RoomSummary fromSummary,
+                       Event event,
+                       RoomState roomState,
+                       String userId) {
         setMatrixId(userId);
 
         if (null != roomState) {
@@ -112,7 +116,7 @@ public class RoomSummary implements java.io.Serializable {
             setReadReceiptEventId(fromSummary.getReadReceiptEventId());
             setUnreadEventsCount(fromSummary.getUnreadEventsCount());
             setHighlightCount(fromSummary.getHighlightCount());
-            setNotificationCount(fromSummary.getHighlightCount());
+            setNotificationCount(fromSummary.getNotificationCount());
         }
     }
 

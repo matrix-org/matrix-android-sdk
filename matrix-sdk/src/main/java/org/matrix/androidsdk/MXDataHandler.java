@@ -1,6 +1,7 @@
 /*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,15 +56,15 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.group.InvitedGroupSync;
-import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
-import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
 import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
+import org.matrix.androidsdk.rest.model.group.InvitedGroupSync;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
+import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 import org.matrix.androidsdk.ssl.UnrecognizedCertificateException;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -151,7 +152,7 @@ public class MXDataHandler implements IMXEventListener {
     private boolean mAreLeftRoomsSynced;
 
     //
-    private final ArrayList<ApiCallback<Void>> mLeftRoomsRefreshCallbacks = new ArrayList<>();
+    private final List<ApiCallback<Void>> mLeftRoomsRefreshCallbacks = new ArrayList<>();
     private boolean mIsRetrievingLeftRooms;
 
     // the left rooms are saved in a dedicated store.
@@ -474,7 +475,7 @@ public class MXDataHandler implements IMXEventListener {
             mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
-                    MXDataHandler.this.onBingRulesUpdate();
+                    onBingRulesUpdate();
                 }
             });
         }
@@ -537,7 +538,7 @@ public class MXDataHandler implements IMXEventListener {
             mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
-                    MXDataHandler.this.onBingRulesUpdate();
+                    onBingRulesUpdate();
                 }
             });
         }
@@ -838,7 +839,7 @@ public class MXDataHandler implements IMXEventListener {
      * @return the room summaries
      */
     public Collection<RoomSummary> getSummaries(boolean withLeftOnes) {
-        ArrayList<RoomSummary> summaries = new ArrayList<>();
+        List<RoomSummary> summaries = new ArrayList<>();
 
         summaries.addAll(getStore().getSummaries());
 
@@ -894,25 +895,10 @@ public class MXDataHandler implements IMXEventListener {
                 }
             });
         } else {
-            mRoomsRestClient.getRoomIdByAlias(roomAlias, new ApiCallback<RoomAliasDescription>() {
+            mRoomsRestClient.getRoomIdByAlias(roomAlias, new SimpleApiCallback<RoomAliasDescription>(callback) {
                 @Override
                 public void onSuccess(RoomAliasDescription info) {
                     callback.onSuccess(info.room_id);
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    callback.onNetworkError(e);
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    callback.onMatrixError(e);
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    callback.onUnexpectedError(e);
                 }
             });
         }
@@ -1191,7 +1177,7 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * Handle a presence event.
      *
-     * @param presenceEvent teh presence event.
+     * @param presenceEvent the presence event.
      */
     private void handlePresenceEvent(Event presenceEvent) {
         // Presence event
@@ -1227,7 +1213,7 @@ public class MXDataHandler implements IMXEventListener {
             }
 
             mStore.storeUser(user);
-            this.onPresenceUpdate(presenceEvent, user);
+            onPresenceUpdate(presenceEvent, user);
         }
     }
 
@@ -1257,7 +1243,7 @@ public class MXDataHandler implements IMXEventListener {
      */
     public void deleteRoom(String roomId) {
         // copy the room from a store to another one
-        Room r = this.getStore().getRoom(roomId);
+        Room r = getStore().getRoom(roomId);
 
         if (null != r) {
             if (mAreLeftRoomsSynced) {
@@ -1273,7 +1259,7 @@ public class MXDataHandler implements IMXEventListener {
                 // copy events and receiptData
                 // it is not required but it is better, it could be useful later
                 // the room summary should be enough to be displayed in the recent pages
-                ArrayList<ReceiptData> receipts = new ArrayList<>();
+                List<ReceiptData> receipts = new ArrayList<>();
                 Collection<Event> events = getStore().getRoomMessages(roomId);
 
                 if (null != events) {
@@ -1366,7 +1352,7 @@ public class MXDataHandler implements IMXEventListener {
 
                     Set<String> roomIds = syncResponse.rooms.invite.keySet();
 
-                    HashMap<String, List<String>> updatedDirectChatRoomsDict = null;
+                    Map<String, List<String>> updatedDirectChatRoomsDict = null;
                     boolean hasChanged = false;
 
                     for (String roomId : roomIds) {
@@ -1397,15 +1383,15 @@ public class MXDataHandler implements IMXEventListener {
                                 if (null != participantUserId) {
                                     // Prepare the updated dictionary.
                                     if (null == updatedDirectChatRoomsDict) {
-                                        if (null != this.getStore().getDirectChatRoomsDict()) {
+                                        if (null != getStore().getDirectChatRoomsDict()) {
                                             // Consider the current dictionary.
-                                            updatedDirectChatRoomsDict = new HashMap<>(this.getStore().getDirectChatRoomsDict());
+                                            updatedDirectChatRoomsDict = new HashMap<>(getStore().getDirectChatRoomsDict());
                                         } else {
                                             updatedDirectChatRoomsDict = new HashMap<>();
                                         }
                                     }
 
-                                    ArrayList<String> roomIdsList;
+                                    List<String> roomIdsList;
                                     if (updatedDirectChatRoomsDict.containsKey(participantUserId)) {
                                         roomIdsList = new ArrayList<>(updatedDirectChatRoomsDict.get(participantUserId));
                                     } else {
@@ -1430,7 +1416,9 @@ public class MXDataHandler implements IMXEventListener {
                     isEmptyResponse = false;
 
                     if (hasChanged) {
-                        mAccountDataRestClient.setAccountData(mCredentials.userId, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, updatedDirectChatRoomsDict, new ApiCallback<Void>() {
+                        // Update account data to add new direct chat room(s)
+                        mAccountDataRestClient.setAccountData(mCredentials.userId, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES,
+                                updatedDirectChatRoomsDict, new ApiCallback<Void>() {
                             @Override
                             public void onSuccess(Void info) {
                                 Log.d(LOG_TAG, "## manageResponse() : succeeds");
@@ -1490,7 +1478,7 @@ public class MXDataHandler implements IMXEventListener {
 
                         if (!TextUtils.equals(membership, RoomMember.MEMBERSHIP_KICK) && !TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN)) {
                             // ensure that the room data are properly deleted
-                            this.getStore().deleteRoom(roomId);
+                            getStore().deleteRoom(roomId);
                             onLeaveRoom(roomId);
                         } else {
                             onRoomKick(roomId);
@@ -1751,7 +1739,9 @@ public class MXDataHandler implements IMXEventListener {
         // Decrypt event if necessary
         decryptEvent(event, null);
 
-        if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && (null != event.getContent()) && TextUtils.equals(JsonUtils.getMessageMsgType(event.getContent()), "m.bad.encrypted")) {
+        if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)
+                && (null != event.getContent())
+                && TextUtils.equals(JsonUtils.getMessageMsgType(event.getContent()), "m.bad.encrypted")) {
             Log.e(LOG_TAG, "## handleToDeviceEvent() : Warning: Unable to decrypt to-device event : " + event.getContent());
         } else {
             onToDeviceEvent(event);
@@ -1911,7 +1901,9 @@ public class MXDataHandler implements IMXEventListener {
 
         String type = event.getType();
 
-        if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type) && !TextUtils.equals(Event.EVENT_TYPE_RECEIPT, type) && !TextUtils.equals(Event.EVENT_TYPE_TYPING, type)) {
+        if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type)
+                && !TextUtils.equals(Event.EVENT_TYPE_RECEIPT, type)
+                && !TextUtils.equals(Event.EVENT_TYPE_TYPING, type)) {
             synchronized (mUpdatedRoomIdList) {
                 mUpdatedRoomIdList.add(roomState.roomId);
             }
@@ -2695,37 +2687,6 @@ public class MXDataHandler implements IMXEventListener {
                     }
                 }
             }
-        } else {
-            // background compatibility heuristic (named looksLikeDirectMessageRoom in the JS)
-            ArrayList<RoomIdsListRetroCompat> directChatRoomIdsListRetValue = new ArrayList<>();
-            getDirectChatRoomIdsListRetroCompat(store, directChatRoomIdsListRetValue);
-
-            // force direct chat room list to be updated with retro compatibility rooms values
-            if (0 != directChatRoomIdsListRetValue.size()) {
-                forceDirectChatRoomValue(directChatRoomIdsListRetValue, new ApiCallback<Void>() {
-                    @Override
-                    public void onSuccess(Void info) {
-                        Log.d(LOG_TAG, "## getDirectChatRoomIdsList(): background compatibility heuristic => account_data update succeed");
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        if (MatrixError.FORBIDDEN.equals(e.errcode)) {
-                            Log.e(LOG_TAG, "## getDirectChatRoomIdsList(): onMatrixError Msg=" + e.error);
-                        }
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "## getDirectChatRoomIdsList(): onNetworkError Msg=" + e.getMessage());
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        Log.e(LOG_TAG, "## getDirectChatRoomIdsList(): onUnexpectedError Msg=" + e.getMessage());
-                    }
-                });
-            }
         }
 
         return mLocalDirectChatRoomIdsList = directChatRoomIdsList;
@@ -2753,33 +2714,6 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
-     * For the value account_data with the rooms list passed in aRoomIdsListToAdd for a given user ID (aParticipantUserId)<br>
-     * WARNING: this method must be used with care because it erases the account_data object.
-     *
-     * @param aRoomParticipantUserIdList the couple direct chat rooms ID / user IDs
-     * @param callback                   the asynchronous response callback
-     */
-    private void forceDirectChatRoomValue(List<RoomIdsListRetroCompat> aRoomParticipantUserIdList, ApiCallback<Void> callback) {
-        Map<String, List<String>> params = new HashMap<>();
-        List<String> roomIdsList;
-
-        if (null != aRoomParticipantUserIdList) {
-            for (RoomIdsListRetroCompat item : aRoomParticipantUserIdList) {
-                if (params.containsKey(item.mParticipantUserId)) {
-                    roomIdsList = new ArrayList<>(params.get(item.mParticipantUserId));
-                    roomIdsList.add(item.mRoomId);
-                } else {
-                    roomIdsList = new ArrayList<>();
-                    roomIdsList.add(item.mRoomId);
-                }
-                params.put(item.mParticipantUserId, roomIdsList);
-            }
-
-            mAccountDataRestClient.setAccountData(getMyUser().user_id, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, params, callback);
-        }
-    }
-
-    /**
      * This class defines a direct chat backward compliancyc structure
      */
     private class RoomIdsListRetroCompat {
@@ -2787,51 +2721,8 @@ public class MXDataHandler implements IMXEventListener {
         final String mParticipantUserId;
 
         public RoomIdsListRetroCompat(String aParticipantUserId, String aRoomId) {
-            this.mParticipantUserId = aParticipantUserId;
-            this.mRoomId = aRoomId;
-        }
-    }
-
-    /**
-     * Return the direct chat room list for retro compatibility with 1:1 rooms.
-     *
-     * @param aStore                         store instance
-     * @param aDirectChatRoomIdsListRetValue the other participants in the 1:1 room
-     */
-    private void getDirectChatRoomIdsListRetroCompat(IMXStore aStore, ArrayList<RoomIdsListRetroCompat> aDirectChatRoomIdsListRetValue) {
-        RoomIdsListRetroCompat item;
-
-        if ((null != aStore) && (null != aDirectChatRoomIdsListRetValue)) {
-            ArrayList<Room> rooms = new ArrayList<>(aStore.getRooms());
-            ArrayList<RoomMember> members;
-            int otherParticipantIndex;
-
-            for (Room r : rooms) {
-                // Show 1:1 chats in separate "Direct Messages" section as long as they haven't
-                // been moved to a different tag section
-                if ((r.getActiveMembers().size() == 2) && (null != r.getAccountData()) && (!r.getAccountData().hasTags())) {
-                    RoomMember roomMember = r.getMember(getMyUser().user_id);
-                    members = new ArrayList<>(r.getActiveMembers());
-
-                    if (null != roomMember) {
-                        String membership = roomMember.membership;
-
-                        if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_JOIN) ||
-                                TextUtils.equals(membership, RoomMember.MEMBERSHIP_BAN) ||
-                                TextUtils.equals(membership, RoomMember.MEMBERSHIP_LEAVE)) {
-
-                            if (TextUtils.equals(members.get(0).getUserId(), getMyUser().user_id)) {
-                                otherParticipantIndex = 1;
-                            } else {
-                                otherParticipantIndex = 0;
-                            }
-
-                            item = new RoomIdsListRetroCompat(members.get(otherParticipantIndex).getUserId(), r.getRoomId());
-                            aDirectChatRoomIdsListRetValue.add(item);
-                        }
-                    }
-                }
-            }
+            mParticipantUserId = aParticipantUserId;
+            mRoomId = aRoomId;
         }
     }
 
@@ -2843,11 +2734,11 @@ public class MXDataHandler implements IMXEventListener {
      * @return the list of the direct chat room Id
      */
     public List<String> getDirectChatRoomIdsList(String aSearchedUserId) {
-        ArrayList<String> directChatRoomIdsList = new ArrayList<>();
+        List<String> directChatRoomIdsList = new ArrayList<>();
         IMXStore store = getStore();
         Room room;
 
-        HashMap<String, List<String>> params;
+        Map<String, List<String>> params;
 
         if (null != store.getDirectChatRoomsDict()) {
             params = new HashMap<>(store.getDirectChatRoomsDict());

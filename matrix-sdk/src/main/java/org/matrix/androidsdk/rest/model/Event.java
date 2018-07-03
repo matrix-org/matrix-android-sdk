@@ -19,21 +19,22 @@ package org.matrix.androidsdk.rest.model;
 
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
-import org.matrix.androidsdk.rest.model.message.FileMessage;
-import org.matrix.androidsdk.rest.model.message.ImageMessage;
-import org.matrix.androidsdk.rest.model.message.Message;
-import org.matrix.androidsdk.rest.model.message.StickerMessage;
-import org.matrix.androidsdk.rest.model.message.VideoMessage;
-import org.matrix.androidsdk.util.Log;
-
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import org.matrix.androidsdk.crypto.MXCryptoError;
+import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
 import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
+import org.matrix.androidsdk.rest.model.message.FileMessage;
+import org.matrix.androidsdk.rest.model.message.ImageMessage;
+import org.matrix.androidsdk.rest.model.message.LocationMessage;
+import org.matrix.androidsdk.rest.model.message.Message;
+import org.matrix.androidsdk.rest.model.message.StickerMessage;
+import org.matrix.androidsdk.rest.model.message.VideoMessage;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -624,12 +625,20 @@ public class Event implements Externalizable {
     }
 
     /**
-     * Tells if the message sending failed because some unknown devices have benn detected.
+     * Tells if the message sending failed because some unknown devices have been detected.
      *
-     * @return true if some unknown devices have benn detected.
+     * @return true if some unknown devices have been detected.
      */
-    public boolean isUnkownDevice() {
+    public boolean isUnknownDevice() {
         return (mSentState == SentState.FAILED_UNKNOWN_DEVICES);
+    }
+
+    /**
+     * @deprecated call isUnknownDevice()
+     */
+    @Deprecated
+    public boolean isUnkownDevice() {
+        return isUnknownDevice();
     }
 
     /**
@@ -645,7 +654,7 @@ public class Event implements Externalizable {
      * @return the media URLs defined in the event.
      */
     public List<String> getMediaUrls() {
-        ArrayList<String> urls = new ArrayList<>();
+        List<String> urls = new ArrayList<>();
 
         if (Event.EVENT_TYPE_MESSAGE.equals(getType())) {
             String msgType = JsonUtils.getMessageMsgType(getContent());
@@ -656,7 +665,6 @@ public class Event implements Externalizable {
                 if (null != imageMessage.getUrl()) {
                     urls.add(imageMessage.getUrl());
                 }
-
                 if (null != imageMessage.getThumbnailUrl()) {
                     urls.add(imageMessage.getThumbnailUrl());
                 }
@@ -672,6 +680,15 @@ public class Event implements Externalizable {
                 if (null != videoMessage.getUrl()) {
                     urls.add(videoMessage.getUrl());
                 }
+                if (null != videoMessage.getThumbnailUrl()) {
+                    urls.add(videoMessage.getThumbnailUrl());
+                }
+            } else if (Message.MSGTYPE_LOCATION.equals(msgType)) {
+                LocationMessage locationMessage = JsonUtils.toLocationMessage(getContent());
+
+                if (null != locationMessage.thumbnail_url) {
+                    urls.add(locationMessage.thumbnail_url);
+                }
             }
         } else if (Event.EVENT_TYPE_STICKER.equals(getType())) {
             StickerMessage stickerMessage = JsonUtils.toStickerMessage(getContent());
@@ -686,6 +703,59 @@ public class Event implements Externalizable {
         }
 
         return urls;
+    }
+
+    /**
+     * @return all the encrypted file infos defined in the event.
+     */
+    public List<EncryptedFileInfo> getEncryptedFileInfos() {
+        List<EncryptedFileInfo> encryptedFileInfos = new ArrayList<>();
+
+        if (!isEncrypted()) {
+            // return empty array
+            return encryptedFileInfos;
+        }
+
+        if (Event.EVENT_TYPE_MESSAGE.equals(getType())) {
+            String msgType = JsonUtils.getMessageMsgType(getContent());
+
+            if (Message.MSGTYPE_IMAGE.equals(msgType)) {
+                ImageMessage imageMessage = JsonUtils.toImageMessage(getContent());
+
+                if (null != imageMessage.file) {
+                    encryptedFileInfos.add(imageMessage.file);
+                }
+                if (null != imageMessage.info && null != imageMessage.info.thumbnail_file) {
+                    encryptedFileInfos.add(imageMessage.info.thumbnail_file);
+                }
+            } else if (Message.MSGTYPE_FILE.equals(msgType) || Message.MSGTYPE_AUDIO.equals(msgType)) {
+                FileMessage fileMessage = JsonUtils.toFileMessage(getContent());
+
+                if (null != fileMessage.file) {
+                    encryptedFileInfos.add(fileMessage.file);
+                }
+            } else if (Message.MSGTYPE_VIDEO.equals(msgType)) {
+                VideoMessage videoMessage = JsonUtils.toVideoMessage(getContent());
+
+                if (null != videoMessage.file) {
+                    encryptedFileInfos.add(videoMessage.file);
+                }
+                if (null != videoMessage.info && null != videoMessage.info.thumbnail_file) {
+                    encryptedFileInfos.add(videoMessage.info.thumbnail_file);
+                }
+            }
+        } else if (Event.EVENT_TYPE_STICKER.equals(getType())) {
+            StickerMessage stickerMessage = JsonUtils.toStickerMessage(getContent());
+
+            if (null != stickerMessage.file) {
+                encryptedFileInfos.add(stickerMessage.file);
+            }
+            if (null != stickerMessage.info && null != stickerMessage.info.thumbnail_file) {
+                encryptedFileInfos.add(stickerMessage.info.thumbnail_file);
+            }
+        }
+
+        return encryptedFileInfos;
     }
 
     /**
@@ -1004,7 +1074,7 @@ public class Event implements Externalizable {
      * @param allowedKeys the allowed keys list.
      * @return the filtered JsonObject
      */
-    private static JsonObject filterInContentWithKeys(JsonObject aContent, ArrayList<String> allowedKeys) {
+    private static JsonObject filterInContentWithKeys(JsonObject aContent, List<String> allowedKeys) {
         // sanity check
         if (null == aContent) {
             return null;
@@ -1039,7 +1109,7 @@ public class Event implements Externalizable {
      */
     public void prune(Event redactionEvent) {
         // Filter in event by keeping only the following keys
-        ArrayList<String> allowedKeys;
+        List<String> allowedKeys;
 
         // Add filtered content, allowed keys in content depends on the event type
         if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type)) {
@@ -1071,11 +1141,11 @@ public class Event implements Externalizable {
             allowedKeys = null;
         }
 
-        this.content = filterInContentWithKeys(getContentAsJsonObject(), allowedKeys);
-        this.prev_content = filterInContentWithKeys(getPrevContentAsJsonObject(), allowedKeys);
+        content = filterInContentWithKeys(getContentAsJsonObject(), allowedKeys);
+        prev_content = filterInContentWithKeys(getPrevContentAsJsonObject(), allowedKeys);
 
-        this.prev_content_as_string = null;
-        this.contentAsString = null;
+        prev_content_as_string = null;
+        contentAsString = null;
 
         if (null != redactionEvent) {
             if (null == unsigned) {

@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +20,6 @@ package org.matrix.androidsdk.call;
 import android.content.Context;
 import android.os.Handler;
 import android.text.TextUtils;
-
-import org.matrix.androidsdk.util.Log;
-
 import android.view.View;
 
 import com.google.gson.JsonElement;
@@ -33,10 +31,12 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.Timer;
 
@@ -104,7 +104,7 @@ public class MXCall implements IMXCall {
     /**
      * List of events to sends to mCallSignalingRoom
      */
-    protected final ArrayList<Event> mPendingEvents = new ArrayList<>();
+    protected final List<Event> mPendingEvents = new ArrayList<>();
 
     /**
      * The sending eevent.
@@ -651,7 +651,7 @@ public class MXCall implements IMXCall {
         JsonObject hangupContent = new JsonObject();
 
         hangupContent.add("version", new JsonPrimitive(0));
-        hangupContent.add("call_id", new JsonPrimitive(this.mCallId));
+        hangupContent.add("call_id", new JsonPrimitive(mCallId));
 
         if (!TextUtils.isEmpty(reason)) {
             hangupContent.add("reason", new JsonPrimitive(reason));

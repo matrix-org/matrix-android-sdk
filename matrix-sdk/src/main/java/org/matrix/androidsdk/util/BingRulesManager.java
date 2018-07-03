@@ -1,6 +1,7 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -17,10 +18,6 @@ package org.matrix.androidsdk.util;
 
 import android.text.TextUtils;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-
-import org.json.JSONObject;
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.MyUser;
@@ -32,7 +29,6 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.BingRulesRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
 import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
@@ -42,6 +38,7 @@ import org.matrix.androidsdk.rest.model.bingrules.ContentRule;
 import org.matrix.androidsdk.rest.model.bingrules.EventMatchCondition;
 import org.matrix.androidsdk.rest.model.bingrules.RoomMemberCountCondition;
 import org.matrix.androidsdk.rest.model.bingrules.SenderNotificationPermissionCondition;
+import org.matrix.androidsdk.rest.model.message.Message;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -369,7 +366,7 @@ public class BingRulesManager {
         }
 
         // GA issue
-        final ArrayList<BingRule> rules;
+        final List<BingRule> rules;
 
         synchronized (this) {
             rules = new ArrayList<>(mRules);
@@ -972,7 +969,7 @@ public class BingRulesManager {
      * @return the room rules list
      */
     private List<BingRule> getPushRulesForRoomId(String roomId) {
-        ArrayList<BingRule> rules = new ArrayList<>();
+        List<BingRule> rules = new ArrayList<>();
 
         // sanity checks
         if (!TextUtils.isEmpty(roomId) && (null != mRulesSet)) {
@@ -1056,7 +1053,8 @@ public class BingRulesManager {
                     if (state == RoomNotificationState.ALL_MESSAGES_NOISY) {
                         rule = new BingRule(BingRule.KIND_ROOM, roomId, true, false, true);
                     } else {
-                        rule = new BingRule((state == RoomNotificationState.MENTIONS_ONLY) ? BingRule.KIND_ROOM : BingRule.KIND_OVERRIDE, roomId, false, null, false);
+                        rule = new BingRule((state == RoomNotificationState.MENTIONS_ONLY) ?
+                                BingRule.KIND_ROOM : BingRule.KIND_OVERRIDE, roomId, false, null, false);
 
                         EventMatchCondition condition = new EventMatchCondition();
                         condition.key = "room_id";

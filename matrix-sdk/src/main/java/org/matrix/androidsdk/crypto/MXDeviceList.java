@@ -1,5 +1,6 @@
 /*
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,13 +66,13 @@ public class MXDeviceList {
     public static final int TRACKING_STATUS_UNREACHABLE_SERVER = 4;
 
     // keys in progress
-    private final HashSet<String> mUserKeyDownloadsInProgress = new HashSet<>();
+    private final Set<String> mUserKeyDownloadsInProgress = new HashSet<>();
 
     // HS not ready for retry
-    private final HashSet<String> mNotReadyToRetryHS = new HashSet<>();
+    private final Set<String> mNotReadyToRetryHS = new HashSet<>();
 
     // indexed by UserId
-    private final HashMap<String, String> mPendingDownloadKeysRequestToken = new HashMap<>();
+    private final Map<String, String> mPendingDownloadKeysRequestToken = new HashMap<>();
 
     // download keys queue
     class DownloadKeysPromise {
@@ -336,7 +337,7 @@ public class MXDeviceList {
 
         if (null != userIds) {
             if (mDownloadKeysQueues.size() > 0) {
-                ArrayList<DownloadKeysPromise> promisesToRemove = new ArrayList<>();
+                List<DownloadKeysPromise> promisesToRemove = new ArrayList<>();
 
                 for (DownloadKeysPromise promise : mDownloadKeysQueues) {
                     promise.mPendingUserIdsList.removeAll(userIds);
@@ -534,7 +535,8 @@ public class MXDeviceList {
             mPendingDownloadKeysRequestToken.put(userId, downloadToken);
         }
 
-        mxSession.getCryptoRestClient().downloadKeysForUsers(filteredUsers, mxSession.getDataHandler().getStore().getEventStreamToken(), new ApiCallback<KeysQueryResponse>() {
+        mxSession.getCryptoRestClient()
+                .downloadKeysForUsers(filteredUsers, mxSession.getDataHandler().getStore().getEventStreamToken(), new ApiCallback<KeysQueryResponse>() {
             @Override
             public void onSuccess(final KeysQueryResponse keysQueryResponse) {
                 mxCrypto.getEncryptingThreadHandler().post(new Runnable() {
@@ -557,8 +559,8 @@ public class MXDeviceList {
                                 Log.d(LOG_TAG, "## doKeyDownloadForUsers() : Got keys for " + userId + " : " + devices);
 
                                 if (null != devices) {
-                                    HashMap<String, MXDeviceInfo> mutableDevices = new HashMap<>(devices);
-                                    ArrayList<String> deviceIds = new ArrayList<>(mutableDevices.keySet());
+                                    Map<String, MXDeviceInfo> mutableDevices = new HashMap<>(devices);
+                                    List<String> deviceIds = new ArrayList<>(mutableDevices.keySet());
 
                                     for (String deviceId : deviceIds) {
                                         // the user has been logged out
@@ -736,7 +738,8 @@ public class MXDeviceList {
         }
 
         if (!isVerified) {
-            Log.e(LOG_TAG, "## validateDeviceKeys() : Unable to verify signature on device " + userId + ":" + deviceKeys.deviceId + " with error " + errorMessage);
+            Log.e(LOG_TAG, "## validateDeviceKeys() : Unable to verify signature on device " + userId + ":"
+                    + deviceKeys.deviceId + " with error " + errorMessage);
             return false;
         }
 
@@ -746,7 +749,8 @@ public class MXDeviceList {
                 // best off sticking with the original keys.
                 //
                 // Should we warn the user about it somehow?
-                Log.e(LOG_TAG, "## validateDeviceKeys() : WARNING:Ed25519 key for device " + userId + ":" + deviceKeys.deviceId + " has changed : "
+                Log.e(LOG_TAG, "## validateDeviceKeys() : WARNING:Ed25519 key for device " + userId + ":"
+                        + deviceKeys.deviceId + " has changed : "
                         + previouslyStoredDeviceKeys.fingerprint() + " -> " + signKey);
 
                 Log.e(LOG_TAG, "## validateDeviceKeys() : " + previouslyStoredDeviceKeys + " -> " + deviceKeys);

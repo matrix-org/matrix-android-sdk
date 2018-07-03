@@ -1,29 +1,12 @@
 package org.matrix.androidsdk.test;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
-import junit.framework.Assert;
-
-import org.json.JSONObject;
-import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.util.JsonUtils;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
-
 /**
  * Utility class for interacting with Retrofit.
  */
 public class RetrofitUtils {
 
     /*
-    private static final HashMap<Integer, String> sCodeToStatusMsg = new HashMap<>();
+    private static final Map<Integer, String> sCodeToStatusMsg = new HashMap<>();
 
     static {
         sCodeToStatusMsg.put(200, "OK");
@@ -92,5 +75,5 @@ public class RetrofitUtils {
         Converter converter = new GsonConverter(gson);
         return  RetrofitError.httpError(url, response, converter, MatrixError.class);
     }
-    */
+     */
 }

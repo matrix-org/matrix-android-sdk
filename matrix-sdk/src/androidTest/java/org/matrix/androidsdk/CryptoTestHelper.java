@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +20,7 @@ package org.matrix.androidsdk;
 import android.content.Context;
 import android.net.Uri;
 
+import org.junit.Assert;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXFileStore;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -31,21 +33,19 @@ import org.matrix.androidsdk.rest.model.login.RegistrationParams;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.assertTrue;
 
 public class CryptoTestHelper {
     public static final String TESTS_HOME_SERVER_URL = "http://10.0.2.2:8080";
 
-    private static CountDownLatch mLock;
-
     /**
      * Create an account and a dedicated session
-     * @param context the context
-     * @param userName the account username
-     * @param password the password
+     *
+     * @param context      the context
+     * @param userName     the account username
+     * @param password     the password
      * @param startSession true to perform an initial sync
      * @throws Exception an exception if the account creation failed
      */
@@ -54,23 +54,13 @@ public class CryptoTestHelper {
         HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
         LoginRestClient loginRestClient = new LoginRestClient(hs);
 
-        final HashMap<String, Object> params = new HashMap<>();
+        final Map<String, Object> params = new HashMap<>();
         RegistrationParams registrationParams = new RegistrationParams();
 
-        mLock = new CountDownLatch(1);
+        CountDownLatch lock = new CountDownLatch(1);
 
         // get the registration session id
-        loginRestClient.register(registrationParams, new ApiCallback<Credentials>() {
-            @Override
-            public void onSuccess(Credentials credentials) {
-                mLock.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                mLock.countDown();
-            }
-
+        loginRestClient.register(registrationParams, new TestApiCallback<Credentials>(lock) {
             @Override
             public void onMatrixError(MatrixError e) {
                 // detect if a parameter is expected
@@ -88,62 +78,43 @@ public class CryptoTestHelper {
                 if (null != registrationFlowResponse) {
                     params.put("session", registrationFlowResponse.session);
                 }
-                mLock.countDown();
-            }
 
-            @Override
-            public void onUnexpectedError(Exception e) {
-                mLock.countDown();
+                super.onMatrixError(e);
             }
         });
 
-        mLock.await(10000, TimeUnit.MILLISECONDS);
+        lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
-        String session = (String)params.get("session");
+        String session = (String) params.get("session");
 
-        assertTrue(null != session);
+        Assert.assertNotNull(session);
 
         registrationParams.username = userName;
         registrationParams.password = password;
-        HashMap<String, Object> authParams = new HashMap<>();
+        Map<String, Object> authParams = new HashMap<>();
         authParams.put("session", session);
         authParams.put("type", LoginRestClient.LOGIN_FLOW_TYPE_DUMMY);
 
         registrationParams.auth = authParams;
 
-        mLock = new CountDownLatch(1);
-        loginRestClient.register(registrationParams, new ApiCallback<Credentials>() {
+        lock = new CountDownLatch(1);
+        loginRestClient.register(registrationParams, new TestApiCallback<Credentials>(lock) {
             @Override
             public void onSuccess(Credentials credentials) {
                 params.put("credentials", credentials);
-                mLock.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                mLock.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                mLock.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                mLock.countDown();
+                super.onSuccess(credentials);
             }
         });
 
-        mLock.await(10000, TimeUnit.MILLISECONDS);
+        lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
-        Credentials credentials = (Credentials)params.get("credentials");
+        Credentials credentials = (Credentials) params.get("credentials");
 
-        assertTrue (null != credentials);
+        Assert.assertNotNull(credentials);
 
         hs.setCredentials(credentials);
 
-        IMXStore store =  new MXFileStore(hs, context);
+        IMXStore store = new MXFileStore(hs, context);
 
         MXSession mxSession = new MXSession(hs, new MXDataHandler(store, credentials), context);
 
@@ -155,25 +126,26 @@ public class CryptoTestHelper {
         mxSession.getDataHandler().getStore().open();
         mxSession.startEventStream(null);
 
-        mLock = new CountDownLatch(1);
+        final CountDownLatch lock2 = new CountDownLatch(1);
         mxSession.getDataHandler().addListener(new MXEventListener() {
             @Override
             public void onInitialSyncComplete(String toToken) {
                 params.put("isInit", true);
-                mLock.countDown();
+                lock2.countDown();
             }
         });
 
-        mLock.await(100000, TimeUnit.MILLISECONDS);
+        lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
-        assertTrue(params.containsKey("isInit"));
+        Assert.assertTrue(params.containsKey("isInit"));
 
         return mxSession;
     }
 
     /**
      * Start an account login
-     * @param context the context
+     *
+     * @param context  the context
      * @param userName the account username
      * @param password the password
      * @throws Exception an exception if the account cannot be synced
@@ -183,70 +155,55 @@ public class CryptoTestHelper {
         HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
         LoginRestClient loginRestClient = new LoginRestClient(hs);
 
-        final HashMap<String, Object> params = new HashMap<>();
+        final Map<String, Object> params = new HashMap<>();
 
-        mLock = new CountDownLatch(1);
+        CountDownLatch lock = new CountDownLatch(1);
 
         // get the registration session id
-        loginRestClient.loginWithUser(userName, password, new ApiCallback<Credentials>() {
+        loginRestClient.loginWithUser(userName, password, new TestApiCallback<Credentials>(lock) {
             @Override
             public void onSuccess(Credentials credentials) {
                 params.put("credentials", credentials);
-                mLock.countDown();
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                mLock.countDown();
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                mLock.countDown();
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                mLock.countDown();
+                super.onSuccess(credentials);
             }
         });
 
-        mLock.await(10000, TimeUnit.MILLISECONDS);
+        lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
-        Credentials credentials = (Credentials)params.get("credentials");
+        Credentials credentials = (Credentials) params.get("credentials");
 
-        assertTrue (null != credentials);
+        Assert.assertNotNull(credentials);
 
         hs.setCredentials(credentials);
 
-        IMXStore store =  new MXFileStore(hs, context);
+        IMXStore store = new MXFileStore(hs, context);
 
         MXSession mxSession = new MXSession(hs, new MXDataHandler(store, credentials), context);
 
         mxSession.enableCryptoWhenStarting();
 
-        mLock = new CountDownLatch(2);
+        final CountDownLatch lock2 = new CountDownLatch(2);
         mxSession.getDataHandler().addListener(new MXEventListener() {
             @Override
             public void onInitialSyncComplete(String toToken) {
                 params.put("isInit", true);
-                mLock.countDown();
+                lock2.countDown();
             }
 
             @Override
             public void onCryptoSyncComplete() {
                 params.put("onCryptoSyncComplete", true);
-                mLock.countDown();
+                lock2.countDown();
             }
         });
 
         mxSession.getDataHandler().getStore().open();
         mxSession.startEventStream(null);
 
-        mLock.await(10000, TimeUnit.MILLISECONDS);
+        lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
-        assertTrue(params.containsKey("isInit"));
-        assertTrue(params.containsKey("onCryptoSyncComplete"));
+        Assert.assertTrue(params.containsKey("isInit"));
+        Assert.assertTrue(params.containsKey("onCryptoSyncComplete"));
 
         return mxSession;
     }

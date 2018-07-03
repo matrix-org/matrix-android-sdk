@@ -1,6 +1,7 @@
 /*
  * Copyright 2016 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +21,6 @@ package org.matrix.androidsdk.crypto.data;
 import android.text.TextUtils;
 
 import java.io.Serializable;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -168,7 +168,7 @@ public class MXDeviceInfo implements Serializable {
      * @return the signed data map
      */
     public Map<String, Object> signalableJSONDictionary() {
-        HashMap<String, Object> map = new HashMap<>();
+        Map<String, Object> map = new HashMap<>();
 
         map.put("device_id", deviceId);
 
@@ -191,7 +191,7 @@ public class MXDeviceInfo implements Serializable {
      * @return a dictionary of the parameters
      */
     public Map<String, Object> JSONDictionary() {
-        HashMap<String, Object> JSONDictionary = new HashMap<>();
+        Map<String, Object> JSONDictionary = new HashMap<>();
 
         JSONDictionary.put("device_id", deviceId);
 

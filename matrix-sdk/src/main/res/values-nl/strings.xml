@@ -8,8 +8,8 @@
     <string name="notice_room_invite_no_invitee">%s\'s uitnodiging</string>
     <string name="notice_room_invite">%1$s nodigde %2$s uit</string>
     <string name="notice_room_invite_you">%1$s heeft jou uitgenodigd</string>
-    <string name="notice_room_join">%1$s is toegetreden</string>
-    <string name="notice_room_leave">%1$s is weggegaan</string>
+    <string name="notice_room_join">%1$s is tot de ruimte toegetreden</string>
+    <string name="notice_room_leave">%1$s heeft de ruimte verlaten</string>
     <string name="notice_room_reject">%1$s heeft de uitnodiging niet geaccepteerd</string>
     <string name="notice_room_kick">%1$s verwijderde %2$s</string>
     <string name="notice_room_unban">%1$s heeft %2$s ontbannen</string>

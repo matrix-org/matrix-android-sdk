@@ -36,9 +36,9 @@ public class Fingerprint {
     private String mDisplayableHexRepr;
 
     public Fingerprint(byte[] bytes, HashType hashType) {
-        this.mBytes = bytes;
-        this.mHashType = hashType;
-        this.mDisplayableHexRepr = null;
+        mBytes = bytes;
+        mHashType = hashType;
+        mDisplayableHexRepr = null;
     }
 
     public static Fingerprint newSha256Fingerprint(X509Certificate cert) throws CertificateException {

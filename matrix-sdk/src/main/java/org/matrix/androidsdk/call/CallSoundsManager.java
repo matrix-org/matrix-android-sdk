@@ -260,7 +260,7 @@ public class CallSoundsManager {
     private Ringtone mRingTone;
     private MediaPlayer mMediaPlayer = null;
 
-    // the audio manager
+    // the audio manager (do not use directly, use getAudioManager())
     private AudioManager mAudioManager = null;
 
     // the playing sound
@@ -769,7 +769,7 @@ public class CallSoundsManager {
      * @return true if the speaker is turned on.
      */
     public boolean isSpeakerphoneOn() {
-        return mAudioManager.isSpeakerphoneOn();
+        return getAudioManager().isSpeakerphoneOn();
     }
 
     /**

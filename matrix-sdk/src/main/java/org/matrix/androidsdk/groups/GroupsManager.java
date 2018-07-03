@@ -18,6 +18,7 @@ package org.matrix.androidsdk.groups;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXDataHandler;
@@ -104,7 +105,7 @@ public class GroupsManager {
      */
     public void onSessionResumed() {
         refreshGroupProfiles((SimpleApiCallback<Void>) null);
-        getUserPublicisedGroups(mDataHandler.getUserId(), true, null);
+        getUserPublicisedGroups(mDataHandler.getUserId(), true, new SimpleApiCallback<Set<String>>());
 
         mGroupProfileByGroupId.clear();
         mGroupProfileCallback.clear();
@@ -385,7 +386,7 @@ public class GroupsManager {
      * @param callback the asynchronous callback
      */
     public void joinGroup(final String groupId, final ApiCallback<Void> callback) {
-        getGroupsRestClient().joinGroup(groupId, new ApiCallback<Void>() {
+        getGroupsRestClient().joinGroup(groupId, new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 Group group = getGroup(groupId);
@@ -397,21 +398,6 @@ public class GroupsManager {
                     callback.onSuccess(null);
                 }
             }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                callback.onNetworkError(e);
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                callback.onMatrixError(e);
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                callback.onUnexpectedError(e);
-            }
         });
     }
 
@@ -422,7 +408,7 @@ public class GroupsManager {
      * @param callback the asynchronous callback
      */
     public void leaveGroup(final String groupId, final ApiCallback<Void> callback) {
-        getGroupsRestClient().leaveGroup(groupId, new ApiCallback<Void>() {
+        getGroupsRestClient().leaveGroup(groupId, new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 Group group = getGroup(groupId);
@@ -433,21 +419,6 @@ public class GroupsManager {
                 } else {
                     callback.onSuccess(null);
                 }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                callback.onNetworkError(e);
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                callback.onMatrixError(e);
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                callback.onUnexpectedError(e);
             }
         });
     }
@@ -465,7 +436,7 @@ public class GroupsManager {
         params.profile = new GroupProfile();
         params.profile.name = groupName;
 
-        getGroupsRestClient().createGroup(params, new ApiCallback<String>() {
+        getGroupsRestClient().createGroup(params, new SimpleApiCallback<String>(callback) {
             @Override
             public void onSuccess(String groupId) {
                 Group group = getGroup(groupId);
@@ -479,21 +450,6 @@ public class GroupsManager {
                 }
 
                 callback.onSuccess(groupId);
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                callback.onNetworkError(e);
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                callback.onMatrixError(e);
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                callback.onUnexpectedError(e);
             }
         });
     }
@@ -522,7 +478,7 @@ public class GroupsManager {
      */
     private void refreshGroupData(final Group group, final int step, final ApiCallback<Void> callback) {
         if (step == GROUP_REFRESH_STEP_PROFILE) {
-            getGroupsRestClient().getGroupProfile(group.getGroupId(), new ApiCallback<GroupProfile>() {
+            getGroupsRestClient().getGroupProfile(group.getGroupId(), new SimpleApiCallback<GroupProfile>(callback) {
                 @Override
                 public void onSuccess(GroupProfile groupProfile) {
                     group.setGroupProfile(groupProfile);
@@ -530,28 +486,13 @@ public class GroupsManager {
                     mDataHandler.onGroupProfileUpdate(group.getGroupId());
                     refreshGroupData(group, GROUP_REFRESH_STEP_ROOMS_LIST, callback);
                 }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    callback.onNetworkError(e);
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    callback.onMatrixError(e);
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    callback.onUnexpectedError(e);
-                }
             });
 
             return;
         }
 
         if (step == GROUP_REFRESH_STEP_ROOMS_LIST) {
-            getGroupsRestClient().getGroupRooms(group.getGroupId(), new ApiCallback<GroupRooms>() {
+            getGroupsRestClient().getGroupRooms(group.getGroupId(), new SimpleApiCallback<GroupRooms>(callback) {
                 @Override
                 public void onSuccess(GroupRooms groupRooms) {
                     group.setGroupRooms(groupRooms);
@@ -559,48 +500,18 @@ public class GroupsManager {
                     mDataHandler.onGroupRoomsListUpdate(group.getGroupId());
                     refreshGroupData(group, GROUP_REFRESH_STEP_USERS_LIST, callback);
                 }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    callback.onNetworkError(e);
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    callback.onMatrixError(e);
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    callback.onUnexpectedError(e);
-                }
             });
             return;
         }
 
         if (step == GROUP_REFRESH_STEP_USERS_LIST) {
-            getGroupsRestClient().getGroupUsers(group.getGroupId(), new ApiCallback<GroupUsers>() {
+            getGroupsRestClient().getGroupUsers(group.getGroupId(), new SimpleApiCallback<GroupUsers>(callback) {
                 @Override
                 public void onSuccess(GroupUsers groupUsers) {
                     group.setGroupUsers(groupUsers);
                     mStore.flushGroup(group);
                     mDataHandler.onGroupUsersListUpdate(group.getGroupId());
                     refreshGroupData(group, GROUP_REFRESH_STEP_INVITED_USERS_LIST, callback);
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    callback.onNetworkError(e);
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    callback.onMatrixError(e);
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    callback.onUnexpectedError(e);
                 }
             });
             return;
@@ -609,7 +520,7 @@ public class GroupsManager {
 
         //if (step == GROUP_REFRESH_STEP_INVITED_USERS_LIST)
 
-        getGroupsRestClient().getGroupInvitedUsers(group.getGroupId(), new ApiCallback<GroupUsers>() {
+        getGroupsRestClient().getGroupInvitedUsers(group.getGroupId(), new SimpleApiCallback<GroupUsers>(callback) {
             @Override
             public void onSuccess(GroupUsers groupUsers) {
                 group.setInvitedGroupUsers(groupUsers);
@@ -619,21 +530,6 @@ public class GroupsManager {
                 }
                 mDataHandler.onGroupInvitedUsersListUpdate(group.getGroupId());
                 callback.onSuccess(null);
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                callback.onNetworkError(e);
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                callback.onMatrixError(e);
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                callback.onUnexpectedError(e);
             }
         });
     }
@@ -659,7 +555,9 @@ public class GroupsManager {
      * @param forceRefresh true to do not use the cached data
      * @param callback     the asynchronous callback.
      */
-    public void getUserPublicisedGroups(final String userId, final boolean forceRefresh, final ApiCallback<Set<String>> callback) {
+    public void getUserPublicisedGroups(final String userId,
+                                        final boolean forceRefresh,
+                                        @NonNull final ApiCallback<Set<String>> callback) {
         Log.d(LOG_TAG, "## getUserPublicisedGroups() : " + userId);
 
         // sanity check
@@ -768,7 +666,7 @@ public class GroupsManager {
      * @param callback  the asynchronous callback.
      */
     public void updateGroupPublicity(final String groupId, final boolean publicity, final ApiCallback<Void> callback) {
-        getGroupsRestClient().updateGroupPublicity(groupId, publicity, new ApiCallback<Void>() {
+        getGroupsRestClient().updateGroupPublicity(groupId, publicity, new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 if (mPubliciseByUserId.containsKey(groupId)) {
@@ -781,27 +679,6 @@ public class GroupsManager {
 
                 if (null != callback) {
                     callback.onSuccess(null);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
                 }
             }
         });

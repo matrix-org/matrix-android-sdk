@@ -18,33 +18,30 @@ package org.matrix.androidsdk.rest.client;
 
 import android.text.TextUtils;
 
-import com.google.gson.JsonObject;
-
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.ProfileApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.model.AuthParams;
+import org.matrix.androidsdk.rest.model.ChangePasswordParams;
 import org.matrix.androidsdk.rest.model.DeactivateAccountParams;
+import org.matrix.androidsdk.rest.model.ForgetPasswordParams;
+import org.matrix.androidsdk.rest.model.ForgetPasswordResponse;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationParams;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
 import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationParams;
 import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationResponse;
 import org.matrix.androidsdk.rest.model.ThreePidCreds;
-import org.matrix.androidsdk.rest.model.pid.AccountThreePidsResponse;
-import org.matrix.androidsdk.rest.model.pid.AddThreePidsParams;
-import org.matrix.androidsdk.rest.model.AuthParams;
-import org.matrix.androidsdk.rest.model.ChangePasswordParams;
-import org.matrix.androidsdk.rest.model.pid.DeleteThreePidParams;
-import org.matrix.androidsdk.rest.model.ForgetPasswordParams;
-import org.matrix.androidsdk.rest.model.ForgetPasswordResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
+import org.matrix.androidsdk.rest.model.pid.AccountThreePidsResponse;
+import org.matrix.androidsdk.rest.model.pid.AddThreePidsParams;
+import org.matrix.androidsdk.rest.model.pid.DeleteThreePidParams;
 import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.pid.ThreePid;
-import org.matrix.androidsdk.util.Log;
 
 import java.util.List;
 import java.util.Map;
@@ -73,7 +70,8 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     public void displayname(final String userId, final ApiCallback<String> callback) {
         final String description = "display name userId : " + userId;
 
-        mApi.displayname(userId).enqueue(new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.displayname(userId)
+                .enqueue(new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 displayname(userId, callback);
@@ -103,7 +101,8 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
 
         // don't retry if the network comes back
         // let the user chooses what he want to do
-        mApi.displayname(mCredentials.userId, user).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.displayname(mCredentials.userId, user)
+                .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 updateDisplayname(newName, callback);
@@ -120,7 +119,8 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     public void avatarUrl(final String userId, final ApiCallback<String> callback) {
         final String description = "avatarUrl userId : " + userId;
 
-        mApi.avatarUrl(userId).enqueue(new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.avatarUrl(userId)
+                .enqueue(new RestAdapterCallback<User>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 avatarUrl(userId, callback);
@@ -148,7 +148,8 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         User user = new User();
         user.setAvatarUrl(newUrl);
 
-        mApi.avatarUrl(mCredentials.userId, user).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.avatarUrl(mCredentials.userId, user)
+                .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 updateAvatarUrl(newUrl, callback);
@@ -177,7 +178,8 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         passwordParams.auth.password = oldPassword;
         passwordParams.new_password = newPassword;
 
-        mApi.updatePassword(passwordParams).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.updatePassword(passwordParams)
+                .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 updatePassword(userId, oldPassword, newPassword, callback);
@@ -205,7 +207,8 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         passwordParams.auth.threepid_creds = threepid_creds;
         passwordParams.new_password = newPassword;
 
-        mApi.updatePassword(passwordParams).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.updatePassword(passwordParams)
+                .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 resetPassword(newPassword, threepid_creds, callback);
@@ -231,7 +234,9 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
             forgetPasswordParams.send_attempt = 1;
             forgetPasswordParams.id_server = mHsConfig.getIdentityServerUri().getHost();
 
-            mApi.forgetPassword(forgetPasswordParams).enqueue(new RestAdapterCallback<ForgetPasswordResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+            mApi.forgetPassword(forgetPasswordParams)
+                    .enqueue(new RestAdapterCallback<ForgetPasswordResponse>(description, mUnsentEventsManager, callback,
+                            new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
                     forgetPassword(email, callback);
@@ -272,7 +277,8 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
 
         params.erase = eraseUserData;
 
-        mApi.deactivate(params).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.deactivate(params)
+                .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 deactivateAccount(type, userId, userPassword, eraseUserData, callback);
@@ -291,7 +297,8 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         TokenRefreshParams params = new TokenRefreshParams();
         params.refresh_token = mCredentials.refreshToken;
 
-        mApi.tokenrefresh(params).enqueue(new RestAdapterCallback<TokenRefreshResponse>(description, mUnsentEventsManager, callback, null) {
+        mApi.tokenrefresh(params)
+                .enqueue(new RestAdapterCallback<TokenRefreshResponse>(description, mUnsentEventsManager, callback, null) {
             @Override
             public void success(TokenRefreshResponse tokenreponse, Response response) {
                 onEventSent();
@@ -312,7 +319,8 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     public void threePIDs(final ApiCallback<List<ThirdPartyIdentifier>> callback) {
         final String description = "threePIDs";
 
-        mApi.threePIDs().enqueue(new RestAdapterCallback<AccountThreePidsResponse>(description, mUnsentEventsManager, callback, null) {
+        mApi.threePIDs()
+                .enqueue(new RestAdapterCallback<AccountThreePidsResponse>(description, mUnsentEventsManager, callback, null) {
             @Override
             public void success(AccountThreePidsResponse accountThreePidsResponse, Response<AccountThreePidsResponse> response) {
                 onEventSent();
@@ -348,7 +356,8 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
             params.next_link = nextLink;
         }
 
-        final RestAdapterCallback<RequestEmailValidationResponse> adapterCallback = new RestAdapterCallback<RequestEmailValidationResponse>(description, mUnsentEventsManager, callback,
+        final RestAdapterCallback<RequestEmailValidationResponse> adapterCallback
+                = new RestAdapterCallback<RequestEmailValidationResponse>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -397,7 +406,8 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         params.sendAttempt = attempt;
         params.id_server = mHsConfig.getIdentityServerUri().getHost();
 
-        final RestAdapterCallback<RequestPhoneNumberValidationResponse> adapterCallback = new RestAdapterCallback<RequestPhoneNumberValidationResponse>(description, mUnsentEventsManager, callback,
+        final RestAdapterCallback<RequestPhoneNumberValidationResponse> adapterCallback
+                = new RestAdapterCallback<RequestPhoneNumberValidationResponse>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -449,8 +459,8 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
 
         params.bind = bind;
 
-        mApi.add3PID(params).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback,
-                new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.add3PID(params)
+                .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
                         add3PID(pid, bind, callback);
@@ -471,8 +481,8 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         params.medium = pid.medium;
         params.address = pid.address;
 
-        mApi.delete3PID(params).enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback,
-                new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.delete3PID(params)
+                .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
                         delete3PID(pid, callback);

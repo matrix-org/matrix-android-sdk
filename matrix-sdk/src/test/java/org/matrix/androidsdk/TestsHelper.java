@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,6 +32,7 @@ import org.matrix.androidsdk.rest.model.login.RegistrationParams;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -48,14 +50,18 @@ public class TestsHelper {
      * @param callback the callback
      * @throws Exception an exception if the account cannot be created
      */
-    public static void createAccountAndSync(Context context, String userName, String password, boolean startSession, ApiCallback<MXSession> callback) throws Exception {
+    public static void createAccountAndSync(Context context,
+                                            String userName,
+                                            String password,
+                                            boolean startSession,
+                                            ApiCallback<MXSession> callback) throws Exception {
         RestClient.mUseMXExececutor = true;
 
         Uri uri = Uri.parse(TESTS_HOME_SERVER_URL);
         HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
         LoginRestClient loginRestClient = new LoginRestClient(hs);
 
-        final HashMap<String, Object> params = new HashMap<>();
+        final Map<String, Object> params = new HashMap<>();
         RegistrationParams registrationParams = new RegistrationParams();
 
         mLock = new CountDownLatch(1);
@@ -108,7 +114,7 @@ public class TestsHelper {
 
         registrationParams.username = userName;
         registrationParams.password = password;
-        HashMap<String, Object> authParams = new HashMap<>();
+        Map<String, Object> authParams = new HashMap<>();
         authParams.put("session", session);
         authParams.put("type", LoginRestClient.LOGIN_FLOW_TYPE_DUMMY);
 

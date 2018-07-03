@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +19,8 @@ package org.matrix.androidsdk.rest.model.search;
 
 import org.matrix.androidsdk.rest.model.Event;
 
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Class representing a search API response
@@ -40,13 +41,13 @@ public class SearchRoomEventResults {
      * This is included if the request had the include_state key set with a value of true.
      * The key is the roomId, the value its state. (TODO_SEARCH: right?)
      */
-    public HashMap<String, List<Event>> state;
+    public Map<String, List<Event>> state;
 
     /**
      * Any groups that were requested.
      * The key is the group id (TODO_SEARCH).
      */
-    public HashMap<String, SearchGroup> groups;
+    public Map<String, SearchGroup> groups;
 
     /**
      * Token that can be used to get the next batch of results in the group, if exists.

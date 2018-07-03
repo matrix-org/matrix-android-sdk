@@ -1,6 +1,7 @@
 /*
  * Copyright 2015 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +18,13 @@
 
 package org.matrix.androidsdk.data;
 
-import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomTags;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Class representing a room tag.
@@ -64,15 +66,15 @@ public class RoomTag implements java.io.Serializable {
      * @param event a room tag event (which can contains several tags)
      * @return a dictionary containing the tags the user defined for one room.
      */
-    public static HashMap<String, RoomTag> roomTagsWithTagEvent(Event event) {
-        HashMap<String, RoomTag> tags = new HashMap<>();
+    public static Map<String, RoomTag> roomTagsWithTagEvent(Event event) {
+        Map<String, RoomTag> tags = new HashMap<>();
 
         try {
             RoomTags roomtags = JsonUtils.toRoomTags(event.getContent());
 
             if ((null != roomtags.tags) && (0 != roomtags.tags.size())) {
                 for (String tagName : roomtags.tags.keySet()) {
-                    HashMap<String, Double> params = roomtags.tags.get(tagName);
+                    Map<String, Double> params = roomtags.tags.get(tagName);
                     tags.put(tagName, new RoomTag(tagName, params.get("order")));
                 }
             }
