@@ -12,7 +12,7 @@
     <string name="notice_room_invite">%1$s convidou a %2$s</string>
     <string name="notice_room_invite_you">%1$s convidouno</string>
     <string name="notice_room_join">%1$s entrou</string>
-    <string name="notice_room_leave">%1$Esquerda</string>
+    <string name="notice_room_leave">%1$s saíu</string>
     <string name="notice_room_reject">%1$s rexeitou o convite</string>
     <string name="notice_room_kick">%1$s expulsou a %2$s</string>
     <string name="notice_room_unban">%1$s desbloqueou a %2$s</string>
@@ -33,7 +33,7 @@
     <string name="notice_room_visibility_joined">todas a xente da sala, desde o momento en que entraron.</string>
     <string name="notice_room_visibility_shared">todas os membros da sala.</string>
     <string name="notice_room_visibility_world_readable">todos.</string>
-    <string name="notice_room_visibility_unknown">descoñecido).</string>
+    <string name="notice_room_visibility_unknown">descoñecido (%s).</string>
     <string name="notice_end_to_end">%1$s activou a criptografía par-a-par (%2$s)</string>
 
     <string name="notice_requested_voip_conference">%1$s solicitou unha conferencia VoIP</string>
