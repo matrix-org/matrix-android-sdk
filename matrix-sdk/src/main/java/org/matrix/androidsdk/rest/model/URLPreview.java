@@ -17,6 +17,8 @@
 
 package org.matrix.androidsdk.rest.model;
 
+import android.text.TextUtils;
+
 import java.util.Map;
 
 /**
@@ -74,13 +76,21 @@ public class URLPreview implements java.io.Serializable {
      *
      * @param map the constructor parameters
      */
-    public URLPreview(Map<String, Object> map) {
+    public URLPreview(Map<String, Object> map, String url) {
         mDescription = getAsString(map, OG_DESCRIPTION);
         mTitle = getAsString(map, OG_TITLE);
         mType = getAsString(map, OG_TYPE);
 
         mSiteName = getAsString(map, OG_SITE_NAME);
-        mRequestedURL = getAsString(map, OG_URL);
+
+        String requestedUrl = getAsString(map, OG_URL);
+
+        if (TextUtils.isEmpty(requestedUrl)) {
+            // Fallback: use url
+            mRequestedURL = url;
+        } else {
+            mRequestedURL = requestedUrl;
+        }
 
         mThumbnailURL = getAsString(map, OG_IMAGE);
         mThumbnailMimeType = getAsString(map, OG_IMAGE_TYPE);
