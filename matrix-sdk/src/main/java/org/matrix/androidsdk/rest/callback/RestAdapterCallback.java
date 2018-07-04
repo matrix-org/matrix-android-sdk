@@ -168,7 +168,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
                 try {
                     mApiCallback.onSuccess(t);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## succeed() : onSuccess failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## succeed() : onSuccess failed " + e.getMessage(), e);
                     mApiCallback.onUnexpectedError(e);
                 }
             }
