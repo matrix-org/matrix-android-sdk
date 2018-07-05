@@ -17,6 +17,8 @@ package org.matrix.androidsdk.util;
 
 import android.text.TextUtils;
 
+import org.matrix.olm.BuildConfig;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -170,13 +172,17 @@ public class Log {
     }
 
     public static void d(String tag, String content) {
-        android.util.Log.d(tag, content);
-        logToFile("D", tag, content);
+        if (BuildConfig.DEBUG) {
+            android.util.Log.d(tag, content);
+            logToFile("D", tag, content);
+        }
     }
 
     public static void d(String tag, String content, Throwable throwable) {
-        android.util.Log.d(tag, content, throwable);
-        logToFile("D", tag, content);
+        if (BuildConfig.DEBUG) {
+            android.util.Log.d(tag, content, throwable);
+            logToFile("D", tag, content);
+        }
     }
 
     public static void i(String tag, String content) {
