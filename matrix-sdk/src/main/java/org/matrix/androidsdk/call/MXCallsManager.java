@@ -555,7 +555,8 @@ public class MXCallsManager {
 
                                                             @Override
                                                             public void onNetworkError(Exception e) {
-                                                                Log.e(LOG_TAG, "## checkPendingIncomingCalls() : checkUnknownDevices failed " + e.getMessage(), e);
+                                                                Log.e(LOG_TAG, "## checkPendingIncomingCalls() : checkUnknownDevices failed "
+                                                                        + e.getMessage(), e);
                                                                 dispatchOnIncomingCall(call, null);
                                                             }
 

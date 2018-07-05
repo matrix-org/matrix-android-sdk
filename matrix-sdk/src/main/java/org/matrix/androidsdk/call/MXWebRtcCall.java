@@ -731,7 +731,8 @@ public class MXWebRtcCall extends MXCall {
                                                 addIt = false;
                                             }
                                         } catch (Exception e) {
-                                            Log.e(LOG_TAG, "## createLocalStream(): createPeerConnection - onIceCandidate() Exception Msg=" + e.getMessage(), e);
+                                            Log.e(LOG_TAG, "## createLocalStream(): createPeerConnection - onIceCandidate() Exception Msg="
+                                                    + e.getMessage(), e);
                                         }
                                     }
 

@@ -424,7 +424,8 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
                         @Override
                         public void onNetworkError(Exception e) {
-                            Log.e(LOG_TAG, "## shareKeysWithDevice() : ensureOlmSessionsForDevices " + userId + ":" + deviceId + " failed " + e.getMessage(), e);
+                            Log.e(LOG_TAG, "## shareKeysWithDevice() : ensureOlmSessionsForDevices " + userId + ":" + deviceId + " failed "
+                                    + e.getMessage(), e);
                         }
 
                         @Override
@@ -434,7 +435,8 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
                         @Override
                         public void onUnexpectedError(Exception e) {
-                            Log.e(LOG_TAG, "## shareKeysWithDevice() : ensureOlmSessionsForDevices " + userId + ":" + deviceId + " failed " + e.getMessage(), e);
+                            Log.e(LOG_TAG, "## shareKeysWithDevice() : ensureOlmSessionsForDevices " + userId + ":" + deviceId + " failed "
+                                    + e.getMessage(), e);
                         }
                     });
                 } else {
