@@ -128,14 +128,14 @@ public class UnsentEventsManager {
                             mRequestRetryCallBack.onRetry();
                         } catch (Throwable throwable) {
                             mIsResending = false;
-                            Log.e(LOG_TAG, "## resendEventAfter() : " + mEventDescription + " + onRetry failed " + throwable.getMessage());
+                            Log.e(LOG_TAG, "## resendEventAfter() : " + mEventDescription + " + onRetry failed " + throwable.getMessage(), throwable);
                         }
                     }
                 }, delayMs);
                 return true;
 
             } catch (Throwable t) {
-                Log.e(LOG_TAG, "## resendEventAfter failed " + t.getMessage());
+                Log.e(LOG_TAG, "## resendEventAfter failed " + t.getMessage(), t);
             }
 
             return false;
@@ -266,7 +266,7 @@ public class UnsentEventsManager {
         if ((null != exception) && !TextUtils.isEmpty(exception.getMessage())) {
             // privacy
             //Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl());
-            Log.e(LOG_TAG, exception.getLocalizedMessage());
+            Log.e(LOG_TAG, exception.getLocalizedMessage(), exception);
         }
 
         if (null == exception) {
@@ -318,7 +318,7 @@ public class UnsentEventsManager {
                 } catch (Exception e) {
                     // privacy
                     //Log.e(LOG_TAG, "Exception MatrixError " + e.getMessage() + " while managing " + error.getUrl());
-                    Log.e(LOG_TAG, "Exception MatrixError " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "Exception MatrixError " + e.getLocalizedMessage(), e);
                 }
             } else {
                 try {
@@ -332,7 +332,7 @@ public class UnsentEventsManager {
                 } catch (Exception e) {
                     // privacy
                     //Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
-                    Log.e(LOG_TAG, "Exception UnexpectedError " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "Exception UnexpectedError " + e.getLocalizedMessage(), e);
                 }
             }
         }
@@ -490,7 +490,7 @@ public class UnsentEventsManager {
                                 Log.d(LOG_TAG, "The request " + eventDescription + " will be sent when a network will be available");
                             }
                         } catch (Throwable throwable) {
-                            Log.e(LOG_TAG, "## snapshot creation failed " + throwable.getMessage());
+                            Log.e(LOG_TAG, "## snapshot creation failed " + throwable.getMessage(), throwable);
 
                             if (null != snapshot.mLifeTimeTimer) {
                                 snapshot.mLifeTimeTimer.cancel();

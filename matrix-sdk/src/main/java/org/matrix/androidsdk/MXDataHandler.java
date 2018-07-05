@@ -361,7 +361,7 @@ public class MXDataHandler implements IMXEventListener {
     private void checkIfAlive() {
         synchronized (this) {
             if (!mIsAlive) {
-                Log.e(LOG_TAG, "use of a released dataHandler");
+                Log.e(LOG_TAG, "use of a released dataHandler", new Exception("use of a released dataHandler"));
                 //throw new AssertionError("Should not used a MXDataHandler");
             }
         }
@@ -1353,7 +1353,7 @@ public class MXDataHandler implements IMXEventListener {
 
                             getRoom(roomId).handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
                         } catch (Exception e) {
-                            Log.e(LOG_TAG, "## manageResponse() : handleJoinedRoomSync failed " + e.getMessage() + " for room " + roomId);
+                            Log.e(LOG_TAG, "## manageResponse() : handleJoinedRoomSync failed " + e.getMessage() + " for room " + roomId, e);
                         }
                     }
 
@@ -1423,7 +1423,7 @@ public class MXDataHandler implements IMXEventListener {
                                 }
                             }
                         } catch (Exception e) {
-                            Log.e(LOG_TAG, "## manageResponse() : handleInvitedRoomSync failed " + e.getMessage() + " for room " + roomId);
+                            Log.e(LOG_TAG, "## manageResponse() : handleInvitedRoomSync failed " + e.getMessage() + " for room " + roomId, e);
                         }
                     }
 

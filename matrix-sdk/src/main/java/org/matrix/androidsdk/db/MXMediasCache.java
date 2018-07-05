@@ -799,7 +799,7 @@ public class MXMediasCache {
                 try {
                     isCached = (new File(getThumbnailsFolderFile(), MXMediaDownloadWorkerTask.buildFileName(thumbnailCacheId, "image/jpeg"))).exists();
                 } catch (Throwable t) {
-                    Log.e(LOG_TAG, "## isAvatarThumbnailCached() : failed " + t.getMessage());
+                    Log.e(LOG_TAG, "## isAvatarThumbnailCached() : failed " + t.getMessage(), t);
                 }
             }
         }
@@ -1029,7 +1029,7 @@ public class MXMediasCache {
                 mSuspendedTasks.add(task);
                 // privacy
                 //Log.e(LOG_TAG, "Suspend the task " + task.getUrl());
-                Log.e(LOG_TAG, "Suspend the task ");
+                Log.e(LOG_TAG, "Suspend the task ", e);
             }
 
         } catch (Exception e) {
@@ -1282,7 +1282,7 @@ public class MXMediasCache {
                         mSuspendedTasks.add(task);
                         // privacy
                         //Log.e(LOG_TAG, "Suspend the task " + task.getUrl());
-                        Log.e(LOG_TAG, "Suspend a task ");
+                        Log.e(LOG_TAG, "Suspend a task", e);
                     }
 
                 } catch (Exception e) {

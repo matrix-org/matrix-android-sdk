@@ -214,7 +214,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
                         try {
                             mApiCallback.onNetworkError(exception);
                         } catch (Exception e) {
-                            Log.e(LOG_TAG, "## failure(): onNetworkError " + exception.getLocalizedMessage());
+                            Log.e(LOG_TAG, "## failure(): onNetworkError " + exception.getLocalizedMessage(), exception);
                         }
                     }
                 } catch (Exception e) {

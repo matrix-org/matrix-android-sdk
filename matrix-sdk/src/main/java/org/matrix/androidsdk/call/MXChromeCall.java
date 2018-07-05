@@ -668,7 +668,7 @@ public class MXChromeCall extends MXCall {
                                             mCallTimeoutTimer.cancel();
                                             mCallTimeoutTimer = null;
                                         }
-                                        Log.e(LOG_TAG, "## wSendEvent() ; " + throwable.getMessage());
+                                        Log.e(LOG_TAG, "## wSendEvent() ; " + throwable.getMessage(), throwable);
                                     }
                                 }
                             }

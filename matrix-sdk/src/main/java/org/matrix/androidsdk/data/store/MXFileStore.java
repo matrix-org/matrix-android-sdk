@@ -338,7 +338,7 @@ public class MXFileStore extends MXMemoryStore {
                     try {
                         mHandlerThread.start();
                     } catch (IllegalThreadStateException e) {
-                        Log.e(LOG_TAG, "mHandlerThread is already started.");
+                        Log.e(LOG_TAG, "mHandlerThread is already started.", e);
                         // already started
                         return;
                     }
@@ -368,7 +368,7 @@ public class MXFileStore extends MXMemoryStore {
                                         errorDescription = "loadRoomsMessages fails";
                                         Log.e(LOG_TAG, errorDescription);
                                     } else {
-                                        Log.e(LOG_TAG, "loadRoomsMessages succeeds");
+                                        Log.d(LOG_TAG, "loadRoomsMessages succeeds");
                                     }
                                 }
 
@@ -378,7 +378,7 @@ public class MXFileStore extends MXMemoryStore {
                                         errorDescription = "loadGroups fails";
                                         Log.e(LOG_TAG, errorDescription);
                                     } else {
-                                        Log.e(LOG_TAG, "loadGroups succeeds");
+                                        Log.d(LOG_TAG, "loadGroups succeeds");
                                     }
                                 }
 
@@ -389,9 +389,9 @@ public class MXFileStore extends MXMemoryStore {
                                         errorDescription = "loadRoomsState fails";
                                         Log.e(LOG_TAG, errorDescription);
                                     } else {
-                                        Log.e(LOG_TAG, "loadRoomsState succeeds");
+                                        Log.d(LOG_TAG, "loadRoomsState succeeds");
                                         long t0 = System.currentTimeMillis();
-                                        Log.e(LOG_TAG, "Retrieve the users from the roomstate");
+                                        Log.d(LOG_TAG, "Retrieve the users from the roomstate");
 
                                         Collection<Room> rooms = getRooms();
 
@@ -403,7 +403,7 @@ public class MXFileStore extends MXMemoryStore {
                                         }
 
                                         long delta = System.currentTimeMillis() - t0;
-                                        Log.e(LOG_TAG, "Retrieve " + mUsers.size() + " users with the room states in " + delta + "  ms");
+                                        Log.d(LOG_TAG, "Retrieve " + mUsers.size() + " users with the room states in " + delta + "  ms");
                                         mStoreStats.put("Retrieve users", delta);
                                     }
                                 }
@@ -415,7 +415,7 @@ public class MXFileStore extends MXMemoryStore {
                                         errorDescription = "loadSummaries fails";
                                         Log.e(LOG_TAG, errorDescription);
                                     } else {
-                                        Log.e(LOG_TAG, "loadSummaries succeeds");
+                                        Log.d(LOG_TAG, "loadSummaries succeeds");
 
                                         // Check if the room summaries match to existing rooms.
                                         // We could have more rooms than summaries because
@@ -447,7 +447,7 @@ public class MXFileStore extends MXMemoryStore {
                                         errorDescription = "loadRoomsAccountData fails";
                                         Log.e(LOG_TAG, errorDescription);
                                     } else {
-                                        Log.e(LOG_TAG, "loadRoomsAccountData succeeds");
+                                        Log.d(LOG_TAG, "loadRoomsAccountData succeeds");
                                     }
                                 }
 
@@ -526,7 +526,7 @@ public class MXFileStore extends MXMemoryStore {
                                         mMetricsListener.onStorePreloaded(mPreloadTime);
                                     }
 
-                                    Log.e(LOG_TAG, "The store is opened.");
+                                    Log.d(LOG_TAG, "The store is opened.");
                                     dispatchOnStoreReady(mCredentials.userId);
 
                                     // load the following items with delay
@@ -1015,7 +1015,7 @@ public class MXFileStore extends MXMemoryStore {
                 Thread t = new Thread(r);
                 t.start();
             } catch (OutOfMemoryError oom) {
-                Log.e(LOG_TAG, "saveUser : cannot clone the users list" + oom.getMessage());
+                Log.e(LOG_TAG, "saveUser : cannot clone the users list" + oom.getMessage(), oom);
             }
         }
     }
@@ -1038,7 +1038,7 @@ public class MXFileStore extends MXMemoryStore {
                 try {
                     users.addAll((List<User>) usersAsVoid);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "loadUsers failed : " + e.toString());
+                    Log.e(LOG_TAG, "loadUsers failed : " + e.toString(), e);
                 }
             }
         }
@@ -1286,7 +1286,7 @@ public class MXFileStore extends MXMemoryStore {
                 }
             } catch (Exception e) {
                 succeed = false;
-                Log.e(LOG_TAG, "loadRoomToken failed : " + e.toString());
+                Log.e(LOG_TAG, "loadRoomToken failed : " + e.toString(), e);
             }
 
             if (null != token) {
@@ -1781,7 +1781,7 @@ public class MXFileStore extends MXMemoryStore {
             }
         } catch (Exception e) {
             succeeded = false;
-            Log.e(LOG_TAG, "loadRoomAccountData failed : " + e.toString());
+            Log.e(LOG_TAG, "loadRoomAccountData failed : " + e.toString(), e);
         }
 
         // succeeds to extract the message list
@@ -2014,7 +2014,7 @@ public class MXFileStore extends MXMemoryStore {
                     // extract the latest event stream token
                     mEventStreamToken = mMetadata.mEventStreamToken;
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## loadMetaData() : is corrupted");
+                    Log.e(LOG_TAG, "## loadMetaData() : is corrupted", e);
                     return;
                 }
             }
@@ -2499,7 +2499,7 @@ public class MXFileStore extends MXMemoryStore {
                 Thread t = new Thread(r);
                 t.start();
             } catch (OutOfMemoryError oom) {
-                Log.e(LOG_TAG, "saveGroups : failed" + oom.getMessage());
+                Log.e(LOG_TAG, "saveGroups : failed" + oom.getMessage(), oom);
             }
         }
     }

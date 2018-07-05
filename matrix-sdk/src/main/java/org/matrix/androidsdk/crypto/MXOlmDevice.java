@@ -301,7 +301,7 @@ public class MXOlmDevice {
             try {
                 Log.d(LOG_TAG, "## createInboundSession() :ciphertext: SHA256:" + mOlmUtility.sha256(URLEncoder.encode(ciphertext, "utf-8")));
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## createInboundSession() :ciphertext: cannot encode ciphertext");
+                Log.e(LOG_TAG, "## createInboundSession() :ciphertext: cannot encode ciphertext", e);
             }
 
             OlmMessage olmMessage = new OlmMessage();
@@ -609,7 +609,7 @@ public class MXOlmDevice {
         try {
             session = new MXOlmInboundGroupSession2(exportedSessionMap);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## importInboundGroupSession() : Update for megolm session " + senderKey + "/" + sessionId);
+            Log.e(LOG_TAG, "## importInboundGroupSession() : Update for megolm session " + senderKey + "/" + sessionId, e);
         }
 
         // sanity check

@@ -1159,7 +1159,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }, 1000);
                 mPendingRelaunchTimersByEventId.put(messageRow.getEvent().eventId, relaunchTimer);
             } catch (Throwable throwable) {
-                Log.e(LOG_TAG, "relaunchTimer.schedule failed " + throwable.getMessage());
+                Log.e(LOG_TAG, "relaunchTimer.schedule failed " + throwable.getMessage(), throwable);
             }
         } else {
             messageRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
@@ -1396,7 +1396,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         if (null != activity) {
             if (error instanceof Exception) {
-                Log.e(LOG_TAG, "Network error: " + ((Exception) error).getMessage());
+                Log.e(LOG_TAG, "Network error: " + ((Exception) error).getMessage(), (Exception) error);
                 Toast.makeText(activity, activity.getString(R.string.network_error), Toast.LENGTH_SHORT).show();
 
             } else if (error instanceof MatrixError) {

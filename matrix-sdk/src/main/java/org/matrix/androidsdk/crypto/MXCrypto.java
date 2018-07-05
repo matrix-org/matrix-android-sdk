@@ -899,7 +899,7 @@ public class MXCrypto {
             Constructor<?> ctor = encryptingClass.getConstructors()[0];
             alg = (IMXEncrypting) ctor.newInstance();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## setEncryptionInRoom() : fail to load the class");
+            Log.e(LOG_TAG, "## setEncryptionInRoom() : fail to load the class", e);
             return false;
         }
 
@@ -2189,7 +2189,7 @@ public class MXCrypto {
                     }
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## getRoomDecryptor() : fail to load the class");
+                Log.e(LOG_TAG, "## getRoomDecryptor() : fail to load the class", e);
                 return null;
             }
         }

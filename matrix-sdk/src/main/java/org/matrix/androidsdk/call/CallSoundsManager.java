@@ -595,7 +595,7 @@ public class CallSoundsManager {
                 return ringToneUri;
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## getRingToneUri():  Exception2 Msg=" + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "## getRingToneUri():  Exception2 Msg=" + e.getLocalizedMessage(), e);
         }
 
         return null;

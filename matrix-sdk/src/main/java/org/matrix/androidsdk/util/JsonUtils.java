@@ -476,7 +476,7 @@ public class JsonUtils {
             try {
                 object = constructors[0].newInstance();
             } catch (Throwable t) {
-                Log.e(LOG_TAG, "## toClass failed " + t.getMessage());
+                Log.e(LOG_TAG, "## toClass failed " + t.getMessage(), t);
             }
         }
 
@@ -506,7 +506,7 @@ public class JsonUtils {
             try {
                 object = constructors[0].newInstance();
             } catch (Throwable t) {
-                Log.e(LOG_TAG, "## toClass failed " + t.getMessage());
+                Log.e(LOG_TAG, "## toClass failed " + t.getMessage(), t);
             }
         }
 

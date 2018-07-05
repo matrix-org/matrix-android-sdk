@@ -652,7 +652,6 @@ public class MatrixMessagesFragment extends Fragment {
             }
 
             private void onError(String errorMessage) {
-                Log.e(LOG_TAG, "joinRoom error: " + errorMessage);
                 if (null != getActivity()) {
                     Toast.makeText(mContext, errorMessage, Toast.LENGTH_SHORT).show();
                     getActivity().finish();

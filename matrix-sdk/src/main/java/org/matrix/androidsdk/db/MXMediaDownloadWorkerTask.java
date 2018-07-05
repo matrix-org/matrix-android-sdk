@@ -448,7 +448,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
                             bitmap = BitmapFactory.decodeStream(fis, null, options);
                         } catch (OutOfMemoryError error) {
                             System.gc();
-                            Log.e(LOG_TAG, "bitmapForURL() : Out of memory 1 " + error);
+                            Log.e(LOG_TAG, "bitmapForURL() : Out of memory 1 " + error, error);
                         }
 
                         //  try again
@@ -456,7 +456,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
                             try {
                                 bitmap = BitmapFactory.decodeStream(fis, null, options);
                             } catch (OutOfMemoryError error) {
-                                Log.e(LOG_TAG, "bitmapForURL() Out of memory 2" + error);
+                                Log.e(LOG_TAG, "bitmapForURL() Out of memory 2 " + error, error);
                             }
                         }
 
@@ -472,7 +472,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
                                         bitmap.recycle();
                                         bitmap = transformedBitmap;
                                     } catch (OutOfMemoryError ex) {
-                                        Log.e(LOG_TAG, "bitmapForURL rotation error : " + ex.getMessage());
+                                        Log.e(LOG_TAG, "bitmapForURL rotation error : " + ex.getMessage(), ex);
                                     }
                                 }
 
@@ -492,7 +492,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
                 } catch (FileNotFoundException e) {
                     Log.d(LOG_TAG, "bitmapForURL() : " + fFilename + " does not exist");
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "bitmapForURL() " + e);
+                    Log.e(LOG_TAG, "bitmapForURL() " + e, e);
 
                 }
 
@@ -811,7 +811,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
 
                         jsonElementResult = new JsonParser().parse(responseStrBuilder.toString());
                     } catch (Exception ee) {
-                        Log.e(LOG_TAG, "bitmapForURL : Error parsing error " + ee.getMessage());
+                        Log.e(LOG_TAG, "bitmapForURL : Error parsing error " + ee.getMessage(), ee);
                     }
                 }
 
@@ -888,7 +888,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
                         mDownloadStats.mProgress = 100;
                     }
                 } catch (OutOfMemoryError outOfMemoryError) {
-                    Log.e(LOG_TAG, "doInBackground: out of memory");
+                    Log.e(LOG_TAG, "doInBackground: out of memory", outOfMemoryError);
                     defaultError.error = outOfMemoryError.getLocalizedMessage();
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "doInBackground fail to read image " + e.getMessage(), e);
@@ -935,7 +935,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
                 }
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "Unable to download media " + this);
+            Log.e(LOG_TAG, "Unable to download media " + this, e);
             defaultError.error = e.getMessage();
         }
 

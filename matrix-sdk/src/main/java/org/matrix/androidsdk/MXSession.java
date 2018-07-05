@@ -1991,7 +1991,7 @@ public class MXSession {
 
             @Override
             public void onSuccess(JsonObject info) {
-                Log.e(LOG_TAG, "## logout() : succeed -> clearing the application data ");
+                Log.d(LOG_TAG, "## logout() : succeed -> clearing the application data ");
                 clearData();
             }
 
@@ -2035,7 +2035,7 @@ public class MXSession {
 
             @Override
             public void onSuccess(Void info) {
-                Log.e(LOG_TAG, "## deactivateAccount() : succeed -> clearing the application data ");
+                Log.d(LOG_TAG, "## deactivateAccount() : succeed -> clearing the application data ");
 
                 // Clear crypto data
                 // For security and because it will be no more useful as we will get a new device id
@@ -2360,7 +2360,7 @@ public class MXSession {
                     try {
                         registrationFlowResponse = JsonUtils.toRegistrationFlowResponse(matrixError.mErrorBodyAsString);
                     } catch (Exception castExcept) {
-                        Log.e(LOG_TAG, "## deleteDevice(): Received status 401 - Exception - JsonUtils.toRegistrationFlowResponse()");
+                        Log.e(LOG_TAG, "## deleteDevice(): Received status 401 - Exception - JsonUtils.toRegistrationFlowResponse()", castExcept);
                     }
                 } else {
                     Log.d(LOG_TAG, "## deleteDevice(): Received not expected status 401 =" + matrixError.mStatus);

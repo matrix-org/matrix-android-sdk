@@ -872,7 +872,7 @@ public class MXCallsManager {
                                     }
                                 }, msDelay);
                             } catch (Throwable e) {
-                                Log.e(LOG_TAG, "## refreshTurnServer() failed to start the timer");
+                                Log.e(LOG_TAG, "## refreshTurnServer() failed to start the timer", e);
 
                                 if (null != mTurnServerTimer) {
                                     mTurnServerTimer.cancel();
@@ -915,7 +915,7 @@ public class MXCallsManager {
 
                     @Override
                     public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "## refreshTurnServer () : onNetworkError " + e);
+                        Log.e(LOG_TAG, "## refreshTurnServer () : onNetworkError", e);
                         restartAfter(60000);
                     }
 
@@ -932,6 +932,7 @@ public class MXCallsManager {
                     @Override
                     public void onUnexpectedError(Exception e) {
                         // should never happen
+                        Log.e(LOG_TAG, "## refreshTurnServer () : onUnexpectedError()", e);
                     }
                 });
             }

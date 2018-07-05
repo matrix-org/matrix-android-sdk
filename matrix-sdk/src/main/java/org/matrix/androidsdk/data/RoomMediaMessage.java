@@ -870,7 +870,7 @@ public class RoomMediaMessage implements Parcelable {
                                 }
                             }
                         } catch (Exception e) {
-                            Log.e(LOG_TAG, "fail to extract the extra stream");
+                            Log.e(LOG_TAG, "fail to extract the extra stream", e);
                         }
                     }
                 }

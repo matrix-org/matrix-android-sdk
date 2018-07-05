@@ -272,7 +272,7 @@ class RoomMediaMessagesSender {
                             try {
                                 callback.onNetworkError(e);
                             } catch (Exception e2) {
-                                Log.e(LOG_TAG, "## sendNext() failed " + e2.getMessage());
+                                Log.e(LOG_TAG, "## sendNext() failed " + e2.getMessage(), e2);
                             }
                         }
 
@@ -287,7 +287,7 @@ class RoomMediaMessagesSender {
                             try {
                                 callback.onMatrixError(e);
                             } catch (Exception e2) {
-                                Log.e(LOG_TAG, "## sendNext() failed " + e2.getMessage());
+                                Log.e(LOG_TAG, "## sendNext() failed " + e2.getMessage(), e2);
                             }
                         }
 
@@ -302,7 +302,7 @@ class RoomMediaMessagesSender {
                             try {
                                 callback.onUnexpectedError(e);
                             } catch (Exception e2) {
-                                Log.e(LOG_TAG, "## sendNext() failed " + e2.getMessage());
+                                Log.e(LOG_TAG, "## sendNext() failed " + e2.getMessage(), e2);
                             }
                         }
 
@@ -396,7 +396,7 @@ class RoomMediaMessagesSender {
         } catch (Exception e) {
             Log.e(LOG_TAG, "cannot restore the medias picker thumbnail " + e.getMessage(), e);
         } catch (OutOfMemoryError oom) {
-            Log.e(LOG_TAG, "cannot restore the medias picker thumbnail oom");
+            Log.e(LOG_TAG, "cannot restore the medias picker thumbnail oom", oom);
         }
 
         return thumbnailBitmap;
@@ -735,7 +735,7 @@ class RoomMediaMessagesSender {
                                         try {
                                             new File(Uri.parse(url).getPath()).delete();
                                         } catch (Exception e) {
-                                            Log.e(LOG_TAG, "## cannot delete the uncompress media");
+                                            Log.e(LOG_TAG, "## cannot delete the uncompress media", e);
                                         }
                                     } else {
                                         Pair<Integer, Integer> thumbnailSize = roomMediaMessage.getThumnailSize();
@@ -758,7 +758,7 @@ class RoomMediaMessagesSender {
                                         try {
                                             new File(Uri.parse(url).getPath()).delete();
                                         } catch (Exception e) {
-                                            Log.e(LOG_TAG, "## cannot delete the uncompress media");
+                                            Log.e(LOG_TAG, "## cannot delete the uncompress media", e);
                                         }
                                     } else {
                                         // replace the thumbnail and the media contents by the computed one

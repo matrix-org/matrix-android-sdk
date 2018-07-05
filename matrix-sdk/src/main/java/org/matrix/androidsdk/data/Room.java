@@ -1795,7 +1795,7 @@ public class Room {
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "fillImageInfo : failed" + e.getMessage(), e);
                 } catch (OutOfMemoryError oom) {
-                    Log.e(LOG_TAG, "fillImageInfo : oom");
+                    Log.e(LOG_TAG, "fillImageInfo : oom", oom);
                 }
             }
 
@@ -2354,7 +2354,7 @@ public class Room {
                 try {
                     callback.onNetworkError(e);
                 } catch (Exception anException) {
-                    Log.e(LOG_TAG, "sendEvent exception " + anException.getMessage());
+                    Log.e(LOG_TAG, "sendEvent exception " + anException.getMessage(), anException);
                 }
             }
 
@@ -2369,7 +2369,7 @@ public class Room {
                     try {
                         callback.onMatrixError(e);
                     } catch (Exception anException) {
-                        Log.e(LOG_TAG, "sendEvent exception " + anException.getMessage());
+                        Log.e(LOG_TAG, "sendEvent exception " + anException.getMessage(), anException);
                     }
                 }
             }
@@ -2381,7 +2381,7 @@ public class Room {
                 try {
                     callback.onUnexpectedError(e);
                 } catch (Exception anException) {
-                    Log.e(LOG_TAG, "sendEvent exception " + anException.getMessage());
+                    Log.e(LOG_TAG, "sendEvent exception " + anException.getMessage(), anException);
                 }
             }
         };
@@ -2631,7 +2631,7 @@ public class Room {
                 try {
                     callback.onNetworkError(e);
                 } catch (Exception anException) {
-                    Log.e(LOG_TAG, "leave exception " + anException.getMessage());
+                    Log.e(LOG_TAG, "leave exception " + anException.getMessage(), anException);
                 }
 
                 mDataHandler.onRoomInternalUpdate(getRoomId());
@@ -2649,7 +2649,7 @@ public class Room {
                     try {
                         callback.onMatrixError(e);
                     } catch (Exception anException) {
-                        Log.e(LOG_TAG, "leave exception " + anException.getMessage());
+                        Log.e(LOG_TAG, "leave exception " + anException.getMessage(), anException);
                     }
 
                     mDataHandler.onRoomInternalUpdate(getRoomId());
@@ -2663,7 +2663,7 @@ public class Room {
                 try {
                     callback.onUnexpectedError(e);
                 } catch (Exception anException) {
-                    Log.e(LOG_TAG, "leave exception " + anException.getMessage());
+                    Log.e(LOG_TAG, "leave exception " + anException.getMessage(), anException);
                 }
 
                 mDataHandler.onRoomInternalUpdate(getRoomId());

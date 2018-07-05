@@ -390,7 +390,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 succeed = true;
                 Log.d(LOG_TAG, "## storeObject () : " + description + " done in " + (System.currentTimeMillis() - t0) + " ms");
             } catch (OutOfMemoryError oom) {
-                Log.e(LOG_TAG, "storeObject failed : " + description + " -- " + oom.getMessage());
+                Log.e(LOG_TAG, "storeObject failed : " + description + " -- " + oom.getMessage(), oom);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "storeObject failed : " + description + " -- " + e.getMessage(), e);
             }
@@ -1115,7 +1115,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 object = ois.readObject();
                 ois.close();
             } catch (Exception e) {
-                Log.e(LOG_TAG, description + "failed : " + e.getMessage() + " step 1");
+                Log.e(LOG_TAG, description + "failed : " + e.getMessage() + " step 1", e);
 
                 // if the zip deflating fails, try to use the former file saving method
                 try {
@@ -1127,7 +1127,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 } catch (Exception subEx) {
                     // warn that some file loading fails
                     mIsCorrupted = true;
-                    Log.e(LOG_TAG, description + "failed : " + subEx.getMessage() + " step 2");
+                    Log.e(LOG_TAG, description + "failed : " + subEx.getMessage() + " step 2", subEx);
                 }
             }
         }

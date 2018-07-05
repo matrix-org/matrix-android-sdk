@@ -399,7 +399,7 @@ public class MXWebRtcCall extends MXCall {
                 }
             }, CALL_TIMEOUT_MS);
         } catch (Throwable throwable) {
-            Log.e(LOG_TAG, "## sendInvite(): failed " + throwable.getMessage());
+            Log.e(LOG_TAG, "## sendInvite(): failed " + throwable.getMessage(), throwable);
             if (null != mCallTimeoutTimer) {
                 mCallTimeoutTimer.cancel();
                 mCallTimeoutTimer = null;
@@ -970,7 +970,7 @@ public class MXWebRtcCall extends MXCall {
             } catch (Exception ex2) {
                 // catch exception due to Android M permissions, when
                 // a call is received and the permissions (camera and audio) were not yet granted
-                Log.e(LOG_TAG, "createVideoTrack(): Exception Msg=" + ex2.getMessage());
+                Log.e(LOG_TAG, "createVideoTrack(): Exception Msg=" + ex2.getMessage(), ex2);
             }
 
             if (null != mCameraVideoCapturer) {

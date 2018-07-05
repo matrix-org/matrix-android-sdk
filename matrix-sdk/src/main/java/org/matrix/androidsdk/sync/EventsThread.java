@@ -469,7 +469,7 @@ public class EventsThread extends Thread {
             try {
                 latch.await();
             } catch (InterruptedException e) {
-                Log.e(LOG_TAG, "Interrupted whilst performing initial sync.");
+                Log.e(LOG_TAG, "Interrupted whilst performing initial sync.", e);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## startSync() failed " + e.getMessage(), e);
             }
@@ -679,7 +679,7 @@ public class EventsThread extends Thread {
                 try {
                     latch.await();
                 } catch (InterruptedException e) {
-                    Log.e(LOG_TAG, "Interrupted whilst polling message");
+                    Log.e(LOG_TAG, "Interrupted whilst polling message", e);
                 } catch (Exception e) {
                     // reported by GA
                     // The thread might have been killed.
