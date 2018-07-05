@@ -855,7 +855,7 @@ public class MXFileStore extends MXMemoryStore {
             try {
                 messagesListFile.delete();
             } catch (Exception e) {
-                Log.d(LOG_TAG, "deleteRoomMessagesFiles - messagesListFile failed " + e.getMessage(), e);
+                Log.e(LOG_TAG, "deleteRoomMessagesFiles - messagesListFile failed " + e.getMessage(), e);
             }
         }
 
@@ -864,7 +864,7 @@ public class MXFileStore extends MXMemoryStore {
             try {
                 tokenFile.delete();
             } catch (Exception e) {
-                Log.d(LOG_TAG, "deleteRoomMessagesFiles - tokenFile failed " + e.getMessage(), e);
+                Log.e(LOG_TAG, "deleteRoomMessagesFiles - tokenFile failed " + e.getMessage(), e);
             }
         }
     }
@@ -2268,7 +2268,7 @@ public class MXFileStore extends MXMemoryStore {
             try {
                 receiptsFile.delete();
             } catch (Exception e) {
-                Log.d(LOG_TAG, "deleteReceiptsFile - failed " + e.getMessage(), e);
+                Log.e(LOG_TAG, "deleteReceiptsFile - failed " + e.getMessage(), e);
             }
         }
     }

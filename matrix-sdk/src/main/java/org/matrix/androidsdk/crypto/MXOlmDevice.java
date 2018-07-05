@@ -284,7 +284,7 @@ public class MXOlmDevice {
                 olmSession = new OlmSession();
                 olmSession.initInboundSessionFrom(mOlmAccount, theirDeviceIdentityKey, ciphertext);
             } catch (Exception e) {
-                Log.d(LOG_TAG, "## createInboundSession() : the session creation failed " + e.getMessage(), e);
+                Log.e(LOG_TAG, "## createInboundSession() : the session creation failed " + e.getMessage(), e);
                 return null;
             }
 
@@ -314,7 +314,7 @@ public class MXOlmDevice {
                 payloadString = olmSession.decryptMessage(olmMessage);
                 mStore.storeSession(olmSession, theirDeviceIdentityKey);
             } catch (Exception e) {
-                Log.d(LOG_TAG, "## createInboundSession() : decryptMessage failed " + e.getMessage(), e);
+                Log.e(LOG_TAG, "## createInboundSession() : decryptMessage failed " + e.getMessage(), e);
             }
 
             Map<String, String> res = new HashMap<>();

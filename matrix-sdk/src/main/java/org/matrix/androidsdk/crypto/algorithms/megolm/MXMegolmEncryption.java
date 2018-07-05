@@ -389,7 +389,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.d(LOG_TAG, "## shareKey() ; userIds " + userIds + " failed " + e.getMessage(), e);
+                Log.e(LOG_TAG, "## shareKey() ; userIds " + userIds + " failed " + e.getMessage(), e);
                 if (null != callback) {
                     callback.onNetworkError(e);
                 }
@@ -397,7 +397,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.d(LOG_TAG, "## shareKey() ; userIds " + userIds + " failed " + e.getMessage());
+                Log.e(LOG_TAG, "## shareKey() ; userIds " + userIds + " failed " + e.getMessage());
                 if (null != callback) {
                     callback.onMatrixError(e);
                 }
@@ -405,7 +405,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.d(LOG_TAG, "## shareKey() ; userIds " + userIds + " failed " + e.getMessage(), e);
+                Log.e(LOG_TAG, "## shareKey() ; userIds " + userIds + " failed " + e.getMessage(), e);
                 if (null != callback) {
                     callback.onUnexpectedError(e);
                 }
@@ -522,7 +522,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
                                 @Override
                                 public void onNetworkError(Exception e) {
-                                    Log.d(LOG_TAG, "## shareUserDevicesKey() : sendToDevice onNetworkError " + e.getMessage(), e);
+                                    Log.e(LOG_TAG, "## shareUserDevicesKey() : sendToDevice onNetworkError " + e.getMessage(), e);
 
                                     if (null != callback) {
                                         callback.onNetworkError(e);
@@ -531,7 +531,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
                                 @Override
                                 public void onMatrixError(MatrixError e) {
-                                    Log.d(LOG_TAG, "## shareUserDevicesKey() : sendToDevice onMatrixError " + e.getMessage());
+                                    Log.e(LOG_TAG, "## shareUserDevicesKey() : sendToDevice onMatrixError " + e.getMessage());
 
                                     if (null != callback) {
                                         callback.onMatrixError(e);
@@ -540,7 +540,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
                                 @Override
                                 public void onUnexpectedError(Exception e) {
-                                    Log.d(LOG_TAG, "## shareUserDevicesKey() : sendToDevice onUnexpectedError " + e.getMessage(), e);
+                                    Log.e(LOG_TAG, "## shareUserDevicesKey() : sendToDevice onUnexpectedError " + e.getMessage(), e);
 
                                     if (null != callback) {
                                         callback.onUnexpectedError(e);
@@ -565,7 +565,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.d(LOG_TAG, "## shareUserDevicesKey() : ensureOlmSessionsForDevices failed " + e.getMessage(), e);
+                Log.e(LOG_TAG, "## shareUserDevicesKey() : ensureOlmSessionsForDevices failed " + e.getMessage(), e);
 
                 if (null != callback) {
                     callback.onNetworkError(e);
@@ -574,7 +574,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.d(LOG_TAG, "## shareUserDevicesKey() : ensureOlmSessionsForDevices failed " + e.getMessage());
+                Log.e(LOG_TAG, "## shareUserDevicesKey() : ensureOlmSessionsForDevices failed " + e.getMessage());
 
                 if (null != callback) {
                     callback.onMatrixError(e);
@@ -583,7 +583,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.d(LOG_TAG, "## shareUserDevicesKey() : ensureOlmSessionsForDevices failed " + e.getMessage(), e);
+                Log.e(LOG_TAG, "## shareUserDevicesKey() : ensureOlmSessionsForDevices failed " + e.getMessage(), e);
 
                 if (null != callback) {
                     callback.onUnexpectedError(e);

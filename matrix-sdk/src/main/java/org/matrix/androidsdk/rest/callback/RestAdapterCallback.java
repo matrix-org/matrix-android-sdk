@@ -119,7 +119,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
 
                 mUnsentEventsManager.onEventSent(mApiCallback);
             } catch (Exception e) {
-                Log.d(LOG_TAG, "## onEventSent(): Exception " + e.getMessage(), e);
+                Log.e(LOG_TAG, "## onEventSent(): Exception " + e.getMessage(), e);
             }
         }
     }

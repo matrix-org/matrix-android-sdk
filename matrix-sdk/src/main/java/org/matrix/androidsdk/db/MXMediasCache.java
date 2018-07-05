@@ -1071,7 +1071,7 @@ public class MXMediasCache {
                     //Log.d(LOG_TAG, "Suspend again the task " + task.getUrl() + " - " + task.getStatus());
                     Log.d(LOG_TAG, "Suspend again the task " + task.getStatus());
                 } catch (Exception e) {
-                    Log.d(LOG_TAG, "Try to Restart a task fails " + e.getMessage(), e);
+                    Log.e(LOG_TAG, "Try to Restart a task fails " + e.getMessage(), e);
                 }
             }
         }

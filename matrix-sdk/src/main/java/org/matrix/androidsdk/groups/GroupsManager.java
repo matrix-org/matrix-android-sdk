@@ -640,19 +640,19 @@ public class GroupsManager {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.d(LOG_TAG, "## getUserPublicisedGroups() : request failed " + e.getMessage(), e);
+                Log.e(LOG_TAG, "## getUserPublicisedGroups() : request failed " + e.getMessage(), e);
                 onDone(null);
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.d(LOG_TAG, "## getUserPublicisedGroups() : request failed " + e.getMessage());
+                Log.e(LOG_TAG, "## getUserPublicisedGroups() : request failed " + e.getMessage());
                 onDone(null);
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.d(LOG_TAG, "## getUserPublicisedGroups() : request failed " + e.getMessage(), e);
+                Log.e(LOG_TAG, "## getUserPublicisedGroups() : request failed " + e.getMessage(), e);
                 onDone(null);
             }
         });

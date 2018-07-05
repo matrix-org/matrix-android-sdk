@@ -1708,7 +1708,7 @@ public class MXDataHandler implements IMXEventListener {
                     @Override
                     public void onNetworkError(Exception e) {
                         synchronized (mLeftRoomsRefreshCallbacks) {
-                            Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getMessage(), e);
+                            Log.e(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getMessage(), e);
 
                             for (ApiCallback<Void> c : mLeftRoomsRefreshCallbacks) {
                                 c.onNetworkError(e);
@@ -1720,7 +1720,7 @@ public class MXDataHandler implements IMXEventListener {
                     @Override
                     public void onMatrixError(MatrixError e) {
                         synchronized (mLeftRoomsRefreshCallbacks) {
-                            Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getMessage());
+                            Log.e(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getMessage());
 
                             for (ApiCallback<Void> c : mLeftRoomsRefreshCallbacks) {
                                 c.onMatrixError(e);
@@ -1732,7 +1732,7 @@ public class MXDataHandler implements IMXEventListener {
                     @Override
                     public void onUnexpectedError(Exception e) {
                         synchronized (mLeftRoomsRefreshCallbacks) {
-                            Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getMessage(), e);
+                            Log.e(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getMessage(), e);
 
                             for (ApiCallback<Void> c : mLeftRoomsRefreshCallbacks) {
                                 c.onUnexpectedError(e);

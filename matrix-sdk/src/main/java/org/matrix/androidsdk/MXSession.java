@@ -922,17 +922,17 @@ public class MXSession {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.d(LOG_TAG, "refreshToken : onNetworkError " + e.getMessage(), e);
+                Log.e(LOG_TAG, "refreshToken : onNetworkError " + e.getMessage(), e);
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.d(LOG_TAG, "refreshToken : onMatrixError " + e.getMessage());
+                Log.e(LOG_TAG, "refreshToken : onMatrixError " + e.getMessage());
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.d(LOG_TAG, "refreshToken : onMatrixError " + e.getMessage(), e);
+                Log.e(LOG_TAG, "refreshToken : onMatrixError " + e.getMessage(), e);
             }
         });
     }

@@ -1355,7 +1355,7 @@ public class MXWebRtcCall extends MXCall {
                         }
 
                     } catch (Exception e) {
-                        Log.d(LOG_TAG, "onCallAnswer : " + e.getMessage(), e);
+                        Log.e(LOG_TAG, "onCallAnswer : " + e.getMessage(), e);
                     }
 
                     mPeerConnection.setRemoteDescription(new SdpObserver() {

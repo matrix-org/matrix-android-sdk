@@ -706,7 +706,7 @@ public class MXCallsManager {
 
                                     @Override
                                     public void onNetworkError(Exception e) {
-                                        Log.d(LOG_TAG, "createCallInRoom : getConferenceUserRoom failed " + e.getMessage(), e);
+                                        Log.e(LOG_TAG, "createCallInRoom : getConferenceUserRoom failed " + e.getMessage(), e);
 
                                         if (null != callback) {
                                             callback.onNetworkError(e);
@@ -715,7 +715,7 @@ public class MXCallsManager {
 
                                     @Override
                                     public void onMatrixError(MatrixError e) {
-                                        Log.d(LOG_TAG, "createCallInRoom : getConferenceUserRoom failed " + e.getMessage());
+                                        Log.e(LOG_TAG, "createCallInRoom : getConferenceUserRoom failed " + e.getMessage());
 
 
                                         if (null != callback) {
@@ -725,7 +725,7 @@ public class MXCallsManager {
 
                                     @Override
                                     public void onUnexpectedError(Exception e) {
-                                        Log.d(LOG_TAG, "createCallInRoom : getConferenceUserRoom failed " + e.getMessage(), e);
+                                        Log.e(LOG_TAG, "createCallInRoom : getConferenceUserRoom failed " + e.getMessage(), e);
 
                                         if (null != callback) {
                                             callback.onUnexpectedError(e);
@@ -736,7 +736,7 @@ public class MXCallsManager {
 
                             @Override
                             public void onNetworkError(Exception e) {
-                                Log.d(LOG_TAG, "createCallInRoom : inviteConferenceUser fails " + e.getMessage(), e);
+                                Log.e(LOG_TAG, "createCallInRoom : inviteConferenceUser fails " + e.getMessage(), e);
 
                                 if (null != callback) {
                                     callback.onNetworkError(e);
@@ -745,7 +745,7 @@ public class MXCallsManager {
 
                             @Override
                             public void onMatrixError(MatrixError e) {
-                                Log.d(LOG_TAG, "createCallInRoom : inviteConferenceUser fails " + e.getMessage());
+                                Log.e(LOG_TAG, "createCallInRoom : inviteConferenceUser fails " + e.getMessage());
 
                                 if (null != callback) {
                                     callback.onMatrixError(e);
@@ -754,7 +754,7 @@ public class MXCallsManager {
 
                             @Override
                             public void onUnexpectedError(Exception e) {
-                                Log.d(LOG_TAG, "createCallInRoom : inviteConferenceUser fails " + e.getMessage(), e);
+                                Log.e(LOG_TAG, "createCallInRoom : inviteConferenceUser fails " + e.getMessage(), e);
 
                                 if (null != callback) {
                                     callback.onUnexpectedError(e);
@@ -1100,19 +1100,19 @@ public class MXCallsManager {
 
                 @Override
                 public void onNetworkError(Exception e) {
-                    Log.d(LOG_TAG, "getConferenceUserRoom : failed " + e.getMessage(), e);
+                    Log.e(LOG_TAG, "getConferenceUserRoom : failed " + e.getMessage(), e);
                     callback.onNetworkError(e);
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    Log.d(LOG_TAG, "getConferenceUserRoom : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "getConferenceUserRoom : failed " + e.getMessage());
                     callback.onMatrixError(e);
                 }
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    Log.d(LOG_TAG, "getConferenceUserRoom : failed " + e.getMessage(), e);
+                    Log.e(LOG_TAG, "getConferenceUserRoom : failed " + e.getMessage(), e);
                     callback.onUnexpectedError(e);
                 }
             });

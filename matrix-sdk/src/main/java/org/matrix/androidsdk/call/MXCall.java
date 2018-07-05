@@ -678,17 +678,17 @@ public class MXCall implements IMXCall {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.d(LOG_TAG, "## sendHangup(): onNetworkError Msg=" + e.getMessage(), e);
+                Log.e(LOG_TAG, "## sendHangup(): onNetworkError Msg=" + e.getMessage(), e);
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.d(LOG_TAG, "## sendHangup(): onMatrixError Msg=" + e.getMessage());
+                Log.e(LOG_TAG, "## sendHangup(): onMatrixError Msg=" + e.getMessage());
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.d(LOG_TAG, "## sendHangup(): onUnexpectedError Msg=" + e.getMessage(), e);
+                Log.e(LOG_TAG, "## sendHangup(): onUnexpectedError Msg=" + e.getMessage(), e);
             }
         });
     }
