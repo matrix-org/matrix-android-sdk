@@ -498,7 +498,7 @@ public class MXCrypto {
 
                                                 @Override
                                                 public void onNetworkError(Exception e) {
-                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage(), e);
                                                     onError();
                                                 }
 
@@ -510,7 +510,7 @@ public class MXCrypto {
 
                                                 @Override
                                                 public void onUnexpectedError(Exception e) {
-                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage(), e);
                                                     onError();
                                                 }
                                             });
@@ -523,7 +523,7 @@ public class MXCrypto {
 
                     @Override
                     public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                        Log.e(LOG_TAG, "## start failed : " + e.getMessage(), e);
                         onError();
                     }
 
@@ -535,7 +535,7 @@ public class MXCrypto {
 
                     @Override
                     public void onUnexpectedError(Exception e) {
-                        Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                        Log.e(LOG_TAG, "## start failed : " + e.getMessage(), e);
                         onError();
                     }
                 });
@@ -705,7 +705,7 @@ public class MXCrypto {
                 try {
                     lock.await();
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## deviceWithIdentityKey() : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## deviceWithIdentityKey() : failed " + e.getMessage(), e);
                 }
 
                 return (result.size() > 0) ? result.get(0) : null;
@@ -1130,7 +1130,7 @@ public class MXCrypto {
                                 }
                             }
                         } catch (Exception e) {
-                            Log.e(LOG_TAG, "## ensureOlmSessionsForDevices() " + e.getMessage());
+                            Log.e(LOG_TAG, "## ensureOlmSessionsForDevices() " + e.getMessage(), e);
                         }
 
                         if (!hasBeenReleased()) {
@@ -1149,7 +1149,7 @@ public class MXCrypto {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getMessage());
+                Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getMessage(), e);
 
                 if (null != callback) {
                     callback.onNetworkError(e);
@@ -1167,7 +1167,7 @@ public class MXCrypto {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getMessage());
+                Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getMessage(), e);
 
                 if (null != callback) {
                     callback.onUnexpectedError(e);
@@ -1239,7 +1239,7 @@ public class MXCrypto {
 
                 @Override
                 public void onNetworkError(Exception e) {
-                    Log.e(LOG_TAG, "## encryptEventContent() : onNetworkError while waiting to start e2e : " + e.getMessage());
+                    Log.e(LOG_TAG, "## encryptEventContent() : onNetworkError while waiting to start e2e : " + e.getMessage(), e);
 
                     if (null != callback) {
                         callback.onNetworkError(e);
@@ -1257,7 +1257,7 @@ public class MXCrypto {
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    Log.e(LOG_TAG, "## encryptEventContent() : onUnexpectedError while waiting to start e2e : " + e.getMessage());
+                    Log.e(LOG_TAG, "## encryptEventContent() : onUnexpectedError while waiting to start e2e : " + e.getMessage(), e);
 
                     if (null != callback) {
                         callback.onUnexpectedError(e);
@@ -1323,7 +1323,7 @@ public class MXCrypto {
 
                         @Override
                         public void onNetworkError(final Exception e) {
-                            Log.e(LOG_TAG, "## encryptEventContent() : onNetworkError " + e.getMessage());
+                            Log.e(LOG_TAG, "## encryptEventContent() : onNetworkError " + e.getMessage(), e);
 
                             if (null != callback) {
                                 callback.onNetworkError(e);
@@ -1341,7 +1341,7 @@ public class MXCrypto {
 
                         @Override
                         public void onUnexpectedError(final Exception e) {
-                            Log.e(LOG_TAG, "## encryptEventContent() : onUnexpectedError " + e.getMessage());
+                            Log.e(LOG_TAG, "## encryptEventContent() : onUnexpectedError " + e.getMessage(), e);
 
                             if (null != callback) {
                                 callback.onUnexpectedError(e);
@@ -1420,7 +1420,7 @@ public class MXCrypto {
         try {
             lock.await();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## decryptEvent() : failed " + e.getMessage());
+            Log.e(LOG_TAG, "## decryptEvent() : failed " + e.getMessage(), e);
         }
 
         if (!exceptions.isEmpty()) {
@@ -2298,7 +2298,7 @@ public class MXCrypto {
                     importedSessions = JsonUtils.getGson(false).fromJson(roomKeys, new TypeToken<List<Map<String, Object>>>() {
                     }.getType());
                 } catch (final Exception e) {
-                    Log.e(LOG_TAG, "## importRoomKeys failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## importRoomKeys failed " + e.getMessage(), e);
                     getUIHandler().post(new Runnable() {
                         @Override
                         public void run() {
@@ -2327,7 +2327,7 @@ public class MXCrypto {
 
                                 decrypting.onNewSession(session.mSenderKey, sessionId);
                             } catch (Exception e) {
-                                Log.e(LOG_TAG, "## importRoomKeys() : onNewSession failed " + e.getMessage());
+                                Log.e(LOG_TAG, "## importRoomKeys() : onNewSession failed " + e.getMessage(), e);
                             }
                         }
                     }
@@ -2706,7 +2706,7 @@ public class MXCrypto {
                 try {
                     listener.onRoomKeyRequest(request);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## onRoomKeyRequest() failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## onRoomKeyRequest() failed " + e.getMessage(), e);
                 }
             }
         }
@@ -2724,7 +2724,7 @@ public class MXCrypto {
                 try {
                     listener.onRoomKeyRequestCancellation(request);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## onRoomKeyRequestCancellation() failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## onRoomKeyRequestCancellation() failed " + e.getMessage(), e);
                 }
             }
         }

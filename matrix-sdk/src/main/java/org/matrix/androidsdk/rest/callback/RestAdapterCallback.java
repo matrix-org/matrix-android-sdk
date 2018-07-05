@@ -119,7 +119,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
 
                 mUnsentEventsManager.onEventSent(mApiCallback);
             } catch (Exception e) {
-                Log.d(LOG_TAG, "## onEventSent(): Exception " + e.getMessage());
+                Log.d(LOG_TAG, "## onEventSent(): Exception " + e.getMessage(), e);
             }
         }
     }
@@ -174,7 +174,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
             }
         } catch (Exception e) {
             // privacy
-            Log.e(LOG_TAG, "## succeed(): Exception " + e.getMessage());
+            Log.e(LOG_TAG, "## succeed(): Exception " + e.getMessage(), e);
         }
     }
 
@@ -220,7 +220,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
                 } catch (Exception e) {
                     // privacy
                     //Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage() + " while managing " + error.getUrl());
-                    Log.e(LOG_TAG, "## failure():  NetworkError " + e.getMessage());
+                    Log.e(LOG_TAG, "## failure():  NetworkError " + e.getMessage(), e);
                 }
             } else {
                 // Try to convert this into a Matrix error
@@ -254,7 +254,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
                         } catch (Exception e) {
                             // privacy
                             //Log.e(LOG_TAG, "Exception MatrixError " + e.getMessage() + " while managing " + error.getUrl());
-                            Log.e(LOG_TAG, "## failure():  MatrixError " + e.getMessage());
+                            Log.e(LOG_TAG, "## failure():  MatrixError " + e.getMessage(), e);
                         }
                     }
                 } else {
@@ -265,7 +265,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
                     } catch (Exception e) {
                         // privacy
                         //Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
-                        Log.e(LOG_TAG, "## failure():  UnexpectedError " + e.getMessage());
+                        Log.e(LOG_TAG, "## failure():  UnexpectedError " + e.getMessage(), e);
                     }
                 }
             }

@@ -277,7 +277,7 @@ public class Room {
                                 mTypingUsers = (new Gson()).fromJson(eventContent.get("user_ids"), new TypeToken<List<String>>() {
                                 }.getType());
                             } catch (Exception e) {
-                                Log.e(LOG_TAG, "## handleEphemeralEvents() : exception " + e.getMessage());
+                                Log.e(LOG_TAG, "## handleEphemeralEvents() : exception " + e.getMessage(), e);
                             }
 
                             // avoid null list
@@ -290,7 +290,7 @@ public class Room {
                     mDataHandler.onLiveEvent(event, getState());
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "ephemeral event failed " + e.getMessage());
+                Log.e(LOG_TAG, "ephemeral event failed " + e.getMessage(), e);
             }
         }
     }
@@ -343,7 +343,7 @@ public class Room {
                     try {
                         fOnInitialSyncCallback.onSuccess(null);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "handleJoinedRoomSync : onSuccess failed" + e.getMessage());
+                        Log.e(LOG_TAG, "handleJoinedRoomSync : onSuccess failed" + e.getMessage(), e);
                     }
                 }
             });
@@ -612,7 +612,7 @@ public class Room {
                         map = new Gson().fromJson(object, new TypeToken<Map<String, Object>>() {
                         }.getType());
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "joinWithThirdPartySigned :  Gson().fromJson failed" + e.getMessage());
+                        Log.e(LOG_TAG, "joinWithThirdPartySigned :  Gson().fromJson failed" + e.getMessage(), e);
                     }
 
                     if (null != map) {
@@ -639,7 +639,7 @@ public class Room {
                 task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, url);
             } catch (final Exception e) {
                 task.cancel(true);
-                Log.e(LOG_TAG, "joinWithThirdPartySigned : task.executeOnExecutor failed" + e.getMessage());
+                Log.e(LOG_TAG, "joinWithThirdPartySigned : task.executeOnExecutor failed" + e.getMessage(), e);
 
                 (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
                     @Override
@@ -701,13 +701,13 @@ public class Room {
                                 callback.onSuccess(null);
                             }
                         } catch (Exception e) {
-                            Log.e(LOG_TAG, "join exception " + e.getMessage());
+                            Log.e(LOG_TAG, "join exception " + e.getMessage(), e);
                         }
                     }
 
                     @Override
                     public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "join onNetworkError " + e.getMessage());
+                        Log.e(LOG_TAG, "join onNetworkError " + e.getMessage(), e);
                         callback.onNetworkError(e);
                     }
 
@@ -734,7 +734,7 @@ public class Room {
 
                     @Override
                     public void onUnexpectedError(Exception e) {
-                        Log.e(LOG_TAG, "join onUnexpectedError " + e.getMessage());
+                        Log.e(LOG_TAG, "join onUnexpectedError " + e.getMessage(), e);
                         callback.onUnexpectedError(e);
                     }
                 });
@@ -1239,7 +1239,7 @@ public class Room {
                 }
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "handleReceiptEvent : failed" + e.getMessage());
+            Log.e(LOG_TAG, "handleReceiptEvent : failed" + e.getMessage(), e);
         }
 
         return senderIDs;
@@ -1642,7 +1642,7 @@ public class Room {
                 thumbInfo.mimetype = thumbMimeType;
                 locationMessage.thumbnail_info = thumbInfo;
             } catch (Exception e) {
-                Log.e(LOG_TAG, "fillLocationInfo : failed" + e.getMessage());
+                Log.e(LOG_TAG, "fillLocationInfo : failed" + e.getMessage(), e);
             }
         }
     }
@@ -1677,7 +1677,7 @@ public class Room {
                     mp.release();
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "fillVideoInfo : MediaPlayer.create failed" + e.getMessage());
+                Log.e(LOG_TAG, "fillVideoInfo : MediaPlayer.create failed" + e.getMessage(), e);
             }
             videoInfo.size = file.length();
 
@@ -1707,7 +1707,7 @@ public class Room {
 
             videoMessage.info = videoInfo;
         } catch (Exception e) {
-            Log.e(LOG_TAG, "fillVideoInfo : failed" + e.getMessage());
+            Log.e(LOG_TAG, "fillVideoInfo : failed" + e.getMessage(), e);
         }
     }
 
@@ -1732,7 +1732,7 @@ public class Room {
             fileMessage.info = fileInfo;
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "fillFileInfo : failed" + e.getMessage());
+            Log.e(LOG_TAG, "fillFileInfo : failed" + e.getMessage(), e);
         }
     }
 
@@ -1793,7 +1793,7 @@ public class Room {
                     }
 
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "fillImageInfo : failed" + e.getMessage());
+                    Log.e(LOG_TAG, "fillImageInfo : failed" + e.getMessage(), e);
                 } catch (OutOfMemoryError oom) {
                     Log.e(LOG_TAG, "fillImageInfo : oom");
                 }
@@ -1808,7 +1808,7 @@ public class Room {
             imageInfo.mimetype = mimeType;
             imageInfo.size = file.length();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "fillImageInfo : failed" + e.getMessage());
+            Log.e(LOG_TAG, "fillImageInfo : failed" + e.getMessage(), e);
             imageInfo = null;
         }
 
@@ -1942,7 +1942,7 @@ public class Room {
                         }
 
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## handleAccountDataEvents() : room " + getRoomId() + " failed " + e.getMessage());
+                        Log.e(LOG_TAG, "## handleAccountDataEvents() : room " + getRoomId() + " failed " + e.getMessage(), e);
                     }
                 }
             }
@@ -2069,7 +2069,7 @@ public class Room {
                     try {
                         eventListener.onPresenceUpdate(event, user);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onPresenceUpdate exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onPresenceUpdate exception " + e.getMessage(), e);
                     }
                 }
             }
@@ -2081,7 +2081,7 @@ public class Room {
                     try {
                         eventListener.onLiveEvent(event, roomState);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onLiveEvent exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onLiveEvent exception " + e.getMessage(), e);
                     }
                 }
             }
@@ -2091,7 +2091,7 @@ public class Room {
                 try {
                     eventListener.onLiveEventsChunkProcessed(fromToken, toToken);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "onLiveEventsChunkProcessed exception " + e.getMessage());
+                    Log.e(LOG_TAG, "onLiveEventsChunkProcessed exception " + e.getMessage(), e);
                 }
             }
 
@@ -2102,7 +2102,7 @@ public class Room {
                     try {
                         eventListener.onEventSentStateUpdated(event);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onEventSentStateUpdated exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onEventSentStateUpdated exception " + e.getMessage(), e);
                     }
                 }
             }
@@ -2114,7 +2114,7 @@ public class Room {
                     try {
                         eventListener.onEventDecrypted(event);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onDecryptedEvent exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onDecryptedEvent exception " + e.getMessage(), e);
                     }
                 }
             }
@@ -2126,7 +2126,7 @@ public class Room {
                     try {
                         eventListener.onEventSent(event, prevEventId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onEventSent exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onEventSent exception " + e.getMessage(), e);
                     }
                 }
             }
@@ -2138,7 +2138,7 @@ public class Room {
                     try {
                         eventListener.onRoomInitialSyncComplete(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomInitialSyncComplete exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onRoomInitialSyncComplete exception " + e.getMessage(), e);
                     }
                 }
             }
@@ -2150,7 +2150,7 @@ public class Room {
                     try {
                         eventListener.onRoomInternalUpdate(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomInternalUpdate exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onRoomInternalUpdate exception " + e.getMessage(), e);
                     }
                 }
             }
@@ -2162,7 +2162,7 @@ public class Room {
                     try {
                         eventListener.onNotificationCountUpdate(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onNotificationCountUpdate exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onNotificationCountUpdate exception " + e.getMessage(), e);
                     }
                 }
             }
@@ -2174,7 +2174,7 @@ public class Room {
                     try {
                         eventListener.onNewRoom(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onNewRoom exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onNewRoom exception " + e.getMessage(), e);
                     }
                 }
             }
@@ -2186,7 +2186,7 @@ public class Room {
                     try {
                         eventListener.onJoinRoom(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onJoinRoom exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onJoinRoom exception " + e.getMessage(), e);
                     }
                 }
             }
@@ -2198,7 +2198,7 @@ public class Room {
                     try {
                         eventListener.onReceiptEvent(roomId, senderIds);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onReceiptEvent exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onReceiptEvent exception " + e.getMessage(), e);
                     }
                 }
             }
@@ -2210,7 +2210,7 @@ public class Room {
                     try {
                         eventListener.onRoomTagEvent(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomTagEvent exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onRoomTagEvent exception " + e.getMessage(), e);
                     }
                 }
             }
@@ -2222,7 +2222,7 @@ public class Room {
                     try {
                         eventListener.onReadMarkerEvent(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onReadMarkerEvent exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onReadMarkerEvent exception " + e.getMessage(), e);
                     }
                 }
             }
@@ -2234,7 +2234,7 @@ public class Room {
                     try {
                         eventListener.onRoomFlush(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomFlush exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onRoomFlush exception " + e.getMessage(), e);
                     }
                 }
             }
@@ -2246,7 +2246,7 @@ public class Room {
                     try {
                         eventListener.onLeaveRoom(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onLeaveRoom exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onLeaveRoom exception " + e.getMessage(), e);
                     }
                 }
             }
@@ -2258,7 +2258,7 @@ public class Room {
                     try {
                         eventListener.onRoomKick(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomKick exception " + e.getMessage());
+                        Log.e(LOG_TAG, "onRoomKick exception " + e.getMessage(), e);
                     }
                 }
             }
@@ -2304,7 +2304,7 @@ public class Room {
             try {
                 callback.onNetworkError(null);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "sendEvent exception " + e.getMessage());
+                Log.e(LOG_TAG, "sendEvent exception " + e.getMessage(), e);
             }
             return;
         }
@@ -2343,7 +2343,7 @@ public class Room {
                 try {
                     callback.onSuccess(null);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "sendEvent exception " + e.getMessage());
+                    Log.e(LOG_TAG, "sendEvent exception " + e.getMessage(), e);
                 }
             }
 
@@ -2617,7 +2617,7 @@ public class Room {
                     try {
                         callback.onSuccess(info);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "leave exception " + e.getMessage());
+                        Log.e(LOG_TAG, "leave exception " + e.getMessage(), e);
                     }
 
                     mDataHandler.onLeaveRoom(getRoomId());
@@ -2692,7 +2692,7 @@ public class Room {
                     try {
                         callback.onSuccess(info);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "forget exception " + e.getMessage());
+                        Log.e(LOG_TAG, "forget exception " + e.getMessage(), e);
                     }
                 }
             }

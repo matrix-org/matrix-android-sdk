@@ -662,7 +662,7 @@ public class MatrixMessagesFragment extends Fragment {
             // the request will be automatically restarted when a valid network will be found
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "joinRoom Network error: " + e.getMessage());
+                Log.e(LOG_TAG, "joinRoom Network error: " + e.getMessage(), e);
                 onError(e.getLocalizedMessage());
             }
 
@@ -674,7 +674,7 @@ public class MatrixMessagesFragment extends Fragment {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "joinRoom Override : " + e.getMessage());
+                Log.e(LOG_TAG, "joinRoom Override : " + e.getMessage(), e);
                 onError(e.getLocalizedMessage());
             }
         });

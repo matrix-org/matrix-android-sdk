@@ -523,7 +523,7 @@ public class MXMemoryStore implements IMXStore {
             dispatchOOM(oom);
             Log.e(LOG_TAG, "## updateUserWithRoomMemberEvent() failed " + oom.getMessage());
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## updateUserWithRoomMemberEvent() failed " + e.getMessage());
+            Log.e(LOG_TAG, "## updateUserWithRoomMemberEvent() failed " + e.getMessage(), e);
         }
     }
 

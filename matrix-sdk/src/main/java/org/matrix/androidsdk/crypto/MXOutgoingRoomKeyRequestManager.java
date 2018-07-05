@@ -269,7 +269,7 @@ public class MXOutgoingRoomKeyRequestManager {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## sendOutgoingRoomKeyRequest failed " + e.getMessage());
+                Log.e(LOG_TAG, "## sendOutgoingRoomKeyRequest failed " + e.getMessage(), e);
                 onDone(OutgoingRoomKeyRequest.RequestState.FAILED);
             }
 
@@ -281,7 +281,7 @@ public class MXOutgoingRoomKeyRequestManager {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## sendOutgoingRoomKeyRequest failed " + e.getMessage());
+                Log.e(LOG_TAG, "## sendOutgoingRoomKeyRequest failed " + e.getMessage(), e);
                 onDone(OutgoingRoomKeyRequest.RequestState.FAILED);
             }
         });
@@ -330,7 +330,7 @@ public class MXOutgoingRoomKeyRequestManager {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## sendOutgoingRoomKeyRequestCancellation failed " + e.getMessage());
+                Log.e(LOG_TAG, "## sendOutgoingRoomKeyRequestCancellation failed " + e.getMessage(), e);
                 onDone();
             }
 
@@ -342,7 +342,7 @@ public class MXOutgoingRoomKeyRequestManager {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## sendOutgoingRoomKeyRequestCancellation failed " + e.getMessage());
+                Log.e(LOG_TAG, "## sendOutgoingRoomKeyRequestCancellation failed " + e.getMessage(), e);
                 onDone();
             }
         });

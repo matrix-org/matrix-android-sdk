@@ -321,7 +321,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
                     try {
                         result = decryptEvent(event, TextUtils.isEmpty(timelineId) ? null : timelineId);
                     } catch (MXDecryptionException e) {
-                        Log.e(LOG_TAG, "## onNewSession() : Still can't decrypt " + event.eventId + ". Error " + e.getMessage());
+                        Log.e(LOG_TAG, "## onNewSession() : Still can't decrypt " + event.eventId + ". Error " + e.getMessage(), e);
                         event.setCryptoError(e.getCryptoError());
                     }
 
@@ -407,7 +407,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
                                 @Override
                                 public void onNetworkError(Exception e) {
-                                    Log.e(LOG_TAG, "## shareKeysWithDevice() : sendToDevice " + userId + ":" + deviceId + " failed " + e.getMessage());
+                                    Log.e(LOG_TAG, "## shareKeysWithDevice() : sendToDevice " + userId + ":" + deviceId + " failed " + e.getMessage(), e);
                                 }
 
                                 @Override
@@ -417,14 +417,14 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
                                 @Override
                                 public void onUnexpectedError(Exception e) {
-                                    Log.e(LOG_TAG, "## shareKeysWithDevice() : sendToDevice " + userId + ":" + deviceId + " failed " + e.getMessage());
+                                    Log.e(LOG_TAG, "## shareKeysWithDevice() : sendToDevice " + userId + ":" + deviceId + " failed " + e.getMessage(), e);
                                 }
                             });
                         }
 
                         @Override
                         public void onNetworkError(Exception e) {
-                            Log.e(LOG_TAG, "## shareKeysWithDevice() : ensureOlmSessionsForDevices " + userId + ":" + deviceId + " failed " + e.getMessage());
+                            Log.e(LOG_TAG, "## shareKeysWithDevice() : ensureOlmSessionsForDevices " + userId + ":" + deviceId + " failed " + e.getMessage(), e);
                         }
 
                         @Override
@@ -434,7 +434,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
                         @Override
                         public void onUnexpectedError(Exception e) {
-                            Log.e(LOG_TAG, "## shareKeysWithDevice() : ensureOlmSessionsForDevices " + userId + ":" + deviceId + " failed " + e.getMessage());
+                            Log.e(LOG_TAG, "## shareKeysWithDevice() : ensureOlmSessionsForDevices " + userId + ":" + deviceId + " failed " + e.getMessage(), e);
                         }
                     });
                 } else {
@@ -444,7 +444,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## shareKeysWithDevice() : downloadKeys " + userId + " failed " + e.getMessage());
+                Log.e(LOG_TAG, "## shareKeysWithDevice() : downloadKeys " + userId + " failed " + e.getMessage(), e);
             }
 
             @Override
@@ -454,7 +454,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## shareKeysWithDevice() : downloadKeys " + userId + " failed " + e.getMessage());
+                Log.e(LOG_TAG, "## shareKeysWithDevice() : downloadKeys " + userId + " failed " + e.getMessage(), e);
             }
         });
     }

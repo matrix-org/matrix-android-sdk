@@ -364,7 +364,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 try {
                     mActivityOnScrollListener.onScrollStateChanged(scrollState);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## manageScrollListener : onScrollStateChanged failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## manageScrollListener : onScrollStateChanged failed " + e.getMessage(), e);
                 }
             }
         }
@@ -381,7 +381,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 try {
                     mActivityOnScrollListener.onScroll(firstVisibleItem, visibleItemCount, totalItemCount);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## manageScrollListener : onScroll failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## manageScrollListener : onScroll failed " + e.getMessage(), e);
                 }
 
                 boolean isLatestEventDisplayed;
@@ -400,7 +400,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 try {
                     mActivityOnScrollListener.onLatestEventDisplay(isLatestEventDisplayed);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## manageScrollListener : onLatestEventDisplay failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## manageScrollListener : onLatestEventDisplay failed " + e.getMessage(), e);
                 }
             }
         }
@@ -805,7 +805,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     }
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## getReadMarkerMessageRow() failed : " + e.getMessage());
+                Log.e(LOG_TAG, "## getReadMarkerMessageRow() failed : " + e.getMessage(), e);
             }
         }
 
@@ -873,7 +873,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                 try {
                                     mEventSendingListener.onMessageRedacted(redactedEvent);
                                 } catch (Exception e) {
-                                    Log.e(LOG_TAG, "redactEvent fails : " + e.getMessage());
+                                    Log.e(LOG_TAG, "redactEvent fails : " + e.getMessage(), e);
                                 }
                             }
                         }
@@ -940,7 +940,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             try {
                 mEventSendingListener.onMessageSendingFailed(event);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "onMessageSendingFailed failed " + e.getMessage());
+                Log.e(LOG_TAG, "onMessageSendingFailed failed " + e.getMessage(), e);
             }
         }
     }
@@ -955,7 +955,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             try {
                 mEventSendingListener.onMessageSendingSucceeded(event);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "onMessageSendingSucceeded failed " + e.getMessage());
+                Log.e(LOG_TAG, "onMessageSendingSucceeded failed " + e.getMessage(), e);
             }
         }
     }
@@ -971,7 +971,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             try {
                 mEventSendingListener.onUnknownDevices(event, cryptoError);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "onUnknownDevices failed " + e.getMessage());
+                Log.e(LOG_TAG, "onUnknownDevices failed " + e.getMessage(), e);
             }
         }
     }
@@ -987,7 +987,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             try {
                 mEventSendingListener.onConsentNotGiven(event, matrixError);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "onConsentNotGiven failed " + e.getMessage());
+                Log.e(LOG_TAG, "onConsentNotGiven failed " + e.getMessage(), e);
             }
         }
     }
@@ -1903,7 +1903,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "onReceiptEvent failed with " + e.getMessage());
+            Log.e(LOG_TAG, "onReceiptEvent failed with " + e.getMessage(), e);
         }
 
         if (shouldRefresh) {
@@ -2062,7 +2062,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 try {
                     mRoomPreviewDataListener = (IRoomPreviewDataListener) getActivity();
                 } catch (ClassCastException e) {
-                    Log.e(LOG_TAG, "getRoomPreviewData failed with " + e.getMessage());
+                    Log.e(LOG_TAG, "getRoomPreviewData failed with " + e.getMessage(), e);
                 }
             }
 
@@ -2176,7 +2176,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             // the request will be auto restarted when a valid network will be found
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "Network error: " + e.getMessage());
+                Log.e(LOG_TAG, "Network error: " + e.getMessage(), e);
                 onError();
             }
 
@@ -2188,7 +2188,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "onUnexpectedError error" + e.getMessage());
+                Log.e(LOG_TAG, "onUnexpectedError error" + e.getMessage(), e);
                 onError();
             }
         };
@@ -2253,7 +2253,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             try {
                 onSearchResultListener.onSearchSucceed(messageRows.size());
             } catch (Exception e) {
-                Log.e(LOG_TAG, "onSearchResponse failed with " + e.getMessage());
+                Log.e(LOG_TAG, "onSearchResponse failed with " + e.getMessage(), e);
             }
         }
     }
@@ -2313,7 +2313,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                     try {
                                         onSearchResultListener.onSearchFailed();
                                     } catch (Exception e) {
-                                        Log.e(LOG_TAG, "onSearchResultListener failed with " + e.getMessage());
+                                        Log.e(LOG_TAG, "onSearchResultListener failed with " + e.getMessage(), e);
                                     }
                                 }
                             }
@@ -2323,7 +2323,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     // the request will be auto restarted when a valid network will be found
                     @Override
                     public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "Network error: " + e.getMessage());
+                        Log.e(LOG_TAG, "Network error: " + e.getMessage(), e);
                         onError();
                     }
 
@@ -2335,7 +2335,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                     @Override
                     public void onUnexpectedError(Exception e) {
-                        Log.e(LOG_TAG, "onUnexpectedError error" + e.getMessage());
+                        Log.e(LOG_TAG, "onUnexpectedError error" + e.getMessage(), e);
                         onError();
                     }
                 };

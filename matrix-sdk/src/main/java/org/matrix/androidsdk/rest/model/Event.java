@@ -1052,7 +1052,7 @@ public class Event implements Externalizable {
             try {
                 content = new JsonParser().parse(contentAsString).getAsJsonObject();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "finalizeDeserialization : contentAsString deserialization " + e.getMessage());
+                Log.e(LOG_TAG, "finalizeDeserialization : contentAsString deserialization " + e.getMessage(), e);
                 contentAsString = null;
             }
         }
@@ -1061,7 +1061,7 @@ public class Event implements Externalizable {
             try {
                 prev_content = new JsonParser().parse(prev_content_as_string).getAsJsonObject();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "finalizeDeserialization : prev_content_as_string deserialization " + e.getMessage());
+                Log.e(LOG_TAG, "finalizeDeserialization : prev_content_as_string deserialization " + e.getMessage(), e);
                 prev_content_as_string = null;
             }
         }
@@ -1167,7 +1167,7 @@ public class Event implements Externalizable {
                 try {
                     unsigned.redacted_because.content.reason = contentAsJson.get("reason").getAsString();
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "unsigned.redacted_because.content.reason failed " + e.getMessage());
+                    Log.e(LOG_TAG, "unsigned.redacted_because.content.reason failed " + e.getMessage(), e);
                 }
 
             }

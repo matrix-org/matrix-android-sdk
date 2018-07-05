@@ -247,7 +247,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         try {
             ContentUtils.deleteDirectory(mStoreFile);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "deleteStore failed " + e.getMessage());
+            Log.e(LOG_TAG, "deleteStore failed " + e.getMessage(), e);
         }
     }
 
@@ -392,7 +392,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             } catch (OutOfMemoryError oom) {
                 Log.e(LOG_TAG, "storeObject failed : " + description + " -- " + oom.getMessage());
             } catch (Exception e) {
-                Log.e(LOG_TAG, "storeObject failed : " + description + " -- " + e.getMessage());
+                Log.e(LOG_TAG, "storeObject failed : " + description + " -- " + e.getMessage(), e);
             }
         }
 
@@ -491,7 +491,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                                 mUsersDevicesInfoMap.setObjects((Map<String, MXDeviceInfo>) devicesMapAsVoid, userId);
                             }
                         } catch (Exception e) {
-                            Log.e(LOG_TAG, "## loadUserDevices : mUsersDevicesInfoMap.setObjects failed " + e.getMessage());
+                            Log.e(LOG_TAG, "## loadUserDevices : mUsersDevicesInfoMap.setObjects failed " + e.getMessage(), e);
                             mIsCorrupted = true;
                         }
                     }
@@ -707,7 +707,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             try {
                 sessionIdentifier = olmSession.sessionIdentifier();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## storeSession : session.sessionIdentifier() failed " + e.getMessage());
+                Log.e(LOG_TAG, "## storeSession : session.sessionIdentifier() failed " + e.getMessage(), e);
             }
         }
 
@@ -804,7 +804,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             try {
                 sessionIdentifier = session.mSession.sessionIdentifier();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## storeInboundGroupSession() : sessionIdentifier failed " + e.getMessage());
+                Log.e(LOG_TAG, "## storeInboundGroupSession() : sessionIdentifier failed " + e.getMessage(), e);
             }
         }
 
@@ -856,7 +856,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 // it should never happen
                 // MXOlmInboundGroupSession has been replaced by MXOlmInboundGroupSession2
                 // but it seems that the application code is not properly updated (JIT issue) ?
-                Log.e(LOG_TAG, "## getInboundGroupSession() failed " + e.getMessage());
+                Log.e(LOG_TAG, "## getInboundGroupSession() failed " + e.getMessage(), e);
             }
 
             return session;
@@ -1156,7 +1156,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 }
             } catch (Exception e) {
                 mIsCorrupted = true;
-                Log.e(LOG_TAG, "## loadMetadata() : metadata has been corrupted " + e.getMessage());
+                Log.e(LOG_TAG, "## loadMetadata() : metadata has been corrupted " + e.getMessage(), e);
             }
         }
     }
@@ -1181,7 +1181,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 mOlmAccount = (OlmAccount) olmAccountAsVoid;
             } catch (Exception e) {
                 mIsCorrupted = true;
-                Log.e(LOG_TAG, "## preloadCryptoData() - invalid mAccountFile " + e.getMessage());
+                Log.e(LOG_TAG, "## preloadCryptoData() - invalid mAccountFile " + e.getMessage(), e);
             }
         }
 
@@ -1204,7 +1204,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     mUsersDevicesInfoMap = new MXUsersDevicesMap<>(objectAsMap.getMap());
                 } catch (Exception e) {
                     mIsCorrupted = true;
-                    Log.e(LOG_TAG, "## preloadCryptoData() - invalid mUsersDevicesInfoMap " + e.getMessage());
+                    Log.e(LOG_TAG, "## preloadCryptoData() - invalid mUsersDevicesInfoMap " + e.getMessage(), e);
                 }
             } else {
                 mIsCorrupted = false;
@@ -1247,7 +1247,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 algoSize = mRoomsAlgorithms.size();
             } catch (Exception e) {
                 mIsCorrupted = true;
-                Log.e(LOG_TAG, "## preloadCryptoData() - invalid mAlgorithmsFile " + e.getMessage());
+                Log.e(LOG_TAG, "## preloadCryptoData() - invalid mAlgorithmsFile " + e.getMessage(), e);
             }
         }
         Log.d(LOG_TAG, "## preloadCryptoData() : load mRoomsAlgorithms (" + algoSize + " algos) in " + (System.currentTimeMillis() - t2) + " ms");
@@ -1264,7 +1264,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             try {
                 mTrackingStatuses = new HashMap<>((Map<String, Integer>) trackingStatusesAsVoid);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## preloadCryptoData() - invalid mTrackingStatuses " + e.getMessage());
+                Log.e(LOG_TAG, "## preloadCryptoData() - invalid mTrackingStatuses " + e.getMessage(), e);
             }
         }
 
@@ -1282,7 +1282,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     mOutgoingRoomKeyRequests.putAll((Map<Map<String, String>, OutgoingRoomKeyRequest>) requestsAsVoid);
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## preloadCryptoData() : mOutgoingRoomKeyRequests init failed " + e.getMessage());
+                Log.e(LOG_TAG, "## preloadCryptoData() : mOutgoingRoomKeyRequests init failed " + e.getMessage(), e);
             }
         }
 
@@ -1358,7 +1358,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     }
                 } catch (Exception e) {
                     mIsCorrupted = true;
-                    Log.e(LOG_TAG, "## preloadCryptoData() - invalid mSessionsFile " + e.getMessage());
+                    Log.e(LOG_TAG, "## preloadCryptoData() - invalid mSessionsFile " + e.getMessage(), e);
                 }
 
                 mOlmSessionsFileTmp.delete();
@@ -1404,7 +1404,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                                 }
                                 count++;
                             } catch (Exception e) {
-                                Log.e(LOG_TAG, "## preloadCryptoData() - invalid mInboundGroupSessions " + e.getMessage());
+                                Log.e(LOG_TAG, "## preloadCryptoData() - invalid mInboundGroupSessions " + e.getMessage(), e);
                             }
                         }
                     }
@@ -1435,7 +1435,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     }
                 } catch (Exception e) {
                     mIsCorrupted = true;
-                    Log.e(LOG_TAG, "## preloadCryptoData() - invalid mInboundGroupSessions " + e.getMessage());
+                    Log.e(LOG_TAG, "## preloadCryptoData() - invalid mInboundGroupSessions " + e.getMessage(), e);
                 }
 
                 if (!mInboundGroupSessionsFolder.mkdirs()) {
@@ -1492,7 +1492,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             }
             return new String(hexChars);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## encodeFilename() - failed " + e.getMessage());
+            Log.e(LOG_TAG, "## encodeFilename() - failed " + e.getMessage(), e);
         }
 
         return filename;
@@ -1521,7 +1521,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         try {
             return new String(bytes, "UTF-8");
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## decodeFilename() - failed " + e.getMessage());
+            Log.e(LOG_TAG, "## decodeFilename() - failed " + e.getMessage(), e);
         }
 
         return encodedFilename;

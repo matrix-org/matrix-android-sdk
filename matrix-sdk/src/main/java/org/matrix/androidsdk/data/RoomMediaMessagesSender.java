@@ -257,7 +257,7 @@ class RoomMediaMessagesSender {
                             try {
                                 callback.onSuccess(null);
                             } catch (Exception e) {
-                                Log.e(LOG_TAG, "## sendNext() failed " + e.getMessage());
+                                Log.e(LOG_TAG, "## sendNext() failed " + e.getMessage(), e);
                             }
                         }
 
@@ -394,7 +394,7 @@ class RoomMediaMessagesSender {
                 }
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "cannot restore the medias picker thumbnail " + e.getMessage());
+            Log.e(LOG_TAG, "cannot restore the medias picker thumbnail " + e.getMessage(), e);
         } catch (OutOfMemoryError oom) {
             Log.e(LOG_TAG, "cannot restore the medias picker thumbnail oom");
         }
@@ -489,7 +489,7 @@ class RoomMediaMessagesSender {
 
             return imageMessage;
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## buildImageMessage() failed " + e.getMessage());
+            Log.e(LOG_TAG, "## buildImageMessage() failed " + e.getMessage(), e);
         }
 
         return null;
@@ -508,7 +508,7 @@ class RoomMediaMessagesSender {
             Bitmap thumb = ThumbnailUtils.createVideoThumbnail(uri.getPath(), MediaStore.Images.Thumbnails.MINI_KIND);
             thumbUrl = mDataHandler.getMediasCache().saveBitmap(thumb, null);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## getVideoThumbnailUrl() failed with " + e.getMessage());
+            Log.e(LOG_TAG, "## getVideoThumbnailUrl() failed with " + e.getMessage(), e);
         }
 
         return thumbUrl;
@@ -543,7 +543,7 @@ class RoomMediaMessagesSender {
 
             return videoMessage;
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## buildVideoMessage() failed " + e.getMessage());
+            Log.e(LOG_TAG, "## buildVideoMessage() failed " + e.getMessage(), e);
         }
 
         return null;
@@ -579,7 +579,7 @@ class RoomMediaMessagesSender {
 
             return fileMessage;
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## buildFileMessage() failed " + e.getMessage());
+            Log.e(LOG_TAG, "## buildFileMessage() failed " + e.getMessage(), e);
         }
 
         return null;

@@ -230,7 +230,7 @@ public class MXMediasCache {
         try {
             task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## getCachesSize() : failed " + e.getMessage());
+            Log.e(LOG_TAG, "## getCachesSize() : failed " + e.getMessage(), e);
             task.cancel(true);
         }
     }
@@ -338,7 +338,7 @@ public class MXMediasCache {
                     return file;
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "thumbnailCacheFile failed " + e.getMessage());
+                Log.e(LOG_TAG, "thumbnailCacheFile failed " + e.getMessage(), e);
             }
         }
 
@@ -391,7 +391,7 @@ public class MXMediasCache {
             }
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "mediaCacheFile failed " + e.getMessage());
+            Log.e(LOG_TAG, "mediaCacheFile failed " + e.getMessage(), e);
         }
 
         return null;
@@ -487,7 +487,7 @@ public class MXMediasCache {
                                 fos.write(buf, 0, len);
                             }
                         } catch (Exception e) {
-                            Log.e(LOG_TAG, "## createTmpMediaFile() failed " + e.getMessage());
+                            Log.e(LOG_TAG, "## createTmpMediaFile() failed " + e.getMessage(), e);
                         }
                     }
 
@@ -546,7 +546,7 @@ public class MXMediasCache {
 
             cacheURL = Uri.fromFile(file).toString();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "saveBitmap failed " + e.getMessage());
+            Log.e(LOG_TAG, "saveBitmap failed " + e.getMessage(), e);
         }
 
         return cacheURL;
@@ -602,7 +602,7 @@ public class MXMediasCache {
                     fos.write(buf, 0, len);
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "saveMedia failed " + e.getMessage());
+                Log.e(LOG_TAG, "saveMedia failed " + e.getMessage(), e);
             }
 
             fos.flush();
@@ -611,7 +611,7 @@ public class MXMediasCache {
 
             cacheURL = Uri.fromFile(file).toString();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "saveMedia failed " + e.getMessage());
+            Log.e(LOG_TAG, "saveMedia failed " + e.getMessage(), e);
 
         }
 
@@ -691,7 +691,7 @@ public class MXMediasCache {
                     try {
                         destFile.delete();
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "saveFileMediaForUrl delete failed " + e.getMessage());
+                        Log.e(LOG_TAG, "saveFileMediaForUrl delete failed " + e.getMessage(), e);
                     }
                 }
 
@@ -715,7 +715,7 @@ public class MXMediasCache {
                 }
 
             } catch (Exception e) {
-                Log.e(LOG_TAG, "saveFileMediaForUrl failed " + e.getMessage());
+                Log.e(LOG_TAG, "saveFileMediaForUrl failed " + e.getMessage(), e);
             }
         }
     }
@@ -1033,7 +1033,7 @@ public class MXMediasCache {
             }
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "downloadMedia failed " + e.getMessage());
+            Log.e(LOG_TAG, "downloadMedia failed " + e.getMessage(), e);
             synchronized (mSuspendedTasks) {
                 task.cancel(true);
             }
@@ -1071,7 +1071,7 @@ public class MXMediasCache {
                     //Log.d(LOG_TAG, "Suspend again the task " + task.getUrl() + " - " + task.getStatus());
                     Log.d(LOG_TAG, "Suspend again the task " + task.getStatus());
                 } catch (Exception e) {
-                    Log.d(LOG_TAG, "Try to Restart a task fails " + e.getMessage());
+                    Log.d(LOG_TAG, "Try to Restart a task fails " + e.getMessage(), e);
                 }
             }
         }
@@ -1286,7 +1286,7 @@ public class MXMediasCache {
                     }
 
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "loadBitmap failed " + e.getMessage());
+                    Log.e(LOG_TAG, "loadBitmap failed " + e.getMessage(), e);
                 }
             }
         }

@@ -136,7 +136,7 @@ public class Log {
                 }
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## addLogFiles() failed : " + e.getMessage());
+            Log.e(LOG_TAG, "## addLogFiles() failed : " + e.getMessage(), e);
         }
         return files;
     }

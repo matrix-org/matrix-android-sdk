@@ -108,7 +108,7 @@ public class ContentManager {
             try {
                 urlEncodedUser = java.net.URLEncoder.encode(userId, "UTF-8");
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## getIdenticonURL() : java.net.URLEncoder.encode failed " + e.getMessage());
+                Log.e(LOG_TAG, "## getIdenticonURL() : java.net.URLEncoder.encode failed " + e.getMessage(), e);
             }
 
             return ContentManager.MATRIX_CONTENT_URI_SCHEME + MATRIX_CONTENT_IDENTICON_PREFIX + urlEncodedUser;

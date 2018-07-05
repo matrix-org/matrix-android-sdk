@@ -204,7 +204,7 @@ public class GroupsManager {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## onJoinGroup() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## onJoinGroup() : failed " + e.getMessage(), e);
                 onDone();
 
                 if (null != mPendingJoinGroups.get(groupId)) {
@@ -226,7 +226,7 @@ public class GroupsManager {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## onUnexpectedError() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## onUnexpectedError() : failed " + e.getMessage(), e);
                 onDone();
 
                 if (null != mPendingJoinGroups.get(groupId)) {
@@ -331,7 +331,7 @@ public class GroupsManager {
                         callback.onSuccess(null);
                     }
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## refreshGroupProfiles() failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## refreshGroupProfiles() failed " + e.getMessage(), e);
                 }
             }
             mRefreshProfilesCallback.clear();
@@ -361,7 +361,7 @@ public class GroupsManager {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## refreshGroupProfiles() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## refreshGroupProfiles() : failed " + e.getMessage(), e);
                 onDone();
             }
 
@@ -373,7 +373,7 @@ public class GroupsManager {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## refreshGroupProfiles() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## refreshGroupProfiles() : failed " + e.getMessage(), e);
                 onDone();
             }
         });
@@ -640,7 +640,7 @@ public class GroupsManager {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.d(LOG_TAG, "## getUserPublicisedGroups() : request failed " + e.getMessage());
+                Log.d(LOG_TAG, "## getUserPublicisedGroups() : request failed " + e.getMessage(), e);
                 onDone(null);
             }
 
@@ -652,7 +652,7 @@ public class GroupsManager {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.d(LOG_TAG, "## getUserPublicisedGroups() : request failed " + e.getMessage());
+                Log.d(LOG_TAG, "## getUserPublicisedGroups() : request failed " + e.getMessage(), e);
                 onDone(null);
             }
         });

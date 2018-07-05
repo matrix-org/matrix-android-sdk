@@ -155,7 +155,7 @@ public class RoomSummary implements java.io.Serializable {
                     Log.e(LOG_TAG, "isSupportedEvent : Unsupported msg type " + msgType);
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "isSupportedEvent failed " + e.getMessage());
+                Log.e(LOG_TAG, "isSupportedEvent failed " + e.getMessage(), e);
             }
         } else if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, type)) {
             isSupported = event.hasContentFields();

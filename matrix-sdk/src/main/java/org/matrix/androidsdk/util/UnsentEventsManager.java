@@ -280,7 +280,7 @@ public class UnsentEventsManager {
             } catch (Exception e) {
                 // privacy
                 //Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage() + " while managing " + error.getUrl());
-                Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage());
+                Log.e(LOG_TAG, "Exception UnexpectedError " + e.getMessage(), e);
             }
         } else if (exception instanceof IOException) {
             try {
@@ -293,7 +293,7 @@ public class UnsentEventsManager {
             } catch (Exception e) {
                 // privacy
                 //Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage() + " while managing " + error.getUrl());
-                Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage());
+                Log.e(LOG_TAG, "Exception NetworkError " + e.getMessage(), e);
             }
         } else {
             // Try to convert this into a Matrix error
@@ -482,7 +482,7 @@ public class UnsentEventsManager {
 
                                             triggerErrorCallback(mDataHandler, eventDescription, response, exception, apiCallback);
                                         } catch (Exception e) {
-                                            Log.e(LOG_TAG, "## onEventSendingFailed() : failure Msg=" + e.getMessage());
+                                            Log.e(LOG_TAG, "## onEventSendingFailed() : failure Msg=" + e.getMessage(), e);
                                         }
                                     }
                                 }, MAX_MESSAGE_LIFETIME_MS);
@@ -502,7 +502,7 @@ public class UnsentEventsManager {
                             try {
                                 triggerErrorCallback(mDataHandler, eventDescription, response, exception, apiCallback);
                             } catch (Exception e) {
-                                Log.e(LOG_TAG, "## onEventSendingFailed() : failure Msg=" + e.getMessage());
+                                Log.e(LOG_TAG, "## onEventSendingFailed() : failure Msg=" + e.getMessage(), e);
                             }
                         }
 
@@ -564,7 +564,7 @@ public class UnsentEventsManager {
                             } catch (Exception e) {
                                 unsentEventSnapshot.mIsResending = false;
                                 staledSnapShots.add(unsentEventSnapshot);
-                                Log.e(LOG_TAG, "## resentUnsents() : " + unsentEventSnapshot.mEventDescription + " onRetry() failed " + e.getMessage());
+                                Log.e(LOG_TAG, "## resentUnsents() : " + unsentEventSnapshot.mEventDescription + " onRetry() failed " + e.getMessage(), e);
                             }
                         }
                     }

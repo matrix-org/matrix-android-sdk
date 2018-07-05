@@ -604,7 +604,7 @@ public class MXSession {
         try {
             task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } catch (final Exception e) {
-            Log.e(LOG_TAG, "## getApplicationSizeCaches() : failed " + e.getMessage());
+            Log.e(LOG_TAG, "## getApplicationSizeCaches() : failed " + e.getMessage(), e);
             task.cancel(true);
 
             (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
@@ -629,7 +629,7 @@ public class MXSession {
         try {
             mAppContent.unregisterReceiver(mNetworkConnectivityReceiver);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## clearApplicationCaches() : unregisterReceiver failed " + e.getMessage());
+            Log.e(LOG_TAG, "## clearApplicationCaches() : unregisterReceiver failed " + e.getMessage(), e);
         }
         mNetworkConnectivityReceiver.removeListeners();
 
@@ -695,7 +695,7 @@ public class MXSession {
             try {
                 task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
             } catch (final Exception e) {
-                Log.e(LOG_TAG, "## clear() failed " + e.getMessage());
+                Log.e(LOG_TAG, "## clear() failed " + e.getMessage(), e);
                 task.cancel(true);
 
                 (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
@@ -749,7 +749,7 @@ public class MXSession {
                             }
                         }
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage());
+                        Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage(), e);
                     }
                 }
             }
@@ -789,7 +789,7 @@ public class MXSession {
         try {
             task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage());
+            Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage(), e);
             task.cancel(true);
         }
     }
@@ -895,7 +895,7 @@ public class MXSession {
                 try {
                     mEventsThread.start();
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## startEventStream() :  mEventsThread.start failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## startEventStream() :  mEventsThread.start failed " + e.getMessage(), e);
                 }
 
                 if (mIsBgCatchupPending) {
@@ -922,7 +922,7 @@ public class MXSession {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.d(LOG_TAG, "refreshToken : onNetworkError " + e.getMessage());
+                Log.d(LOG_TAG, "refreshToken : onNetworkError " + e.getMessage(), e);
             }
 
             @Override
@@ -932,7 +932,7 @@ public class MXSession {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.d(LOG_TAG, "refreshToken : onMatrixError " + e.getMessage());
+                Log.d(LOG_TAG, "refreshToken : onMatrixError " + e.getMessage(), e);
             }
         });
     }
@@ -2078,7 +2078,7 @@ public class MXSession {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## setURLPreviewStatus() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## setURLPreviewStatus() : failed " + e.getMessage(), e);
                 callback.onNetworkError(e);
             }
 
@@ -2090,7 +2090,7 @@ public class MXSession {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## setURLPreviewStatus() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## setURLPreviewStatus() : failed " + e.getMessage(), e);
                 callback.onUnexpectedError(e);
             }
         });
@@ -2118,7 +2118,7 @@ public class MXSession {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## addUserWidget() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## addUserWidget() : failed " + e.getMessage(), e);
                 callback.onNetworkError(e);
             }
 
@@ -2130,7 +2130,7 @@ public class MXSession {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## addUserWidget() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## addUserWidget() : failed " + e.getMessage(), e);
                 callback.onUnexpectedError(e);
             }
         });
@@ -2233,7 +2233,7 @@ public class MXSession {
                 fileCryptoStore.open();
                 isStoreLoaded = true;
             } catch (UnsatisfiedLinkError e) {
-                Log.e(LOG_TAG, "## checkCrypto() failed " + e.getMessage());
+                Log.e(LOG_TAG, "## checkCrypto() failed " + e.getMessage(), e);
             }
 
             if (!isStoreLoaded) {
@@ -2246,7 +2246,7 @@ public class MXSession {
                     fileCryptoStore.open();
                     isStoreLoaded = true;
                 } catch (UnsatisfiedLinkError e) {
-                    Log.e(LOG_TAG, "## checkCrypto() failed 2 " + e.getMessage());
+                    Log.e(LOG_TAG, "## checkCrypto() failed 2 " + e.getMessage(), e);
                 }
             }
 

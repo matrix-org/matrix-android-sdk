@@ -192,7 +192,7 @@ public class RestClient<T> {
             okHttpClientBuilder.hostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
             okHttpClientBuilder.connectionSpecs(CertUtil.newConnectionSpecs(hsConfig));
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage());
+            Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage(), e);
         }
 
         mOkHttpClient = okHttpClientBuilder.build();
@@ -265,7 +265,7 @@ public class RestClient<T> {
                 PackageInfo pkgInfo = pm.getPackageInfo(appContext.getApplicationContext().getPackageName(), 0);
                 appVersion = pkgInfo.versionName;
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## initUserAgent() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## initUserAgent() : failed " + e.getMessage(), e);
             }
         }
 

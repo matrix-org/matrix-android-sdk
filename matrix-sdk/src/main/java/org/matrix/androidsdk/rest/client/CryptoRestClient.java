@@ -172,7 +172,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
                             try {
                                 keysMap.put(deviceId, new MXKey(mapByUserId.get(deviceId)));
                             } catch (Exception e) {
-                                Log.e(LOG_TAG, "## claimOneTimeKeysForUsersDevices : fail to create a MXKey " + e.getMessage());
+                                Log.e(LOG_TAG, "## claimOneTimeKeysForUsersDevices : fail to create a MXKey " + e.getMessage(), e);
                             }
                         }
 

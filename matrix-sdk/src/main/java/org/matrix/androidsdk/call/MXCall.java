@@ -437,7 +437,7 @@ public class MXCall implements IMXCall {
             try {
                 listener.onCallViewCreated(callView);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## dispatchOnCallViewCreated(): Exception Msg=" + e.getMessage());
+                Log.e(LOG_TAG, "## dispatchOnCallViewCreated(): Exception Msg=" + e.getMessage(), e);
             }
         }
     }
@@ -459,7 +459,7 @@ public class MXCall implements IMXCall {
             try {
                 listener.onReady();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## dispatchOnReady(): Exception Msg=" + e.getMessage());
+                Log.e(LOG_TAG, "## dispatchOnReady(): Exception Msg=" + e.getMessage(), e);
             }
         }
     }
@@ -483,7 +483,7 @@ public class MXCall implements IMXCall {
             try {
                 listener.onCallError(error);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## dispatchOnCallError(): " + e.getMessage());
+                Log.e(LOG_TAG, "## dispatchOnCallError(): " + e.getMessage(), e);
             }
         }
     }
@@ -512,7 +512,7 @@ public class MXCall implements IMXCall {
             try {
                 listener.onStateDidChange(newState);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## dispatchOnStateDidChange(): Exception Msg=" + e.getMessage());
+                Log.e(LOG_TAG, "## dispatchOnStateDidChange(): Exception Msg=" + e.getMessage(), e);
             }
         }
     }
@@ -529,7 +529,7 @@ public class MXCall implements IMXCall {
             try {
                 listener.onCallAnsweredElsewhere();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## dispatchAnsweredElsewhere(): Exception Msg=" + e.getMessage());
+                Log.e(LOG_TAG, "## dispatchAnsweredElsewhere(): Exception Msg=" + e.getMessage(), e);
             }
         }
     }
@@ -548,7 +548,7 @@ public class MXCall implements IMXCall {
             try {
                 listener.onCallEnd(aEndCallReasonId);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## dispatchOnCallEnd(): Exception Msg=" + e.getMessage());
+                Log.e(LOG_TAG, "## dispatchOnCallEnd(): Exception Msg=" + e.getMessage(), e);
             }
         }
     }
@@ -637,7 +637,7 @@ public class MXCall implements IMXCall {
             try {
                 listener.onPreviewSizeChanged(width, height);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## dispatchOnPreviewSizeChanged(): Exception Msg=" + e.getMessage());
+                Log.e(LOG_TAG, "## dispatchOnPreviewSizeChanged(): Exception Msg=" + e.getMessage(), e);
             }
         }
     }
@@ -678,7 +678,7 @@ public class MXCall implements IMXCall {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.d(LOG_TAG, "## sendHangup(): onNetworkError Msg=" + e.getMessage());
+                Log.d(LOG_TAG, "## sendHangup(): onNetworkError Msg=" + e.getMessage(), e);
             }
 
             @Override
@@ -688,7 +688,7 @@ public class MXCall implements IMXCall {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.d(LOG_TAG, "## sendHangup(): onUnexpectedError Msg=" + e.getMessage());
+                Log.d(LOG_TAG, "## sendHangup(): onUnexpectedError Msg=" + e.getMessage(), e);
             }
         });
     }
