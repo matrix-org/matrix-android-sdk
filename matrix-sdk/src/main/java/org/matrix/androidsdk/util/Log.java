@@ -17,7 +17,7 @@ package org.matrix.androidsdk.util;
 
 import android.text.TextUtils;
 
-import org.matrix.olm.BuildConfig;
+import org.matrix.androidsdk.BuildConfig;
 
 import java.io.File;
 import java.io.IOException;
@@ -50,6 +50,9 @@ public class Log {
     private static FileHandler sFileHandler = null;
     private static File sCacheDirectory = null;
     private static String sFileName = "matrix";
+
+    // determine if messsages with DEBUG level should be logged or not
+    public static boolean sShouldLogDebug = BuildConfig.DEBUG;
 
     public enum EventTag {
         /** A navigation event, e.g. onPause */
@@ -172,14 +175,14 @@ public class Log {
     }
 
     public static void d(String tag, String content) {
-        if (BuildConfig.DEBUG) {
+        if (sShouldLogDebug) {
             android.util.Log.d(tag, content);
             logToFile("D", tag, content);
         }
     }
 
     public static void d(String tag, String content, Throwable throwable) {
-        if (BuildConfig.DEBUG) {
+        if (sShouldLogDebug) {
             android.util.Log.d(tag, content, throwable);
             logToFile("D", tag, content);
         }
