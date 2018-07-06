@@ -440,9 +440,6 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
 
         Log.d(LOG_TAG, "Upload " + this + " : " + mUploadStats.mProgress);
 
-        // FIXME File size is not correct
-        // FIXME On Riot, it display 12ko / 12ko, then 35ko / 35ko, etc.
-
         dispatchOnUploadProgress(mUploadStats);
     }
 

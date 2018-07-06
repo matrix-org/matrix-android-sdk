@@ -126,29 +126,4 @@ public class MediaScanRestClient extends RestClient<MediaScanApi> {
 
         mApi.scanEncrypted(encryptedMediaScanBody).enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
     }
-
-    // TODO Remove this comment
-//    /**
-//     * Scan an encrypted file.
-//     *
-//     * @param encryptedMediaScanBody the encryption information required to decrypt the content before scanning it.
-//     * @param callback               on success callback containing a MediaScanResult object
-//     */
-//    public void scanEncryptedFile(final EncryptedFileInfo encryptedFileInfo, final ApiCallback<MediaScanResult> callback) {
-//        EncryptedMediaScanBody encryptedMediaScanBody = new EncryptedMediaScanBody();
-//        encryptedMediaScanBody.encryptedFileInfo = encryptedFileInfo;
-//        mApi.scanEncrypted(encryptedMediaScanBody).enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
-//    }
-//
-//    /**
-//     * Scan an encrypted file.
-//     *
-//     * @param encryptedMediaScanBody the encryption information required to decrypt the content before scanning it.
-//     * @param callback               on success callback containing a MediaScanResult object
-//     */
-//    public void scanEncryptedFile(final EncryptedBodyFileInfo encryptedBodyFileInfo, final ApiCallback<MediaScanResult> callback) {
-//        EncryptedMediaScanBody encryptedMediaScanBody = new EncryptedMediaScanBody();
-//        encryptedMediaScanBody.encryptedBodyFileInfo = encryptedBodyFileInfo;
-//        mApi.scanEncrypted(encryptedMediaScanBody).enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
-//    }
 }
