@@ -184,6 +184,16 @@ public class Room {
     }
 
     /**
+     * Determine whether we should encrypt messages for invited users in this room.
+     *
+     * @return true if we should encrypt messages for invited users.
+     */
+    public boolean shouldEncryptForInvitedMembers() {
+        String historyVisibility = getLiveState().history_visibility;
+        return !TextUtils.equals(historyVisibility, RoomState.HISTORY_VISIBILITY_JOINED);
+    }
+
+    /**
      * Tells if the room is a call conference one
      * i.e. this room has been created to manage the call conference
      *
