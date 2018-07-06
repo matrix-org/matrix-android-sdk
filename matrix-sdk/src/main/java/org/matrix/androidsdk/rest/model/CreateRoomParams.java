@@ -158,10 +158,12 @@ public class CreateRoomParams {
                 initial_state.add(historyVisibilityEvent);
             }
         } else if (!initial_state.isEmpty()) {
+            final List<Event> initialState = new ArrayList<>();
             for (Event event : initial_state) {
-                if (event.type.equals(Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY)) {
-                    initial_state.remove(event);
+                if (!event.type.equals(Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY)) {
+                    initialState.add(event);
                 }
+                initial_state = initialState;
             }
         }
     }

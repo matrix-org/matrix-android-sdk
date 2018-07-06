@@ -11,7 +11,7 @@ Bugfix:
  -
 
 API Change:
- -
+ - We no longer add the history_visibility parameter when creating a room. Now we use the method setHistoryVisibility.
 
 Translations:
  -
