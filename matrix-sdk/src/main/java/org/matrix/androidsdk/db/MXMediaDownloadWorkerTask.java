@@ -691,7 +691,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
             mDownloadStats.mEstimatedRemainingTime = -1;
         }
 
-        Log.d(LOG_TAG, "publishProgress " + this + " : " + mDownloadStats.mProgress);
+        Log.d(LOG_TAG, "updateAndPublishProgress " + this + " : " + mDownloadStats.mProgress);
 
         publishProgress();
     }
@@ -957,6 +957,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
      *
      * @return either empty string if server does not provide the public key, null in case of error, or the public server key
      */
+    @Nullable
     private String getAntivirusServerPublicKey() {
         // Make async request sync with a CountDownLatch
         final CountDownLatch latch = new CountDownLatch(1);

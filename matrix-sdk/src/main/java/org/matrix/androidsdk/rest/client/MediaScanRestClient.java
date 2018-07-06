@@ -55,7 +55,7 @@ public class MediaScanRestClient extends RestClient<MediaScanApi> {
 
     /**
      * Get the current public curve25519 key that the AV server is advertising.
-     * Read the value form cache if any
+     * Read the value from cache if any
      *
      * @param callback on success callback containing the server public key
      */
