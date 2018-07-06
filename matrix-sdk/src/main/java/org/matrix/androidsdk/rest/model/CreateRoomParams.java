@@ -163,8 +163,8 @@ public class CreateRoomParams {
                 if (!event.type.equals(Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY)) {
                     initialState.add(event);
                 }
-                initial_state = initialState;
             }
+            initial_state = initialState;
         }
     }
 
