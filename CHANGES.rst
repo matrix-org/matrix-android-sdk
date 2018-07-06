@@ -17,7 +17,7 @@ Translations:
  -
 
 Others:
- -
+ - Do not log DEBUG messages in release versions (PR #304)
 
 Build:
  -
