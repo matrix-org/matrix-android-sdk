@@ -16,6 +16,7 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.support.annotation.Nullable;
+import android.text.TextUtils;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
@@ -25,9 +26,17 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.DefaultRetrofit2CallbackWrapper;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.EncryptedMediaScanBody;
+import org.matrix.androidsdk.rest.model.EncryptedMediaScanEncryptedBody;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.MediaScanPublicKeyResult;
 import org.matrix.androidsdk.rest.model.MediaScanResult;
+import org.matrix.androidsdk.rest.model.crypto.EncryptedBodyFileInfo;
+import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.olm.OlmException;
+import org.matrix.olm.OlmPkEncryption;
+import org.matrix.olm.OlmPkMessage;
+
+import retrofit2.Call;
 
 /**
  * Class used to make requests to the anti-virus scanner API.
@@ -121,9 +130,37 @@ public class MediaScanRestClient extends RestClient<MediaScanApi> {
      * @param callback               on success callback containing a MediaScanResult object
      */
     public void scanEncryptedFile(final EncryptedMediaScanBody encryptedMediaScanBody, final ApiCallback<MediaScanResult> callback) {
-        // TODO Encrypt encryptedMediaScanBody?
+        // Encrypt encryptedMediaScanBody if the server support it
+        getServerPublicKey(new SimpleApiCallback<String>(callback) {
+            @Override
+            public void onSuccess(String info) {
+                Call<MediaScanResult> request;
 
+                // Encrypt the data, if antivirus server supports it
+                if (!TextUtils.isEmpty(info)) {
+                    try {
+                        OlmPkEncryption olmPkEncryption = new OlmPkEncryption();
+                        olmPkEncryption.setRecipientKey(info);
 
-        mApi.scanEncrypted(encryptedMediaScanBody).enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
+                        String data = JsonUtils.getCanonicalizedJsonString(encryptedMediaScanBody);
+
+                        OlmPkMessage message = olmPkEncryption.encrypt(data);
+
+                        EncryptedMediaScanEncryptedBody encryptedMediaScanEncryptedBody = new EncryptedMediaScanEncryptedBody();
+                        encryptedMediaScanEncryptedBody.encryptedBodyFileInfo = new EncryptedBodyFileInfo(message);
+
+                        request = mApi.scanEncrypted(encryptedMediaScanEncryptedBody);
+                    } catch (OlmException e) {
+                        // Fallback to unencrypted body (should not happen)
+                        request = mApi.scanEncrypted(encryptedMediaScanBody);
+                    }
+                } else {
+                    // No public key on this server, do not encrypt data
+                    request = mApi.scanEncrypted(encryptedMediaScanBody);
+                }
+
+                request.enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
+            }
+        });
     }
 }
