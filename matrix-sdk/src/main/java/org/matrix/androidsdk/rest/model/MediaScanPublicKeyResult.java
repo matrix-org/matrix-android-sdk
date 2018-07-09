@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,12 +15,13 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import com.google.gson.annotations.SerializedName;
+
 /**
- * Class to update the password
+ * Class to contain the public key of the media scan server.
  */
-public class ChangePasswordParams {
-    // current account information
-    public AuthParams auth;
-    // the new password
-    public String new_password;
+public class MediaScanPublicKeyResult {
+
+    @SerializedName("public_key")
+    public String mCurve25519PublicKey;
 }

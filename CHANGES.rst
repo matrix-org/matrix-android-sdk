@@ -6,6 +6,8 @@ Features:
 
 Improvements:
  - MXCrypto: Encrypt the messages for invited members according to the history visibility (if the option is enabled in MXCryptoConfig).
+ - Upgrade olm-sdk.aar from version 2.2.2 to version 2.3.0
+ - Add a method to MediaScanRestClient to get the public key of the media scanner server
 
 Bugfix:
  -

@@ -20,7 +20,6 @@
 package org.matrix.androidsdk;
 
 import android.content.Context;
-import android.net.Uri;
 import android.os.SystemClock;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
@@ -149,9 +148,7 @@ public class CryptoTest {
 
         final Credentials bobCredentials = mBobSession.getCredentials();
 
-        Uri uri = Uri.parse(CryptoTestHelper.TESTS_HOME_SERVER_URL);
-        HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
-        hs.setCredentials(bobCredentials);
+        HomeServerConnectionConfig hs = CryptoTestHelper.createHomeServerConfig(bobCredentials);
 
         IMXStore store = new MXFileStore(hs, context);
 
@@ -319,9 +316,7 @@ public class CryptoTest {
 
         Credentials bobCredentials = mBobSession.getCredentials();
 
-        Uri uri = Uri.parse(CryptoTestHelper.TESTS_HOME_SERVER_URL);
-        HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
-        hs.setCredentials(bobCredentials);
+        HomeServerConnectionConfig hs = CryptoTestHelper.createHomeServerConfig(bobCredentials);
 
         IMXStore store = new MXFileStore(hs, context);
 
@@ -489,9 +484,7 @@ public class CryptoTest {
 
         Credentials bobCredentials = mBobSession.getCredentials();
 
-        Uri uri = Uri.parse(CryptoTestHelper.TESTS_HOME_SERVER_URL);
-        HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
-        hs.setCredentials(bobCredentials);
+        HomeServerConnectionConfig hs = CryptoTestHelper.createHomeServerConfig(bobCredentials);
 
         IMXStore store = new MXFileStore(hs, context);
 
@@ -859,9 +852,7 @@ public class CryptoTest {
 
         mAliceSession.clear(context);
 
-        Uri uri = Uri.parse(CryptoTestHelper.TESTS_HOME_SERVER_URL);
-        HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
-        hs.setCredentials(aliceCredentials);
+        HomeServerConnectionConfig hs = CryptoTestHelper.createHomeServerConfig(aliceCredentials);
 
         IMXStore store = new MXFileStore(hs, context);
 
@@ -996,9 +987,7 @@ public class CryptoTest {
         aliceCredentials2.refreshToken = aliceCredentials.refreshToken;
         aliceCredentials2.deviceId = "AliceNewDevice";
 
-        Uri uri = Uri.parse(CryptoTestHelper.TESTS_HOME_SERVER_URL);
-        HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
-        hs.setCredentials(aliceCredentials2);
+        HomeServerConnectionConfig hs = CryptoTestHelper.createHomeServerConfig(aliceCredentials2);
 
         IMXStore store = new MXFileStore(hs, context);
 
@@ -1083,9 +1072,7 @@ public class CryptoTest {
         Credentials bobCredentials = mBobSession.getCredentials();
         mBobSession.clear(context);
 
-        Uri uri = Uri.parse(CryptoTestHelper.TESTS_HOME_SERVER_URL);
-        HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
-        hs.setCredentials(bobCredentials);
+        HomeServerConnectionConfig hs = CryptoTestHelper.createHomeServerConfig(bobCredentials);
 
         IMXStore store = new MXFileStore(hs, context);
 
@@ -2283,9 +2270,7 @@ public class CryptoTest {
         aliceCredentials2.refreshToken = aliceCredentials.refreshToken;
         aliceCredentials2.deviceId = "AliceNewDevice";
 
-        Uri uri = Uri.parse(CryptoTestHelper.TESTS_HOME_SERVER_URL);
-        HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
-        hs.setCredentials(aliceCredentials2);
+        HomeServerConnectionConfig hs = CryptoTestHelper.createHomeServerConfig(aliceCredentials2);
 
         IMXStore store = new MXFileStore(hs, context);
 

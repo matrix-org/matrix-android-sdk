@@ -18,7 +18,6 @@
 package org.matrix.androidsdk.db;
 
 import android.os.AsyncTask;
-import android.os.Looper;
 import android.util.Pair;
 
 import org.json.JSONException;
@@ -40,6 +39,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,7 +53,7 @@ import javax.net.ssl.X509TrustManager;
 /**
  * Private AsyncTask used to upload files.
  */
-public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListener.UploadStats, String> {
+public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
 
     private static final String LOG_TAG = MXMediaUploadWorkerTask.class.getSimpleName();
 
@@ -76,15 +76,15 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
     private final String mUploadId;
 
     // store the server response to provide it the listeners
-    private String mResponseFromServer = null;
+    private String mResponseFromServer;
 
     // tells if the current upload has been cancelled.
-    private boolean mIsCancelled = false;
+    private boolean mIsCancelled;
 
     /**
      * Tells if the upload has been completed
      */
-    private boolean mIsDone = false;
+    private boolean mIsDone;
 
     // upload const
     private static final int UPLOAD_BUFFER_READ_SIZE = 1024 * 32;
@@ -113,7 +113,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
     private int mResponseCode = -1;
 
     // the media file name
-    private String mFilename = null;
+    private String mFilename;
 
     // the content manager
     private final ContentManager mContentManager;
@@ -124,16 +124,18 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
      * @param uploadId The id to check the existence
      * @return the dedicated BitmapWorkerTask if it exists.
      */
-    public static MXMediaUploadWorkerTask getMediaDUploadWorkerTask(String uploadId) {
-        if ((uploadId != null) && mPendingUploadByUploadId.containsKey(uploadId)) {
-            MXMediaUploadWorkerTask task;
+    public static MXMediaUploadWorkerTask getMediaUploadWorkerTask(String uploadId) {
+        if (uploadId != null) {
+            MXMediaUploadWorkerTask task = null;
             synchronized (mPendingUploadByUploadId) {
-                task = mPendingUploadByUploadId.get(uploadId);
+                if (mPendingUploadByUploadId.containsKey(uploadId)) {
+                    task = mPendingUploadByUploadId.get(uploadId);
+                }
             }
             return task;
-        } else {
-            return null;
         }
+
+        return null;
     }
 
     /**
@@ -177,14 +179,13 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
             Log.e(LOG_TAG, "MXMediaUploadWorkerTask " + e.getMessage());
         }
 
-        if ((null != listener) && (mUploadListeners.indexOf(listener) < 0)) {
-            mUploadListeners.add(listener);
-        }
-        mMimeType = mimeType;
+        mContentManager = contentManager;
         mContentStream = contentStream;
+        mMimeType = mimeType;
         mUploadId = uploadId;
         mFilename = filename;
-        mContentManager = contentManager;
+
+        addListener(listener);
 
         if (null != uploadId) {
             mPendingUploadByUploadId.put(uploadId, this);
@@ -197,7 +198,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
      * @param aListener the listener to add.
      */
     public void addListener(IMXMediaUploadListener aListener) {
-        if ((null != aListener) && (mUploadListeners.indexOf(aListener) < 0)) {
+        if (null != aListener && mUploadListeners.indexOf(aListener) < 0) {
             mUploadListeners.add(aListener);
         }
     }
@@ -241,7 +242,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
 
         if (0 != mUploadStats.mFileSize) {
             // Uploading data is 90% of the job
-            // the other 10s is the end of the connection related actions
+            // the other 10% is the end of the connection related actions
             mUploadStats.mProgress = (int) (((long) mUploadStats.mUploadedSize) * 96 / mUploadStats.mFileSize);
         }
 
@@ -258,7 +259,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
             mUploadStats.mEstimatedRemainingTime = -1;
         }
 
-        publishProgress(mUploadStats);
+        publishProgress();
     }
 
     @Override
@@ -274,6 +275,8 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
         byte[] buffer;
 
         String serverResponse = null;
+
+        // TODO Pass access token as header?
         String urlString = mContentManager.getHsConfig().getHomeserverUri().toString() + ContentManager.URI_PREFIX_CONTENT_API
                 + "upload?access_token=" + mContentManager.getHsConfig().getCredentials().accessToken;
 
@@ -340,32 +343,17 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
 
             dispatchOnUploadStart();
 
-            final android.os.Handler uiHandler = new android.os.Handler(Looper.getMainLooper());
-
             final Timer refreshTimer = new Timer();
 
-            uiHandler.post(new Runnable() {
+            // Publish progress every 100ms
+            refreshTimer.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
-                    try {
-                        refreshTimer.scheduleAtFixedRate(new TimerTask() {
-                            @Override
-                            public void run() {
-                                uiHandler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        if (!mIsDone) {
-                                            publishProgress(startUploadTime);
-                                        }
-                                    }
-                                });
-                            }
-                        }, new java.util.Date(), 100);
-                    } catch (Throwable throwable) {
-                        Log.e(LOG_TAG, "scheduleAtFixedRate failed " + throwable.getMessage());
+                    if (!mIsDone) {
+                        publishProgress(startUploadTime);
                     }
                 }
-            });
+            }, new Date(), 100);
 
             while ((bytesRead > 0) && !isUploadCancelled()) {
                 dos.write(buffer, 0, bytesRead);
@@ -378,12 +366,8 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
                 bytesRead = mContentStream.read(buffer, 0, bufferSize);
             }
             mIsDone = true;
-            uiHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    refreshTimer.cancel();
-                }
-            });
+
+            refreshTimer.cancel();
 
             if (!isUploadCancelled()) {
                 mUploadStats.mProgress = 96;
@@ -451,8 +435,8 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
     }
 
     @Override
-    protected void onProgressUpdate(IMXMediaUploadListener.UploadStats... progress) {
-        super.onProgressUpdate(progress);
+    protected void onProgressUpdate(Void... aVoid) {
+        super.onProgressUpdate();
 
         Log.d(LOG_TAG, "Upload " + this + " : " + mUploadStats.mProgress);
 
@@ -481,9 +465,9 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
         if (isUploadCancelled()) {
             dispatchOnUploadCancel();
         } else {
-            ContentResponse uploadResponse = ((mResponseCode != 200) || (serverResponse == null)) ? null : JsonUtils.toContentResponse(serverResponse);
+            ContentResponse uploadResponse = (mResponseCode != 200 || serverResponse == null) ? null : JsonUtils.toContentResponse(serverResponse);
 
-            if ((null == uploadResponse) || (null == uploadResponse.contentUri)) {
+            if (null == uploadResponse || null == uploadResponse.contentUri) {
                 dispatchOnUploadError(mResponseCode, serverResponse);
             } else {
                 dispatchOnUploadComplete(uploadResponse.contentUri);
@@ -510,7 +494,6 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, IMXMediaUploadListe
         for (IMXMediaUploadListener listener : mUploadListeners) {
             try {
                 listener.onUploadStart(mUploadId);
-
             } catch (Exception e) {
                 Log.e(LOG_TAG, "dispatchOnUploadStart failed " + e.getMessage());
             }

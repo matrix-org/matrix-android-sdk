@@ -1,12 +1,13 @@
-/* 
+/*
  * Copyright 2016 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -41,8 +42,8 @@ public class ContentManager {
     private final UnsentEventsManager mUnsentEventsManager;
 
     // AV scanner handling
-    private boolean mIsAvScannerEnabled = false;
-    private String mDownloadUrlPrefix = null;
+    private boolean mIsAvScannerEnabled;
+    private String mDownloadUrlPrefix;
 
     /**
      * Default constructor.
@@ -147,10 +148,9 @@ public class ContentManager {
     /**
      * Get the actual URL for accessing the full-size image of a Matrix media content URI.
      *
-     * @deprecated See getDownloadableUrl(contentUrl, isEncrypted).
-     *
      * @param contentUrl the Matrix media content URI (in the form of "mxc://...").
      * @return the URL to access the described resource, or null if the url is invalid.
+     * @deprecated See getDownloadableUrl(contentUrl, isEncrypted).
      */
     @Nullable
     public String getDownloadableUrl(String contentUrl) {
@@ -162,7 +162,7 @@ public class ContentManager {
     /**
      * Get the actual URL for accessing the full-size image of a Matrix media content URI.
      *
-     * @param contentUrl the Matrix media content URI (in the form of "mxc://...").
+     * @param contentUrl  the Matrix media content URI (in the form of "mxc://...").
      * @param isEncrypted tell whether the related content is encrypted (This information is
      *                    required when the anti-virus scanner is enabled).
      * @return the URL to access the described resource, or null if the url is invalid.

@@ -19,6 +19,7 @@ package org.matrix.androidsdk;
 
 import android.net.Uri;
 import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -56,6 +57,8 @@ public class HomeServerConnectionConfig {
     private List<CipherSuite> mTlsCipherSuites;
     // should accept TLS extensions
     private boolean mShouldAcceptTlsExtensions;
+    // allow Http connection
+    private boolean mAllowHttpExtension;
 
     /**
      * @param hsUri The URI to use to connect to the homeserver
@@ -269,6 +272,21 @@ public class HomeServerConnectionConfig {
      */
     public boolean shouldAcceptTlsExtensions() {
         return mShouldAcceptTlsExtensions;
+    }
+
+    /**
+     * For test only: allow Http connection
+     */
+    @VisibleForTesting()
+    public void allowHttpConnection() {
+        mAllowHttpExtension = true;
+    }
+
+    /**
+     * @return true if Http connection is allowed (false by default).
+     */
+    public boolean isHttpConnectionAllowed() {
+        return mAllowHttpExtension;
     }
 
     @Override

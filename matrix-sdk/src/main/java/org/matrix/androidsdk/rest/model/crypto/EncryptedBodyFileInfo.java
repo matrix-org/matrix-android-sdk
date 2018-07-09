@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest.model;
+package org.matrix.androidsdk.rest.model.crypto;
 
-/**
- * Class to update the password
- */
-public class ChangePasswordParams {
-    // current account information
-    public AuthParams auth;
-    // the new password
-    public String new_password;
+import org.matrix.olm.OlmPkMessage;
+
+public class EncryptedBodyFileInfo {
+    public String ciphertext;
+    public String mac;
+    public String ephemeral;
+
+    /**
+     * Build from a OlmPkMessage object
+     *
+     * @param olmPkMessage OlmPkMessage
+     */
+    public EncryptedBodyFileInfo(OlmPkMessage olmPkMessage) {
+        ciphertext = olmPkMessage.mCipherText;
+        mac = olmPkMessage.mMac;
+        ephemeral = olmPkMessage.mEphemeralKey;
+    }
 }

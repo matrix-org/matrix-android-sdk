@@ -20,6 +20,7 @@ package org.matrix.androidsdk.data.store;
 
 import android.content.Context;
 import android.os.HandlerThread;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
@@ -2554,6 +2555,12 @@ public class MXFileStore extends MXMemoryStore {
     @Override
     public void setUserWidgets(Map<String, Object> contentDict) {
         super.setUserWidgets(contentDict);
+        mMetaDataHasChanged = true;
+    }
+
+    @Override
+    public void setAntivirusServerPublicKey(@Nullable String key) {
+        super.setAntivirusServerPublicKey(key);
         mMetaDataHasChanged = true;
     }
 }

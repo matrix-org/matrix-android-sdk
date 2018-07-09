@@ -21,6 +21,7 @@ package org.matrix.androidsdk.data.store;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.data.EventTimeline;
@@ -1606,5 +1607,16 @@ public class MXMemoryStore implements IMXStore {
     @Override
     public Set<String> getRoomsWithoutURLPreviews() {
         return (null != mMetadata.mRoomsListWithoutURLPrevew) ? mMetadata.mRoomsListWithoutURLPrevew : new HashSet<String>();
+    }
+
+    @Override
+    public void setAntivirusServerPublicKey(@Nullable String key) {
+        mMetadata.mAntivirusServerPublicKey = key;
+    }
+
+    @Override
+    @Nullable
+    public String getAntivirusServerPublicKey() {
+        return mMetadata.mAntivirusServerPublicKey;
     }
 }
