@@ -203,12 +203,15 @@ public class ContentManager {
                 mediaServerAndId = mediaServerAndId.substring(0, mediaServerAndId.length() - "#auto".length());
             }
 
-            // Thumbnail url still go to the media repo since they don’t need virus scanning
-            String url = mHsConfig.getHomeserverUri().toString() + URI_PREFIX_CONTENT_API;
-
-            // identicon server has no thumbnail path
+            // Build the thumbnail url.
+            String url;
+            // Caution: identicon has no thumbnail path
             if (mediaServerAndId.indexOf("identicon") < 0) {
-                url += "thumbnail/";
+                // Use the current download url prefix to take into account a potential antivirus scanner
+                url = mDownloadUrlPrefix + "thumbnail/";
+            } else {
+                // identicon url still go to the media repo since they don’t need virus scanning
+                url = mHsConfig.getHomeserverUri().toString() + URI_PREFIX_CONTENT_API;
             }
 
             url += mediaServerAndId;
