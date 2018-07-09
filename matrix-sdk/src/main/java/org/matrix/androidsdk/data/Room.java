@@ -186,10 +186,13 @@ public class Room {
     /**
      * Determine whether we should encrypt messages for invited users in this room.
      *
+     * Check here whether the invited members are allowed to read messages in the room history
+     * from the point they were invited onwards.
+     *
      * @return true if we should encrypt messages for invited users.
      */
     public boolean shouldEncryptForInvitedMembers() {
-        String historyVisibility = getLiveState().history_visibility;
+        String historyVisibility = getState().history_visibility;
         return !TextUtils.equals(historyVisibility, RoomState.HISTORY_VISIBILITY_JOINED);
     }
 
