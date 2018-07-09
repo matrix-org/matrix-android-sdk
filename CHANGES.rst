@@ -11,7 +11,6 @@ Bugfix:
  -
 
 API Change:
- - We no longer add the history_visibility parameter when creating a room. Now we use the method setHistoryVisibility.
  - Parameter historyVisibility removed from MxSession.createRoom(). It had no effect.
 
 Translations:
