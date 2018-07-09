@@ -959,18 +959,21 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
      */
     @Nullable
     private String getAntivirusServerPublicKey() {
+        if (mMediaScanRestClient == null) {
+            // Error
+            Log.e(LOG_TAG, "Mandatory mMediaScanRestClient is null");
+            return null;
+        }
+
         // Make async request sync with a CountDownLatch
+        // It is easier than adding a method to get the server public key synchronously with Call<T>.execute()
         final CountDownLatch latch = new CountDownLatch(1);
         final String[] publicServerKey = new String[1];
 
-        if (mMediaScanRestClient == null) {
-            return "";
-        }
-
         mMediaScanRestClient.getServerPublicKey(new ApiCallback<String>() {
             @Override
-            public void onSuccess(String info) {
-                publicServerKey[0] = info;
+            public void onSuccess(String serverPublicKey) {
+                publicServerKey[0] = serverPublicKey;
                 latch.countDown();
             }
 

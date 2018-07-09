@@ -85,11 +85,17 @@ public class MediaScanRestClient extends RestClient<MediaScanApi> {
                     // Store the key in cache for next times
                     mMxStore.setAntivirusServerPublicKey(info.mCurve25519PublicKey);
 
-                    callback.onSuccess(info.mCurve25519PublicKey);
+                    // Note: for some reason info.mCurve25519PublicKey may be null
+                    if (info.mCurve25519PublicKey != null) {
+                        callback.onSuccess(info.mCurve25519PublicKey);
+                    } else {
+                        callback.onUnexpectedError(new Exception("Unable to get server public key from Json"));
+                    }
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
+                    // Old Antivirus scanner instance will return a 404
                     if (e.mStatus == 404) {
                         // On 404 consider the public key is not available, so do not encrypt body
                         mMxStore.setAntivirusServerPublicKey("");
@@ -133,14 +139,14 @@ public class MediaScanRestClient extends RestClient<MediaScanApi> {
         // Encrypt encryptedMediaScanBody if the server support it
         getServerPublicKey(new SimpleApiCallback<String>(callback) {
             @Override
-            public void onSuccess(String info) {
+            public void onSuccess(String serverPublicKey) {
                 Call<MediaScanResult> request;
 
                 // Encrypt the data, if antivirus server supports it
-                if (!TextUtils.isEmpty(info)) {
+                if (!TextUtils.isEmpty(serverPublicKey)) {
                     try {
                         OlmPkEncryption olmPkEncryption = new OlmPkEncryption();
-                        olmPkEncryption.setRecipientKey(info);
+                        olmPkEncryption.setRecipientKey(serverPublicKey);
 
                         String data = JsonUtils.getCanonicalizedJsonString(encryptedMediaScanBody);
 
@@ -151,15 +157,18 @@ public class MediaScanRestClient extends RestClient<MediaScanApi> {
 
                         request = mApi.scanEncrypted(encryptedMediaScanEncryptedBody);
                     } catch (OlmException e) {
-                        // Fallback to unencrypted body (should not happen)
-                        request = mApi.scanEncrypted(encryptedMediaScanBody);
+                        // should not happen. Send the error to the caller
+                        request = null;
+                        callback.onUnexpectedError(e);
                     }
                 } else {
                     // No public key on this server, do not encrypt data
                     request = mApi.scanEncrypted(encryptedMediaScanBody);
                 }
 
-                request.enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
+                if (request != null) {
+                    request.enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
+                }
             }
         });
     }

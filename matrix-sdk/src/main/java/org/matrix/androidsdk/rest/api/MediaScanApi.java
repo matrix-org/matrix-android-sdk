@@ -54,9 +54,9 @@ public interface MediaScanApi {
     Call<MediaScanResult> scanEncrypted(@Body EncryptedMediaScanBody encryptedMediaScanBody);
 
     /**
-     * Scan an encrypted file.
+     * Scan an encrypted file, sending an encrypted body.
      *
-     * @param encryptedMediaScanEncryptedBody the encryption information required to decrypt the content before scanning it.
+     * @param encryptedMediaScanEncryptedBody the encrypted encryption information required to decrypt the content before scanning it.
      */
     @POST("scan_encrypted")
     Call<MediaScanResult> scanEncrypted(@Body EncryptedMediaScanEncryptedBody encryptedMediaScanEncryptedBody);
