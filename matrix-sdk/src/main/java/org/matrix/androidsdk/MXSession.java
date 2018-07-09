@@ -1150,8 +1150,7 @@ public class MXSession {
      * @param callback the async callback once the room is ready
      */
     public void createRoom(String name, String topic, String alias, final ApiCallback<String> callback) {
-        createRoom(name, topic, RoomState.DIRECTORY_VISIBILITY_PRIVATE, alias, RoomState.GUEST_ACCESS_CAN_JOIN,
-                RoomState.HISTORY_VISIBILITY_SHARED, null, callback);
+        createRoom(name, topic, RoomState.DIRECTORY_VISIBILITY_PRIVATE, alias, RoomState.GUEST_ACCESS_CAN_JOIN, null, callback);
     }
 
     /**
@@ -1162,7 +1161,6 @@ public class MXSession {
      * @param visibility        the room visibility
      * @param alias             the room alias
      * @param guestAccess       the guest access rule (see {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN})
-     * @param historyVisibility the history visibility
      * @param algorithm         the crypto algorithm (null to create an unencrypted room)
      * @param callback          the async callback once the room is ready
      */
@@ -1171,7 +1169,6 @@ public class MXSession {
                            String visibility,
                            String alias,
                            String guestAccess,
-                           String historyVisibility,
                            String algorithm,
                            final ApiCallback<String> callback) {
         checkIfAlive();
@@ -1182,7 +1179,6 @@ public class MXSession {
         params.visibility = !TextUtils.isEmpty(visibility) ? visibility : null;
         params.roomAliasName = !TextUtils.isEmpty(alias) ? alias : null;
         params.guest_access = !TextUtils.isEmpty(guestAccess) ? guestAccess : null;
-        params.history_visibility = !TextUtils.isEmpty(historyVisibility) ? historyVisibility : null;
         params.addCryptoAlgorithm(algorithm);
 
         createRoom(params, callback);
