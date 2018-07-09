@@ -825,21 +825,6 @@ public class MXCrypto {
             return;
         }
 
-        final List<String> userRoomIds = new ArrayList<>();
-
-        Collection<Room> rooms = mSession.getDataHandler().getStore().getRooms();
-
-        for (Room room : rooms) {
-            if (room.isEncrypted()) {
-                RoomMember roomMember = room.getMember(userId);
-
-                // test if the user joins the room
-                if ((null != roomMember) && TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_JOIN)) {
-                    userRoomIds.add(room.getRoomId());
-                }
-            }
-        }
-
         getEncryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
@@ -934,9 +919,12 @@ public class MXCrypto {
 
             Room room = mSession.getDataHandler().getRoom(roomId);
             if (null != room) {
+                // Check whether the event content must be encrypted for the invited members.
+                boolean encryptForInvitedMembers = mCryptoConfig.mEnableEncryptionForInvitedMembers
+                        && room.shouldEncryptForInvitedMembers();
+
                 Collection<RoomMember> members;
-                // Check here whether the event content must be encrypted for the invited members.
-                if (mCryptoConfig.mEncryptMessagesForInvitedMembers) {
+                if (encryptForInvitedMembers) {
                     members = room.getActiveMembers();
                 } else {
                     members = room.getJoinedMembers();
@@ -1283,9 +1271,12 @@ public class MXCrypto {
         // just as you are sending a secret message?
         final List<String> userdIds = new ArrayList<>();
 
+        // Check whether the event content must be encrypted for the invited members.
+        boolean encryptForInvitedMembers = mCryptoConfig.mEnableEncryptionForInvitedMembers
+                && room.shouldEncryptForInvitedMembers();
+
         Collection<RoomMember> members;
-        // Check here whether the event content must be encrypted for the invited members.
-        if (mCryptoConfig.mEncryptMessagesForInvitedMembers) {
+        if (encryptForInvitedMembers) {
             members = room.getActiveMembers();
         } else {
             members = room.getJoinedMembers();
@@ -1775,8 +1766,9 @@ public class MXCrypto {
         }
 
         final String userId = event.stateKey;
+        final Room room = mSession.getDataHandler().getRoom(event.roomId);
 
-        RoomMember roomMember = mSession.getDataHandler().getRoom(event.roomId).getLiveState().getMember(userId);
+        RoomMember roomMember = room.getLiveState().getMember(userId);
 
         if (null != roomMember) {
             final String membership = roomMember.membership;
@@ -1785,7 +1777,16 @@ public class MXCrypto {
                 @Override
                 public void run() {
                     if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_JOIN)) {
-                        // make sure we are tracking the deviceList for this user
+                        // make sure we are tracking the deviceList for this user.
+                        getDeviceList().startTrackingDeviceList(Arrays.asList(userId));
+                    } else if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_INVITE)
+                            && room.shouldEncryptForInvitedMembers()
+                            && mCryptoConfig.mEnableEncryptionForInvitedMembers) {
+                        // track the deviceList for this invited user.
+                        // Caution: there's a big edge case here in that federated servers do not
+                        // know what other servers are in the room at the time they've been invited.
+                        // They therefore will not send device updates if a user logs in whilst
+                        // their state is invite.
                         getDeviceList().startTrackingDeviceList(Arrays.asList(userId));
                     }
                 }
@@ -2427,22 +2428,6 @@ public class MXCrypto {
      * @param callback the asynchronous callback.
      */
     public void setGlobalBlacklistUnverifiedDevices(final boolean block, final ApiCallback<Void> callback) {
-        final String userId = mSession.getMyUserId();
-        final List<String> userRoomIds = new ArrayList<>();
-
-        Collection<Room> rooms = mSession.getDataHandler().getStore().getRooms();
-
-        for (Room room : rooms) {
-            if (room.isEncrypted()) {
-                RoomMember roomMember = room.getMember(userId);
-
-                // test if the user joins the room
-                if ((null != roomMember) && TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_JOIN)) {
-                    userRoomIds.add(room.getRoomId());
-                }
-            }
-        }
-
         getEncryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {

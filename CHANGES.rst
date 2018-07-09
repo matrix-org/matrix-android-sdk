@@ -5,7 +5,7 @@ Features:
  -
 
 Improvements:
- -
+ - MXCrypto: Encrypt the messages for invited members according to the history visibility (if the option is enabled in MXCryptoConfig).
 
 Bugfix:
  -
