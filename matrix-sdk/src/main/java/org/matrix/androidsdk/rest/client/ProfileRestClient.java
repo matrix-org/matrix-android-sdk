@@ -287,7 +287,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     }
 
     /**
-     * Attempt a user/password registration.
+     * Refresh access/refresh tokens, using the current refresh token.
      *
      * @param callback the callback success and failure callback
      */
