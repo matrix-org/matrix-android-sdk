@@ -11,7 +11,7 @@ Improvements:
  - Add support for the scanning and downloading of unencrypted thumbnails
 
 Bugfix:
- -
+ - Send Access Token as a header instead of a url parameter to upload content (#311)
 
 API Change:
  - Parameter historyVisibility removed from MxSession.createRoom(). It had no effect.
