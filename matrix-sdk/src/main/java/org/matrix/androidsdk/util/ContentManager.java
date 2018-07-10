@@ -35,6 +35,8 @@ public class ContentManager {
 
     public static final String URI_PREFIX_CONTENT_API = "/_matrix/media/v1/";
 
+    public static final String MATRIX_CONTENT_IDENTICON_PREFIX = "identicon/";
+
     // HS config
     private final HomeServerConnectionConfig mHsConfig;
 
@@ -109,7 +111,7 @@ public class ContentManager {
                 Log.e(LOG_TAG, "## getIdenticonURL() : java.net.URLEncoder.encode failed " + e.getMessage());
             }
 
-            return ContentManager.MATRIX_CONTENT_URI_SCHEME + "identicon/" + urlEncodedUser;
+            return ContentManager.MATRIX_CONTENT_URI_SCHEME + MATRIX_CONTENT_IDENTICON_PREFIX + urlEncodedUser;
         }
 
         return null;
@@ -203,12 +205,15 @@ public class ContentManager {
                 mediaServerAndId = mediaServerAndId.substring(0, mediaServerAndId.length() - "#auto".length());
             }
 
-            // Thumbnail url still go to the media repo since they don’t need virus scanning
-            String url = mHsConfig.getHomeserverUri().toString() + URI_PREFIX_CONTENT_API;
-
-            // identicon server has no thumbnail path
-            if (mediaServerAndId.indexOf("identicon") < 0) {
-                url += "thumbnail/";
+            // Build the thumbnail url.
+            String url;
+            // Caution: identicon has no thumbnail path.
+            if (mediaServerAndId.startsWith(MATRIX_CONTENT_IDENTICON_PREFIX)) {
+                // identicon url still go to the media repo since they don’t need virus scanning
+                url = mHsConfig.getHomeserverUri().toString() + URI_PREFIX_CONTENT_API;
+            } else {
+                // Use the current download url prefix to take into account a potential antivirus scanner
+                url = mDownloadUrlPrefix + "thumbnail/";
             }
 
             url += mediaServerAndId;
