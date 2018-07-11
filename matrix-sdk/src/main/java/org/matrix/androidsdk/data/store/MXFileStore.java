@@ -29,6 +29,7 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
@@ -120,6 +121,8 @@ public class MXFileStore extends MXMemoryStore {
     private File mStoreRoomsAccountDataFolderFile = null;
     private File mStoreUserFolderFile = null;
     private File mStoreGroupsFolderFile = null;
+
+    private MetricsListener mMetricsListener = null;
 
     // the background thread
     private HandlerThread mHandlerThread = null;
@@ -277,6 +280,11 @@ public class MXFileStore extends MXMemoryStore {
         synchronized (this) {
             mIsKilled = isKilled;
         }
+    }
+
+    public MXFileStore setMetricsListener(MetricsListener metricsListener) {
+        this.mMetricsListener = metricsListener;
+        return this;
     }
 
     /**
@@ -570,6 +578,9 @@ public class MXFileStore extends MXMemoryStore {
 
                 Thread t = new Thread(r);
                 t.start();
+            }
+            if(mMetricsListener != null) {
+                mMetricsListener.onStorePreloaded(mPreloadTime);
             }
         }
     }

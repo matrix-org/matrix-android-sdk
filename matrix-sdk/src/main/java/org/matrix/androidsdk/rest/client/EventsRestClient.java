@@ -223,7 +223,6 @@ public class EventsRestClient extends RestClient<EventsApi> {
         setConnectionTimeout(RestClient.CONNECTION_TIMEOUT_MS * ((null == token) ? 2 : 1));
 
         final String description = "syncFromToken";
-
         // Disable retry because it interferes with clientTimeout
         // Let the client manage retries on events streams
         mApi.sync(params)

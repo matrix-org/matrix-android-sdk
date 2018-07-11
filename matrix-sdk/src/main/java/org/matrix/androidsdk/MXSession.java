@@ -40,6 +40,7 @@ import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.RoomTag;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.data.cryptostore.MXFileCryptoStore;
+import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXStoreListener;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
@@ -90,6 +91,7 @@ import org.matrix.androidsdk.util.ContentUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.UnsentEventsManager;
+import org.matrix.olm.BuildConfig;
 import org.matrix.olm.OlmManager;
 
 import java.io.File;
@@ -138,6 +140,8 @@ public class MXSession {
     private ContentManager mContentManager;
 
     public MXCallsManager mCallsManager;
+
+    private MetricsListener mMetricsListener;
 
     private Context mAppContent;
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
@@ -428,6 +432,16 @@ public class MXSession {
     public MXDataHandler getDataHandler() {
         checkIfAlive();
         return mDataHandler;
+    }
+
+    /**
+     * Update the metrics listener mode
+     *
+     * @param metricsListener the metrics listener
+     */
+
+    public void setMetricsListener(MetricsListener metricsListener) {
+        this.mMetricsListener = metricsListener;
     }
 
     /**
@@ -877,6 +891,7 @@ public class MXSession {
             final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler) : anEventsListener;
 
             mEventsThread = new EventsThread(mAppContent, mEventsRestClient, fEventsListener, initialToken);
+            mEventsThread.setMetricsListener(mMetricsListener);
             mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
             mEventsThread.setIsOnline(mIsOnline);
             mEventsThread.setServerLongPollTimeout(mSyncTimeout);

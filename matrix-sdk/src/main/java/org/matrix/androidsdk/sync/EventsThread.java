@@ -29,6 +29,7 @@ import android.os.Looper;
 import android.os.PowerManager;
 import android.os.SystemClock;
 
+import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
@@ -42,6 +43,7 @@ import org.matrix.androidsdk.util.Log;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+
 
 /**
  * Thread that continually watches the event stream and sends events to its listener.
@@ -57,9 +59,10 @@ public class EventsThread extends Thread {
     private static final String DATA_SAVE_MODE_FILTER = "{\"room\": {\"ephemeral\": {\"types\": [\"m.receipt\"]}}, \"presence\":{\"not_types\": [\"*\"]}}";
 
     private EventsRestClient mEventsRestClient;
-
     private EventsThreadListener mListener;
     private String mCurrentToken;
+
+    private MetricsListener mMetricsListener;
 
     private boolean mPaused = true;
     private boolean mIsNetworkSuspended = false;
@@ -127,6 +130,17 @@ public class EventsThread extends Thread {
         mSyncObjectByInstance.put(toString(), this);
         mAlarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         mPowerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+    }
+
+
+    /**
+     * Update the metrics listener mode
+     *
+     * @param metricsListener the metrics listener
+     */
+
+    public void setMetricsListener(MetricsListener metricsListener) {
+        this.mMetricsListener = metricsListener;
     }
 
     /**
@@ -384,101 +398,108 @@ public class EventsThread extends Thread {
         }
     }
 
+    private void resumeInitialSync() {
+        Log.d(LOG_TAG, "Resuming initial sync from " + mCurrentToken);
+        // dummy initial sync
+        // to hide the splash screen
+        SyncResponse dummySyncResponse = new SyncResponse();
+        dummySyncResponse.nextBatch = mCurrentToken;
+        mListener.onSyncResponse(dummySyncResponse, null, true);
+    }
+
+    private void executeInitialSync() {
+        Log.d(LOG_TAG, "Requesting initial sync...");
+        long initialSyncStartTime = System.currentTimeMillis();
+        while (!isInitialSyncDone()) {
+            final CountDownLatch latch = new CountDownLatch(1);
+            mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", DATA_SAVE_MODE_FILTER,
+                    new SimpleApiCallback<SyncResponse>(mFailureCallback) {
+                        @Override
+                        public void onSuccess(SyncResponse syncResponse) {
+                            Log.d(LOG_TAG, "Received initial sync response.");
+                            mNextServerTimeoutms = hasDevicesChanged(syncResponse) ? 0 : mDefaultServerTimeoutms;
+                            mListener.onSyncResponse(syncResponse, null, (0 == mNextServerTimeoutms));
+                            mCurrentToken = syncResponse.nextBatch;
+                            // unblock the events thread
+                            latch.countDown();
+                        }
+
+                        private void sleepAndUnblock() {
+                            Log.i(LOG_TAG, "Waiting a bit before retrying");
+                            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                                public void run() {
+                                    latch.countDown();
+                                }
+                            }, RETRY_WAIT_TIME_MS);
+                        }
+
+                        @Override
+                        public void onNetworkError(Exception e) {
+                            if (isInitialSyncDone()) {
+                                // Ignore error
+                                // FIXME I think this is the source of infinite initial sync if a network error occurs
+                                // FIXME because latch is not counted down. TO BE TESTED
+                                onSuccess(null);
+                            } else {
+                                Log.e(LOG_TAG, "Sync V2 onNetworkError " + e.getMessage());
+                                super.onNetworkError(e);
+                                sleepAndUnblock();
+                            }
+                        }
+
+                        @Override
+                        public void onMatrixError(MatrixError e) {
+                            super.onMatrixError(e);
+
+                            if (MatrixError.isConfigurationErrorCode(e.errcode)) {
+                                mListener.onConfigurationError(e.errcode);
+                            } else {
+                                sleepAndUnblock();
+                            }
+                        }
+
+                        @Override
+                        public void onUnexpectedError(Exception e) {
+                            super.onUnexpectedError(e);
+                            Log.e(LOG_TAG, "Sync V2 onUnexpectedError " + e.getMessage());
+                            sleepAndUnblock();
+                        }
+                    });
+
+            // block until the initial sync callback is invoked.
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                Log.e(LOG_TAG, "Interrupted whilst performing initial sync.");
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## startSync() failed " + e.getMessage());
+            }
+        }
+        long initialSyncEndTime = System.currentTimeMillis();
+        long initialSyncDuration = initialSyncEndTime - initialSyncStartTime;
+        if (mMetricsListener != null) {
+            mMetricsListener.onInitialSyncFinished(initialSyncDuration);
+        }
+    }
+
+
     /**
      * Start the events sync
      */
     @SuppressLint("NewApi")
     private void startSync() {
-        if (null != mCurrentToken) {
-            Log.d(LOG_TAG, "Resuming initial sync from " + mCurrentToken);
-        } else {
-            Log.d(LOG_TAG, "Requesting initial sync...");
-        }
-
         int serverTimeout;
-
         mPaused = false;
-
         if (isInitialSyncDone()) {
-            // get the latest events asap
+            resumeInitialSync();
             serverTimeout = 0;
-            // dummy initial sync
-            // to hide the splash screen
-            SyncResponse dummySyncResponse = new SyncResponse();
-            dummySyncResponse.nextBatch = mCurrentToken;
-            mListener.onSyncResponse(dummySyncResponse, null, true);
         } else {
             // Start with initial sync
-            while (!isInitialSyncDone()) {
-                final CountDownLatch latch = new CountDownLatch(1);
-                mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", DATA_SAVE_MODE_FILTER,
-                        new SimpleApiCallback<SyncResponse>(mFailureCallback) {
-                            @Override
-                            public void onSuccess(SyncResponse syncResponse) {
-                                Log.d(LOG_TAG, "Received initial sync response.");
-                                mNextServerTimeoutms = hasDevicesChanged(syncResponse) ? 0 : mDefaultServerTimeoutms;
-                                mListener.onSyncResponse(syncResponse, null, (0 == mNextServerTimeoutms));
-                                mCurrentToken = syncResponse.nextBatch;
-                                // unblock the events thread
-                                latch.countDown();
-                            }
-
-                            private void sleepAndUnblock() {
-                                Log.i(LOG_TAG, "Waiting a bit before retrying");
-                                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                                    public void run() {
-                                        latch.countDown();
-                                    }
-                                }, RETRY_WAIT_TIME_MS);
-                            }
-
-                            @Override
-                            public void onNetworkError(Exception e) {
-                                if (isInitialSyncDone()) {
-                                    // Ignore error
-                                    // FIXME I think this is the source of infinite initial sync if a network error occurs
-                                    // FIXME because latch is not counted down. TO BE TESTED
-                                    onSuccess(null);
-                                    } else {
-                                    Log.e(LOG_TAG, "Sync V2 onNetworkError " + e.getMessage());
-                                    super.onNetworkError(e);
-                                    sleepAndUnblock();
-                                }
-                            }
-
-                            @Override
-                            public void onMatrixError(MatrixError e) {
-                                super.onMatrixError(e);
-
-                                if (MatrixError.isConfigurationErrorCode(e.errcode)) {
-                                    mListener.onConfigurationError(e.errcode);
-                                } else {
-                                    sleepAndUnblock();
-                                }
-                            }
-
-                            @Override
-                            public void onUnexpectedError(Exception e) {
-                                super.onUnexpectedError(e);
-                                Log.e(LOG_TAG, "Sync V2 onUnexpectedError " + e.getMessage());
-                                sleepAndUnblock();
-                            }
-                        });
-
-                // block until the initial sync callback is invoked.
-                try {
-                    latch.await();
-                } catch (InterruptedException e) {
-                    Log.e(LOG_TAG, "Interrupted whilst performing initial sync.");
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## startSync() failed " + e.getMessage());
-                }
-            }
+            executeInitialSync();
             serverTimeout = mNextServerTimeoutms;
         }
 
         Log.d(LOG_TAG, "Starting event stream from token " + mCurrentToken);
-
         // sanity check
         if (null != mNetworkConnectivityReceiver) {
             mNetworkConnectivityReceiver.addEventListener(mNetworkListener);
@@ -488,6 +509,7 @@ public class EventsThread extends Thread {
         }
 
         // Then repeatedly long-poll for events
+
         while (!mKilling) {
 
             // test if a delay between two syncs
@@ -542,6 +564,9 @@ public class EventsThread extends Thread {
 
             // the service could have been killed while being paused.
             if (!mKilling) {
+
+                long incrementalSyncStartTime = System.currentTimeMillis();
+
                 String inlineFilter = mIsInDataSaveMode ? DATA_SAVE_MODE_FILTER : null; //"{\"room\":{\"timeline\":{\"limit\":250}}}";
 
                 final CountDownLatch latch = new CountDownLatch(1);
@@ -597,7 +622,6 @@ public class EventsThread extends Thread {
                                         mPaused = (0 == mRequestDelayMs);
                                         Log.d(LOG_TAG, "Got " + eventCounts + " useful events while catching up : mPaused is set to " + mPaused);
                                     }
-
                                     Log.d(LOG_TAG, "Got event response");
                                     mListener.onSyncResponse(syncResponse, mCurrentToken, (0 == mNextServerTimeoutms));
                                     mCurrentToken = syncResponse.nextBatch;
@@ -662,8 +686,12 @@ public class EventsThread extends Thread {
                     // The thread might have been killed.
                     Log.e(LOG_TAG, "latch.await() failed " + e.getMessage());
                 }
+                long incrementalSyncEndTime = System.currentTimeMillis();
+                long incrementalSyncDuration = incrementalSyncEndTime - incrementalSyncStartTime;
+                if (mMetricsListener != null) {
+                    mMetricsListener.onIncrementalSyncFinished(incrementalSyncDuration);
+                }
             }
-
             serverTimeout = mNextServerTimeoutms;
         }
 
