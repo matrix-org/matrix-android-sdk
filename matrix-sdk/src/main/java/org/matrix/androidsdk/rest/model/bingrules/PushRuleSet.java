@@ -21,7 +21,7 @@ import android.text.TextUtils;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BingRuleSet {
+public class PushRuleSet {
     public List<BingRule> override;
     public List<ContentRule> content;
     public List<BingRule> room;
@@ -31,7 +31,7 @@ public class BingRuleSet {
     /**
      * Constructor
      */
-    public BingRuleSet() {
+    public PushRuleSet() {
         override = new ArrayList<>();
         content = new ArrayList<>();
         room = new ArrayList<>();

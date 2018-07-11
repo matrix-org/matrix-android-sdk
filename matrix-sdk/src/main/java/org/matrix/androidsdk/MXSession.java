@@ -50,7 +50,6 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.AccountDataRestClient;
-import org.matrix.androidsdk.rest.client.BingRulesRestClient;
 import org.matrix.androidsdk.rest.client.CallRestClient;
 import org.matrix.androidsdk.rest.client.CryptoRestClient;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
@@ -59,6 +58,7 @@ import org.matrix.androidsdk.rest.client.LoginRestClient;
 import org.matrix.androidsdk.rest.client.MediaScanRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
+import org.matrix.androidsdk.rest.client.PushRulesRestClient;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
@@ -123,7 +123,7 @@ public class MXSession {
     private ProfileRestClient mProfileRestClient;
     private PresenceRestClient mPresenceRestClient;
     private RoomsRestClient mRoomsRestClient;
-    private final BingRulesRestClient mBingRulesRestClient;
+    private final PushRulesRestClient mPushRulesRestClient;
     private final PushersRestClient mPushersRestClient;
     private final ThirdPidRestClient mThirdPidRestClient;
     private final CallRestClient mCallRestClient;
@@ -220,7 +220,7 @@ public class MXSession {
         mProfileRestClient = new ProfileRestClient(hsConfig);
         mPresenceRestClient = new PresenceRestClient(hsConfig);
         mRoomsRestClient = new RoomsRestClient(hsConfig);
-        mBingRulesRestClient = new BingRulesRestClient(hsConfig);
+        mPushRulesRestClient = new PushRulesRestClient(hsConfig);
         mPushersRestClient = new PushersRestClient(hsConfig);
         mThirdPidRestClient = new ThirdPidRestClient(hsConfig);
         mCallRestClient = new CallRestClient(hsConfig);
@@ -328,7 +328,7 @@ public class MXSession {
         mProfileRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mPresenceRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mRoomsRestClient.setUnsentEventsManager(mUnsentEventsManager);
-        mBingRulesRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mPushRulesRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mThirdPidRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mCallRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mAccountDataRestClient.setUnsentEventsManager(mUnsentEventsManager);
@@ -504,9 +504,9 @@ public class MXSession {
      *
      * @return the bing rules API client
      */
-    public BingRulesRestClient getBingRulesApiClient() {
+    public PushRulesRestClient getBingRulesApiClient() {
         checkIfAlive();
-        return mBingRulesRestClient;
+        return mPushRulesRestClient;
     }
 
     public ThirdPidRestClient getThirdPidRestClient() {

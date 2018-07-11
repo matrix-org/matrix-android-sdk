@@ -58,9 +58,9 @@ import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
-import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
-import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
+import org.matrix.androidsdk.rest.model.bingrules.PushRuleSet;
+import org.matrix.androidsdk.rest.model.bingrules.PushRulesResponse;
 import org.matrix.androidsdk.rest.model.group.InvitedGroupSync;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
@@ -522,7 +522,7 @@ public class MXDataHandler implements IMXEventListener {
     /**
      * @return the used push rules set.
      */
-    public BingRuleSet pushRules() {
+    public PushRuleSet pushRules() {
         if (isAlive() && (null != mBingRulesManager)) {
             return mBingRulesManager.pushRules();
         }
@@ -1012,10 +1012,10 @@ public class MXDataHandler implements IMXEventListener {
                             .registerTypeAdapter(Condition.class, new ConditionDeserializer())
                             .create();
 
-                    // convert the data to BingRulesResponse
-                    // because BingRulesManager supports only BingRulesResponse
+                    // convert the data to PushRulesResponse
+                    // because BingRulesManager supports only PushRulesResponse
                     JsonElement element = gson.toJsonTree(event.get("content"));
-                    getBingRulesManager().buildRules(gson.fromJson(element, BingRulesResponse.class));
+                    getBingRulesManager().buildRules(gson.fromJson(element, PushRulesResponse.class));
 
                     // warn the client that the push rules have been updated
                     onBingRulesUpdate();

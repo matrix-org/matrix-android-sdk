@@ -22,6 +22,7 @@ Translations:
 
 Others:
  - Do not log DEBUG messages in release versions (PR #304)
+ - Rename some internal classes to change 'Bing' to 'Push'
 
 Build:
  -
