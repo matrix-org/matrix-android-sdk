@@ -579,7 +579,7 @@ public class MXFileStore extends MXMemoryStore {
                 Thread t = new Thread(r);
                 t.start();
             }
-            if(mMetricsListener != null) {
+            if (mMetricsListener != null) {
                 mMetricsListener.onStorePreloaded(mPreloadTime);
             }
         }
