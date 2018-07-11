@@ -114,7 +114,7 @@ public class BingRule {
      * Bing rule creator
      *
      * @param ruleKind  the rule kind
-     * @param aPattern  the pattern to check the conditon
+     * @param aPattern  the pattern to check the condition
      * @param notify    true to notify
      * @param highlight true to highlight
      * @param sound     true to play sound

@@ -19,7 +19,7 @@ package org.matrix.androidsdk.rest.model.bingrules;
 
 public class Condition {
     // defined in the push rules spec
-    // http://matrix.org/docs/spec/#push-rules
+    // https://matrix.org/docs/spec/client_server/r0.3.0.html#push-rules
 
     /* 'key': The dot-separated field of the event to match, eg. content.body
        'pattern': The glob-style pattern to match against. Patterns with no special glob characters should be treated as having asterisks prepended
