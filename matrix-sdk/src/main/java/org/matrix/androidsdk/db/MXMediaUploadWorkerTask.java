@@ -276,14 +276,12 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
 
         String serverResponse = null;
 
-        // TODO Pass access token as header?
-        String urlString = mContentManager.getHsConfig().getHomeserverUri().toString() + ContentManager.URI_PREFIX_CONTENT_API
-                + "upload?access_token=" + mContentManager.getHsConfig().getCredentials().accessToken;
+        String urlString = mContentManager.getHsConfig().getHomeserverUri().toString() + ContentManager.URI_PREFIX_CONTENT_API + "upload";
 
         if (null != mFilename) {
             try {
                 String utf8Filename = URLEncoder.encode(mFilename, "utf-8");
-                urlString += "&filename=" + utf8Filename;
+                urlString += "?filename=" + utf8Filename;
             } catch (Exception e) {
                 Log.e(LOG_TAG, "doInBackground " + e.getMessage());
             }
@@ -293,6 +291,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
             URL url = new URL(urlString);
 
             conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestProperty("Authorization", "Bearer " + mContentManager.getHsConfig().getCredentials().accessToken);
             conn.setDoInput(true);
             conn.setDoOutput(true);
             conn.setUseCaches(false);
