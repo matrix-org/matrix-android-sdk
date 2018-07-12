@@ -194,19 +194,17 @@ public class MXDataHandler implements IMXEventListener {
      *
      * @param requestNetworkErrorListener the network error listener
      */
-
     public void setRequestNetworkErrorListener(RequestNetworkErrorListener requestNetworkErrorListener) {
         mRequestNetworkErrorListener = requestNetworkErrorListener;
     }
 
     /**
-     * Update the metrics listener mode
+     * Update the metrics listener
      *
-     * @param metricsListener  the metrics listener
+     * @param metricsListener the metrics listener
      */
-
     public void setMetricsListener(MetricsListener metricsListener) {
-        this.mMetricsListener = metricsListener;
+        mMetricsListener = metricsListener;
     }
 
     /**
@@ -1435,27 +1433,27 @@ public class MXDataHandler implements IMXEventListener {
                         // Update account data to add new direct chat room(s)
                         mAccountDataRestClient.setAccountData(mCredentials.userId, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES,
                                 updatedDirectChatRoomsDict, new ApiCallback<Void>() {
-                            @Override
-                            public void onSuccess(Void info) {
-                                Log.d(LOG_TAG, "## manageResponse() : succeeds");
-                            }
+                                    @Override
+                                    public void onSuccess(Void info) {
+                                        Log.d(LOG_TAG, "## manageResponse() : succeeds");
+                                    }
 
-                            @Override
-                            public void onNetworkError(Exception e) {
-                                Log.e(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
-                                // TODO: we should try again.
-                            }
+                                    @Override
+                                    public void onNetworkError(Exception e) {
+                                        Log.e(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
+                                        // TODO: we should try again.
+                                    }
 
-                            @Override
-                            public void onMatrixError(MatrixError e) {
-                                Log.e(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
-                            }
+                                    @Override
+                                    public void onMatrixError(MatrixError e) {
+                                        Log.e(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
+                                    }
 
-                            @Override
-                            public void onUnexpectedError(Exception e) {
-                                Log.e(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
-                            }
-                        });
+                                    @Override
+                                    public void onUnexpectedError(Exception e) {
+                                        Log.e(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
+                                    }
+                                });
                     }
                 }
 
@@ -1747,7 +1745,7 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
-    /*         
+    /*
      * Handle a 'toDevice' event
      * @param event the event
      */
@@ -2677,7 +2675,7 @@ public class MXDataHandler implements IMXEventListener {
      * @return the direct chat room ids list
      */
     public List<String> getDirectChatRoomIdsList() {
-        if (null != mLocalDirectChatRoomIdsList) return  mLocalDirectChatRoomIdsList;
+        if (null != mLocalDirectChatRoomIdsList) return mLocalDirectChatRoomIdsList;
 
         IMXStore store = getStore();
         List<String> directChatRoomIdsList = new ArrayList<>();

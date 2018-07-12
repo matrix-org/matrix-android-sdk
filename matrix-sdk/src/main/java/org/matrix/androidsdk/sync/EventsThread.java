@@ -132,7 +132,6 @@ public class EventsThread extends Thread {
         mPowerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
     }
 
-
     /**
      * Update the metrics listener mode
      *

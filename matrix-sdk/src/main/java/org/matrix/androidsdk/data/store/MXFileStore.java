@@ -122,8 +122,6 @@ public class MXFileStore extends MXMemoryStore {
     private File mStoreUserFolderFile = null;
     private File mStoreGroupsFolderFile = null;
 
-    private MetricsListener mMetricsListener = null;
-
     // the background thread
     private HandlerThread mHandlerThread = null;
     private MXOsHandler mFileStoreHandler = null;
@@ -280,11 +278,6 @@ public class MXFileStore extends MXMemoryStore {
         synchronized (this) {
             mIsKilled = isKilled;
         }
-    }
-
-    public MXFileStore setMetricsListener(MetricsListener metricsListener) {
-        this.mMetricsListener = metricsListener;
-        return this;
     }
 
     /**

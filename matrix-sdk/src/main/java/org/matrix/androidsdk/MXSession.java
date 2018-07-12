@@ -91,7 +91,6 @@ import org.matrix.androidsdk.util.ContentUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.UnsentEventsManager;
-import org.matrix.olm.BuildConfig;
 import org.matrix.olm.OlmManager;
 
 import java.io.File;
@@ -435,13 +434,12 @@ public class MXSession {
     }
 
     /**
-     * Update the metrics listener mode
+     * Update the metrics listener
      *
      * @param metricsListener the metrics listener
      */
-
     public void setMetricsListener(MetricsListener metricsListener) {
-        this.mMetricsListener = metricsListener;
+        mMetricsListener = metricsListener;
     }
 
     /**
@@ -1182,13 +1180,13 @@ public class MXSession {
     /**
      * Create a new room with given properties. Needs the data handler.
      *
-     * @param name              the room name
-     * @param topic             the room topic
-     * @param visibility        the room visibility
-     * @param alias             the room alias
-     * @param guestAccess       the guest access rule (see {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN})
-     * @param algorithm         the crypto algorithm (null to create an unencrypted room)
-     * @param callback          the async callback once the room is ready
+     * @param name        the room name
+     * @param topic       the room topic
+     * @param visibility  the room visibility
+     * @param alias       the room alias
+     * @param guestAccess the guest access rule (see {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN})
+     * @param algorithm   the crypto algorithm (null to create an unencrypted room)
+     * @param callback    the async callback once the room is ready
      */
     public void createRoom(String name,
                            String topic,

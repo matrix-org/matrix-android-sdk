@@ -28,6 +28,7 @@ import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
@@ -88,6 +89,7 @@ public class MXMemoryStore implements IMXStore {
 
     //
     private final Map<String, Event> mTemporaryEventsList = new HashMap<>();
+    protected MetricsListener mMetricsListener;
 
     protected Credentials mCredentials;
 
@@ -1618,5 +1620,14 @@ public class MXMemoryStore implements IMXStore {
     @Nullable
     public String getAntivirusServerPublicKey() {
         return mMetadata.mAntivirusServerPublicKey;
+    }
+
+    /**
+     * Update the metrics listener
+     *
+     * @param metricsListener the metrics listener
+     */
+    public void setMetricsListener(MetricsListener metricsListener) {
+        mMetricsListener = metricsListener;
     }
 }
