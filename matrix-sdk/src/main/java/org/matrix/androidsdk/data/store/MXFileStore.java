@@ -529,6 +529,9 @@ public class MXFileStore extends MXMemoryStore {
                                     // extract the room states
                                     mRoomReceiptsToLoad.addAll(listFiles(mStoreRoomsMessagesReceiptsFolderFile.list()));
                                     mPreloadTime = System.currentTimeMillis() - fLoadTimeT0;
+                                    if (mMetricsListener != null) {
+                                        mMetricsListener.onStorePreloaded(mPreloadTime);
+                                    }
 
                                     Log.e(LOG_TAG, "The store is opened.");
                                     dispatchOnStoreReady(mCredentials.userId);
@@ -570,6 +573,9 @@ public class MXFileStore extends MXMemoryStore {
                                     }
                                     dispatchOnStoreReady(mCredentials.userId);
                                     mPreloadTime = System.currentTimeMillis() - fLoadTimeT0;
+                                    if (mMetricsListener != null) {
+                                        mMetricsListener.onStorePreloaded(mPreloadTime);
+                                    }
                                 }
                             }
                         });
@@ -579,9 +585,7 @@ public class MXFileStore extends MXMemoryStore {
                 Thread t = new Thread(r);
                 t.start();
             }
-            if (mMetricsListener != null) {
-                mMetricsListener.onStorePreloaded(mPreloadTime);
-            }
+
         }
     }
 
