@@ -15,7 +15,7 @@
  */
 package org.matrix.androidsdk.rest.model.bingrules;
 
-public class BingRulesResponse {
-    public BingRuleSet device;
-    public BingRuleSet global;
+public class PushRulesResponse {
+    public PushRuleSet device;
+    public PushRuleSet global;
 }

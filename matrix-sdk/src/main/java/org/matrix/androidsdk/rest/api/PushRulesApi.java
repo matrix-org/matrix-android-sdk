@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +18,7 @@ package org.matrix.androidsdk.rest.api;
 
 import com.google.gson.JsonElement;
 
-import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
+import org.matrix.androidsdk.rest.model.bingrules.PushRulesResponse;
 
 import retrofit2.Call;
 import retrofit2.http.Body;
@@ -26,18 +27,20 @@ import retrofit2.http.GET;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
 
-public interface BingRulesApi {
+public interface PushRulesApi {
 
-    // TODO Add Javadoc
+    /**
+     * Get all push rules
+     */
     @GET("pushrules/")
-    Call<BingRulesResponse> getAllBingRules();
+    Call<PushRulesResponse> getAllRules();
 
     /**
      * Update the ruleID enable status
      *
-     * @param kind     the notification kind (sender, room...)
-     * @param ruleId   the ruleId
-     * @param enable   the new enable status
+     * @param kind   the notification kind (sender, room...)
+     * @param ruleId the ruleId
+     * @param enable the new enable status
      */
     @PUT("pushrules/global/{kind}/{ruleId}/enabled")
     Call<Void> updateEnableRuleStatus(@Path("kind") String kind, @Path("ruleId") String ruleId, @Body Boolean enable);
@@ -46,9 +49,9 @@ public interface BingRulesApi {
     /**
      * Update the ruleID enable status
      *
-     * @param kind     the notification kind (sender, room...)
-     * @param ruleId   the ruleId
-     * @param actions  the actions
+     * @param kind    the notification kind (sender, room...)
+     * @param ruleId  the ruleId
+     * @param actions the actions
      */
     @PUT("pushrules/global/{kind}/{ruleId}/actions")
     Call<Void> updateRuleActions(@Path("kind") String kind, @Path("ruleId") String ruleId, @Body Object actions);
@@ -57,8 +60,8 @@ public interface BingRulesApi {
     /**
      * Update the ruleID enable status
      *
-     * @param kind     the notification kind (sender, room...)
-     * @param ruleId   the ruleId
+     * @param kind   the notification kind (sender, room...)
+     * @param ruleId the ruleId
      */
     @DELETE("pushrules/global/{kind}/{ruleId}")
     Call<Void> deleteRule(@Path("kind") String kind, @Path("ruleId") String ruleId);
@@ -66,9 +69,9 @@ public interface BingRulesApi {
     /**
      * Add the ruleID enable status
      *
-     * @param kind     the notification kind (sender, room...)
-     * @param ruleId   the ruleId.
-     * @param rule     the rule to add.
+     * @param kind   the notification kind (sender, room...)
+     * @param ruleId the ruleId.
+     * @param rule   the rule to add.
      */
     @PUT("pushrules/global/{kind}/{ruleId}")
     Call<Void> addRule(@Path("kind") String kind, @Path("ruleId") String ruleId, @Body JsonElement rule);
