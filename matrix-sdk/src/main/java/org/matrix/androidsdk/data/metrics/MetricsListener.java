@@ -2,6 +2,7 @@ package org.matrix.androidsdk.data.metrics;
 
 /**
  * This interface defines methods for collecting metrics data associated with startup times and stats
+ * Those callbacks can be called from any threads
  */
 public interface MetricsListener {
 
