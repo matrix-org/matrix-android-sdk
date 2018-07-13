@@ -12,6 +12,7 @@ Improvements:
 
 Bugfix:
  - Send Access Token as a header instead of a url parameter to upload content (#311)
+ - Add API CallSoundsManager.startRingingSilently() to fix issue when incoming call sound is disable (vector-im/riot-android32417)
 
 API Change:
  - Parameter historyVisibility removed from MxSession.createRoom(). It had no effect.

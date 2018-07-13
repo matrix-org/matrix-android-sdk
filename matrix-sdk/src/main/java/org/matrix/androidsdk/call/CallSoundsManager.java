@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -258,6 +259,7 @@ public class CallSoundsManager {
     private static final long[] VIBRATE_PATTERN = {0, VIBRATE_DURATION, VIBRATE_SLEEP};
 
     private Ringtone mRingTone;
+    private boolean mIsRinging;
     private MediaPlayer mMediaPlayer = null;
 
     // the audio manager (do not use directly, use getAudioManager())
@@ -272,7 +274,7 @@ public class CallSoundsManager {
      * @return true if the device is ringing
      */
     public boolean isRinging() {
-        return (null != mRingTone);
+        return mIsRinging;
     }
 
     /**
@@ -288,6 +290,8 @@ public class CallSoundsManager {
      * Stop any playing sound.
      */
     public void stopSounds() {
+        mIsRinging = false;
+
         if (null != mRingTone) {
             mRingTone.stop();
             mRingTone = null;
@@ -384,6 +388,8 @@ public class CallSoundsManager {
     public void startRinging(int resId, String filename) {
         Log.d(LOG_TAG, "startRinging");
 
+        mIsRinging = true;
+
         if (null != mRingTone) {
             Log.d(LOG_TAG, "ring tone already ringing");
             return;
@@ -404,6 +410,13 @@ public class CallSoundsManager {
 
         // start vibrate
         enableVibrating(true);
+    }
+
+    /**
+     * Same than {@link #startRinging(int, String)}}, but do not play sound, nor vibrate.
+     */
+    public void startRingingSilently() {
+        mIsRinging = true;
     }
 
     /**
@@ -489,7 +502,7 @@ public class CallSoundsManager {
     /**
      * Provide a ringtone uri from a resource and a filename.
      *
-     * @param context  the conext
+     * @param context  the context
      * @param resId    The audio resource.
      * @param filename the audio filename
      * @return the ringtone uri
