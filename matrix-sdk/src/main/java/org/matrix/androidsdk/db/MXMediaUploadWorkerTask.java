@@ -22,6 +22,7 @@ import android.util.Pair;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.ContentResponse;
@@ -291,6 +292,9 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
             URL url = new URL(urlString);
 
             conn = (HttpURLConnection) url.openConnection();
+            if (RestClient.getUserAgent() != null) {
+                conn.setRequestProperty("User-Agent", RestClient.getUserAgent());
+            }
             conn.setRequestProperty("Authorization", "Bearer " + mContentManager.getHsConfig().getCredentials().accessToken);
             conn.setDoInput(true);
             conn.setDoOutput(true);

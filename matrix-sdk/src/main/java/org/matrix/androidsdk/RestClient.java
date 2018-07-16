@@ -22,6 +22,7 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Pair;
 
@@ -290,6 +291,16 @@ public class RestClient<T> {
                     "; Flavour " + appContext.getString(R.string.flavor_description) +
                     "; MatrixAndroidSDK " + BuildConfig.VERSION_NAME + ")";
         }
+    }
+
+    /**
+     * Get the current user agent
+     *
+     * @return the current user agent, or null in case of error or if not initialized yet
+     */
+    @Nullable
+    public static String getUserAgent() {
+        return sUserAgent;
     }
 
     /**

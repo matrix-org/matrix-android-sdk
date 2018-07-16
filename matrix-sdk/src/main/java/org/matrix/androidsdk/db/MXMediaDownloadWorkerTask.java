@@ -33,6 +33,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
+import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
@@ -726,6 +727,10 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
 
             try {
                 connection = (HttpURLConnection) url.openConnection();
+
+                if (RestClient.getUserAgent() != null) {
+                    connection.setRequestProperty("User-Agent", RestClient.getUserAgent());
+                }
 
                 if (mHsConfig != null && connection instanceof HttpsURLConnection) {
                     // Add SSL Socket factory.
