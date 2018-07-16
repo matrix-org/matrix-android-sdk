@@ -361,7 +361,7 @@ public class MXDataHandler implements IMXEventListener {
     private void checkIfAlive() {
         synchronized (this) {
             if (!mIsAlive) {
-                Log.e(LOG_TAG, "use of a released dataHandler");
+                Log.e(LOG_TAG, "use of a released dataHandler", new Exception("use of a released dataHandler"));
                 //throw new AssertionError("Should not used a MXDataHandler");
             }
         }
@@ -1003,7 +1003,7 @@ public class MXDataHandler implements IMXEventListener {
                 }
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "manageAccountData failed " + e.getMessage());
+            Log.e(LOG_TAG, "manageAccountData failed " + e.getMessage(), e);
         }
     }
 
@@ -1353,7 +1353,7 @@ public class MXDataHandler implements IMXEventListener {
 
                             getRoom(roomId).handleJoinedRoomSync(syncResponse.rooms.join.get(roomId), isInitialSync);
                         } catch (Exception e) {
-                            Log.e(LOG_TAG, "## manageResponse() : handleJoinedRoomSync failed " + e.getMessage() + " for room " + roomId);
+                            Log.e(LOG_TAG, "## manageResponse() : handleJoinedRoomSync failed " + e.getMessage() + " for room " + roomId, e);
                         }
                     }
 
@@ -1423,7 +1423,7 @@ public class MXDataHandler implements IMXEventListener {
                                 }
                             }
                         } catch (Exception e) {
-                            Log.e(LOG_TAG, "## manageResponse() : handleInvitedRoomSync failed " + e.getMessage() + " for room " + roomId);
+                            Log.e(LOG_TAG, "## manageResponse() : handleInvitedRoomSync failed " + e.getMessage() + " for room " + roomId, e);
                         }
                     }
 
@@ -1440,7 +1440,7 @@ public class MXDataHandler implements IMXEventListener {
 
                                     @Override
                                     public void onNetworkError(Exception e) {
-                                        Log.e(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
+                                        Log.e(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage(), e);
                                         // TODO: we should try again.
                                     }
 
@@ -1451,7 +1451,7 @@ public class MXDataHandler implements IMXEventListener {
 
                                     @Override
                                     public void onUnexpectedError(Exception e) {
-                                        Log.e(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
+                                        Log.e(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage(), e);
                                     }
                                 });
                     }
@@ -1574,14 +1574,14 @@ public class MXDataHandler implements IMXEventListener {
             try {
                 onLiveEventsChunkProcessed(fromToken, (null != syncResponse) ? syncResponse.nextBatch : fromToken);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "onLiveEventsChunkProcessed failed " + e.getMessage());
+                Log.e(LOG_TAG, "onLiveEventsChunkProcessed failed " + e.getMessage(), e);
             }
 
             try {
                 // check if an incoming call has been received
                 mCallsManager.checkPendingIncomingCalls();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "checkPendingIncomingCalls failed " + e + " " + e.getMessage());
+                Log.e(LOG_TAG, "checkPendingIncomingCalls failed " + e + " " + e.getMessage(), e);
             }
         }
     }
@@ -1708,7 +1708,7 @@ public class MXDataHandler implements IMXEventListener {
                     @Override
                     public void onNetworkError(Exception e) {
                         synchronized (mLeftRoomsRefreshCallbacks) {
-                            Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getMessage());
+                            Log.e(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getMessage(), e);
 
                             for (ApiCallback<Void> c : mLeftRoomsRefreshCallbacks) {
                                 c.onNetworkError(e);
@@ -1720,7 +1720,7 @@ public class MXDataHandler implements IMXEventListener {
                     @Override
                     public void onMatrixError(MatrixError e) {
                         synchronized (mLeftRoomsRefreshCallbacks) {
-                            Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getMessage());
+                            Log.e(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getMessage());
 
                             for (ApiCallback<Void> c : mLeftRoomsRefreshCallbacks) {
                                 c.onMatrixError(e);
@@ -1732,7 +1732,7 @@ public class MXDataHandler implements IMXEventListener {
                     @Override
                     public void onUnexpectedError(Exception e) {
                         synchronized (mLeftRoomsRefreshCallbacks) {
-                            Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getMessage());
+                            Log.e(LOG_TAG, "## refreshHistoricalRoomsList() : failed " + e.getMessage(), e);
 
                             for (ApiCallback<Void> c : mLeftRoomsRefreshCallbacks) {
                                 c.onUnexpectedError(e);
@@ -1836,7 +1836,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onStoreReady();
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onStoreReady " + e.getMessage());
+                        Log.e(LOG_TAG, "onStoreReady " + e.getMessage(), e);
                     }
                 }
             }
@@ -1858,7 +1858,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onAccountInfoUpdate(myUser);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onAccountInfoUpdate " + e.getMessage());
+                        Log.e(LOG_TAG, "onAccountInfoUpdate " + e.getMessage(), e);
                     }
                 }
             }
@@ -1880,7 +1880,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onPresenceUpdate(event, user);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onPresenceUpdate " + e.getMessage());
+                        Log.e(LOG_TAG, "onPresenceUpdate " + e.getMessage(), e);
                     }
                 }
             }
@@ -1936,7 +1936,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onLiveEvent(event, roomState);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onLiveEvent " + e.getMessage());
+                        Log.e(LOG_TAG, "onLiveEvent " + e.getMessage(), e);
                     }
                 }
             }
@@ -1960,7 +1960,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onLiveEventsChunkProcessed(startToken, toToken);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onLiveEventsChunkProcessed " + e.getMessage());
+                        Log.e(LOG_TAG, "onLiveEventsChunkProcessed " + e.getMessage(), e);
                     }
                 }
             }
@@ -1986,7 +1986,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onBingEvent(event, roomState, bingRule);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onBingEvent " + e.getMessage());
+                        Log.e(LOG_TAG, "onBingEvent " + e.getMessage(), e);
                     }
                 }
             }
@@ -2022,7 +2022,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onEventSentStateUpdated(event);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onEventSentStateUpdated " + e.getMessage());
+                        Log.e(LOG_TAG, "onEventSentStateUpdated " + e.getMessage(), e);
                     }
                 }
             }
@@ -2048,7 +2048,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onEventSent(event, prevEventId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onEventSent " + e.getMessage());
+                        Log.e(LOG_TAG, "onEventSent " + e.getMessage(), e);
                     }
                 }
             }
@@ -2070,7 +2070,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onBingRulesUpdate();
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onBingRulesUpdate " + e.getMessage());
+                        Log.e(LOG_TAG, "onBingRulesUpdate " + e.getMessage(), e);
                     }
                 }
             }
@@ -2098,7 +2098,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onInitialSyncComplete(mInitialSyncToToken);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onInitialSyncComplete " + e.getMessage());
+                        Log.e(LOG_TAG, "onInitialSyncComplete " + e.getMessage(), e);
                     }
                 }
             }
@@ -2118,7 +2118,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onCryptoSyncComplete();
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "OnCryptoSyncComplete " + e.getMessage());
+                        Log.e(LOG_TAG, "OnCryptoSyncComplete " + e.getMessage(), e);
                     }
                 }
             }
@@ -2188,7 +2188,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onNewRoom(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onNewRoom " + e.getMessage());
+                        Log.e(LOG_TAG, "onNewRoom " + e.getMessage(), e);
                     }
                 }
             }
@@ -2214,7 +2214,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onJoinRoom(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onJoinRoom " + e.getMessage());
+                        Log.e(LOG_TAG, "onJoinRoom " + e.getMessage(), e);
                     }
                 }
             }
@@ -2240,7 +2240,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onRoomInitialSyncComplete(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomInitialSyncComplete " + e.getMessage());
+                        Log.e(LOG_TAG, "onRoomInitialSyncComplete " + e.getMessage(), e);
                     }
                 }
             }
@@ -2266,7 +2266,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onRoomInternalUpdate(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomInternalUpdate " + e.getMessage());
+                        Log.e(LOG_TAG, "onRoomInternalUpdate " + e.getMessage(), e);
                     }
                 }
             }
@@ -2292,7 +2292,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onNotificationCountUpdate(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onNotificationCountUpdate " + e.getMessage());
+                        Log.e(LOG_TAG, "onNotificationCountUpdate " + e.getMessage(), e);
                     }
                 }
             }
@@ -2318,7 +2318,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onLeaveRoom(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onLeaveRoom " + e.getMessage());
+                        Log.e(LOG_TAG, "onLeaveRoom " + e.getMessage(), e);
                     }
                 }
             }
@@ -2344,7 +2344,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onRoomKick(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomKick " + e.getMessage());
+                        Log.e(LOG_TAG, "onRoomKick " + e.getMessage(), e);
                     }
                 }
             }
@@ -2375,7 +2375,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onReceiptEvent(roomId, senderIds);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onReceiptEvent " + e.getMessage());
+                        Log.e(LOG_TAG, "onReceiptEvent " + e.getMessage(), e);
                     }
                 }
             }
@@ -2401,7 +2401,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onRoomTagEvent(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomTagEvent " + e.getMessage());
+                        Log.e(LOG_TAG, "onRoomTagEvent " + e.getMessage(), e);
                     }
                 }
             }
@@ -2427,7 +2427,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onReadMarkerEvent(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onReadMarkerEvent " + e.getMessage());
+                        Log.e(LOG_TAG, "onReadMarkerEvent " + e.getMessage(), e);
                     }
                 }
             }
@@ -2453,7 +2453,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onRoomFlush(roomId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomFlush " + e.getMessage());
+                        Log.e(LOG_TAG, "onRoomFlush " + e.getMessage(), e);
                     }
                 }
             }
@@ -2475,7 +2475,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onIgnoredUsersListUpdate();
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onIgnoredUsersListUpdate " + e.getMessage());
+                        Log.e(LOG_TAG, "onIgnoredUsersListUpdate " + e.getMessage(), e);
                     }
                 }
             }
@@ -2501,7 +2501,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onToDeviceEvent(event);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "OnToDeviceEvent " + e.getMessage());
+                        Log.e(LOG_TAG, "OnToDeviceEvent " + e.getMessage(), e);
                     }
                 }
             }
@@ -2519,7 +2519,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onDirectMessageChatRoomsListUpdate();
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onDirectMessageChatRoomsListUpdate " + e.getMessage());
+                        Log.e(LOG_TAG, "onDirectMessageChatRoomsListUpdate " + e.getMessage(), e);
                     }
                 }
             }
@@ -2537,7 +2537,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onEventDecrypted(event);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onDecryptedEvent " + e.getMessage());
+                        Log.e(LOG_TAG, "onDecryptedEvent " + e.getMessage(), e);
                     }
                 }
             }
@@ -2556,7 +2556,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onNewGroupInvitation(groupId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onNewGroupInvitation " + e.getMessage());
+                        Log.e(LOG_TAG, "onNewGroupInvitation " + e.getMessage(), e);
                     }
                 }
             }
@@ -2574,7 +2574,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onJoinGroup(groupId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onJoinGroup " + e.getMessage());
+                        Log.e(LOG_TAG, "onJoinGroup " + e.getMessage(), e);
                     }
                 }
             }
@@ -2592,7 +2592,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onLeaveGroup(groupId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onLeaveGroup " + e.getMessage());
+                        Log.e(LOG_TAG, "onLeaveGroup " + e.getMessage(), e);
                     }
                 }
             }
@@ -2610,7 +2610,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onGroupProfileUpdate(groupId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onGroupProfileUpdate " + e.getMessage());
+                        Log.e(LOG_TAG, "onGroupProfileUpdate " + e.getMessage(), e);
                     }
                 }
             }
@@ -2628,7 +2628,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onGroupRoomsListUpdate(groupId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onGroupRoomsListUpdate " + e.getMessage());
+                        Log.e(LOG_TAG, "onGroupRoomsListUpdate " + e.getMessage(), e);
                     }
                 }
             }
@@ -2646,7 +2646,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onGroupUsersListUpdate(groupId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onGroupUsersListUpdate " + e.getMessage());
+                        Log.e(LOG_TAG, "onGroupUsersListUpdate " + e.getMessage(), e);
                     }
                 }
             }
@@ -2664,7 +2664,7 @@ public class MXDataHandler implements IMXEventListener {
                     try {
                         listener.onGroupInvitedUsersListUpdate(groupId);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "onGroupInvitedUsersListUpdate " + e.getMessage());
+                        Log.e(LOG_TAG, "onGroupInvitedUsersListUpdate " + e.getMessage(), e);
                     }
                 }
             }

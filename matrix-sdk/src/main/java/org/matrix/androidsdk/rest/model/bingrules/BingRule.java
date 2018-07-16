@@ -192,7 +192,7 @@ public class BingRule {
                             return actionMap;
                         }
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## getActionMap() : " + e.getMessage());
+                        Log.e(LOG_TAG, "## getActionMap() : " + e.getMessage(), e);
                     }
                 }
             }

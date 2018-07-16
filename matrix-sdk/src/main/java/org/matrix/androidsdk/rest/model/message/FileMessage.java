@@ -95,7 +95,7 @@ public class FileMessage extends MediaMessage {
                 try {
                     info.mimetype = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.toLowerCase());
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## getMimeType() : getMimeTypeFromExtensionfailed " + e.getMessage());
+                    Log.e(LOG_TAG, "## getMimeType() : getMimeTypeFromExtensionfailed " + e.getMessage(), e);
                 }
             }
 

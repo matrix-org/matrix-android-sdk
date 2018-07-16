@@ -958,7 +958,7 @@ public class RoomState implements Externalizable {
                             mMembersWithThirdPartyInviteTokenCache.put(member.getThirdPartyInviteToken(), member);
                         }
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## applyState() - EVENT_TYPE_STATE_ROOM_MEMBER failed " + e.getMessage());
+                        Log.e(LOG_TAG, "## applyState() - EVENT_TYPE_STATE_ROOM_MEMBER failed " + e.getMessage(), e);
                     }
 
                     setMember(userId, member);
@@ -996,7 +996,7 @@ public class RoomState implements Externalizable {
             }
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "applyState failed with error " + e.getMessage());
+            Log.e(LOG_TAG, "applyState failed with error " + e.getMessage(), e);
         }
 
         return true;

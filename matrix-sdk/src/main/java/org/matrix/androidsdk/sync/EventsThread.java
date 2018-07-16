@@ -355,7 +355,7 @@ public class EventsThread extends Thread {
         try {
             Looper.prepare();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## run() : prepare failed " + e.getMessage());
+            Log.e(LOG_TAG, "## run() : prepare failed " + e.getMessage(), e);
         }
         startSync();
     }
@@ -440,7 +440,7 @@ public class EventsThread extends Thread {
                                 // FIXME because latch is not counted down. TO BE TESTED
                                 onSuccess(null);
                             } else {
-                                Log.e(LOG_TAG, "Sync V2 onNetworkError " + e.getMessage());
+                                Log.e(LOG_TAG, "Sync V2 onNetworkError " + e.getMessage(), e);
                                 super.onNetworkError(e);
                                 sleepAndUnblock();
                             }
@@ -460,7 +460,7 @@ public class EventsThread extends Thread {
                         @Override
                         public void onUnexpectedError(Exception e) {
                             super.onUnexpectedError(e);
-                            Log.e(LOG_TAG, "Sync V2 onUnexpectedError " + e.getMessage());
+                            Log.e(LOG_TAG, "Sync V2 onUnexpectedError " + e.getMessage(), e);
                             sleepAndUnblock();
                         }
                     });
@@ -469,9 +469,9 @@ public class EventsThread extends Thread {
             try {
                 latch.await();
             } catch (InterruptedException e) {
-                Log.e(LOG_TAG, "Interrupted whilst performing initial sync.");
+                Log.e(LOG_TAG, "Interrupted whilst performing initial sync.", e);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## startSync() failed " + e.getMessage());
+                Log.e(LOG_TAG, "## startSync() failed " + e.getMessage(), e);
             }
         }
         long initialSyncEndTime = System.currentTimeMillis();
@@ -557,7 +557,7 @@ public class EventsThread extends Thread {
                     // perform a catchup asap
                     serverTimeout = 0;
                 } catch (InterruptedException e) {
-                    Log.e(LOG_TAG, "Unexpected interruption while paused: " + e.getMessage());
+                    Log.e(LOG_TAG, "Unexpected interruption while paused: " + e.getMessage(), e);
                 }
             }
 
@@ -679,11 +679,11 @@ public class EventsThread extends Thread {
                 try {
                     latch.await();
                 } catch (InterruptedException e) {
-                    Log.e(LOG_TAG, "Interrupted whilst polling message");
+                    Log.e(LOG_TAG, "Interrupted whilst polling message", e);
                 } catch (Exception e) {
                     // reported by GA
                     // The thread might have been killed.
-                    Log.e(LOG_TAG, "latch.await() failed " + e.getMessage());
+                    Log.e(LOG_TAG, "latch.await() failed " + e.getMessage(), e);
                 }
                 long incrementalSyncEndTime = System.currentTimeMillis();
                 long incrementalSyncDuration = incrementalSyncEndTime - incrementalSyncStartTime;

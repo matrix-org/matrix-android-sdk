@@ -85,7 +85,7 @@ public class MediaMessage extends Message {
                     setThumbnailUrl(null, null);
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## checkMediaUrls() failed" + e.getMessage());
+                Log.e(LOG_TAG, "## checkMediaUrls() failed" + e.getMessage(), e);
             }
         }
 
@@ -99,7 +99,7 @@ public class MediaMessage extends Message {
                     setUrl(null, null);
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## checkMediaUrls() failed" + e.getMessage());
+                Log.e(LOG_TAG, "## checkMediaUrls() failed" + e.getMessage(), e);
             }
         }
     }

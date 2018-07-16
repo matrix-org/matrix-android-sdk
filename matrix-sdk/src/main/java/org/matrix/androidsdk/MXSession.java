@@ -354,19 +354,8 @@ public class MXSession {
     private void checkIfAlive() {
         synchronized (this) {
             if (!mIsAliveSession) {
-                try {
-                    StackTraceElement[] callstacks = Thread.currentThread().getStackTrace();
-
-                    StringBuilder sb = new StringBuilder();
-                    for (StackTraceElement element : callstacks) {
-                        sb.append(element.toString());
-                        sb.append("\n");
-                    }
-
-                    Log.e(LOG_TAG, "Use of a released session : \n" + sb.toString());
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "Use of a released session : \n");
-                }
+                // Create an Exception to log the stack trace
+                Log.e(LOG_TAG, "Use of a released session", new Exception("Use of a released session"));
 
                 //throw new AssertionError("Should not used a cleared mxsession ");
             }
@@ -615,7 +604,7 @@ public class MXSession {
         try {
             task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } catch (final Exception e) {
-            Log.e(LOG_TAG, "## getApplicationSizeCaches() : failed " + e.getMessage());
+            Log.e(LOG_TAG, "## getApplicationSizeCaches() : failed " + e.getMessage(), e);
             task.cancel(true);
 
             (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
@@ -640,7 +629,7 @@ public class MXSession {
         try {
             mAppContent.unregisterReceiver(mNetworkConnectivityReceiver);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## clearApplicationCaches() : unregisterReceiver failed " + e.getMessage());
+            Log.e(LOG_TAG, "## clearApplicationCaches() : unregisterReceiver failed " + e.getMessage(), e);
         }
         mNetworkConnectivityReceiver.removeListeners();
 
@@ -706,7 +695,7 @@ public class MXSession {
             try {
                 task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
             } catch (final Exception e) {
-                Log.e(LOG_TAG, "## clear() failed " + e.getMessage());
+                Log.e(LOG_TAG, "## clear() failed " + e.getMessage(), e);
                 task.cancel(true);
 
                 (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
@@ -760,7 +749,7 @@ public class MXSession {
                             }
                         }
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage());
+                        Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage(), e);
                     }
                 }
             }
@@ -800,7 +789,7 @@ public class MXSession {
         try {
             task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage());
+            Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage(), e);
             task.cancel(true);
         }
     }
@@ -906,7 +895,7 @@ public class MXSession {
                 try {
                     mEventsThread.start();
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## startEventStream() :  mEventsThread.start failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## startEventStream() :  mEventsThread.start failed " + e.getMessage(), e);
                 }
 
                 if (mIsBgCatchupPending) {
@@ -933,17 +922,17 @@ public class MXSession {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.d(LOG_TAG, "refreshToken : onNetworkError " + e.getMessage());
+                Log.e(LOG_TAG, "refreshToken : onNetworkError " + e.getMessage(), e);
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.d(LOG_TAG, "refreshToken : onMatrixError " + e.getMessage());
+                Log.e(LOG_TAG, "refreshToken : onMatrixError " + e.getMessage());
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.d(LOG_TAG, "refreshToken : onMatrixError " + e.getMessage());
+                Log.e(LOG_TAG, "refreshToken : onMatrixError " + e.getMessage(), e);
             }
         });
     }
@@ -2002,7 +1991,7 @@ public class MXSession {
 
             @Override
             public void onSuccess(JsonObject info) {
-                Log.e(LOG_TAG, "## logout() : succeed -> clearing the application data ");
+                Log.d(LOG_TAG, "## logout() : succeed -> clearing the application data ");
                 clearData();
             }
 
@@ -2046,7 +2035,7 @@ public class MXSession {
 
             @Override
             public void onSuccess(Void info) {
-                Log.e(LOG_TAG, "## deactivateAccount() : succeed -> clearing the application data ");
+                Log.d(LOG_TAG, "## deactivateAccount() : succeed -> clearing the application data ");
 
                 // Clear crypto data
                 // For security and because it will be no more useful as we will get a new device id
@@ -2089,7 +2078,7 @@ public class MXSession {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## setURLPreviewStatus() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## setURLPreviewStatus() : failed " + e.getMessage(), e);
                 callback.onNetworkError(e);
             }
 
@@ -2101,7 +2090,7 @@ public class MXSession {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## setURLPreviewStatus() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## setURLPreviewStatus() : failed " + e.getMessage(), e);
                 callback.onUnexpectedError(e);
             }
         });
@@ -2129,7 +2118,7 @@ public class MXSession {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## addUserWidget() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## addUserWidget() : failed " + e.getMessage(), e);
                 callback.onNetworkError(e);
             }
 
@@ -2141,7 +2130,7 @@ public class MXSession {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## addUserWidget() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## addUserWidget() : failed " + e.getMessage(), e);
                 callback.onUnexpectedError(e);
             }
         });
@@ -2244,7 +2233,7 @@ public class MXSession {
                 fileCryptoStore.open();
                 isStoreLoaded = true;
             } catch (UnsatisfiedLinkError e) {
-                Log.e(LOG_TAG, "## checkCrypto() failed " + e.getMessage());
+                Log.e(LOG_TAG, "## checkCrypto() failed " + e.getMessage(), e);
             }
 
             if (!isStoreLoaded) {
@@ -2257,7 +2246,7 @@ public class MXSession {
                     fileCryptoStore.open();
                     isStoreLoaded = true;
                 } catch (UnsatisfiedLinkError e) {
-                    Log.e(LOG_TAG, "## checkCrypto() failed 2 " + e.getMessage());
+                    Log.e(LOG_TAG, "## checkCrypto() failed 2 " + e.getMessage(), e);
                 }
             }
 
@@ -2371,7 +2360,7 @@ public class MXSession {
                     try {
                         registrationFlowResponse = JsonUtils.toRegistrationFlowResponse(matrixError.mErrorBodyAsString);
                     } catch (Exception castExcept) {
-                        Log.e(LOG_TAG, "## deleteDevice(): Received status 401 - Exception - JsonUtils.toRegistrationFlowResponse()");
+                        Log.e(LOG_TAG, "## deleteDevice(): Received status 401 - Exception - JsonUtils.toRegistrationFlowResponse()", castExcept);
                     }
                 } else {
                     Log.d(LOG_TAG, "## deleteDevice(): Received not expected status 401 =" + matrixError.mStatus);

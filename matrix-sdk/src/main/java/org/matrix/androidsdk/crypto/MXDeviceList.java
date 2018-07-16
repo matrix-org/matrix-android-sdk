@@ -154,7 +154,7 @@ public class MXDeviceList {
                     res = !mNotReadyToRetryHS.contains(userId.substring(userId.lastIndexOf(":") + 1));
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## canRetryKeysDownload() failed : " + e.getMessage());
+                Log.e(LOG_TAG, "## canRetryKeysDownload() failed : " + e.getMessage(), e);
             }
         }
 
@@ -474,7 +474,7 @@ public class MXDeviceList {
 
                 @Override
                 public void onNetworkError(Exception e) {
-                    Log.e(LOG_TAG, "## downloadKeys() : doKeyDownloadForUsers onNetworkError " + e.getMessage());
+                    Log.e(LOG_TAG, "## downloadKeys() : doKeyDownloadForUsers onNetworkError " + e.getMessage(), e);
                     if (null != callback) {
                         callback.onNetworkError(e);
                     }
@@ -490,7 +490,7 @@ public class MXDeviceList {
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    Log.e(LOG_TAG, "## downloadKeys() : doKeyDownloadForUsers onUnexpectedError " + e.getMessage());
+                    Log.e(LOG_TAG, "## downloadKeys() : doKeyDownloadForUsers onUnexpectedError " + e.getMessage(), e);
                     if (null != callback) {
                         callback.onUnexpectedError(e);
                     }
@@ -635,7 +635,7 @@ public class MXDeviceList {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "##doKeyDownloadForUsers() : onNetworkError " + e.getMessage());
+                Log.e(LOG_TAG, "##doKeyDownloadForUsers() : onNetworkError " + e.getMessage(), e);
 
                 onFailed();
 
@@ -657,7 +657,7 @@ public class MXDeviceList {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "##doKeyDownloadForUsers() : onUnexpectedError " + e.getMessage());
+                Log.e(LOG_TAG, "##doKeyDownloadForUsers() : onUnexpectedError " + e.getMessage(), e);
 
                 onFailed();
 

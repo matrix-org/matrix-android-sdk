@@ -82,7 +82,7 @@ public class MXOlmInboundGroupSession2 implements Serializable {
                 mSession = OlmInboundGroupSession.importSession(sessionKey);
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "Cannot create : " + e.getMessage());
+            Log.e(LOG_TAG, "Cannot create : " + e.getMessage(), e);
         }
     }
 
@@ -131,7 +131,7 @@ public class MXOlmInboundGroupSession2 implements Serializable {
             map.put("algorithm", MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM);
         } catch (Exception e) {
             map = null;
-            Log.e(LOG_TAG, "## export() : senderKey " + mSenderKey + " failed " + e.getMessage());
+            Log.e(LOG_TAG, "## export() : senderKey " + mSenderKey + " failed " + e.getMessage(), e);
         }
 
         return map;
@@ -145,7 +145,7 @@ public class MXOlmInboundGroupSession2 implements Serializable {
             try {
                 return mSession.getFirstKnownIndex();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## getFirstKnownIndex() : getFirstKnownIndex failed " + e.getMessage());
+                Log.e(LOG_TAG, "## getFirstKnownIndex() : getFirstKnownIndex failed " + e.getMessage(), e);
             }
         }
 
@@ -163,7 +163,7 @@ public class MXOlmInboundGroupSession2 implements Serializable {
             try {
                 return mSession.export(messageIndex);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## exportSession() : export failed " + e.getMessage());
+                Log.e(LOG_TAG, "## exportSession() : export failed " + e.getMessage(), e);
             }
         }
 

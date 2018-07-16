@@ -118,7 +118,7 @@ public class EventUtils {
             Pattern pattern = Pattern.compile("(\\W|^)" + Pattern.quote(subString) + "(\\W|$)", Pattern.CASE_INSENSITIVE);
             res = pattern.matcher(longString).find();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## caseInsensitiveFind() : failed");
+            Log.e(LOG_TAG, "## caseInsensitiveFind() : failed", e);
         }
 
         return res;

@@ -204,7 +204,7 @@ public class JsonUtils {
             Message message = gson.fromJson(jsonObject, Message.class);
             return message.msgtype;
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## getMessageMsgType failed " + e.getMessage());
+            Log.e(LOG_TAG, "## getMessageMsgType failed " + e.getMessage(), e);
         }
 
         return null;
@@ -246,7 +246,7 @@ public class JsonUtils {
             // Fall back to the generic Message type
             return message;
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## toMessage failed " + e.getMessage());
+            Log.e(LOG_TAG, "## toMessage failed " + e.getMessage(), e);
         }
 
         return new Message();
@@ -467,7 +467,7 @@ public class JsonUtils {
         try {
             object = gson.fromJson(jsonObject, aClass);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## toClass failed " + e.getMessage());
+            Log.e(LOG_TAG, "## toClass failed " + e.getMessage(), e);
         }
 
         if (null == object) {
@@ -476,7 +476,7 @@ public class JsonUtils {
             try {
                 object = constructors[0].newInstance();
             } catch (Throwable t) {
-                Log.e(LOG_TAG, "## toClass failed " + t.getMessage());
+                Log.e(LOG_TAG, "## toClass failed " + t.getMessage(), t);
             }
         }
 
@@ -497,7 +497,7 @@ public class JsonUtils {
         try {
             object = gson.fromJson(jsonObjectAsString, aClass);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## toClass failed " + e.getMessage());
+            Log.e(LOG_TAG, "## toClass failed " + e.getMessage(), e);
         }
 
         if (null == object) {
@@ -506,7 +506,7 @@ public class JsonUtils {
             try {
                 object = constructors[0].newInstance();
             } catch (Throwable t) {
-                Log.e(LOG_TAG, "## toClass failed " + t.getMessage());
+                Log.e(LOG_TAG, "## toClass failed " + t.getMessage(), t);
             }
         }
 
@@ -523,7 +523,7 @@ public class JsonUtils {
         try {
             return (JsonObject) gson.toJsonTree(event);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## toJson failed " + e.getMessage());
+            Log.e(LOG_TAG, "## toJson failed " + e.getMessage(), e);
         }
 
         return new JsonObject();
@@ -539,7 +539,7 @@ public class JsonUtils {
         try {
             return (JsonObject) gson.toJsonTree(message);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## toJson failed " + e.getMessage());
+            Log.e(LOG_TAG, "## toJson failed " + e.getMessage(), e);
         }
 
         return null;
@@ -621,7 +621,7 @@ public class JsonUtils {
                 byte[] bytes = out.getBytes();
                 out = new String(bytes, "UTF-8");
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## convertFromUTF8()  failed " + e.getMessage());
+                Log.e(LOG_TAG, "## convertFromUTF8()  failed " + e.getMessage(), e);
             }
         }
 
@@ -642,7 +642,7 @@ public class JsonUtils {
                 byte[] bytes = out.getBytes("UTF-8");
                 out = new String(bytes);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## convertToUTF8()  failed " + e.getMessage());
+                Log.e(LOG_TAG, "## convertToUTF8()  failed " + e.getMessage(), e);
             }
         }
 

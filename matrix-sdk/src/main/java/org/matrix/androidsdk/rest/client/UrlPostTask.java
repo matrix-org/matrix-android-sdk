@@ -102,12 +102,12 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
                 sb.append(line + "\n");
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "convertStreamToString " + e.getMessage());
+            Log.e(LOG_TAG, "convertStreamToString " + e.getMessage(), e);
         } finally {
             try {
                 is.close();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "convertStreamToString finally failed " + e.getMessage());
+                Log.e(LOG_TAG, "convertStreamToString finally failed " + e.getMessage(), e);
             }
         }
         return sb.toString();
@@ -122,7 +122,7 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
             JsonParser parser = new JsonParser();
             object = parser.parse(result).getAsJsonObject();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## onPostExecute() failed" + e.getMessage());
+            Log.e(LOG_TAG, "## onPostExecute() failed" + e.getMessage(), e);
         }
 
         if (null != mListener) {

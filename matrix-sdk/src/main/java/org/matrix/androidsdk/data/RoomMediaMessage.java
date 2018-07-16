@@ -550,7 +550,7 @@ public class RoomMediaMessage implements Parcelable {
                 thumbnailBitmap = MediaStore.Images.Thumbnails.getThumbnail(resolver, imageId, kind, null);
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "MediaStore.Images.Thumbnails.getThumbnail " + e.getMessage());
+            Log.e(LOG_TAG, "MediaStore.Images.Thumbnails.getThumbnail " + e.getMessage(), e);
         }
 
         return thumbnailBitmap;
@@ -574,7 +574,7 @@ public class RoomMediaMessage implements Parcelable {
                                 mFileName = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
                             }
                         } catch (Exception e) {
-                            Log.e(LOG_TAG, "cursor.getString " + e.getMessage());
+                            Log.e(LOG_TAG, "cursor.getString " + e.getMessage(), e);
                         } finally {
                             if (null != cursor) {
                                 cursor.close();
@@ -618,7 +618,7 @@ public class RoomMediaMessage implements Parcelable {
                     resource.mContentStream.close();
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## saveMedia : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## saveMedia : failed " + e.getMessage(), e);
             }
         }
     }
@@ -668,7 +668,7 @@ public class RoomMediaMessage implements Parcelable {
                     fos.write(buf, 0, len);
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## saveFile failed " + e.getMessage());
+                Log.e(LOG_TAG, "## saveFile failed " + e.getMessage(), e);
             }
 
             fos.flush();
@@ -677,7 +677,7 @@ public class RoomMediaMessage implements Parcelable {
 
             fileUri = Uri.fromFile(file);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## saveFile failed " + e.getMessage());
+            Log.e(LOG_TAG, "## saveFile failed " + e.getMessage(), e);
         }
 
         return fileUri;
@@ -695,7 +695,7 @@ public class RoomMediaMessage implements Parcelable {
             try {
                 getEventCreationListener().onEventCreated(this);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## onEventCreated() failed : " + e.getMessage());
+                Log.e(LOG_TAG, "## onEventCreated() failed : " + e.getMessage(), e);
             }
         }
 
@@ -711,7 +711,7 @@ public class RoomMediaMessage implements Parcelable {
             try {
                 getEventCreationListener().onEventCreationFailed(this, errorMessage);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## onEventCreationFailed() failed : " + e.getMessage());
+                Log.e(LOG_TAG, "## onEventCreationFailed() failed : " + e.getMessage(), e);
             }
         }
 
@@ -729,7 +729,7 @@ public class RoomMediaMessage implements Parcelable {
             try {
                 getEventCreationListener().onEncryptionFailed(this);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## onEncryptionFailed() failed : " + e.getMessage());
+                Log.e(LOG_TAG, "## onEncryptionFailed() failed : " + e.getMessage(), e);
             }
         }
 
@@ -870,7 +870,7 @@ public class RoomMediaMessage implements Parcelable {
                                 }
                             }
                         } catch (Exception e) {
-                            Log.e(LOG_TAG, "fail to extract the extra stream");
+                            Log.e(LOG_TAG, "fail to extract the extra stream", e);
                         }
                     }
                 }

@@ -152,7 +152,7 @@ public class CallSoundsManager {
                 try {
                     listener.onAudioConfigurationUpdate();
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## dispatchAudioConfigurationUpdate() failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## dispatchAudioConfigurationUpdate() failed " + e.getMessage(), e);
                 }
             }
         }
@@ -207,7 +207,7 @@ public class CallSoundsManager {
                     try {
                         listener.onFocusChanged(aFocusEvent);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## onFocusChanged() failed " + e.getMessage());
+                        Log.e(LOG_TAG, "## onFocusChanged() failed " + e.getMessage(), e);
                     }
                 }
             }
@@ -522,7 +522,7 @@ public class CallSoundsManager {
                     return ringToneUri;
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## getRingToneUri() failed " + e.getMessage());
+                Log.e(LOG_TAG, "## getRingToneUri() failed " + e.getMessage(), e);
             }
         }
 
@@ -571,7 +571,7 @@ public class CallSoundsManager {
 
                         fos.close();
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## getRingToneUri():  Exception1 Msg=" + e.getMessage());
+                        Log.e(LOG_TAG, "## getRingToneUri():  Exception1 Msg=" + e.getMessage(), e);
                     }
                 }
 
@@ -595,7 +595,7 @@ public class CallSoundsManager {
                 return ringToneUri;
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## getRingToneUri():  Exception2 Msg=" + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "## getRingToneUri():  Exception2 Msg=" + e.getLocalizedMessage(), e);
         }
 
         return null;
@@ -613,7 +613,7 @@ public class CallSoundsManager {
             try {
                 return RingtoneManager.getRingtone(context, ringToneUri);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## uriToRingTone() failed " + e.getMessage());
+                Log.e(LOG_TAG, "## uriToRingTone() failed " + e.getMessage(), e);
             }
         }
 
@@ -738,7 +738,7 @@ public class CallSoundsManager {
                         audioManager.setBluetoothScoOn(false);
                     }
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## setSpeakerphoneOn() failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## setSpeakerphoneOn() failed " + e.getMessage(), e);
                 }
             }
 
@@ -746,7 +746,7 @@ public class CallSoundsManager {
                 audioManager.setSpeakerphoneOn(isSpeakerOn);
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## setSpeakerphoneOn() failed " + e.getMessage());
+            Log.e(LOG_TAG, "## setSpeakerphoneOn() failed " + e.getMessage(), e);
             restoreAudioConfig();
         }
 
@@ -771,7 +771,7 @@ public class CallSoundsManager {
                     audioManager.setBluetoothScoOn(false);
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## toggleSpeaker() failed " + e.getMessage());
+                Log.e(LOG_TAG, "## toggleSpeaker() failed " + e.getMessage(), e);
             }
         }
 

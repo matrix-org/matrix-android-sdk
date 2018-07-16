@@ -212,7 +212,7 @@ public class RoomPreviewData {
                 try {
                     task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
                 } catch (final Exception e) {
-                    Log.e(LOG_TAG, "## fetchPreviewData() failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## fetchPreviewData() failed " + e.getMessage(), e);
                     task.cancel(true);
 
                     (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {

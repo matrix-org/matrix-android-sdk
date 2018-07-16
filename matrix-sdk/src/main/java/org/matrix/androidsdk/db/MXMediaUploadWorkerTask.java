@@ -150,7 +150,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
                 task.cancelUpload();
                 task.cancel(true);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "cancelPendingUploads " + e.getMessage());
+                Log.e(LOG_TAG, "cancelPendingUploads " + e.getMessage(), e);
             }
         }
 
@@ -176,7 +176,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
         try {
             contentStream.reset();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "MXMediaUploadWorkerTask " + e.getMessage());
+            Log.e(LOG_TAG, "MXMediaUploadWorkerTask " + e.getMessage(), e);
         }
 
         mContentManager = contentManager;
@@ -283,7 +283,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
                 String utf8Filename = URLEncoder.encode(mFilename, "utf-8");
                 urlString += "?filename=" + utf8Filename;
             } catch (Exception e) {
-                Log.e(LOG_TAG, "doInBackground " + e.getMessage());
+                Log.e(LOG_TAG, "doInBackground " + e.getMessage(), e);
             }
         }
 
@@ -305,7 +305,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
                     sslConn.setSSLSocketFactory(pair.first);
                     sslConn.setHostnameVerifier(CertUtil.newHostnameVerifier(mContentManager.getHsConfig()));
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "sslConn " + e.getMessage());
+                    Log.e(LOG_TAG, "sslConn " + e.getMessage(), e);
                 }
             }
 
@@ -412,7 +412,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
                         JSONObject responseJSON = new JSONObject(serverResponse);
                         serverResponse = responseJSON.getString("error");
                     } catch (JSONException e) {
-                        Log.e(LOG_TAG, "doInBackground : Error parsing " + e.getMessage());
+                        Log.e(LOG_TAG, "doInBackground : Error parsing " + e.getMessage(), e);
                     }
                 }
             } else {
@@ -425,7 +425,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
             }
         } catch (Exception e) {
             serverResponse = e.getLocalizedMessage();
-            Log.e(LOG_TAG, "doInBackground ; failed with error " + e.getClass() + " - " + e.getMessage());
+            Log.e(LOG_TAG, "doInBackground ; failed with error " + e.getClass() + " - " + e.getMessage(), e);
         }
 
         mResponseFromServer = serverResponse;
@@ -458,7 +458,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
         try {
             mContentStream.close();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "dispatchResult " + e.getMessage());
+            Log.e(LOG_TAG, "dispatchResult " + e.getMessage(), e);
         }
 
         if (isUploadCancelled()) {
@@ -494,7 +494,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
             try {
                 listener.onUploadStart(mUploadId);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "dispatchOnUploadStart failed " + e.getMessage());
+                Log.e(LOG_TAG, "dispatchOnUploadStart failed " + e.getMessage(), e);
             }
         }
     }
@@ -509,7 +509,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
             try {
                 listener.onUploadProgress(mUploadId, stats);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "dispatchOnUploadProgress failed " + e.getMessage());
+                Log.e(LOG_TAG, "dispatchOnUploadProgress failed " + e.getMessage(), e);
             }
         }
     }
@@ -522,7 +522,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
             try {
                 listener.onUploadCancel(mUploadId);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "listener failed " + e.getMessage());
+                Log.e(LOG_TAG, "listener failed " + e.getMessage(), e);
             }
         }
     }
@@ -538,7 +538,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
             try {
                 listener.onUploadError(mUploadId, serverResponseCode, serverErrorMessage);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "dispatchOnUploadError failed " + e.getMessage());
+                Log.e(LOG_TAG, "dispatchOnUploadError failed " + e.getMessage(), e);
             }
         }
     }
@@ -553,7 +553,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
             try {
                 listener.onUploadComplete(mUploadId, contentUri);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "dispatchOnUploadComplete failed " + e.getMessage());
+                Log.e(LOG_TAG, "dispatchOnUploadComplete failed " + e.getMessage(), e);
             }
         }
     }

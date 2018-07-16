@@ -156,7 +156,7 @@ public class CertUtil {
                 try {
                     tf = TrustManagerFactory.getInstance("PKIX");
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## newPinnedSSLSocketFactory() : TrustManagerFactory.getInstance failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## newPinnedSSLSocketFactory() : TrustManagerFactory.getInstance failed " + e.getMessage(), e);
                 }
 
                 // it doesn't exist, use the default one.
@@ -164,7 +164,7 @@ public class CertUtil {
                     try {
                         tf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## addRule : onBingRuleUpdateFailure failed " + e.getMessage());
+                        Log.e(LOG_TAG, "## addRule : onBingRuleUpdateFailure failed " + e.getMessage(), e);
                     }
                 }
 

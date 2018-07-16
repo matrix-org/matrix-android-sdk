@@ -129,15 +129,15 @@ public class MXEncryptedAttachments implements Serializable {
             Log.d(LOG_TAG, "Encrypt in " + (System.currentTimeMillis() - t0) + " ms");
             return result;
         } catch (OutOfMemoryError oom) {
-            Log.e(LOG_TAG, "## encryptAttachment failed " + oom.getMessage());
+            Log.e(LOG_TAG, "## encryptAttachment failed " + oom.getMessage(), oom);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## encryptAttachment failed " + e.getMessage());
+            Log.e(LOG_TAG, "## encryptAttachment failed " + e.getMessage(), e);
         }
 
         try {
             outStream.close();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## encryptAttachment() : fail to close outStream");
+            Log.e(LOG_TAG, "## encryptAttachment() : fail to close outStream", e);
         }
 
         return null;
@@ -179,7 +179,7 @@ public class MXEncryptedAttachments implements Serializable {
                 return new ByteArrayInputStream(new byte[0]);
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "Fail to retrieve the file size");
+            Log.e(LOG_TAG, "Fail to retrieve the file size", e);
         }
 
         long t0 = System.currentTimeMillis();
@@ -226,15 +226,15 @@ public class MXEncryptedAttachments implements Serializable {
 
             return decryptedStream;
         } catch (OutOfMemoryError oom) {
-            Log.e(LOG_TAG, "## decryptAttachment() :  failed " + oom.getMessage());
+            Log.e(LOG_TAG, "## decryptAttachment() :  failed " + oom.getMessage(), oom);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## decryptAttachment() :  failed " + e.getMessage());
+            Log.e(LOG_TAG, "## decryptAttachment() :  failed " + e.getMessage(), e);
         }
 
         try {
             outStream.close();
         } catch (Exception closeException) {
-            Log.e(LOG_TAG, "## decryptAttachment() :  fail to close the file");
+            Log.e(LOG_TAG, "## decryptAttachment() :  fail to close the file", closeException);
         }
 
         return null;

@@ -138,7 +138,7 @@ public class EventDisplay {
                         String sdpValue = sdp.getAsString();
                         isVideo = sdpValue.contains("m=video");
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "getTextualDisplay : " + e.getMessage());
+                        Log.e(LOG_TAG, "getTextualDisplay : " + e.getMessage(), e);
                     }
 
                     if (isVideo) {
@@ -347,7 +347,7 @@ public class EventDisplay {
                 text = getMembershipNotice(mContext, mEvent, mRoomState);
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "getTextualDisplay() " + e.getMessage());
+            Log.e(LOG_TAG, "getTextualDisplay() " + e.getMessage(), e);
         }
 
         return text;

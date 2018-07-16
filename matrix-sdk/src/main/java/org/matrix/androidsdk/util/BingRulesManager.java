@@ -216,7 +216,7 @@ public class BingRulesManager {
             try {
                 listener.onBingRulesUpdate();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## onBingRulesUpdate() : onBingRulesUpdate failed " + e.getMessage());
+                Log.e(LOG_TAG, "## onBingRulesUpdate() : onBingRulesUpdate failed " + e.getMessage(), e);
             }
         }
     }
@@ -299,7 +299,7 @@ public class BingRulesManager {
             Pattern pattern = Pattern.compile("(\\W|^)" + subString + "(\\W|$)", Pattern.CASE_INSENSITIVE);
             found = pattern.matcher(longString).find();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "caseInsensitiveFind : pattern.matcher failed with " + e.getMessage());
+            Log.e(LOG_TAG, "caseInsensitiveFind : pattern.matcher failed with " + e.getMessage(), e);
         }
 
         return found;
@@ -483,7 +483,7 @@ public class BingRulesManager {
                 }
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## eventMatchesConditions() failed " + e.getMessage());
+            Log.e(LOG_TAG, "## eventMatchesConditions() failed " + e.getMessage(), e);
             return false;
         }
         return true;
@@ -673,7 +673,7 @@ public class BingRulesManager {
                             listener.onBingRuleUpdateFailure(TextUtils.isEmpty(errorMsg) ? error : errorMsg);
                         }
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## forceRulesRefresh() : failed " + e.getMessage());
+                        Log.e(LOG_TAG, "## forceRulesRefresh() : failed " + e.getMessage(), e);
                     }
                 }
 
@@ -776,7 +776,7 @@ public class BingRulesManager {
                 try {
                     listener.onBingRuleUpdateSuccess();
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## deleteRule : onBingRuleUpdateSuccess failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## deleteRule : onBingRuleUpdateSuccess failed " + e.getMessage(), e);
                 }
             }
             return;
@@ -811,7 +811,7 @@ public class BingRulesManager {
                 try {
                     listener.onBingRuleUpdateSuccess();
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## deleteRules() : onBingRuleUpdateSuccess failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## deleteRules() : onBingRuleUpdateSuccess failed " + e.getMessage(), e);
                 }
             }
 
@@ -831,7 +831,7 @@ public class BingRulesManager {
                     try {
                         listener.onBingRuleUpdateFailure(errorMessage);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## deleteRules() : onBingRuleUpdateFailure failed " + e.getMessage());
+                        Log.e(LOG_TAG, "## deleteRules() : onBingRuleUpdateFailure failed " + e.getMessage(), e);
                     }
                 }
             }
@@ -852,7 +852,7 @@ public class BingRulesManager {
                 try {
                     listener.onBingRuleUpdateSuccess();
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## addRule : onBingRuleUpdateSuccess failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## addRule : onBingRuleUpdateSuccess failed " + e.getMessage(), e);
                 }
             }
             return;

@@ -192,7 +192,7 @@ public class RestClient<T> {
             okHttpClientBuilder.hostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
             okHttpClientBuilder.connectionSpecs(CertUtil.newConnectionSpecs(hsConfig));
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage());
+            Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage(), e);
         }
 
         mOkHttpClient = okHttpClientBuilder.build();
@@ -265,7 +265,7 @@ public class RestClient<T> {
                 PackageInfo pkgInfo = pm.getPackageInfo(appContext.getApplicationContext().getPackageName(), 0);
                 appVersion = pkgInfo.versionName;
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## initUserAgent() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## initUserAgent() : failed " + e.getMessage(), e);
             }
         }
 
@@ -308,12 +308,12 @@ public class RestClient<T> {
                     .readTimeout((int) (READ_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS)
                     .writeTimeout((int) (WRITE_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS);
 
-            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update setConnectTimeout to " + (CONNECTION_TIMEOUT_MS * factor) + " ms");
-            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update setReadTimeout to " + (READ_TIMEOUT_MS * factor) + " ms");
-            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update setWriteTimeout to " + (WRITE_TIMEOUT_MS * factor) + " ms");
+            Log.d(LOG_TAG, "## refreshConnectionTimeout()  : update setConnectTimeout to " + (CONNECTION_TIMEOUT_MS * factor) + " ms");
+            Log.d(LOG_TAG, "## refreshConnectionTimeout()  : update setReadTimeout to " + (READ_TIMEOUT_MS * factor) + " ms");
+            Log.d(LOG_TAG, "## refreshConnectionTimeout()  : update setWriteTimeout to " + (WRITE_TIMEOUT_MS * factor) + " ms");
         } else {
             builder.connectTimeout(1, TimeUnit.MILLISECONDS);
-            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update the requests timeout to 1 ms");
+            Log.d(LOG_TAG, "## refreshConnectionTimeout()  : update the requests timeout to 1 ms");
         }
 
         mOkHttpClient = builder.build();
@@ -358,7 +358,7 @@ public class RestClient<T> {
         networkConnectivityReceiver.addEventListener(new IMXNetworkEventListener() {
             @Override
             public void onNetworkConnectionUpdate(boolean isConnected) {
-                Log.e(LOG_TAG, "## setUnsentEventsManager()  : update the requests timeout to " + (isConnected ? CONNECTION_TIMEOUT_MS : 1) + " ms");
+                Log.d(LOG_TAG, "## setUnsentEventsManager()  : update the requests timeout to " + (isConnected ? CONNECTION_TIMEOUT_MS : 1) + " ms");
                 refreshConnectionTimeout(networkConnectivityReceiver);
             }
         });
