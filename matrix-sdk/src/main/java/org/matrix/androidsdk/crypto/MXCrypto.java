@@ -964,7 +964,7 @@ public class MXCrypto {
                     Room room = mSession.getDataHandler().getRoom(roomId);
 
                     if (null != room) {
-                        res = room.getLiveState().isEncrypted();
+                        res = room.getState().isEncrypted();
                     }
                 }
             }
@@ -1296,7 +1296,7 @@ public class MXCrypto {
                 }
 
                 if (null == alg) {
-                    String algorithm = room.getLiveState().encryptionAlgorithm();
+                    String algorithm = room.getState().encryptionAlgorithm();
 
                     if (null != algorithm) {
                         if (setEncryptionInRoom(room.getRoomId(), algorithm, false)) {
@@ -1349,7 +1349,7 @@ public class MXCrypto {
                         }
                     });
                 } else {
-                    final String algorithm = room.getLiveState().encryptionAlgorithm();
+                    final String algorithm = room.getState().encryptionAlgorithm();
                     final String reason = String.format(MXCryptoError.UNABLE_TO_ENCRYPT_REASON,
                             (null == algorithm) ? MXCryptoError.NO_MORE_ALGORITHM_REASON : algorithm);
                     Log.e(LOG_TAG, "## encryptEventContent() : " + reason);
@@ -1768,7 +1768,7 @@ public class MXCrypto {
         final String userId = event.stateKey;
         final Room room = mSession.getDataHandler().getRoom(event.roomId);
 
-        RoomMember roomMember = room.getLiveState().getMember(userId);
+        RoomMember roomMember = room.getState().getMember(userId);
 
         if (null != roomMember) {
             final String membership = roomMember.membership;
