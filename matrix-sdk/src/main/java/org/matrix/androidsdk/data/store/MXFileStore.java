@@ -396,7 +396,7 @@ public class MXFileStore extends MXMemoryStore {
                                         Collection<Room> rooms = getRooms();
 
                                         for (Room room : rooms) {
-                                            Collection<RoomMember> members = room.getLiveState().getMembers();
+                                            Collection<RoomMember> members = room.getState().getMembers();
                                             for (RoomMember member : members) {
                                                 updateUserWithRoomMemberEvent(member);
                                             }
@@ -494,8 +494,8 @@ public class MXFileStore extends MXMemoryStore {
                                     for (String roomId : roomIds) {
                                         Room room = getRoom(roomId);
 
-                                        if ((null != room) && (null != room.getLiveState())) {
-                                            int membersCount = room.getLiveState().getMembers().size();
+                                        if ((null != room) && (null != room.getState())) {
+                                            int membersCount = room.getState().getMembers().size();
                                             int eventsCount = mRoomEvents.get(roomId).size();
 
                                             Log.d(LOG_TAG, " room " + roomId + " : membersCount " + membersCount + " - eventsCount " + eventsCount);

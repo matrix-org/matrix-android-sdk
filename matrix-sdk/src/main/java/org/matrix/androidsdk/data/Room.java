@@ -203,7 +203,7 @@ public class Room {
      * @return true if it is a call conference room.
      */
     public boolean isConferenceUserRoom() {
-        return getLiveState().isConferenceUserRoom();
+        return getState().isConferenceUserRoom();
     }
 
     /**
@@ -212,7 +212,7 @@ public class Room {
      * @param isConferenceUserRoom true when it is an user conference room.
      */
     public void setIsConferenceUserRoom(boolean isConferenceUserRoom) {
-        getLiveState().setIsConferenceUserRoom(isConferenceUserRoom);
+        getState().setIsConferenceUserRoom(isConferenceUserRoom);
     }
 
     /**
@@ -221,7 +221,7 @@ public class Room {
      * @return true if there is one.
      */
     public boolean isOngoingConferenceCall() {
-        RoomMember conferenceUser = getLiveState().getMember(MXCallsManager.getConferenceUserId(getRoomId()));
+        RoomMember conferenceUser = getState().getMember(MXCallsManager.getConferenceUserId(getRoomId()));
         return (null != conferenceUser) && TextUtils.equals(conferenceUser.membership, RoomMember.MEMBERSHIP_JOIN);
     }
 
@@ -424,10 +424,6 @@ public class Room {
 
     public RoomState getState() {
         return mLiveTimeline.getState();
-    }
-
-    public RoomState getLiveState() {
-        return getState();
     }
 
     public boolean isLeaving() {
@@ -881,7 +877,7 @@ public class Room {
      * @return the room aliases list.
      */
     public List<String> getAliases() {
-        return getLiveState().getAliases();
+        return getState().getAliases();
     }
 
     /**
@@ -943,7 +939,7 @@ public class Room {
      * @param callback the asynchronous callback
      */
     public void addRelatedGroup(final String groupId, final ApiCallback<Void> callback) {
-        List<String> nextGroupIdsList = new ArrayList<>(getLiveState().getRelatedGroups());
+        List<String> nextGroupIdsList = new ArrayList<>(getState().getRelatedGroups());
 
         if (!nextGroupIdsList.contains(groupId)) {
             nextGroupIdsList.add(groupId);
@@ -959,7 +955,7 @@ public class Room {
      * @param callback the asynchronous callback
      */
     public void removeRelatedGroup(final String groupId, final ApiCallback<Void> callback) {
-        List<String> nextGroupIdsList = new ArrayList<>(getLiveState().getRelatedGroups());
+        List<String> nextGroupIdsList = new ArrayList<>(getState().getRelatedGroups());
         nextGroupIdsList.remove(groupId);
 
         updateRelatedGroups(nextGroupIdsList, callback);
@@ -979,7 +975,7 @@ public class Room {
                 .sendStateEvent(getRoomId(), Event.EVENT_TYPE_STATE_RELATED_GROUPS, null, params, new SimpleApiCallback<Void>(callback) {
                     @Override
                     public void onSuccess(Void info) {
-                        getLiveState().groups = groupIds;
+                        getState().groups = groupIds;
                         getDataHandler().getStore().storeLiveStateForRoom(getRoomId());
 
                         if (null != callback) {
@@ -1254,8 +1250,8 @@ public class Room {
         Log.d(LOG_TAG, "## clearUnreadCounters " + getRoomId());
 
         // reset the notification count
-        getLiveState().setHighlightCount(0);
-        getLiveState().setNotificationCount(0);
+        getState().setHighlightCount(0);
+        getState().setNotificationCount(0);
 
         if (null != getStore()) {
             getStore().storeLiveStateForRoom(getRoomId());
@@ -1339,11 +1335,11 @@ public class Room {
                 Log.e(LOG_TAG, "## sendReadReceipt() : no summary for " + getRoomId());
             }
 
-            if ((0 != getLiveState().getNotificationCount()) || (0 != getLiveState().getHighlightCount())) {
+            if ((0 != getState().getNotificationCount()) || (0 != getState().getHighlightCount())) {
                 Log.e(LOG_TAG, "## markAllAsRead() : the notification messages count for " + getRoomId() + " should have been cleared");
 
-                getLiveState().setNotificationCount(0);
-                getLiveState().setHighlightCount(0);
+                getState().setNotificationCount(0);
+                getState().setHighlightCount(0);
 
                 if (null != getStore()) {
                     getStore().storeLiveStateForRoom(getRoomId());
@@ -2761,7 +2757,7 @@ public class Room {
      * @return if the room content is encrypted
      */
     public boolean isEncrypted() {
-        return getLiveState().isEncrypted();
+        return getState().isEncrypted();
     }
 
     /**

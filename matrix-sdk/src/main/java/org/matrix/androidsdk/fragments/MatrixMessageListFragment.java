@@ -867,7 +867,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             redacterEvent.redacts = redactedEvent.eventId;
                             redacterEvent.setType(Event.EVENT_TYPE_REDACTION);
 
-                            onEvent(redacterEvent, EventTimeline.Direction.FORWARDS, mRoom.getLiveState());
+                            onEvent(redacterEvent, EventTimeline.Direction.FORWARDS, mRoom.getState());
 
                             if (null != mEventSendingListener) {
                                 try {
@@ -1827,7 +1827,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 mAdapter.updateEventById(event, prevEventId);
             } else {
                 // refresh the listView only when it is a live timeline or a search
-                mAdapter.add(new MessageRow(event, mRoom.getLiveState()), true);
+                mAdapter.add(new MessageRow(event, mRoom.getState()), true);
             }
 
             if (mFutureReadMarkerEventId != null && prevEventId.equals(mFutureReadMarkerEventId)) {

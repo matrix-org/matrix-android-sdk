@@ -396,8 +396,8 @@ public class BingRulesManager {
                             if ((null != mSession.getDataHandler()) && (null != mSession.getDataHandler().getStore())) {
                                 Room room = mSession.getDataHandler().getStore().getRoom(event.roomId);
 
-                                if ((null != room) && (null != room.getLiveState())) {
-                                    String disambiguousedName = room.getLiveState().getMemberName(mMyUserId);
+                                if ((null != room) && (null != room.getState())) {
+                                    String disambiguousedName = room.getState().getMemberName(mMyUserId);
 
                                     if (!TextUtils.equals(disambiguousedName, mMyUserId)) {
                                         pattern = Pattern.quote(disambiguousedName);
@@ -470,7 +470,7 @@ public class BingRulesManager {
                         if (event.roomId != null) {
                             Room room = mDataHandler.getRoom(event.roomId, false);
 
-                            if (!((SenderNotificationPermissionCondition) condition).isSatisfied(room.getLiveState().getPowerLevels(), event.sender)) {
+                            if (!((SenderNotificationPermissionCondition) condition).isSatisfied(room.getState().getPowerLevels(), event.sender)) {
                                 return false;
                             }
                         }
