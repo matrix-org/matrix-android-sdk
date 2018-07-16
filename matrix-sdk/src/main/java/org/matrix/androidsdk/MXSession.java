@@ -40,6 +40,7 @@ import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.RoomTag;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.data.cryptostore.MXFileCryptoStore;
+import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXStoreListener;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
@@ -138,6 +139,8 @@ public class MXSession {
     private ContentManager mContentManager;
 
     public MXCallsManager mCallsManager;
+
+    private MetricsListener mMetricsListener;
 
     private Context mAppContent;
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
@@ -428,6 +431,15 @@ public class MXSession {
     public MXDataHandler getDataHandler() {
         checkIfAlive();
         return mDataHandler;
+    }
+
+    /**
+     * Update the metrics listener
+     *
+     * @param metricsListener the metrics listener
+     */
+    public void setMetricsListener(MetricsListener metricsListener) {
+        mMetricsListener = metricsListener;
     }
 
     /**
@@ -877,6 +889,7 @@ public class MXSession {
             final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler) : anEventsListener;
 
             mEventsThread = new EventsThread(mAppContent, mEventsRestClient, fEventsListener, initialToken);
+            mEventsThread.setMetricsListener(mMetricsListener);
             mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
             mEventsThread.setIsOnline(mIsOnline);
             mEventsThread.setServerLongPollTimeout(mSyncTimeout);
@@ -1167,13 +1180,13 @@ public class MXSession {
     /**
      * Create a new room with given properties. Needs the data handler.
      *
-     * @param name              the room name
-     * @param topic             the room topic
-     * @param visibility        the room visibility
-     * @param alias             the room alias
-     * @param guestAccess       the guest access rule (see {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN})
-     * @param algorithm         the crypto algorithm (null to create an unencrypted room)
-     * @param callback          the async callback once the room is ready
+     * @param name        the room name
+     * @param topic       the room topic
+     * @param visibility  the room visibility
+     * @param alias       the room alias
+     * @param guestAccess the guest access rule (see {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN})
+     * @param algorithm   the crypto algorithm (null to create an unencrypted room)
+     * @param callback    the async callback once the room is ready
      */
     public void createRoom(String name,
                            String topic,

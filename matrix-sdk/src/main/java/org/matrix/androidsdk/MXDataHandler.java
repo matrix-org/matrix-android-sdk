@@ -36,6 +36,7 @@ import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXMemoryStore;
 import org.matrix.androidsdk.db.MXMediasCache;
@@ -120,6 +121,8 @@ public class MXDataHandler implements IMXEventListener {
     private MXCallsManager mCallsManager;
     private MXMediasCache mMediasCache;
 
+    private MetricsListener mMetricsListener;
+
     private ProfileRestClient mProfileRestClient;
     private PresenceRestClient mPresenceRestClient;
     private ThirdPidRestClient mThirdPidRestClient;
@@ -193,6 +196,15 @@ public class MXDataHandler implements IMXEventListener {
      */
     public void setRequestNetworkErrorListener(RequestNetworkErrorListener requestNetworkErrorListener) {
         mRequestNetworkErrorListener = requestNetworkErrorListener;
+    }
+
+    /**
+     * Update the metrics listener
+     *
+     * @param metricsListener the metrics listener
+     */
+    public void setMetricsListener(MetricsListener metricsListener) {
+        mMetricsListener = metricsListener;
     }
 
     /**
@@ -1324,11 +1336,13 @@ public class MXDataHandler implements IMXEventListener {
             // sanity check
             if (null != syncResponse.rooms) {
                 // joined rooms events
+
                 if ((null != syncResponse.rooms.join) && (syncResponse.rooms.join.size() > 0)) {
                     Log.d(LOG_TAG, "Received " + syncResponse.rooms.join.size() + " joined rooms");
-
+                    if (mMetricsListener != null) {
+                        mMetricsListener.onRoomsLoaded(syncResponse.rooms.join.size());
+                    }
                     Set<String> roomIds = syncResponse.rooms.join.keySet();
-
                     // Handle first joined rooms
                     for (String roomId : roomIds) {
                         try {
@@ -1419,27 +1433,27 @@ public class MXDataHandler implements IMXEventListener {
                         // Update account data to add new direct chat room(s)
                         mAccountDataRestClient.setAccountData(mCredentials.userId, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES,
                                 updatedDirectChatRoomsDict, new ApiCallback<Void>() {
-                            @Override
-                            public void onSuccess(Void info) {
-                                Log.d(LOG_TAG, "## manageResponse() : succeeds");
-                            }
+                                    @Override
+                                    public void onSuccess(Void info) {
+                                        Log.d(LOG_TAG, "## manageResponse() : succeeds");
+                                    }
 
-                            @Override
-                            public void onNetworkError(Exception e) {
-                                Log.e(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
-                                // TODO: we should try again.
-                            }
+                                    @Override
+                                    public void onNetworkError(Exception e) {
+                                        Log.e(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
+                                        // TODO: we should try again.
+                                    }
 
-                            @Override
-                            public void onMatrixError(MatrixError e) {
-                                Log.e(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
-                            }
+                                    @Override
+                                    public void onMatrixError(MatrixError e) {
+                                        Log.e(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
+                                    }
 
-                            @Override
-                            public void onUnexpectedError(Exception e) {
-                                Log.e(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
-                            }
-                        });
+                                    @Override
+                                    public void onUnexpectedError(Exception e) {
+                                        Log.e(LOG_TAG, "## manageResponse() : update account data failed " + e.getMessage());
+                                    }
+                                });
                     }
                 }
 
@@ -1731,7 +1745,7 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
-    /*         
+    /*
      * Handle a 'toDevice' event
      * @param event the event
      */
@@ -2661,7 +2675,7 @@ public class MXDataHandler implements IMXEventListener {
      * @return the direct chat room ids list
      */
     public List<String> getDirectChatRoomIdsList() {
-        if (null != mLocalDirectChatRoomIdsList) return  mLocalDirectChatRoomIdsList;
+        if (null != mLocalDirectChatRoomIdsList) return mLocalDirectChatRoomIdsList;
 
         IMXStore store = getStore();
         List<String> directChatRoomIdsList = new ArrayList<>();

@@ -29,6 +29,7 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
@@ -521,6 +522,9 @@ public class MXFileStore extends MXMemoryStore {
                                     // extract the room states
                                     mRoomReceiptsToLoad.addAll(listFiles(mStoreRoomsMessagesReceiptsFolderFile.list()));
                                     mPreloadTime = System.currentTimeMillis() - fLoadTimeT0;
+                                    if (mMetricsListener != null) {
+                                        mMetricsListener.onStorePreloaded(mPreloadTime);
+                                    }
 
                                     Log.e(LOG_TAG, "The store is opened.");
                                     dispatchOnStoreReady(mCredentials.userId);
@@ -562,6 +566,9 @@ public class MXFileStore extends MXMemoryStore {
                                     }
                                     dispatchOnStoreReady(mCredentials.userId);
                                     mPreloadTime = System.currentTimeMillis() - fLoadTimeT0;
+                                    if (mMetricsListener != null) {
+                                        mMetricsListener.onStorePreloaded(mPreloadTime);
+                                    }
                                 }
                             }
                         });
@@ -571,6 +578,7 @@ public class MXFileStore extends MXMemoryStore {
                 Thread t = new Thread(r);
                 t.start();
             }
+
         }
     }
 

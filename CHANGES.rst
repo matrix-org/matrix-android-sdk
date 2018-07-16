@@ -2,7 +2,7 @@ Changes to Matrix Android SDK in 0.9.7 (2018-XX-XX)
 =======================================================
 
 Features:
- -
+ - Add MetricsListener to measure some startup and stats metrics
 
 Improvements:
  - MXCrypto: Encrypt the messages for invited members according to the history visibility (if the option is enabled in MXCryptoConfig).
