@@ -17,6 +17,7 @@ Bugfix:
 API Change:
  - Parameter historyVisibility removed from MxSession.createRoom(). It had no effect.
  - New API: CreateRoomParams.setHistoryVisibility(String historyVisibility) to force the history visibility during Room creation.
+ - New API: use only the method Room.getState() and remove Room.getLiveState() because they are similar.
 
 Translations:
  -
