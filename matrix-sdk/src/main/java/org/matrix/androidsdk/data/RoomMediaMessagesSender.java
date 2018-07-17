@@ -1,13 +1,13 @@
-/* 
+/*
  * Copyright 2016 OpenMarket Ltd
  * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -30,6 +30,7 @@ import android.text.TextUtils;
 import android.util.Pair;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.MXMediaUploadListener;
@@ -41,16 +42,19 @@ import org.matrix.androidsdk.rest.model.message.FileMessage;
 import org.matrix.androidsdk.rest.model.message.ImageMessage;
 import org.matrix.androidsdk.rest.model.message.MediaMessage;
 import org.matrix.androidsdk.rest.model.message.Message;
+import org.matrix.androidsdk.rest.model.message.RelatesTo;
 import org.matrix.androidsdk.rest.model.message.VideoMessage;
 import org.matrix.androidsdk.util.ImageUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
+import org.matrix.androidsdk.util.PermalinkUtils;
 import org.matrix.androidsdk.util.ResourceUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -151,7 +155,14 @@ class RoomMediaMessagesSender {
 
                     roomMediaMessage.setMessageType(message.msgtype);
 
+                    if (roomMediaMessage.getReplyToEvent() != null) {
+                        message.relatesTo = new RelatesTo();
+                        message.relatesTo.dict = new HashMap<>();
+                        message.relatesTo.dict.put("event_id", roomMediaMessage.getReplyToEvent().eventId);
+                    }
+
                     Event event = new Event(message, mDataHandler.getUserId(), mRoom.getRoomId());
+
                     roomMediaMessage.setEvent(event);
                 }
 
@@ -355,7 +366,167 @@ class RoomMediaMessagesSender {
             message.format = Message.FORMAT_MATRIX_HTML;
         }
 
+        // Deals with in reply to event
+        Event replyToEvent = roomMediaMessage.getReplyToEvent();
+        if (replyToEvent != null) {
+            // Cf. https://docs.google.com/document/d/1BPd4lBrooZrWe_3s_lHw_e-Dydvc7bXbm02_sV2k6Sc
+            String msgType = JsonUtils.getMessageMsgType(replyToEvent.getContentAsJsonObject());
+
+            // Build body and formatted body, depending of the `msgtype` of the event the user is replying to
+            if (msgType != null) {
+                // Compute the content of the event user is replying to
+                String replyToBody;
+                String replyToFormattedBody;
+                boolean replyToEventIsAlreadyAReply = false;
+
+                switch (msgType) {
+                    case Message.MSGTYPE_TEXT:
+                    case Message.MSGTYPE_NOTICE:
+                    case Message.MSGTYPE_EMOTE:
+                        Message messageToReplyTo = JsonUtils.toMessage(replyToEvent.getContentAsJsonObject());
+
+                        replyToBody = messageToReplyTo.body;
+
+                        if (TextUtils.isEmpty(messageToReplyTo.formatted_body)) {
+                            replyToFormattedBody = messageToReplyTo.body;
+                        } else {
+                            replyToFormattedBody = messageToReplyTo.formatted_body;
+                        }
+
+                        replyToEventIsAlreadyAReply = messageToReplyTo.relatesTo != null
+                                && messageToReplyTo.relatesTo.dict != null
+                                && !TextUtils.isEmpty(messageToReplyTo.relatesTo.dict.get("event_id"));
+
+                        break;
+                    case Message.MSGTYPE_IMAGE:
+                        replyToBody = mContext.getString(R.string.reply_to_an_image);
+                        replyToFormattedBody = replyToBody;
+                        break;
+                    case Message.MSGTYPE_VIDEO:
+                        replyToBody = mContext.getString(R.string.reply_to_a_video);
+                        replyToFormattedBody = replyToBody;
+                        break;
+                    case Message.MSGTYPE_AUDIO:
+                        replyToBody = mContext.getString(R.string.reply_to_an_audio_file);
+                        replyToFormattedBody = replyToBody;
+                        break;
+                    case Message.MSGTYPE_FILE:
+                        replyToBody = mContext.getString(R.string.reply_to_a_file);
+                        replyToFormattedBody = replyToBody;
+                        break;
+                    default:
+                        // Other msg types are not supported yet
+                        Log.w(LOG_TAG, "Reply to: unsupported msgtype: " + msgType);
+                        replyToBody = null;
+                        replyToFormattedBody = null;
+                        break;
+                }
+
+                if (replyToBody != null) {
+                    String replyContent;
+                    if (TextUtils.isEmpty(message.formatted_body)) {
+                        replyContent = message.body;
+                    } else {
+                        replyContent = message.formatted_body;
+                    }
+
+                    message.body = includeReplyToToBody(replyToEvent,
+                            replyToBody,
+                            replyToEventIsAlreadyAReply,
+                            message.body,
+                            msgType.equals(Message.MSGTYPE_EMOTE));
+                    message.formatted_body = includeReplyToToFormattedBody(replyToEvent,
+                            replyToFormattedBody,
+                            replyToEventIsAlreadyAReply,
+                            replyContent,
+                            msgType.equals(Message.MSGTYPE_EMOTE));
+
+                    // Note: we need to force the format to Message.FORMAT_MATRIX_HTML
+                    message.format = Message.FORMAT_MATRIX_HTML;
+                }
+            }
+        }
+
         return message;
+    }
+
+    private String includeReplyToToBody(Event replyToEvent,
+                                        String replyToBody,
+                                        boolean stripPreviousReplyTo,
+                                        String messageBody,
+                                        boolean isEmote) {
+        int firstLineIndex = 0;
+
+        String[] lines = replyToBody.split("\n");
+
+        if (stripPreviousReplyTo) {
+            // Strip replyToBody from previous reply to
+
+            // Strip line starting with "> "
+            while (firstLineIndex < lines.length && lines[firstLineIndex].startsWith("> ")) {
+                firstLineIndex++;
+            }
+
+            // Strip empty line after
+            if (firstLineIndex < lines.length && lines[firstLineIndex].isEmpty()) {
+                firstLineIndex++;
+            }
+        }
+
+        StringBuilder ret = new StringBuilder();
+
+        if (firstLineIndex < lines.length) {
+            // Add <${mxid}> to the first line
+            if (isEmote) {
+                lines[firstLineIndex] = "* <" + replyToEvent.sender + "> " + lines[firstLineIndex];
+            } else {
+                lines[firstLineIndex] = "<" + replyToEvent.sender + "> " + lines[firstLineIndex];
+            }
+
+            for (int i = firstLineIndex; i < lines.length; i++) {
+                ret.append("> ")
+                        .append(lines[i])
+                        .append("\n");
+            }
+        }
+
+        ret.append("\n")
+                .append(messageBody);
+
+        return ret.toString();
+    }
+
+    private String includeReplyToToFormattedBody(Event replyToEvent,
+                                                 String replyToFormattedBody,
+                                                 boolean stripPreviousReplyTo,
+                                                 String messageFormattedBody,
+                                                 boolean isEmote) {
+        if (stripPreviousReplyTo) {
+            // Strip replyToFormattedBody from previous reply to
+            replyToFormattedBody = replyToFormattedBody.replaceAll("^<mx-reply>.*</mx-reply>", "");
+        }
+
+        StringBuilder ret = new StringBuilder("<mx-reply><blockquote><a href=\"")
+                // ${evLink}
+                .append(PermalinkUtils.createPermalink(replyToEvent))
+                .append("\">In reply to</a> ");
+
+        if (isEmote) {
+            ret.append("* ");
+        }
+
+        ret.append("<a href=\"")
+                // ${userLink}
+                .append(PermalinkUtils.createPermalink(replyToEvent.sender))
+                .append("\">")
+                // ${mxid}
+                .append(replyToEvent.sender)
+                .append("</a><br>")
+                .append(replyToFormattedBody)
+                .append("</blockquote></mx-reply>")
+                .append(messageFormattedBody);
+
+        return ret.toString();
     }
 
     /**
@@ -445,7 +616,7 @@ class RoomMediaMessagesSender {
             }
 
             if (null == thumbnailBitmap) {
-                Pair<Integer, Integer> thumbnailSize = roomMediaMessage.getThumnailSize();
+                Pair<Integer, Integer> thumbnailSize = roomMediaMessage.getThumbnailSize();
                 thumbnailBitmap = ResourceUtils.createThumbnailBitmap(mContext, roomMediaMessage.getUri(), thumbnailSize.first, thumbnailSize.second);
             }
 
@@ -672,124 +843,124 @@ class RoomMediaMessagesSender {
 
                 mediasCache.uploadContent(stream, filename, mimeType, url,
                         new MXMediaUploadListener() {
-                    @Override
-                    public void onUploadStart(final String uploadId) {
-                        mUiHandler.post(new Runnable() {
                             @Override
-                            public void run() {
-                                if (null != roomMediaMessage.getMediaUploadListener()) {
-                                    roomMediaMessage.getMediaUploadListener().onUploadStart(uploadId);
-                                }
-                            }
-                        });
-                    }
-
-                    @Override
-                    public void onUploadCancel(final String uploadId) {
-                        mUiHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                mDataHandler.updateEventState(roomMediaMessage.getEvent(), Event.SentState.UNDELIVERABLE);
-
-                                if (null != roomMediaMessage.getMediaUploadListener()) {
-                                    roomMediaMessage.getMediaUploadListener().onUploadCancel(uploadId);
-                                    roomMediaMessage.setMediaUploadListener(null);
-                                    roomMediaMessage.setEventSendingCallback(null);
-                                }
-
-                                skip();
-                            }
-                        });
-                    }
-
-                    @Override
-                    public void onUploadError(final String uploadId, final int serverResponseCode, final String serverErrorMessage) {
-                        mUiHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                mDataHandler.updateEventState(roomMediaMessage.getEvent(), Event.SentState.UNDELIVERABLE);
-
-                                if (null != roomMediaMessage.getMediaUploadListener()) {
-                                    roomMediaMessage.getMediaUploadListener().onUploadError(uploadId, serverResponseCode, serverErrorMessage);
-                                    roomMediaMessage.setMediaUploadListener(null);
-                                    roomMediaMessage.setEventSendingCallback(null);
-                                }
-
-                                skip();
-                            }
-                        });
-                    }
-
-                    @Override
-                    public void onUploadComplete(final String uploadId, final String contentUri) {
-                        mUiHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                boolean isThumbnailUpload = mediaMessage.isThumbnailLocalContent();
-
-                                if (isThumbnailUpload) {
-                                    mediaMessage.setThumbnailUrl(encryptionResult, contentUri);
-
-                                    if (null != encryptionResult) {
-                                        mediasCache.saveFileMediaForUrl(contentUri, encryptedUri.toString(), -1, -1, "image/jpeg");
-                                        try {
-                                            new File(Uri.parse(url).getPath()).delete();
-                                        } catch (Exception e) {
-                                            Log.e(LOG_TAG, "## cannot delete the uncompress media", e);
+                            public void onUploadStart(final String uploadId) {
+                                mUiHandler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        if (null != roomMediaMessage.getMediaUploadListener()) {
+                                            roomMediaMessage.getMediaUploadListener().onUploadStart(uploadId);
                                         }
-                                    } else {
-                                        Pair<Integer, Integer> thumbnailSize = roomMediaMessage.getThumnailSize();
-                                        mediasCache.saveFileMediaForUrl(contentUri, url, thumbnailSize.first, thumbnailSize.second, "image/jpeg");
                                     }
+                                });
+                            }
 
-                                    // update the event content with the new message info
-                                    event.updateContent(JsonUtils.toJson(message));
+                            @Override
+                            public void onUploadCancel(final String uploadId) {
+                                mUiHandler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        mDataHandler.updateEventState(roomMediaMessage.getEvent(), Event.SentState.UNDELIVERABLE);
 
-                                    // force to save the room events list
-                                    // https://github.com/vector-im/riot-android/issues/1390
-                                    mDataHandler.getStore().flushRoomEvents(mRoom.getRoomId());
-
-                                    // upload the media
-                                    uploadMedias(roomMediaMessage);
-                                } else {
-                                    if (null != encryptedUri) {
-                                        // replace the thumbnail and the media contents by the computed one
-                                        mediasCache.saveFileMediaForUrl(contentUri, encryptedUri.toString(), mediaMessage.getMimeType());
-                                        try {
-                                            new File(Uri.parse(url).getPath()).delete();
-                                        } catch (Exception e) {
-                                            Log.e(LOG_TAG, "## cannot delete the uncompress media", e);
+                                        if (null != roomMediaMessage.getMediaUploadListener()) {
+                                            roomMediaMessage.getMediaUploadListener().onUploadCancel(uploadId);
+                                            roomMediaMessage.setMediaUploadListener(null);
+                                            roomMediaMessage.setEventSendingCallback(null);
                                         }
-                                    } else {
-                                        // replace the thumbnail and the media contents by the computed one
-                                        mediasCache.saveFileMediaForUrl(contentUri, url, mediaMessage.getMimeType());
+
+                                        skip();
                                     }
-                                    mediaMessage.setUrl(encryptionResult, contentUri);
+                                });
+                            }
 
-                                    // update the event content with the new message info
-                                    event.updateContent(JsonUtils.toJson(message));
+                            @Override
+                            public void onUploadError(final String uploadId, final int serverResponseCode, final String serverErrorMessage) {
+                                mUiHandler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        mDataHandler.updateEventState(roomMediaMessage.getEvent(), Event.SentState.UNDELIVERABLE);
 
-                                    // force to save the room events list
-                                    // https://github.com/vector-im/riot-android/issues/1390
-                                    mDataHandler.getStore().flushRoomEvents(mRoom.getRoomId());
+                                        if (null != roomMediaMessage.getMediaUploadListener()) {
+                                            roomMediaMessage.getMediaUploadListener().onUploadError(uploadId, serverResponseCode, serverErrorMessage);
+                                            roomMediaMessage.setMediaUploadListener(null);
+                                            roomMediaMessage.setEventSendingCallback(null);
+                                        }
 
-                                    Log.d(LOG_TAG, "Uploaded to " + contentUri);
-
-                                    // send
-                                    sendEvent(event);
-                                }
-
-                                if (null != roomMediaMessage.getMediaUploadListener()) {
-                                    roomMediaMessage.getMediaUploadListener().onUploadComplete(uploadId, contentUri);
-
-                                    if (!isThumbnailUpload) {
-                                        roomMediaMessage.setMediaUploadListener(null);
+                                        skip();
                                     }
-                                }
+                                });
+                            }
+
+                            @Override
+                            public void onUploadComplete(final String uploadId, final String contentUri) {
+                                mUiHandler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        boolean isThumbnailUpload = mediaMessage.isThumbnailLocalContent();
+
+                                        if (isThumbnailUpload) {
+                                            mediaMessage.setThumbnailUrl(encryptionResult, contentUri);
+
+                                            if (null != encryptionResult) {
+                                                mediasCache.saveFileMediaForUrl(contentUri, encryptedUri.toString(), -1, -1, "image/jpeg");
+                                                try {
+                                                    new File(Uri.parse(url).getPath()).delete();
+                                                } catch (Exception e) {
+                                                    Log.e(LOG_TAG, "## cannot delete the uncompress media", e);
+                                                }
+                                            } else {
+                                                Pair<Integer, Integer> thumbnailSize = roomMediaMessage.getThumbnailSize();
+                                                mediasCache.saveFileMediaForUrl(contentUri, url, thumbnailSize.first, thumbnailSize.second, "image/jpeg");
+                                            }
+
+                                            // update the event content with the new message info
+                                            event.updateContent(JsonUtils.toJson(message));
+
+                                            // force to save the room events list
+                                            // https://github.com/vector-im/riot-android/issues/1390
+                                            mDataHandler.getStore().flushRoomEvents(mRoom.getRoomId());
+
+                                            // upload the media
+                                            uploadMedias(roomMediaMessage);
+                                        } else {
+                                            if (null != encryptedUri) {
+                                                // replace the thumbnail and the media contents by the computed one
+                                                mediasCache.saveFileMediaForUrl(contentUri, encryptedUri.toString(), mediaMessage.getMimeType());
+                                                try {
+                                                    new File(Uri.parse(url).getPath()).delete();
+                                                } catch (Exception e) {
+                                                    Log.e(LOG_TAG, "## cannot delete the uncompress media", e);
+                                                }
+                                            } else {
+                                                // replace the thumbnail and the media contents by the computed one
+                                                mediasCache.saveFileMediaForUrl(contentUri, url, mediaMessage.getMimeType());
+                                            }
+                                            mediaMessage.setUrl(encryptionResult, contentUri);
+
+                                            // update the event content with the new message info
+                                            event.updateContent(JsonUtils.toJson(message));
+
+                                            // force to save the room events list
+                                            // https://github.com/vector-im/riot-android/issues/1390
+                                            mDataHandler.getStore().flushRoomEvents(mRoom.getRoomId());
+
+                                            Log.d(LOG_TAG, "Uploaded to " + contentUri);
+
+                                            // send
+                                            sendEvent(event);
+                                        }
+
+                                        if (null != roomMediaMessage.getMediaUploadListener()) {
+                                            roomMediaMessage.getMediaUploadListener().onUploadComplete(uploadId, contentUri);
+
+                                            if (!isThumbnailUpload) {
+                                                roomMediaMessage.setMediaUploadListener(null);
+                                            }
+                                        }
+                                    }
+                                });
                             }
                         });
-                    }
-                });
             }
         });
 

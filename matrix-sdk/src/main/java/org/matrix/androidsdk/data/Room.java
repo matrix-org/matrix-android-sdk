@@ -28,6 +28,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Pair;
 
@@ -185,7 +186,7 @@ public class Room {
 
     /**
      * Determine whether we should encrypt messages for invited users in this room.
-     *
+     * <p>
      * Check here whether the invited members are allowed to read messages in the room history
      * from the point they were invited onwards.
      *
@@ -2838,43 +2839,88 @@ public class Room {
      * Send a text message asynchronously.
      *
      * @param text              the unformatted text
-     * @param HTMLFormattedText the HTML formatted text
+     * @param htmlFormattedText the HTML formatted text
      * @param format            the formatted text format
      * @param listener          the event creation listener
      */
-    public void sendTextMessage(String text, String HTMLFormattedText, String format, RoomMediaMessage.EventCreationListener listener) {
-        sendTextMessage(text, HTMLFormattedText, format, Message.MSGTYPE_TEXT, listener);
-    }
-
-    /**
-     * Send an emote message asynchronously.
-     *
-     * @param text              the unformatted text
-     * @param HTMLFormattedText the HTML formatted text
-     * @param format            the formatted text format
-     * @param listener          the event creation listener
-     */
-    public void sendEmoteMessage(String text, String HTMLFormattedText, String format, final RoomMediaMessage.EventCreationListener listener) {
-        sendTextMessage(text, HTMLFormattedText, format, Message.MSGTYPE_EMOTE, listener);
+    public void sendTextMessage(String text,
+                                String htmlFormattedText,
+                                String format,
+                                RoomMediaMessage.EventCreationListener listener) {
+        sendTextMessage(text, htmlFormattedText, format, null, Message.MSGTYPE_TEXT, listener);
     }
 
     /**
      * Send a text message asynchronously.
      *
      * @param text              the unformatted text
-     * @param HTMLFormattedText the HTML formatted text
+     * @param htmlFormattedText the HTML formatted text
      * @param format            the formatted text format
+     * @param replyToEvent      the event to reply to, or null
+     * @param listener          the event creation listener
+     */
+    public void sendTextMessage(String text,
+                                String htmlFormattedText,
+                                String format,
+                                @Nullable Event replyToEvent,
+                                RoomMediaMessage.EventCreationListener listener) {
+        sendTextMessage(text, htmlFormattedText, format, replyToEvent, Message.MSGTYPE_TEXT, listener);
+    }
+
+    /**
+     * Send an emote message asynchronously.
+     *
+     * @param text              the unformatted text
+     * @param htmlFormattedText the HTML formatted text
+     * @param format            the formatted text format
+     * @param listener          the event creation listener
+     */
+    public void sendEmoteMessage(String text,
+                                 String htmlFormattedText,
+                                 String format,
+                                 final RoomMediaMessage.EventCreationListener listener) {
+        sendTextMessage(text, htmlFormattedText, format, null, Message.MSGTYPE_EMOTE, listener);
+    }
+
+    /**
+     * Send a text message asynchronously.
+     *
+     * @param text              the unformatted text
+     * @param htmlFormattedText the HTML formatted text
+     * @param format            the formatted text format
+     * @param replyToEvent      the event to reply to (optional). Only event of type Event.EVENT_TYPE_MESSAGE are supported for the moment.
      * @param msgType           the message type
      * @param listener          the event creation listener
      */
-    private void sendTextMessage(String text, String HTMLFormattedText, String format, String msgType, final RoomMediaMessage.EventCreationListener listener) {
+    private void sendTextMessage(String text,
+                                 String htmlFormattedText,
+                                 String format,
+                                 @Nullable Event replyToEvent,
+                                 String msgType,
+                                 final RoomMediaMessage.EventCreationListener listener) {
         initRoomMediaMessagesSender();
 
-        RoomMediaMessage roomMediaMessage = new RoomMediaMessage(text, HTMLFormattedText, format);
+        RoomMediaMessage roomMediaMessage = new RoomMediaMessage(text, htmlFormattedText, format);
         roomMediaMessage.setMessageType(msgType);
         roomMediaMessage.setEventCreationListener(listener);
 
+        if (canReplyTo(replyToEvent)) {
+            roomMediaMessage.setReplyToEvent(replyToEvent);
+        }
+
         mRoomMediaMessagesSender.send(roomMediaMessage);
+    }
+
+    /**
+     * Indicate if replying to the provided event is supported.
+     * Only event of type Event.EVENT_TYPE_MESSAGE are supported for the moment
+     *
+     * @param replyToEvent the event to reply to
+     * @return true if it is possible to reply to this event
+     */
+    public boolean canReplyTo(@Nullable Event replyToEvent) {
+        return replyToEvent != null
+                && Event.EVENT_TYPE_MESSAGE.equals(replyToEvent.type);
     }
 
     /**
@@ -2891,7 +2937,7 @@ public class Room {
                                  final RoomMediaMessage.EventCreationListener listener) {
         initRoomMediaMessagesSender();
 
-        roomMediaMessage.setThumnailSize(new Pair<>(maxThumbnailWidth, maxThumbnailHeight));
+        roomMediaMessage.setThumbnailSize(new Pair<>(maxThumbnailWidth, maxThumbnailHeight));
         roomMediaMessage.setEventCreationListener(listener);
 
         mRoomMediaMessagesSender.send(roomMediaMessage);

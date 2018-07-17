@@ -17,6 +17,7 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.JsonElement;
@@ -366,10 +367,11 @@ public class Event implements Externalizable {
     /**
      * @return the content casted as JsonObject.
      */
+    @Nullable
     public JsonObject getContentAsJsonObject() {
         JsonElement cont = getContent();
 
-        if ((null != cont) && cont.isJsonObject()) {
+        if (null != cont && cont.isJsonObject()) {
             return cont.getAsJsonObject();
         }
         return null;
@@ -795,8 +797,7 @@ public class Event implements Externalizable {
     }
 
     @Override
-    public java.lang.String toString() {
-
+    public String toString() {
         // build the string by hand
         String text = "{\n";
 
@@ -811,7 +812,7 @@ public class Event implements Externalizable {
                 }
             } else if (getWireContent().isJsonObject()) {
                 for (Map.Entry<String, JsonElement> e : getWireContent().getAsJsonObject().entrySet()) {
-                    text += "    \"" + e.getKey() + ": " + e.getValue().toString() + ",\n";
+                    text += "    \"" + e.getKey() + "\": " + e.getValue().toString() + ",\n";
                 }
             } else {
                 text += getWireContent().toString();
@@ -824,7 +825,7 @@ public class Event implements Externalizable {
         text += "  \"originServerTs\": " + originServerTs + ",\n";
         text += "  \"roomId\": \"" + roomId + "\",\n";
         text += "  \"type\": \"" + type + "\",\n";
-        text += "  \"userId\": \"" + userId + "\"\n";
+        text += "  \"userId\": \"" + userId + "\",\n";
         text += "  \"sender\": \"" + sender + "\"\n";
 
 

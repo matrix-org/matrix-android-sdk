@@ -55,7 +55,7 @@ public class TestsHelper {
                                             String password,
                                             boolean startSession,
                                             ApiCallback<MXSession> callback) throws Exception {
-        RestClient.mUseMXExececutor = true;
+        RestClient.mUseMXExecutor = true;
 
         Uri uri = Uri.parse(TESTS_HOME_SERVER_URL);
         HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);

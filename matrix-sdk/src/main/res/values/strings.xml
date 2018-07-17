@@ -78,4 +78,10 @@
     <string name="medium_email">Email address</string>
     <string name="medium_phone_number">Phone number</string>
 
+    <!-- Reply to -->
+    <string name="reply_to_an_image">sent an image.</string>
+    <string name="reply_to_a_video">sent a video.</string>
+    <string name="reply_to_an_audio_file">sent an audio file.</string>
+    <string name="reply_to_a_file">sent a file.</string>
+
 </resources>

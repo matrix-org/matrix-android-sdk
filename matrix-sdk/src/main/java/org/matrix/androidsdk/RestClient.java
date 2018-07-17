@@ -95,7 +95,7 @@ public class RestClient<T> {
     protected HomeServerConnectionConfig mHsConfig;
 
     // unitary tests only
-    public static boolean mUseMXExececutor = false;
+    public static boolean mUseMXExecutor = false;
 
     // the user agent
     private static String sUserAgent = null;
@@ -183,7 +183,7 @@ public class RestClient<T> {
                 .addNetworkInterceptor(new StethoInterceptor());
 
 
-        if (mUseMXExececutor) {
+        if (mUseMXExecutor) {
             okHttpClientBuilder.dispatcher(new Dispatcher(new MXRestExecutorService()));
         }
 
@@ -250,6 +250,7 @@ public class RestClient<T> {
 
     /**
      * Create an user agent with the application version.
+     * Ex: Riot/0.8.12 (Linux; U; Android 6.0.1; SM-A510F Build/MMB29; Flavour FDroid; MatrixAndroidSDK 0.9.6)
      *
      * @param appContext the application context
      */
