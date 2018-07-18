@@ -22,9 +22,6 @@ import android.text.TextUtils;
 
 import org.matrix.androidsdk.rest.model.Event;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-
 /**
  * Useful methods to create permalink
  */
@@ -61,14 +58,7 @@ public class PermalinkUtils {
             return null;
         }
 
-        try {
-            return MATRIX_TO_URL_BASE + URLEncoder.encode(id, "utf-8");
-        } catch (UnsupportedEncodingException e) {
-            // Should not happen
-            Log.e("PermalinkUtils", "UnsupportedEncodingException", e);
-        }
-
-        return null;
+        return MATRIX_TO_URL_BASE + escape(id);
     }
 
     /**
@@ -81,13 +71,16 @@ public class PermalinkUtils {
      */
     @Nullable
     public static String createPermalink(@NonNull String roomId, @NonNull String eventId) {
-        try {
-            return MATRIX_TO_URL_BASE + URLEncoder.encode(roomId, "utf-8") + "/" + URLEncoder.encode(eventId, "utf-8");
-        } catch (UnsupportedEncodingException e) {
-            // Should not happen
-            Log.e("PermalinkUtils", "UnsupportedEncodingException", e);
-        }
+        return MATRIX_TO_URL_BASE + escape(roomId) + "/" + escape(eventId);
+    }
 
-        return null;
+    /**
+     * Escape '/' in id, because it is used as a separator
+     *
+     * @param id the id to escape
+     * @return the escaped id
+     */
+    private static String escape(String id) {
+        return id.replaceAll("/", "%2F");
     }
 }
