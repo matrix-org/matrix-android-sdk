@@ -761,7 +761,7 @@ public class EventTimeline {
             // thread issue
             // if the user leaves a room,
             if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.getType()) && myUserId.equals(event.stateKey)) {
-                String membership = event.getContent().getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
+                String membership = event.getContentAsJsonObject().getAsJsonPrimitive("membership").getAsString();
 
                 if (RoomMember.MEMBERSHIP_LEAVE.equals(membership) || RoomMember.MEMBERSHIP_BAN.equals(membership)) {
                     store = mIsHistorical;
@@ -781,7 +781,7 @@ public class EventTimeline {
 
         // warn the listeners that a room has been joined
         if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.getType()) && myUserId.equals(event.stateKey)) {
-            String membership = event.getContent().getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
+            String membership = event.getContentAsJsonObject().getAsJsonPrimitive("membership").getAsString();
 
             if (RoomMember.MEMBERSHIP_JOIN.equals(membership)) {
                 mDataHandler.onJoinRoom(event.roomId);

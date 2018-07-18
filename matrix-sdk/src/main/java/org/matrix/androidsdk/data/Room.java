@@ -2390,20 +2390,22 @@ public class Room {
             // Store the "m.relates_to" data and remove them from event content before encrypting the event content
             final JsonElement relatesTo;
 
-            if (event.getContent().isJsonObject()
-                    && event.getContent().getAsJsonObject().has("m.relates_to")) {
+            JsonObject contentAsJsonObject = event.getContentAsJsonObject();
+
+            if (contentAsJsonObject != null
+                    && contentAsJsonObject.has("m.relates_to")) {
                 // Get a copy of "m.relates_to" data...
-                relatesTo = event.getContent().getAsJsonObject().get("m.relates_to");
+                relatesTo = contentAsJsonObject.get("m.relates_to");
 
                 // ... and remove "m.relates_to" data from the content before encrypting it
-                event.getContent().getAsJsonObject().remove("m.relates_to");
+                contentAsJsonObject.remove("m.relates_to");
             } else {
                 relatesTo = null;
             }
 
             // Encrypt the content before sending
             mDataHandler.getCrypto()
-                    .encryptEventContent(event.getContent().getAsJsonObject(), event.getType(), this, new ApiCallback<MXEncryptEventContentResult>() {
+                    .encryptEventContent(contentAsJsonObject, event.getType(), this, new ApiCallback<MXEncryptEventContentResult>() {
                         @Override
                         public void onSuccess(MXEncryptEventContentResult encryptEventContentResult) {
                             // update the event content with the encrypted data
@@ -2467,7 +2469,7 @@ public class Room {
                         .sendMessage(event.originServerTs + "", getRoomId(), JsonUtils.toMessage(event.getContent()), localCB);
             } else {
                 mDataHandler.getDataRetriever().getRoomsRestClient()
-                        .sendEventToRoom(event.originServerTs + "", getRoomId(), event.getType(), event.getContent().getAsJsonObject(), localCB);
+                        .sendEventToRoom(event.originServerTs + "", getRoomId(), event.getType(), event.getContentAsJsonObject(), localCB);
             }
         }
     }
