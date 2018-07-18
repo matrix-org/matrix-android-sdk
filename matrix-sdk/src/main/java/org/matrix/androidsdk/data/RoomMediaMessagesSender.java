@@ -516,7 +516,10 @@ class RoomMediaMessagesSender {
         StringBuilder ret = new StringBuilder("<mx-reply><blockquote><a href=\"")
                 // ${evLink}
                 .append(PermalinkUtils.createPermalink(replyToEvent))
-                .append("\">In reply to</a> ");
+                .append("\">")
+                // "In reply to"
+                .append(mContext.getString(R.string.message_reply_to_prefix))
+                .append("</a> ");
 
         if (isEmote) {
             ret.append("* ");
