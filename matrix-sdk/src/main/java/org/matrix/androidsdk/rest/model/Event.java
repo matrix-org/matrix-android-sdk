@@ -117,7 +117,12 @@ public class Event implements Externalizable {
 
     public static final long DUMMY_EVENT_AGE = Long.MAX_VALUE - 1;
 
+    /**
+     * Type of the event
+     * Warning, consider using {@link #getType()} to get the type of the unencrypted event
+     */
     public String type;
+
     public transient JsonElement content = null;
     private String contentAsString = null;
 

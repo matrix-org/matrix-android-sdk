@@ -2920,7 +2920,7 @@ public class Room {
      */
     public boolean canReplyTo(@Nullable Event replyToEvent) {
         return replyToEvent != null
-                && Event.EVENT_TYPE_MESSAGE.equals(replyToEvent.type);
+                && Event.EVENT_TYPE_MESSAGE.equals(replyToEvent.getType());
     }
 
     /**
