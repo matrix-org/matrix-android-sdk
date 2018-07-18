@@ -17,6 +17,7 @@
  */
 package org.matrix.androidsdk.util;
 
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.google.gson.FieldNamingStrategy;
@@ -218,6 +219,7 @@ public class JsonUtils {
      * @param jsonObject the json to convert
      * @return a Message
      */
+    @NonNull
     public static Message toMessage(JsonElement jsonObject) {
         try {
             Message message = gson.fromJson(jsonObject, Message.class);

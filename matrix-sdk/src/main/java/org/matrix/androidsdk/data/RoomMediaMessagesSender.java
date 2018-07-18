@@ -113,7 +113,7 @@ class RoomMediaMessagesSender {
     }
 
     /**
-     * Send a new media message in the room
+     * Send a new media message to the room
      *
      * @param roomMediaMessage the message to send
      */
@@ -156,6 +156,7 @@ class RoomMediaMessagesSender {
                     roomMediaMessage.setMessageType(message.msgtype);
 
                     if (roomMediaMessage.getReplyToEvent() != null) {
+                        // Note: it is placed here, but may be moved to the outer event during the encryption of the content
                         message.relatesTo = new RelatesTo();
                         message.relatesTo.dict = new HashMap<>();
                         message.relatesTo.dict.put("event_id", roomMediaMessage.getReplyToEvent().eventId);
@@ -443,7 +444,13 @@ class RoomMediaMessagesSender {
 
                     // Note: we need to force the format to Message.FORMAT_MATRIX_HTML
                     message.format = Message.FORMAT_MATRIX_HTML;
+                } else {
+                    // Ensure there will not be "m.relates_to" data in the sent event
+                    roomMediaMessage.setReplyToEvent(null);
                 }
+            } else {
+                // Ensure there will not be "m.relates_to" data in the sent event
+                roomMediaMessage.setReplyToEvent(null);
             }
         }
 

@@ -34,6 +34,7 @@ import android.util.Pair;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
@@ -2386,6 +2387,20 @@ public class Room {
         if (isEncrypted() && (null != mDataHandler.getCrypto())) {
             mDataHandler.updateEventState(event, Event.SentState.ENCRYPTING);
 
+            // Store the "m.relates_to" data and remove them from event content before encrypting the event content
+            final JsonElement relatesTo;
+
+            if (event.getContent().isJsonObject()
+                    && event.getContent().getAsJsonObject().has("m.relates_to")) {
+                // Get a copy of "m.relates_to" data...
+                relatesTo = event.getContent().getAsJsonObject().get("m.relates_to");
+
+                // ... and remove "m.relates_to" data from the content before encrypting it
+                event.getContent().getAsJsonObject().remove("m.relates_to");
+            } else {
+                relatesTo = null;
+            }
+
             // Encrypt the content before sending
             mDataHandler.getCrypto()
                     .encryptEventContent(event.getContent().getAsJsonObject(), event.getType(), this, new ApiCallback<MXEncryptEventContentResult>() {
@@ -2393,7 +2408,13 @@ public class Room {
                         public void onSuccess(MXEncryptEventContentResult encryptEventContentResult) {
                             // update the event content with the encrypted data
                             event.type = encryptEventContentResult.mEventType;
-                            event.updateContent(encryptEventContentResult.mEventContent.getAsJsonObject());
+
+                            // Add the "m.relates_to" data to the encrypted event here
+                            JsonObject encryptedContent = encryptEventContentResult.mEventContent.getAsJsonObject();
+                            if (relatesTo != null) {
+                                encryptedContent.add("m.relates_to", relatesTo);
+                            }
+                            event.updateContent(encryptedContent);
                             mDataHandler.decryptEvent(event, null);
 
                             // sending in progress

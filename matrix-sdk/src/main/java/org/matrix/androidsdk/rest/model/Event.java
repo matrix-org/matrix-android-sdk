@@ -1224,7 +1224,7 @@ public class Event implements Externalizable {
      *
      * @param decryptionResult the decryption result, including the plaintext and some key info.
      */
-    public void setClearData(MXEventDecryptionResult decryptionResult) {
+    public void setClearData(@Nullable MXEventDecryptionResult decryptionResult) {
         mClearEvent = null;
 
         if (null != decryptionResult) {
