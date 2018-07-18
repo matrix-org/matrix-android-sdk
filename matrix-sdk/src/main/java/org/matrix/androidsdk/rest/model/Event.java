@@ -808,12 +808,12 @@ public class Event implements Externalizable {
 
         text += "  \"age\" : " + age + ",\n";
 
-        text += "  \"content\" {\n";
+        text += "  \"content\": {\n";
 
         if (null != getWireContent()) {
             if (getWireContent().isJsonArray()) {
                 for (JsonElement e : getWireContent().getAsJsonArray()) {
-                    text += "   " + e.toString() + "\n,";
+                    text += "    " + e.toString() + ",\n";
                 }
             } else if (getWireContent().isJsonObject()) {
                 for (Map.Entry<String, JsonElement> e : getWireContent().getAsJsonObject().entrySet()) {
@@ -831,10 +831,11 @@ public class Event implements Externalizable {
         text += "  \"roomId\": \"" + roomId + "\",\n";
         text += "  \"type\": \"" + type + "\",\n";
         text += "  \"userId\": \"" + userId + "\",\n";
-        text += "  \"sender\": \"" + sender + "\"\n";
+        text += "  \"sender\": \"" + sender + "\",\n";
 
+        text += "}";
 
-        text += "  \"\n\n Sent state : ";
+        text += "\n\n Sent state : ";
 
         if (mSentState == SentState.UNSENT) {
             text += "UNSENT";
@@ -850,8 +851,6 @@ public class Event implements Externalizable {
             text += "FAILED UNKNOWN DEVICES";
         }
 
-        text += "\n\n";
-
         if (null != unsentException) {
             text += "\n\n Exception reason: " + unsentException.getMessage() + "\n";
         }
@@ -859,8 +858,6 @@ public class Event implements Externalizable {
         if (null != unsentMatrixError) {
             text += "\n\n Matrix reason: " + unsentMatrixError.getLocalizedMessage() + "\n";
         }
-
-        text += "}";
 
         return text;
     }
