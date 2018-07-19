@@ -2936,14 +2936,33 @@ public class Room {
 
     /**
      * Indicate if replying to the provided event is supported.
-     * Only event of type Event.EVENT_TYPE_MESSAGE are supported for the moment
+     * Only event of type Event.EVENT_TYPE_MESSAGE are supported for the moment, and for certain msgtype.
      *
      * @param replyToEvent the event to reply to
      * @return true if it is possible to reply to this event
      */
     public boolean canReplyTo(@Nullable Event replyToEvent) {
-        return replyToEvent != null
-                && Event.EVENT_TYPE_MESSAGE.equals(replyToEvent.getType());
+        if (replyToEvent != null
+                && Event.EVENT_TYPE_MESSAGE.equals(replyToEvent.getType())) {
+
+            // Cf. https://docs.google.com/document/d/1BPd4lBrooZrWe_3s_lHw_e-Dydvc7bXbm02_sV2k6Sc
+            String msgType = JsonUtils.getMessageMsgType(replyToEvent.getContentAsJsonObject());
+
+            if (msgType != null) {
+                switch (msgType) {
+                    case Message.MSGTYPE_TEXT:
+                    case Message.MSGTYPE_NOTICE:
+                    case Message.MSGTYPE_EMOTE:
+                    case Message.MSGTYPE_IMAGE:
+                    case Message.MSGTYPE_VIDEO:
+                    case Message.MSGTYPE_AUDIO:
+                    case Message.MSGTYPE_FILE:
+                        return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
