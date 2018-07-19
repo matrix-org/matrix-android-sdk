@@ -17,6 +17,7 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.JsonElement;
@@ -116,7 +117,12 @@ public class Event implements Externalizable {
 
     public static final long DUMMY_EVENT_AGE = Long.MAX_VALUE - 1;
 
+    /**
+     * Type of the event
+     * Warning, consider using {@link #getType()} to get the type of the unencrypted event
+     */
     public String type;
+
     public transient JsonElement content = null;
     private String contentAsString = null;
 
@@ -366,10 +372,11 @@ public class Event implements Externalizable {
     /**
      * @return the content casted as JsonObject.
      */
+    @Nullable
     public JsonObject getContentAsJsonObject() {
         JsonElement cont = getContent();
 
-        if ((null != cont) && cont.isJsonObject()) {
+        if (null != cont && cont.isJsonObject()) {
             return cont.getAsJsonObject();
         }
         return null;
@@ -795,23 +802,22 @@ public class Event implements Externalizable {
     }
 
     @Override
-    public java.lang.String toString() {
-
+    public String toString() {
         // build the string by hand
         String text = "{\n";
 
         text += "  \"age\" : " + age + ",\n";
 
-        text += "  \"content\" {\n";
+        text += "  \"content\": {\n";
 
         if (null != getWireContent()) {
             if (getWireContent().isJsonArray()) {
                 for (JsonElement e : getWireContent().getAsJsonArray()) {
-                    text += "   " + e.toString() + "\n,";
+                    text += "    " + e.toString() + ",\n";
                 }
             } else if (getWireContent().isJsonObject()) {
                 for (Map.Entry<String, JsonElement> e : getWireContent().getAsJsonObject().entrySet()) {
-                    text += "    \"" + e.getKey() + ": " + e.getValue().toString() + ",\n";
+                    text += "    \"" + e.getKey() + "\": " + e.getValue().toString() + ",\n";
                 }
             } else {
                 text += getWireContent().toString();
@@ -824,11 +830,12 @@ public class Event implements Externalizable {
         text += "  \"originServerTs\": " + originServerTs + ",\n";
         text += "  \"roomId\": \"" + roomId + "\",\n";
         text += "  \"type\": \"" + type + "\",\n";
-        text += "  \"userId\": \"" + userId + "\"\n";
-        text += "  \"sender\": \"" + sender + "\"\n";
+        text += "  \"userId\": \"" + userId + "\",\n";
+        text += "  \"sender\": \"" + sender + "\",\n";
 
+        text += "}";
 
-        text += "  \"\n\n Sent state : ";
+        text += "\n\n Sent state : ";
 
         if (mSentState == SentState.UNSENT) {
             text += "UNSENT";
@@ -844,8 +851,6 @@ public class Event implements Externalizable {
             text += "FAILED UNKNOWN DEVICES";
         }
 
-        text += "\n\n";
-
         if (null != unsentException) {
             text += "\n\n Exception reason: " + unsentException.getMessage() + "\n";
         }
@@ -853,8 +858,6 @@ public class Event implements Externalizable {
         if (null != unsentMatrixError) {
             text += "\n\n Matrix reason: " + unsentMatrixError.getLocalizedMessage() + "\n";
         }
-
-        text += "}";
 
         return text;
     }
@@ -1221,7 +1224,7 @@ public class Event implements Externalizable {
      *
      * @param decryptionResult the decryption result, including the plaintext and some key info.
      */
-    public void setClearData(MXEventDecryptionResult decryptionResult) {
+    public void setClearData(@Nullable MXEventDecryptionResult decryptionResult) {
         mClearEvent = null;
 
         if (null != decryptionResult) {

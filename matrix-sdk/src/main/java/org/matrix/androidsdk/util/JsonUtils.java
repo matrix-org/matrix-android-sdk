@@ -17,6 +17,7 @@
  */
 package org.matrix.androidsdk.util;
 
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.google.gson.FieldNamingStrategy;
@@ -29,30 +30,30 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.json.ConditionDeserializer;
 import org.matrix.androidsdk.rest.model.ContentResponse;
-import org.matrix.androidsdk.rest.model.crypto.EncryptedEventContent;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
-import org.matrix.androidsdk.rest.model.message.AudioMessage;
-import org.matrix.androidsdk.rest.model.message.FileMessage;
-import org.matrix.androidsdk.rest.model.crypto.ForwardedRoomKeyContent;
-import org.matrix.androidsdk.rest.model.message.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.message.LocationMessage;
-import org.matrix.androidsdk.rest.model.message.Message;
-import org.matrix.androidsdk.rest.model.crypto.OlmEventContent;
-import org.matrix.androidsdk.rest.model.crypto.OlmPayloadContent;
 import org.matrix.androidsdk.rest.model.PowerLevels;
-import org.matrix.androidsdk.rest.model.crypto.RoomKeyContent;
-import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequest;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomTags;
+import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.bingrules.Condition;
+import org.matrix.androidsdk.rest.model.crypto.EncryptedEventContent;
+import org.matrix.androidsdk.rest.model.crypto.ForwardedRoomKeyContent;
+import org.matrix.androidsdk.rest.model.crypto.OlmEventContent;
+import org.matrix.androidsdk.rest.model.crypto.OlmPayloadContent;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyContent;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequest;
+import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
+import org.matrix.androidsdk.rest.model.message.AudioMessage;
+import org.matrix.androidsdk.rest.model.message.FileMessage;
+import org.matrix.androidsdk.rest.model.message.ImageMessage;
+import org.matrix.androidsdk.rest.model.message.LocationMessage;
+import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.message.StickerJsonMessage;
 import org.matrix.androidsdk.rest.model.message.StickerMessage;
-import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
-import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.message.VideoMessage;
-import org.matrix.androidsdk.rest.model.bingrules.Condition;
-import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
+import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -199,6 +200,7 @@ public class JsonUtils {
      * @param jsonObject the json object
      * @return the message type
      */
+    @Nullable
     public static String getMessageMsgType(JsonElement jsonObject) {
         try {
             Message message = gson.fromJson(jsonObject, Message.class);
@@ -217,6 +219,7 @@ public class JsonUtils {
      * @param jsonObject the json to convert
      * @return a Message
      */
+    @NonNull
     public static Message toMessage(JsonElement jsonObject) {
         try {
             Message message = gson.fromJson(jsonObject, Message.class);

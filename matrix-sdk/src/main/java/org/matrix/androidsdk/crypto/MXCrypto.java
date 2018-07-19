@@ -1368,12 +1368,13 @@ public class MXCrypto {
     }
 
     /**
-     * Decrypt a received event
+     * Decrypt an event
      *
      * @param event    the raw event.
      * @param timeline the id of the timeline where the event is decrypted. It is used to prevent replay attack.
-     * @return true if the decryption was successful.
+     * @return the MXEventDecryptionResult data, or null in case of error
      */
+    @Nullable
     public MXEventDecryptionResult decryptEvent(final Event event, final String timeline) throws MXDecryptionException {
         if (null == event) {
             Log.e(LOG_TAG, "## decryptEvent : null event");

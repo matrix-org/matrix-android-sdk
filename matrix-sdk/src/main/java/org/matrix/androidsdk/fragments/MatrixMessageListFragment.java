@@ -23,6 +23,7 @@ import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AlertDialog;
@@ -1105,6 +1106,21 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      */
     public void sendTextMessage(String body, String formattedBody, String format) {
         mRoom.sendTextMessage(body, formattedBody, format, mEventCreationListener);
+    }
+
+    /**
+     * Send a formatted text message, replying to a event Id if not null.
+     *
+     * @param body          the unformatted text message
+     * @param formattedBody the formatted text message (optional)
+     * @param replyToEvent  the event to reply to (optional)
+     * @param format        the format
+     */
+    public void sendTextMessage(String body,
+                                String formattedBody,
+                                @Nullable Event replyToEvent,
+                                String format) {
+        mRoom.sendTextMessage(body, formattedBody, format, replyToEvent, mEventCreationListener);
     }
 
     /**

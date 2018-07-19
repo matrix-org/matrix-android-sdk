@@ -17,6 +17,7 @@
 
 package org.matrix.androidsdk.crypto.algorithms.megolm;
 
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXSession;
@@ -76,13 +77,16 @@ public class MXMegolmDecryption implements IMXDecrypting {
         mSession = matrixSession;
         mOlmDevice = matrixSession.getCrypto().getOlmDevice();
         mPendingEvents = new HashMap<>();
+
     }
 
     @Override
+    @Nullable
     public MXEventDecryptionResult decryptEvent(Event event, String timeline) throws MXDecryptionException {
         return decryptEvent(event, timeline, true);
     }
 
+    @Nullable
     public MXEventDecryptionResult decryptEvent(Event event, String timeline, boolean requestKeysOnFail) throws MXDecryptionException {
         // sanity check
         if (null == event) {
@@ -114,6 +118,18 @@ public class MXMegolmDecryption implements IMXDecrypting {
         // the decryption succeeds
         if ((null != decryptGroupMessageResult) && (null != decryptGroupMessageResult.mPayload) && (null == cryptoError)) {
             eventDecryptionResult = new MXEventDecryptionResult();
+
+            // Add "m.relates_to" data from e2e event to the unencrypted event
+            if (event.getWireContent().getAsJsonObject().has("m.relates_to")) {
+                try {
+                    decryptGroupMessageResult.mPayload.getAsJsonObject()
+                            .get("content").getAsJsonObject()
+                            .add("m.relates_to", event.getWireContent().getAsJsonObject().get("m.relates_to"));
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "Unable to restore 'm.relates_to' data", e);
+                }
+            }
+
             eventDecryptionResult.mClearEvent = decryptGroupMessageResult.mPayload;
             eventDecryptionResult.mSenderCurve25519Key = decryptGroupMessageResult.mSenderKey;
 
@@ -357,7 +373,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
         }
 
         final String userId = request.mUserId;
-        
+
         mSession.getCrypto().getDeviceList().downloadKeys(Arrays.asList(userId), false, new ApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXDeviceInfo> devicesMap) {

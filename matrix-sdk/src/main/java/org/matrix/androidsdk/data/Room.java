@@ -28,11 +28,13 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Pair;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
@@ -185,7 +187,7 @@ public class Room {
 
     /**
      * Determine whether we should encrypt messages for invited users in this room.
-     *
+     * <p>
      * Check here whether the invited members are allowed to read messages in the room history
      * from the point they were invited onwards.
      *
@@ -2385,14 +2387,36 @@ public class Room {
         if (isEncrypted() && (null != mDataHandler.getCrypto())) {
             mDataHandler.updateEventState(event, Event.SentState.ENCRYPTING);
 
+            // Store the "m.relates_to" data and remove them from event content before encrypting the event content
+            final JsonElement relatesTo;
+
+            JsonObject contentAsJsonObject = event.getContentAsJsonObject();
+
+            if (contentAsJsonObject != null
+                    && contentAsJsonObject.has("m.relates_to")) {
+                // Get a copy of "m.relates_to" data...
+                relatesTo = contentAsJsonObject.get("m.relates_to");
+
+                // ... and remove "m.relates_to" data from the content before encrypting it
+                contentAsJsonObject.remove("m.relates_to");
+            } else {
+                relatesTo = null;
+            }
+
             // Encrypt the content before sending
             mDataHandler.getCrypto()
-                    .encryptEventContent(event.getContent().getAsJsonObject(), event.getType(), this, new ApiCallback<MXEncryptEventContentResult>() {
+                    .encryptEventContent(contentAsJsonObject, event.getType(), this, new ApiCallback<MXEncryptEventContentResult>() {
                         @Override
                         public void onSuccess(MXEncryptEventContentResult encryptEventContentResult) {
                             // update the event content with the encrypted data
                             event.type = encryptEventContentResult.mEventType;
-                            event.updateContent(encryptEventContentResult.mEventContent.getAsJsonObject());
+
+                            // Add the "m.relates_to" data to the encrypted event here
+                            JsonObject encryptedContent = encryptEventContentResult.mEventContent.getAsJsonObject();
+                            if (relatesTo != null) {
+                                encryptedContent.add("m.relates_to", relatesTo);
+                            }
+                            event.updateContent(encryptedContent);
                             mDataHandler.decryptEvent(event, null);
 
                             // sending in progress
@@ -2445,7 +2469,7 @@ public class Room {
                         .sendMessage(event.originServerTs + "", getRoomId(), JsonUtils.toMessage(event.getContent()), localCB);
             } else {
                 mDataHandler.getDataRetriever().getRoomsRestClient()
-                        .sendEventToRoom(event.originServerTs + "", getRoomId(), event.getType(), event.getContent().getAsJsonObject(), localCB);
+                        .sendEventToRoom(event.originServerTs + "", getRoomId(), event.getType(), event.getContentAsJsonObject(), localCB);
             }
         }
     }
@@ -2838,43 +2862,107 @@ public class Room {
      * Send a text message asynchronously.
      *
      * @param text              the unformatted text
-     * @param HTMLFormattedText the HTML formatted text
+     * @param htmlFormattedText the HTML formatted text
      * @param format            the formatted text format
      * @param listener          the event creation listener
      */
-    public void sendTextMessage(String text, String HTMLFormattedText, String format, RoomMediaMessage.EventCreationListener listener) {
-        sendTextMessage(text, HTMLFormattedText, format, Message.MSGTYPE_TEXT, listener);
-    }
-
-    /**
-     * Send an emote message asynchronously.
-     *
-     * @param text              the unformatted text
-     * @param HTMLFormattedText the HTML formatted text
-     * @param format            the formatted text format
-     * @param listener          the event creation listener
-     */
-    public void sendEmoteMessage(String text, String HTMLFormattedText, String format, final RoomMediaMessage.EventCreationListener listener) {
-        sendTextMessage(text, HTMLFormattedText, format, Message.MSGTYPE_EMOTE, listener);
+    public void sendTextMessage(String text,
+                                String htmlFormattedText,
+                                String format,
+                                RoomMediaMessage.EventCreationListener listener) {
+        sendTextMessage(text, htmlFormattedText, format, null, Message.MSGTYPE_TEXT, listener);
     }
 
     /**
      * Send a text message asynchronously.
      *
      * @param text              the unformatted text
-     * @param HTMLFormattedText the HTML formatted text
+     * @param htmlFormattedText the HTML formatted text
      * @param format            the formatted text format
+     * @param replyToEvent      the event to reply to, or null
+     * @param listener          the event creation listener
+     */
+    public void sendTextMessage(String text,
+                                String htmlFormattedText,
+                                String format,
+                                @Nullable Event replyToEvent,
+                                RoomMediaMessage.EventCreationListener listener) {
+        sendTextMessage(text, htmlFormattedText, format, replyToEvent, Message.MSGTYPE_TEXT, listener);
+    }
+
+    /**
+     * Send an emote message asynchronously.
+     *
+     * @param text              the unformatted text
+     * @param htmlFormattedText the HTML formatted text
+     * @param format            the formatted text format
+     * @param listener          the event creation listener
+     */
+    public void sendEmoteMessage(String text,
+                                 String htmlFormattedText,
+                                 String format,
+                                 final RoomMediaMessage.EventCreationListener listener) {
+        sendTextMessage(text, htmlFormattedText, format, null, Message.MSGTYPE_EMOTE, listener);
+    }
+
+    /**
+     * Send a text message asynchronously.
+     *
+     * @param text              the unformatted text
+     * @param htmlFormattedText the HTML formatted text
+     * @param format            the formatted text format
+     * @param replyToEvent      the event to reply to (optional). Only event of type Event.EVENT_TYPE_MESSAGE are supported for the moment.
      * @param msgType           the message type
      * @param listener          the event creation listener
      */
-    private void sendTextMessage(String text, String HTMLFormattedText, String format, String msgType, final RoomMediaMessage.EventCreationListener listener) {
+    private void sendTextMessage(String text,
+                                 String htmlFormattedText,
+                                 String format,
+                                 @Nullable Event replyToEvent,
+                                 String msgType,
+                                 final RoomMediaMessage.EventCreationListener listener) {
         initRoomMediaMessagesSender();
 
-        RoomMediaMessage roomMediaMessage = new RoomMediaMessage(text, HTMLFormattedText, format);
+        RoomMediaMessage roomMediaMessage = new RoomMediaMessage(text, htmlFormattedText, format);
         roomMediaMessage.setMessageType(msgType);
         roomMediaMessage.setEventCreationListener(listener);
 
+        if (canReplyTo(replyToEvent)) {
+            roomMediaMessage.setReplyToEvent(replyToEvent);
+        }
+
         mRoomMediaMessagesSender.send(roomMediaMessage);
+    }
+
+    /**
+     * Indicate if replying to the provided event is supported.
+     * Only event of type Event.EVENT_TYPE_MESSAGE are supported for the moment, and for certain msgtype.
+     *
+     * @param replyToEvent the event to reply to
+     * @return true if it is possible to reply to this event
+     */
+    public boolean canReplyTo(@Nullable Event replyToEvent) {
+        if (replyToEvent != null
+                && Event.EVENT_TYPE_MESSAGE.equals(replyToEvent.getType())) {
+
+            // Cf. https://docs.google.com/document/d/1BPd4lBrooZrWe_3s_lHw_e-Dydvc7bXbm02_sV2k6Sc
+            String msgType = JsonUtils.getMessageMsgType(replyToEvent.getContentAsJsonObject());
+
+            if (msgType != null) {
+                switch (msgType) {
+                    case Message.MSGTYPE_TEXT:
+                    case Message.MSGTYPE_NOTICE:
+                    case Message.MSGTYPE_EMOTE:
+                    case Message.MSGTYPE_IMAGE:
+                    case Message.MSGTYPE_VIDEO:
+                    case Message.MSGTYPE_AUDIO:
+                    case Message.MSGTYPE_FILE:
+                        return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -2891,7 +2979,7 @@ public class Room {
                                  final RoomMediaMessage.EventCreationListener listener) {
         initRoomMediaMessagesSender();
 
-        roomMediaMessage.setThumnailSize(new Pair<>(maxThumbnailWidth, maxThumbnailHeight));
+        roomMediaMessage.setThumbnailSize(new Pair<>(maxThumbnailWidth, maxThumbnailHeight));
         roomMediaMessage.setEventCreationListener(listener);
 
         mRoomMediaMessagesSender.send(roomMediaMessage);
