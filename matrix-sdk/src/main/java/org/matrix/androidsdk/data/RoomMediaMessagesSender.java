@@ -445,10 +445,14 @@ class RoomMediaMessagesSender {
                     // Note: we need to force the format to Message.FORMAT_MATRIX_HTML
                     message.format = Message.FORMAT_MATRIX_HTML;
                 } else {
+                    Log.e(LOG_TAG, "Unsupported 'msgtype': " + msgType + ". Consider calling Room.canReplyTo(Event)");
+
                     // Ensure there will not be "m.relates_to" data in the sent event
                     roomMediaMessage.setReplyToEvent(null);
                 }
             } else {
+                Log.e(LOG_TAG, "Null 'msgtype'. Consider calling Room.canReplyTo(Event)");
+
                 // Ensure there will not be "m.relates_to" data in the sent event
                 roomMediaMessage.setReplyToEvent(null);
             }
