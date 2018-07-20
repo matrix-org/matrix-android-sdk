@@ -53,6 +53,7 @@ import org.matrix.androidsdk.rest.client.AccountDataRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.UrlPostTask;
 import org.matrix.androidsdk.rest.model.BannedUser;
+import org.matrix.androidsdk.rest.model.CreatedEvent;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.PowerLevels;
@@ -2309,9 +2310,9 @@ public class Room {
 
         final String prevEventId = event.eventId;
 
-        final ApiCallback<Event> localCB = new ApiCallback<Event>() {
+        final ApiCallback<CreatedEvent> localCB = new ApiCallback<CreatedEvent>() {
             @Override
-            public void onSuccess(final Event serverResponseEvent) {
+            public void onSuccess(final CreatedEvent createdEvent) {
                 if (null != getStore()) {
                     // remove the tmp event
                     getStore().deleteEvent(event);
@@ -2321,12 +2322,12 @@ public class Room {
                 boolean isReadMarkerUpdated = TextUtils.equals(getReadMarkerEventId(), event.eventId);
 
                 // update the event with the server response
-                event.eventId = serverResponseEvent.eventId;
+                event.eventId = createdEvent.eventId;
                 event.originServerTs = System.currentTimeMillis();
                 mDataHandler.updateEventState(event, Event.SentState.SENT);
 
                 // the message echo is not yet echoed
-                if ((null != getStore()) && !getStore().doesEventExist(serverResponseEvent.eventId, getRoomId())) {
+                if (null != getStore() && !getStore().doesEventExist(createdEvent.eventId, getRoomId())) {
                     getStore().storeLiveRoomEvent(event);
                 }
 
@@ -2421,7 +2422,7 @@ public class Room {
 
                             // sending in progress
                             mDataHandler.updateEventState(event, Event.SentState.SENDING);
-                            mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(event.originServerTs + "", getRoomId(),
+                            mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(event.eventId, getRoomId(),
                                     encryptEventContentResult.mEventType, encryptEventContentResult.mEventContent.getAsJsonObject(), localCB);
                         }
 
@@ -2466,10 +2467,10 @@ public class Room {
 
             if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
                 mDataHandler.getDataRetriever().getRoomsRestClient()
-                        .sendMessage(event.originServerTs + "", getRoomId(), JsonUtils.toMessage(event.getContent()), localCB);
+                        .sendMessage(event.eventId, getRoomId(), JsonUtils.toMessage(event.getContent()), localCB);
             } else {
                 mDataHandler.getDataRetriever().getRoomsRestClient()
-                        .sendEventToRoom(event.originServerTs + "", getRoomId(), event.getType(), event.getContentAsJsonObject(), localCB);
+                        .sendEventToRoom(event.eventId, getRoomId(), event.getType(), event.getContentAsJsonObject(), localCB);
             }
         }
     }
