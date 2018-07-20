@@ -704,14 +704,11 @@ public class CryptoTest {
         MXEventListener eventListener = new MXEventListener() {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
-                try {
-                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                        if (checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession)) {
-                            results.put("onLiveEvent", "onLiveEvent");
-                            lock3.countDown();
-                        }
-                    }
-                } catch (Exception e) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                    checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession);
+
+                    results.put("onLiveEvent", "onLiveEvent");
+                    lock3.countDown();
                 }
             }
         };
@@ -765,14 +762,10 @@ public class CryptoTest {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), mBobSession.getMyUserId())) {
-                    try {
-                        if (checkEncryptedEvent(event, mRoomId, messagesFromAlice.get(mReceivedMessagesFromAlice), mAliceSession)) {
-                            mReceivedMessagesFromAlice++;
-                            list.get(list.size() - 1).countDown();
-                        }
-                    } catch (Exception e) {
+                    checkEncryptedEvent(event, mRoomId, messagesFromAlice.get(mReceivedMessagesFromAlice), mAliceSession);
 
-                    }
+                    mReceivedMessagesFromAlice++;
+                    list.get(list.size() - 1).countDown();
                 }
             }
         };
@@ -781,15 +774,10 @@ public class CryptoTest {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), mAliceSession.getMyUserId())) {
-                    try {
-                        if (checkEncryptedEvent(event, mRoomId, messagesFromBob.get(mReceivedMessagesFromBob), mBobSession)) {
-                            mReceivedMessagesFromBob++;
-                        }
+                    checkEncryptedEvent(event, mRoomId, messagesFromBob.get(mReceivedMessagesFromBob), mBobSession);
+                    mReceivedMessagesFromBob++;
 
-                        list.get(list.size() - 1).countDown();
-                    } catch (Exception e) {
-
-                    }
+                    list.get(list.size() - 1).countDown();
                 }
             }
         };
@@ -921,12 +909,9 @@ public class CryptoTest {
                 @Override
                 public void onLiveEvent(Event event, RoomState roomState) {
                     if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                        try {
-                            if (checkEncryptedEvent(event, mRoomId, message, aliceSession2)) {
-                                lock2.countDown();
-                            }
-                        } catch (Exception e) {
-                        }
+                        checkEncryptedEvent(event, mRoomId, message, aliceSession2);
+
+                        lock2.countDown();
                     }
                 }
             };
@@ -1528,7 +1513,7 @@ public class CryptoTest {
 
         // Decrypting it with no replay attack mitigation must still work
         mBobSession.getDataHandler().decryptEvent(decryptedEvent, null);
-        Assert.assertTrue(checkEncryptedEvent(decryptedEvent, mRoomId, messageFromAlice, mAliceSession));
+        checkEncryptedEvent(decryptedEvent, mRoomId, messageFromAlice, mAliceSession);
     }
 
     @Test
@@ -1583,7 +1568,7 @@ public class CryptoTest {
         Assert.assertEquals(1, receivedEvents.size());
 
         Event event = receivedEvents.get(0);
-        Assert.assertTrue(checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession));
+        checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession);
 
         // Reinject a modified version of the received room_key event from Alice.
         // From Bob pov, that mimics Alice resharing her keys but with an advanced outbound group session.
@@ -1602,7 +1587,7 @@ public class CryptoTest {
         event.setClearData(null);
 
         mBobSession.getDataHandler().decryptEvent(event, null);
-        Assert.assertTrue(checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession));
+        checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession);
     }
 
     @Test
@@ -1656,7 +1641,7 @@ public class CryptoTest {
         Assert.assertEquals(1, receivedEvents.size());
 
         Event event = receivedEvents.get(0);
-        Assert.assertTrue(checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession));
+        checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession);
 
         // Reinject a modified version of the received room_key event from Alice.
         // From Bob pov, that mimics Alice resharing her keys but with an advanced outbound group session.
@@ -1696,7 +1681,7 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("onEventDecrypted"));
         Assert.assertEquals(1, receivedEvents.size());
 
-        Assert.assertTrue(checkEncryptedEvent(receivedEvents.get(0), mRoomId, messageFromAlice, mAliceSession));
+        checkEncryptedEvent(receivedEvents.get(0), mRoomId, messageFromAlice, mAliceSession);
         Assert.assertNull(receivedEvents.get(0).getCryptoError());
     }
 
@@ -1753,7 +1738,7 @@ public class CryptoTest {
         Assert.assertEquals(1, receivedEvents.size());
 
         Event event = receivedEvents.get(0);
-        Assert.assertTrue(checkEncryptedEvent(event, mRoomId, aliceMessage1, mAliceSession));
+        checkEncryptedEvent(event, mRoomId, aliceMessage1, mAliceSession);
 
         // logout
         CountDownLatch lock2 = new CountDownLatch(1);
@@ -1820,7 +1805,7 @@ public class CryptoTest {
         Assert.assertEquals("received event of type " + results.get("event4"), 1, receivedEvents4.size());
 
         event = receivedEvents4.get(0);
-        Assert.assertTrue(checkEncryptedEvent(event, mRoomId, aliceMessage2, mAliceSession));
+        checkEncryptedEvent(event, mRoomId, aliceMessage2, mAliceSession);
     }
 
     @Test
@@ -1877,7 +1862,7 @@ public class CryptoTest {
         Assert.assertEquals(1, receivedEvents.size());
 
         Event event = receivedEvents.get(0);
-        Assert.assertTrue(checkEncryptedEvent(event, mRoomId, aliceMessage1, mAliceSession));
+        checkEncryptedEvent(event, mRoomId, aliceMessage1, mAliceSession);
 
         // logout
         CountDownLatch lock2 = new CountDownLatch(1);
@@ -1940,7 +1925,7 @@ public class CryptoTest {
         Assert.assertEquals(1, receivedEvents2.size());
 
         event = receivedEvents2.get(0);
-        Assert.assertTrue(checkEncryptedEvent(event, mRoomId, messageFromAlice2, aliceSession2));
+        checkEncryptedEvent(event, mRoomId, messageFromAlice2, aliceSession2);
     }
 
     @Test
@@ -1981,7 +1966,7 @@ public class CryptoTest {
         Assert.assertEquals(1, receivedEvents.size());
 
         Event event = receivedEvents.get(0);
-        Assert.assertTrue(checkEncryptedEvent(event, mRoomId, aliceMessage1, mAliceSession));
+        checkEncryptedEvent(event, mRoomId, aliceMessage1, mAliceSession);
 
         // block the bob's device
         CountDownLatch lock1b = new CountDownLatch(1);
@@ -2060,7 +2045,7 @@ public class CryptoTest {
         Assert.assertEquals(1, receivedEvents3.size());
 
         event = receivedEvents3.get(0);
-        Assert.assertTrue(checkEncryptedEvent(event, mRoomId, aliceMessage3, mAliceSession));
+        checkEncryptedEvent(event, mRoomId, aliceMessage3, mAliceSession);
     }
 
 
@@ -2189,14 +2174,11 @@ public class CryptoTest {
         MXEventListener eventListener = new MXEventListener() {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
-                try {
-                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                        if (checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession)) {
-                            results.put("onLiveEvent", "onLiveEvent");
-                            lock2.countDown();
-                        }
-                    }
-                } catch (Exception e) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                    checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession);
+
+                    results.put("onLiveEvent", "onLiveEvent");
+                    lock2.countDown();
                 }
             }
         };
@@ -2399,7 +2381,7 @@ public class CryptoTest {
         Assert.assertTrue(event.isEncrypted());
         Assert.assertNotNull(event.getClearEvent());
         Assert.assertNull(event.getCryptoError());
-        Assert.assertTrue(checkEncryptedEvent(event, mRoomId, message, mAliceSession));
+        checkEncryptedEvent(event, mRoomId, message, mAliceSession);
 
         aliceSession2.clear(context);
     }
@@ -2487,7 +2469,7 @@ public class CryptoTest {
         Assert.assertEquals(1, receivedEvents.size());
 
         Event event = receivedEvents.get(0);
-        Assert.assertTrue(checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession));
+        checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession);
 
         CountDownLatch lock4 = new CountDownLatch(1);
         roomFromBobPOV.leave(new TestApiCallback<Void>(lock4) {
@@ -2541,7 +2523,7 @@ public class CryptoTest {
         Assert.assertEquals(1, receivedEvents2.size());
 
         event = receivedEvents2.get(0);
-        Assert.assertTrue(checkEncryptedEvent(event, mRoomId, message2FromAlice, mAliceSession));
+        checkEncryptedEvent(event, mRoomId, message2FromAlice, mAliceSession);
 
         bobSession2.clear(context);
         mAliceSession.clear(context);
@@ -2628,14 +2610,11 @@ public class CryptoTest {
         MXEventListener eventListenerBob1 = new MXEventListener() {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
-                try {
-                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                        if (checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession)) {
-                            results.put("onLiveEventBob1", "onLiveEvent");
-                            lock3.countDown();
-                        }
-                    }
-                } catch (Exception e) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                    checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession);
+
+                    results.put("onLiveEventBob1", "onLiveEvent");
+                    lock3.countDown();
                 }
             }
         };
@@ -2643,14 +2622,11 @@ public class CryptoTest {
         MXEventListener eventListenerSam1 = new MXEventListener() {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
-                try {
-                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                        if (checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession)) {
-                            results.put("onLiveEventSam1", "onLiveEvent");
-                            lock3.countDown();
-                        }
-                    }
-                } catch (Exception e) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                    checkEncryptedEvent(event, mRoomId, messageFromAlice, mAliceSession);
+
+                    results.put("onLiveEventSam1", "onLiveEvent");
+                    lock3.countDown();
                 }
             }
         };
@@ -2697,17 +2673,14 @@ public class CryptoTest {
         MXEventListener eventListenerBob2 = new MXEventListener() {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
-                try {
-                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                        if (checkEncryptedEvent(event, mRoomId, activeMessage.get(0), mAliceSession)) {
-                            results.put("eventListenerBob2", "onLiveEvent");
-                            activeLock.get(0).countDown();
-                        }
-                    } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
-                        results.put("eventListenerEncyptedBob2", "onLiveEvent");
-                        activeLock.get(0).countDown();
-                    }
-                } catch (Exception e) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                    checkEncryptedEvent(event, mRoomId, activeMessage.get(0), mAliceSession);
+
+                    results.put("eventListenerBob2", "onLiveEvent");
+                    activeLock.get(0).countDown();
+                } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
+                    results.put("eventListenerEncyptedBob2", "onLiveEvent");
+                    activeLock.get(0).countDown();
                 }
             }
         };
@@ -2715,17 +2688,14 @@ public class CryptoTest {
         MXEventListener eventListenerSam2 = new MXEventListener() {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
-                try {
-                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                        if (checkEncryptedEvent(event, mRoomId, activeMessage.get(0), mAliceSession)) {
-                            results.put("eventListenerSam2", "onLiveEvent");
-                            activeLock.get(0).countDown();
-                        }
-                    } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
-                        results.put("eventListenerEncyptedSam2", "onLiveEvent");
-                        activeLock.get(0).countDown();
-                    }
-                } catch (Exception e) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                    checkEncryptedEvent(event, mRoomId, activeMessage.get(0), mAliceSession);
+
+                    results.put("eventListenerSam2", "onLiveEvent");
+                    activeLock.get(0).countDown();
+                } else if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
+                    results.put("eventListenerEncyptedSam2", "onLiveEvent");
+                    activeLock.get(0).countDown();
                 }
             }
         };
@@ -2984,7 +2954,7 @@ public class CryptoTest {
         Assert.assertEquals(1, receivedEvents2.size());
 
         Event event = receivedEvents2.get(0);
-        Assert.assertTrue(checkEncryptedEvent(event, mRoomId, message2FromAlice, mAliceSession));
+        checkEncryptedEvent(event, mRoomId, message2FromAlice, mAliceSession);
 
         bobSession2.clear(context);
         mAliceSession.clear(context);
@@ -3067,14 +3037,11 @@ public class CryptoTest {
         MXEventListener eventListener = new MXEventListener() {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
-                try {
-                    if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                        if (checkEncryptedEvent(event, mRoomId, messageFromBob, mBobSession)) {
-                            results.put("lock6", "lock6");
-                            lock6.countDown();
-                        }
-                    }
-                } catch (Exception e) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                    checkEncryptedEvent(event, mRoomId, messageFromBob, mBobSession);
+
+                    results.put("lock6", "lock6");
+                    lock6.countDown();
                 }
             }
         };
@@ -3125,14 +3092,10 @@ public class CryptoTest {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), mBobSession.getMyUserId())) {
                     bobReceivedEvents.add(event);
 
-                    try {
-                        if (checkEncryptedEvent(event, mRoomId, messagesFromAlice.get(mReceivedMessagesFromAlice), mAliceSession)) {
-                            mReceivedMessagesFromAlice++;
-                            list.get(list.size() - 1).countDown();
-                        }
-                    } catch (Exception e) {
+                    checkEncryptedEvent(event, mRoomId, messagesFromAlice.get(mReceivedMessagesFromAlice), mAliceSession);
 
-                    }
+                    mReceivedMessagesFromAlice++;
+                    list.get(list.size() - 1).countDown();
                 }
             }
         };
@@ -3151,9 +3114,9 @@ public class CryptoTest {
                                 + messagesFromBob.get(mReceivedMessagesFromBob);
 
 
-                        if (checkEncryptedEvent(event, mRoomId, expectedMessage, mBobSession)) {
-                            mReceivedMessagesFromBob++;
-                        }
+                        checkEncryptedEvent(event, mRoomId, expectedMessage, mBobSession);
+
+                        mReceivedMessagesFromBob++;
 
                         list.get(list.size() - 1).countDown();
                     } catch (Exception e) {
@@ -3209,7 +3172,7 @@ public class CryptoTest {
         Assert.assertNotNull(relatesTo);
 
         // Check that the event id matches
-        Assert.assertEquals(relatesTo.dict.get("event_id"), bobReceivedEvents.get(0).eventId);
+        Assert.assertEquals(bobReceivedEvents.get(0).eventId, relatesTo.dict.get("event_id"));
     }
 
     //==============================================================================================================
@@ -3559,11 +3522,12 @@ public class CryptoTest {
         Assert.assertEquals(5, mMessagesCount);
     }
 
-    private boolean checkEncryptedEvent(Event event, String roomId, String clearMessage, MXSession senderSession) {
+    private void checkEncryptedEvent(Event event, String roomId, String clearMessage, MXSession senderSession) {
         Assert.assertEquals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, event.getWireType());
         Assert.assertNotNull(event.getWireContent());
 
         JsonObject eventWireContent = event.getWireContent().getAsJsonObject();
+        Assert.assertNotNull(eventWireContent);
 
         Assert.assertNull(eventWireContent.get("body"));
         Assert.assertEquals(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, eventWireContent.get("algorithm").getAsString());
@@ -3572,18 +3536,16 @@ public class CryptoTest {
         Assert.assertNotNull(eventWireContent.get("session_id"));
         Assert.assertNotNull(eventWireContent.get("sender_key"));
 
-        Assert.assertEquals(eventWireContent.get("device_id").getAsString(), senderSession.getCredentials().deviceId);
+        Assert.assertEquals(senderSession.getCredentials().deviceId, eventWireContent.get("device_id").getAsString());
 
         Assert.assertNotNull(event.eventId);
-        Assert.assertEquals(event.roomId, roomId);
+        Assert.assertEquals(roomId, event.roomId);
         Assert.assertEquals(Event.EVENT_TYPE_MESSAGE, event.getType());
         Assert.assertTrue(event.getAge() < 10000);
 
         JsonObject eventContent = event.getContentAsJsonObject();
         Assert.assertNotNull(eventContent);
-        Assert.assertEquals(eventContent.get("body").getAsString(), clearMessage);
-        Assert.assertEquals(event.sender, senderSession.getMyUserId());
-
-        return true;
+        Assert.assertEquals(clearMessage, eventContent.get("body").getAsString());
+        Assert.assertEquals(senderSession.getMyUserId(), event.sender);
     }
 }
