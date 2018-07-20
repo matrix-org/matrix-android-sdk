@@ -625,8 +625,8 @@ public class CryptoTest {
     }
 
     @Test
-    public void test06_testAliceInACryptedRoom() throws Exception {
-        Log.e(LOG_TAG, "test06_testAliceInACryptedRoom");
+    public void test06_testAliceInAEncryptedRoom() throws Exception {
+        Log.e(LOG_TAG, "test06_testAliceInAEncryptedRoom");
 
         Context context = InstrumentationRegistry.getContext();
 
@@ -651,8 +651,8 @@ public class CryptoTest {
     }
 
     @Test
-    public void test07_testAliceAndBobInACryptedRoom() throws Exception {
-        Log.e(LOG_TAG, "test07_testAliceAndBobInACryptedRoom");
+    public void test07_testAliceAndBobInAEncryptedRoom() throws Exception {
+        Log.e(LOG_TAG, "test07_testAliceAndBobInAEncryptedRoom");
 
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
@@ -741,8 +741,8 @@ public class CryptoTest {
     }
 
     @Test
-    public void test08_testAliceAndBobInACryptedRoom2() throws Exception {
-        Log.e(LOG_TAG, "test08_testAliceAndBobInACryptedRoom2");
+    public void test08_testAliceAndBobInAEncryptedRoom2() throws Exception {
+        Log.e(LOG_TAG, "test08_testAliceAndBobInAEncryptedRoom2");
 
         doE2ETestWithAliceAndBobInARoom(true);
 
@@ -836,8 +836,8 @@ public class CryptoTest {
     }
 
     @Test
-    public void test09_testAliceInACryptedRoomAfterInitialSync() throws Exception {
-        Log.e(LOG_TAG, "test09_testAliceInACryptedRoomAfterInitialSync");
+    public void test09_testAliceInAEncryptedRoomAfterInitialSync() throws Exception {
+        Log.e(LOG_TAG, "test09_testAliceInAEncryptedRoomAfterInitialSync");
 
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
@@ -950,8 +950,8 @@ public class CryptoTest {
     }
 
     @Test
-    public void test10_testAliceDecryptOldMessageWithANewDeviceInACryptedRoom() throws Exception {
-        Log.e(LOG_TAG, "test10_testAliceDecryptOldMessageWithANewDeviceInACryptedRoom");
+    public void test10_testAliceDecryptOldMessageWithANewDeviceInAEncryptedRoom() throws Exception {
+        Log.e(LOG_TAG, "test10_testAliceDecryptOldMessageWithANewDeviceInAEncryptedRoom");
 
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
@@ -1061,13 +1061,13 @@ public class CryptoTest {
     }
 
     @Test
-    public void test11_testAliceAndBobInACryptedRoomBackPaginationFromMemoryStore() throws Exception {
-        Log.e(LOG_TAG, "test11_testAliceAndBobInACryptedRoomBackPaginationFromMemoryStore");
+    public void test11_testAliceAndBobInAEncryptedRoomBackPaginationFromMemoryStore() throws Exception {
+        Log.e(LOG_TAG, "test11_testAliceAndBobInAEncryptedRoomBackPaginationFromMemoryStore");
 
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap();
 
-        doE2ETestWithAliceAndBobInARoomWithCryptedMessages(true);
+        doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(true);
 
         Credentials bobCredentials = mBobSession.getCredentials();
         mBobSession.clear(context);
@@ -1148,13 +1148,13 @@ public class CryptoTest {
     }
 
     @Test
-    public void test12_testAliceAndBobInACryptedRoomBackPaginationFromHomeServer() throws Exception {
-        Log.e(LOG_TAG, "test12_testAliceAndBobInACryptedRoomBackPaginationFromHomeServer");
+    public void test12_testAliceAndBobInAEncryptedRoomBackPaginationFromHomeServer() throws Exception {
+        Log.e(LOG_TAG, "test12_testAliceAndBobInAEncryptedRoomBackPaginationFromHomeServer");
 
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap();
 
-        doE2ETestWithAliceAndBobInARoomWithCryptedMessages(true);
+        doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(true);
 
         String eventId = mBobSession.getDataHandler().getStore().getLatestEvent(mRoomId).eventId;
 
@@ -1200,8 +1200,8 @@ public class CryptoTest {
     }
 
     @Test
-    public void test13_testAliceAndNotCryptedBobInACryptedRoom() throws Exception {
-        Log.e(LOG_TAG, "test13_testAliceAndNotCryptedBobInACryptedRoom");
+    public void test13_testAliceAndNotEncryptedBobInACryptedRoom() throws Exception {
+        Log.e(LOG_TAG, "test13_testAliceAndNotEncryptedBobInACryptedRoom");
 
         final Map<String, Object> results = new HashMap();
 
@@ -2869,8 +2869,8 @@ public class CryptoTest {
     // - Alice turns the crypto ON in the room
     // - Alice sends a message
     // -> Bob must be able to decrypt this message
-    public void test27_testEnableEncryptionAfterNonCryptedMessages() throws Exception {
-        Log.e(LOG_TAG, "test27_testEnableEncryptionAfterNonCryptedMessages");
+    public void test27_testEnableEncryptionAfterNonEncryptedMessages() throws Exception {
+        Log.e(LOG_TAG, "test27_testEnableEncryptionAfterNonEncryptedMessages");
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
 
@@ -3001,7 +3001,7 @@ public class CryptoTest {
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap();
 
-        doE2ETestWithAliceAndBobInARoomWithCryptedMessages(true);
+        doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(true);
 
         // - Bob leaves the room, so stops getting updates
         CountDownLatch lock1 = new CountDownLatch(1);
@@ -3347,7 +3347,7 @@ public class CryptoTest {
         return new Event(message, session.getCredentials().userId, mRoomId);
     }
 
-    private void doE2ETestWithAliceAndBobInARoomWithCryptedMessages(boolean cryptedBob) throws Exception {
+    private void doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(boolean cryptedBob) throws Exception {
         doE2ETestWithAliceAndBobInARoom(cryptedBob);
 
         if (null != mBobSession.getCrypto()) {
