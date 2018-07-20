@@ -1241,6 +1241,16 @@ public class Event implements Externalizable {
                 } else {
                     mClearEvent.mForwardingCurve25519KeyChain = new ArrayList<>();
                 }
+
+                try {
+                    // Add "m.relates_to" data from e2e event to the unencrypted event
+                    if (getWireContent().getAsJsonObject().has("m.relates_to")) {
+                        mClearEvent.getContentAsJsonObject()
+                                .add("m.relates_to", getWireContent().getAsJsonObject().get("m.relates_to"));
+                    }
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "Unable to restore 'm.relates_to' the clear event", e);
+                }
             }
 
             mCryptoError = null;
