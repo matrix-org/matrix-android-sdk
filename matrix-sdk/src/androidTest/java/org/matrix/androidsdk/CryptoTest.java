@@ -54,6 +54,7 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.message.Message;
+import org.matrix.androidsdk.rest.model.message.RelatesTo;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 
@@ -3090,6 +3091,126 @@ public class CryptoTest {
         aliceSession2.clear(context);
     }
 
+    /**
+     * We want to test that the relates_to data are well copied from e2e event to clear event
+     *
+     * @throws Exception
+     */
+    @Test
+    public void test29_testAliceAndBobInAEncryptedRoomWithReplyTo() throws Exception {
+        Log.e(LOG_TAG, "test08_testAliceAndBobInAEncryptedRoom2");
+
+        doE2ETestWithAliceAndBobInARoom(true);
+
+        mBobSession.getCrypto().setWarnOnUnknownDevices(false);
+        mAliceSession.getCrypto().setWarnOnUnknownDevices(false);
+
+        final Room roomFromBobPOV = mBobSession.getDataHandler().getRoom(mRoomId);
+        final Room roomFromAlicePOV = mAliceSession.getDataHandler().getRoom(mRoomId);
+
+        Assert.assertTrue(roomFromBobPOV.isEncrypted());
+        Assert.assertTrue(roomFromAlicePOV.isEncrypted());
+
+        final List<Event> bobReceivedEvents = new ArrayList<>();
+        final List<Event> aliceReceivedEvents = new ArrayList<>();
+
+        mReceivedMessagesFromAlice = 0;
+        mReceivedMessagesFromBob = 0;
+
+        final List<CountDownLatch> list = new ArrayList<>();
+
+        MXEventListener bobEventListener = new MXEventListener() {
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), mBobSession.getMyUserId())) {
+                    bobReceivedEvents.add(event);
+
+                    try {
+                        if (checkEncryptedEvent(event, mRoomId, messagesFromAlice.get(mReceivedMessagesFromAlice), mAliceSession)) {
+                            mReceivedMessagesFromAlice++;
+                            list.get(list.size() - 1).countDown();
+                        }
+                    } catch (Exception e) {
+
+                    }
+                }
+            }
+        };
+
+        MXEventListener aliceEventListener = new MXEventListener() {
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), mAliceSession.getMyUserId())) {
+                    aliceReceivedEvents.add(event);
+
+                    try {
+                        // "In reply to" format for body
+                        String expectedMessage = "> <" + mAliceSession.getMyUserId() + "> "
+                                + messagesFromAlice.get(mReceivedMessagesFromAlice - 1)
+                                + "\n\n"
+                                + messagesFromBob.get(mReceivedMessagesFromBob);
+
+
+                        if (checkEncryptedEvent(event, mRoomId, expectedMessage, mBobSession)) {
+                            mReceivedMessagesFromBob++;
+                        }
+
+                        list.get(list.size() - 1).countDown();
+                    } catch (Exception e) {
+
+                    }
+                }
+            }
+        };
+
+        ApiCallback<Void> callback = new SimpleApiCallback<>();
+
+        roomFromBobPOV.addEventListener(bobEventListener);
+        roomFromAlicePOV.addEventListener(aliceEventListener);
+
+        list.add(new CountDownLatch(2));
+        final Map<String, Object> results = new HashMap<>();
+
+        mBobSession.getDataHandler().addListener(new MXEventListener() {
+            @Override
+            public void onToDeviceEvent(Event event) {
+                results.put("onToDeviceEvent", event);
+                list.get(0).countDown();
+            }
+        });
+
+        // Alice sends a first event
+        roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(mReceivedMessagesFromAlice), mAliceSession), callback);
+        list.get(list.size() - 1).await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        Assert.assertTrue(results.containsKey("onToDeviceEvent"));
+        Assert.assertEquals(1, mReceivedMessagesFromAlice);
+
+        // Bob reply to Alice event
+        Assert.assertTrue(roomFromBobPOV.canReplyTo(bobReceivedEvents.get(0)));
+
+        list.add(new CountDownLatch(1));
+        roomFromBobPOV.sendTextMessage(messagesFromBob.get(mReceivedMessagesFromBob), null, Message.MSGTYPE_TEXT, bobReceivedEvents.get(0), null);
+        list.get(list.size() - 1).await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        Assert.assertEquals(1, mReceivedMessagesFromBob);
+
+        Event event = aliceReceivedEvents.get(0);
+        JsonObject json = event.getContentAsJsonObject();
+
+        Assert.assertNotNull(json);
+
+        // Check that the received event contains a formatted body
+        Assert.assertTrue(json.has("formatted_body"));
+
+        // Check that the received event contains the relates to field
+        Assert.assertTrue(json.has("m.relates_to"));
+
+        RelatesTo relatesTo = (RelatesTo) JsonUtils.toClass(json.get("m.relates_to"), RelatesTo.class);
+
+        Assert.assertNotNull(relatesTo);
+
+        // Check that the event id matches
+        Assert.assertEquals(relatesTo.dict.get("event_id"), bobReceivedEvents.get(0).eventId);
+    }
 
     //==============================================================================================================
     // private test routines
@@ -3438,7 +3559,7 @@ public class CryptoTest {
         Assert.assertEquals(5, mMessagesCount);
     }
 
-    private boolean checkEncryptedEvent(Event event, String roomId, String clearMessage, MXSession senderSession) throws Exception {
+    private boolean checkEncryptedEvent(Event event, String roomId, String clearMessage, MXSession senderSession) {
         Assert.assertEquals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, event.getWireType());
         Assert.assertNotNull(event.getWireContent());
 
@@ -3459,6 +3580,7 @@ public class CryptoTest {
         Assert.assertTrue(event.getAge() < 10000);
 
         JsonObject eventContent = event.getContentAsJsonObject();
+        Assert.assertNotNull(eventContent);
         Assert.assertEquals(eventContent.get("body").getAsString(), clearMessage);
         Assert.assertEquals(event.sender, senderSession.getMyUserId());
 
