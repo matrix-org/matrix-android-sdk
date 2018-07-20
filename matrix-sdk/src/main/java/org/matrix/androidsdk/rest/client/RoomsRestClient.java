@@ -35,6 +35,7 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
+import org.matrix.androidsdk.rest.model.CreatedEvent;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.MatrixError;
@@ -78,14 +79,14 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param message       the message
      * @param callback      the callback containing the created event if successful
      */
-    public void sendMessage(final String transactionId, final String roomId, final Message message, final ApiCallback<Event> callback) {
+    public void sendMessage(final String transactionId, final String roomId, final Message message, final ApiCallback<CreatedEvent> callback) {
         // privacy
         // final String description = "SendMessage : roomId " + roomId + " - message " + message.body;
         final String description = "SendMessage : roomId " + roomId;
 
         // the messages have their dedicated method in MXSession to be resent if there is no available network
         mApi.sendMessage(transactionId, roomId, message)
-                .enqueue(new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                .enqueue(new RestAdapterCallback<CreatedEvent>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
                 sendMessage(transactionId, roomId, message, callback);
@@ -106,7 +107,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                                 final String roomId,
                                 final String eventType,
                                 final JsonObject content,
-                                final ApiCallback<Event> callback) {
+                                final ApiCallback<CreatedEvent> callback) {
         // privacy
         //final String description = "sendEvent : roomId " + roomId + " - eventType " + eventType + " content " + content;
         final String description = "sendEvent : roomId " + roomId + " - eventType " + eventType;
@@ -115,7 +116,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         // it might trigger weird behaviour on flaggy networks
         if (!TextUtils.equals(eventType, Event.EVENT_TYPE_CALL_INVITE)) {
             mApi.send(transactionId, roomId, eventType, content)
-                    .enqueue(new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                    .enqueue(new RestAdapterCallback<CreatedEvent>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                 @Override
                 public void onRetry() {
                     sendEventToRoom(transactionId, roomId, eventType, content, callback);
@@ -123,7 +124,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
             }));
         } else {
             mApi.send(transactionId, roomId, eventType, content)
-                    .enqueue(new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, null));
+                    .enqueue(new RestAdapterCallback<CreatedEvent>(description, mUnsentEventsManager, callback, null));
         }
     }
 
