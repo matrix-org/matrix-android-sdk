@@ -87,7 +87,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
     }
 
     @Nullable
-    public MXEventDecryptionResult decryptEvent(Event event, String timeline, boolean requestKeysOnFail) throws MXDecryptionException {
+    private MXEventDecryptionResult decryptEvent(Event event, String timeline, boolean requestKeysOnFail) throws MXDecryptionException {
         // sanity check
         if (null == event) {
             Log.e(LOG_TAG, "## decryptEvent() : null event");
@@ -118,17 +118,6 @@ public class MXMegolmDecryption implements IMXDecrypting {
         // the decryption succeeds
         if ((null != decryptGroupMessageResult) && (null != decryptGroupMessageResult.mPayload) && (null == cryptoError)) {
             eventDecryptionResult = new MXEventDecryptionResult();
-
-            // Add "m.relates_to" data from e2e event to the unencrypted event
-            if (event.getWireContent().getAsJsonObject().has("m.relates_to")) {
-                try {
-                    decryptGroupMessageResult.mPayload.getAsJsonObject()
-                            .get("content").getAsJsonObject()
-                            .add("m.relates_to", event.getWireContent().getAsJsonObject().get("m.relates_to"));
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "Unable to restore 'm.relates_to' data", e);
-                }
-            }
 
             eventDecryptionResult.mClearEvent = decryptGroupMessageResult.mPayload;
             eventDecryptionResult.mSenderCurve25519Key = decryptGroupMessageResult.mSenderKey;
