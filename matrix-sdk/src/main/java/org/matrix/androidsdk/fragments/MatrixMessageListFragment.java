@@ -1342,6 +1342,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         final Message message = JsonUtils.toMessage(event.getContent());
         final RoomMediaMessage roomMediaMessage = new RoomMediaMessage(new Event(message, mSession.getMyUserId(), mRoom.getRoomId()));
 
+        // Restore the previous eventId, to use the same TransactionId when sending again the event
+        roomMediaMessage.getEvent().eventId = event.eventId;
+
         if (message instanceof MediaMessage) {
             sendMediaMessage(roomMediaMessage);
         } else {

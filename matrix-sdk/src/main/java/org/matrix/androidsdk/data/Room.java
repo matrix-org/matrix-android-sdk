@@ -2422,7 +2422,7 @@ public class Room {
 
                             // sending in progress
                             mDataHandler.updateEventState(event, Event.SentState.SENDING);
-                            mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(event.originServerTs + "", getRoomId(),
+                            mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(event.eventId, getRoomId(),
                                     encryptEventContentResult.mEventType, encryptEventContentResult.mEventContent.getAsJsonObject(), localCB);
                         }
 
@@ -2467,10 +2467,10 @@ public class Room {
 
             if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
                 mDataHandler.getDataRetriever().getRoomsRestClient()
-                        .sendMessage(event.originServerTs + "", getRoomId(), JsonUtils.toMessage(event.getContent()), localCB);
+                        .sendMessage(event.eventId, getRoomId(), JsonUtils.toMessage(event.getContent()), localCB);
             } else {
                 mDataHandler.getDataRetriever().getRoomsRestClient()
-                        .sendEventToRoom(event.originServerTs + "", getRoomId(), event.getType(), event.getContentAsJsonObject(), localCB);
+                        .sendEventToRoom(event.eventId, getRoomId(), event.getType(), event.getContentAsJsonObject(), localCB);
             }
         }
     }
