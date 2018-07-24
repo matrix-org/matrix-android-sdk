@@ -785,6 +785,7 @@ public class RoomMediaMessage implements Parcelable {
     public static List<RoomMediaMessage> listRoomMediaMessages(Intent intent, ClassLoader loader) {
         List<RoomMediaMessage> roomMediaMessages = new ArrayList<>();
 
+
         if (null != intent) {
             // chrome adds many items when sharing an web page link
             // so, test first the type
@@ -867,12 +868,8 @@ public class RoomMediaMessage implements Parcelable {
                 Bundle bundle = intent.getExtras();
 
                 if (null != bundle) {
-
                     // provide a custom loader
-                    if (null != loader) {
-                        bundle.setClassLoader(RoomMediaMessage.class.getClassLoader());
-                    }
-
+                    bundle.setClassLoader(RoomMediaMessage.class.getClassLoader());
                     // list the Uris list
                     if (bundle.containsKey(Intent.EXTRA_STREAM)) {
                         try {
