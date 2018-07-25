@@ -29,6 +29,7 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.RoomTombstoneContent;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -108,6 +109,9 @@ public class RoomState implements Externalizable {
 
     // The topic of the room.
     public String topic;
+
+    // The tombstone content if the room has been killed
+    public RoomTombstoneContent roomTombstoneContent;
 
     // The avatar url of the room.
     public String url;
@@ -603,7 +607,7 @@ public class RoomState implements Externalizable {
         copy.algorithm = algorithm;
         copy.mRoomAliases = new HashMap<>(mRoomAliases);
         copy.mStateEvents = new HashMap<>(mStateEvents);
-
+        copy.roomTombstoneContent = roomTombstoneContent != null ? roomTombstoneContent.deepCopy() : null;
         synchronized (this) {
             Iterator it = mMembers.entrySet().iterator();
             while (it.hasNext()) {
@@ -979,8 +983,9 @@ public class RoomState implements Externalizable {
                         mThirdPartyInvites.put(thirdPartyInvite.token, thirdPartyInvite);
                     }
                 }
+            } else if (Event.EVENT_TYPE_STATE_ROOM_TOMBSTONE.equals(eventType)) {
+                roomTombstoneContent = JsonUtils.toRoomTombstoneContent(contentToConsider);
             }
-
             // same the latest room state events
             // excepts the membership ones
             // they are saved elsewhere
@@ -1186,8 +1191,13 @@ public class RoomState implements Externalizable {
         }
 
         if (input.readBoolean()) {
-            groups = (List<String>)input.readObject();
+            groups = (List<String>) input.readObject();
         }
+
+        if (input.readBoolean()) {
+            roomTombstoneContent = (RoomTombstoneContent) input.readObject();
+        }
+
     }
 
     @Override
@@ -1305,6 +1315,11 @@ public class RoomState implements Externalizable {
         output.writeBoolean(null != groups);
         if (null != groups) {
             output.writeObject(groups);
+        }
+
+        output.writeBoolean(null != roomTombstoneContent);
+        if (null != roomTombstoneContent) {
+            output.writeObject(roomTombstoneContent);
         }
     }
 }

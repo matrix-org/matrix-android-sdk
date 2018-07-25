@@ -105,6 +105,7 @@ public class Event implements Externalizable {
     public static final String EVENT_TYPE_STATE_ROOM_GUEST_ACCESS = "m.room.guest_access";
     public static final String EVENT_TYPE_STATE_ROOM_POWER_LEVELS = "m.room.power_levels";
     public static final String EVENT_TYPE_STATE_ROOM_ALIASES = "m.room.aliases";
+    public static final String EVENT_TYPE_STATE_ROOM_TOMBSTONE = "m.room.tombstone";
     public static final String EVENT_TYPE_STATE_CANONICAL_ALIAS = "m.room.canonical_alias";
     public static final String EVENT_TYPE_STATE_HISTORY_VISIBILITY = "m.room.history_visibility";
     public static final String EVENT_TYPE_STATE_RELATED_GROUPS = "m.room.related_groups";
