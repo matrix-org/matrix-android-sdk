@@ -28,6 +28,7 @@ import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PowerLevels;
+import org.matrix.androidsdk.rest.model.RoomCreateContent;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomTombstoneContent;
 import org.matrix.androidsdk.rest.model.User;
@@ -117,8 +118,8 @@ public class RoomState implements Externalizable {
     public String url;
     public String avatar_url;
 
-    // the room creator (user id)
-    public String creator;
+    // the room create content
+    public RoomCreateContent roomCreateContent;
 
     // the join rule
     public String join_rule;
@@ -592,7 +593,7 @@ public class RoomState implements Externalizable {
         copy.name = name;
         copy.topic = topic;
         copy.url = url;
-        copy.creator = creator;
+        copy.roomCreateContent = roomCreateContent != null ? roomCreateContent.deepCopy() : null;
         copy.join_rule = join_rule;
         copy.guest_access = guest_access;
         copy.history_visibility = history_visibility;
@@ -855,7 +856,7 @@ public class RoomState implements Externalizable {
             } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType)) {
                 topic = JsonUtils.toRoomState(contentToConsider).topic;
             } else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(eventType)) {
-                creator = JsonUtils.toRoomState(contentToConsider).creator;
+                roomCreateContent = JsonUtils.toRoomCreateContent(contentToConsider);
             } else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(eventType)) {
                 join_rule = JsonUtils.toRoomState(contentToConsider).join_rule;
             } else if (Event.EVENT_TYPE_STATE_ROOM_GUEST_ACCESS.equals(eventType)) {
@@ -1131,7 +1132,7 @@ public class RoomState implements Externalizable {
         }
 
         if (input.readBoolean()) {
-            creator = input.readUTF();
+            roomCreateContent = (RoomCreateContent) input.readObject();
         }
 
         if (input.readBoolean()) {
@@ -1253,9 +1254,9 @@ public class RoomState implements Externalizable {
             output.writeUTF(avatar_url);
         }
 
-        output.writeBoolean(null != creator);
-        if (null != creator) {
-            output.writeUTF(creator);
+        output.writeBoolean(null != roomCreateContent);
+        if (null != roomCreateContent) {
+            output.writeObject(roomCreateContent);
         }
 
         output.writeBoolean(null != join_rule);

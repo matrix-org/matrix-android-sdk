@@ -34,6 +34,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.PowerLevels;
+import org.matrix.androidsdk.rest.model.RoomCreateContent;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomTags;
 import org.matrix.androidsdk.rest.model.RoomTombstoneContent;
@@ -464,6 +465,17 @@ public class JsonUtils {
      */
     public static RoomTombstoneContent toRoomTombstoneContent(final JsonElement jsonElement) {
         return toClass(jsonElement, RoomTombstoneContent.class);
+    }
+
+    /**
+     * Convert a JSON object to a RoomCreateContent.
+     * The result is never null.
+     *
+     * @param jsonElement the json to convert
+     * @return a RoomCreateContent
+     */
+    public static RoomCreateContent toRoomCreateContent(final JsonElement jsonElement) {
+        return toClass(jsonElement, RoomCreateContent.class);
     }
 
     /**

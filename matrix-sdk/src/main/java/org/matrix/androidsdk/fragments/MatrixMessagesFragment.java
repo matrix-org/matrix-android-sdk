@@ -263,7 +263,7 @@ public class MatrixMessagesFragment extends Fragment {
 
                 // check if some required fields are initialized
                 // else, the joining could have been half broken (network error)
-                if (null != mRoom.getState().creator) {
+                if (null != mRoom.getState().roomCreateContent) {
                     RoomMember self = mRoom.getMember(mSession.getCredentials().userId);
                     if (self != null &&
                             (RoomMember.MEMBERSHIP_JOIN.equals(self.membership) ||
