@@ -112,14 +112,14 @@ public class RoomState implements Externalizable {
     public String topic;
 
     // The tombstone content if the room has been killed
-    public RoomTombstoneContent roomTombstoneContent;
+    private RoomTombstoneContent mRoomTombstoneContent;
 
     // The avatar url of the room.
     public String url;
     public String avatar_url;
 
     // the room create content
-    public RoomCreateContent roomCreateContent;
+    private RoomCreateContent mRoomCreateContent;
 
     // the join rule
     public String join_rule;
@@ -593,7 +593,7 @@ public class RoomState implements Externalizable {
         copy.name = name;
         copy.topic = topic;
         copy.url = url;
-        copy.roomCreateContent = roomCreateContent != null ? roomCreateContent.deepCopy() : null;
+        copy.mRoomCreateContent = mRoomCreateContent != null ? mRoomCreateContent.deepCopy() : null;
         copy.join_rule = join_rule;
         copy.guest_access = guest_access;
         copy.history_visibility = history_visibility;
@@ -608,7 +608,7 @@ public class RoomState implements Externalizable {
         copy.algorithm = algorithm;
         copy.mRoomAliases = new HashMap<>(mRoomAliases);
         copy.mStateEvents = new HashMap<>(mStateEvents);
-        copy.roomTombstoneContent = roomTombstoneContent != null ? roomTombstoneContent.deepCopy() : null;
+        copy.mRoomTombstoneContent = mRoomTombstoneContent != null ? mRoomTombstoneContent.deepCopy() : null;
         synchronized (this) {
             Iterator it = mMembers.entrySet().iterator();
             while (it.hasNext()) {
@@ -828,6 +828,34 @@ public class RoomState implements Externalizable {
     }
 
     /**
+     * @return true if the room is versioned
+     */
+    public boolean isVersioned() {
+        return mRoomTombstoneContent != null;
+    }
+
+    /**
+     * @return the room tombstone content
+     */
+    public RoomTombstoneContent getRoomTombstoneContent() {
+        return mRoomTombstoneContent;
+    }
+
+    /**
+     * @return true if the room has a predecessor
+     */
+    public boolean hasPredecessor() {
+        return mRoomCreateContent != null && mRoomCreateContent.hasPredecessor();
+    }
+
+    /**
+     * @return the room create content
+     */
+    public RoomCreateContent getRoomCreateContent() {
+        return mRoomCreateContent;
+    }
+
+    /**
      * @return the encryption algorithm
      */
     public String encryptionAlgorithm() {
@@ -856,7 +884,14 @@ public class RoomState implements Externalizable {
             } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType)) {
                 topic = JsonUtils.toRoomState(contentToConsider).topic;
             } else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(eventType)) {
-                roomCreateContent = JsonUtils.toRoomCreateContent(contentToConsider);
+                final RoomCreateContent createContent = JsonUtils.toRoomCreateContent(contentToConsider);
+                if (roomId.equals("!vxLWhAdZfvLuxAwZPq:matrix.org")) {
+                    final RoomCreateContent.Predecessor predecessor = new RoomCreateContent.Predecessor();
+                    predecessor.eventId = "";
+                    predecessor.roomId = "!ygrEcWBcCCfYsqgPLk:matrix.org";
+                    createContent.predecessor = predecessor;
+                }
+                mRoomCreateContent = createContent;
             } else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(eventType)) {
                 join_rule = JsonUtils.toRoomState(contentToConsider).join_rule;
             } else if (Event.EVENT_TYPE_STATE_ROOM_GUEST_ACCESS.equals(eventType)) {
@@ -985,7 +1020,7 @@ public class RoomState implements Externalizable {
                     }
                 }
             } else if (Event.EVENT_TYPE_STATE_ROOM_TOMBSTONE.equals(eventType)) {
-                roomTombstoneContent = JsonUtils.toRoomTombstoneContent(contentToConsider);
+                mRoomTombstoneContent = JsonUtils.toRoomTombstoneContent(contentToConsider);
             }
             // same the latest room state events
             // excepts the membership ones
@@ -1132,7 +1167,7 @@ public class RoomState implements Externalizable {
         }
 
         if (input.readBoolean()) {
-            roomCreateContent = (RoomCreateContent) input.readObject();
+            mRoomCreateContent = (RoomCreateContent) input.readObject();
         }
 
         if (input.readBoolean()) {
@@ -1196,7 +1231,7 @@ public class RoomState implements Externalizable {
         }
 
         if (input.readBoolean()) {
-            roomTombstoneContent = (RoomTombstoneContent) input.readObject();
+            mRoomTombstoneContent = (RoomTombstoneContent) input.readObject();
         }
 
     }
@@ -1254,9 +1289,9 @@ public class RoomState implements Externalizable {
             output.writeUTF(avatar_url);
         }
 
-        output.writeBoolean(null != roomCreateContent);
-        if (null != roomCreateContent) {
-            output.writeObject(roomCreateContent);
+        output.writeBoolean(null != mRoomCreateContent);
+        if (null != mRoomCreateContent) {
+            output.writeObject(mRoomCreateContent);
         }
 
         output.writeBoolean(null != join_rule);
@@ -1318,9 +1353,9 @@ public class RoomState implements Externalizable {
             output.writeObject(groups);
         }
 
-        output.writeBoolean(null != roomTombstoneContent);
-        if (null != roomTombstoneContent) {
-            output.writeObject(roomTombstoneContent);
+        output.writeBoolean(null != mRoomTombstoneContent);
+        if (null != mRoomTombstoneContent) {
+            output.writeObject(mRoomTombstoneContent);
         }
     }
 }

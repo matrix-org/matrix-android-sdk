@@ -40,6 +40,10 @@ public class RoomCreateContent implements Serializable {
         return copy;
     }
 
+    public boolean hasPredecessor() {
+        return predecessor != null;
+    }
+
     /**
      * A link to an old room in case of room versioning
      */
