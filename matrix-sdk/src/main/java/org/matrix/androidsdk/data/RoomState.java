@@ -884,14 +884,7 @@ public class RoomState implements Externalizable {
             } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType)) {
                 topic = JsonUtils.toRoomState(contentToConsider).topic;
             } else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(eventType)) {
-                final RoomCreateContent createContent = JsonUtils.toRoomCreateContent(contentToConsider);
-                if (roomId.equals("!vxLWhAdZfvLuxAwZPq:matrix.org")) {
-                    final RoomCreateContent.Predecessor predecessor = new RoomCreateContent.Predecessor();
-                    predecessor.eventId = "";
-                    predecessor.roomId = "!ygrEcWBcCCfYsqgPLk:matrix.org";
-                    createContent.predecessor = predecessor;
-                }
-                mRoomCreateContent = createContent;
+                mRoomCreateContent = JsonUtils.toRoomCreateContent(contentToConsider);
             } else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(eventType)) {
                 join_rule = JsonUtils.toRoomState(contentToConsider).join_rule;
             } else if (Event.EVENT_TYPE_STATE_ROOM_GUEST_ACCESS.equals(eventType)) {
