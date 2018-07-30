@@ -28,6 +28,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Pair;
@@ -544,17 +545,16 @@ public class Room {
      * @return true if the user is invited to the room
      */
     public boolean isInvited() {
-        // Is it an initial sync for this room ?
-        RoomState state = getState();
-        String membership = null;
+        return hasMembership(RoomMember.MEMBERSHIP_INVITE);
+    }
 
-        RoomMember selfMember = state.getMember(mMyUserId);
-
-        if (null != selfMember) {
-            membership = selfMember.membership;
+    public boolean hasMembership(@NonNull final String membership) {
+        final RoomState state = getState();
+        final RoomMember selfMember = state.getMember(mMyUserId);
+        if (selfMember == null) {
+            return false;
         }
-
-        return TextUtils.equals(membership, RoomMember.MEMBERSHIP_INVITE);
+        return TextUtils.equals(selfMember.membership, membership);
     }
 
     /**
@@ -1895,53 +1895,39 @@ public class Room {
             for (Event accountDataEvent : accountDataEvents) {
                 String eventType = accountDataEvent.getType();
 
+                final RoomSummary summary = (null != getStore()) ? getStore().getSummary(getRoomId()) : null;
                 if (eventType.equals(Event.EVENT_TYPE_READ_MARKER)) {
-                    RoomSummary summary = (null != getStore()) ? getStore().getSummary(getRoomId()) : null;
-
-                    if (null != summary) {
-                        Event event = JsonUtils.toEvent(accountDataEvent.getContent());
-
+                    if (summary != null) {
+                        final Event event = JsonUtils.toEvent(accountDataEvent.getContent());
                         if (null != event && !TextUtils.equals(event.eventId, summary.getReadMarkerEventId())) {
                             Log.d(LOG_TAG, "## handleAccountDataEvents() : update the read marker to " + event.eventId + " in room " + getRoomId());
-
                             if (TextUtils.isEmpty(event.eventId)) {
                                 Log.e(LOG_TAG, "## handleAccountDataEvents() : null event id " + accountDataEvent.getContent());
                             }
-
                             summary.setReadMarkerEventId(event.eventId);
-
                             getStore().flushSummary(summary);
                             mDataHandler.onReadMarkerEvent(getRoomId());
                         }
                     }
                 } else {
-                    try {
-                        mAccountData.handleTagEvent(accountDataEvent);
-
-                        if (accountDataEvent.getType().equals(Event.EVENT_TYPE_TAGS)) {
-                            mDataHandler.onRoomTagEvent(getRoomId());
-                        }
-
-                        if (accountDataEvent.getType().equals(Event.EVENT_TYPE_URL_PREVIEW)) {
-                            JsonObject jsonObject = accountDataEvent.getContentAsJsonObject();
-
-                            if (jsonObject.has(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE)) {
-                                boolean disabled = jsonObject.get(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE).getAsBoolean();
-
-                                Set<String> roomIdsWithoutURLPreview = mDataHandler.getStore().getRoomsWithoutURLPreviews();
-
-                                if (disabled) {
-                                    roomIdsWithoutURLPreview.add(getRoomId());
-                                } else {
-                                    roomIdsWithoutURLPreview.remove(getRoomId());
-                                }
-
-                                mDataHandler.getStore().setRoomsWithoutURLPreview(roomIdsWithoutURLPreview);
+                    mAccountData.handleTagEvent(accountDataEvent);
+                    if (Event.EVENT_TYPE_TAGS.equals(accountDataEvent.getType())) {
+                        summary.setRoomTags(mAccountData.getKeys());
+                        getStore().flushSummary(summary);
+                        mDataHandler.onRoomTagEvent(getRoomId());
+                    } else if (Event.EVENT_TYPE_URL_PREVIEW.equals(accountDataEvent.getType())) {
+                        final JsonObject jsonObject = accountDataEvent.getContentAsJsonObject();
+                        if (jsonObject.has(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE)) {
+                            final boolean disabled = jsonObject.get(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE).getAsBoolean();
+                            Set<String> roomIdsWithoutURLPreview = mDataHandler.getStore().getRoomsWithoutURLPreviews();
+                            if (disabled) {
+                                roomIdsWithoutURLPreview.add(getRoomId());
+                            } else {
+                                roomIdsWithoutURLPreview.remove(getRoomId());
                             }
-                        }
 
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "## handleAccountDataEvents() : room " + getRoomId() + " failed " + e.getMessage(), e);
+                            mDataHandler.getStore().setRoomsWithoutURLPreview(roomIdsWithoutURLPreview);
+                        }
                     }
                 }
             }
@@ -3072,4 +3058,5 @@ public class Room {
     public boolean isDirect() {
         return mDataHandler.getDirectChatRoomIdsList().contains(getRoomId());
     }
+
 }

@@ -28,7 +28,9 @@ import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PowerLevels;
+import org.matrix.androidsdk.rest.model.RoomCreateContent;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.RoomTombstoneContent;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -109,12 +111,15 @@ public class RoomState implements Externalizable {
     // The topic of the room.
     public String topic;
 
+    // The tombstone content if the room has been killed
+    private RoomTombstoneContent mRoomTombstoneContent;
+
     // The avatar url of the room.
     public String url;
     public String avatar_url;
 
-    // the room creator (user id)
-    public String creator;
+    // the room create content
+    private RoomCreateContent mRoomCreateContent;
 
     // the join rule
     public String join_rule;
@@ -588,7 +593,7 @@ public class RoomState implements Externalizable {
         copy.name = name;
         copy.topic = topic;
         copy.url = url;
-        copy.creator = creator;
+        copy.mRoomCreateContent = mRoomCreateContent != null ? mRoomCreateContent.deepCopy() : null;
         copy.join_rule = join_rule;
         copy.guest_access = guest_access;
         copy.history_visibility = history_visibility;
@@ -603,7 +608,7 @@ public class RoomState implements Externalizable {
         copy.algorithm = algorithm;
         copy.mRoomAliases = new HashMap<>(mRoomAliases);
         copy.mStateEvents = new HashMap<>(mStateEvents);
-
+        copy.mRoomTombstoneContent = mRoomTombstoneContent != null ? mRoomTombstoneContent.deepCopy() : null;
         synchronized (this) {
             Iterator it = mMembers.entrySet().iterator();
             while (it.hasNext()) {
@@ -823,6 +828,34 @@ public class RoomState implements Externalizable {
     }
 
     /**
+     * @return true if the room is versioned
+     */
+    public boolean isVersioned() {
+        return mRoomTombstoneContent != null;
+    }
+
+    /**
+     * @return the room tombstone content
+     */
+    public RoomTombstoneContent getRoomTombstoneContent() {
+        return mRoomTombstoneContent;
+    }
+
+    /**
+     * @return true if the room has a predecessor
+     */
+    public boolean hasPredecessor() {
+        return mRoomCreateContent != null && mRoomCreateContent.hasPredecessor();
+    }
+
+    /**
+     * @return the room create content
+     */
+    public RoomCreateContent getRoomCreateContent() {
+        return mRoomCreateContent;
+    }
+
+    /**
      * @return the encryption algorithm
      */
     public String encryptionAlgorithm() {
@@ -851,7 +884,7 @@ public class RoomState implements Externalizable {
             } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType)) {
                 topic = JsonUtils.toRoomState(contentToConsider).topic;
             } else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(eventType)) {
-                creator = JsonUtils.toRoomState(contentToConsider).creator;
+                mRoomCreateContent = JsonUtils.toRoomCreateContent(contentToConsider);
             } else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(eventType)) {
                 join_rule = JsonUtils.toRoomState(contentToConsider).join_rule;
             } else if (Event.EVENT_TYPE_STATE_ROOM_GUEST_ACCESS.equals(eventType)) {
@@ -979,8 +1012,9 @@ public class RoomState implements Externalizable {
                         mThirdPartyInvites.put(thirdPartyInvite.token, thirdPartyInvite);
                     }
                 }
+            } else if (Event.EVENT_TYPE_STATE_ROOM_TOMBSTONE.equals(eventType)) {
+                mRoomTombstoneContent = JsonUtils.toRoomTombstoneContent(contentToConsider);
             }
-
             // same the latest room state events
             // excepts the membership ones
             // they are saved elsewhere
@@ -1126,7 +1160,7 @@ public class RoomState implements Externalizable {
         }
 
         if (input.readBoolean()) {
-            creator = input.readUTF();
+            mRoomCreateContent = (RoomCreateContent) input.readObject();
         }
 
         if (input.readBoolean()) {
@@ -1186,8 +1220,13 @@ public class RoomState implements Externalizable {
         }
 
         if (input.readBoolean()) {
-            groups = (List<String>)input.readObject();
+            groups = (List<String>) input.readObject();
         }
+
+        if (input.readBoolean()) {
+            mRoomTombstoneContent = (RoomTombstoneContent) input.readObject();
+        }
+
     }
 
     @Override
@@ -1243,9 +1282,9 @@ public class RoomState implements Externalizable {
             output.writeUTF(avatar_url);
         }
 
-        output.writeBoolean(null != creator);
-        if (null != creator) {
-            output.writeUTF(creator);
+        output.writeBoolean(null != mRoomCreateContent);
+        if (null != mRoomCreateContent) {
+            output.writeObject(mRoomCreateContent);
         }
 
         output.writeBoolean(null != join_rule);
@@ -1305,6 +1344,11 @@ public class RoomState implements Externalizable {
         output.writeBoolean(null != groups);
         if (null != groups) {
             output.writeObject(groups);
+        }
+
+        output.writeBoolean(null != mRoomTombstoneContent);
+        if (null != mRoomTombstoneContent) {
+            output.writeObject(mRoomTombstoneContent);
         }
     }
 }
