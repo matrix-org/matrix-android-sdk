@@ -386,25 +386,21 @@ public class CallSoundsManager {
      * @param filename the filename to save the ringtone
      */
     public void startRinging(int resId, String filename) {
-        Log.d(LOG_TAG, "startRinging");
-
+        Log.v(LOG_TAG, "startRinging");
+        if (mRingTone != null) {
+            Log.v(LOG_TAG, "ring tone already ringing");
+        }
         // stop any playing ringtone
         stopSounds();
         mIsRinging = true;
-        if (null != mRingTone) {
-            Log.d(LOG_TAG, "ring tone already ringing");
-            return;
-        }
         // use the ringTone to manage sound volume properly
         mRingTone = getRingTone(mContext, resId, filename, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE));
-
-        if (null != mRingTone) {
+        if (mRingTone != null) {
             setSpeakerphoneOn(false, true);
             mRingTone.play();
         } else {
             Log.e(LOG_TAG, "startRinging : fail to retrieve RING_TONE_START_RINGING");
         }
-
         // start vibrate
         enableVibrating(true);
     }
