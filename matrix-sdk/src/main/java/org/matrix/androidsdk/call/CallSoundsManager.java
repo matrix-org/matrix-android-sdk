@@ -388,16 +388,13 @@ public class CallSoundsManager {
     public void startRinging(int resId, String filename) {
         Log.d(LOG_TAG, "startRinging");
 
+        // stop any playing ringtone
+        stopSounds();
         mIsRinging = true;
-
         if (null != mRingTone) {
             Log.d(LOG_TAG, "ring tone already ringing");
             return;
         }
-
-        // stop any playing ringtone
-        stopSounds();
-
         // use the ringTone to manage sound volume properly
         mRingTone = getRingTone(mContext, resId, filename, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE));
 
