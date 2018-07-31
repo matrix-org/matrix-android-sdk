@@ -515,6 +515,7 @@ public class RoomSummary implements java.io.Serializable {
      * @param roomTags the room tags
      */
     public void setRoomTags(final Set<String> roomTags) {
-        mRoomTags = roomTags;
+        // wraps the set into a serializable one
+        mRoomTags = new HashSet<>(roomTags);
     }
 }
