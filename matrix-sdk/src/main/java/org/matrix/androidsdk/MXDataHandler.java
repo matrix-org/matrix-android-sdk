@@ -2695,8 +2695,8 @@ public class MXDataHandler implements IMXEventListener {
         if (null != listOfList) {
             for (List<String> list : listOfList) {
                 for (String roomId : list) {
-                    // test if the room is defined once and exists
-                    if ((directChatRoomIdsList.indexOf(roomId) < 0) && (null != store.getRoom(roomId))) {
+                    // test if the room is defined once
+                    if ((directChatRoomIdsList.indexOf(roomId) < 0)) {
                         directChatRoomIdsList.add(roomId);
                     }
                 }
