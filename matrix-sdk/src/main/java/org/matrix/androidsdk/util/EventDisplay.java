@@ -18,6 +18,8 @@ package org.matrix.androidsdk.util;
 
 import android.content.Context;
 import android.graphics.Typeface;
+import android.os.Build;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.text.Html;
 import android.text.Spannable;
@@ -175,59 +177,14 @@ public class EventDisplay {
                 // the read receipt should not be displayed
                 text = "Read Receipt";
             } else if (Event.EVENT_TYPE_MESSAGE.equals(eventType)) {
-                String msgtype = (null != jsonEventContent.get("msgtype")) ? jsonEventContent.get("msgtype").getAsString() : "";
-
+                final String msgtype = (null != jsonEventContent.get("msgtype")) ? jsonEventContent.get("msgtype").getAsString() : "";
                 // all m.room.message events should support the 'body' key fallback, so use it.
-                text = jsonEventContent.has("body") ? jsonEventContent.get("body").getAsString() : null;
 
+                text = jsonEventContent.has("body") ? jsonEventContent.get("body").getAsString() : null;
                 // check for html formatting
                 if (jsonEventContent.has("formatted_body") && jsonEventContent.has("format")) {
-                    String format = jsonEventContent.getAsJsonPrimitive("format").getAsString();
-                    if (Message.FORMAT_MATRIX_HTML.equals(format)) {
-                        String htmlBody = jsonEventContent.getAsJsonPrimitive("formatted_body").getAsString();
-
-                        if (mHtmlToolbox != null) {
-                            htmlBody = mHtmlToolbox.convert(htmlBody);
-                        }
-
-                        // Special treatment for "In reply to" message
-                        if (jsonEventContent.has("m.relates_to")) {
-                            JsonElement relatesTo = jsonEventContent.get("m.relates_to");
-                            if (relatesTo.isJsonObject()) {
-                                if (relatesTo.getAsJsonObject().has("m.in_reply_to")) {
-                                    // Note: <mx-reply> tag has been removed by HtmlToolbox.convert()
-
-                                    // Replace <blockquote><a href=\"__permalink__\">In reply to</a>
-                                    // By <blockquote><a href=\"#\">['In reply to' from resources]</a>
-                                    // To disable the link and to localize the "In reply to" string
-                                    if (htmlBody.startsWith(MESSAGE_IN_REPLY_TO_FIRST_PART)) {
-                                        int index = htmlBody.indexOf(MESSAGE_IN_REPLY_TO_LAST_PART);
-
-                                        if (index != -1) {
-                                            htmlBody = MESSAGE_IN_REPLY_TO_FIRST_PART
-                                                    + "<a href=\"#\">"
-                                                    + mContext.getString(R.string.message_reply_to_prefix)
-                                                    + htmlBody.substring(index);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // some markers are not supported so fallback on an ascii display until to find the right way to manage them
-                        // an issue has been created https://github.com/vector-im/vector-android/issues/38
-                        // BMA re-enable <ol> and <li> support (https://github.com/vector-im/riot-android/issues/2184)
-                        if (!TextUtils.isEmpty(htmlBody)) {
-                            // TODO This call may be quite long, we should cache its result
-                            if (mHtmlToolbox != null) {
-                                text = Html.fromHtml(htmlBody, mHtmlToolbox.getImageGetter(), mHtmlToolbox.getTagHandler(htmlBody));
-                            } else {
-                                text = Html.fromHtml(htmlBody);
-                            }
-                        }
-                    }
+                    text = getFormattedMessage(mContext, jsonEventContent, mHtmlToolbox);
                 }
-
                 // avoid empty image name
                 if (TextUtils.equals(msgtype, Message.MSGTYPE_IMAGE) && TextUtils.isEmpty(text)) {
                     text = mContext.getString(R.string.summary_user_sent_image, userDisplayName);
@@ -241,7 +198,7 @@ public class EventDisplay {
                     if (null != displayNameColor) {
                         ((SpannableStringBuilder) text).setSpan(new ForegroundColorSpan(displayNameColor),
                                 0, userDisplayName.length() + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        ((SpannableStringBuilder) text).setSpan(new StyleSpan(android.graphics.Typeface.BOLD),
+                        ((SpannableStringBuilder) text).setSpan(new StyleSpan(Typeface.BOLD),
                                 0, userDisplayName.length() + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
                 }
@@ -288,7 +245,7 @@ public class EventDisplay {
                     }
 
                     SpannableString spannableStr = new SpannableString(message);
-                    spannableStr.setSpan(new android.text.style.StyleSpan(Typeface.ITALIC), 0, message.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    spannableStr.setSpan(new StyleSpan(Typeface.ITALIC), 0, message.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                     text = spannableStr;
                 }
             } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType)) {
@@ -591,4 +548,69 @@ public class EventDisplay {
         }
         return null;
     }
+
+
+    /**
+     * @param context          the context
+     * @param jsonEventContent the current jsonEventContent
+     * @param htmlToolbox      an optional htmlToolbox to manage html images and tag
+     * @return the formatted message as CharSequence
+     */
+    private CharSequence getFormattedMessage(@NonNull final Context context,
+                                             @NonNull final JsonObject jsonEventContent,
+                                             @Nullable final HtmlToolbox htmlToolbox) {
+        final String format = jsonEventContent.getAsJsonPrimitive("format").getAsString();
+        CharSequence text = null;
+        if (Message.FORMAT_MATRIX_HTML.equals(format)) {
+            String htmlBody = jsonEventContent.getAsJsonPrimitive("formatted_body").getAsString();
+            if (htmlToolbox != null) {
+                htmlBody = htmlToolbox.convert(htmlBody);
+            }
+            // Special treatment for "In reply to" message
+            if (jsonEventContent.has("m.relates_to")) {
+                final JsonElement relatesTo = jsonEventContent.get("m.relates_to");
+                if (relatesTo.isJsonObject()) {
+                    if (relatesTo.getAsJsonObject().has("m.in_reply_to")) {
+                        // Note: <mx-reply> tag has been removed by HtmlToolbox.convert()
+
+                        // Replace <blockquote><a href=\"__permalink__\">In reply to</a>
+                        // By <blockquote><a href=\"#\">['In reply to' from resources]</a>
+                        // To disable the link and to localize the "In reply to" string
+                        if (htmlBody.startsWith(MESSAGE_IN_REPLY_TO_FIRST_PART)) {
+                            final int index = htmlBody.indexOf(MESSAGE_IN_REPLY_TO_LAST_PART);
+                            if (index != -1) {
+                                htmlBody = MESSAGE_IN_REPLY_TO_FIRST_PART
+                                        + "<a href=\"#\">"
+                                        + context.getString(R.string.message_reply_to_prefix)
+                                        + htmlBody.substring(index);
+                            }
+                        }
+                    }
+                }
+            }
+            // some markers are not supported so fallback on an ascii display until to find the right way to manage them
+            // an issue has been created https://github.com/vector-im/vector-android/issues/38
+            // BMA re-enable <ol> and <li> support (https://github.com/vector-im/riot-android/issues/2184)
+            if (!TextUtils.isEmpty(htmlBody)) {
+                final Html.ImageGetter imageGetter;
+                final Html.TagHandler tagHandler;
+                if (htmlToolbox != null) {
+                    imageGetter = htmlToolbox.getImageGetter();
+                    tagHandler = htmlToolbox.getTagHandler(htmlBody);
+                } else {
+                    imageGetter = null;
+                    tagHandler = null;
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    text = Html.fromHtml(htmlBody,
+                            Html.FROM_HTML_SEPARATOR_LINE_BREAK_LIST_ITEM | Html.FROM_HTML_SEPARATOR_LINE_BREAK_LIST,
+                            imageGetter, tagHandler);
+                } else {
+                    text = Html.fromHtml(htmlBody, imageGetter, tagHandler);
+                }
+            }
+        }
+        return text;
+    }
+
 }

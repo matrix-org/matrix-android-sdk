@@ -11,6 +11,7 @@ Improvements:
  - Add a method to MediaScanRestClient to get the public key of the media scanner server
  - Add support for the scanning and downloading of unencrypted thumbnails
  - Set user agent on manual HttpConnection (i.e. not using a RestClient)
+ - Bullet points look esthetically bad (#2462)
 
 Bugfix:
  - Send Access Token as a header instead of a url parameter to upload content (#311)
