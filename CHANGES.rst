@@ -4,6 +4,7 @@ Changes to Matrix Android SDK in 0.9.7 (2018-XX-XX)
 Features:
  - Add MetricsListener to measure some startup and stats metrics
  - Implements ReplyTo feature. When sending an event, you can now pass another Event to reply to it. (vector-im/riot-android#2390)
+ - Manage room versioning 
 
 Improvements:
  - MXCrypto: Encrypt the messages for invited members according to the history visibility (if the option is enabled in MXCryptoConfig).
@@ -24,6 +25,8 @@ API Change:
  - Room.getLiveState() has been removed, please use Room.getState() (#310)
  - new API: Room.canReplyTo(Event) to know if replying to this event is supported.
  - New APIs PermalinkUtils.createPermalink() to create matrix permalink for an event, a room, a user, etc.
+ - New API: add hasMembership(String membership) to simplifiy test on room membership
+
 
 Translations:
  -
