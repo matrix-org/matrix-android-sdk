@@ -548,6 +548,11 @@ public class Room {
         return hasMembership(RoomMember.MEMBERSHIP_INVITE);
     }
 
+    /**
+     *
+     * @param membership is the string representing one of the membership state
+     * @return true if the user membership is equals to the membership param
+     */
     public boolean hasMembership(@NonNull final String membership) {
         final RoomState state = getState();
         final RoomMember selfMember = state.getMember(mMyUserId);

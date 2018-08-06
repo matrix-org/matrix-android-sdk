@@ -828,7 +828,8 @@ public class RoomState implements Externalizable {
     }
 
     /**
-     * @return true if the room is versioned
+     * @return true if the room is versioned, it means that the room is obsolete.
+     * You can't interact with it anymore, but you can still browse the past messages.
      */
     public boolean isVersioned() {
         return mRoomTombstoneContent != null;
