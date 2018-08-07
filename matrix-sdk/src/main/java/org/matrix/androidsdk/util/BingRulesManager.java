@@ -925,8 +925,8 @@ public class BingRulesManager {
                     sortedActions.add(target.getActionMap(BingRule.ACTION_SET_TWEAK_SOUND_VALUE));
                 }
 
-                if (null != target.getActionMap(BingRule.ACTION_SET_TWEAK_HIGHTLIGHT_VALUE)) {
-                    sortedActions.add(target.getActionMap(BingRule.ACTION_SET_TWEAK_HIGHTLIGHT_VALUE));
+                if (null != target.getActionMap(BingRule.ACTION_SET_TWEAK_HIGHLIGHT_VALUE)) {
+                    sortedActions.add(target.getActionMap(BingRule.ACTION_SET_TWEAK_HIGHLIGHT_VALUE));
                 }
             }
 
