@@ -63,4 +63,9 @@
     <string name="notice_room_third_party_registered_invite">قبل ⁨%1$s⁩ دعوة ⁨%2$s⁩</string>
 
     <string name="could_not_redact">تعذر التهذيب</string>
+    <string name="summary_user_sent_sticker">أرسل ⁨%1$s⁩ ملصقا.</string>
+
+    <string name="notice_avatar_changed_too">(تغيّرت الصورة أيضا)</string>
+    <string name="message_reply_to_prefix">ردا على</string>
+
     </resources>
