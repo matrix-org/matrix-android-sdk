@@ -48,7 +48,7 @@ public class BingRule {
     public static final String ACTION_COALESCE = "coalesce";
 
     public static final String ACTION_SET_TWEAK_SOUND_VALUE = "sound";
-    public static final String ACTION_SET_TWEAK_HIGHTLIGHT_VALUE = "highlight";
+    public static final String ACTION_SET_TWEAK_HIGHLIGHT_VALUE = "highlight";
 
     public static final String ACTION_PARAMETER_SET_TWEAK = "set_tweak";
     public static final String ACTION_PARAMETER_VALUE = "value";
@@ -275,11 +275,11 @@ public class BingRule {
      * @param highlight the highlight status
      */
     public void setHighlight(boolean highlight) {
-        Map<String, Object> actionMap = getActionMap(ACTION_SET_TWEAK_HIGHTLIGHT_VALUE);
+        Map<String, Object> actionMap = getActionMap(ACTION_SET_TWEAK_HIGHLIGHT_VALUE);
 
         if (null == actionMap) {
             actionMap = new HashMap<>();
-            actionMap.put(ACTION_PARAMETER_SET_TWEAK, ACTION_SET_TWEAK_HIGHTLIGHT_VALUE);
+            actionMap.put(ACTION_PARAMETER_SET_TWEAK, ACTION_SET_TWEAK_HIGHLIGHT_VALUE);
             actions.add(actionMap);
         }
 
@@ -298,7 +298,7 @@ public class BingRule {
     public boolean shouldHighlight() {
         boolean shouldHighlight = false;
 
-        Map<String, Object> actionMap = getActionMap(ACTION_SET_TWEAK_HIGHTLIGHT_VALUE);
+        Map<String, Object> actionMap = getActionMap(ACTION_SET_TWEAK_HIGHLIGHT_VALUE);
 
         if (null != actionMap) {
             // default behaviour
