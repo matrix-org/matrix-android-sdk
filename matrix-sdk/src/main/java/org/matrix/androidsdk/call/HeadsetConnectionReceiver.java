@@ -119,7 +119,7 @@ public class HeadsetConnectionReceiver extends BroadcastReceiver {
                 try {
                     listener.onBluetoothHeadsetUpdate(isConnected);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## onBluetoothHeadsetUpdate()) failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## onBluetoothHeadsetUpdate()) failed " + e.getMessage(), e);
                 }
             }
         }
@@ -136,7 +136,7 @@ public class HeadsetConnectionReceiver extends BroadcastReceiver {
                 try {
                     listener.onWiredHeadsetUpdate(isPlugged);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## onWiredHeadsetUpdate()) failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## onWiredHeadsetUpdate()) failed " + e.getMessage(), e);
                 }
             }
         }

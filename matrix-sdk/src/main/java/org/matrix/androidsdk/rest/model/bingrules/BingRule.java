@@ -114,7 +114,7 @@ public class BingRule {
      * Bing rule creator
      *
      * @param ruleKind  the rule kind
-     * @param aPattern  the pattern to check the conditon
+     * @param aPattern  the pattern to check the condition
      * @param notify    true to notify
      * @param highlight true to highlight
      * @param sound     true to play sound
@@ -192,7 +192,7 @@ public class BingRule {
                             return actionMap;
                         }
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## getActionMap() : " + e.getMessage());
+                        Log.e(LOG_TAG, "## getActionMap() : " + e.getMessage(), e);
                     }
                 }
             }

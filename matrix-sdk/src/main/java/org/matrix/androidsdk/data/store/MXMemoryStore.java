@@ -21,12 +21,14 @@ package org.matrix.androidsdk.data.store;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
@@ -87,6 +89,7 @@ public class MXMemoryStore implements IMXStore {
 
     //
     private final Map<String, Event> mTemporaryEventsList = new HashMap<>();
+    protected MetricsListener mMetricsListener;
 
     protected Credentials mCredentials;
 
@@ -518,9 +521,9 @@ public class MXMemoryStore implements IMXStore {
             }
         } catch (OutOfMemoryError oom) {
             dispatchOOM(oom);
-            Log.e(LOG_TAG, "## updateUserWithRoomMemberEvent() failed " + oom.getMessage());
+            Log.e(LOG_TAG, "## updateUserWithRoomMemberEvent() failed " + oom.getMessage(), oom);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## updateUserWithRoomMemberEvent() failed " + e.getMessage());
+            Log.e(LOG_TAG, "## updateUserWithRoomMemberEvent() failed " + e.getMessage(), e);
         }
     }
 
@@ -1606,5 +1609,25 @@ public class MXMemoryStore implements IMXStore {
     @Override
     public Set<String> getRoomsWithoutURLPreviews() {
         return (null != mMetadata.mRoomsListWithoutURLPrevew) ? mMetadata.mRoomsListWithoutURLPrevew : new HashSet<String>();
+    }
+
+    @Override
+    public void setAntivirusServerPublicKey(@Nullable String key) {
+        mMetadata.mAntivirusServerPublicKey = key;
+    }
+
+    @Override
+    @Nullable
+    public String getAntivirusServerPublicKey() {
+        return mMetadata.mAntivirusServerPublicKey;
+    }
+
+    /**
+     * Update the metrics listener
+     *
+     * @param metricsListener the metrics listener
+     */
+    public void setMetricsListener(MetricsListener metricsListener) {
+        mMetricsListener = metricsListener;
     }
 }

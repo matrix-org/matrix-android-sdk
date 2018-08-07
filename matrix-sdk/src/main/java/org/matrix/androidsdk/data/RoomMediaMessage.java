@@ -1,13 +1,13 @@
-/* 
+/*
  * Copyright 2016 OpenMarket Ltd
  * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,6 +31,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Pair;
 import android.webkit.MimeTypeMap;
@@ -99,6 +100,10 @@ public class RoomMediaMessage implements Parcelable {
 
     // Message.MSGTYPE_XX value
     private String mMessageType;
+
+    // The replyTo event
+    @Nullable
+    private Event mReplyToEvent;
 
     // thumbnail size
     private Pair<Integer, Integer> mThumbnailSize = new Pair<>(100, 100);
@@ -329,6 +334,23 @@ public class RoomMediaMessage implements Parcelable {
     }
 
     /**
+     * Set the replyTo event.
+     *
+     * @param replyToEvent the event to reply to
+     */
+    public void setReplyToEvent(@Nullable Event replyToEvent) {
+        mReplyToEvent = replyToEvent;
+    }
+
+    /**
+     * @return the replyTo event.
+     */
+    @Nullable
+    public Event getReplyToEvent() {
+        return mReplyToEvent;
+    }
+
+    /**
      * Update the inner event.
      *
      * @param event the new event.
@@ -349,14 +371,14 @@ public class RoomMediaMessage implements Parcelable {
      *
      * @param size the new thumbnail size.
      */
-    public void setThumnailSize(Pair<Integer, Integer> size) {
+    public void setThumbnailSize(Pair<Integer, Integer> size) {
         mThumbnailSize = size;
     }
 
     /**
      * @return the thumbnail size.
      */
-    public Pair<Integer, Integer> getThumnailSize() {
+    public Pair<Integer, Integer> getThumbnailSize() {
         return mThumbnailSize;
     }
 
@@ -550,7 +572,7 @@ public class RoomMediaMessage implements Parcelable {
                 thumbnailBitmap = MediaStore.Images.Thumbnails.getThumbnail(resolver, imageId, kind, null);
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "MediaStore.Images.Thumbnails.getThumbnail " + e.getMessage());
+            Log.e(LOG_TAG, "MediaStore.Images.Thumbnails.getThumbnail " + e.getMessage(), e);
         }
 
         return thumbnailBitmap;
@@ -574,7 +596,7 @@ public class RoomMediaMessage implements Parcelable {
                                 mFileName = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
                             }
                         } catch (Exception e) {
-                            Log.e(LOG_TAG, "cursor.getString " + e.getMessage());
+                            Log.e(LOG_TAG, "cursor.getString " + e.getMessage(), e);
                         } finally {
                             if (null != cursor) {
                                 cursor.close();
@@ -618,7 +640,7 @@ public class RoomMediaMessage implements Parcelable {
                     resource.mContentStream.close();
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## saveMedia : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## saveMedia : failed " + e.getMessage(), e);
             }
         }
     }
@@ -668,7 +690,7 @@ public class RoomMediaMessage implements Parcelable {
                     fos.write(buf, 0, len);
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## saveFile failed " + e.getMessage());
+                Log.e(LOG_TAG, "## saveFile failed " + e.getMessage(), e);
             }
 
             fos.flush();
@@ -677,7 +699,7 @@ public class RoomMediaMessage implements Parcelable {
 
             fileUri = Uri.fromFile(file);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## saveFile failed " + e.getMessage());
+            Log.e(LOG_TAG, "## saveFile failed " + e.getMessage(), e);
         }
 
         return fileUri;
@@ -695,7 +717,7 @@ public class RoomMediaMessage implements Parcelable {
             try {
                 getEventCreationListener().onEventCreated(this);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## onEventCreated() failed : " + e.getMessage());
+                Log.e(LOG_TAG, "## onEventCreated() failed : " + e.getMessage(), e);
             }
         }
 
@@ -711,7 +733,7 @@ public class RoomMediaMessage implements Parcelable {
             try {
                 getEventCreationListener().onEventCreationFailed(this, errorMessage);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## onEventCreationFailed() failed : " + e.getMessage());
+                Log.e(LOG_TAG, "## onEventCreationFailed() failed : " + e.getMessage(), e);
             }
         }
 
@@ -729,7 +751,7 @@ public class RoomMediaMessage implements Parcelable {
             try {
                 getEventCreationListener().onEncryptionFailed(this);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## onEncryptionFailed() failed : " + e.getMessage());
+                Log.e(LOG_TAG, "## onEncryptionFailed() failed : " + e.getMessage(), e);
             }
         }
 
@@ -762,6 +784,7 @@ public class RoomMediaMessage implements Parcelable {
      */
     public static List<RoomMediaMessage> listRoomMediaMessages(Intent intent, ClassLoader loader) {
         List<RoomMediaMessage> roomMediaMessages = new ArrayList<>();
+
 
         if (null != intent) {
             // chrome adds many items when sharing an web page link
@@ -845,12 +868,8 @@ public class RoomMediaMessage implements Parcelable {
                 Bundle bundle = intent.getExtras();
 
                 if (null != bundle) {
-
                     // provide a custom loader
-                    if (null != loader) {
-                        bundle.setClassLoader(RoomMediaMessage.class.getClassLoader());
-                    }
-
+                    bundle.setClassLoader(RoomMediaMessage.class.getClassLoader());
                     // list the Uris list
                     if (bundle.containsKey(Intent.EXTRA_STREAM)) {
                         try {
@@ -870,7 +889,7 @@ public class RoomMediaMessage implements Parcelable {
                                 }
                             }
                         } catch (Exception e) {
-                            Log.e(LOG_TAG, "fail to extract the extra stream");
+                            Log.e(LOG_TAG, "fail to extract the extra stream", e);
                         }
                     }
                 }

@@ -18,10 +18,11 @@ package org.matrix.androidsdk.rest.client;
 
 import android.os.AsyncTask;
 
-import org.matrix.androidsdk.util.Log;
-
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
+import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.util.Log;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -63,6 +64,9 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
         try {
             URL url = new URL(params[0]);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            if (RestClient.getUserAgent() != null) {
+                conn.setRequestProperty("User-Agent", RestClient.getUserAgent());
+            }
             conn.setRequestMethod("POST");
 
             InputStream is = new BufferedInputStream(conn.getInputStream());
@@ -102,12 +106,12 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
                 sb.append(line + "\n");
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "convertStreamToString " + e.getMessage());
+            Log.e(LOG_TAG, "convertStreamToString " + e.getMessage(), e);
         } finally {
             try {
                 is.close();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "convertStreamToString finally failed " + e.getMessage());
+                Log.e(LOG_TAG, "convertStreamToString finally failed " + e.getMessage(), e);
             }
         }
         return sb.toString();
@@ -122,7 +126,7 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
             JsonParser parser = new JsonParser();
             object = parser.parse(result).getAsJsonObject();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## onPostExecute() failed" + e.getMessage());
+            Log.e(LOG_TAG, "## onPostExecute() failed" + e.getMessage(), e);
         }
 
         if (null != mListener) {

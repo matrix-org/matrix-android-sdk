@@ -74,7 +74,7 @@ public class AutoScrollDownListView extends ListView {
         try {
             super.layoutChildren();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## layoutChildren() failed " + e.getMessage());
+            Log.e(LOG_TAG, "## layoutChildren() failed " + e.getMessage(), e);
         }
     }
 

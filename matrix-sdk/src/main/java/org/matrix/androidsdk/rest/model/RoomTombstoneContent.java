@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,12 +15,26 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+
+import com.google.gson.annotations.SerializedName;
+
+import java.io.Serializable;
+
 /**
- * Class to update the password
+ * Class to contains Tombstone information
  */
-public class ChangePasswordParams {
-    // current account information
-    public AuthParams auth;
-    // the new password
-    public String new_password;
+public class RoomTombstoneContent implements Serializable {
+
+    public String body;
+
+    @SerializedName("replacement_room")
+    public String replacementRoom;
+
+    public RoomTombstoneContent deepCopy() {
+        final RoomTombstoneContent copy = new RoomTombstoneContent();
+        copy.body = body;
+        copy.replacementRoom = replacementRoom;
+        return copy;
+    }
+
 }

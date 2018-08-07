@@ -54,7 +54,7 @@ public class MXOlmInboundGroupSession implements Serializable {
         try {
             mSession = new OlmInboundGroupSession(sessionKey);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "Cannot create : " + e.getMessage());
+            Log.e(LOG_TAG, "Cannot create : " + e.getMessage(), e);
         }
     }
 }

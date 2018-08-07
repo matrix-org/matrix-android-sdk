@@ -19,8 +19,8 @@ package org.matrix.androidsdk.crypto;
  * Class to define the parameters used to customize or configure the end-to-end crypto.
  */
 public class MXCryptoConfig {
-    // Tell whether the event content must be encrypted for invited members too.
-    // By default, we encrypt messages only for joined members.
-    // Presently the encryption for the invited members succeeds only if you already got some deviceId.
-    public boolean mEncryptMessagesForInvitedMembers = false;
+    // Tell whether the encryption of the event content is enabled for the invited members.
+    // By default, we encrypt messages only for the joined members.
+    // The encryption for the invited members will be blocked if the history visibility is "joined".
+    public boolean mEnableEncryptionForInvitedMembers = false;
 }

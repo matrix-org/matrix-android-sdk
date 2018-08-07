@@ -21,6 +21,7 @@ import android.text.TextUtils;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.pid.Invite3Pid;
 import org.matrix.androidsdk.rest.model.pid.ThreePid;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -68,11 +69,6 @@ public class CreateRoomParams {
      * Whether guests can join the room. One of: ["can_join", "forbidden"]
      */
     public String guest_access;
-
-    /**
-     * Who can see the room history. One of: ["invited", "joined", "shared", "world_readable"]
-     */
-    public String history_visibility;
 
     /**
      * A list of user IDs to invite to the room.
@@ -134,6 +130,41 @@ public class CreateRoomParams {
             } else {
                 initial_state.add(algoEvent);
             }
+        }
+    }
+
+    /**
+     * Force the history visibility in the room creation parameters.
+     *
+     * @param historyVisibility the expected history visibility, set null to remove any existing value.
+     * see {@link RoomState#HISTORY_VISIBILITY_INVITED},
+     *     {@link RoomState#HISTORY_VISIBILITY_JOINED},
+     *     {@link RoomState#HISTORY_VISIBILITY_SHARED},
+     *     {@link RoomState#HISTORY_VISIBILITY_WORLD_READABLE}
+     *
+     */
+    public void setHistoryVisibility(String historyVisibility) {
+        if (!TextUtils.isEmpty(historyVisibility)) {
+            Event historyVisibilityEvent = new Event();
+            historyVisibilityEvent.type = Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY;
+
+            Map<String, String> contentMap = new HashMap<>();
+            contentMap.put("history_visibility", historyVisibility);
+            historyVisibilityEvent.content = JsonUtils.getGson(false).toJsonTree(contentMap);
+
+            if (null == initial_state) {
+                initial_state = Arrays.asList(historyVisibilityEvent);
+            } else {
+                initial_state.add(historyVisibilityEvent);
+            }
+        } else if (!initial_state.isEmpty()) {
+            final List<Event> initialState = new ArrayList<>();
+            for (Event event : initial_state) {
+                if (!event.type.equals(Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY)) {
+                    initialState.add(event);
+                }
+            }
+            initial_state = initialState;
         }
     }
 

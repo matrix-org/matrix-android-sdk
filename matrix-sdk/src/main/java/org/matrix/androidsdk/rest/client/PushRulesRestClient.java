@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,32 +18,28 @@ package org.matrix.androidsdk.rest.client;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
-import org.matrix.androidsdk.rest.api.BingRulesApi;
+import org.matrix.androidsdk.rest.api.PushRulesApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.DefaultRetrofit2CallbackWrapper;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
-import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
+import org.matrix.androidsdk.rest.model.bingrules.PushRulesResponse;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-
-public class BingRulesRestClient extends RestClient<BingRulesApi> {
+public class PushRulesRestClient extends RestClient<PushRulesApi> {
 
     /**
      * {@inheritDoc}
      */
-    public BingRulesRestClient(HomeServerConnectionConfig hsConfig) {
-        super(hsConfig, BingRulesApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
+    public PushRulesRestClient(HomeServerConnectionConfig hsConfig) {
+        super(hsConfig, PushRulesApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
     }
 
     /**
-     * Retrieve the bing rules list.
+     * Retrieve the push rules list.
      *
      * @param callback the asynchronous callback.
      */
-    public void getAllBingRules(final ApiCallback<BingRulesResponse> callback) {
-        mApi.getAllBingRules().enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
+    public void getAllRules(final ApiCallback<PushRulesResponse> callback) {
+        mApi.getAllRules().enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
     }
 
     /**

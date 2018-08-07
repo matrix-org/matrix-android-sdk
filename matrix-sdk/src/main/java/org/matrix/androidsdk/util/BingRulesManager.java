@@ -26,16 +26,16 @@ import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.rest.client.BingRulesRestClient;
+import org.matrix.androidsdk.rest.client.PushRulesRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
-import org.matrix.androidsdk.rest.model.bingrules.BingRuleSet;
-import org.matrix.androidsdk.rest.model.bingrules.BingRulesResponse;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
 import org.matrix.androidsdk.rest.model.bingrules.ContainsDisplayNameCondition;
 import org.matrix.androidsdk.rest.model.bingrules.ContentRule;
 import org.matrix.androidsdk.rest.model.bingrules.EventMatchCondition;
+import org.matrix.androidsdk.rest.model.bingrules.PushRuleSet;
+import org.matrix.androidsdk.rest.model.bingrules.PushRulesResponse;
 import org.matrix.androidsdk.rest.model.bingrules.RoomMemberCountCondition;
 import org.matrix.androidsdk.rest.model.bingrules.SenderNotificationPermissionCondition;
 import org.matrix.androidsdk.rest.model.message.Message;
@@ -82,13 +82,13 @@ public class BingRulesManager {
     }
 
     // general members
-    private final BingRulesRestClient mApiClient;
+    private final PushRulesRestClient mApiClient;
     private final MXSession mSession;
     private final String mMyUserId;
     private final MXDataHandler mDataHandler;
 
     // the rules set to apply
-    private BingRuleSet mRulesSet = new BingRuleSet();
+    private PushRuleSet mRulesSet = new PushRuleSet();
 
     // the rules list
     private final List<BingRule> mRules = new ArrayList<>();
@@ -216,7 +216,7 @@ public class BingRulesManager {
             try {
                 listener.onBingRulesUpdate();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## onBingRulesUpdate() : onBingRulesUpdate failed " + e.getMessage());
+                Log.e(LOG_TAG, "## onBingRulesUpdate() : onBingRulesUpdate failed " + e.getMessage(), e);
             }
         }
     }
@@ -230,9 +230,9 @@ public class BingRulesManager {
         mLoadRulesCallback = null;
 
         Log.d(LOG_TAG, "## loadRules() : refresh the bing rules");
-        mApiClient.getAllBingRules(new ApiCallback<BingRulesResponse>() {
+        mApiClient.getAllRules(new ApiCallback<PushRulesResponse>() {
             @Override
-            public void onSuccess(BingRulesResponse info) {
+            public void onSuccess(PushRulesResponse info) {
                 Log.d(LOG_TAG, "## loadRules() : succeeds");
 
                 buildRules(info);
@@ -299,7 +299,7 @@ public class BingRulesManager {
             Pattern pattern = Pattern.compile("(\\W|^)" + subString + "(\\W|$)", Pattern.CASE_INSENSITIVE);
             found = pattern.matcher(longString).find();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "caseInsensitiveFind : pattern.matcher failed with " + e.getMessage());
+            Log.e(LOG_TAG, "caseInsensitiveFind : pattern.matcher failed with " + e.getMessage(), e);
         }
 
         return found;
@@ -396,8 +396,8 @@ public class BingRulesManager {
                             if ((null != mSession.getDataHandler()) && (null != mSession.getDataHandler().getStore())) {
                                 Room room = mSession.getDataHandler().getStore().getRoom(event.roomId);
 
-                                if ((null != room) && (null != room.getLiveState())) {
-                                    String disambiguousedName = room.getLiveState().getMemberName(mMyUserId);
+                                if ((null != room) && (null != room.getState())) {
+                                    String disambiguousedName = room.getState().getMemberName(mMyUserId);
 
                                     if (!TextUtils.equals(disambiguousedName, mMyUserId)) {
                                         pattern = Pattern.quote(disambiguousedName);
@@ -470,7 +470,7 @@ public class BingRulesManager {
                         if (event.roomId != null) {
                             Room room = mDataHandler.getRoom(event.roomId, false);
 
-                            if (!((SenderNotificationPermissionCondition) condition).isSatisfied(room.getLiveState().getPowerLevels(), event.sender)) {
+                            if (!((SenderNotificationPermissionCondition) condition).isSatisfied(room.getState().getPowerLevels(), event.sender)) {
                                 return false;
                             }
                         }
@@ -483,20 +483,20 @@ public class BingRulesManager {
                 }
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## eventMatchesConditions() failed " + e.getMessage());
+            Log.e(LOG_TAG, "## eventMatchesConditions() failed " + e.getMessage(), e);
             return false;
         }
         return true;
     }
 
     /**
-     * Build the internal build rules
+     * Build the internal push rules
      *
-     * @param bingRulesResponse the server request response.
+     * @param pushRulesResponse the server request response.
      */
-    public void buildRules(BingRulesResponse bingRulesResponse) {
-        if (null != bingRulesResponse) {
-            updateRulesSet(bingRulesResponse.global);
+    public void buildRules(PushRulesResponse pushRulesResponse) {
+        if (null != pushRulesResponse) {
+            updateRulesSet(pushRulesResponse.global);
             onBingRulesUpdate();
         }
     }
@@ -504,7 +504,7 @@ public class BingRulesManager {
     /**
      * @return the rules set
      */
-    public BingRuleSet pushRules() {
+    public PushRuleSet pushRules() {
         return mRulesSet;
     }
 
@@ -513,7 +513,7 @@ public class BingRulesManager {
      *
      * @param ruleSet the new ruleSet to apply
      */
-    private void updateRulesSet(BingRuleSet ruleSet) {
+    private void updateRulesSet(PushRuleSet ruleSet) {
         synchronized (this) {
             // clear the rules list
             // it is
@@ -521,7 +521,7 @@ public class BingRulesManager {
 
             // sanity check
             if (null == ruleSet) {
-                mRulesSet = new BingRuleSet();
+                mRulesSet = new PushRuleSet();
                 return;
             }
 
@@ -673,7 +673,7 @@ public class BingRulesManager {
                             listener.onBingRuleUpdateFailure(TextUtils.isEmpty(errorMsg) ? error : errorMsg);
                         }
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## forceRulesRefresh() : failed " + e.getMessage());
+                        Log.e(LOG_TAG, "## forceRulesRefresh() : failed " + e.getMessage(), e);
                     }
                 }
 
@@ -776,7 +776,7 @@ public class BingRulesManager {
                 try {
                     listener.onBingRuleUpdateSuccess();
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## deleteRule : onBingRuleUpdateSuccess failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## deleteRule : onBingRuleUpdateSuccess failed " + e.getMessage(), e);
                 }
             }
             return;
@@ -811,7 +811,7 @@ public class BingRulesManager {
                 try {
                     listener.onBingRuleUpdateSuccess();
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## deleteRules() : onBingRuleUpdateSuccess failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## deleteRules() : onBingRuleUpdateSuccess failed " + e.getMessage(), e);
                 }
             }
 
@@ -831,7 +831,7 @@ public class BingRulesManager {
                     try {
                         listener.onBingRuleUpdateFailure(errorMessage);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## deleteRules() : onBingRuleUpdateFailure failed " + e.getMessage());
+                        Log.e(LOG_TAG, "## deleteRules() : onBingRuleUpdateFailure failed " + e.getMessage(), e);
                     }
                 }
             }
@@ -852,7 +852,7 @@ public class BingRulesManager {
                 try {
                     listener.onBingRuleUpdateSuccess();
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## addRule : onBingRuleUpdateSuccess failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## addRule : onBingRuleUpdateSuccess failed " + e.getMessage(), e);
                 }
             }
             return;

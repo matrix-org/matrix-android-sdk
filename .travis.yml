@@ -40,6 +40,6 @@ cache:
 
 # Just build the project for now
 script:
-  - ./gradlew clean lintRelease test assembleRelease --stacktrace
+  - ./gradlew clean lintRelease test assembleRelease assembleAndroidTest --stacktrace
   - ./tools/check/check_code_quality.sh
   - ./tools/travis/check_pr.sh

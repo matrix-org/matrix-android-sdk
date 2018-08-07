@@ -67,7 +67,7 @@ public  class LocationMessage extends Message {
                     thumbnail_url = null;
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## checkMediaUrls() failed " + e.getMessage());
+                Log.e(LOG_TAG, "## checkMediaUrls() failed " + e.getMessage(), e);
             }
         }
     }

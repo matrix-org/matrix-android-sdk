@@ -16,6 +16,8 @@
 package org.matrix.androidsdk.rest.api;
 
 import org.matrix.androidsdk.rest.model.EncryptedMediaScanBody;
+import org.matrix.androidsdk.rest.model.EncryptedMediaScanEncryptedBody;
+import org.matrix.androidsdk.rest.model.MediaScanPublicKeyResult;
 import org.matrix.androidsdk.rest.model.MediaScanResult;
 
 import retrofit2.Call;
@@ -29,9 +31,15 @@ import retrofit2.http.Path;
  */
 public interface MediaScanApi {
     /**
+     * Get the current public curve25519 key that the AV server is advertising.
+     */
+    @GET("public_key")
+    Call<MediaScanPublicKeyResult> getServerPublicKey();
+
+    /**
      * Scan an unencrypted file.
      *
-     * @param domain the server name
+     * @param domain  the server name
      * @param mediaId the user id
      */
     @GET("scan/{domain}/{mediaId}")
@@ -44,4 +52,12 @@ public interface MediaScanApi {
      */
     @POST("scan_encrypted")
     Call<MediaScanResult> scanEncrypted(@Body EncryptedMediaScanBody encryptedMediaScanBody);
+
+    /**
+     * Scan an encrypted file, sending an encrypted body.
+     *
+     * @param encryptedMediaScanEncryptedBody the encrypted encryption information required to decrypt the content before scanning it.
+     */
+    @POST("scan_encrypted")
+    Call<MediaScanResult> scanEncrypted(@Body EncryptedMediaScanEncryptedBody encryptedMediaScanEncryptedBody);
 }

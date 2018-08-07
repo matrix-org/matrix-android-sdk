@@ -223,7 +223,6 @@ public class EventsRestClient extends RestClient<EventsApi> {
         setConnectionTimeout(RestClient.CONNECTION_TIMEOUT_MS * ((null == token) ? 2 : 1));
 
         final String description = "syncFromToken";
-
         // Disable retry because it interferes with clientTimeout
         // Let the client manage retries on events streams
         mApi.sync(params)
@@ -560,26 +559,26 @@ public class EventsRestClient extends RestClient<EventsApi> {
     /**
      * Retrieve the URL preview information.
      *
-     * @param URL      the URL
+     * @param url      the URL
      * @param ts       the timestamp
      * @param callback the asynchronous callback
      */
-    public void getURLPreview(final String URL, final long ts, final ApiCallback<URLPreview> callback) {
-        final String description = "getURLPreview : URL " + URL + " with ts " + ts;
+    public void getURLPreview(final String url, final long ts, final ApiCallback<URLPreview> callback) {
+        final String description = "getURLPreview : URL " + url + " with ts " + ts;
 
-        mApi.getURLPreview(URL, ts)
+        mApi.getURLPreview(url, ts)
                 .enqueue(new RestAdapterCallback<Map<String, Object>>(description, null, false,
                         new SimpleApiCallback <Map<String, Object>>(callback) {
             @Override
             public void onSuccess(Map<String, Object> map) {
                 if (null != callback) {
-                    callback.onSuccess(new URLPreview(map));
+                    callback.onSuccess(new URLPreview(map, url));
                 }
             }
         }, new RestAdapterCallback.RequestRetryCallBack() {
             @Override
             public void onRetry() {
-                getURLPreview(URL, ts, callback);
+                getURLPreview(url, ts, callback);
             }
         }));
     }

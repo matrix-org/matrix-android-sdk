@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +16,8 @@
  */
 
 package org.matrix.androidsdk.crypto.algorithms;
+
+import android.support.annotation.Nullable;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
@@ -34,13 +37,14 @@ public interface IMXDecrypting {
     void initWithMatrixSession(MXSession matrixSession);
 
     /**
-     * Decrypt a message
+     * Decrypt an event
      *
      * @param event    the raw event.
      * @param timeline the id of the timeline where the event is decrypted. It is used to prevent replay attack.
-     * @return the decryption information
+     * @return the decryption information, or null in case of error
      * @throws MXDecryptionException the decryption failure reason
      */
+    @Nullable
     MXEventDecryptionResult decryptEvent(Event event, String timeline) throws MXDecryptionException;
 
     /**

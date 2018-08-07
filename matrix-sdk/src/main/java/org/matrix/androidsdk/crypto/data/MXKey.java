@@ -102,7 +102,7 @@ public class MXKey implements Serializable {
                     keyId = components[1];
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## setKeyFullId() failed : " + e.getMessage());
+                Log.e(LOG_TAG, "## setKeyFullId() failed : " + e.getMessage(), e);
             }
         }
     }

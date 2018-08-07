@@ -1,6 +1,7 @@
 /*
  * Copyright 2015 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,11 +19,13 @@
 package org.matrix.androidsdk.data.store;
 
 import android.content.Context;
+import android.support.annotation.Nullable;
 
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
@@ -606,4 +609,22 @@ public interface IMXStore {
      * @return the room ids list which don't have URL preview enabled
      */
     Set<String> getRoomsWithoutURLPreviews();
+
+    /**
+     * Set the public key of the antivirus server
+     */
+    void setAntivirusServerPublicKey(@Nullable String key);
+
+    /**
+     * @return the public key of the antivirus server
+     */
+    @Nullable
+    String getAntivirusServerPublicKey();
+
+    /**
+     * Update the metrics listener
+     *
+     * @param metricsListener the metrics listener
+     */
+    void setMetricsListener(MetricsListener metricsListener);
 }

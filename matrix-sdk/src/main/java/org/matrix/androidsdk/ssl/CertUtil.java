@@ -18,15 +18,15 @@ package org.matrix.androidsdk.ssl;
 
 import android.util.Pair;
 
-import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.HomeServerConnectionConfig;
+import org.matrix.androidsdk.util.Log;
 
 import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.net.ssl.HostnameVerifier;
@@ -156,7 +156,7 @@ public class CertUtil {
                 try {
                     tf = TrustManagerFactory.getInstance("PKIX");
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## newPinnedSSLSocketFactory() : TrustManagerFactory.getInstance failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## newPinnedSSLSocketFactory() : TrustManagerFactory.getInstance failed " + e.getMessage(), e);
                 }
 
                 // it doesn't exist, use the default one.
@@ -164,7 +164,7 @@ public class CertUtil {
                     try {
                         tf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## addRule : onBingRuleUpdateFailure failed " + e.getMessage());
+                        Log.e(LOG_TAG, "## addRule : onBingRuleUpdateFailure failed " + e.getMessage(), e);
                     }
                 }
 
@@ -250,6 +250,14 @@ public class CertUtil {
 
         builder.supportsTlsExtensions(hsConfig.shouldAcceptTlsExtensions());
 
-        return Collections.singletonList(builder.build());
+        List<ConnectionSpec> list = new ArrayList<>();
+
+        list.add(builder.build());
+
+        if (hsConfig.isHttpConnectionAllowed()) {
+            list.add(ConnectionSpec.CLEARTEXT);
+        }
+
+        return list;
     }
 }

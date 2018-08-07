@@ -22,6 +22,7 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Pair;
 
@@ -94,7 +95,7 @@ public class RestClient<T> {
     protected HomeServerConnectionConfig mHsConfig;
 
     // unitary tests only
-    public static boolean mUseMXExececutor = false;
+    public static boolean mUseMXExecutor = false;
 
     // the user agent
     private static String sUserAgent = null;
@@ -182,7 +183,7 @@ public class RestClient<T> {
                 .addNetworkInterceptor(new StethoInterceptor());
 
 
-        if (mUseMXExececutor) {
+        if (mUseMXExecutor) {
             okHttpClientBuilder.dispatcher(new Dispatcher(new MXRestExecutorService()));
         }
 
@@ -192,7 +193,7 @@ public class RestClient<T> {
             okHttpClientBuilder.hostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
             okHttpClientBuilder.connectionSpecs(CertUtil.newConnectionSpecs(hsConfig));
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage());
+            Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage(), e);
         }
 
         mOkHttpClient = okHttpClientBuilder.build();
@@ -249,6 +250,7 @@ public class RestClient<T> {
 
     /**
      * Create an user agent with the application version.
+     * Ex: Riot/0.8.12 (Linux; U; Android 6.0.1; SM-A510F Build/MMB29; Flavour FDroid; MatrixAndroidSDK 0.9.6)
      *
      * @param appContext the application context
      */
@@ -265,7 +267,7 @@ public class RestClient<T> {
                 PackageInfo pkgInfo = pm.getPackageInfo(appContext.getApplicationContext().getPackageName(), 0);
                 appVersion = pkgInfo.versionName;
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## initUserAgent() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## initUserAgent() : failed " + e.getMessage(), e);
             }
         }
 
@@ -293,6 +295,16 @@ public class RestClient<T> {
     }
 
     /**
+     * Get the current user agent
+     *
+     * @return the current user agent, or null in case of error or if not initialized yet
+     */
+    @Nullable
+    public static String getUserAgent() {
+        return sUserAgent;
+    }
+
+    /**
      * Refresh the connection timeouts.
      *
      * @param networkConnectivityReceiver the network connectivity receiver
@@ -308,12 +320,12 @@ public class RestClient<T> {
                     .readTimeout((int) (READ_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS)
                     .writeTimeout((int) (WRITE_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS);
 
-            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update setConnectTimeout to " + (CONNECTION_TIMEOUT_MS * factor) + " ms");
-            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update setReadTimeout to " + (READ_TIMEOUT_MS * factor) + " ms");
-            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update setWriteTimeout to " + (WRITE_TIMEOUT_MS * factor) + " ms");
+            Log.d(LOG_TAG, "## refreshConnectionTimeout()  : update setConnectTimeout to " + (CONNECTION_TIMEOUT_MS * factor) + " ms");
+            Log.d(LOG_TAG, "## refreshConnectionTimeout()  : update setReadTimeout to " + (READ_TIMEOUT_MS * factor) + " ms");
+            Log.d(LOG_TAG, "## refreshConnectionTimeout()  : update setWriteTimeout to " + (WRITE_TIMEOUT_MS * factor) + " ms");
         } else {
             builder.connectTimeout(1, TimeUnit.MILLISECONDS);
-            Log.e(LOG_TAG, "## refreshConnectionTimeout()  : update the requests timeout to 1 ms");
+            Log.d(LOG_TAG, "## refreshConnectionTimeout()  : update the requests timeout to 1 ms");
         }
 
         mOkHttpClient = builder.build();
@@ -358,7 +370,7 @@ public class RestClient<T> {
         networkConnectivityReceiver.addEventListener(new IMXNetworkEventListener() {
             @Override
             public void onNetworkConnectionUpdate(boolean isConnected) {
-                Log.e(LOG_TAG, "## setUnsentEventsManager()  : update the requests timeout to " + (isConnected ? CONNECTION_TIMEOUT_MS : 1) + " ms");
+                Log.d(LOG_TAG, "## setUnsentEventsManager()  : update the requests timeout to " + (isConnected ? CONNECTION_TIMEOUT_MS : 1) + " ms");
                 refreshConnectionTimeout(networkConnectivityReceiver);
             }
         });

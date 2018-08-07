@@ -263,7 +263,7 @@ public class MatrixMessagesFragment extends Fragment {
 
                 // check if some required fields are initialized
                 // else, the joining could have been half broken (network error)
-                if (null != mRoom.getState().creator) {
+                if (null != mRoom.getState().getRoomCreateContent()) {
                     RoomMember self = mRoom.getMember(mSession.getCredentials().userId);
                     if (self != null &&
                             (RoomMember.MEMBERSHIP_JOIN.equals(self.membership) ||
@@ -652,7 +652,6 @@ public class MatrixMessagesFragment extends Fragment {
             }
 
             private void onError(String errorMessage) {
-                Log.e(LOG_TAG, "joinRoom error: " + errorMessage);
                 if (null != getActivity()) {
                     Toast.makeText(mContext, errorMessage, Toast.LENGTH_SHORT).show();
                     getActivity().finish();
@@ -662,7 +661,7 @@ public class MatrixMessagesFragment extends Fragment {
             // the request will be automatically restarted when a valid network will be found
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "joinRoom Network error: " + e.getMessage());
+                Log.e(LOG_TAG, "joinRoom Network error: " + e.getMessage(), e);
                 onError(e.getLocalizedMessage());
             }
 
@@ -674,7 +673,7 @@ public class MatrixMessagesFragment extends Fragment {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "joinRoom Override : " + e.getMessage());
+                Log.e(LOG_TAG, "joinRoom Override : " + e.getMessage(), e);
                 onError(e.getLocalizedMessage());
             }
         });
