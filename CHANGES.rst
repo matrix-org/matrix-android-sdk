@@ -19,6 +19,7 @@ Bugfix:
  - Add API CallSoundsManager.startRingingSilently() to fix issue when incoming call sound is disable (vector-im/riot-android#2417)
  - Use same TxId when resending an event. The eventId is used as a TxId. (vector-im/riot-android#1997)
  - Fix bad bing on '@room' pattern. (vector-im/riot-android#2461)
+ - Fix Crash loop reported by RageShake (vector-im/riot-android#2501)
 
 API Change:
  - Parameter historyVisibility removed from MxSession.createRoom(). It had no effect.
