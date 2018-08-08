@@ -339,7 +339,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
                                 final int aRotation,
                                 final String mimeType,
                                 final EncryptedFileInfo encryptionInfo,
-                                final SimpleApiCallback<Bitmap> callback) {
+                                final ApiCallback<Bitmap> callback) {
         if (TextUtils.isEmpty(url)) {
             Log.d(LOG_TAG, "bitmapForURL : null url");
             return false;

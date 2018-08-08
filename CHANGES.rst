@@ -27,7 +27,7 @@ API Change:
  - Room.getLiveState() has been removed, please use Room.getState() (#310)
  - new API: Room.canReplyTo(Event) to know if replying to this event is supported.
  - New APIs PermalinkUtils.createPermalink() to create matrix permalink for an event, a room, a user, etc.
- - New API: add hasMembership(String membership) to simplifiy test on room membership
+ - New API: add hasMembership(String membership) to simplify test on room membership
 
 
 Translations:

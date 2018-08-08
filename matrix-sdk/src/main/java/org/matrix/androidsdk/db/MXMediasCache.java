@@ -37,6 +37,7 @@ import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
 import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
 import org.matrix.androidsdk.listeners.MXMediaDownloadListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.MediaScanRestClient;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
@@ -210,7 +211,7 @@ public class MXMediasCache {
      * @param context  the context
      * @param callback the asynchronous callback
      */
-    public static void getCachesSize(final Context context, final SimpleApiCallback<Long> callback) {
+    public static void getCachesSize(final Context context, final ApiCallback<Long> callback) {
         AsyncTask<Void, Void, Long> task = new AsyncTask<Void, Void, Long>() {
             @Override
             protected Long doInBackground(Void... params) {
@@ -434,7 +435,7 @@ public class MXMediasCache {
     public boolean createTmpMediaFile(String url,
                                       String mimeType,
                                       EncryptedFileInfo encryptedFileInfo,
-                                      SimpleApiCallback<File> callback) {
+                                      ApiCallback<File> callback) {
         return createTmpMediaFile(url,
                 -1,
                 -1,
@@ -460,7 +461,7 @@ public class MXMediasCache {
                                       int height,
                                       String mimeType,
                                       final EncryptedFileInfo encryptedFileInfo,
-                                      final SimpleApiCallback<File> callback) {
+                                      final ApiCallback<File> callback) {
         final File file = mediaCacheFile(url, width, height, mimeType);
 
         if (null != file) {

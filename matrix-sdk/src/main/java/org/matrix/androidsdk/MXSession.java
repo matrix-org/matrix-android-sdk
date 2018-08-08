@@ -587,7 +587,7 @@ public class MXSession {
      * @param context  the context
      * @param callback the asynchronous callback
      */
-    public static void getApplicationSizeCaches(final Context context, final SimpleApiCallback<Long> callback) {
+    public static void getApplicationSizeCaches(final Context context, final ApiCallback<Long> callback) {
         AsyncTask<Void, Void, Long> task = new AsyncTask<Void, Void, Long>() {
             @Override
             protected Long doInBackground(Void... params) {

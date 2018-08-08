@@ -59,7 +59,7 @@ public class GroupsManager {
     private IMXStore mStore;
 
     // callbacks
-    private Set<SimpleApiCallback<Void>> mRefreshProfilesCallback = new HashSet<>();
+    private Set<ApiCallback<Void>> mRefreshProfilesCallback = new HashSet<>();
 
     //
     private final Map<String, ApiCallback<Void>> mPendingJoinGroups = new HashMap<>();
@@ -104,7 +104,7 @@ public class GroupsManager {
      * Call when the session is resumed
      */
     public void onSessionResumed() {
-        refreshGroupProfiles((SimpleApiCallback<Void>) null);
+        refreshGroupProfiles((ApiCallback<Void>) null);
         getUserPublicisedGroups(mDataHandler.getUserId(), true, new SimpleApiCallback<Set<String>>());
 
         mGroupProfileByGroupId.clear();
@@ -307,7 +307,7 @@ public class GroupsManager {
      *
      * @param callback the asynchronous callback
      */
-    public void refreshGroupProfiles(SimpleApiCallback<Void> callback) {
+    public void refreshGroupProfiles(ApiCallback<Void> callback) {
         if (!mRefreshProfilesCallback.isEmpty()) {
             Log.d(LOG_TAG, "## refreshGroupProfiles() : there already is a pending request");
             mRefreshProfilesCallback.add(callback);
@@ -325,7 +325,7 @@ public class GroupsManager {
      */
     private void refreshGroupProfiles(final Iterator<Group> iterator) {
         if (!iterator.hasNext()) {
-            for (SimpleApiCallback<Void> callback : mRefreshProfilesCallback) {
+            for (ApiCallback<Void> callback : mRefreshProfilesCallback) {
                 try {
                     if (null != callback) {
                         callback.onSuccess(null);

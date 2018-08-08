@@ -25,6 +25,7 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.store.IMXStore;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PowerLevels;
@@ -301,7 +302,7 @@ public class RoomState implements Externalizable {
      * @param types    the allowed event types.
      * @param callback the asynchronous callback.
      */
-    public void getStateEvents(IMXStore store, final Set<String> types, final SimpleApiCallback<List<Event>> callback) {
+    public void getStateEvents(IMXStore store, final Set<String> types, final ApiCallback<List<Event>> callback) {
         if (null != store) {
             final List<Event> stateEvents = new ArrayList<>();
 
