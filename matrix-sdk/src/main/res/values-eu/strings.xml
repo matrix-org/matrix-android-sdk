@@ -68,4 +68,9 @@
 
     <string name="message_reply_to_prefix">Honi erantzunez</string>
 
-    </resources>
+    <string name="reply_to_an_image">irudi bat bidali du.</string>
+    <string name="reply_to_a_video">bideo bat bidali du.</string>
+    <string name="reply_to_an_audio_file">audio fitxategi bat bidali du.</string>
+    <string name="reply_to_a_file">fitxategi bat bidali du.</string>
+
+</resources>
