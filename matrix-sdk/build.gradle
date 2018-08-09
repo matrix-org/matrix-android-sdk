@@ -18,7 +18,7 @@ android {
         // use version to define a version code.
         versionCode 907
         version "0.9.7"
-        versionName "0.9.7-dev"
+        versionName "0.9.7"
         resValue "string", "flavor_description", "SDKApp"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
      }
