@@ -19,6 +19,7 @@ Bugfix:
  - Add API CallSoundsManager.startRingingSilently() to fix issue when incoming call sound is disable (vector-im/riot-android#2417)
  - Use same TxId when resending an event. The eventId is used as a TxId. (vector-im/riot-android#1997)
  - Fix bad bing on '@room' pattern. (vector-im/riot-android#2461)
+ - Fix Crash loop reported by RageShake (vector-im/riot-android#2501)
 
 API Change:
  - Parameter historyVisibility removed from MxSession.createRoom(). It had no effect.
@@ -26,7 +27,7 @@ API Change:
  - Room.getLiveState() has been removed, please use Room.getState() (#310)
  - new API: Room.canReplyTo(Event) to know if replying to this event is supported.
  - New APIs PermalinkUtils.createPermalink() to create matrix permalink for an event, a room, a user, etc.
- - New API: add hasMembership(String membership) to simplifiy test on room membership
+ - New API: add hasMembership(String membership) to simplify test on room membership
 
 
 Translations:

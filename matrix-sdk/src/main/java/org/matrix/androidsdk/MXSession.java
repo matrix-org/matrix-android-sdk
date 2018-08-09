@@ -38,6 +38,7 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.RoomTag;
+import org.matrix.androidsdk.data.comparator.RoomComparatorWithTag;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.data.cryptostore.MXFileCryptoStore;
 import org.matrix.androidsdk.data.metrics.MetricsListener;
@@ -586,7 +587,7 @@ public class MXSession {
      * @param context  the context
      * @param callback the asynchronous callback
      */
-    public static void getApplicationSizeCaches(final Context context, final SimpleApiCallback<Long> callback) {
+    public static void getApplicationSizeCaches(final Context context, final ApiCallback<Long> callback) {
         AsyncTask<Void, Void, Long> task = new AsyncTask<Void, Void, Long>() {
             @Override
             protected Long doInBackground(Void... params) {
@@ -1575,7 +1576,7 @@ public class MXSession {
      * @return the rooms list.
      */
     public List<Room> roomsWithTag(final String tag) {
-        List<Room> taggedRooms = new ArrayList<>();
+        final List<Room> taggedRooms = new ArrayList<>();
 
         // sanity check
         if (null == mDataHandler.getStore()) {
@@ -1583,53 +1584,17 @@ public class MXSession {
         }
 
         if (!TextUtils.equals(tag, RoomTag.ROOM_TAG_NO_TAG)) {
-            Collection<Room> rooms = mDataHandler.getStore().getRooms();
-
+            final Collection<Room> rooms = mDataHandler.getStore().getRooms();
             for (Room room : rooms) {
                 if (null != room.getAccountData().roomTag(tag)) {
                     taggedRooms.add(room);
                 }
             }
-
             if (taggedRooms.size() > 0) {
-                Collections.sort(taggedRooms, new Comparator<Room>() {
-                    @Override
-                    public int compare(Room r1, Room r2) {
-                        int res = 0;
-
-                        RoomTag tag1 = r1.getAccountData().roomTag(tag);
-                        RoomTag tag2 = r2.getAccountData().roomTag(tag);
-
-                        if ((null != tag1.mOrder) && (null != tag2.mOrder)) {
-                            double diff = (tag1.mOrder - tag2.mOrder);
-                            res = (diff == 0) ? 0 : (diff > 0) ? +1 : -1;
-                        } else if (null != tag1.mOrder) {
-                            res = -1;
-                        } else if (null != tag2.mOrder) {
-                            res = +1;
-                        }
-
-                        // In case of same order, order rooms by their last event
-                        if (0 == res) {
-                            IMXStore store = mDataHandler.getStore();
-
-                            Event latestEvent1 = store.getLatestEvent(r1.getRoomId());
-                            Event latestEvent2 = store.getLatestEvent(r2.getRoomId());
-
-                            // sanity check
-                            if ((null != latestEvent2) && (null != latestEvent1)) {
-                                long diff = (latestEvent2.getOriginServerTs() - latestEvent1.getOriginServerTs());
-                                res = (diff == 0) ? 0 : (diff > 0) ? +1 : -1;
-                            }
-                        }
-
-                        return res;
-                    }
-                });
+                Collections.sort(taggedRooms, new RoomComparatorWithTag(tag));
             }
         } else {
-            Collection<Room> rooms = mDataHandler.getStore().getRooms();
-
+            final Collection<Room> rooms = mDataHandler.getStore().getRooms();
             for (Room room : rooms) {
                 if (!room.getAccountData().hasTags()) {
                     taggedRooms.add(room);

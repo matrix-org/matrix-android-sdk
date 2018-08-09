@@ -106,7 +106,7 @@ public class EventMatchCondition extends Condition {
         // If no special characters were found (detected here by no replacements having been made),
         // add asterisks and boundaries to both sides
         if (res.equals(glob)) {
-            res = ".*\\B" + res + "\\b.*";
+            res = "(^|.*\\W)" + res + "($|\\W.*)";
         }
         return res;
     }

@@ -30,6 +30,7 @@ import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.metrics.MetricsListener;
+import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
@@ -1471,7 +1472,7 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
-    public void getRoomStateEvents(final String roomId, final SimpleApiCallback<List<Event>> callback) {
+    public void getRoomStateEvents(final String roomId, final ApiCallback<List<Event>> callback) {
         boolean isAlreadyLoaded = true;
 
         /*synchronized (mRoomStateEventsByRoomId) {

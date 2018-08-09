@@ -44,7 +44,7 @@ public class RoomTag implements java.io.Serializable {
     public String mName;
 
     /**
-     * Try to parse order as NSNumber.
+     * Try to parse order as Double.
      * Provides nil if the items cannot be parsed.
      */
     public Double mOrder;
