@@ -21,6 +21,6 @@ package org.matrix.androidsdk.rest.model;
 public class ChangePasswordParams {
     // current account information
     public AuthParams auth;
-    // the nex password
+    // the new password
     public String new_password;
 }

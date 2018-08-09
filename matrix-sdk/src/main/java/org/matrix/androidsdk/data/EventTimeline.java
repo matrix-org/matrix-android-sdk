@@ -435,7 +435,7 @@ public class EventTimeline {
                     try {
                         processStateEvent(event, Direction.FORWARDS);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "processStateEvent failed " + e.getMessage());
+                        Log.e(LOG_TAG, "processStateEvent failed " + e.getMessage(), e);
                     }
                 }
 
@@ -511,7 +511,7 @@ public class EventTimeline {
                         // digest the forward event
                         handleLiveEvent(event, !isLimited && !isGlobalInitialSync, !isGlobalInitialSync && !isRoomInitialSync);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "timeline event failed " + e.getMessage());
+                        Log.e(LOG_TAG, "timeline event failed " + e.getMessage(), e);
                     }
                 }
             }
@@ -761,7 +761,7 @@ public class EventTimeline {
             // thread issue
             // if the user leaves a room,
             if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.getType()) && myUserId.equals(event.stateKey)) {
-                String membership = event.getContent().getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
+                String membership = event.getContentAsJsonObject().getAsJsonPrimitive("membership").getAsString();
 
                 if (RoomMember.MEMBERSHIP_LEAVE.equals(membership) || RoomMember.MEMBERSHIP_BAN.equals(membership)) {
                     store = mIsHistorical;
@@ -781,7 +781,7 @@ public class EventTimeline {
 
         // warn the listeners that a room has been joined
         if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.getType()) && myUserId.equals(event.stateKey)) {
-            String membership = event.getContent().getAsJsonObject().getAsJsonPrimitive("membership").getAsString();
+            String membership = event.getContentAsJsonObject().getAsJsonPrimitive("membership").getAsString();
 
             if (RoomMember.MEMBERSHIP_JOIN.equals(membership)) {
                 mDataHandler.onJoinRoom(event.roomId);
@@ -1045,7 +1045,7 @@ public class EventTimeline {
             try {
                 callback.onSuccess(count);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "requestHistory exception " + e.getMessage());
+                Log.e(LOG_TAG, "requestHistory exception " + e.getMessage(), e);
             }
         }
 
@@ -1136,7 +1136,7 @@ public class EventTimeline {
         try {
             task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } catch (final Exception e) {
-            Log.e(LOG_TAG, "## addPaginationEvents() failed " + e.getMessage());
+            Log.e(LOG_TAG, "## addPaginationEvents() failed " + e.getMessage(), e);
             task.cancel(true);
 
             (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
@@ -1488,7 +1488,7 @@ public class EventTimeline {
 
                             @Override
                             public void onNetworkError(Exception e) {
-                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage());
+                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage(), e);
                             }
 
                             @Override
@@ -1498,7 +1498,7 @@ public class EventTimeline {
 
                             @Override
                             public void onUnexpectedError(Exception e) {
-                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage());
+                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage(), e);
                             }
                         });
 
@@ -1510,7 +1510,7 @@ public class EventTimeline {
                 try {
                     task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
                 } catch (final Exception e) {
-                    Log.e(LOG_TAG, "## resetPaginationAroundInitialEvent() failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## resetPaginationAroundInitialEvent() failed " + e.getMessage(), e);
                     task.cancel(true);
 
                     (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
@@ -1637,7 +1637,7 @@ public class EventTimeline {
 
                 @Override
                 public void onNetworkError(Exception e) {
-                    Log.e(LOG_TAG, "checkStateEventRedactionWithHomeserver : failed to retrieved the redacted event: onNetworkError " + e.getMessage());
+                    Log.e(LOG_TAG, "checkStateEventRedactionWithHomeserver : failed to retrieved the redacted event: onNetworkError " + e.getMessage(), e);
                 }
 
                 @Override
@@ -1647,7 +1647,7 @@ public class EventTimeline {
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    Log.e(LOG_TAG, "checkStateEventRedactionWithHomeserver : failed to retrieved the redacted event: onNetworkError " + e.getMessage());
+                    Log.e(LOG_TAG, "checkStateEventRedactionWithHomeserver : failed to retrieved the redacted event: onNetworkError " + e.getMessage(), e);
                 }
             });
         }
@@ -1715,7 +1715,7 @@ public class EventTimeline {
                 try {
                     listener.onEvent(event, direction, roomState);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "EventTimeline.onEvent " + listener + " crashes " + e.getMessage());
+                    Log.e(LOG_TAG, "EventTimeline.onEvent " + listener + " crashes " + e.getMessage(), e);
                 }
             }
         }

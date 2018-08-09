@@ -55,7 +55,7 @@ public class ContentUtils {
 
             imageInfo.mimetype = getMimeType(filePath);
         } catch (OutOfMemoryError oom) {
-            Log.e(LOG_TAG, "## getImageInfoFromFile() : oom");
+            Log.e(LOG_TAG, "## getImageInfoFromFile() : oom", oom);
         }
 
         return imageInfo;
@@ -180,7 +180,7 @@ public class ContentUtils {
                 lastAccessTime = field.getLong(lstat);
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## getLastAccessTime() failed " + e.getMessage() + " for file " + file);
+            Log.e(LOG_TAG, "## getLastAccessTime() failed " + e.getMessage() + " for file " + file, e);
         }
         return lastAccessTime;
     }

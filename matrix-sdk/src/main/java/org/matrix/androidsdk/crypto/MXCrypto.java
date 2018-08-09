@@ -498,7 +498,7 @@ public class MXCrypto {
 
                                                 @Override
                                                 public void onNetworkError(Exception e) {
-                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage(), e);
                                                     onError();
                                                 }
 
@@ -510,7 +510,7 @@ public class MXCrypto {
 
                                                 @Override
                                                 public void onUnexpectedError(Exception e) {
-                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                                                    Log.e(LOG_TAG, "## start failed : " + e.getMessage(), e);
                                                     onError();
                                                 }
                                             });
@@ -523,7 +523,7 @@ public class MXCrypto {
 
                     @Override
                     public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                        Log.e(LOG_TAG, "## start failed : " + e.getMessage(), e);
                         onError();
                     }
 
@@ -535,7 +535,7 @@ public class MXCrypto {
 
                     @Override
                     public void onUnexpectedError(Exception e) {
-                        Log.e(LOG_TAG, "## start failed : " + e.getMessage());
+                        Log.e(LOG_TAG, "## start failed : " + e.getMessage(), e);
                         onError();
                     }
                 });
@@ -705,7 +705,7 @@ public class MXCrypto {
                 try {
                     lock.await();
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## deviceWithIdentityKey() : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## deviceWithIdentityKey() : failed " + e.getMessage(), e);
                 }
 
                 return (result.size() > 0) ? result.get(0) : null;
@@ -825,21 +825,6 @@ public class MXCrypto {
             return;
         }
 
-        final List<String> userRoomIds = new ArrayList<>();
-
-        Collection<Room> rooms = mSession.getDataHandler().getStore().getRooms();
-
-        for (Room room : rooms) {
-            if (room.isEncrypted()) {
-                RoomMember roomMember = room.getMember(userId);
-
-                // test if the user joins the room
-                if ((null != roomMember) && TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_JOIN)) {
-                    userRoomIds.add(room.getRoomId());
-                }
-            }
-        }
-
         getEncryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
@@ -914,7 +899,7 @@ public class MXCrypto {
             Constructor<?> ctor = encryptingClass.getConstructors()[0];
             alg = (IMXEncrypting) ctor.newInstance();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## setEncryptionInRoom() : fail to load the class");
+            Log.e(LOG_TAG, "## setEncryptionInRoom() : fail to load the class", e);
             return false;
         }
 
@@ -934,9 +919,12 @@ public class MXCrypto {
 
             Room room = mSession.getDataHandler().getRoom(roomId);
             if (null != room) {
+                // Check whether the event content must be encrypted for the invited members.
+                boolean encryptForInvitedMembers = mCryptoConfig.mEnableEncryptionForInvitedMembers
+                        && room.shouldEncryptForInvitedMembers();
+
                 Collection<RoomMember> members;
-                // Check here whether the event content must be encrypted for the invited members.
-                if (mCryptoConfig.mEncryptMessagesForInvitedMembers) {
+                if (encryptForInvitedMembers) {
                     members = room.getActiveMembers();
                 } else {
                     members = room.getJoinedMembers();
@@ -976,7 +964,7 @@ public class MXCrypto {
                     Room room = mSession.getDataHandler().getRoom(roomId);
 
                     if (null != room) {
-                        res = room.getLiveState().isEncrypted();
+                        res = room.getState().isEncrypted();
                     }
                 }
             }
@@ -1142,7 +1130,7 @@ public class MXCrypto {
                                 }
                             }
                         } catch (Exception e) {
-                            Log.e(LOG_TAG, "## ensureOlmSessionsForDevices() " + e.getMessage());
+                            Log.e(LOG_TAG, "## ensureOlmSessionsForDevices() " + e.getMessage(), e);
                         }
 
                         if (!hasBeenReleased()) {
@@ -1161,7 +1149,7 @@ public class MXCrypto {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getMessage());
+                Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getMessage(), e);
 
                 if (null != callback) {
                     callback.onNetworkError(e);
@@ -1179,7 +1167,7 @@ public class MXCrypto {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getMessage());
+                Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getMessage(), e);
 
                 if (null != callback) {
                     callback.onUnexpectedError(e);
@@ -1251,7 +1239,7 @@ public class MXCrypto {
 
                 @Override
                 public void onNetworkError(Exception e) {
-                    Log.e(LOG_TAG, "## encryptEventContent() : onNetworkError while waiting to start e2e : " + e.getMessage());
+                    Log.e(LOG_TAG, "## encryptEventContent() : onNetworkError while waiting to start e2e : " + e.getMessage(), e);
 
                     if (null != callback) {
                         callback.onNetworkError(e);
@@ -1269,7 +1257,7 @@ public class MXCrypto {
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    Log.e(LOG_TAG, "## encryptEventContent() : onUnexpectedError while waiting to start e2e : " + e.getMessage());
+                    Log.e(LOG_TAG, "## encryptEventContent() : onUnexpectedError while waiting to start e2e : " + e.getMessage(), e);
 
                     if (null != callback) {
                         callback.onUnexpectedError(e);
@@ -1283,9 +1271,12 @@ public class MXCrypto {
         // just as you are sending a secret message?
         final List<String> userdIds = new ArrayList<>();
 
+        // Check whether the event content must be encrypted for the invited members.
+        boolean encryptForInvitedMembers = mCryptoConfig.mEnableEncryptionForInvitedMembers
+                && room.shouldEncryptForInvitedMembers();
+
         Collection<RoomMember> members;
-        // Check here whether the event content must be encrypted for the invited members.
-        if (mCryptoConfig.mEncryptMessagesForInvitedMembers) {
+        if (encryptForInvitedMembers) {
             members = room.getActiveMembers();
         } else {
             members = room.getJoinedMembers();
@@ -1305,7 +1296,7 @@ public class MXCrypto {
                 }
 
                 if (null == alg) {
-                    String algorithm = room.getLiveState().encryptionAlgorithm();
+                    String algorithm = room.getState().encryptionAlgorithm();
 
                     if (null != algorithm) {
                         if (setEncryptionInRoom(room.getRoomId(), algorithm, false)) {
@@ -1332,7 +1323,7 @@ public class MXCrypto {
 
                         @Override
                         public void onNetworkError(final Exception e) {
-                            Log.e(LOG_TAG, "## encryptEventContent() : onNetworkError " + e.getMessage());
+                            Log.e(LOG_TAG, "## encryptEventContent() : onNetworkError " + e.getMessage(), e);
 
                             if (null != callback) {
                                 callback.onNetworkError(e);
@@ -1350,7 +1341,7 @@ public class MXCrypto {
 
                         @Override
                         public void onUnexpectedError(final Exception e) {
-                            Log.e(LOG_TAG, "## encryptEventContent() : onUnexpectedError " + e.getMessage());
+                            Log.e(LOG_TAG, "## encryptEventContent() : onUnexpectedError " + e.getMessage(), e);
 
                             if (null != callback) {
                                 callback.onUnexpectedError(e);
@@ -1358,7 +1349,7 @@ public class MXCrypto {
                         }
                     });
                 } else {
-                    final String algorithm = room.getLiveState().encryptionAlgorithm();
+                    final String algorithm = room.getState().encryptionAlgorithm();
                     final String reason = String.format(MXCryptoError.UNABLE_TO_ENCRYPT_REASON,
                             (null == algorithm) ? MXCryptoError.NO_MORE_ALGORITHM_REASON : algorithm);
                     Log.e(LOG_TAG, "## encryptEventContent() : " + reason);
@@ -1377,12 +1368,13 @@ public class MXCrypto {
     }
 
     /**
-     * Decrypt a received event
+     * Decrypt an event
      *
      * @param event    the raw event.
      * @param timeline the id of the timeline where the event is decrypted. It is used to prevent replay attack.
-     * @return true if the decryption was successful.
+     * @return the MXEventDecryptionResult data, or null in case of error
      */
+    @Nullable
     public MXEventDecryptionResult decryptEvent(final Event event, final String timeline) throws MXDecryptionException {
         if (null == event) {
             Log.e(LOG_TAG, "## decryptEvent : null event");
@@ -1429,7 +1421,7 @@ public class MXCrypto {
         try {
             lock.await();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## decryptEvent() : failed " + e.getMessage());
+            Log.e(LOG_TAG, "## decryptEvent() : failed " + e.getMessage(), e);
         }
 
         if (!exceptions.isEmpty()) {
@@ -1775,8 +1767,9 @@ public class MXCrypto {
         }
 
         final String userId = event.stateKey;
+        final Room room = mSession.getDataHandler().getRoom(event.roomId);
 
-        RoomMember roomMember = mSession.getDataHandler().getRoom(event.roomId).getLiveState().getMember(userId);
+        RoomMember roomMember = room.getState().getMember(userId);
 
         if (null != roomMember) {
             final String membership = roomMember.membership;
@@ -1785,7 +1778,16 @@ public class MXCrypto {
                 @Override
                 public void run() {
                     if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_JOIN)) {
-                        // make sure we are tracking the deviceList for this user
+                        // make sure we are tracking the deviceList for this user.
+                        getDeviceList().startTrackingDeviceList(Arrays.asList(userId));
+                    } else if (TextUtils.equals(membership, RoomMember.MEMBERSHIP_INVITE)
+                            && room.shouldEncryptForInvitedMembers()
+                            && mCryptoConfig.mEnableEncryptionForInvitedMembers) {
+                        // track the deviceList for this invited user.
+                        // Caution: there's a big edge case here in that federated servers do not
+                        // know what other servers are in the room at the time they've been invited.
+                        // They therefore will not send device updates if a user logs in whilst
+                        // their state is invite.
                         getDeviceList().startTrackingDeviceList(Arrays.asList(userId));
                     }
                 }
@@ -2188,7 +2190,7 @@ public class MXCrypto {
                     }
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## getRoomDecryptor() : fail to load the class");
+                Log.e(LOG_TAG, "## getRoomDecryptor() : fail to load the class", e);
                 return null;
             }
         }
@@ -2297,7 +2299,7 @@ public class MXCrypto {
                     importedSessions = JsonUtils.getGson(false).fromJson(roomKeys, new TypeToken<List<Map<String, Object>>>() {
                     }.getType());
                 } catch (final Exception e) {
-                    Log.e(LOG_TAG, "## importRoomKeys failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## importRoomKeys failed " + e.getMessage(), e);
                     getUIHandler().post(new Runnable() {
                         @Override
                         public void run() {
@@ -2326,7 +2328,7 @@ public class MXCrypto {
 
                                 decrypting.onNewSession(session.mSenderKey, sessionId);
                             } catch (Exception e) {
-                                Log.e(LOG_TAG, "## importRoomKeys() : onNewSession failed " + e.getMessage());
+                                Log.e(LOG_TAG, "## importRoomKeys() : onNewSession failed " + e.getMessage(), e);
                             }
                         }
                     }
@@ -2427,22 +2429,6 @@ public class MXCrypto {
      * @param callback the asynchronous callback.
      */
     public void setGlobalBlacklistUnverifiedDevices(final boolean block, final ApiCallback<Void> callback) {
-        final String userId = mSession.getMyUserId();
-        final List<String> userRoomIds = new ArrayList<>();
-
-        Collection<Room> rooms = mSession.getDataHandler().getStore().getRooms();
-
-        for (Room room : rooms) {
-            if (room.isEncrypted()) {
-                RoomMember roomMember = room.getMember(userId);
-
-                // test if the user joins the room
-                if ((null != roomMember) && TextUtils.equals(roomMember.membership, RoomMember.MEMBERSHIP_JOIN)) {
-                    userRoomIds.add(room.getRoomId());
-                }
-            }
-        }
-
         getEncryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
@@ -2721,7 +2707,7 @@ public class MXCrypto {
                 try {
                     listener.onRoomKeyRequest(request);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## onRoomKeyRequest() failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## onRoomKeyRequest() failed " + e.getMessage(), e);
                 }
             }
         }
@@ -2739,7 +2725,7 @@ public class MXCrypto {
                 try {
                     listener.onRoomKeyRequestCancellation(request);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## onRoomKeyRequestCancellation() failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## onRoomKeyRequestCancellation() failed " + e.getMessage(), e);
                 }
             }
         }

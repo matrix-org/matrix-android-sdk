@@ -274,7 +274,7 @@ public class MyUser extends User {
                     try {
                         listener.onSuccess(null);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## refreshUserInfos() : listener.onSuccess failed " + e.getMessage());
+                        Log.e(LOG_TAG, "## refreshUserInfos() : listener.onSuccess failed " + e.getMessage(), e);
                     }
                 }
             }

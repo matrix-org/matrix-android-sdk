@@ -19,12 +19,12 @@ package org.matrix.androidsdk;
 
 import android.content.Context;
 import android.net.Uri;
+import android.support.annotation.Nullable;
 
 import org.junit.Assert;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXFileStore;
 import org.matrix.androidsdk.listeners.MXEventListener;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.client.LoginRestClient;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -38,7 +38,23 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public class CryptoTestHelper {
-    public static final String TESTS_HOME_SERVER_URL = "http://10.0.2.2:8080";
+    private static final String TESTS_HOME_SERVER_URL = "http://10.0.2.2:8080";
+
+    /**
+     * Create a Home server configuration, with Http connection allowed for test
+     *
+     * @param credentials
+     * @return
+     */
+    public static HomeServerConnectionConfig createHomeServerConfig(@Nullable Credentials credentials) {
+        HomeServerConnectionConfig hs = new HomeServerConnectionConfig(Uri.parse(TESTS_HOME_SERVER_URL));
+
+        hs.allowHttpConnection();
+
+        hs.setCredentials(credentials);
+
+        return hs;
+    }
 
     /**
      * Create an account and a dedicated session
@@ -50,8 +66,8 @@ public class CryptoTestHelper {
      * @throws Exception an exception if the account creation failed
      */
     public static MXSession createAccountAndSync(Context context, String userName, String password, boolean startSession) throws Exception {
-        Uri uri = Uri.parse(TESTS_HOME_SERVER_URL);
-        HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
+        HomeServerConnectionConfig hs = createHomeServerConfig(null);
+
         LoginRestClient loginRestClient = new LoginRestClient(hs);
 
         final Map<String, Object> params = new HashMap<>();
@@ -151,8 +167,8 @@ public class CryptoTestHelper {
      * @throws Exception an exception if the account cannot be synced
      */
     public static MXSession logAccountAndSync(Context context, String userName, String password) throws Exception {
-        Uri uri = Uri.parse(TESTS_HOME_SERVER_URL);
-        HomeServerConnectionConfig hs = new HomeServerConnectionConfig(uri);
+        HomeServerConnectionConfig hs = createHomeServerConfig(null);
+
         LoginRestClient loginRestClient = new LoginRestClient(hs);
 
         final Map<String, Object> params = new HashMap<>();

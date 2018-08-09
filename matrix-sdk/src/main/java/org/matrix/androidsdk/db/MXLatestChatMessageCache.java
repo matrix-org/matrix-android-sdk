@@ -102,7 +102,7 @@ public class MXLatestChatMessageCache {
                 fis.close();
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## openLatestMessagesDict failed " + e.getMessage());
+            Log.e(LOG_TAG, "## openLatestMessagesDict failed " + e.getMessage(), e);
         }
     }
 
@@ -142,7 +142,7 @@ public class MXLatestChatMessageCache {
             oos.close();
             fos.close();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## saveLatestMessagesDict() failed " + e.getMessage());
+            Log.e(LOG_TAG, "## saveLatestMessagesDict() failed " + e.getMessage(), e);
         }
     }
 

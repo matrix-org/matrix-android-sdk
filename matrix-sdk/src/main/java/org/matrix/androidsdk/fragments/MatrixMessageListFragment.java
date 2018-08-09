@@ -23,6 +23,7 @@ import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AlertDialog;
@@ -364,7 +365,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 try {
                     mActivityOnScrollListener.onScrollStateChanged(scrollState);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## manageScrollListener : onScrollStateChanged failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## manageScrollListener : onScrollStateChanged failed " + e.getMessage(), e);
                 }
             }
         }
@@ -381,7 +382,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 try {
                     mActivityOnScrollListener.onScroll(firstVisibleItem, visibleItemCount, totalItemCount);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## manageScrollListener : onScroll failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## manageScrollListener : onScroll failed " + e.getMessage(), e);
                 }
 
                 boolean isLatestEventDisplayed;
@@ -400,7 +401,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 try {
                     mActivityOnScrollListener.onLatestEventDisplay(isLatestEventDisplayed);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## manageScrollListener : onLatestEventDisplay failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## manageScrollListener : onLatestEventDisplay failed " + e.getMessage(), e);
                 }
             }
         }
@@ -805,7 +806,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     }
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## getReadMarkerMessageRow() failed : " + e.getMessage());
+                Log.e(LOG_TAG, "## getReadMarkerMessageRow() failed : " + e.getMessage(), e);
             }
         }
 
@@ -867,13 +868,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             redacterEvent.redacts = redactedEvent.eventId;
                             redacterEvent.setType(Event.EVENT_TYPE_REDACTION);
 
-                            onEvent(redacterEvent, EventTimeline.Direction.FORWARDS, mRoom.getLiveState());
+                            onEvent(redacterEvent, EventTimeline.Direction.FORWARDS, mRoom.getState());
 
                             if (null != mEventSendingListener) {
                                 try {
                                     mEventSendingListener.onMessageRedacted(redactedEvent);
                                 } catch (Exception e) {
-                                    Log.e(LOG_TAG, "redactEvent fails : " + e.getMessage());
+                                    Log.e(LOG_TAG, "redactEvent fails : " + e.getMessage(), e);
                                 }
                             }
                         }
@@ -910,9 +911,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
      * @param event the event to test
      * @return true it is supported.
      */
-    protected boolean canAddEvent(Event event) {
-        String type = event.getType();
-
+    protected boolean canAddEvent(final Event event) {
+        final String type = event.getType();
         return mDisplayAllEvents ||
                 Event.EVENT_TYPE_MESSAGE.equals(type) ||
                 Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(type) ||
@@ -923,7 +923,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(type) ||
                 Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(type) ||
                 Event.EVENT_TYPE_STICKER.equals(type) ||
-                (event.isCallEvent() && (!Event.EVENT_TYPE_CALL_CANDIDATES.equals(type)));
+                Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(type) ||
+                (event.isCallEvent() && !Event.EVENT_TYPE_CALL_CANDIDATES.equals(type));
     }
 
     //==============================================================================================================
@@ -940,7 +941,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             try {
                 mEventSendingListener.onMessageSendingFailed(event);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "onMessageSendingFailed failed " + e.getMessage());
+                Log.e(LOG_TAG, "onMessageSendingFailed failed " + e.getMessage(), e);
             }
         }
     }
@@ -955,7 +956,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             try {
                 mEventSendingListener.onMessageSendingSucceeded(event);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "onMessageSendingSucceeded failed " + e.getMessage());
+                Log.e(LOG_TAG, "onMessageSendingSucceeded failed " + e.getMessage(), e);
             }
         }
     }
@@ -971,7 +972,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             try {
                 mEventSendingListener.onUnknownDevices(event, cryptoError);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "onUnknownDevices failed " + e.getMessage());
+                Log.e(LOG_TAG, "onUnknownDevices failed " + e.getMessage(), e);
             }
         }
     }
@@ -987,7 +988,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             try {
                 mEventSendingListener.onConsentNotGiven(event, matrixError);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "onConsentNotGiven failed " + e.getMessage());
+                Log.e(LOG_TAG, "onConsentNotGiven failed " + e.getMessage(), e);
             }
         }
     }
@@ -1108,6 +1109,21 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
+     * Send a formatted text message, replying to a event Id if not null.
+     *
+     * @param body          the unformatted text message
+     * @param formattedBody the formatted text message (optional)
+     * @param replyToEvent  the event to reply to (optional)
+     * @param format        the format
+     */
+    public void sendTextMessage(String body,
+                                String formattedBody,
+                                @Nullable Event replyToEvent,
+                                String format) {
+        mRoom.sendTextMessage(body, formattedBody, format, replyToEvent, mEventCreationListener);
+    }
+
+    /**
      * Send an emote
      *
      * @param emote          the emote
@@ -1159,7 +1175,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 }, 1000);
                 mPendingRelaunchTimersByEventId.put(messageRow.getEvent().eventId, relaunchTimer);
             } catch (Throwable throwable) {
-                Log.e(LOG_TAG, "relaunchTimer.schedule failed " + throwable.getMessage());
+                Log.e(LOG_TAG, "relaunchTimer.schedule failed " + throwable.getMessage(), throwable);
             }
         } else {
             messageRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
@@ -1326,6 +1342,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
         final Message message = JsonUtils.toMessage(event.getContent());
         final RoomMediaMessage roomMediaMessage = new RoomMediaMessage(new Event(message, mSession.getMyUserId(), mRoom.getRoomId()));
 
+        // Restore the previous eventId, to use the same TransactionId when sending again the event
+        roomMediaMessage.getEvent().eventId = event.eventId;
+
         if (message instanceof MediaMessage) {
             sendMediaMessage(roomMediaMessage);
         } else {
@@ -1396,7 +1415,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         if (null != activity) {
             if (error instanceof Exception) {
-                Log.e(LOG_TAG, "Network error: " + ((Exception) error).getMessage());
+                Log.e(LOG_TAG, "Network error: " + ((Exception) error).getMessage(), (Exception) error);
                 Toast.makeText(activity, activity.getString(R.string.network_error), Toast.LENGTH_SHORT).show();
 
             } else if (error instanceof MatrixError) {
@@ -1827,7 +1846,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 mAdapter.updateEventById(event, prevEventId);
             } else {
                 // refresh the listView only when it is a live timeline or a search
-                mAdapter.add(new MessageRow(event, mRoom.getLiveState()), true);
+                mAdapter.add(new MessageRow(event, mRoom.getState()), true);
             }
 
             if (mFutureReadMarkerEventId != null && prevEventId.equals(mFutureReadMarkerEventId)) {
@@ -1903,7 +1922,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             }
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "onReceiptEvent failed with " + e.getMessage());
+            Log.e(LOG_TAG, "onReceiptEvent failed with " + e.getMessage(), e);
         }
 
         if (shouldRefresh) {
@@ -2062,7 +2081,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 try {
                     mRoomPreviewDataListener = (IRoomPreviewDataListener) getActivity();
                 } catch (ClassCastException e) {
-                    Log.e(LOG_TAG, "getRoomPreviewData failed with " + e.getMessage());
+                    Log.e(LOG_TAG, "getRoomPreviewData failed with " + e.getMessage(), e);
                 }
             }
 
@@ -2176,7 +2195,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             // the request will be auto restarted when a valid network will be found
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "Network error: " + e.getMessage());
+                Log.e(LOG_TAG, "Network error: " + e.getMessage(), e);
                 onError();
             }
 
@@ -2188,7 +2207,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "onUnexpectedError error" + e.getMessage());
+                Log.e(LOG_TAG, "onUnexpectedError error" + e.getMessage(), e);
                 onError();
             }
         };
@@ -2253,7 +2272,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             try {
                 onSearchResultListener.onSearchSucceed(messageRows.size());
             } catch (Exception e) {
-                Log.e(LOG_TAG, "onSearchResponse failed with " + e.getMessage());
+                Log.e(LOG_TAG, "onSearchResponse failed with " + e.getMessage(), e);
             }
         }
     }
@@ -2313,7 +2332,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                                     try {
                                         onSearchResultListener.onSearchFailed();
                                     } catch (Exception e) {
-                                        Log.e(LOG_TAG, "onSearchResultListener failed with " + e.getMessage());
+                                        Log.e(LOG_TAG, "onSearchResultListener failed with " + e.getMessage(), e);
                                     }
                                 }
                             }
@@ -2323,7 +2342,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                     // the request will be auto restarted when a valid network will be found
                     @Override
                     public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "Network error: " + e.getMessage());
+                        Log.e(LOG_TAG, "Network error: " + e.getMessage(), e);
                         onError();
                     }
 
@@ -2335,7 +2354,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                     @Override
                     public void onUnexpectedError(Exception e) {
-                        Log.e(LOG_TAG, "onUnexpectedError error" + e.getMessage());
+                        Log.e(LOG_TAG, "onUnexpectedError error" + e.getMessage(), e);
                         onError();
                     }
                 };

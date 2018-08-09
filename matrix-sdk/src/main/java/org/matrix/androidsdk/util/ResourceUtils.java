@@ -60,9 +60,8 @@ public class ResourceUtils {
                     mContentStream.close();
                     mContentStream = null;
                 }
-
             } catch (Exception e) {
-                Log.e(LOG_TAG, "Resource.close failed " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "Resource.close failed " + e.getLocalizedMessage(), e);
             }
         }
 
@@ -142,7 +141,7 @@ public class ResourceUtils {
                 try {
                     fullSizeBitmap = BitmapFactory.decodeStream(resource.mContentStream, null, options);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "BitmapFactory.decodeStream fails " + e.getLocalizedMessage());
+                    Log.e(LOG_TAG, "BitmapFactory.decodeStream fails " + e.getLocalizedMessage(), e);
                 }
             }
 
@@ -169,7 +168,7 @@ public class ResourceUtils {
                         thumbnailBitmap = Bitmap.createScaledBitmap((null == fullSizeBitmap) ? thumbnailBitmap : fullSizeBitmap,
                                 (int) thumbnailWidth, (int) thumbnailHeight, false);
                     } catch (OutOfMemoryError ex) {
-                        Log.e(LOG_TAG, "createThumbnailBitmap " + ex.getMessage());
+                        Log.e(LOG_TAG, "createThumbnailBitmap " + ex.getMessage(), ex);
                     }
                 }
 

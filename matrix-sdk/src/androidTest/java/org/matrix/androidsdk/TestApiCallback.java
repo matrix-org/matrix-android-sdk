@@ -21,6 +21,7 @@ import android.support.annotation.NonNull;
 
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.concurrent.CountDownLatch;
 
@@ -47,18 +48,24 @@ class TestApiCallback<T> implements ApiCallback<T> {
     @CallSuper
     @Override
     public void onNetworkError(Exception e) {
+        Log.e("TestApiCallback", e.getMessage(), e);
+
         mCountDownLatch.countDown();
     }
 
     @CallSuper
     @Override
     public void onMatrixError(MatrixError e) {
+        Log.e("TestApiCallback", e.getMessage() + " " + e.errcode);
+
         mCountDownLatch.countDown();
     }
 
     @CallSuper
     @Override
     public void onUnexpectedError(Exception e) {
+        Log.e("TestApiCallback", e.getMessage(), e);
+
         mCountDownLatch.countDown();
     }
 }

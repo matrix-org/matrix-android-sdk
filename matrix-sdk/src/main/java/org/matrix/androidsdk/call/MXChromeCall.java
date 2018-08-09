@@ -207,7 +207,7 @@ public class MXChromeCall extends MXCall {
                 String sdpValue = sdp.getAsString();
                 setIsVideo(sdpValue.contains("m=video"));
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## prepareIncomingCall() ; " + e.getMessage());
+                Log.e(LOG_TAG, "## prepareIncomingCall() ; " + e.getMessage(), e);
             }
         }
     }
@@ -626,7 +626,7 @@ public class MXChromeCall extends MXCall {
                                     addIt = false;
                                 }
                             } catch (Exception e) {
-                                Log.e(LOG_TAG, "## wSendEvent() ; " + e.getMessage());
+                                Log.e(LOG_TAG, "## wSendEvent() ; " + e.getMessage(), e);
                             }
                         }
 
@@ -659,7 +659,7 @@ public class MXChromeCall extends MXCall {
                                                     mCallTimeoutTimer.cancel();
                                                     mCallTimeoutTimer = null;
                                                 } catch (Exception e) {
-                                                    Log.e(LOG_TAG, "## wSendEvent() ; " + e.getMessage());
+                                                    Log.e(LOG_TAG, "## wSendEvent() ; " + e.getMessage(), e);
                                                 }
                                             }
                                         }, CALL_TIMEOUT_MS);
@@ -668,7 +668,7 @@ public class MXChromeCall extends MXCall {
                                             mCallTimeoutTimer.cancel();
                                             mCallTimeoutTimer = null;
                                         }
-                                        Log.e(LOG_TAG, "## wSendEvent() ; " + throwable.getMessage());
+                                        Log.e(LOG_TAG, "## wSendEvent() ; " + throwable.getMessage(), throwable);
                                     }
                                 }
                             }
@@ -678,7 +678,7 @@ public class MXChromeCall extends MXCall {
                         sendNextEvent();
 
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## wSendEvent() ; " + e.getMessage());
+                        Log.e(LOG_TAG, "## wSendEvent() ; " + e.getMessage(), e);
                     }
                 }
             });

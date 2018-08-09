@@ -1,12 +1,13 @@
-/* 
+/*
  * Copyright 2016 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -34,6 +35,8 @@ public class ContentManager {
 
     public static final String URI_PREFIX_CONTENT_API = "/_matrix/media/v1/";
 
+    public static final String MATRIX_CONTENT_IDENTICON_PREFIX = "identicon/";
+
     // HS config
     private final HomeServerConnectionConfig mHsConfig;
 
@@ -41,8 +44,8 @@ public class ContentManager {
     private final UnsentEventsManager mUnsentEventsManager;
 
     // AV scanner handling
-    private boolean mIsAvScannerEnabled = false;
-    private String mDownloadUrlPrefix = null;
+    private boolean mIsAvScannerEnabled;
+    private String mDownloadUrlPrefix;
 
     /**
      * Default constructor.
@@ -105,10 +108,10 @@ public class ContentManager {
             try {
                 urlEncodedUser = java.net.URLEncoder.encode(userId, "UTF-8");
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## getIdenticonURL() : java.net.URLEncoder.encode failed " + e.getMessage());
+                Log.e(LOG_TAG, "## getIdenticonURL() : java.net.URLEncoder.encode failed " + e.getMessage(), e);
             }
 
-            return ContentManager.MATRIX_CONTENT_URI_SCHEME + "identicon/" + urlEncodedUser;
+            return ContentManager.MATRIX_CONTENT_URI_SCHEME + MATRIX_CONTENT_IDENTICON_PREFIX + urlEncodedUser;
         }
 
         return null;
@@ -147,10 +150,9 @@ public class ContentManager {
     /**
      * Get the actual URL for accessing the full-size image of a Matrix media content URI.
      *
-     * @deprecated See getDownloadableUrl(contentUrl, isEncrypted).
-     *
      * @param contentUrl the Matrix media content URI (in the form of "mxc://...").
      * @return the URL to access the described resource, or null if the url is invalid.
+     * @deprecated See getDownloadableUrl(contentUrl, isEncrypted).
      */
     @Nullable
     public String getDownloadableUrl(String contentUrl) {
@@ -162,7 +164,7 @@ public class ContentManager {
     /**
      * Get the actual URL for accessing the full-size image of a Matrix media content URI.
      *
-     * @param contentUrl the Matrix media content URI (in the form of "mxc://...").
+     * @param contentUrl  the Matrix media content URI (in the form of "mxc://...").
      * @param isEncrypted tell whether the related content is encrypted (This information is
      *                    required when the anti-virus scanner is enabled).
      * @return the URL to access the described resource, or null if the url is invalid.
@@ -203,12 +205,15 @@ public class ContentManager {
                 mediaServerAndId = mediaServerAndId.substring(0, mediaServerAndId.length() - "#auto".length());
             }
 
-            // Thumbnail url still go to the media repo since they don’t need virus scanning
-            String url = mHsConfig.getHomeserverUri().toString() + URI_PREFIX_CONTENT_API;
-
-            // identicon server has no thumbnail path
-            if (mediaServerAndId.indexOf("identicon") < 0) {
-                url += "thumbnail/";
+            // Build the thumbnail url.
+            String url;
+            // Caution: identicon has no thumbnail path.
+            if (mediaServerAndId.startsWith(MATRIX_CONTENT_IDENTICON_PREFIX)) {
+                // identicon url still go to the media repo since they don’t need virus scanning
+                url = mHsConfig.getHomeserverUri().toString() + URI_PREFIX_CONTENT_API;
+            } else {
+                // Use the current download url prefix to take into account a potential antivirus scanner
+                url = mDownloadUrlPrefix + "thumbnail/";
             }
 
             url += mediaServerAndId;

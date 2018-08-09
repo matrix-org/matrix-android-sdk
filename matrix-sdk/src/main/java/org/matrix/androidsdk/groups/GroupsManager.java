@@ -59,7 +59,7 @@ public class GroupsManager {
     private IMXStore mStore;
 
     // callbacks
-    private Set<SimpleApiCallback<Void>> mRefreshProfilesCallback = new HashSet<>();
+    private Set<ApiCallback<Void>> mRefreshProfilesCallback = new HashSet<>();
 
     //
     private final Map<String, ApiCallback<Void>> mPendingJoinGroups = new HashMap<>();
@@ -104,7 +104,7 @@ public class GroupsManager {
      * Call when the session is resumed
      */
     public void onSessionResumed() {
-        refreshGroupProfiles((SimpleApiCallback<Void>) null);
+        refreshGroupProfiles((ApiCallback<Void>) null);
         getUserPublicisedGroups(mDataHandler.getUserId(), true, new SimpleApiCallback<Set<String>>());
 
         mGroupProfileByGroupId.clear();
@@ -204,7 +204,7 @@ public class GroupsManager {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## onJoinGroup() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## onJoinGroup() : failed " + e.getMessage(), e);
                 onDone();
 
                 if (null != mPendingJoinGroups.get(groupId)) {
@@ -226,7 +226,7 @@ public class GroupsManager {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## onUnexpectedError() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## onUnexpectedError() : failed " + e.getMessage(), e);
                 onDone();
 
                 if (null != mPendingJoinGroups.get(groupId)) {
@@ -307,7 +307,7 @@ public class GroupsManager {
      *
      * @param callback the asynchronous callback
      */
-    public void refreshGroupProfiles(SimpleApiCallback<Void> callback) {
+    public void refreshGroupProfiles(ApiCallback<Void> callback) {
         if (!mRefreshProfilesCallback.isEmpty()) {
             Log.d(LOG_TAG, "## refreshGroupProfiles() : there already is a pending request");
             mRefreshProfilesCallback.add(callback);
@@ -325,13 +325,13 @@ public class GroupsManager {
      */
     private void refreshGroupProfiles(final Iterator<Group> iterator) {
         if (!iterator.hasNext()) {
-            for (SimpleApiCallback<Void> callback : mRefreshProfilesCallback) {
+            for (ApiCallback<Void> callback : mRefreshProfilesCallback) {
                 try {
                     if (null != callback) {
                         callback.onSuccess(null);
                     }
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## refreshGroupProfiles() failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## refreshGroupProfiles() failed " + e.getMessage(), e);
                 }
             }
             mRefreshProfilesCallback.clear();
@@ -361,7 +361,7 @@ public class GroupsManager {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## refreshGroupProfiles() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## refreshGroupProfiles() : failed " + e.getMessage(), e);
                 onDone();
             }
 
@@ -373,7 +373,7 @@ public class GroupsManager {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## refreshGroupProfiles() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## refreshGroupProfiles() : failed " + e.getMessage(), e);
                 onDone();
             }
         });
@@ -640,19 +640,19 @@ public class GroupsManager {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.d(LOG_TAG, "## getUserPublicisedGroups() : request failed " + e.getMessage());
+                Log.e(LOG_TAG, "## getUserPublicisedGroups() : request failed " + e.getMessage(), e);
                 onDone(null);
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.d(LOG_TAG, "## getUserPublicisedGroups() : request failed " + e.getMessage());
+                Log.e(LOG_TAG, "## getUserPublicisedGroups() : request failed " + e.getMessage());
                 onDone(null);
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.d(LOG_TAG, "## getUserPublicisedGroups() : request failed " + e.getMessage());
+                Log.e(LOG_TAG, "## getUserPublicisedGroups() : request failed " + e.getMessage(), e);
                 onDone(null);
             }
         });

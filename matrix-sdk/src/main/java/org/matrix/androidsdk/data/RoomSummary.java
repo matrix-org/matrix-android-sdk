@@ -30,6 +30,10 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.util.Log;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 /**
  * Stores summarised information about the room.
  */
@@ -53,6 +57,8 @@ public class RoomSummary implements java.io.Serializable {
 
     // the read marker event id
     private String mReadMarkerEventId;
+
+    private Set<String> mRoomTags;
 
     // counters
     public int mUnreadEventsCount;
@@ -155,7 +161,7 @@ public class RoomSummary implements java.io.Serializable {
                     Log.e(LOG_TAG, "isSupportedEvent : Unsupported msg type " + msgType);
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "isSupportedEvent failed " + e.getMessage());
+                Log.e(LOG_TAG, "isSupportedEvent failed " + e.getMessage(), e);
             }
         } else if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, type)) {
             isSupported = event.hasContentFields();
@@ -494,5 +500,22 @@ public class RoomSummary implements java.io.Serializable {
      */
     public int getHighlightCount() {
         return mHighlightsCount;
+    }
+
+    /**
+     * @return the room tags
+     */
+    public Set<String> getRoomTags() {
+        return mRoomTags;
+    }
+
+    /**
+     * Update the room tags
+     *
+     * @param roomTags the room tags
+     */
+    public void setRoomTags(final Set<String> roomTags) {
+        // wraps the set into a serializable one
+        mRoomTags = new HashSet<>(roomTags);
     }
 }

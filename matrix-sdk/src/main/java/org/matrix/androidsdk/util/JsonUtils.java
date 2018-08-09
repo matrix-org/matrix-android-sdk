@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
  * Copyright 2018 New Vector Ltd
@@ -6,9 +6,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,6 +17,7 @@
  */
 package org.matrix.androidsdk.util;
 
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.google.gson.FieldNamingStrategy;
@@ -29,30 +30,32 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.json.ConditionDeserializer;
 import org.matrix.androidsdk.rest.model.ContentResponse;
-import org.matrix.androidsdk.rest.model.crypto.EncryptedEventContent;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
-import org.matrix.androidsdk.rest.model.message.AudioMessage;
-import org.matrix.androidsdk.rest.model.message.FileMessage;
-import org.matrix.androidsdk.rest.model.crypto.ForwardedRoomKeyContent;
-import org.matrix.androidsdk.rest.model.message.ImageMessage;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.message.LocationMessage;
-import org.matrix.androidsdk.rest.model.message.Message;
-import org.matrix.androidsdk.rest.model.crypto.OlmEventContent;
-import org.matrix.androidsdk.rest.model.crypto.OlmPayloadContent;
 import org.matrix.androidsdk.rest.model.PowerLevels;
-import org.matrix.androidsdk.rest.model.crypto.RoomKeyContent;
-import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequest;
+import org.matrix.androidsdk.rest.model.RoomCreateContent;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomTags;
+import org.matrix.androidsdk.rest.model.RoomTombstoneContent;
+import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.bingrules.Condition;
+import org.matrix.androidsdk.rest.model.crypto.EncryptedEventContent;
+import org.matrix.androidsdk.rest.model.crypto.ForwardedRoomKeyContent;
+import org.matrix.androidsdk.rest.model.crypto.OlmEventContent;
+import org.matrix.androidsdk.rest.model.crypto.OlmPayloadContent;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyContent;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequest;
+import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
+import org.matrix.androidsdk.rest.model.message.AudioMessage;
+import org.matrix.androidsdk.rest.model.message.FileMessage;
+import org.matrix.androidsdk.rest.model.message.ImageMessage;
+import org.matrix.androidsdk.rest.model.message.LocationMessage;
+import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.message.StickerJsonMessage;
 import org.matrix.androidsdk.rest.model.message.StickerMessage;
-import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
-import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.message.VideoMessage;
-import org.matrix.androidsdk.rest.model.bingrules.Condition;
-import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
+import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -146,7 +149,7 @@ public class JsonUtils {
      * @return a room state
      */
     public static RoomState toRoomState(JsonElement jsonObject) {
-        return (RoomState) toClass(jsonObject, RoomState.class);
+        return toClass(jsonObject, RoomState.class);
     }
 
     /**
@@ -157,7 +160,7 @@ public class JsonUtils {
      * @return an user
      */
     public static User toUser(JsonElement jsonObject) {
-        return (User) toClass(jsonObject, User.class);
+        return toClass(jsonObject, User.class);
     }
 
     /**
@@ -168,7 +171,7 @@ public class JsonUtils {
      * @return a RoomMember
      */
     public static RoomMember toRoomMember(JsonElement jsonObject) {
-        return (RoomMember) toClass(jsonObject, RoomMember.class);
+        return toClass(jsonObject, RoomMember.class);
     }
 
     /**
@@ -179,7 +182,7 @@ public class JsonUtils {
      * @return a RoomTags
      */
     public static RoomTags toRoomTags(JsonElement jsonObject) {
-        return (RoomTags) toClass(jsonObject, RoomTags.class);
+        return toClass(jsonObject, RoomTags.class);
     }
 
     /**
@@ -190,7 +193,7 @@ public class JsonUtils {
      * @return a MatrixError
      */
     public static MatrixError toMatrixError(JsonElement jsonObject) {
-        return (MatrixError) toClass(jsonObject, MatrixError.class);
+        return toClass(jsonObject, MatrixError.class);
     }
 
     /**
@@ -199,12 +202,13 @@ public class JsonUtils {
      * @param jsonObject the json object
      * @return the message type
      */
+    @Nullable
     public static String getMessageMsgType(JsonElement jsonObject) {
         try {
             Message message = gson.fromJson(jsonObject, Message.class);
             return message.msgtype;
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## getMessageMsgType failed " + e.getMessage());
+            Log.e(LOG_TAG, "## getMessageMsgType failed " + e.getMessage(), e);
         }
 
         return null;
@@ -217,6 +221,7 @@ public class JsonUtils {
      * @param jsonObject the json to convert
      * @return a Message
      */
+    @NonNull
     public static Message toMessage(JsonElement jsonObject) {
         try {
             Message message = gson.fromJson(jsonObject, Message.class);
@@ -246,7 +251,7 @@ public class JsonUtils {
             // Fall back to the generic Message type
             return message;
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## toMessage failed " + e.getMessage());
+            Log.e(LOG_TAG, "## toMessage failed " + e.getMessage(), e);
         }
 
         return new Message();
@@ -260,7 +265,7 @@ public class JsonUtils {
      * @return an Event
      */
     public static Event toEvent(JsonElement jsonObject) {
-        return (Event) toClass(jsonObject, Event.class);
+        return toClass(jsonObject, Event.class);
     }
 
     /**
@@ -271,7 +276,7 @@ public class JsonUtils {
      * @return an EncryptedEventContent
      */
     public static EncryptedEventContent toEncryptedEventContent(JsonElement jsonObject) {
-        return (EncryptedEventContent) toClass(jsonObject, EncryptedEventContent.class);
+        return toClass(jsonObject, EncryptedEventContent.class);
     }
 
     /**
@@ -282,7 +287,7 @@ public class JsonUtils {
      * @return an OlmEventContent
      */
     public static OlmEventContent toOlmEventContent(JsonElement jsonObject) {
-        return (OlmEventContent) toClass(jsonObject, OlmEventContent.class);
+        return toClass(jsonObject, OlmEventContent.class);
     }
 
     /**
@@ -293,7 +298,7 @@ public class JsonUtils {
      * @return an OlmPayloadContent
      */
     public static OlmPayloadContent toOlmPayloadContent(JsonElement jsonObject) {
-        return (OlmPayloadContent) toClass(jsonObject, OlmPayloadContent.class);
+        return toClass(jsonObject, OlmPayloadContent.class);
     }
 
     /**
@@ -304,7 +309,7 @@ public class JsonUtils {
      * @return an EventContent
      */
     public static EventContent toEventContent(JsonElement jsonObject) {
-        return (EventContent) toClass(jsonObject, EventContent.class);
+        return toClass(jsonObject, EventContent.class);
     }
 
     /**
@@ -315,7 +320,7 @@ public class JsonUtils {
      * @return an RoomKeyContent
      */
     public static RoomKeyContent toRoomKeyContent(JsonElement jsonObject) {
-        return (RoomKeyContent) toClass(jsonObject, RoomKeyContent.class);
+        return toClass(jsonObject, RoomKeyContent.class);
     }
 
     /**
@@ -326,7 +331,7 @@ public class JsonUtils {
      * @return an RoomKeyRequest
      */
     public static RoomKeyRequest toRoomKeyRequest(JsonElement jsonObject) {
-        return (RoomKeyRequest) toClass(jsonObject, RoomKeyRequest.class);
+        return toClass(jsonObject, RoomKeyRequest.class);
     }
 
     /**
@@ -337,7 +342,7 @@ public class JsonUtils {
      * @return an ForwardedRoomKeyContent
      */
     public static ForwardedRoomKeyContent toForwardedRoomKeyContent(JsonElement jsonObject) {
-        return (ForwardedRoomKeyContent) toClass(jsonObject, ForwardedRoomKeyContent.class);
+        return toClass(jsonObject, ForwardedRoomKeyContent.class);
     }
 
     /**
@@ -348,7 +353,7 @@ public class JsonUtils {
      * @return an ImageMessage
      */
     public static ImageMessage toImageMessage(JsonElement jsonObject) {
-        return (ImageMessage) toClass(jsonObject, ImageMessage.class);
+        return toClass(jsonObject, ImageMessage.class);
     }
 
     /**
@@ -359,10 +364,8 @@ public class JsonUtils {
      * @return a StickerMessage
      */
     public static StickerMessage toStickerMessage(JsonElement jsonObject) {
-        StickerJsonMessage stickerJsonMessage = (StickerJsonMessage) toClass(jsonObject, StickerJsonMessage.class);
-        StickerMessage stickerMessage = new StickerMessage(stickerJsonMessage);
-
-        return stickerMessage;
+        final StickerJsonMessage stickerJsonMessage = toClass(jsonObject, StickerJsonMessage.class);
+        return new StickerMessage(stickerJsonMessage);
     }
 
     /**
@@ -373,7 +376,7 @@ public class JsonUtils {
      * @return an FileMessage
      */
     public static FileMessage toFileMessage(JsonElement jsonObject) {
-        return (FileMessage) toClass(jsonObject, FileMessage.class);
+        return toClass(jsonObject, FileMessage.class);
     }
 
     /**
@@ -384,7 +387,7 @@ public class JsonUtils {
      * @return an AudioMessage
      */
     public static AudioMessage toAudioMessage(JsonElement jsonObject) {
-        return (AudioMessage) toClass(jsonObject, AudioMessage.class);
+        return toClass(jsonObject, AudioMessage.class);
     }
 
     /**
@@ -395,7 +398,7 @@ public class JsonUtils {
      * @return a VideoMessage
      */
     public static VideoMessage toVideoMessage(JsonElement jsonObject) {
-        return (VideoMessage) toClass(jsonObject, VideoMessage.class);
+        return toClass(jsonObject, VideoMessage.class);
     }
 
     /**
@@ -406,7 +409,7 @@ public class JsonUtils {
      * @return a LocationMessage
      */
     public static LocationMessage toLocationMessage(JsonElement jsonObject) {
-        return (LocationMessage) toClass(jsonObject, LocationMessage.class);
+        return toClass(jsonObject, LocationMessage.class);
     }
 
     /**
@@ -417,7 +420,7 @@ public class JsonUtils {
      * @return a ContentResponse
      */
     public static ContentResponse toContentResponse(String jsonString) {
-        return (ContentResponse) toClass(jsonString, ContentResponse.class);
+        return toClass(jsonString, ContentResponse.class);
     }
 
     /**
@@ -428,7 +431,7 @@ public class JsonUtils {
      * @return a PowerLevels
      */
     public static PowerLevels toPowerLevels(JsonElement jsonObject) {
-        return (PowerLevels) toClass(jsonObject, PowerLevels.class);
+        return toClass(jsonObject, PowerLevels.class);
     }
 
     /**
@@ -439,7 +442,7 @@ public class JsonUtils {
      * @return a RoomThirdPartyInvite
      */
     public static RoomThirdPartyInvite toRoomThirdPartyInvite(JsonElement jsonObject) {
-        return (RoomThirdPartyInvite) toClass(jsonObject, RoomThirdPartyInvite.class);
+        return toClass(jsonObject, RoomThirdPartyInvite.class);
     }
 
     /**
@@ -450,7 +453,29 @@ public class JsonUtils {
      * @return a RegistrationFlowResponse
      */
     public static RegistrationFlowResponse toRegistrationFlowResponse(String jsonString) {
-        return (RegistrationFlowResponse) toClass(jsonString, RegistrationFlowResponse.class);
+        return toClass(jsonString, RegistrationFlowResponse.class);
+    }
+
+    /**
+     * Convert a JSON object to a RoomTombstoneContent.
+     * The result is never null.
+     *
+     * @param jsonElement the json to convert
+     * @return a RoomTombstoneContent
+     */
+    public static RoomTombstoneContent toRoomTombstoneContent(final JsonElement jsonElement) {
+        return toClass(jsonElement, RoomTombstoneContent.class);
+    }
+
+    /**
+     * Convert a JSON object to a RoomCreateContent.
+     * The result is never null.
+     *
+     * @param jsonElement the json to convert
+     * @return a RoomCreateContent
+     */
+    public static RoomCreateContent toRoomCreateContent(final JsonElement jsonElement) {
+        return toClass(jsonElement, RoomCreateContent.class);
     }
 
     /**
@@ -461,25 +486,21 @@ public class JsonUtils {
      * @param aClass     the class
      * @return the converted object
      */
-    public static Object toClass(JsonElement jsonObject, Class aClass) {
-        Object object = null;
-
+    public static <T> T toClass(JsonElement jsonObject, Class<T> aClass) {
+        T object = null;
         try {
             object = gson.fromJson(jsonObject, aClass);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## toClass failed " + e.getMessage());
+            Log.e(LOG_TAG, "## toClass failed " + e.getMessage(), e);
         }
-
         if (null == object) {
-            Constructor<?>[] constructors = aClass.getConstructors();
-
             try {
-                object = constructors[0].newInstance();
+                final Constructor<T> constructor = aClass.getConstructor();
+                object = constructor.newInstance();
             } catch (Throwable t) {
-                Log.e(LOG_TAG, "## toClass failed " + t.getMessage());
+                Log.e(LOG_TAG, "## toClass failed " + t.getMessage(), t);
             }
         }
-
         return object;
     }
 
@@ -491,25 +512,21 @@ public class JsonUtils {
      * @param aClass             the class
      * @return the converted object
      */
-    public static Object toClass(String jsonObjectAsString, Class aClass) {
-        Object object = null;
-
+    public static <T> T toClass(String jsonObjectAsString, Class<T> aClass) {
+        T object = null;
         try {
             object = gson.fromJson(jsonObjectAsString, aClass);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## toClass failed " + e.getMessage());
+            Log.e(LOG_TAG, "## toClass failed " + e.getMessage(), e);
         }
-
         if (null == object) {
-            Constructor<?>[] constructors = aClass.getConstructors();
-
             try {
-                object = constructors[0].newInstance();
+                final Constructor<T> constructor = aClass.getConstructor();
+                object = constructor.newInstance();
             } catch (Throwable t) {
-                Log.e(LOG_TAG, "## toClass failed " + t.getMessage());
+                Log.e(LOG_TAG, "## toClass failed " + t.getMessage(), t);
             }
         }
-
         return object;
     }
 
@@ -523,7 +540,7 @@ public class JsonUtils {
         try {
             return (JsonObject) gson.toJsonTree(event);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## toJson failed " + e.getMessage());
+            Log.e(LOG_TAG, "## toJson failed " + e.getMessage(), e);
         }
 
         return new JsonObject();
@@ -539,7 +556,7 @@ public class JsonUtils {
         try {
             return (JsonObject) gson.toJsonTree(message);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## toJson failed " + e.getMessage());
+            Log.e(LOG_TAG, "## toJson failed " + e.getMessage(), e);
         }
 
         return null;
@@ -621,7 +638,7 @@ public class JsonUtils {
                 byte[] bytes = out.getBytes();
                 out = new String(bytes, "UTF-8");
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## convertFromUTF8()  failed " + e.getMessage());
+                Log.e(LOG_TAG, "## convertFromUTF8()  failed " + e.getMessage(), e);
             }
         }
 
@@ -642,7 +659,7 @@ public class JsonUtils {
                 byte[] bytes = out.getBytes("UTF-8");
                 out = new String(bytes);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## convertToUTF8()  failed " + e.getMessage());
+                Log.e(LOG_TAG, "## convertToUTF8()  failed " + e.getMessage(), e);
             }
         }
 

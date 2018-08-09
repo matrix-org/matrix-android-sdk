@@ -169,7 +169,7 @@ public class MXWebRtcCall extends MXCall {
                 try {
                     c = android.hardware.Camera.open(cameraId);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## isCameraInUse() : failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## isCameraInUse() : failed " + e.getMessage(), e);
                 } finally {
                     isUsed = (null == c);
                     if (c != null) {
@@ -242,7 +242,7 @@ public class MXWebRtcCall extends MXCall {
                 mIsSupported = true;
                 Log.d(LOG_TAG, "## initializeAndroidGlobals(): mIsInitialized=" + mIsInitialized);
             } catch (Throwable e) {
-                Log.e(LOG_TAG, "## initializeAndroidGlobals(): Exception Msg=" + e.getMessage());
+                Log.e(LOG_TAG, "## initializeAndroidGlobals(): Exception Msg=" + e.getMessage(), e);
                 mIsInitialized = true;
                 mIsSupported = false;
             }
@@ -394,12 +394,12 @@ public class MXWebRtcCall extends MXCall {
                         mCallTimeoutTimer.cancel();
                         mCallTimeoutTimer = null;
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## sendInvite(): Exception Msg= " + e.getMessage());
+                        Log.e(LOG_TAG, "## sendInvite(): Exception Msg= " + e.getMessage(), e);
                     }
                 }
             }, CALL_TIMEOUT_MS);
         } catch (Throwable throwable) {
-            Log.e(LOG_TAG, "## sendInvite(): failed " + throwable.getMessage());
+            Log.e(LOG_TAG, "## sendInvite(): failed " + throwable.getMessage(), throwable);
             if (null != mCallTimeoutTimer) {
                 mCallTimeoutTimer.cancel();
                 mCallTimeoutTimer = null;
@@ -447,7 +447,7 @@ public class MXWebRtcCall extends MXCall {
         try {
             updateWebRtcViewLayout(mPipRTCView, aConfigurationToApply);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## updateLocalVideoRendererPosition(): Exception Msg=" + e.getMessage());
+            Log.e(LOG_TAG, "## updateLocalVideoRendererPosition(): Exception Msg=" + e.getMessage(), e);
         }
     }
 
@@ -475,7 +475,7 @@ public class MXWebRtcCall extends MXCall {
 
                 return true;
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## switchRearFrontCamera(): failed " + e.getMessage());
+                Log.e(LOG_TAG, "## switchRearFrontCamera(): failed " + e.getMessage(), e);
             }
         } else {
             Log.w(LOG_TAG, "## switchRearFrontCamera(): failure - invalid values");
@@ -583,7 +583,7 @@ public class MXWebRtcCall extends MXCall {
                     }
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## createLocalStream(): Exception in ICE servers list Msg=" + e.getMessage());
+                Log.e(LOG_TAG, "## createLocalStream(): Exception in ICE servers list Msg=" + e.getMessage(), e);
             }
         }
 
@@ -731,7 +731,8 @@ public class MXWebRtcCall extends MXCall {
                                                 addIt = false;
                                             }
                                         } catch (Exception e) {
-                                            Log.e(LOG_TAG, "## createLocalStream(): createPeerConnection - onIceCandidate() Exception Msg=" + e.getMessage());
+                                            Log.e(LOG_TAG, "## createLocalStream(): createPeerConnection - onIceCandidate() Exception Msg="
+                                                    + e.getMessage(), e);
                                         }
                                     }
 
@@ -970,7 +971,7 @@ public class MXWebRtcCall extends MXCall {
             } catch (Exception ex2) {
                 // catch exception due to Android M permissions, when
                 // a call is received and the permissions (camera and audio) were not yet granted
-                Log.e(LOG_TAG, "createVideoTrack(): Exception Msg=" + ex2.getMessage());
+                Log.e(LOG_TAG, "createVideoTrack(): Exception Msg=" + ex2.getMessage(), ex2);
             }
 
             if (null != mCameraVideoCapturer) {
@@ -983,7 +984,7 @@ public class MXWebRtcCall extends MXCall {
                     mLocalVideoTrack = mPeerConnectionFactory.createVideoTrack(VIDEO_TRACK_ID, mVideoSource);
                     mLocalVideoTrack.setEnabled(true);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "createVideoSource fails with exception " + e.getMessage());
+                    Log.e(LOG_TAG, "createVideoSource fails with exception " + e.getMessage(), e);
 
                     mLocalVideoTrack = null;
 
@@ -1098,7 +1099,7 @@ public class MXWebRtcCall extends MXCall {
             } catch (Exception e) {
                 // GA issue
                 // it seems that setView triggers some exception like "setRenderer has already been called"
-                Log.e(LOG_TAG, "## initCallUI(): VideoRendererGui.setView : Exception Msg =" + e.getMessage());
+                Log.e(LOG_TAG, "## initCallUI(): VideoRendererGui.setView : Exception Msg =" + e.getMessage(), e);
             }
 
             try {
@@ -1123,7 +1124,7 @@ public class MXWebRtcCall extends MXCall {
                     updateWebRtcViewLayout(mPipRTCView, new VideoLayoutConfiguration(5, 5, 25, 25));
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## initCallUI(): Exception Msg =" + e.getMessage());
+                Log.e(LOG_TAG, "## initCallUI(): Exception Msg =" + e.getMessage(), e);
             }
 
             // reported gy google analytics
@@ -1174,7 +1175,7 @@ public class MXWebRtcCall extends MXCall {
                 }
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "onPause failed " + e.getMessage());
+            Log.e(LOG_TAG, "onPause failed " + e.getMessage(), e);
         }
     }
 
@@ -1197,7 +1198,7 @@ public class MXWebRtcCall extends MXCall {
                 }
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "onResume failed " + e.getMessage());
+            Log.e(LOG_TAG, "onResume failed " + e.getMessage(), e);
         }
     }
 
@@ -1235,7 +1236,7 @@ public class MXWebRtcCall extends MXCall {
             }
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## setRemoteDescription(): Exception Msg=" + e.getMessage());
+            Log.e(LOG_TAG, "## setRemoteDescription(): Exception Msg=" + e.getMessage(), e);
         }
 
         mPeerConnection.setRemoteDescription(new SdpObserver() {
@@ -1303,7 +1304,7 @@ public class MXWebRtcCall extends MXCall {
                 String sdpValue = sdp.getAsString();
                 setIsVideo(sdpValue.contains("m=video"));
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## prepareIncomingCall(): Exception Msg=" + e.getMessage());
+                Log.e(LOG_TAG, "## prepareIncomingCall(): Exception Msg=" + e.getMessage(), e);
             }
         }
     }
@@ -1355,7 +1356,7 @@ public class MXWebRtcCall extends MXCall {
                         }
 
                     } catch (Exception e) {
-                        Log.d(LOG_TAG, "onCallAnswer : " + e.getMessage());
+                        Log.e(LOG_TAG, "onCallAnswer : " + e.getMessage(), e);
                     }
 
                     mPeerConnection.setRemoteDescription(new SdpObserver() {
@@ -1436,7 +1437,7 @@ public class MXWebRtcCall extends MXCall {
 
                     candidatesList.add(new IceCandidate(sdpMid, sdpLineIndex, candidate));
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## onNewCandidates(): Exception Msg=" + e.getMessage());
+                    Log.e(LOG_TAG, "## onNewCandidates(): Exception Msg=" + e.getMessage(), e);
                 }
             }
 

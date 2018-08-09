@@ -38,8 +38,10 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.RoomTag;
+import org.matrix.androidsdk.data.comparator.RoomComparatorWithTag;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.data.cryptostore.MXFileCryptoStore;
+import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXStoreListener;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
@@ -50,14 +52,15 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.AccountDataRestClient;
-import org.matrix.androidsdk.rest.client.BingRulesRestClient;
 import org.matrix.androidsdk.rest.client.CallRestClient;
 import org.matrix.androidsdk.rest.client.CryptoRestClient;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.client.GroupsRestClient;
 import org.matrix.androidsdk.rest.client.LoginRestClient;
+import org.matrix.androidsdk.rest.client.MediaScanRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
+import org.matrix.androidsdk.rest.client.PushRulesRestClient;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
@@ -122,7 +125,7 @@ public class MXSession {
     private ProfileRestClient mProfileRestClient;
     private PresenceRestClient mPresenceRestClient;
     private RoomsRestClient mRoomsRestClient;
-    private final BingRulesRestClient mBingRulesRestClient;
+    private final PushRulesRestClient mPushRulesRestClient;
     private final PushersRestClient mPushersRestClient;
     private final ThirdPidRestClient mThirdPidRestClient;
     private final CallRestClient mCallRestClient;
@@ -130,12 +133,15 @@ public class MXSession {
     private final CryptoRestClient mCryptoRestClient;
     private final LoginRestClient mLoginRestClient;
     private final GroupsRestClient mGroupsRestClient;
+    private final MediaScanRestClient mMediaScanRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
     private ContentManager mContentManager;
 
     public MXCallsManager mCallsManager;
+
+    private MetricsListener mMetricsListener;
 
     private Context mAppContent;
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
@@ -218,7 +224,7 @@ public class MXSession {
         mProfileRestClient = new ProfileRestClient(hsConfig);
         mPresenceRestClient = new PresenceRestClient(hsConfig);
         mRoomsRestClient = new RoomsRestClient(hsConfig);
-        mBingRulesRestClient = new BingRulesRestClient(hsConfig);
+        mPushRulesRestClient = new PushRulesRestClient(hsConfig);
         mPushersRestClient = new PushersRestClient(hsConfig);
         mThirdPidRestClient = new ThirdPidRestClient(hsConfig);
         mCallRestClient = new CallRestClient(hsConfig);
@@ -226,6 +232,7 @@ public class MXSession {
         mCryptoRestClient = new CryptoRestClient(hsConfig);
         mLoginRestClient = new LoginRestClient(hsConfig);
         mGroupsRestClient = new GroupsRestClient(hsConfig);
+        mMediaScanRestClient = new MediaScanRestClient(hsConfig);
     }
 
     /**
@@ -325,7 +332,7 @@ public class MXSession {
         mProfileRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mPresenceRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mRoomsRestClient.setUnsentEventsManager(mUnsentEventsManager);
-        mBingRulesRestClient.setUnsentEventsManager(mUnsentEventsManager);
+        mPushRulesRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mThirdPidRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mCallRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mAccountDataRestClient.setUnsentEventsManager(mUnsentEventsManager);
@@ -338,6 +345,9 @@ public class MXSession {
         mMediasCache = new MXMediasCache(mContentManager, mNetworkConnectivityReceiver, mCredentials.userId, appContext);
         mDataHandler.setMediasCache(mMediasCache);
 
+        mMediaScanRestClient.setMxStore(mDataHandler.getStore());
+        mMediasCache.setMediaScanRestClient(mMediaScanRestClient);
+
         mGroupsManager = new GroupsManager(mDataHandler, mGroupsRestClient);
         mDataHandler.setGroupsManager(mGroupsManager);
     }
@@ -345,19 +355,8 @@ public class MXSession {
     private void checkIfAlive() {
         synchronized (this) {
             if (!mIsAliveSession) {
-                try {
-                    StackTraceElement[] callstacks = Thread.currentThread().getStackTrace();
-
-                    StringBuilder sb = new StringBuilder();
-                    for (StackTraceElement element : callstacks) {
-                        sb.append(element.toString());
-                        sb.append("\n");
-                    }
-
-                    Log.e(LOG_TAG, "Use of a released session : \n" + sb.toString());
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "Use of a released session : \n");
-                }
+                // Create an Exception to log the stack trace
+                Log.e(LOG_TAG, "Use of a released session", new Exception("Use of a released session"));
 
                 //throw new AssertionError("Should not used a cleared mxsession ");
             }
@@ -422,6 +421,15 @@ public class MXSession {
     public MXDataHandler getDataHandler() {
         checkIfAlive();
         return mDataHandler;
+    }
+
+    /**
+     * Update the metrics listener
+     *
+     * @param metricsListener the metrics listener
+     */
+    public void setMetricsListener(MetricsListener metricsListener) {
+        mMetricsListener = metricsListener;
     }
 
     /**
@@ -498,9 +506,9 @@ public class MXSession {
      *
      * @return the bing rules API client
      */
-    public BingRulesRestClient getBingRulesApiClient() {
+    public PushRulesRestClient getBingRulesApiClient() {
         checkIfAlive();
-        return mBingRulesRestClient;
+        return mPushRulesRestClient;
     }
 
     public ThirdPidRestClient getThirdPidRestClient() {
@@ -536,6 +544,11 @@ public class MXSession {
     public RoomsRestClient getRoomsApiClient() {
         checkIfAlive();
         return mRoomsRestClient;
+    }
+
+    public MediaScanRestClient getMediaScanRestClient() {
+        checkIfAlive();
+        return mMediaScanRestClient;
     }
 
     protected void setEventsApiClient(EventsRestClient eventsRestClient) {
@@ -574,7 +587,7 @@ public class MXSession {
      * @param context  the context
      * @param callback the asynchronous callback
      */
-    public static void getApplicationSizeCaches(final Context context, final SimpleApiCallback<Long> callback) {
+    public static void getApplicationSizeCaches(final Context context, final ApiCallback<Long> callback) {
         AsyncTask<Void, Void, Long> task = new AsyncTask<Void, Void, Long>() {
             @Override
             protected Long doInBackground(Void... params) {
@@ -592,7 +605,7 @@ public class MXSession {
         try {
             task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } catch (final Exception e) {
-            Log.e(LOG_TAG, "## getApplicationSizeCaches() : failed " + e.getMessage());
+            Log.e(LOG_TAG, "## getApplicationSizeCaches() : failed " + e.getMessage(), e);
             task.cancel(true);
 
             (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
@@ -617,7 +630,7 @@ public class MXSession {
         try {
             mAppContent.unregisterReceiver(mNetworkConnectivityReceiver);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## clearApplicationCaches() : unregisterReceiver failed " + e.getMessage());
+            Log.e(LOG_TAG, "## clearApplicationCaches() : unregisterReceiver failed " + e.getMessage(), e);
         }
         mNetworkConnectivityReceiver.removeListeners();
 
@@ -683,7 +696,7 @@ public class MXSession {
             try {
                 task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
             } catch (final Exception e) {
-                Log.e(LOG_TAG, "## clear() failed " + e.getMessage());
+                Log.e(LOG_TAG, "## clear() failed " + e.getMessage(), e);
                 task.cancel(true);
 
                 (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
@@ -737,7 +750,7 @@ public class MXSession {
                             }
                         }
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage());
+                        Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage(), e);
                     }
                 }
             }
@@ -777,7 +790,7 @@ public class MXSession {
         try {
             task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage());
+            Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage(), e);
             task.cancel(true);
         }
     }
@@ -866,6 +879,7 @@ public class MXSession {
             final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler) : anEventsListener;
 
             mEventsThread = new EventsThread(mAppContent, mEventsRestClient, fEventsListener, initialToken);
+            mEventsThread.setMetricsListener(mMetricsListener);
             mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
             mEventsThread.setIsOnline(mIsOnline);
             mEventsThread.setServerLongPollTimeout(mSyncTimeout);
@@ -882,7 +896,7 @@ public class MXSession {
                 try {
                     mEventsThread.start();
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## startEventStream() :  mEventsThread.start failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## startEventStream() :  mEventsThread.start failed " + e.getMessage(), e);
                 }
 
                 if (mIsBgCatchupPending) {
@@ -909,17 +923,17 @@ public class MXSession {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.d(LOG_TAG, "refreshToken : onNetworkError " + e.getMessage());
+                Log.e(LOG_TAG, "refreshToken : onNetworkError " + e.getMessage(), e);
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
-                Log.d(LOG_TAG, "refreshToken : onMatrixError " + e.getMessage());
+                Log.e(LOG_TAG, "refreshToken : onMatrixError " + e.getMessage());
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.d(LOG_TAG, "refreshToken : onMatrixError " + e.getMessage());
+                Log.e(LOG_TAG, "refreshToken : onMatrixError " + e.getMessage(), e);
             }
         });
     }
@@ -1150,28 +1164,25 @@ public class MXSession {
      * @param callback the async callback once the room is ready
      */
     public void createRoom(String name, String topic, String alias, final ApiCallback<String> callback) {
-        createRoom(name, topic, RoomState.DIRECTORY_VISIBILITY_PRIVATE, alias, RoomState.GUEST_ACCESS_CAN_JOIN,
-                RoomState.HISTORY_VISIBILITY_SHARED, null, callback);
+        createRoom(name, topic, RoomState.DIRECTORY_VISIBILITY_PRIVATE, alias, RoomState.GUEST_ACCESS_CAN_JOIN, null, callback);
     }
 
     /**
      * Create a new room with given properties. Needs the data handler.
      *
-     * @param name              the room name
-     * @param topic             the room topic
-     * @param visibility        the room visibility
-     * @param alias             the room alias
-     * @param guestAccess       the guest access rule (see {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN})
-     * @param historyVisibility the history visibility
-     * @param algorithm         the crypto algorithm (null to create an unencrypted room)
-     * @param callback          the async callback once the room is ready
+     * @param name        the room name
+     * @param topic       the room topic
+     * @param visibility  the room visibility
+     * @param alias       the room alias
+     * @param guestAccess the guest access rule (see {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN})
+     * @param algorithm   the crypto algorithm (null to create an unencrypted room)
+     * @param callback    the async callback once the room is ready
      */
     public void createRoom(String name,
                            String topic,
                            String visibility,
                            String alias,
                            String guestAccess,
-                           String historyVisibility,
                            String algorithm,
                            final ApiCallback<String> callback) {
         checkIfAlive();
@@ -1182,7 +1193,6 @@ public class MXSession {
         params.visibility = !TextUtils.isEmpty(visibility) ? visibility : null;
         params.roomAliasName = !TextUtils.isEmpty(alias) ? alias : null;
         params.guest_access = !TextUtils.isEmpty(guestAccess) ? guestAccess : null;
-        params.history_visibility = !TextUtils.isEmpty(historyVisibility) ? historyVisibility : null;
         params.addCryptoAlgorithm(algorithm);
 
         createRoom(params, callback);
@@ -1566,7 +1576,7 @@ public class MXSession {
      * @return the rooms list.
      */
     public List<Room> roomsWithTag(final String tag) {
-        List<Room> taggedRooms = new ArrayList<>();
+        final List<Room> taggedRooms = new ArrayList<>();
 
         // sanity check
         if (null == mDataHandler.getStore()) {
@@ -1574,53 +1584,17 @@ public class MXSession {
         }
 
         if (!TextUtils.equals(tag, RoomTag.ROOM_TAG_NO_TAG)) {
-            Collection<Room> rooms = mDataHandler.getStore().getRooms();
-
+            final Collection<Room> rooms = mDataHandler.getStore().getRooms();
             for (Room room : rooms) {
                 if (null != room.getAccountData().roomTag(tag)) {
                     taggedRooms.add(room);
                 }
             }
-
             if (taggedRooms.size() > 0) {
-                Collections.sort(taggedRooms, new Comparator<Room>() {
-                    @Override
-                    public int compare(Room r1, Room r2) {
-                        int res = 0;
-
-                        RoomTag tag1 = r1.getAccountData().roomTag(tag);
-                        RoomTag tag2 = r2.getAccountData().roomTag(tag);
-
-                        if ((null != tag1.mOrder) && (null != tag2.mOrder)) {
-                            double diff = (tag1.mOrder - tag2.mOrder);
-                            res = (diff == 0) ? 0 : (diff > 0) ? +1 : -1;
-                        } else if (null != tag1.mOrder) {
-                            res = -1;
-                        } else if (null != tag2.mOrder) {
-                            res = +1;
-                        }
-
-                        // In case of same order, order rooms by their last event
-                        if (0 == res) {
-                            IMXStore store = mDataHandler.getStore();
-
-                            Event latestEvent1 = store.getLatestEvent(r1.getRoomId());
-                            Event latestEvent2 = store.getLatestEvent(r2.getRoomId());
-
-                            // sanity check
-                            if ((null != latestEvent2) && (null != latestEvent1)) {
-                                long diff = (latestEvent2.getOriginServerTs() - latestEvent1.getOriginServerTs());
-                                res = (diff == 0) ? 0 : (diff > 0) ? +1 : -1;
-                            }
-                        }
-
-                        return res;
-                    }
-                });
+                Collections.sort(taggedRooms, new RoomComparatorWithTag(tag));
             }
         } else {
-            Collection<Room> rooms = mDataHandler.getStore().getRooms();
-
+            final Collection<Room> rooms = mDataHandler.getStore().getRooms();
             for (Room room : rooms) {
                 if (!room.getAccountData().hasTags()) {
                     taggedRooms.add(room);
@@ -1982,7 +1956,7 @@ public class MXSession {
 
             @Override
             public void onSuccess(JsonObject info) {
-                Log.e(LOG_TAG, "## logout() : succeed -> clearing the application data ");
+                Log.d(LOG_TAG, "## logout() : succeed -> clearing the application data ");
                 clearData();
             }
 
@@ -2026,7 +2000,7 @@ public class MXSession {
 
             @Override
             public void onSuccess(Void info) {
-                Log.e(LOG_TAG, "## deactivateAccount() : succeed -> clearing the application data ");
+                Log.d(LOG_TAG, "## deactivateAccount() : succeed -> clearing the application data ");
 
                 // Clear crypto data
                 // For security and because it will be no more useful as we will get a new device id
@@ -2069,7 +2043,7 @@ public class MXSession {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## setURLPreviewStatus() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## setURLPreviewStatus() : failed " + e.getMessage(), e);
                 callback.onNetworkError(e);
             }
 
@@ -2081,7 +2055,7 @@ public class MXSession {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## setURLPreviewStatus() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## setURLPreviewStatus() : failed " + e.getMessage(), e);
                 callback.onUnexpectedError(e);
             }
         });
@@ -2109,7 +2083,7 @@ public class MXSession {
 
             @Override
             public void onNetworkError(Exception e) {
-                Log.e(LOG_TAG, "## addUserWidget() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## addUserWidget() : failed " + e.getMessage(), e);
                 callback.onNetworkError(e);
             }
 
@@ -2121,7 +2095,7 @@ public class MXSession {
 
             @Override
             public void onUnexpectedError(Exception e) {
-                Log.e(LOG_TAG, "## addUserWidget() : failed " + e.getMessage());
+                Log.e(LOG_TAG, "## addUserWidget() : failed " + e.getMessage(), e);
                 callback.onUnexpectedError(e);
             }
         });
@@ -2224,7 +2198,7 @@ public class MXSession {
                 fileCryptoStore.open();
                 isStoreLoaded = true;
             } catch (UnsatisfiedLinkError e) {
-                Log.e(LOG_TAG, "## checkCrypto() failed " + e.getMessage());
+                Log.e(LOG_TAG, "## checkCrypto() failed " + e.getMessage(), e);
             }
 
             if (!isStoreLoaded) {
@@ -2237,7 +2211,7 @@ public class MXSession {
                     fileCryptoStore.open();
                     isStoreLoaded = true;
                 } catch (UnsatisfiedLinkError e) {
-                    Log.e(LOG_TAG, "## checkCrypto() failed 2 " + e.getMessage());
+                    Log.e(LOG_TAG, "## checkCrypto() failed 2 " + e.getMessage(), e);
                 }
             }
 
@@ -2351,7 +2325,7 @@ public class MXSession {
                     try {
                         registrationFlowResponse = JsonUtils.toRegistrationFlowResponse(matrixError.mErrorBodyAsString);
                     } catch (Exception castExcept) {
-                        Log.e(LOG_TAG, "## deleteDevice(): Received status 401 - Exception - JsonUtils.toRegistrationFlowResponse()");
+                        Log.e(LOG_TAG, "## deleteDevice(): Received status 401 - Exception - JsonUtils.toRegistrationFlowResponse()", castExcept);
                     }
                 } else {
                     Log.d(LOG_TAG, "## deleteDevice(): Received not expected status 401 =" + matrixError.mStatus);

@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -151,7 +152,7 @@ public class CallSoundsManager {
                 try {
                     listener.onAudioConfigurationUpdate();
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## dispatchAudioConfigurationUpdate() failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## dispatchAudioConfigurationUpdate() failed " + e.getMessage(), e);
                 }
             }
         }
@@ -206,7 +207,7 @@ public class CallSoundsManager {
                     try {
                         listener.onFocusChanged(aFocusEvent);
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## onFocusChanged() failed " + e.getMessage());
+                        Log.e(LOG_TAG, "## onFocusChanged() failed " + e.getMessage(), e);
                     }
                 }
             }
@@ -258,6 +259,7 @@ public class CallSoundsManager {
     private static final long[] VIBRATE_PATTERN = {0, VIBRATE_DURATION, VIBRATE_SLEEP};
 
     private Ringtone mRingTone;
+    private boolean mIsRinging;
     private MediaPlayer mMediaPlayer = null;
 
     // the audio manager (do not use directly, use getAudioManager())
@@ -272,7 +274,7 @@ public class CallSoundsManager {
      * @return true if the device is ringing
      */
     public boolean isRinging() {
-        return (null != mRingTone);
+        return mIsRinging;
     }
 
     /**
@@ -288,6 +290,8 @@ public class CallSoundsManager {
      * Stop any playing sound.
      */
     public void stopSounds() {
+        mIsRinging = false;
+
         if (null != mRingTone) {
             mRingTone.stop();
             mRingTone = null;
@@ -382,28 +386,30 @@ public class CallSoundsManager {
      * @param filename the filename to save the ringtone
      */
     public void startRinging(int resId, String filename) {
-        Log.d(LOG_TAG, "startRinging");
-
-        if (null != mRingTone) {
-            Log.d(LOG_TAG, "ring tone already ringing");
-            return;
+        Log.v(LOG_TAG, "startRinging");
+        if (mRingTone != null) {
+            Log.v(LOG_TAG, "ring tone already ringing");
         }
-
         // stop any playing ringtone
         stopSounds();
-
+        mIsRinging = true;
         // use the ringTone to manage sound volume properly
         mRingTone = getRingTone(mContext, resId, filename, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE));
-
-        if (null != mRingTone) {
+        if (mRingTone != null) {
             setSpeakerphoneOn(false, true);
             mRingTone.play();
         } else {
             Log.e(LOG_TAG, "startRinging : fail to retrieve RING_TONE_START_RINGING");
         }
-
         // start vibrate
         enableVibrating(true);
+    }
+
+    /**
+     * Same than {@link #startRinging(int, String)}}, but do not play sound, nor vibrate.
+     */
+    public void startRingingSilently() {
+        mIsRinging = true;
     }
 
     /**
@@ -489,7 +495,7 @@ public class CallSoundsManager {
     /**
      * Provide a ringtone uri from a resource and a filename.
      *
-     * @param context  the conext
+     * @param context  the context
      * @param resId    The audio resource.
      * @param filename the audio filename
      * @return the ringtone uri
@@ -509,7 +515,7 @@ public class CallSoundsManager {
                     return ringToneUri;
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## getRingToneUri() failed " + e.getMessage());
+                Log.e(LOG_TAG, "## getRingToneUri() failed " + e.getMessage(), e);
             }
         }
 
@@ -558,7 +564,7 @@ public class CallSoundsManager {
 
                         fos.close();
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## getRingToneUri():  Exception1 Msg=" + e.getMessage());
+                        Log.e(LOG_TAG, "## getRingToneUri():  Exception1 Msg=" + e.getMessage(), e);
                     }
                 }
 
@@ -582,7 +588,7 @@ public class CallSoundsManager {
                 return ringToneUri;
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## getRingToneUri():  Exception2 Msg=" + e.getLocalizedMessage());
+            Log.e(LOG_TAG, "## getRingToneUri():  Exception2 Msg=" + e.getLocalizedMessage(), e);
         }
 
         return null;
@@ -600,7 +606,7 @@ public class CallSoundsManager {
             try {
                 return RingtoneManager.getRingtone(context, ringToneUri);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## uriToRingTone() failed " + e.getMessage());
+                Log.e(LOG_TAG, "## uriToRingTone() failed " + e.getMessage(), e);
             }
         }
 
@@ -725,7 +731,7 @@ public class CallSoundsManager {
                         audioManager.setBluetoothScoOn(false);
                     }
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## setSpeakerphoneOn() failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## setSpeakerphoneOn() failed " + e.getMessage(), e);
                 }
             }
 
@@ -733,7 +739,7 @@ public class CallSoundsManager {
                 audioManager.setSpeakerphoneOn(isSpeakerOn);
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## setSpeakerphoneOn() failed " + e.getMessage());
+            Log.e(LOG_TAG, "## setSpeakerphoneOn() failed " + e.getMessage(), e);
             restoreAudioConfig();
         }
 
@@ -758,7 +764,7 @@ public class CallSoundsManager {
                     audioManager.setBluetoothScoOn(false);
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## toggleSpeaker() failed " + e.getMessage());
+                Log.e(LOG_TAG, "## toggleSpeaker() failed " + e.getMessage(), e);
             }
         }
 

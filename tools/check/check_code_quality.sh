@@ -80,7 +80,7 @@ fi
 echo
 echo "Search for long files..."
 
-${checkLongFilesScript} 3000 \
+${checkLongFilesScript} 3200 \
     ./matrix-sdk/src/main/java \
     ./matrix-sdk/src/test/java \
     ./matrix-sdk/src/main/res/layout \

@@ -44,7 +44,7 @@ public class RoomTag implements java.io.Serializable {
     public String mName;
 
     /**
-     * Try to parse order as NSNumber.
+     * Try to parse order as Double.
      * Provides nil if the items cannot be parsed.
      */
     public Double mOrder;
@@ -79,7 +79,7 @@ public class RoomTag implements java.io.Serializable {
                 }
             }
         } catch (Exception e) {
-            Log.d(LOG_TAG, "roomTagsWithTagEvent fails " + e.getMessage());
+            Log.e(LOG_TAG, "roomTagsWithTagEvent fails " + e.getMessage(), e);
         }
 
         return tags;

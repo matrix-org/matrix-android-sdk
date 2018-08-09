@@ -1,3 +1,38 @@
+Changes to Matrix Android SDK in 0.9.7 (2018-08-09)
+=======================================================
+
+Features:
+ - Add MetricsListener to measure some startup and stats metrics
+ - Implements ReplyTo feature. When sending an event, you can now pass another Event to reply to it. (vector-im/riot-android#2390)
+ - Manage room versioning 
+
+Improvements:
+ - MXCrypto: Encrypt the messages for invited members according to the history visibility (if the option is enabled in MXCryptoConfig).
+ - Upgrade olm-sdk.aar from version 2.2.2 to version 2.3.0
+ - Add a method to MediaScanRestClient to get the public key of the media scanner server
+ - Add support for the scanning and downloading of unencrypted thumbnails
+ - Set user agent on manual HttpConnection (i.e. not using a RestClient)
+ - Bullet points look esthetically bad (#2462)
+
+Bugfix:
+ - Send Access Token as a header instead of a url parameter to upload content (#311)
+ - Add API CallSoundsManager.startRingingSilently() to fix issue when incoming call sound is disable (vector-im/riot-android#2417)
+ - Use same TxId when resending an event. The eventId is used as a TxId. (vector-im/riot-android#1997)
+ - Fix bad bing on '@room' pattern. (vector-im/riot-android#2461)
+ - Fix Crash loop reported by RageShake (vector-im/riot-android#2501)
+
+API Change:
+ - Parameter historyVisibility removed from MxSession.createRoom(). It had no effect.
+ - New API: CreateRoomParams.setHistoryVisibility(String historyVisibility) to force the history visibility during Room creation.
+ - Room.getLiveState() has been removed, please use Room.getState() (#310)
+ - new API: Room.canReplyTo(Event) to know if replying to this event is supported.
+ - New APIs PermalinkUtils.createPermalink() to create matrix permalink for an event, a room, a user, etc.
+ - New API: add hasMembership(String membership) to simplify test on room membership
+
+Others:
+ - Do not log DEBUG messages in release versions (PR #304)
+ - Rename some internal classes to change 'Bing' to 'Push'
+
 Changes to Matrix Android SDK in 0.9.6 (2018-07-03)
 =======================================================
 

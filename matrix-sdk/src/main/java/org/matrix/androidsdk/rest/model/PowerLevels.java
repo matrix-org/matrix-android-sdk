@@ -164,6 +164,6 @@ public class PowerLevels implements java.io.Serializable {
             }
         }
 
-        return users_default;
+        return 50;
     }
 }

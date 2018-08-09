@@ -131,7 +131,7 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
                     Log.d(LOG_TAG, "## checkNetworkConnection() : No network update");
                 }
             } catch (Exception e) {
-                Log.e(LOG_TAG, "Failed to report :" + e.getMessage());
+                Log.e(LOG_TAG, "Failed to report :" + e.getMessage(), e);
             }
         }
     }
@@ -228,7 +228,7 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
             try {
                 listener.onNetworkConnectionUpdate(mIsConnected);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## onNetworkUpdate() : onNetworkConnectionUpdate failed " + e.getMessage());
+                Log.e(LOG_TAG, "## onNetworkUpdate() : onNetworkConnectionUpdate failed " + e.getMessage(), e);
             }
         }
 
@@ -239,7 +239,7 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver {
                 try {
                     listener.onNetworkConnectionUpdate(true);
                 } catch (Exception e) {
-                    Log.e(LOG_TAG, "## onNetworkUpdate() : onNetworkConnectionUpdate failed " + e.getMessage());
+                    Log.e(LOG_TAG, "## onNetworkUpdate() : onNetworkConnectionUpdate failed " + e.getMessage(), e);
                 }
             }
 

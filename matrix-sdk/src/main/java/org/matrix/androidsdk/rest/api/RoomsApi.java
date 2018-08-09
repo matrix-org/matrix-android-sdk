@@ -24,6 +24,7 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
+import org.matrix.androidsdk.rest.model.CreatedEvent;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.PowerLevels;
@@ -53,7 +54,7 @@ import retrofit2.http.Query;
 public interface RoomsApi {
 
     /**
-     * Send an event about a room.
+     * Send an event to a room.
      *
      * @param txId      the transaction Id
      * @param roomId    the room id
@@ -61,7 +62,7 @@ public interface RoomsApi {
      * @param content   the event content
      */
     @PUT("rooms/{roomId}/send/{eventType}/{txId}")
-    Call<Event> send(@Path("txId") String txId, @Path("roomId") String roomId, @Path("eventType") String eventType, @Body JsonObject content);
+    Call<CreatedEvent> send(@Path("txId") String txId, @Path("roomId") String roomId, @Path("eventType") String eventType, @Body JsonObject content);
 
     /**
      * Send a message to the specified room.
@@ -71,7 +72,7 @@ public interface RoomsApi {
      * @param message the message
      */
     @PUT("rooms/{roomId}/send/m.room.message/{txId}")
-    Call<Event> sendMessage(@Path("txId") String txId, @Path("roomId") String roomId, @Body Message message);
+    Call<CreatedEvent> sendMessage(@Path("txId") String txId, @Path("roomId") String roomId, @Body Message message);
 
     /**
      * Set the room topic.

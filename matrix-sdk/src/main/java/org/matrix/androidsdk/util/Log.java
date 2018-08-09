@@ -1,5 +1,6 @@
 /*
  * Copyright 2017 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +18,8 @@ package org.matrix.androidsdk.util;
 
 import android.text.TextUtils;
 
+import org.matrix.androidsdk.BuildConfig;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -26,8 +29,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
-import java.util.logging.Formatter;
 import java.util.logging.FileHandler;
+import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -49,19 +52,31 @@ public class Log {
     private static File sCacheDirectory = null;
     private static String sFileName = "matrix";
 
+    // determine if messsages with DEBUG level should be logged or not
+    public static boolean sShouldLogDebug = BuildConfig.DEBUG;
+
     public enum EventTag {
-        /** A navigation event, e.g. onPause */
+        /**
+         * A navigation event, e.g. onPause
+         */
         NAVIGATION,
-        /** A user triggered event, e.g. onClick */
+        /**
+         * A user triggered event, e.g. onClick
+         */
         USER,
-        /** User-visible notifications */
+        /**
+         * User-visible notifications
+         */
         NOTICE,
-        /** A background event e.g. incoming messages */
+        /**
+         * A background event e.g. incoming messages
+         */
         BACKGROUND
     }
 
     /**
      * Initialises the logger. Should be called AFTER {@link Log#setLogDirectory(File)}.
+     *
      * @param fileName the base file name
      */
     public static void init(String fileName) {
@@ -69,17 +84,18 @@ public class Log {
             if (!TextUtils.isEmpty(fileName)) {
                 sFileName = fileName;
             }
-            sFileHandler = new FileHandler(sCacheDirectory.getAbsolutePath()+"/" + sFileName + ".%g.txt", LOG_SIZE_BYTES, LOG_ROTATION_COUNT);
+            sFileHandler = new FileHandler(sCacheDirectory.getAbsolutePath() + "/" + sFileName + ".%g.txt", LOG_SIZE_BYTES, LOG_ROTATION_COUNT);
             sFileHandler.setFormatter(new LogFormatter());
             sLogger.setUseParentHandlers(false);
             sLogger.setLevel(Level.ALL);
             sLogger.addHandler(sFileHandler);
+        } catch (IOException e) {
         }
-        catch (IOException e) {}
     }
 
     /**
      * Set the directory to put log files.
+     *
      * @param cacheDir The directory, usually {@link android.content.ContextWrapper#getCacheDir()}
      */
     public static void setLogDirectory(File cacheDir) {
@@ -91,6 +107,7 @@ public class Log {
 
     /**
      * Set the directory to put log files.
+     *
      * @return the cache directory
      */
     public static File getLogDirectory() {
@@ -99,6 +116,7 @@ public class Log {
 
     /**
      * Adds our own log files to the provided list of files.
+     *
      * @param files The list of files to add to.
      * @return The same list with more files added.
      */
@@ -118,12 +136,12 @@ public class Log {
                 }
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## addLogFiles() failed : " + e.getMessage());
+            Log.e(LOG_TAG, "## addLogFiles() failed : " + e.getMessage(), e);
         }
         return files;
     }
 
-    public static void logToFile(String level, String tag, String content) {
+    private static void logToFile(String level, String tag, String content) {
         if (null == sCacheDirectory) {
             return;
         }
@@ -140,8 +158,26 @@ public class Log {
     }
 
     /**
+     * Log an Throwable
+     *
+     * @param throwable the throwable to log
+     */
+    private static void logToFile(Throwable throwable) {
+        if (null == sCacheDirectory || throwable == null) {
+            return;
+        }
+
+
+        StringWriter errors = new StringWriter();
+        throwable.printStackTrace(new PrintWriter(errors));
+
+        sLogger.info(errors.toString());
+    }
+
+    /**
      * Log events which can be automatically analysed
-     * @param tag the EventTag
+     *
+     * @param tag     the EventTag
      * @param content Content to log
      */
     public static void event(EventTag tag, String content) {
@@ -151,7 +187,8 @@ public class Log {
 
     /**
      * Log connection information, such as urls hit, incoming data, current connection status.
-     * @param tag Log tag
+     *
+     * @param tag     Log tag
      * @param content Content to log
      */
     public static void con(String tag, String content) {
@@ -167,16 +204,22 @@ public class Log {
     public static void v(String tag, String content, Throwable throwable) {
         android.util.Log.v(tag, content, throwable);
         logToFile("V", tag, content);
+        logToFile(throwable);
     }
 
     public static void d(String tag, String content) {
-        android.util.Log.d(tag, content);
-        logToFile("D", tag, content);
+        if (sShouldLogDebug) {
+            android.util.Log.d(tag, content);
+            logToFile("D", tag, content);
+        }
     }
 
     public static void d(String tag, String content, Throwable throwable) {
-        android.util.Log.d(tag, content, throwable);
-        logToFile("D", tag, content);
+        if (sShouldLogDebug) {
+            android.util.Log.d(tag, content, throwable);
+            logToFile("D", tag, content);
+            logToFile(throwable);
+        }
     }
 
     public static void i(String tag, String content) {
@@ -187,6 +230,7 @@ public class Log {
     public static void i(String tag, String content, Throwable throwable) {
         android.util.Log.i(tag, content, throwable);
         logToFile("I", tag, content);
+        logToFile(throwable);
     }
 
     public static void w(String tag, String content) {
@@ -197,6 +241,7 @@ public class Log {
     public static void w(String tag, String content, Throwable throwable) {
         android.util.Log.w(tag, content, throwable);
         logToFile("W", tag, content);
+        logToFile(throwable);
     }
 
     public static void e(String tag, String content) {
@@ -207,6 +252,7 @@ public class Log {
     public static void e(String tag, String content, Throwable throwable) {
         android.util.Log.e(tag, content, throwable);
         logToFile("E", tag, content);
+        logToFile(throwable);
     }
 
     public static void wtf(String tag, String content) {
@@ -217,11 +263,13 @@ public class Log {
     public static void wtf(String tag, Throwable throwable) {
         android.util.Log.wtf(tag, throwable);
         logToFile("WTF", tag, throwable.getMessage());
+        logToFile(throwable);
     }
 
     public static void wtf(String tag, String content, Throwable throwable) {
         android.util.Log.wtf(tag, content, throwable);
         logToFile("WTF", tag, content);
+        logToFile(throwable);
     }
 
     public static final class LogFormatter extends Formatter {
