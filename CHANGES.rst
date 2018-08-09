@@ -1,4 +1,4 @@
-Changes to Matrix Android SDK in 0.9.7 (2018-XX-XX)
+Changes to Matrix Android SDK in 0.9.7 (2018-08-09)
 =======================================================
 
 Features:
@@ -29,19 +29,9 @@ API Change:
  - New APIs PermalinkUtils.createPermalink() to create matrix permalink for an event, a room, a user, etc.
  - New API: add hasMembership(String membership) to simplify test on room membership
 
-
-Translations:
- -
-
 Others:
  - Do not log DEBUG messages in release versions (PR #304)
  - Rename some internal classes to change 'Bing' to 'Push'
-
-Build:
- -
-
-Test:
- -
 
 Changes to Matrix Android SDK in 0.9.6 (2018-07-03)
 =======================================================
