@@ -81,7 +81,7 @@ android {
                 variant.outputs.each { output ->
                     def outputFile = output.outputFileName
                     if (outputFile != null && outputFile.endsWith('.aar')) {
-                        output.outputFileName = outputFile.replace(".aar", "-${versionName}.aar")
+                        output.outputFileName = outputFile.replace(".aar", "-${defaultConfig.versionName}.aar")
                     }
                 }
             }
