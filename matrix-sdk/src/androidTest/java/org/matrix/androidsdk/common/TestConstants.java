@@ -14,9 +14,18 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk;
+package org.matrix.androidsdk.common;
 
-class TestConstants {
+public class TestConstants {
     // Time out to use when waiting for server response
     public static final int AWAIT_TIME_OUT_MILLIS = 30000;
+
+    public static final String BOB_USER_ID = "mxBob";
+    public static final String BOB_PWD = "bobbob";
+
+    public static final String ALICE_USER_ID = "mxAlice";
+    public static final String ALICE_PWD = "alicealice";
+
+    public static final String SAM_USER_ID = "mxSam";
+    public static final String SAM_PWD = "samsam";
 }

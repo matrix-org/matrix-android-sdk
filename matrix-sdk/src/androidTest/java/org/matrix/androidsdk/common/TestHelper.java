@@ -15,13 +15,16 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk;
+package org.matrix.androidsdk.common;
 
 import android.content.Context;
 import android.net.Uri;
 import android.support.annotation.Nullable;
 
 import org.junit.Assert;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
+import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXFileStore;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -37,7 +40,9 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public class CryptoTestHelper {
+
+public class TestHelper {
+
     private static final String TESTS_HOME_SERVER_URL = "http://10.0.2.2:8080";
 
     /**
@@ -46,13 +51,10 @@ public class CryptoTestHelper {
      * @param credentials
      * @return
      */
-    public static HomeServerConnectionConfig createHomeServerConfig(@Nullable Credentials credentials) {
-        HomeServerConnectionConfig hs = new HomeServerConnectionConfig(Uri.parse(TESTS_HOME_SERVER_URL));
-
+    HomeServerConnectionConfig createHomeServerConfig(@Nullable Credentials credentials) {
+        final HomeServerConnectionConfig hs = new HomeServerConnectionConfig(Uri.parse(TESTS_HOME_SERVER_URL));
         hs.allowHttpConnection();
-
         hs.setCredentials(credentials);
-
         return hs;
     }
 
@@ -63,15 +65,15 @@ public class CryptoTestHelper {
      * @param userName     the account username
      * @param password     the password
      * @param startSession true to perform an initial sync
-     * @throws Exception an exception if the account creation failed
+     * @param enableCrypto true to set enableCryptoWhenStarting
      */
-    public static MXSession createAccountAndSync(Context context, String userName, String password, boolean startSession) throws Exception {
-        HomeServerConnectionConfig hs = createHomeServerConfig(null);
+    MXSession createAccountAndSync(Context context, String userName, String password, boolean startSession, boolean enableCrypto) {
+        final HomeServerConnectionConfig hs = createHomeServerConfig(null);
 
-        LoginRestClient loginRestClient = new LoginRestClient(hs);
+        final LoginRestClient loginRestClient = new LoginRestClient(hs);
 
         final Map<String, Object> params = new HashMap<>();
-        RegistrationParams registrationParams = new RegistrationParams();
+        final RegistrationParams registrationParams = new RegistrationParams();
 
         CountDownLatch lock = new CountDownLatch(1);
 
@@ -99,9 +101,13 @@ public class CryptoTestHelper {
             }
         });
 
-        lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        try {
+            lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
 
-        String session = (String) params.get("session");
+        }
+
+        final String session = (String) params.get("session");
 
         Assert.assertNotNull(session);
 
@@ -122,7 +128,11 @@ public class CryptoTestHelper {
             }
         });
 
-        lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        try {
+            lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         Credentials credentials = (Credentials) params.get("credentials");
 
@@ -132,8 +142,11 @@ public class CryptoTestHelper {
 
         IMXStore store = new MXFileStore(hs, context);
 
-        MXSession mxSession = new MXSession.Builder(hs, new MXDataHandler(store, credentials), context)
-                .build();
+        MXSession mxSession = new MXSession(hs, new MXDataHandler(store, credentials), context);
+
+        if (enableCrypto) {
+            mxSession.enableCryptoWhenStarting();
+        }
 
         if (!startSession) {
             return mxSession;
@@ -151,7 +164,11 @@ public class CryptoTestHelper {
             }
         });
 
-        lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        try {
+            lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         Assert.assertTrue(params.containsKey("isInit"));
 
@@ -161,18 +178,16 @@ public class CryptoTestHelper {
     /**
      * Start an account login
      *
-     * @param context  the context
-     * @param userName the account username
-     * @param password the password
-     * @throws Exception an exception if the account cannot be synced
+     * @param context         the context
+     * @param userName        the account username
+     * @param password        the password
+     * @param withInitialSync true to perform an initial sync
+     * @param enableCrypto    true to set enableCryptoWhenStarting
      */
-    public static MXSession logAccountAndSync(Context context, String userName, String password) throws Exception {
-        HomeServerConnectionConfig hs = createHomeServerConfig(null);
-
+    MXSession logAccountAndSync(Context context, String userName, String password, boolean withInitialSync, boolean enableCrypto) {
+        final HomeServerConnectionConfig hs = createHomeServerConfig(null);
         LoginRestClient loginRestClient = new LoginRestClient(hs);
-
         final Map<String, Object> params = new HashMap<>();
-
         CountDownLatch lock = new CountDownLatch(1);
 
         // get the registration session id
@@ -184,20 +199,29 @@ public class CryptoTestHelper {
             }
         });
 
-        lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        try {
+            lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
-        Credentials credentials = (Credentials) params.get("credentials");
+        final Credentials credentials = (Credentials) params.get("credentials");
 
         Assert.assertNotNull(credentials);
 
         hs.setCredentials(credentials);
 
-        IMXStore store = new MXFileStore(hs, context);
+        final IMXStore store = new MXFileStore(hs, context);
 
-        MXSession mxSession = new MXSession.Builder(hs, new MXDataHandler(store, credentials), context)
-                .build();
+        final MXSession mxSession = new MXSession(hs, new MXDataHandler(store, credentials), context);
 
-        mxSession.enableCryptoWhenStarting();
+        if (enableCrypto) {
+            mxSession.enableCryptoWhenStarting();
+        }
+
+        if (!withInitialSync) {
+            return mxSession;
+        }
 
         final CountDownLatch lock2 = new CountDownLatch(2);
         mxSession.getDataHandler().addListener(new MXEventListener() {
@@ -217,7 +241,11 @@ public class CryptoTestHelper {
         mxSession.getDataHandler().getStore().open();
         mxSession.startEventStream(null);
 
-        lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        try {
+            lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         Assert.assertTrue(params.containsKey("isInit"));
         Assert.assertTrue(params.containsKey("onCryptoSyncComplete"));

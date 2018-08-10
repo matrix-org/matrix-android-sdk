@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk;
+package org.matrix.androidsdk.crypto;
 
 import android.support.test.runner.AndroidJUnit4;
 
@@ -23,6 +23,7 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
+import org.matrix.androidsdk.common.AbsIntegrationTest;
 import org.matrix.androidsdk.crypto.MXMegolmExportEncryption;
 
 /**
@@ -30,7 +31,7 @@ import org.matrix.androidsdk.crypto.MXMegolmExportEncryption;
  */
 @RunWith(AndroidJUnit4.class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class ExportEncryptionTest {
+public class ExportEncryptionTest extends AbsIntegrationTest {
 
     @Test
     public void checkExportError1() throws Exception {
