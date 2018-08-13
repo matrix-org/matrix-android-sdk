@@ -8,7 +8,7 @@ Improvements:
  -
 
 Bugfix:
- -
+ - Room aliases including the '@' character are now recognized as valid (vector-im/riot-android#2079)
 
 API Change:
  -
