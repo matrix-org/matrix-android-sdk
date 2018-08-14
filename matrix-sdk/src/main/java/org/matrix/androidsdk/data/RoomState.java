@@ -94,7 +94,7 @@ public class RoomState implements Externalizable {
     private Map<String, Event> mRoomAliases = new HashMap<>();
 
     // the aliases are defined for each home server url
-    private Map<String, List<String>> mAliasesByDomain = new HashMap();
+    private Map<String, List<String>> mAliasesByDomain = new HashMap<>();
 
     // merged from mAliasesByHomeServerUrl
     private List<String> mMergedAliasesList;
@@ -168,8 +168,11 @@ public class RoomState implements Externalizable {
     // the associated token
     private String token;
 
-    // the room members
+    // the room members. May be a partial list if all members are not loaded yet, due to lazy loading
     private final Map<String, RoomMember> mMembers = new HashMap<>();
+
+    // true if all members are loaded
+    private boolean mAllMembersAreLoaded;
 
     // the third party invite members
     private final Map<String, RoomThirdPartyInvite> mThirdPartyInvites = new HashMap<>();
@@ -189,11 +192,6 @@ public class RoomState implements Externalizable {
      * Tell if the roomstate if a live one.
      */
     private boolean mIsLive;
-
-    /**
-     * Tell if the room is a user conference user one
-     */
-    private Boolean mIsConferenceUserRoom = null;
 
     // the unitary tests crash when MXDataHandler type is set.
     private transient Object mDataHandler = null;
@@ -256,9 +254,9 @@ public class RoomState implements Externalizable {
     }
 
     /**
-     * @return a copy of the room members list.
+     * @return a copy of the room members list. May be incomplete if the full list is not loaded yet
      */
-    public Collection<RoomMember> getMembers() {
+    public List<RoomMember> getLoadedMembers() {
         List<RoomMember> res;
 
         synchronized (this) {
@@ -267,6 +265,43 @@ public class RoomState implements Externalizable {
         }
 
         return res;
+    }
+
+    /**
+     * Get the list of all the room members. Fetch from server if the full list is not loaded yet.
+     */
+    public void getMembersAsync(final ApiCallback<List<RoomMember>> callback) {
+        if (mAllMembersAreLoaded) {
+            List<RoomMember> res;
+
+            synchronized (this) {
+                // make a copy to avoid concurrency modifications
+                res = new ArrayList<>(mMembers.values());
+            }
+
+            callback.onSuccess(res);
+        } else {
+            // Load members from server
+            getDataHandler().getMembersAsync(roomId, new SimpleApiCallback<List<RoomMember>>(callback) {
+                @Override
+                public void onSuccess(List<RoomMember> info) {
+                    List<RoomMember> res;
+
+                    synchronized (this) {
+                        for (RoomMember member : info) {
+                            setMember(member.getUserId(), member);
+                        }
+
+                        // make a copy to avoid concurrency modifications
+                        res = new ArrayList<>(mMembers.values());
+
+                        mAllMembersAreLoaded = true;
+                    }
+
+                    callback.onSuccess(res);
+                }
+            });
+        }
     }
 
     /**
@@ -348,18 +383,22 @@ public class RoomState implements Externalizable {
      *
      * @return a copy of the displayable room members list.
      */
-    public Collection<RoomMember> getDisplayableMembers() {
-        Collection<RoomMember> members = getMembers();
+    public void getDisplayableMembers(final ApiCallback<List<RoomMember>> callback) {
+        getMembersAsync(new SimpleApiCallback<List<RoomMember>>(callback) {
+            @Override
+            public void onSuccess(List<RoomMember> members) {
+                RoomMember conferenceUserId = getMember(MXCallsManager.getConferenceUserId(roomId));
 
-        RoomMember conferenceUserId = getMember(MXCallsManager.getConferenceUserId(roomId));
+                if (null != conferenceUserId) {
+                    List<RoomMember> membersList = new ArrayList<>(members);
+                    membersList.remove(conferenceUserId);
+                    callback.onSuccess(membersList);
+                } else {
+                    callback.onSuccess(members);
+                }
+            }
+        });
 
-        if (null != conferenceUserId) {
-            List<RoomMember> membersList = new ArrayList<>(members);
-            membersList.remove(conferenceUserId);
-            members = membersList;
-        }
-
-        return members;
     }
 
     /**
@@ -369,25 +408,7 @@ public class RoomState implements Externalizable {
      * @return true if it is a call conference room.
      */
     public boolean isConferenceUserRoom() {
-        // test if it is not yet initialized
-        if (null == mIsConferenceUserRoom) {
-
-            mIsConferenceUserRoom = false;
-
-            Collection<RoomMember> members = getMembers();
-
-            // works only with 1:1 room
-            if (2 == members.size()) {
-                for (RoomMember member : members) {
-                    if (MXCallsManager.isConferenceUserId(member.getUserId())) {
-                        mIsConferenceUserRoom = true;
-                        break;
-                    }
-                }
-            }
-        }
-
-        return mIsConferenceUserRoom;
+        return getDataHandler().getStore().getSummary(roomId).isConferenceUserRoom();
     }
 
     /**
@@ -396,7 +417,7 @@ public class RoomState implements Externalizable {
      * @param isConferenceUserRoom true when it is an user conference room.
      */
     public void setIsConferenceUserRoom(boolean isConferenceUserRoom) {
-        mIsConferenceUserRoom = isConferenceUserRoom;
+        getDataHandler().getStore().getSummary(roomId).setIsConferenceUserRoom(isConferenceUserRoom);
     }
 
     /**
@@ -405,7 +426,7 @@ public class RoomState implements Externalizable {
      * @param userId the user id.
      * @param member the new member value.
      */
-    public void setMember(String userId, RoomMember member) {
+    private void setMember(String userId, RoomMember member) {
         // Populate a basic user object if there is none
         if (member.getUserId() == null) {
             member.setUserId(userId);
@@ -424,11 +445,16 @@ public class RoomState implements Externalizable {
      * @param userId the user id.
      * @return the linked member it exists.
      */
+    // TODO Change this? Can return null if all members are not loaded yet
     public RoomMember getMember(String userId) {
         RoomMember member;
 
         synchronized (this) {
             member = mMembers.get(userId);
+        }
+
+        if (member == null) {
+            Log.e(LOG_TAG, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Null member !!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         }
 
         return member;
@@ -440,6 +466,7 @@ public class RoomState implements Externalizable {
      * @param eventId the event id.
      * @return the linked member it exists.
      */
+    // TODO Change this? Can return null if all members are not loaded yet
     public RoomMember getMemberByEventId(String eventId) {
         RoomMember member = null;
 
@@ -450,6 +477,10 @@ public class RoomState implements Externalizable {
                     break;
                 }
             }
+        }
+
+        if (member == null) {
+            Log.e(LOG_TAG, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Null member !!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         }
 
         return member;
@@ -612,7 +643,7 @@ public class RoomState implements Externalizable {
         copy.mDataHandler = mDataHandler;
         copy.mMembership = mMembership;
         copy.mIsLive = mIsLive;
-        copy.mIsConferenceUserRoom = mIsConferenceUserRoom;
+        copy.mAllMembersAreLoaded = mAllMembersAreLoaded;
         copy.algorithm = algorithm;
         copy.mRoomAliases = new HashMap<>(mRoomAliases);
         copy.mStateEvents = new HashMap<>(mStateEvents);
@@ -743,6 +774,7 @@ public class RoomState implements Externalizable {
      * @param selfUserId this user's user id (to exclude from members)
      * @return the display name
      */
+    // TODO Use RoomSummary
     public String getDisplayName(String selfUserId) {
         String displayName = null;
         String alias = getAlias();
@@ -837,7 +869,7 @@ public class RoomState implements Externalizable {
 
     /**
      * @return true if the room is versioned, it means that the room is obsolete.
-     * You can't interact with it anymore, but you can still browse the past messages.
+     *         You can't interact with it anymore, but you can still browse the past messages.
      */
     public boolean isVersioned() {
         return mRoomTombstoneContent != null;
@@ -1238,9 +1270,7 @@ public class RoomState implements Externalizable {
 
         mIsLive = input.readBoolean();
 
-        if (input.readBoolean()) {
-            mIsConferenceUserRoom = input.readBoolean();
-        }
+        mAllMembersAreLoaded = input.readBoolean();
 
         if (input.readBoolean()) {
             groups = (List<String>) input.readObject();
@@ -1249,7 +1279,6 @@ public class RoomState implements Externalizable {
         if (input.readBoolean()) {
             mRoomTombstoneContent = (RoomTombstoneContent) input.readObject();
         }
-
     }
 
     @Override
@@ -1364,10 +1393,7 @@ public class RoomState implements Externalizable {
 
         output.writeBoolean(mIsLive);
 
-        output.writeBoolean(null != mIsConferenceUserRoom);
-        if (null != mIsConferenceUserRoom) {
-            output.writeBoolean(mIsConferenceUserRoom);
-        }
+        output.writeBoolean(mAllMembersAreLoaded);
 
         output.writeBoolean(null != groups);
         if (null != groups) {

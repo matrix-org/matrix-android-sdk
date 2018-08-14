@@ -24,6 +24,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
@@ -1683,93 +1684,86 @@ public class MXSession {
      * @param aParticipantUserId the participant user id
      * @param callback           the asynchronous callback
      */
-    public void toggleDirectChatRoom(String roomId, String aParticipantUserId, ApiCallback<Void> callback) {
+    public void toggleDirectChatRoom(final String roomId, String aParticipantUserId, final ApiCallback<Void> callback) {
         IMXStore store = getDataHandler().getStore();
         Room room = store.getRoom(roomId);
 
         if (null != room) {
-            Map<String, List<String>> params;
-
-            if (null != store.getDirectChatRoomsDict()) {
-                params = new HashMap<>(store.getDirectChatRoomsDict());
-            } else {
-                params = new HashMap<>();
-            }
-
             // if the room was not yet seen as direct chat
             if (!getDataHandler().getDirectChatRoomIdsList().contains(roomId)) {
-                List<String> roomIdsList = new ArrayList<>();
-                RoomMember directChatMember = null;
-                String chosenUserId;
-
                 if (null == aParticipantUserId) {
-                    List<RoomMember> members = new ArrayList<>(room.getActiveMembers());
-
-                    // should never happen but it was reported by a GA issue
-                    if (members.isEmpty()) {
-                        return;
-                    }
-
-                    if (members.size() > 1) {
-                        // sort algo: oldest join first, then oldest invited
-                        Collections.sort(members, new Comparator<RoomMember>() {
-                            @Override
-                            public int compare(RoomMember r1, RoomMember r2) {
-                                int res;
-                                long diff;
-
-                                if (RoomMember.MEMBERSHIP_JOIN.equals(r2.membership) && RoomMember.MEMBERSHIP_INVITE.equals(r1.membership)) {
-                                    res = 1;
-                                } else if (r2.membership.equals(r1.membership)) {
-                                    diff = r1.getOriginServerTs() - r2.getOriginServerTs();
-                                    res = (0 == diff) ? 0 : ((diff > 0) ? 1 : -1);
-                                } else {
-                                    res = -1;
-                                }
-                                return res;
+                    room.getActiveMembersAsync(new SimpleApiCallback<List<RoomMember>>(callback) {
+                        @Override
+                        public void onSuccess(List<RoomMember> members) {
+                            // should never happen but it was reported by a GA issue
+                            if (members.isEmpty()) {
+                                return;
                             }
-                        });
 
-                        int nextIndexSearch = 0;
+                            RoomMember directChatMember = null;
 
-                        // take the oldest join member
-                        if (!TextUtils.equals(members.get(0).getUserId(), getMyUserId())) {
-                            if (RoomMember.MEMBERSHIP_JOIN.equals(members.get(0).membership)) {
+                            if (members.size() > 1) {
+                                // sort algo: oldest join first, then oldest invited
+                                Collections.sort(members, new Comparator<RoomMember>() {
+                                    @Override
+                                    public int compare(RoomMember r1, RoomMember r2) {
+                                        int res;
+                                        long diff;
+
+                                        if (RoomMember.MEMBERSHIP_JOIN.equals(r2.membership) && RoomMember.MEMBERSHIP_INVITE.equals(r1.membership)) {
+                                            res = 1;
+                                        } else if (r2.membership.equals(r1.membership)) {
+                                            diff = r1.getOriginServerTs() - r2.getOriginServerTs();
+                                            res = (0 == diff) ? 0 : ((diff > 0) ? 1 : -1);
+                                        } else {
+                                            res = -1;
+                                        }
+                                        return res;
+                                    }
+                                });
+
+                                int nextIndexSearch = 0;
+
+                                // take the oldest join member
+                                if (!TextUtils.equals(members.get(0).getUserId(), getMyUserId())) {
+                                    if (RoomMember.MEMBERSHIP_JOIN.equals(members.get(0).membership)) {
+                                        directChatMember = members.get(0);
+                                    }
+                                } else {
+                                    nextIndexSearch = 1;
+                                    if (RoomMember.MEMBERSHIP_JOIN.equals(members.get(1).membership)) {
+                                        directChatMember = members.get(1);
+                                    }
+                                }
+
+                                // no join member found, test the oldest join member
+                                if (null == directChatMember) {
+                                    if (RoomMember.MEMBERSHIP_INVITE.equals(members.get(nextIndexSearch).membership)) {
+                                        directChatMember = members.get(nextIndexSearch);
+                                    }
+                                }
+                            }
+
+                            // last option: get the logged user
+                            if (null == directChatMember) {
                                 directChatMember = members.get(0);
                             }
-                        } else {
-                            nextIndexSearch = 1;
-                            if (RoomMember.MEMBERSHIP_JOIN.equals(members.get(1).membership)) {
-                                directChatMember = members.get(1);
-                            }
+
+                            toggleDirectChatRoomStep2(roomId, directChatMember.getUserId(), callback);
                         }
-
-                        // no join member found, test the oldest join member
-                        if (null == directChatMember) {
-                            if (RoomMember.MEMBERSHIP_INVITE.equals(members.get(nextIndexSearch).membership)) {
-                                directChatMember = members.get(nextIndexSearch);
-                            }
-                        }
-                    }
-
-                    // last option: get the logged user
-                    if (null == directChatMember) {
-                        directChatMember = members.get(0);
-                    }
-
-                    chosenUserId = directChatMember.getUserId();
+                    });
                 } else {
-                    chosenUserId = aParticipantUserId;
+                    toggleDirectChatRoomStep2(roomId, aParticipantUserId, callback);
                 }
-
-                // search if there is an entry with the same user
-                if (params.containsKey(chosenUserId)) {
-                    roomIdsList = new ArrayList<>(params.get(chosenUserId));
-                }
-
-                roomIdsList.add(roomId); // update room list with the new room
-                params.put(chosenUserId, roomIdsList);
             } else {
+                Map<String, List<String>> params;
+
+                if (null != store.getDirectChatRoomsDict()) {
+                    params = new HashMap<>(store.getDirectChatRoomsDict());
+                } else {
+                    params = new HashMap<>();
+                }
+
                 // remove the current room from the direct chat list rooms
                 if (null != store.getDirectChatRoomsDict()) {
                     List<String> keysList = new ArrayList<>(params.keySet());
@@ -1791,11 +1785,42 @@ public class MXSession {
                     Log.e(LOG_TAG, "## toggleDirectChatRoom(): failed to remove a direct chat room (not seen as direct chat room)");
                     return;
                 }
-            }
 
-            // Store and upload the updated map
-            getDataHandler().setDirectChatRoomsMap(params, callback);
+                // Store and upload the updated map
+                getDataHandler().setDirectChatRoomsMap(params, callback);
+            }
         }
+    }
+
+    /**
+     * @param roomId
+     * @param chosenUserId
+     * @param callback
+     */
+    private void toggleDirectChatRoomStep2(String roomId,
+                                           @NonNull String chosenUserId,
+                                           ApiCallback<Void> callback) {
+        IMXStore store = getDataHandler().getStore();
+        Map<String, List<String>> params;
+
+        if (null != store.getDirectChatRoomsDict()) {
+            params = new HashMap<>(store.getDirectChatRoomsDict());
+        } else {
+            params = new HashMap<>();
+        }
+
+        List<String> roomIdsList = new ArrayList<>();
+
+        // search if there is an entry with the same user
+        if (params.containsKey(chosenUserId)) {
+            roomIdsList = new ArrayList<>(params.get(chosenUserId));
+        }
+
+        roomIdsList.add(roomId); // update room list with the new room
+        params.put(chosenUserId, roomIdsList);
+
+        // Store and upload the updated map
+        getDataHandler().setDirectChatRoomsMap(params, callback);
     }
 
     /**

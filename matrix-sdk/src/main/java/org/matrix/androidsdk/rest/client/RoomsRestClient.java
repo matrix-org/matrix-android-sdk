@@ -87,11 +87,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         // the messages have their dedicated method in MXSession to be resent if there is no available network
         mApi.sendMessage(transactionId, roomId, message)
                 .enqueue(new RestAdapterCallback<CreatedEvent>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                sendMessage(transactionId, roomId, message, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        sendMessage(transactionId, roomId, message, callback);
+                    }
+                }));
     }
 
     /**
@@ -117,11 +117,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         if (!TextUtils.equals(eventType, Event.EVENT_TYPE_CALL_INVITE)) {
             mApi.send(transactionId, roomId, eventType, content)
                     .enqueue(new RestAdapterCallback<CreatedEvent>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    sendEventToRoom(transactionId, roomId, eventType, content, callback);
-                }
-            }));
+                        @Override
+                        public void onRetry() {
+                            sendEventToRoom(transactionId, roomId, eventType, content, callback);
+                        }
+                    }));
         } else {
             mApi.send(transactionId, roomId, eventType, content)
                     .enqueue(new RestAdapterCallback<CreatedEvent>(description, mUnsentEventsManager, callback, null));
@@ -148,11 +148,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.getRoomMessagesFrom(roomId, (direction == EventTimeline.Direction.BACKWARDS) ? "b" : "f", fromToken, limit)
                 .enqueue(new RestAdapterCallback<TokensChunkResponse<Event>>(description, mUnsentEventsManager, callback,
                         new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                getRoomMessagesFrom(roomId, fromToken, direction, limit, callback);
-            }
-        }));
+                            @Override
+                            public void onRetry() {
+                                getRoomMessagesFrom(roomId, fromToken, direction, limit, callback);
+                            }
+                        }));
     }
 
     /**
@@ -170,11 +170,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.invite(roomId, user)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                inviteUserToRoom(roomId, userId, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        inviteUserToRoom(roomId, userId, callback);
+                    }
+                }));
     }
 
     /**
@@ -217,11 +217,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.invite(roomId, parameters)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                inviteThreePidToRoom(medium, address, roomId, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        inviteThreePidToRoom(medium, address, roomId, callback);
+                    }
+                }));
     }
 
     /**
@@ -246,11 +246,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.joinRoomByAliasOrId(roomIdOrAlias, (null == params) ? new HashMap<String, Object>() : params)
                 .enqueue(new RestAdapterCallback<RoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                joinRoom(roomIdOrAlias, params, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        joinRoom(roomIdOrAlias, params, callback);
+                    }
+                }));
     }
 
     /**
@@ -264,11 +264,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.leave(roomId, new JsonObject())
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                leaveRoom(roomId, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        leaveRoom(roomId, callback);
+                    }
+                }));
     }
 
     /**
@@ -282,11 +282,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.forget(roomId, new JsonObject())
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                forgetRoom(roomId, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        forgetRoom(roomId, callback);
+                    }
+                }));
     }
 
     /**
@@ -305,11 +305,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.updateRoomMember(roomId, userId, member)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                kickFromRoom(roomId, userId, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        kickFromRoom(roomId, userId, callback);
+                    }
+                }));
     }
 
     /**
@@ -324,11 +324,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.ban(roomId, user)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                banFromRoom(roomId, user, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        banFromRoom(roomId, user, callback);
+                    }
+                }));
     }
 
     /**
@@ -343,11 +343,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.unban(roomId, user)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                unbanFromRoom(roomId, user, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        unbanFromRoom(roomId, user, callback);
+                    }
+                }));
     }
 
     /**
@@ -364,11 +364,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.createRoom(params)
                 .enqueue(new RestAdapterCallback<CreateRoomResponse>(description, mUnsentEventsManager, callback,
                         new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                createRoom(params, callback);
-            }
-        }));
+                            @Override
+                            public void onRetry() {
+                                createRoom(params, callback);
+                            }
+                        }));
     }
 
     /**
@@ -446,11 +446,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.getEvent(roomId, eventId)
                 .enqueue(new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                getEventFromRoomIdEventId(roomId, eventId, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        getEventFromRoomIdEventId(roomId, eventId, callback);
+                    }
+                }));
     }
 
     /**
@@ -464,11 +464,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.getEvent(eventId)
                 .enqueue(new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                getEventFromEventId(eventId, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        getEventFromEventId(eventId, callback);
+                    }
+                }));
     }
 
 
@@ -485,11 +485,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.getContextOfEvent(roomId, eventId, limit)
                 .enqueue(new RestAdapterCallback<EventContext>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                getContextOfEvent(roomId, eventId, limit, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        getContextOfEvent(roomId, eventId, limit, callback);
+                    }
+                }));
     }
 
     /**
@@ -507,11 +507,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.setRoomName(roomId, roomState)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                updateRoomName(roomId, name, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        updateRoomName(roomId, name, callback);
+                    }
+                }));
     }
 
     /**
@@ -529,11 +529,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.setCanonicalAlias(roomId, roomState)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                updateCanonicalAlias(roomId, canonicalAlias, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        updateCanonicalAlias(roomId, canonicalAlias, callback);
+                    }
+                }));
     }
 
     /**
@@ -551,11 +551,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.setHistoryVisibility(roomId, roomState)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                updateHistoryVisibility(roomId, aVisibility, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        updateHistoryVisibility(roomId, aVisibility, callback);
+                    }
+                }));
     }
 
     /**
@@ -573,11 +573,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.setRoomDirectoryVisibility(aRoomId, roomState)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                updateDirectoryVisibility(aRoomId, aDirectoryVisibility, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        updateDirectoryVisibility(aRoomId, aDirectoryVisibility, callback);
+                    }
+                }));
     }
 
 
@@ -588,15 +588,31 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param callback on success callback containing a RoomState object populated with the directory visibility
      */
     public void getDirectoryVisibility(final String aRoomId, final ApiCallback<RoomState> callback) {
-        final String description = "getRoomDirectoryVisibility userId=" + aRoomId;
+        final String description = "getDirectoryVisibility roomId=" + aRoomId;
 
         mApi.getRoomDirectoryVisibility(aRoomId)
                 .enqueue(new RestAdapterCallback<RoomState>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                getDirectoryVisibility(aRoomId, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        getDirectoryVisibility(aRoomId, callback);
+                    }
+                }));
+    }
+
+    /**
+     * Get the room members
+     * // TODO Add token as a parameter
+     */
+    public void getRoomMembers(final String roomId, final ApiCallback<TokensChunkResponse<Event>> callback) {
+        final String description = "getRoomMembers roomId=" + roomId;
+
+        mApi.getMembers(roomId)
+                .enqueue(new RestAdapterCallback<TokensChunkResponse<Event>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        getRoomMembers(roomId, callback);
+                    }
+                }));
     }
 
     /**
@@ -614,11 +630,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.setRoomTopic(roomId, roomState)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                updateTopic(roomId, topic, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        updateTopic(roomId, topic, callback);
+                    }
+                }));
     }
 
     /**
@@ -633,11 +649,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.redactEvent(roomId, eventId, new JsonObject())
                 .enqueue(new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                redactEvent(roomId, eventId, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        redactEvent(roomId, eventId, callback);
+                    }
+                }));
     }
 
     /**
@@ -659,11 +675,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.reportEvent(roomId, eventId, content)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                reportEvent(roomId, eventId, score, reason, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        reportEvent(roomId, eventId, score, reason, callback);
+                    }
+                }));
     }
 
     /**
@@ -678,11 +694,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.setPowerLevels(roomId, powerLevels)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                updatePowerLevels(roomId, powerLevels, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        updatePowerLevels(roomId, powerLevels, callback);
+                    }
+                }));
     }
 
     /**
@@ -704,19 +720,19 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         if (null != stateKey) {
             mApi.sendStateEvent(roomId, eventType, stateKey, params)
                     .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    sendStateEvent(roomId, eventType, stateKey, params, callback);
-                }
-            }));
+                        @Override
+                        public void onRetry() {
+                            sendStateEvent(roomId, eventType, stateKey, params, callback);
+                        }
+                    }));
         } else {
             mApi.sendStateEvent(roomId, eventType, params)
                     .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                @Override
-                public void onRetry() {
-                    sendStateEvent(roomId, eventType, null, params, callback);
-                }
-            }));
+                        @Override
+                        public void onRetry() {
+                            sendStateEvent(roomId, eventType, null, params, callback);
+                        }
+                    }));
         }
     }
 
@@ -732,11 +748,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.getStateEvent(roomId, eventType)
                 .enqueue(new RestAdapterCallback<JsonElement>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                getStateEvent(roomId, eventType, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        getStateEvent(roomId, eventType, callback);
+                    }
+                }));
     }
 
     /**
@@ -752,11 +768,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.getStateEvent(roomId, eventType, stateKey)
                 .enqueue(new RestAdapterCallback<JsonElement>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                getStateEvent(roomId, eventType, stateKey, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        getStateEvent(roomId, eventType, stateKey, callback);
+                    }
+                }));
     }
 
     /**
@@ -798,11 +814,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.setRoomAvatarUrl(roomId, params)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                updateAvatarUrl(roomId, avatarUrl, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        updateAvatarUrl(roomId, avatarUrl, callback);
+                    }
+                }));
     }
 
     /**
@@ -827,12 +843,12 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.sendReadMarker(roomId, params)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, true, callback,
-                new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                sendReadMarker(roomId, rmEventId, rrEventId, callback);
-            }
-        }));
+                        new RestAdapterCallback.RequestRetryCallBack() {
+                            @Override
+                            public void onRetry() {
+                                sendReadMarker(roomId, rmEventId, rrEventId, callback);
+                            }
+                        }));
     }
 
     /**
@@ -852,11 +868,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.addTag(mCredentials.userId, roomId, tag, hashMap)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                addTag(roomId, tag, order, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        addTag(roomId, tag, order, callback);
+                    }
+                }));
     }
 
     /**
@@ -871,11 +887,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.removeTag(mCredentials.userId, roomId, tag)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                removeTag(roomId, tag, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        removeTag(roomId, tag, callback);
+                    }
+                }));
     }
 
     /**
@@ -893,11 +909,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.updateAccountData(mCredentials.userId, roomId, Event.EVENT_TYPE_URL_PREVIEW, params)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                updateURLPreviewStatus(roomId, status, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        updateURLPreviewStatus(roomId, status, callback);
+                    }
+                }));
     }
 
     /**
@@ -912,11 +928,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         mApi.getRoomIdByAlias(roomAlias)
                 .enqueue(new RestAdapterCallback<RoomAliasDescription>(description, mUnsentEventsManager, callback,
                         new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                getRoomIdByAlias(roomAlias, callback);
-            }
-        }));
+                            @Override
+                            public void onRetry() {
+                                getRoomIdByAlias(roomAlias, callback);
+                            }
+                        }));
     }
 
     /**
@@ -934,11 +950,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.setRoomIdByAlias(roomAlias, roomAliasDescription)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                setRoomIdByAlias(roomId, roomAlias, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        setRoomIdByAlias(roomId, roomAlias, callback);
+                    }
+                }));
     }
 
     /**
@@ -952,11 +968,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.removeRoomAlias(roomAlias)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                removeRoomAlias(roomAlias, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        removeRoomAlias(roomAlias, callback);
+                    }
+                }));
     }
 
     /**
@@ -976,11 +992,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.setJoinRules(aRoomId, roomStateParam)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                updateJoinRules(aRoomId, aJoinRule, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        updateJoinRules(aRoomId, aJoinRule, callback);
+                    }
+                }));
     }
 
     /**
@@ -1000,10 +1016,10 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
         mApi.setGuestAccess(aRoomId, roomStateParam)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                updateGuestAccess(aRoomId, aGuestAccessRule, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        updateGuestAccess(aRoomId, aGuestAccessRule, callback);
+                    }
+                }));
     }
 }

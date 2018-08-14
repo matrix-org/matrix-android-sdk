@@ -18,18 +18,23 @@
 
 package org.matrix.androidsdk.data;
 
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.message.Message;
+import org.matrix.androidsdk.rest.model.sync.RoomSyncSummary;
 import org.matrix.androidsdk.util.Log;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -75,6 +80,19 @@ public class RoomSummary implements java.io.Serializable {
 
     private String mMatrixId = null;
 
+    /**
+     * Tell if the room is a user conference user one
+     */
+    private Boolean mIsConferenceUserRoom = null;
+
+    /**
+     * Data from RoomSyncSummary
+     */
+    private List<String> mHeroes = new ArrayList<>();
+
+    private int mJoinedMembersCountFromSyncRoomSummary;
+
+    private int mInvitedMembersCountFromSyncRoomSummary;
 
     public RoomSummary() {
     }
@@ -122,6 +140,10 @@ public class RoomSummary implements java.io.Serializable {
             setUnreadEventsCount(fromSummary.getUnreadEventsCount());
             setHighlightCount(fromSummary.getHighlightCount());
             setNotificationCount(fromSummary.getNotificationCount());
+
+            mHeroes.addAll(fromSummary.mHeroes);
+            mJoinedMembersCountFromSyncRoomSummary = fromSummary.mJoinedMembersCountFromSyncRoomSummary;
+            mInvitedMembersCountFromSyncRoomSummary = fromSummary.mInvitedMembersCountFromSyncRoomSummary;
         }
     }
 
@@ -520,5 +542,63 @@ public class RoomSummary implements java.io.Serializable {
         } else {
             mRoomTags = new HashSet<>();
         }
+    }
+
+    public boolean isConferenceUserRoom() {
+        // test if it is not yet initialized
+        if (null == mIsConferenceUserRoom) {
+
+            mIsConferenceUserRoom = false;
+
+            // FIXME Heroes does not contains me
+            // FIXME I'ms not sure this code will work anymore
+
+            Collection<String> membersId = getHeroes();
+
+            // works only with 1:1 room
+            if (2 == membersId.size()) {
+                for (String userId : membersId) {
+                    if (MXCallsManager.isConferenceUserId(userId)) {
+                        mIsConferenceUserRoom = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return mIsConferenceUserRoom;
+    }
+
+    public void setIsConferenceUserRoom(boolean isConferenceUserRoom) {
+        mIsConferenceUserRoom = isConferenceUserRoom;
+    }
+
+    public void setRoomSyncSummary(@NonNull RoomSyncSummary roomSyncSummary) {
+        if (roomSyncSummary.mHeroes != null) {
+            mHeroes.clear();
+            mHeroes.addAll(roomSyncSummary.mHeroes);
+        }
+
+        if (roomSyncSummary.mJoinedMembersCount != null) {
+            // Update the value
+            mJoinedMembersCountFromSyncRoomSummary = roomSyncSummary.mJoinedMembersCount;
+        }
+
+        if (roomSyncSummary.mInvitedMembersCount != null) {
+            // Update the value
+            mInvitedMembersCountFromSyncRoomSummary = roomSyncSummary.mInvitedMembersCount;
+        }
+    }
+
+    public List<String> getHeroes() {
+        return mHeroes;
+    }
+
+    public int getNumberOfJoinedMembers() {
+        return mJoinedMembersCountFromSyncRoomSummary;
+    }
+
+    public int getNumberOfInvitedMembers() {
+        return mInvitedMembersCountFromSyncRoomSummary;
     }
 }

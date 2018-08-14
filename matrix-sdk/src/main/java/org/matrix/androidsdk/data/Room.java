@@ -80,7 +80,6 @@ import org.matrix.androidsdk.util.Log;
 import java.io.File;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -430,8 +429,13 @@ public class Room {
         return mIsLeaving;
     }
 
-    public Collection<RoomMember> getMembers() {
-        return getState().getMembers();
+    public void getMembersAsync(@NonNull final ApiCallback<List<RoomMember>> callback) {
+        getState().getMembersAsync(new SimpleApiCallback<List<RoomMember>>(callback) {
+            @Override
+            public void onSuccess(List<RoomMember> members) {
+                callback.onSuccess(members);
+            }
+        });
     }
 
     public EventTimeline getLiveTimeLine() {
@@ -453,20 +457,24 @@ public class Room {
     /**
      * @return the list of active members in a room ie joined or invited ones.
      */
-    public Collection<RoomMember> getActiveMembers() {
-        Collection<RoomMember> members = getState().getMembers();
-        List<RoomMember> activeMembers = new ArrayList<>();
-        String conferenceUserId = MXCallsManager.getConferenceUserId(getRoomId());
+    public void getActiveMembersAsync(@NonNull final ApiCallback<List<RoomMember>> callback) {
+        getMembersAsync(new SimpleApiCallback<List<RoomMember>>(callback) {
+            @Override
+            public void onSuccess(List<RoomMember> members) {
+                List<RoomMember> activeMembers = new ArrayList<>();
+                String conferenceUserId = MXCallsManager.getConferenceUserId(getRoomId());
 
-        for (RoomMember member : members) {
-            if (!TextUtils.equals(member.getUserId(), conferenceUserId)) {
-                if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN) || TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_INVITE)) {
-                    activeMembers.add(member);
+                for (RoomMember member : members) {
+                    if (!TextUtils.equals(member.getUserId(), conferenceUserId)) {
+                        if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN) || TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_INVITE)) {
+                            activeMembers.add(member);
+                        }
+                    }
                 }
-            }
-        }
 
-        return activeMembers;
+                callback.onSuccess(activeMembers);
+            }
+        });
     }
 
     /**
@@ -474,17 +482,21 @@ public class Room {
      *
      * @return the list the joined members of the room.
      */
-    public Collection<RoomMember> getJoinedMembers() {
-        Collection<RoomMember> membersList = getState().getMembers();
-        List<RoomMember> joinedMembersList = new ArrayList<>();
+    public void getJoinedMembersAsync(final ApiCallback<List<RoomMember>> callback) {
+        getMembersAsync(new SimpleApiCallback<List<RoomMember>>(callback) {
+            @Override
+            public void onSuccess(List<RoomMember> members) {
+                List<RoomMember> joinedMembersList = new ArrayList<>();
 
-        for (RoomMember member : membersList) {
-            if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN)) {
-                joinedMembersList.add(member);
+                for (RoomMember member : members) {
+                    if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN)) {
+                        joinedMembersList.add(member);
+                    }
+                }
+
+                callback.onSuccess(joinedMembersList);
             }
-        }
-
-        return joinedMembersList;
+        });
     }
 
     public RoomMember getMember(String userId) {
@@ -993,16 +1005,23 @@ public class Room {
 
         // detect if it is a room with no more than 2 members (i.e. an alone or a 1:1 chat)
         if (null == res) {
-            List<RoomMember> members = new ArrayList<>(getState().getMembers());
+            RoomSummary summary = getStore().getSummary(getRoomId());
 
-            if (members.size() == 1) {
-                res = members.get(0).getAvatarUrl();
-            } else if (members.size() == 2) {
-                RoomMember m1 = members.get(0);
-                RoomMember m2 = members.get(1);
+            // TODO LazyLoading
+            // Do something like:
+            // res = summary.getAvatarUrl();
+            throw new RuntimeException("Not yet implemented");
 
-                res = TextUtils.equals(m1.getUserId(), mMyUserId) ? m2.getAvatarUrl() : m1.getAvatarUrl();
-            }
+            //List<RoomMember> members = new ArrayList<>(getState().getMembers());
+            //
+            //if (members.size() == 1) {
+            //    res = members.get(0).getAvatarUrl();
+            //} else if (members.size() == 2) {
+            //    RoomMember m1 = members.get(0);
+            //    RoomMember m2 = members.get(1);
+            //
+            //    res = TextUtils.equals(m1.getUserId(), mMyUserId) ? m2.getAvatarUrl() : m1.getAvatarUrl();
+            //}
         }
 
         return res;
@@ -1015,6 +1034,12 @@ public class Room {
      * @return the call avatar URL.
      */
     public String getCallAvatarUrl() {
+        // TODO LazyLoading
+        // Do something like:
+        // res = summary.getAvatarUrl();
+        throw new RuntimeException("Not yet implemented");
+
+        /*
         String avatarURL;
 
         List<RoomMember> joinedMembers = new ArrayList<>(getJoinedMembers());
@@ -1033,6 +1058,7 @@ public class Room {
         }
 
         return avatarURL;
+        */
     }
 
     /**
@@ -1874,24 +1900,27 @@ public class Room {
      * @return true if a call can be performed.
      */
     public boolean canPerformCall() {
-        return getActiveMembers().size() > 1;
+        return getNumberOfMembers() > 1;
     }
 
     /**
      * @return a list of callable members.
      */
-    public List<RoomMember> callees() {
-        List<RoomMember> res = new ArrayList<>();
+    public void callees(final ApiCallback<List<RoomMember>> callback) {
+        getMembersAsync(new SimpleApiCallback<List<RoomMember>>(callback) {
+            @Override
+            public void onSuccess(List<RoomMember> info) {
+                List<RoomMember> res = new ArrayList<>();
 
-        Collection<RoomMember> members = getMembers();
+                for (RoomMember m : info) {
+                    if (RoomMember.MEMBERSHIP_JOIN.equals(m.membership) && !mMyUserId.equals(m.getUserId())) {
+                        res.add(m);
+                    }
+                }
 
-        for (RoomMember m : members) {
-            if (RoomMember.MEMBERSHIP_JOIN.equals(m.membership) && !mMyUserId.equals(m.getUserId())) {
-                res.add(m);
+                callback.onSuccess(res);
             }
-        }
-
-        return res;
+        });
     }
 
     //================================================================================
@@ -3073,4 +3102,19 @@ public class Room {
         return mDataHandler.getDirectChatRoomIdsList().contains(getRoomId());
     }
 
+    public RoomSummary getRoomSummary() {
+        return getDataHandler().getStore().getSummary(getRoomId());
+    }
+
+    public int getNumberOfMembers() {
+        return getRoomSummary().getNumberOfJoinedMembers() + getRoomSummary().getNumberOfInvitedMembers();
+    }
+
+    public int getNumberOfJoinedMembers() {
+        return getRoomSummary().getNumberOfJoinedMembers();
+    }
+
+    public int getNumberOfInvitedMembers() {
+        return getRoomSummary().getNumberOfInvitedMembers();
+    }
 }

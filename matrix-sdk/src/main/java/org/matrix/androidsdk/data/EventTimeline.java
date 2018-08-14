@@ -447,7 +447,7 @@ public class EventTimeline {
             // if it is an initial sync, the live state is initialized here
             // so the back state must also be initialized
             if (isRoomInitialSync) {
-                Log.d(LOG_TAG, "## handleJoinedRoomSync() : retrieve " + mState.getMembers().size() + " members for room " + mRoomId);
+                Log.d(LOG_TAG, "## handleJoinedRoomSync() : retrieve X " + mState.getLoadedMembers().size() + " members for room " + mRoomId);
                 mBackState = mState.deepCopy();
             }
         }
@@ -523,7 +523,6 @@ public class EventTimeline {
         }
         // Finalize initial sync
         else {
-
             if ((null != roomSync.timeline) && roomSync.timeline.limited) {
                 // The room has been synced with a limited timeline
                 mDataHandler.onRoomFlush(mRoomId);
@@ -636,6 +635,20 @@ public class EventTimeline {
                     mDataHandler.onNotificationCountUpdate(mRoomId);
                 }
             }
+
+            if(roomSync.roomSyncSummary != null) {
+                RoomSummary summary = mStore.getSummary(mRoomId);
+
+                if(summary == null) {
+                    // Should never happen here
+                    Log.e(LOG_TAG, "!!!!!!!!!!!!!!!!!!!!! RoomSummary is null !!!!!!!!!!!!!!!!!!!!!");
+                } else {
+                    summary.setRoomSyncSummary(roomSync.roomSyncSummary);
+
+                    mStore.flushSummary(summary);
+                }
+            }
+
         }
     }
 

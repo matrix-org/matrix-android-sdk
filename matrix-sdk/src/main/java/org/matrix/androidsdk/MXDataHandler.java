@@ -33,6 +33,7 @@ import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXDecryptionException;
 import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
 import org.matrix.androidsdk.data.DataRetriever;
+import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
@@ -58,6 +59,7 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
@@ -930,6 +932,27 @@ public class MXDataHandler implements IMXEventListener {
             });
         }
 
+    }
+
+    /**
+     * Get the members of a Room with a request to the server
+     *
+     * @param roomId   the id of the room
+     * @param callback the callback
+     */
+    public void getMembersAsync(final String roomId, final ApiCallback<List<RoomMember>> callback) {
+        mRoomsRestClient.getRoomMembers(roomId, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+            @Override
+            public void onSuccess(TokensChunkResponse<Event> info) {
+                Room room = getRoom(roomId);
+
+                for (Event event : info.chunk) {
+                    room.getState().applyState(getStore(), event, EventTimeline.Direction.FORWARDS);
+                }
+
+                callback.onSuccess(room.getState().getLoadedMembers());
+            }
+        });
     }
 
     /**

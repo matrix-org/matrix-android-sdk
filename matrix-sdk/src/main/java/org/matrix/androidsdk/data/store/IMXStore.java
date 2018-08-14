@@ -404,7 +404,7 @@ public interface IMXStore {
     void flushSummary(RoomSummary summary);
 
     /**
-     * Flush the room summmaries
+     * Flush the room summaries
      */
     void flushSummaries();
 

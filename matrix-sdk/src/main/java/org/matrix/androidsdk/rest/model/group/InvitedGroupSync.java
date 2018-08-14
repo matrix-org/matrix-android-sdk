@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +21,7 @@ import java.io.Serializable;
 /**
  * invited group sync
  */
-public class InvitedGroupSync implements Serializable {
+public class InvitedGroupSync {
     /**
      * The identifier of the inviter.
      */
