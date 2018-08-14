@@ -11,7 +11,7 @@ Bugfix:
  -
 
 API Change:
- -
+ - Remove PieFractionView class from the Matrix SDK. This class is now in Riot sources (#336)
 
 Translations:
  -
