@@ -460,6 +460,6 @@ public interface RoomsApi {
      *
      * @param roomId the room id where to get the members
      */
-    @GET("directory/list/room/{roomId}")
+    @GET("rooms/{roomId}/members")
     Call<TokensChunkResponse<Event>> getMembers(@Path("roomId") String roomId);
 }
