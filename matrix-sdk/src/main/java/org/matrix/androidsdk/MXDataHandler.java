@@ -946,8 +946,10 @@ public class MXDataHandler implements IMXEventListener {
             public void onSuccess(TokensChunkResponse<Event> info) {
                 Room room = getRoom(roomId);
 
-                for (Event event : info.chunk) {
-                    room.getState().applyState(getStore(), event, EventTimeline.Direction.FORWARDS);
+                if (info.chunk != null) {
+                    for (Event event : info.chunk) {
+                        room.getState().applyState(getStore(), event, EventTimeline.Direction.FORWARDS);
+                    }
                 }
 
                 callback.onSuccess(room.getState().getLoadedMembers());
