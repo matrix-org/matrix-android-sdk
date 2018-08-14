@@ -59,6 +59,12 @@ public class EventsThread extends Thread {
     private static final int DEFAULT_SERVER_TIMEOUT_MS = 30000;
     private static final int DEFAULT_CLIENT_TIMEOUT_MS = 120000;
 
+    // TODO LazyLoading
+    // private static final String DATA_SAVE_MODE_FILTER = "{\"room\": {\"ephemeral\": {\"types\": [\"m.receipt\"]}}, \"presence\":{\"not_types\": [\"*\"]}}";
+    // TODO filter to get RoomSyncSummary
+    private static final String DATA_SAVE_MODE_FILTER = "{\"room\": {\"state\":{\"lazy_load_members\":true}, \"ephemeral\": {\"types\": [\"m.receipt\"]}}, \"presence\":{\"not_types\": [\"*\"]}}";
+    private static final String LAZY_LOADING_FILTER = "{\"room\":{\"state\":{\"lazy_load_members\":true}}}";
+
     private EventsRestClient mEventsRestClient;
     private EventsThreadListener mListener;
     private String mCurrentToken;

@@ -29,9 +29,7 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
-import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -397,7 +395,7 @@ public class MXFileStore extends MXMemoryStore {
                                         Collection<Room> rooms = getRooms();
 
                                         for (Room room : rooms) {
-                                            Collection<RoomMember> members = room.getState().getMembers();
+                                            Collection<RoomMember> members = room.getState().getLoadedMembers();
                                             for (RoomMember member : members) {
                                                 updateUserWithRoomMemberEvent(member);
                                             }
@@ -496,10 +494,10 @@ public class MXFileStore extends MXMemoryStore {
                                         Room room = getRoom(roomId);
 
                                         if ((null != room) && (null != room.getState())) {
-                                            int membersCount = room.getState().getMembers().size();
+                                            int membersCount = room.getState().getLoadedMembers().size();
                                             int eventsCount = mRoomEvents.get(roomId).size();
 
-                                            Log.d(LOG_TAG, " room " + roomId + " : membersCount " + membersCount + " - eventsCount " + eventsCount);
+                                            Log.d(LOG_TAG, " room " + roomId + " : (lazy loaded) membersCount " + membersCount + " - eventsCount " + eventsCount);
                                         }
                                     }
 
@@ -1570,7 +1568,7 @@ public class MXFileStore extends MXMemoryStore {
         if (null != room) {
             long start1 = System.currentTimeMillis();
             writeObject("saveRoomsState " + roomId, roomStateFile, room.getState());
-            Log.d(LOG_TAG, "saveRoomsState " + room.getState().getMembers().size() + " members : " + (System.currentTimeMillis() - start1) + " ms");
+            Log.d(LOG_TAG, "saveRoomsState " + room.getNumberOfMembers() + " members : " + (System.currentTimeMillis() - start1) + " ms");
         } else {
             Log.d(LOG_TAG, "saveRoomsState : delete the room state");
             deleteRoomStateFile(roomId);

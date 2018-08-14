@@ -1,6 +1,7 @@
 /* 
  * Copyright 2016 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -20,9 +21,9 @@ import org.matrix.androidsdk.rest.model.Event;
 import java.util.List;
 
 // RoomSyncEphemeral represents the ephemeral events in the room that aren't recorded in the timeline or state of the room (e.g. typing).
-public class RoomSyncEphemeral implements java.io.Serializable {
+public class RoomSyncEphemeral {
     /**
-     * List of ephemeral events (array of Event).
+     * List of ephemeral events.
      */
     public List<Event> events;
 }

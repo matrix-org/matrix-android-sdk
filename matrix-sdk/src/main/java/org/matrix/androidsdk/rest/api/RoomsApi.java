@@ -150,10 +150,10 @@ public interface RoomsApi {
     /**
      * Send a generic state events
      *
-     * @param roomId     the room id.
+     * @param roomId         the room id.
      * @param stateEventType the state event type
      * @param stateKey       the state keys
-     * @param params     the request parameters
+     * @param params         the request parameters
      */
     @PUT("rooms/{roomId}/state/{state_event_type}/{stateKey}")
     Call<Void> sendStateEvent(@Path("roomId") String roomId,
@@ -370,8 +370,8 @@ public interface RoomsApi {
     /**
      * Send read markers.
      *
-     * @param roomId   the room id
-     * @param markers  the read markers
+     * @param roomId  the room id
+     * @param markers the read markers
      */
     @POST("rooms/{roomId}/read_markers")
     Call<Void> sendReadMarker(@Path("roomId") String roomId, @Body Map<String, String> markers);
@@ -453,4 +453,13 @@ public interface RoomsApi {
      */
     @GET("directory/list/room/{roomId}")
     Call<RoomState> getRoomDirectoryVisibility(@Path("roomId") String roomId);
+
+    /**
+     * Get all members of a room
+     * TODO handle the token id as a parameter
+     *
+     * @param roomId the room id where to get the members
+     */
+    @GET("directory/list/room/{roomId}")
+    Call<TokensChunkResponse<Event>> getMembers(@Path("roomId") String roomId);
 }

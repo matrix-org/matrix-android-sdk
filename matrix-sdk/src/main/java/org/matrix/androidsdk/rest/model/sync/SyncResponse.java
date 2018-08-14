@@ -1,6 +1,7 @@
 /* 
  * Copyright 2016 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +23,7 @@ import org.matrix.androidsdk.rest.model.group.GroupsSyncResponse;
 import java.util.Map;
 
 // SyncResponse represents the request response for server sync v2.
-public class SyncResponse implements java.io.Serializable {
+public class SyncResponse {
 
     /**
      * The user private data.

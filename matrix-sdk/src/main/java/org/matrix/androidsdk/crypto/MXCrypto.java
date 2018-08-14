@@ -61,7 +61,6 @@ import org.matrix.androidsdk.util.Log;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -868,9 +867,10 @@ public class MXCrypto {
      * @param roomId             the room id to enable encryption in.
      * @param algorithm          the encryption config for the room.
      * @param inhibitDeviceQuery true to suppress device list query for users in the room (for now)
+     * @param members            list of members to start tracking their devices
      * @return true if the operation succeeds.
      */
-    private boolean setEncryptionInRoom(String roomId, String algorithm, boolean inhibitDeviceQuery) {
+    private boolean setEncryptionInRoom(String roomId, String algorithm, boolean inhibitDeviceQuery, List<RoomMember> members) {
         if (hasBeenReleased()) {
             return false;
         }
@@ -917,30 +917,16 @@ public class MXCrypto {
         if (null == existingAlgorithm) {
             Log.d(LOG_TAG, "Enabling encryption in " + roomId + " for the first time; invalidating device lists for all users therein");
 
-            Room room = mSession.getDataHandler().getRoom(roomId);
-            if (null != room) {
-                // Check whether the event content must be encrypted for the invited members.
-                boolean encryptForInvitedMembers = mCryptoConfig.mEnableEncryptionForInvitedMembers
-                        && room.shouldEncryptForInvitedMembers();
+            List<String> userIds = new ArrayList<>();
 
-                Collection<RoomMember> members;
-                if (encryptForInvitedMembers) {
-                    members = room.getActiveMembers();
-                } else {
-                    members = room.getJoinedMembers();
-                }
+            for (RoomMember m : members) {
+                userIds.add(m.getUserId());
+            }
 
-                List<String> userIds = new ArrayList<>();
+            getDeviceList().startTrackingDeviceList(userIds);
 
-                for (RoomMember m : members) {
-                    userIds.add(m.getUserId());
-                }
-
-                getDeviceList().startTrackingDeviceList(userIds);
-
-                if (!inhibitDeviceQuery) {
-                    getDeviceList().refreshOutdatedDeviceLists();
-                }
+            if (!inhibitDeviceQuery) {
+                getDeviceList().refreshOutdatedDeviceLists();
             }
         }
 
@@ -1268,103 +1254,107 @@ public class MXCrypto {
             return;
         }
 
-        // just as you are sending a secret message?
-        final List<String> userdIds = new ArrayList<>();
+        final ApiCallback<List<RoomMember>> apiCallback = new SimpleApiCallback<List<RoomMember>>(callback) {
+            @Override
+            public void onSuccess(final List<RoomMember> members) {
+                // just as you are sending a secret message?
+                final List<String> userdIds = new ArrayList<>();
+
+                for (RoomMember m : members) {
+                    userdIds.add(m.getUserId());
+                }
+
+                getEncryptingThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        IMXEncrypting alg;
+
+                        synchronized (mRoomEncryptors) {
+                            alg = mRoomEncryptors.get(room.getRoomId());
+                        }
+
+                        if (null == alg) {
+                            String algorithm = room.getState().encryptionAlgorithm();
+
+                            if (null != algorithm) {
+                                if (setEncryptionInRoom(room.getRoomId(), algorithm, false, members)) {
+                                    synchronized (mRoomEncryptors) {
+                                        alg = mRoomEncryptors.get(room.getRoomId());
+                                    }
+                                }
+                            }
+                        }
+
+                        if (null != alg) {
+                            final long t0 = System.currentTimeMillis();
+                            Log.d(LOG_TAG, "## encryptEventContent() starts");
+
+                            alg.encryptEventContent(eventContent, eventType, userdIds, new ApiCallback<JsonElement>() {
+                                @Override
+                                public void onSuccess(final JsonElement encryptedContent) {
+                                    Log.d(LOG_TAG, "## encryptEventContent() : succeeds after " + (System.currentTimeMillis() - t0) + " ms");
+
+                                    if (null != callback) {
+                                        callback.onSuccess(new MXEncryptEventContentResult(encryptedContent, Event.EVENT_TYPE_MESSAGE_ENCRYPTED));
+                                    }
+                                }
+
+                                @Override
+                                public void onNetworkError(final Exception e) {
+                                    Log.e(LOG_TAG, "## encryptEventContent() : onNetworkError " + e.getMessage(), e);
+
+                                    if (null != callback) {
+                                        callback.onNetworkError(e);
+                                    }
+                                }
+
+                                @Override
+                                public void onMatrixError(final MatrixError e) {
+                                    Log.e(LOG_TAG, "## encryptEventContent() : onMatrixError " + e.getMessage());
+
+                                    if (null != callback) {
+                                        callback.onMatrixError(e);
+                                    }
+                                }
+
+                                @Override
+                                public void onUnexpectedError(final Exception e) {
+                                    Log.e(LOG_TAG, "## encryptEventContent() : onUnexpectedError " + e.getMessage(), e);
+
+                                    if (null != callback) {
+                                        callback.onUnexpectedError(e);
+                                    }
+                                }
+                            });
+                        } else {
+                            final String algorithm = room.getState().encryptionAlgorithm();
+                            final String reason = String.format(MXCryptoError.UNABLE_TO_ENCRYPT_REASON,
+                                    (null == algorithm) ? MXCryptoError.NO_MORE_ALGORITHM_REASON : algorithm);
+                            Log.e(LOG_TAG, "## encryptEventContent() : " + reason);
+
+                            if (null != callback) {
+                                getUIHandler().post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        callback.onMatrixError(new MXCryptoError(MXCryptoError.UNABLE_TO_ENCRYPT_ERROR_CODE, MXCryptoError.UNABLE_TO_ENCRYPT, reason));
+                                    }
+                                });
+                            }
+                        }
+                    }
+                });
+            }
+        };
 
         // Check whether the event content must be encrypted for the invited members.
         boolean encryptForInvitedMembers = mCryptoConfig.mEnableEncryptionForInvitedMembers
                 && room.shouldEncryptForInvitedMembers();
 
-        Collection<RoomMember> members;
         if (encryptForInvitedMembers) {
-            members = room.getActiveMembers();
+            room.getActiveMembersAsync(apiCallback);
         } else {
-            members = room.getJoinedMembers();
+            room.getJoinedMembersAsync(apiCallback);
         }
-
-        for (RoomMember m : members) {
-            userdIds.add(m.getUserId());
-        }
-
-        getEncryptingThreadHandler().post(new Runnable() {
-            @Override
-            public void run() {
-                IMXEncrypting alg;
-
-                synchronized (mRoomEncryptors) {
-                    alg = mRoomEncryptors.get(room.getRoomId());
-                }
-
-                if (null == alg) {
-                    String algorithm = room.getState().encryptionAlgorithm();
-
-                    if (null != algorithm) {
-                        if (setEncryptionInRoom(room.getRoomId(), algorithm, false)) {
-                            synchronized (mRoomEncryptors) {
-                                alg = mRoomEncryptors.get(room.getRoomId());
-                            }
-                        }
-                    }
-                }
-
-                if (null != alg) {
-                    final long t0 = System.currentTimeMillis();
-                    Log.d(LOG_TAG, "## encryptEventContent() starts");
-
-                    alg.encryptEventContent(eventContent, eventType, userdIds, new ApiCallback<JsonElement>() {
-                        @Override
-                        public void onSuccess(final JsonElement encryptedContent) {
-                            Log.d(LOG_TAG, "## encryptEventContent() : succeeds after " + (System.currentTimeMillis() - t0) + " ms");
-
-                            if (null != callback) {
-                                callback.onSuccess(new MXEncryptEventContentResult(encryptedContent, Event.EVENT_TYPE_MESSAGE_ENCRYPTED));
-                            }
-                        }
-
-                        @Override
-                        public void onNetworkError(final Exception e) {
-                            Log.e(LOG_TAG, "## encryptEventContent() : onNetworkError " + e.getMessage(), e);
-
-                            if (null != callback) {
-                                callback.onNetworkError(e);
-                            }
-                        }
-
-                        @Override
-                        public void onMatrixError(final MatrixError e) {
-                            Log.e(LOG_TAG, "## encryptEventContent() : onMatrixError " + e.getMessage());
-
-                            if (null != callback) {
-                                callback.onMatrixError(e);
-                            }
-                        }
-
-                        @Override
-                        public void onUnexpectedError(final Exception e) {
-                            Log.e(LOG_TAG, "## encryptEventContent() : onUnexpectedError " + e.getMessage(), e);
-
-                            if (null != callback) {
-                                callback.onUnexpectedError(e);
-                            }
-                        }
-                    });
-                } else {
-                    final String algorithm = room.getState().encryptionAlgorithm();
-                    final String reason = String.format(MXCryptoError.UNABLE_TO_ENCRYPT_REASON,
-                            (null == algorithm) ? MXCryptoError.NO_MORE_ALGORITHM_REASON : algorithm);
-                    Log.e(LOG_TAG, "## encryptEventContent() : " + reason);
-
-                    if (null != callback) {
-                        getUIHandler().post(new Runnable() {
-                            @Override
-                            public void run() {
-                                callback.onMatrixError(new MXCryptoError(MXCryptoError.UNABLE_TO_ENCRYPT_ERROR_CODE, MXCryptoError.UNABLE_TO_ENCRYPT, reason));
-                            }
-                        });
-                    }
-                }
-            }
-        });
     }
 
     /**
@@ -1741,12 +1731,60 @@ public class MXCrypto {
     private void onCryptoEvent(final Event event) {
         final EventContent eventContent = event.getWireEventContent();
 
-        getEncryptingThreadHandler().post(new Runnable() {
+        final Room room = mSession.getDataHandler().getRoom(event.roomId);
+
+        // Check whether the event content must be encrypted for the invited members.
+        boolean encryptForInvitedMembers = mCryptoConfig.mEnableEncryptionForInvitedMembers
+                && room.shouldEncryptForInvitedMembers();
+
+        ApiCallback<List<RoomMember>> callback = new ApiCallback<List<RoomMember>>() {
             @Override
-            public void run() {
-                setEncryptionInRoom(event.roomId, eventContent.algorithm, true);
+            public void onSuccess(final List<RoomMember> info) {
+                getEncryptingThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        setEncryptionInRoom(event.roomId, eventContent.algorithm, true, info);
+                    }
+                });
             }
-        });
+
+            private void onError() {
+                // Ensure setEncryption in room is done, even if there is a failure to fetch the room members
+                getEncryptingThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        setEncryptionInRoom(event.roomId, eventContent.algorithm, true, room.getState().getLoadedMembers());
+                    }
+                });
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                Log.w(LOG_TAG, "[MXCrypto] onCryptoEvent: Warning: Unable to get all members from the HS. Fallback by using lazy-loaded members", e);
+
+                onError();
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                Log.w(LOG_TAG, "[MXCrypto] onCryptoEvent: Warning: Unable to get all members from the HS. Fallback by using lazy-loaded members");
+
+                onError();
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                Log.w(LOG_TAG, "[MXCrypto] onCryptoEvent: Warning: Unable to get all members from the HS. Fallback by using lazy-loaded members", e);
+
+                onError();
+            }
+        };
+
+        if (encryptForInvitedMembers) {
+            room.getActiveMembersAsync(callback);
+        } else {
+            room.getJoinedMembersAsync(callback);
+        }
     }
 
     /**

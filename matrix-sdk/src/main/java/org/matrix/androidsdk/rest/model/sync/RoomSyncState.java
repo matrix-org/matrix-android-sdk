@@ -1,6 +1,7 @@
 /* 
  * Copyright 2016 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -20,10 +21,10 @@ import org.matrix.androidsdk.rest.model.Event;
 import java.util.List;
 
 // RoomSyncState represents the state updates for a room during server sync v2.
-public class RoomSyncState implements java.io.Serializable {
+public class RoomSyncState {
 
     /**
-     * List of state events (array of Event). The resulting state corresponds to the *start* of the timeline.
+     * List of state events. The resulting state corresponds to the *start* of the timeline.
      */
     public List<Event> events;
 
