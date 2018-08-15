@@ -69,7 +69,7 @@
     <!-- room error messages -->
     <string name="room_error_join_failed_empty_room">No es posible volver a entrar en una sala vacía.</string>
 
-    <string name="encrypted_message">Mensaje encriptado</string>
+    <string name="encrypted_message">Mensaje cifrado</string>
 
     <!-- medium friendly name -->
     <string name="medium_email">Correo elecrónico</string>
