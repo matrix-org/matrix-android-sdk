@@ -830,13 +830,11 @@ public class Room {
      * @param aRoomName the new name
      * @param callback  the async callback
      */
-    public void updateName(String aRoomName, final ApiCallback<Void> callback) {
-        final String fRoomName = TextUtils.isEmpty(aRoomName) ? null : aRoomName;
-
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateRoomName(getRoomId(), fRoomName, new RoomInfoUpdateCallback<Void>(callback) {
+    public void updateName(final String aRoomName, final ApiCallback<Void> callback) {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateRoomName(getRoomId(), aRoomName, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
-                getState().name = fRoomName;
+                getState().name = aRoomName;
                 super.onSuccess(info);
             }
         });
@@ -849,12 +847,10 @@ public class Room {
      * @param callback the async callback
      */
     public void updateTopic(final String aTopic, final ApiCallback<Void> callback) {
-        final String fTopic = TextUtils.isEmpty(aTopic) ? null : aTopic;
-
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateTopic(getRoomId(), fTopic, new RoomInfoUpdateCallback<Void>(callback) {
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateTopic(getRoomId(), aTopic, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
-                getState().topic = fTopic;
+                getState().topic = aTopic;
                 super.onSuccess(info);
             }
         });
