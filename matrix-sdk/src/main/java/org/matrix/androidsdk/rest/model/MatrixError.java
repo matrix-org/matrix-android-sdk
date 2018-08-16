@@ -51,8 +51,8 @@ public class MatrixError implements java.io.Serializable {
     public static final String THREEPID_IN_USE = "M_THREEPID_IN_USE";
     public static final String SERVER_NOT_TRUSTED = "M_SERVER_NOT_TRUSTED";
     public static final String TOO_LARGE = "M_TOO_LARGE";
-
     public static final String M_CONSENT_NOT_GIVEN = "M_CONSENT_NOT_GIVEN";
+    public static final String RESOURCE_LIMIT_EXCEEDED = "M_RESOURCE_LIMIT_EXCEEDED";
 
     // custom ones
     public static final String NOT_SUPPORTED = "M_NOT_SUPPORTED";
@@ -70,9 +70,16 @@ public class MatrixError implements java.io.Serializable {
     @SerializedName("consent_uri")
     public String consentUri;
 
+    // RESOURCE_LIMIT_EXCEEDED data
+    @SerializedName("limit_type")
+    public String limitType;
+    @SerializedName("admin_contact")
+    public String adminContact;
+
+
     // extracted from the error response
     public Integer mStatus;
-    public String  mReason;
+    public String mReason;
     public ResponseBody mErrorBody;
     public String mErrorBodyAsString;
     public MediaType mErrorBodyMimeType;
@@ -131,7 +138,8 @@ public class MatrixError implements java.io.Serializable {
                 MatrixError.TOO_LARGE.equals(errcode) ||
                 MatrixError.BAD_PAGINATION.equals(errcode) ||
                 MatrixError.OLD_VERSION.equals(errcode) ||
-                MatrixError.UNRECOGNIZED.equals(errcode);
+                MatrixError.UNRECOGNIZED.equals(errcode) ||
+                MatrixError.RESOURCE_LIMIT_EXCEEDED.equals(errcode);
     }
 
     /**
