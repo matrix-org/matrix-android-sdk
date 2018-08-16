@@ -28,7 +28,7 @@
     <string name="notice_answered_call">%s tok røret.</string>
     <string name="notice_ended_call">%s la på røret.</string>
     <string name="notice_made_future_room_visibility">%1$s gjorde den framtidige romhistoria synleg for %2$s</string>
-    <string name="notice_room_visibility_invited">alle rommedlemer, frå då dei vart bydt inn.</string>
+    <string name="notice_room_visibility_invited">alle rommedlemer, frå då dei vart bodne inn.</string>
     <string name="notice_room_visibility_joined">alle rommedlemer, frå då dei kom inn.</string>
     <string name="notice_room_visibility_shared">alle rommedlemer.</string>
     <string name="notice_room_visibility_world_readable">kven som helst.</string>
