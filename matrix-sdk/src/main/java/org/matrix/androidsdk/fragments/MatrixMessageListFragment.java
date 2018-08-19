@@ -134,6 +134,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
          * @param matrixError the MatrixError (contains message text and URL)
          */
         void onConsentNotGiven(Event event, MatrixError matrixError);
+
+        /**
+         * An event sending failed because of resource limit exceeded
+         *
+         * @param event       the event
+         * @param matrixError the MatrixError (contains message text and URL)
+         */
+        void onResourceLimitExceeded(Event event, MatrixError matrixError);
+
+
     }
 
     // scroll listener
@@ -994,6 +1004,22 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     /**
+     * Warns that a message sending failed because resource has reached the limit
+     *
+     * @param event       the event
+     * @param matrixError the MatrixError
+     */
+    private void onResourceLimitExceeded(Event event, MatrixError matrixError) {
+        if (null != mEventSendingListener) {
+            try {
+                mEventSendingListener.onResourceLimitExceeded(event, matrixError);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "onResourceLimitExceeded failed " + e.getMessage(), e);
+            }
+        }
+    }
+
+    /**
      * Add a media item in the room.
      */
     private void add(final RoomMediaMessage roomMediaMessage) {
@@ -1071,6 +1097,14 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                             public void run() {
                                 mAdapter.notifyDataSetChanged();
                                 onConsentNotGiven(event, e);
+                            }
+                        });
+                    } else if (MatrixError.RESOURCE_LIMIT_EXCEEDED.equals(e.errcode)) {
+                        getUiHandler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mAdapter.notifyDataSetChanged();
+                                onResourceLimitExceeded(event, e);
                             }
                         });
                     } else {
