@@ -27,11 +27,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.common.AbsIntegrationTest;
+import org.matrix.androidsdk.common.CommonTestHelper;
 import org.matrix.androidsdk.common.TestApiCallback;
 import org.matrix.androidsdk.common.TestConstants;
-import org.matrix.androidsdk.common.TestHelper;
-import org.matrix.androidsdk.crypto.MXCryptoAlgorithms;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXKey;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
@@ -43,18 +41,20 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 @RunWith(AndroidJUnit4.class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class CryptoRestTest extends AbsIntegrationTest {
+public class CryptoRestTest  {
+
+    private CommonTestHelper mTestHelper = new CommonTestHelper();
+
 
     @Test
     public void test01_testDeviceKeys() throws Exception {
         Context context = InstrumentationRegistry.getContext();
-        final MXSession bobSession = createBobAccount(true, false);
+        final MXSession bobSession = mTestHelper.createBobAccount(true, false);
         final Map<String, Object> results = new HashMap<>();
 
         String ed25519key = "wV5E3EUSHpHuoZLljNzojlabjGdXT3Mz7rugG9zgbkI";
@@ -120,7 +120,7 @@ public class CryptoRestTest extends AbsIntegrationTest {
     public void test02_testOneTimeKeys() throws Exception {
         Context context = InstrumentationRegistry.getContext();
 
-        final MXSession bobSession = createBobAccount(true, false);
+        final MXSession bobSession = mTestHelper.createBobAccount(true, false);
 
         final Map<String, Object> results = new HashMap<>();
         final Map<String, Object> otks = new HashMap<>();
@@ -153,8 +153,8 @@ public class CryptoRestTest extends AbsIntegrationTest {
     public void test03_testClaimOneTimeKeysForUsersDevices() throws Exception {
         Context context = InstrumentationRegistry.getContext();
 
-        final MXSession bobSession = createBobAccount(true, false);
-        final MXSession aliceSession = createAliceAccount(true, false);
+        final MXSession bobSession = mTestHelper.createBobAccount(true, false);
+        final MXSession aliceSession = mTestHelper.createAliceAccount(true, false);
 
         final Map<String, Object> results = new HashMap<>();
         final Map<String, Object> otks = new HashMap<>();

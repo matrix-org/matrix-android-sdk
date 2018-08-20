@@ -23,18 +23,16 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
-import org.matrix.androidsdk.common.AbsIntegrationTest;
-import org.matrix.androidsdk.crypto.MXMegolmExportEncryption;
 
 /**
  * Unit tests ExportEncryptionTest.
  */
 @RunWith(AndroidJUnit4.class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class ExportEncryptionTest extends AbsIntegrationTest {
+public class ExportEncryptionTest {
 
     @Test
-    public void checkExportError1() throws Exception {
+    public void checkExportError1() {
         String password = "password";
         String input = "-----";
         boolean failed = false;
@@ -49,7 +47,7 @@ public class ExportEncryptionTest extends AbsIntegrationTest {
     }
 
     @Test
-    public void checkExportError2() throws Exception {
+    public void checkExportError2() {
         String password = "password";
         String input = "-----BEGIN MEGOLM SESSION DATA-----\n" + "-----";
         boolean failed = false;
@@ -64,7 +62,7 @@ public class ExportEncryptionTest extends AbsIntegrationTest {
     }
 
     @Test
-    public void checkExportError3() throws Exception {
+    public void checkExportError3() {
         String password = "password";
         String input = "-----BEGIN MEGOLM SESSION DATA-----\n" +
                 " AXNhbHRzYWx0c2FsdHNhbHSIiIiIiIiIiIiIiIiIiIiIAAAACmIRUW2OjZ3L2l6j9h0lHlV3M2dx\n" +
@@ -82,7 +80,7 @@ public class ExportEncryptionTest extends AbsIntegrationTest {
     }
 
     @Test
-    public void checkExportDecrypt1() throws Exception {
+    public void checkExportDecrypt1() {
         String password = "password";
         String input = "-----BEGIN MEGOLM SESSION DATA-----\nAXNhbHRzYWx0c2FsdHNhbHSIiIiIiIiIiIiIiIiIiIiIAAAACmIRUW2OjZ3L2l6j9h0lHlV3M2dx\n" +
                 "cissyYBxjsfsAndErh065A8=\n-----END MEGOLM SESSION DATA-----";
@@ -101,7 +99,7 @@ public class ExportEncryptionTest extends AbsIntegrationTest {
     }
 
     @Test
-    public void checkExportDecrypt2() throws Exception {
+    public void checkExportDecrypt2() {
         String password = "betterpassword";
         String input = "-----BEGIN MEGOLM SESSION DATA-----\nAW1vcmVzYWx0bW9yZXNhbHT//////////wAAAAAAAAAAAAAD6KyBpe1Niv5M5NPm4ZATsJo5nghk\n" +
                 "KYu63a0YQ5DRhUWEKk7CcMkrKnAUiZny\n-----END MEGOLM SESSION DATA-----";
@@ -120,7 +118,7 @@ public class ExportEncryptionTest extends AbsIntegrationTest {
     }
 
     @Test
-    public void checkExportDecrypt3() throws Exception {
+    public void checkExportDecrypt3() {
         String password = "SWORDFISH";
         String input = "-----BEGIN MEGOLM SESSION DATA-----\nAXllc3NhbHR5Z29vZG5lc3P//////////wAAAAAAAAAAAAAD6OIW+Je7gwvjd4kYrb+49gKCfExw\n" +
                 "MgJBMD4mrhLkmgAngwR1pHjbWXaoGybtiAYr0moQ93GrBQsCzPbvl82rZhaXO3iH5uHo/RCEpOqp\nPgg29363BGR+/Ripq/VCLKGNbw==\n-----END MEGOLM SESSION DATA-----";
@@ -139,7 +137,7 @@ public class ExportEncryptionTest extends AbsIntegrationTest {
     }
 
     @Test
-    public void checkExportEncrypt1() throws Exception {
+    public void checkExportEncrypt1() {
         String password = "password";
         String expectedString = "plain";
         String decodedString = null;
@@ -157,7 +155,7 @@ public class ExportEncryptionTest extends AbsIntegrationTest {
     }
 
     @Test
-    public void checkExportEncrypt2() throws Exception {
+    public void checkExportEncrypt2() {
         String password = "betterpassword";
         String expectedString = "Hello, World";
         String decodedString = null;
@@ -175,7 +173,7 @@ public class ExportEncryptionTest extends AbsIntegrationTest {
     }
 
     @Test
-    public void checkExportEncrypt3() throws Exception {
+    public void checkExportEncrypt3() {
         String password = "SWORDFISH";
         String expectedString = "alphanumericallyalphanumericallyalphanumericallyalphanumerically";
         String decodedString = null;
@@ -193,7 +191,7 @@ public class ExportEncryptionTest extends AbsIntegrationTest {
     }
 
     @Test
-    public void checkExportEncrypt4() throws Exception {
+    public void checkExportEncrypt4() {
         String password = "passwordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpassword" +
                 "passwordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpasswordpassword";
         String expectedString = "alphanumericallyalphanumericallyalphanumericallyalphanumerically";

@@ -17,6 +17,9 @@
 package org.matrix.androidsdk.common;
 
 public class TestConstants {
+
+    public static final String TESTS_HOME_SERVER_URL = "http://10.0.2.2:8080";
+
     // Time out to use when waiting for server response
     public static final int AWAIT_TIME_OUT_MILLIS = 30000;
 

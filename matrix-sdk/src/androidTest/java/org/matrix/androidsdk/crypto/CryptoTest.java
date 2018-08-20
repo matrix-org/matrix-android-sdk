@@ -36,7 +36,7 @@ import org.junit.runners.MethodSorters;
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.common.AbsIntegrationTest;
+import org.matrix.androidsdk.common.CommonTestHelper;
 import org.matrix.androidsdk.common.TestApiCallback;
 import org.matrix.androidsdk.common.TestConstants;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
@@ -70,7 +70,10 @@ import java.util.concurrent.TimeUnit;
 
 @RunWith(AndroidJUnit4.class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class CryptoTest extends AbsIntegrationTest {
+public class CryptoTest {
+
+    private CommonTestHelper mTestHelper = new CommonTestHelper();
+
 
     private static final String LOG_TAG = "CryptoTest";
 
@@ -92,7 +95,7 @@ public class CryptoTest extends AbsIntegrationTest {
 
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
-        mBobSession = createBobAccount(true, false);
+        mBobSession = mTestHelper.createBobAccount(true, false);
 
         Assert.assertNull(mBobSession.getCrypto());
         mBobSession.getCredentials().deviceId = null;
@@ -120,7 +123,7 @@ public class CryptoTest extends AbsIntegrationTest {
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
 
-        mBobSession = createBobAccount(true, false);
+        mBobSession = mTestHelper.createBobAccount(true, false);
         mBobSession.getCredentials().deviceId = "BobDevice";
 
         Assert.assertNull(mBobSession.getCrypto());
@@ -150,7 +153,7 @@ public class CryptoTest extends AbsIntegrationTest {
 
         final Credentials bobCredentials = mBobSession.getCredentials();
 
-        HomeServerConnectionConfig hs = createHomeServerConfig(bobCredentials);
+        HomeServerConnectionConfig hs = mTestHelper.createHomeServerConfig(bobCredentials);
 
         IMXStore store = new MXFileStore(hs, context);
 
@@ -230,7 +233,7 @@ public class CryptoTest extends AbsIntegrationTest {
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
 
-        mAliceSession = createAliceAccount(true, false);
+        mAliceSession = mTestHelper.createAliceAccount(true, false);
         mAliceSession.getCredentials().deviceId = "AliceDevice";
 
         CountDownLatch lock0 = new CountDownLatch(1);
@@ -244,7 +247,7 @@ public class CryptoTest extends AbsIntegrationTest {
         lock0.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("enableCrypto"));
 
-        mBobSession = createBobAccount(true, false);
+        mBobSession = mTestHelper.createBobAccount(true, false);
         CountDownLatch lock2 = new CountDownLatch(1);
         mBobSession.getCredentials().deviceId = "BobDevice";
         mBobSession.enableCrypto(true, new TestApiCallback<Void>(lock2) {
@@ -318,7 +321,7 @@ public class CryptoTest extends AbsIntegrationTest {
 
         Credentials bobCredentials = mBobSession.getCredentials();
 
-        HomeServerConnectionConfig hs = createHomeServerConfig(bobCredentials);
+        HomeServerConnectionConfig hs = mTestHelper.createHomeServerConfig(bobCredentials);
 
         IMXStore store = new MXFileStore(hs, context);
 
@@ -416,7 +419,7 @@ public class CryptoTest extends AbsIntegrationTest {
 
         Context context = InstrumentationRegistry.getContext();
 
-        mAliceSession = createAliceAccount(true, false);
+        mAliceSession = mTestHelper.createAliceAccount(true, false);
         final Map<String, Object> results = new HashMap<>();
 
         mAliceSession.getCredentials().deviceId = "AliceDevice";
@@ -434,7 +437,7 @@ public class CryptoTest extends AbsIntegrationTest {
         lock0.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("enableCryptoAlice"));
 
-        mBobSession = createBobAccount(true, false);
+        mBobSession = mTestHelper.createBobAccount(true, false);
 
         CountDownLatch lock2 = new CountDownLatch(1);
         mBobSession.enableCrypto(true, new TestApiCallback<Void>(lock2) {
@@ -486,7 +489,7 @@ public class CryptoTest extends AbsIntegrationTest {
 
         Credentials bobCredentials = mBobSession.getCredentials();
 
-        HomeServerConnectionConfig hs = createHomeServerConfig(bobCredentials);
+        HomeServerConnectionConfig hs = mTestHelper.createHomeServerConfig(bobCredentials);
 
         IMXStore store = new MXFileStore(hs, context);
 
@@ -580,7 +583,7 @@ public class CryptoTest extends AbsIntegrationTest {
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
 
-        mBobSession = createBobAccount(true, false);
+        mBobSession = mTestHelper.createBobAccount(true, false);
 
         CountDownLatch lock0 = new CountDownLatch(1);
         mBobSession.enableCrypto(true, new TestApiCallback<Void>(lock0) {
@@ -842,7 +845,7 @@ public class CryptoTest extends AbsIntegrationTest {
 
         mAliceSession.clear(context);
 
-        HomeServerConnectionConfig hs = createHomeServerConfig(aliceCredentials);
+        HomeServerConnectionConfig hs = mTestHelper.createHomeServerConfig(aliceCredentials);
 
         IMXStore store = new MXFileStore(hs, context);
 
@@ -974,7 +977,7 @@ public class CryptoTest extends AbsIntegrationTest {
         aliceCredentials2.refreshToken = aliceCredentials.refreshToken;
         aliceCredentials2.deviceId = "AliceNewDevice";
 
-        HomeServerConnectionConfig hs = createHomeServerConfig(aliceCredentials2);
+        HomeServerConnectionConfig hs = mTestHelper.createHomeServerConfig(aliceCredentials2);
 
         IMXStore store = new MXFileStore(hs, context);
 
@@ -1059,7 +1062,7 @@ public class CryptoTest extends AbsIntegrationTest {
         Credentials bobCredentials = mBobSession.getCredentials();
         mBobSession.clear(context);
 
-        HomeServerConnectionConfig hs = createHomeServerConfig(bobCredentials);
+        HomeServerConnectionConfig hs = mTestHelper.createHomeServerConfig(bobCredentials);
 
         IMXStore store = new MXFileStore(hs, context);
 
@@ -1768,7 +1771,7 @@ public class CryptoTest extends AbsIntegrationTest {
         mAliceSession.getDataHandler().addListener(aliceEventListener);
 
         // login with a new device id
-        MXSession bobSession2 = logIntoBobAccount(mBobSession.getMyUserId(), true, true);
+        MXSession bobSession2 = mTestHelper.logIntoBobAccount(mBobSession.getMyUserId(), true, true);
 
         String bobDeviceId2 = bobSession2.getCredentials().deviceId;
         Assert.assertNotEquals(bobDeviceId2, bobDeviceId1);
@@ -1888,11 +1891,11 @@ public class CryptoTest extends AbsIntegrationTest {
         lock3.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("alicelogout"));
 
-        MXSession bobSession2 = logIntoBobAccount(mBobSession.getMyUserId(), true, true);
+        MXSession bobSession2 = mTestHelper.logIntoBobAccount(mBobSession.getMyUserId(), true, true);
         Assert.assertNotNull(bobSession2);
         bobSession2.getCrypto().setWarnOnUnknownDevices(false);
 
-        MXSession mAliceSession2 = logIntoAliceAccount(mAliceSession.getMyUserId(), true, true);
+        MXSession mAliceSession2 = mTestHelper.logIntoAliceAccount(mAliceSession.getMyUserId(), true, true);
         Assert.assertNotNull(mAliceSession2);
         mAliceSession2.getCrypto().setWarnOnUnknownDevices(false);
 
@@ -2254,7 +2257,7 @@ public class CryptoTest extends AbsIntegrationTest {
         aliceCredentials2.refreshToken = aliceCredentials.refreshToken;
         aliceCredentials2.deviceId = "AliceNewDevice";
 
-        HomeServerConnectionConfig hs = createHomeServerConfig(aliceCredentials2);
+        HomeServerConnectionConfig hs = mTestHelper.createHomeServerConfig(aliceCredentials2);
 
         IMXStore store = new MXFileStore(hs, context);
 
@@ -2398,8 +2401,8 @@ public class CryptoTest extends AbsIntegrationTest {
 
         final Map<String, Object> results = new HashMap<>();
 
-        mAliceSession = createAliceAccount(true, false);
-        mBobSession = createBobAccount(true, false);
+        mAliceSession = mTestHelper.createAliceAccount(true, false);
+        mBobSession = mTestHelper.createBobAccount(true, false);
 
         CountDownLatch lock_1 = new CountDownLatch(2);
 
@@ -2487,7 +2490,7 @@ public class CryptoTest extends AbsIntegrationTest {
         Credentials bobCredentials = mBobSession.getCredentials();
         mBobSession.clear(context);
 
-        MXSession bobSession2 = logIntoBobAccount(mBobSession.getMyUserId(), true, true);
+        MXSession bobSession2 = mTestHelper.logIntoBobAccount(mBobSession.getMyUserId(), true, true);
         Assert.assertNotNull(bobSession2);
         Assert.assertTrue(bobSession2.isCryptoEnabled());
         Assert.assertNotEquals(bobSession2.getCrypto().getMyDevice().deviceId, bobCredentials.deviceId);
@@ -2849,8 +2852,8 @@ public class CryptoTest extends AbsIntegrationTest {
         final String messageFromAlice = "Hello I'm Alice!";
         final String message2FromAlice = "I'm still Alice!";
 
-        mAliceSession = createAliceAccount(true, false);
-        mBobSession = createBobAccount(true, false);
+        mAliceSession = mTestHelper.createAliceAccount(true, false);
+        mBobSession = mTestHelper.createBobAccount(true, false);
 
         CountDownLatch lock00b = new CountDownLatch(2);
         mAliceSession.enableCrypto(true, new TestApiCallback<Void>(lock00b) {
@@ -2916,7 +2919,7 @@ public class CryptoTest extends AbsIntegrationTest {
         Credentials bobCredentials = mBobSession.getCredentials();
         mBobSession.clear(context);
 
-        MXSession bobSession2 = logIntoBobAccount(mBobSession.getMyUserId(), true, true);
+        MXSession bobSession2 = mTestHelper.logIntoBobAccount(mBobSession.getMyUserId(), true, true);
         Assert.assertNotNull(bobSession2);
         Assert.assertTrue(bobSession2.isCryptoEnabled());
         Assert.assertNotEquals(bobSession2.getCrypto().getMyDevice().deviceId, bobCredentials.deviceId);
@@ -2991,7 +2994,7 @@ public class CryptoTest extends AbsIntegrationTest {
         Assert.assertTrue(results.containsKey("lock1"));
 
         // - Alice adds a new device
-        final MXSession mAliceSession2 = logIntoAliceAccount(mAliceSession.getMyUserId(), true, true);
+        final MXSession mAliceSession2 = mTestHelper.logIntoAliceAccount(mAliceSession.getMyUserId(), true, true);
         Assert.assertNotNull(mAliceSession2);
 
         // - Alice and Bob start sharing a room again
@@ -3183,7 +3186,7 @@ public class CryptoTest extends AbsIntegrationTest {
 
     private void doE2ETestWithAliceInARoom() throws Exception {
         final Map<String, Object> results = new HashMap<>();
-        mAliceSession = createAliceAccount(true, false);
+        mAliceSession = mTestHelper.createAliceAccount(true, false);
         CountDownLatch lock0 = new CountDownLatch(1);
 
         mAliceSession.enableCrypto(true, new TestApiCallback<Void>(lock0) {
@@ -3231,7 +3234,7 @@ public class CryptoTest extends AbsIntegrationTest {
 
         Room room = mAliceSession.getDataHandler().getRoom(mRoomId);
 
-        mBobSession = createBobAccount(true, false);
+        mBobSession = mTestHelper.createBobAccount(true, false);
         CountDownLatch lock0 = new CountDownLatch(1);
 
         mBobSession.enableCrypto(cryptedBob, new TestApiCallback<Void>(lock0) {
@@ -3330,7 +3333,7 @@ public class CryptoTest extends AbsIntegrationTest {
 
         Room room = mAliceSession.getDataHandler().getRoom(mRoomId);
 
-        mSamSession = createSamAccount(true, false);
+        mSamSession = mTestHelper.createSamAccount(true, false);
         CountDownLatch lock0 = new CountDownLatch(1);
 
         mSamSession.enableCrypto(true, new TestApiCallback<Void>(lock0) {

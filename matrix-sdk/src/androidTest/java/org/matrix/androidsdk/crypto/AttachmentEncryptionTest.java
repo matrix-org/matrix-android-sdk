@@ -9,8 +9,6 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
-import org.matrix.androidsdk.common.AbsIntegrationTest;
-import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileKey;
 
@@ -25,7 +23,7 @@ import java.util.Map;
  */
 @RunWith(AndroidJUnit4.class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class AttachmentEncryptionTest extends AbsIntegrationTest {
+public class AttachmentEncryptionTest {
 
     private String checkDecryption(String input, EncryptedFileInfo encryptedFileInfo) throws Exception {
         byte[] in = Base64.decode(input, Base64.DEFAULT);
@@ -128,6 +126,6 @@ public class AttachmentEncryptionTest extends AbsIntegrationTest {
 
         Assert.assertNotEquals("YWxwaGFudW1lcmljYWxseWFscGhhbnVtZXJpY2FsbHlhbHBoYW51bWVyaWNhbGx5YWxwaGFudW1lcmljYWxseQ",
                 checkDecryption("tJVNBVJ/vl36UQt4Y5e5m84bRUrQHhcdLPvS/7EkDvlkDLZXamBB6k8THbiawiKZ5Mnq9PZMSSbgOCvmnUBOMA",
-                encryptedFileInfo));
+                        encryptedFileInfo));
     }
 }
