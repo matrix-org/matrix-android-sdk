@@ -1040,7 +1040,7 @@ public class EventTimeline {
         if ((mSnapshotEvents.size() < MAX_EVENT_COUNT_PER_PAGINATION) && mIsLastBackChunk) {
             mCanBackPaginate = false;
         }
-
+        mIsBackPaginating = false;
         if (callback != null) {
             try {
                 callback.onSuccess(count);
@@ -1048,8 +1048,6 @@ public class EventTimeline {
                 Log.e(LOG_TAG, "requestHistory exception " + e.getMessage(), e);
             }
         }
-
-        mIsBackPaginating = false;
     }
 
     /**
@@ -1595,8 +1593,7 @@ public class EventTimeline {
                     // warn that there was a flush
                     initHistory();
                     mDataHandler.onRoomFlush(mRoomId);
-                }
-                else {
+                } else {
                     Log.d(LOG_TAG, "checkStateEventRedaction: the redacted event is unknown. Fetch it from the homeserver");
                     checkStateEventRedactionWithHomeserver(eventId);
                 }
