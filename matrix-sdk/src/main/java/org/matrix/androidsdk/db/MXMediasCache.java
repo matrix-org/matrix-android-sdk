@@ -487,6 +487,9 @@ public class MXMediasCache {
                             while ((len = fis.read(buf)) != -1) {
                                 fos.write(buf, 0, len);
                             }
+
+                            fis.close();
+                            fos.close();
                         } catch (Exception e) {
                             Log.e(LOG_TAG, "## createTmpMediaFile() failed " + e.getMessage(), e);
                         }
