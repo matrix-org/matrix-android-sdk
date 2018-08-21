@@ -12,6 +12,8 @@ Bugfix:
 
 API Change:
  - Remove PieFractionView class from the Matrix SDK. This class is now in Riot sources (#336)
+ - MXMediasCache.createTmpMediaFile() methods are rename to createTmpDecryptedMediaFile()
+ - MXMediasCache.clearTmpCache() method is rename to clearTmpDecryptedMediaCache()
 
 Translations:
  -

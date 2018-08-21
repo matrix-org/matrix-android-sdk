@@ -1069,7 +1069,7 @@ public class MXSession {
         }
 
         if (null != getMediasCache()) {
-            getMediasCache().clearTmpCache();
+            getMediasCache().clearTmpDecryptedMediaCache();
         }
 
         if (null != mGroupsManager) {

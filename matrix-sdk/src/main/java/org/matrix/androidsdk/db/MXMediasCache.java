@@ -90,6 +90,7 @@ public class MXMediasCache {
     private File mOthersFolderFile;
     private File mThumbnailsFolderFile;
 
+    // This folder will contain decrypted media files
     private File mTmpFolderFile;
 
     // track the network updates
@@ -423,20 +424,20 @@ public class MXMediasCache {
     }
 
     /**
-     * Create a temporary copy of a media.
-     * It must be released when it is not anymore used with clearTmpCache().
+     * Create a temporary decrypted copy of a media.
+     * It must be released when it is not used anymore with clearTmpDecryptedMediaCache().
      *
-     * @param url               the url
-     * @param mimeType          the mimetype
+     * @param url               the media url
+     * @param mimeType          the media mime type
      * @param encryptedFileInfo the encryption information
      * @param callback          the asynchronous callback
      * @return true if the file is cached
      */
-    public boolean createTmpMediaFile(String url,
-                                      String mimeType,
-                                      EncryptedFileInfo encryptedFileInfo,
-                                      ApiCallback<File> callback) {
-        return createTmpMediaFile(url,
+    public boolean createTmpDecryptedMediaFile(String url,
+                                               String mimeType,
+                                               EncryptedFileInfo encryptedFileInfo,
+                                               ApiCallback<File> callback) {
+        return createTmpDecryptedMediaFile(url,
                 -1,
                 -1,
                 mimeType,
@@ -445,8 +446,8 @@ public class MXMediasCache {
     }
 
     /**
-     * Create a temporary copy of a media.
-     * It must be released when it is not anymore used with clearTmpCache().
+     * Create a temporary decrypted copy of a media.
+     * It must be released when it is not used anymore with clearTmpDecryptedMediaCache().
      *
      * @param url               the media URL
      * @param width             the media width
@@ -456,12 +457,12 @@ public class MXMediasCache {
      * @param callback          the asynchronous callback
      * @return true if the file is cached
      */
-    public boolean createTmpMediaFile(String url,
-                                      int width,
-                                      int height,
-                                      String mimeType,
-                                      final EncryptedFileInfo encryptedFileInfo,
-                                      final ApiCallback<File> callback) {
+    public boolean createTmpDecryptedMediaFile(String url,
+                                               int width,
+                                               int height,
+                                               String mimeType,
+                                               final EncryptedFileInfo encryptedFileInfo,
+                                               final ApiCallback<File> callback) {
         final File file = mediaCacheFile(url, width, height, mimeType);
 
         if (null != file) {
@@ -470,7 +471,7 @@ public class MXMediasCache {
                 public void run() {
                     final File tmpFile = new File(mTmpFolderFile, file.getName());
 
-                    // create it if it does not exist
+                    // create it only if it does not exist yet
                     if (!tmpFile.exists()) {
                         try {
                             InputStream fis = new FileInputStream(file);
@@ -491,7 +492,7 @@ public class MXMediasCache {
                             fis.close();
                             fos.close();
                         } catch (Exception e) {
-                            Log.e(LOG_TAG, "## createTmpMediaFile() failed " + e.getMessage(), e);
+                            Log.e(LOG_TAG, "## createTmpDecryptedMediaFile() failed " + e.getMessage(), e);
                         }
                     }
 
@@ -508,9 +509,9 @@ public class MXMediasCache {
     }
 
     /**
-     * Clear the temporary cache file
+     * Clear the temporary decrypted media cache folder
      */
-    public void clearTmpCache() {
+    public void clearTmpDecryptedMediaCache() {
         if (mTmpFolderFile.exists()) {
             ContentUtils.deleteDirectory(mTmpFolderFile);
         }
