@@ -27,11 +27,13 @@ public class LazyLoadingScenarioData {
     final MXSession bobSession;
     final MXSession samSession;
     final String roomId;
+    final String bobMessageId;
 
-    public LazyLoadingScenarioData(MXSession aliceSession, MXSession bobSession, MXSession samSession, String roomId) {
+    public LazyLoadingScenarioData(MXSession aliceSession, MXSession bobSession, MXSession samSession, String roomId, String bobMessageId) {
         this.aliceSession = aliceSession;
         this.bobSession = bobSession;
         this.samSession = samSession;
         this.roomId = roomId;
+        this.bobMessageId = bobMessageId;
     }
 }

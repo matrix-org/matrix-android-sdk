@@ -1514,11 +1514,35 @@ public class EventTimeline {
                     (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
                         @Override
                         public void run() {
-                            if (null != callback) {
+                            if (callback != null) {
                                 callback.onUnexpectedError(e);
                             }
                         }
                     });
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                super.onNetworkError(e);
+                if (callback != null) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                super.onMatrixError(e);
+                if (callback != null) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                super.onUnexpectedError(e);
+                if (callback != null) {
+                    callback.onUnexpectedError(e);
                 }
             }
         });

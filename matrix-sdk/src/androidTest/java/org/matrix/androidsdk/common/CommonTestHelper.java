@@ -28,6 +28,7 @@ import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomMediaMessage;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXFileStore;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -39,7 +40,9 @@ import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 import org.matrix.androidsdk.rest.model.login.RegistrationParams;
 import org.matrix.androidsdk.util.JsonUtils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -138,7 +141,8 @@ public class CommonTestHelper {
      * @param nbOfMessages the number of time the message will be sent
      * @throws Exception
      */
-    public void sendTextMessage(@Nonnull final Room room, @Nonnull final String message, final int nbOfMessages) throws Exception {
+    public List<Event> sendTextMessage(@Nonnull final Room room, @Nonnull final String message, final int nbOfMessages) throws Exception {
+        final List<Event> sentEvents = new ArrayList<>(nbOfMessages);
         final CountDownLatch latch = new CountDownLatch(nbOfMessages);
         final MXEventListener onEventsentListener = new MXEventListener() {
             @Override
@@ -149,10 +153,27 @@ public class CommonTestHelper {
         };
         room.addEventListener(onEventsentListener);
         for (int i = 0; i < nbOfMessages; i++) {
-            room.sendTextMessage(message, null, FORMAT_MATRIX_HTML, null);
+            room.sendTextMessage(message, null, FORMAT_MATRIX_HTML, new RoomMediaMessage.EventCreationListener() {
+                @Override
+                public void onEventCreated(RoomMediaMessage roomMediaMessage) {
+                    final Event sentEvent = roomMediaMessage.getEvent();
+                    sentEvents.add(sentEvent);
+                }
+
+                @Override
+                public void onEventCreationFailed(RoomMediaMessage roomMediaMessage, String errorMessage) {
+
+                }
+
+                @Override
+                public void onEncryptionFailed(RoomMediaMessage roomMediaMessage) {
+
+                }
+            });
         }
         latch.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         room.removeEventListener(onEventsentListener);
+        return sentEvents;
     }
 
 

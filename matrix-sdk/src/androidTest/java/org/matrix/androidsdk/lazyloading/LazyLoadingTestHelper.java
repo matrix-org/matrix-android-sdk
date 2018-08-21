@@ -24,8 +24,10 @@ import org.matrix.androidsdk.common.TestApiCallback;
 import org.matrix.androidsdk.common.TestConstants;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.rest.model.Event;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -104,9 +106,10 @@ public class LazyLoadingTestHelper {
         latch.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
         // Send messages
-        mTestHelper.sendTextMessage(aliceRoom, "Alice message", 50);
-        mTestHelper.sendTextMessage(bobRoom, "Bob message", 1);
-        mTestHelper.sendTextMessage(aliceRoom, "Alice message", 50);
+        final List<Event> aliceFirstMessages = mTestHelper.sendTextMessage(aliceRoom, "Alice message", 50);
+        final List<Event> bobMessages = mTestHelper.sendTextMessage(bobRoom, "Bob message", 1);
+        final List<Event> aliceLastMessages = mTestHelper.sendTextMessage(aliceRoom, "Alice message", 50);
+        final String bobMessageId = bobMessages.isEmpty() ? null : bobMessages.get(0).eventId;
 
         // Clear Alice session and open new one
         final Context context = InstrumentationRegistry.getContext();
@@ -117,7 +120,7 @@ public class LazyLoadingTestHelper {
         aliceSession = mTestHelper.logIntoAliceAccount(aliceId, false, false);
         bobSession = mTestHelper.logIntoBobAccount(bobId, false, false);
         samSession = mTestHelper.logIntoSamAccount(samId, false, false);
-        return new LazyLoadingScenarioData(aliceSession, bobSession, samSession, roomId);
+        return new LazyLoadingScenarioData(aliceSession, bobSession, samSession, roomId, bobMessageId);
 
     }
 
