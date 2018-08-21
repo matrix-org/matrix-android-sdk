@@ -347,7 +347,7 @@ public class MXMediasCache {
     }
 
     /**
-     * Return the cache file name for a media defined by its URL and its mimetype.
+     * Return the cache file name for a media defined by its URL and its mime type.
      *
      * @param url      the media URL
      * @param width    the media width

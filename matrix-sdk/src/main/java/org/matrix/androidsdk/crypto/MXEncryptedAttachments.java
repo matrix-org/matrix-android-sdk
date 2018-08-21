@@ -146,7 +146,7 @@ public class MXEncryptedAttachments implements Serializable {
     /**
      * Decrypt an attachment
      *
-     * @param attachmentStream  the attahcment stream
+     * @param attachmentStream  the attachment stream
      * @param encryptedFileInfo the encryption file info
      * @return the decrypted attachment stream
      */
