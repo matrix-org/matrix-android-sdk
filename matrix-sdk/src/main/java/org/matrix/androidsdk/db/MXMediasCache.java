@@ -76,6 +76,7 @@ public class MXMediasCache {
     private static final String MXMEDIA_STORE_IMAGES_FOLDER = "Images";
     private static final String MXMEDIA_STORE_OTHERS_FOLDER = "Others";
     private static final String MXMEDIA_STORE_TMP_FOLDER = "tmp";
+    private static final String MXMEDIA_STORE_SHARE_FOLDER = "share";
 
     /**
      * The content manager
@@ -92,6 +93,9 @@ public class MXMediasCache {
 
     // This folder will contain decrypted media files
     private File mTmpFolderFile;
+
+    // This folder will contain decrypted media files, for file sharing
+    private File mShareFolderFile;
 
     // track the network updates
     private final NetworkConnectivityReceiver mNetworkConnectivityReceiver;
@@ -142,6 +146,13 @@ public class MXMediasCache {
             ContentUtils.deleteDirectory(mTmpFolderFile);
         }
         mTmpFolderFile.mkdirs();
+
+        mShareFolderFile = new File(mMediasFolderFile, MXMEDIA_STORE_SHARE_FOLDER);
+
+        if (mShareFolderFile.exists()) {
+            ContentUtils.deleteDirectory(mShareFolderFile);
+        }
+        mShareFolderFile.mkdirs();
 
         mThumbnailsFolderFile = new File(mediaBaseFolderFile, MXMEDIA_STORE_MEMBER_THUMBNAILS_FOLDER);
 
@@ -512,12 +523,55 @@ public class MXMediasCache {
      * Clear the temporary decrypted media cache folder
      */
     public void clearTmpDecryptedMediaCache() {
+        Log.d(LOG_TAG, "clearTmpDecryptedMediaCache()");
+
         if (mTmpFolderFile.exists()) {
             ContentUtils.deleteDirectory(mTmpFolderFile);
         }
 
         if (!mTmpFolderFile.exists()) {
             mTmpFolderFile.mkdirs();
+        }
+    }
+
+    /**
+     * Move a decrypted media file to the /share folder, to avoid this file to be deleted if in the /tmp folder
+     *
+     * @param fileToMove The file to move
+     * @return The copied file in the Share folder location
+     */
+    public File moveToShareFolder(final File fileToMove,
+                                  final String filename) {
+        File dstFile = new File(mShareFolderFile, filename);
+
+        if (dstFile.exists()) {
+            if (!dstFile.delete()) {
+                Log.w(LOG_TAG, "Unable to delete file");
+            }
+        }
+
+        if (!fileToMove.renameTo(dstFile)) {
+            Log.w(LOG_TAG, "Unable to rename file");
+
+            // Return the original file
+            return fileToMove;
+        }
+
+        return dstFile;
+    }
+
+    /**
+     * Clear the temporary shared decrypted media cache folder
+     */
+    public void clearShareDecryptedMediaCache() {
+        Log.d(LOG_TAG, "clearShareDecryptedMediaCache()");
+
+        if (mShareFolderFile.exists()) {
+            ContentUtils.deleteDirectory(mShareFolderFile);
+        }
+
+        if (!mShareFolderFile.exists()) {
+            mShareFolderFile.mkdirs();
         }
     }
 

@@ -1112,6 +1112,10 @@ public class MXSession {
             Log.d(LOG_TAG, "## resumeEventStream() : cancel bg sync");
         }
 
+        if (null != getMediasCache()) {
+            getMediasCache().clearShareDecryptedMediaCache();
+        }
+
         if (null != mGroupsManager) {
             mGroupsManager.onSessionResumed();
         }
