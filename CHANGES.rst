@@ -2,7 +2,7 @@ Changes to Matrix Android SDK in 0.9.8 (2018-XX-XX)
 =======================================================
 
 Features:
- -
+ - Manage server_notices tag
 
 Improvements:
  -
