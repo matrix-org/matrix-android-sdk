@@ -12,8 +12,8 @@ Bugfix:
 
 API Change:
  - Remove PieFractionView class from the Matrix SDK. This class is now in Riot sources (#336)
- - MXMediasCache.createTmpMediaFile() methods are rename to createTmpDecryptedMediaFile()
- - MXMediasCache.clearTmpCache() method is rename to clearTmpDecryptedMediaCache()
+ - MXMediasCache.createTmpMediaFile() methods are renamed to createTmpDecryptedMediaFile()
+ - MXMediasCache.clearTmpCache() method is renamed to clearTmpDecryptedMediaCache()
  - Add MXMediasCache.moveToShareFolder() to move a tmp decrypted file to another folder to prevent deletion during sharing. New API MXMediasCache.clearShareDecryptedMediaCache() can be called when the application is resumed. (vector-im/riot-android#2530)
 
 Translations:
