@@ -19,6 +19,7 @@ package org.matrix.androidsdk.listeners;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 
@@ -116,6 +117,13 @@ public interface IMXEventListener {
      * @param toToken the up-to sync token
      */
     void onInitialSyncComplete(String toToken);
+
+    /**
+     * The sync has encountered an error
+     *
+     * @param matrixError the error
+     */
+    void onSyncError(MatrixError matrixError);
 
     /**
      * The crypto sync is complete

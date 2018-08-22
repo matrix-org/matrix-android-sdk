@@ -453,6 +453,7 @@ public class EventsThread extends Thread {
                             if (MatrixError.isConfigurationErrorCode(e.errcode)) {
                                 mListener.onConfigurationError(e.errcode);
                             } else {
+                                mListener.onSyncError(e);
                                 sleepAndUnblock();
                             }
                         }
@@ -665,6 +666,7 @@ public class EventsThread extends Thread {
                                 if (MatrixError.isConfigurationErrorCode(e.errcode)) {
                                     mListener.onConfigurationError(e.errcode);
                                 } else {
+                                    mListener.onSyncError(e);
                                     onError(e.getLocalizedMessage());
                                 }
                             }

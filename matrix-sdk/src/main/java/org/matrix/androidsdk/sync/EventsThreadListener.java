@@ -1,7 +1,7 @@
 /*
  * Copyright 2016 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -16,6 +16,7 @@
  */
 package org.matrix.androidsdk.sync;
 
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 
 /**
@@ -30,6 +31,13 @@ public interface EventsThreadListener {
      * @param isCatchingUp true if a catchup is on progress
      */
     void onSyncResponse(SyncResponse response, String fromToken, boolean isCatchingUp);
+
+    /**
+     * A configuration error has been received.
+     *
+     * @param matrixError the matrix error
+     */
+    void onSyncError(final MatrixError matrixError);
 
     /**
      * A configuration error has been received.

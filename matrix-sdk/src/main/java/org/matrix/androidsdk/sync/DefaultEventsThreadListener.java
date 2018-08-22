@@ -18,6 +18,7 @@
 package org.matrix.androidsdk.sync;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 
 /**
@@ -34,6 +35,11 @@ public class DefaultEventsThreadListener implements EventsThreadListener {
     @Override
     public void onSyncResponse(SyncResponse syncResponse, String fromToken, boolean isCatchingUp) {
         mDataHandler.onSyncResponse(syncResponse, fromToken, isCatchingUp);
+    }
+
+    @Override
+    public void onSyncError(MatrixError matrixError) {
+        mDataHandler.onSyncError(matrixError);
     }
 
     @Override

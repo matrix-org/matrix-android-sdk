@@ -2166,6 +2166,19 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     @Override
+    public void onSyncError(final MatrixError matrixError) {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    listener.onSyncError(matrixError);
+                }
+            }
+        });
+    }
+
+    @Override
     public void onCryptoSyncComplete() {
     }
 
