@@ -26,6 +26,11 @@ import java.io.Serializable;
 public class RoomCreateContent implements Serializable {
 
     public String creator;
+
+    // Not used for the moment
+    // @SerializedName("room_version")
+    // public String roomVersion;
+
     public Predecessor predecessor;
 
     public RoomCreateContent deepCopy() {
@@ -33,10 +38,6 @@ public class RoomCreateContent implements Serializable {
         copy.creator = creator;
         copy.predecessor = predecessor != null ? predecessor.deepCopy() : null;
         return copy;
-    }
-
-    public boolean hasPredecessor() {
-        return predecessor != null;
     }
 
     /**

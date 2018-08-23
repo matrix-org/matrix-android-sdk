@@ -22,7 +22,6 @@ import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
@@ -210,7 +209,7 @@ public class RoomPreviewData {
                         mRoomState.roomId = mRoomId;
 
                         for (Event event : roomResponse.state) {
-                            mRoomState.applyState(null, event, EventTimeline.Direction.FORWARDS);
+                            mRoomState.applyState(event, true, null);
                         }
 
                         // TODO LazyLoading handle case where room has no name

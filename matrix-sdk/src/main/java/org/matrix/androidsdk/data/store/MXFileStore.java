@@ -20,10 +20,12 @@ package org.matrix.androidsdk.data.store;
 
 import android.content.Context;
 import android.os.HandlerThread;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
+import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomState;
@@ -145,6 +147,9 @@ public class MXFileStore extends MXMemoryStore {
     // True if file encryption is enabled
     private final boolean mEnableFileEncryption;
 
+    // The dataHandler
+    private MXDataHandler mMXDataHandler;
+
     /**
      * Create the file store dirtrees
      */
@@ -221,7 +226,9 @@ public class MXFileStore extends MXMemoryStore {
      * @param enableFileEncryption set to true to enable file encryption.
      * @param context              the context.
      */
-    public MXFileStore(HomeServerConnectionConfig hsConfig, boolean enableFileEncryption, Context context) {
+    public MXFileStore(HomeServerConnectionConfig hsConfig,
+                       boolean enableFileEncryption,
+                       Context context) {
         setContext(context);
 
         mEnableFileEncryption = enableFileEncryption;
@@ -273,6 +280,10 @@ public class MXFileStore extends MXMemoryStore {
             mIsReady = true;
             mAreReceiptsReady = true;
         }
+    }
+
+    public void setDataHandler(@NonNull final MXDataHandler dataHandler) {
+        mMXDataHandler = dataHandler;
     }
 
     /**
@@ -1239,7 +1250,7 @@ public class MXFileStore extends MXMemoryStore {
         // succeeds to extract the message list
         if (null != events) {
             // create the room object
-            final Room room = new Room(getDataHandler(), this, roomId);
+            final Room room = new Room(mMXDataHandler, this, roomId);
             // do not wait that the live state update
             room.setReadyState(true);
             storeRoom(room);
@@ -1355,7 +1366,7 @@ public class MXFileStore extends MXMemoryStore {
 
         } catch (Exception e) {
             succeed = false;
-            Log.e(LOG_TAG, "loadRoomToken failed : " + e.getMessage(), e);
+            Log.e(LOG_TAG, "loadRoomsMessages failed : " + e.getMessage(), e);
         }
 
         return succeed;

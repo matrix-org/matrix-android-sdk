@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<resources><string name="matrix_sdk_app_name">SDK Matrix Android</string>
+<resources>
 
     <string name="summary_message">%1$s : %2$s</string>
     <string name="summary_user_sent_image">%1$s a envoyé une image.</string>
@@ -72,5 +72,16 @@
     <string name="reply_to_a_video">a envoyé une vidéo.</string>
     <string name="reply_to_an_audio_file">a envoyé un fichier audio.</string>
     <string name="reply_to_a_file">a envoyé un fichier.</string>
+
+    <string name="room_displayname_invite_from">Invitation de %s</string>
+    <string name="room_displayname_room_invite">Invitation au salon</string>
+    <string name="room_displayname_empty_room">Salon vide</string>
+    <string name="room_displayname_two_members">%1$s et %2$s</string>
+
+    <plurals name="room_displayname_three_and_more_members">
+        <item quantity="one">%1$s et 1 autre</item>
+        <item quantity="other">%1$s et %2$d autres</item>
+    </plurals>
+
 
 </resources>

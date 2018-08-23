@@ -24,7 +24,6 @@ import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 
 import org.matrix.androidsdk.call.MXCallsManager;
@@ -40,7 +39,6 @@ import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXMemoryStore;
-import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.groups.GroupsManager;
 import org.matrix.androidsdk.listeners.IMXEventListener;
@@ -53,7 +51,6 @@ import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
-import org.matrix.androidsdk.rest.json.ConditionDeserializer;
 import org.matrix.androidsdk.rest.model.ChunkEvents;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
@@ -62,7 +59,6 @@ import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
-import org.matrix.androidsdk.rest.model.bingrules.Condition;
 import org.matrix.androidsdk.rest.model.bingrules.PushRuleSet;
 import org.matrix.androidsdk.rest.model.bingrules.PushRulesResponse;
 import org.matrix.androidsdk.rest.model.group.InvitedGroupSync;
@@ -75,7 +71,6 @@ import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.MXOsHandler;
 
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -928,7 +923,7 @@ public class MXDataHandler {
 
                         if (info.chunk != null) {
                             for (Event event : info.chunk) {
-                                room.getState().applyState(getStore(), event, EventTimeline.Direction.FORWARDS);
+                                room.getState().applyState(event, true, getStore());
                             }
                         }
 

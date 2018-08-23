@@ -70,6 +70,8 @@ import java.util.TreeSet;
 public class JsonUtils {
     private static final String LOG_TAG = JsonUtils.class.getSimpleName();
 
+    private static final Gson basicGson = new Gson();
+
     private static final Gson gson = new GsonBuilder()
             .setFieldNamingStrategy(new MatrixFieldNamingStrategy())
             .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
@@ -100,6 +102,15 @@ public class JsonUtils {
             .registerTypeAdapter(boolean.class, new BooleanDeserializer(false))
             .registerTypeAdapter(Boolean.class, new BooleanDeserializer(true))
             .create();
+
+    /**
+     * Provides the basic JSON parser.
+     *
+     * @return the basic JSON parser
+     */
+    public static Gson getBasicGson() {
+        return basicGson;
+    }
 
     /**
      * Provides the JSON parser.

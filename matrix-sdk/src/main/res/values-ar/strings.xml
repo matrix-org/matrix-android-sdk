@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<resources><string name="matrix_sdk_app_name">عُدّة تطوير البرمجيات لِ‍«ماترِكس» على أندرويد</string>
+<resources>
 
     <string name="summary_user_sent_image">أرسل ⁨%1$s⁩ صورة.</string>
 
@@ -72,5 +72,11 @@
     <string name="reply_to_a_video">أرسل فديوهًا.</string>
     <string name="reply_to_an_audio_file">أرسل ملف صوت.</string>
     <string name="reply_to_a_file">أرسل ملفًا.</string>
+
+    <string name="room_displayname_invite_from">دعوة من ⁨%s⁩</string>
+    <string name="room_displayname_empty_room">غرفة فارغة</string>
+
+    <string name="room_displayname_two_members">‏⁨%1$s⁩ و ⁨%2$s⁩</string>
+    <string name="room_displayname_room_invite">دعوة إلى غرفة</string>
 
 </resources>

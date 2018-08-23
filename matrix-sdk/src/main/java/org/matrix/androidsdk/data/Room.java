@@ -33,7 +33,6 @@ import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Pair;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
@@ -43,6 +42,8 @@ import org.matrix.androidsdk.MXPatterns;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
+import org.matrix.androidsdk.data.room.RoomAvatarResolver;
+import org.matrix.androidsdk.data.room.RoomDisplayNameResolver;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.timeline.EventTimelineFactory;
@@ -136,6 +137,12 @@ public class Room {
     // true when the current room is a left one
     private boolean mIsLeft;
 
+    // Class to compute room display name
+    private final RoomDisplayNameResolver mRoomDisplayNameResolver;
+
+    // Class to compute room avatar
+    private final RoomAvatarResolver mRoomAvatarResolver;
+
     /**
      * Constructor
      * FIXME All this @NonNull annotation must be also added to the class members and getters
@@ -149,6 +156,8 @@ public class Room {
         mStore = store;
         mMyUserId = mDataHandler.getUserId();
         mTimeline = EventTimelineFactory.liveTimeline(mDataHandler, this, roomId);
+        mRoomDisplayNameResolver = new RoomDisplayNameResolver(this);
+        mRoomAvatarResolver = new RoomAvatarResolver(this);
     }
 
     /**
@@ -268,7 +277,7 @@ public class Room {
                             List<String> typingUsers = null;
 
                             try {
-                                typingUsers = (new Gson()).fromJson(eventContent.get("user_ids"), new TypeToken<List<String>>() {
+                                typingUsers = JsonUtils.getBasicGson().fromJson(eventContent.get("user_ids"), new TypeToken<List<String>>() {
                                 }.getType());
                             } catch (Exception e) {
                                 Log.e(LOG_TAG, "## handleEphemeralEvents() : exception " + e.getMessage(), e);
@@ -542,6 +551,14 @@ public class Room {
         });
     }
 
+    /**
+     * @param context the application context.
+     * @return the computed room display name
+     */
+    public String getRoomDisplayName(Context context) {
+        return mRoomDisplayNameResolver.resolve(context);
+    }
+
     public String getTopic() {
         return getState().topic;
     }
@@ -630,7 +647,7 @@ public class Room {
                     Map<String, Object> map = null;
 
                     try {
-                        map = new Gson().fromJson(object, new TypeToken<Map<String, Object>>() {
+                        map = JsonUtils.getBasicGson().fromJson(object, new TypeToken<Map<String, Object>>() {
                         }.getType());
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "joinWithThirdPartySigned :  Gson().fromJson failed" + e.getMessage(), e);
@@ -737,6 +754,7 @@ public class Room {
                         Log.e(LOG_TAG, "join onMatrixError " + e.getMessage());
 
                         if (MatrixError.UNKNOWN.equals(e.errcode) && TextUtils.equals("No known servers", e.error)) {
+                            // It can happen when user wants to join a room he was invited to, but the inviter has left
                             // minging kludge until https://matrix.org/jira/browse/SYN-678 is fixed
                             // 'Error when trying to join an empty room should be more explicit
                             e.error = getStore().getContext().getString(org.matrix.androidsdk.R.string.room_error_join_failed_empty_room);
@@ -974,26 +992,12 @@ public class Room {
      */
     @Nullable
     public String getAvatarUrl() {
-        String res = getState().getAvatarUrl();
-
-        // detect if it is a room with no more than 2 members (i.e. an alone or a 1:1 chat)
-        if (null == res) {
-            if (getNumberOfMembers() == 1 && !getState().getLoadedMembers().isEmpty()) {
-                res = getState().getLoadedMembers().get(0).getAvatarUrl();
-            } else if (getNumberOfMembers() == 2 && getState().getLoadedMembers().size() > 1) {
-                RoomMember m1 = getState().getLoadedMembers().get(0);
-                RoomMember m2 = getState().getLoadedMembers().get(1);
-
-                res = TextUtils.equals(m1.getUserId(), mMyUserId) ? m2.getAvatarUrl() : m1.getAvatarUrl();
-            }
-        }
-
-        return res;
+        return mRoomAvatarResolver.resolve();
     }
 
     /**
-     * The call avatar is the same as the room avatar except there are only 2 JOINED members.
-     * In this case, it returns the avtar of the other joined member.
+     * The call avatar is the same as the room avatar except when there are only 2 JOINED members.
+     * In this case, it returns the avatar of the other joined member.
      *
      * @return the call avatar URL.
      */

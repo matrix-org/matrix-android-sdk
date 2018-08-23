@@ -18,7 +18,9 @@
 
 package org.matrix.androidsdk.data;
 
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
@@ -26,7 +28,6 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.store.IMXStore;
-import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
@@ -98,7 +99,7 @@ public class RoomState implements Externalizable {
     // merged from mAliasesByHomeServerUrl
     private List<String> mMergedAliasesList;
 
-    //
+    // Map of list of state event, the key are the event type
     private Map<String, List<Event>> mStateEvents = new HashMap<>();
 
     // The canonical alias of the room.
@@ -457,7 +458,15 @@ public class RoomState implements Externalizable {
      * @return true if it is a call conference room.
      */
     public boolean isConferenceUserRoom() {
-        return getDataHandler().getStore().getSummary(roomId).isConferenceUserRoom();
+        if (getDataHandler() != null
+                && getDataHandler().getStore() != null
+                && getDataHandler().getStore().getSummary(roomId) != null) {
+            return getDataHandler().getStore().getSummary(roomId).isConferenceUserRoom();
+        } else {
+            Log.w(LOG_TAG, "## isConferenceUserRoom(): something is null");
+        }
+
+        return false;
     }
 
     /**
@@ -466,7 +475,13 @@ public class RoomState implements Externalizable {
      * @param isConferenceUserRoom true when it is an user conference room.
      */
     public void setIsConferenceUserRoom(boolean isConferenceUserRoom) {
-        getDataHandler().getStore().getSummary(roomId).setIsConferenceUserRoom(isConferenceUserRoom);
+        if (getDataHandler() != null
+                && getDataHandler().getStore() != null
+                && getDataHandler().getStore().getSummary(roomId) != null) {
+            getDataHandler().getStore().getSummary(roomId).setIsConferenceUserRoom(isConferenceUserRoom);
+        } else {
+            Log.w(LOG_TAG, "## setIsConferenceUserRoom(): something is null");
+        }
     }
 
     /**
@@ -475,7 +490,8 @@ public class RoomState implements Externalizable {
      * @param userId the user id.
      * @param member the new member value.
      */
-    private void setMember(String userId, RoomMember member) {
+    @VisibleForTesting
+    public void setMember(String userId, RoomMember member) {
         // Populate a basic user object if there is none
         if (member.getUserId() == null) {
             member.setUserId(userId);
@@ -827,13 +843,6 @@ public class RoomState implements Externalizable {
     }
 
     /**
-     * @return true if the room has a predecessor
-     */
-    public boolean hasPredecessor() {
-        return mRoomCreateContent != null && mRoomCreateContent.hasPredecessor();
-    }
-
-    /**
      * @return the room create content
      */
     public RoomCreateContent getRoomCreateContent() {
@@ -858,17 +867,26 @@ public class RoomState implements Externalizable {
     /**
      * Apply the given event (relevant for state changes) to our state.
      *
-     * @param store     the store to use
-     * @param event     the event
-     * @param direction how the event should affect the state: Forwards for applying, backwards for un-applying (applying the previous state)
+     * @param event              the state event
+     * @param considerNewContent how the event should affect the state: true for applying (consider the content of the event),
+     *                           false for un-applying (consider the previous content of the event)
+     * @param store              the store to use to store the event and the User. Can be null
      * @return true if the event is managed
      */
-    public boolean applyState(IMXStore store, Event event, EventTimeline.Direction direction) {
+    public boolean applyState(@NonNull Event event,
+                              boolean considerNewContent,
+                              @Nullable IMXStore store) {
         if (event.stateKey == null) {
             return false;
         }
 
-        JsonObject contentToConsider = (direction == EventTimeline.Direction.FORWARDS) ? event.getContentAsJsonObject() : event.getPrevContentAsJsonObject();
+        JsonObject contentToConsider;
+        if (considerNewContent) {
+            contentToConsider = event.getContentAsJsonObject();
+        } else {
+            contentToConsider = event.getPrevContentAsJsonObject();
+        }
+
         String eventType = event.getType();
 
         try {
@@ -936,7 +954,7 @@ public class RoomState implements Externalizable {
                         member.setOriginalEventId(event.eventId);
                         member.mSender = event.getSender();
 
-                        if ((null != store) && (direction == EventTimeline.Direction.FORWARDS)) {
+                        if (store != null) {
                             store.storeRoomStateEvent(roomId, event);
                         }
 
@@ -975,7 +993,7 @@ public class RoomState implements Externalizable {
                             }
                         }
 
-                        if ((direction == EventTimeline.Direction.FORWARDS) && (null != store)) {
+                        if (store != null) {
                             store.updateUserWithRoomMemberEvent(member);
                         }
 
@@ -997,7 +1015,7 @@ public class RoomState implements Externalizable {
 
                     thirdPartyInvite.token = event.stateKey;
 
-                    if ((direction == EventTimeline.Direction.FORWARDS) && (null != store)) {
+                    if (store != null) {
                         store.storeRoomStateEvent(roomId, event);
                     }
 

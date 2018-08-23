@@ -22,7 +22,6 @@
     <string name="notice_room_name_changed">Ο/Η %1$s άλλαξε το όνομα του δωματίου σε: %2$s</string>
     <string name="notice_answered_call">Ο/Η %s απάντησε στην κλήση.</string>
     <string name="notice_ended_call">Ο/Η %s τερμάτισε την κλήση.</string>
-    <string name="matrix_sdk_app_name">SDK για Android του Matrix</string>
 
     <string name="notice_placed_video_call">Ο/Η %s πραγματοποίησε μια κλήση βίντεο.</string>
     <string name="notice_placed_voice_call">Ο/Η %s πραγματοποίησε μια κλήση ήχου.</string>

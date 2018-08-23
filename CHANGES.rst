@@ -1,4 +1,40 @@
-Changes to Matrix Android SDK in 0.9.10 (2018-XX-XX)
+Changes to Matrix Android SDK in 0.9.12 (2018-XX-XX)
+=======================================================
+
+Features:
+ -
+
+Improvements:
+ - Improve certificate pinning management for HomeServerConnectionConfig.
+ - Room display name is now computed by the Matrix SDK
+
+Bugfix:
+ - Fix strip previous reply when they contain new line (vector-im/riot-android#2612)
+ - Enable CLEARTEXT communication for http endpoints (vector-im/riot-android#2495)
+ - Back paginating in a room with LL makes some avatars to vanish (vector-im/riot-android#2639)
+
+API Change:
+ -
+
+Translations:
+ -
+
+Others:
+ -
+
+Build:
+ -
+
+Test:
+ -
+
+Changes to Matrix Android SDK in 0.9.11 (2018-10-10)
+=======================================================
+
+Bugfix:
+ - Add a setter to set MXDataHandler to MXFileStore
+
+Changes to Matrix Android SDK in 0.9.10 (2018-10-08)
 =======================================================
 
 Features:
@@ -22,18 +58,9 @@ API Change:
  - Parameter guestAccess removed from MxSession.createRoom(). It had no effect.
  - EventTimeline is now exposed as an interface. Use EventTimelineFactory to instantiate it. 
 
-Translations:
- -
-
 Others:
  - Boolean deserialization is more permissive: "1" or 1 will be handle as a true value (#358)
  - MXSession.setUseDataSaveMode(boolean) is now deprecated. Handle filter-id lookup in your app and use MXSession.setSyncFilterOrFilterId(String)
-
-Build:
- - 
-
-Test:
- - 
 
 Changes to Matrix Android SDK in 0.9.9 (2018-08-30)
 =======================================================

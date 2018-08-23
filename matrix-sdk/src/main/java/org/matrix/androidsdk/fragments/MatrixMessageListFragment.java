@@ -1791,8 +1791,8 @@ public abstract class MatrixMessageListFragment<MessagesAdapter extends Abstract
                         // test if the event is displayable
                         // GA issue : the activity can be null
                         if (!hasToRemoved && (null != getActivity())) {
-                            EventDisplay eventDisplay = new EventDisplay(getActivity(), prunedEvent, roomState);
-                            hasToRemoved = TextUtils.isEmpty(eventDisplay.getTextualDisplay());
+                            EventDisplay eventDisplay = new EventDisplay(getActivity());
+                            hasToRemoved = TextUtils.isEmpty(eventDisplay.getTextualDisplay(prunedEvent, roomState));
                         }
 
                         // event is removed if it has no more content.

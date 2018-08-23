@@ -14,7 +14,7 @@
     <string name="notice_room_invite_you">%1$s vos ha convidat</string>
     <string name="notice_room_reject">%1$s ha rebutjat la invitació</string>
     <string name="notice_room_kick">%1$s ha fet fora a %2$s</string>
-    <string name="matrix_sdk_app_name">Android SDK de Matrix</string>
+
 
     <string name="notice_display_name_changed_from">%1$s ha canviat el seu nom visible de %2$s a %3$s</string>
     <string name="notice_display_name_removed">%1$s ha eliminat el seu nom visible (%2$s)</string>
@@ -64,4 +64,16 @@
     <string name="notice_display_name_set">%1$s a canviat el seu nom visible a %2$s</string>
     <string name="notice_placed_video_call">%s ha iniciat una trucada de vídeo.</string>
     <string name="notice_placed_voice_call">%s ha iniciat una trucada de veu.</string>
-    </resources>
+
+    <!-- Room display name -->
+    <string name="room_displayname_invite_from">Convideu des de %s</string>
+    <string name="room_displayname_room_invite">Convideu a la sala</string>
+    <string name="room_displayname_two_members">%1$s i %2$s</string>
+    <string name="room_displayname_empty_room">Sala buida</string>
+    <plurals name="room_displayname_three_and_more_members">
+        <item quantity="one">%1$s i 1 altre</item>
+        <item quantity="other">%1$s i %2$d altres</item>
+    </plurals>
+
+
+</resources>

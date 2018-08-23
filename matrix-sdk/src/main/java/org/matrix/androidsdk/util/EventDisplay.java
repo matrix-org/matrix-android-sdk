@@ -55,9 +55,7 @@ public class EventDisplay {
     private static final String MESSAGE_IN_REPLY_TO_LAST_PART = "</a>";
 
     // members
-    protected final Event mEvent;
     protected final Context mContext;
-    protected final RoomState mRoomState;
 
     @Nullable
     protected final HtmlToolbox mHtmlToolbox;
@@ -68,15 +66,13 @@ public class EventDisplay {
     public static final boolean mDisplayRedactedEvents = false;
 
     // constructor
-    public EventDisplay(Context context, Event event, RoomState roomState) {
-        this(context, event, roomState, null);
+    public EventDisplay(Context context) {
+        this(context, null);
     }
 
     // constructor
-    public EventDisplay(Context context, Event event, RoomState roomState, @Nullable HtmlToolbox htmlToolbox) {
+    public EventDisplay(Context context, @Nullable HtmlToolbox htmlToolbox) {
         mContext = context.getApplicationContext();
-        mEvent = event;
-        mRoomState = roomState;
         mHtmlToolbox = htmlToolbox;
     }
 
@@ -111,8 +107,8 @@ public class EventDisplay {
      *
      * @return The text or null if it isn't possible.
      */
-    public CharSequence getTextualDisplay() {
-        return getTextualDisplay(null);
+    public CharSequence getTextualDisplay(Event event, RoomState roomState) {
+        return getTextualDisplay(null, event, roomState);
     }
 
     /**
@@ -121,16 +117,16 @@ public class EventDisplay {
      * @param displayNameColor the display name highlighted color.
      * @return The text or null if it isn't possible.
      */
-    public CharSequence getTextualDisplay(Integer displayNameColor) {
+    public CharSequence getTextualDisplay(Integer displayNameColor, Event event, RoomState roomState) {
         CharSequence text = null;
 
         try {
-            JsonObject jsonEventContent = mEvent.getContentAsJsonObject();
+            JsonObject jsonEventContent = event.getContentAsJsonObject();
 
-            String userDisplayName = getUserDisplayName(mEvent.getSender(), mRoomState);
-            String eventType = mEvent.getType();
+            String userDisplayName = getUserDisplayName(event.getSender(), roomState);
+            String eventType = event.getType();
 
-            if (mEvent.isCallEvent()) {
+            if (event.isCallEvent()) {
                 if (Event.EVENT_TYPE_CALL_INVITE.equals(eventType)) {
                     boolean isVideo = false;
                     // detect call type from the sdp
@@ -211,11 +207,11 @@ public class EventDisplay {
                 }
 
             } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
-                text = mContext.getString(R.string.notice_end_to_end, userDisplayName, mEvent.getWireEventContent().algorithm);
+                text = mContext.getString(R.string.notice_end_to_end, userDisplayName, event.getWireEventContent().algorithm);
             } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(eventType)) {
                 // don't display
-                if (mEvent.isRedacted()) {
-                    String redactedInfo = EventDisplay.getRedactionMessage(mContext, mEvent, mRoomState);
+                if (event.isRedacted()) {
+                    String redactedInfo = getRedactionMessage(mContext, event, roomState);
 
                     if (TextUtils.isEmpty(redactedInfo)) {
                         return null;
@@ -226,10 +222,10 @@ public class EventDisplay {
                     String message = null;
 
 
-                    if (null != mEvent.getCryptoError()) {
+                    if (null != event.getCryptoError()) {
                         String errorDescription;
 
-                        MXCryptoError error = mEvent.getCryptoError();
+                        MXCryptoError error = event.getCryptoError();
 
                         if (TextUtils.equals(error.errcode, MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE)) {
                             errorDescription = mContext.getResources().getString(R.string.notice_crypto_error_unkwown_inbound_session_id);
@@ -251,8 +247,8 @@ public class EventDisplay {
             } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType)) {
                 String topic = jsonEventContent.getAsJsonPrimitive("topic").getAsString();
 
-                if (mEvent.isRedacted()) {
-                    String redactedInfo = EventDisplay.getRedactionMessage(mContext, mEvent, mRoomState);
+                if (event.isRedacted()) {
+                    String redactedInfo = getRedactionMessage(mContext, event, roomState);
 
                     if (TextUtils.isEmpty(redactedInfo)) {
                         return null;
@@ -270,8 +266,8 @@ public class EventDisplay {
                 JsonPrimitive nameAsJson = jsonEventContent.getAsJsonPrimitive("name");
                 String roomName = (null == nameAsJson) ? null : nameAsJson.getAsString();
 
-                if (mEvent.isRedacted()) {
-                    String redactedInfo = EventDisplay.getRedactionMessage(mContext, mEvent, mRoomState);
+                if (event.isRedacted()) {
+                    String redactedInfo = getRedactionMessage(mContext, event, roomState);
 
                     if (TextUtils.isEmpty(redactedInfo)) {
                         return null;
@@ -286,11 +282,11 @@ public class EventDisplay {
                     text = mContext.getString(R.string.notice_room_name_removed, userDisplayName);
                 }
             } else if (Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(eventType)) {
-                RoomThirdPartyInvite invite = JsonUtils.toRoomThirdPartyInvite(mEvent.getContent());
+                RoomThirdPartyInvite invite = JsonUtils.toRoomThirdPartyInvite(event.getContent());
                 String displayName = invite.display_name;
 
-                if (mEvent.isRedacted()) {
-                    String redactedInfo = EventDisplay.getRedactionMessage(mContext, mEvent, mRoomState);
+                if (event.isRedacted()) {
+                    String redactedInfo = getRedactionMessage(mContext, event, roomState);
 
                     if (TextUtils.isEmpty(redactedInfo)) {
                         return null;
@@ -301,7 +297,7 @@ public class EventDisplay {
 
                 text = mContext.getString(R.string.notice_room_third_party_invite, userDisplayName, displayName);
             } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
-                text = getMembershipNotice(mContext, mEvent, mRoomState);
+                text = getMembershipNotice(mContext, event, roomState);
             }
         } catch (Exception e) {
             Log.e(LOG_TAG, "getTextualDisplay() " + e.getMessage(), e);
@@ -434,7 +430,7 @@ public class EventDisplay {
 
         // Check whether the sender has updated his profile (the membership is then unchanged)
         if (TextUtils.equals(prevMembership, eventContent.membership)) {
-            String redactedInfo = EventDisplay.getRedactionMessage(context, event, roomState);
+            String redactedInfo = getRedactionMessage(context, event, roomState);
 
             // Is redacted event?
             if (event.isRedacted()) {
@@ -609,12 +605,11 @@ public class EventDisplay {
                 }
                 // fromHtml formats quotes (> character) with two newlines at the end
                 // remove any newlines at the end of the CharSequence
-                while (text.charAt(text.length() - 1) == '\n') {
-                    text = text.subSequence(0, text.length() - 2);
+                while (text.length() > 0 && text.charAt(text.length() - 1) == '\n') {
+                    text = text.subSequence(0, text.length() - 1);
                 }
             }
         }
         return text;
     }
-
 }

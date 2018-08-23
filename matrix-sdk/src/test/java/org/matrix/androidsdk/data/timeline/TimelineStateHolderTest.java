@@ -38,7 +38,7 @@ public class TimelineStateHolderTest {
         event.roomId = ROOM_ID;
         event.stateKey = Event.EVENT_TYPE_STATE_ROOM_NAME;
         event.type = Event.EVENT_TYPE_STATE_ROOM_NAME;
-        mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS);
+        mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS, true);
         Mockito.verify(mIMXStore, Mockito.times(1)).storeLiveStateForRoom(Mockito.anyString());
     }
 
@@ -47,7 +47,7 @@ public class TimelineStateHolderTest {
         final Event event = new Event();
         event.roomId = ROOM_ID;
         event.type = Event.EVENT_TYPE_STATE_ROOM_NAME;
-        Assert.assertFalse(mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS));
+        Assert.assertFalse(mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS, true));
     }
 
     @Test
@@ -56,7 +56,7 @@ public class TimelineStateHolderTest {
         event.roomId = ROOM_ID;
         event.type = Event.EVENT_TYPE_STATE_ROOM_NAME;
         event.stateKey = Event.EVENT_TYPE_STATE_ROOM_NAME;
-        Assert.assertTrue(mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS));
+        Assert.assertTrue(mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS, true));
     }
 
     @Test
@@ -67,8 +67,8 @@ public class TimelineStateHolderTest {
         event.type = Event.EVENT_TYPE_STATE_ROOM_NAME;
         final RoomState state = Mockito.spy(mTimelineStateHolder.getState());
         mTimelineStateHolder.setState(state);
-        mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS);
-        Mockito.verify(state).applyState(mIMXStore, event, EventTimeline.Direction.FORWARDS);
+        mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS, true);
+        Mockito.verify(state).applyState(event, true, mIMXStore);
     }
 
     @Test
@@ -79,8 +79,8 @@ public class TimelineStateHolderTest {
         event.type = Event.EVENT_TYPE_STATE_ROOM_NAME;
         final RoomState backState = Mockito.spy(mTimelineStateHolder.getBackState());
         mTimelineStateHolder.setBackState(backState);
-        mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.BACKWARDS);
-        Mockito.verify(backState).applyState(mIMXStore, event, EventTimeline.Direction.BACKWARDS);
+        mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.BACKWARDS, false);
+        Mockito.verify(backState).applyState(event, false, null);
     }
 
     @Test
@@ -104,6 +104,4 @@ public class TimelineStateHolderTest {
         Mockito.verify(backState).deepCopy();
         Mockito.verify(state, Mockito.never()).deepCopy();
     }
-
-
 }

@@ -1,6 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<resources><string name="matrix_sdk_app_name">Matrix Android SDK</string>
-
+<resources>
     <string name="summary_message">%1$s: %2$s</string>
     <string name="summary_user_sent_image">%1$s wysłał(a) zdjęcie.</string>
 
@@ -46,4 +45,16 @@
     <string name="notice_avatar_changed_too">(awatar też został zmieniony)</string>
     <string name="message_reply_to_prefix">W odpowiedzi do</string>
 
-    </resources>
+    <string name="room_displayname_invite_from">Zaproszenie od %s</string>
+    <string name="room_displayname_room_invite">Zaproszenie do pokoju</string>
+    <string name="room_displayname_two_members">%1$s i %2$s</string>
+    <string name="room_displayname_empty_room">Pusty pokój</string>
+
+    <plurals name="room_displayname_three_and_more_members">
+        <item quantity="one">%1$s i jeden inny</item>
+        <item quantity="few">%1$s i kilku innych</item>
+        <item quantity="many">%1$s i %2$d innych</item>
+        <item quantity="other"/>
+    </plurals>
+
+</resources>
