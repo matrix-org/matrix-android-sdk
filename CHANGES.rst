@@ -8,6 +8,7 @@ Features:
 
 Improvements:
  - Encrypt local data (PR #305)
+ - Add GET /versions request to the LoginRestClient
 
 Bugfix:
  - Fix excessive whitespace on quoted messages (#348)
