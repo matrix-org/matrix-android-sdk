@@ -134,6 +134,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
          * @param matrixError the MatrixError (contains message text and URL)
          */
         void onConsentNotGiven(Event event, MatrixError matrixError);
+
     }
 
     // scroll listener
