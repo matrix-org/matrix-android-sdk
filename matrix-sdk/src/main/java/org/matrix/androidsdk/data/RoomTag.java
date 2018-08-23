@@ -37,7 +37,7 @@ public class RoomTag implements java.io.Serializable {
     public static final String ROOM_TAG_FAVOURITE = "m.favourite";
     public static final String ROOM_TAG_LOW_PRIORITY = "m.lowpriority";
     public static final String ROOM_TAG_NO_TAG = "m.recent";
-    public static final String ROOM_SERVER_NOTICE = "m.server_notice";
+    public static final String ROOM_TAG_SERVER_NOTICE = "m.server_notice";
 
     /**
      * The name of a tag.
