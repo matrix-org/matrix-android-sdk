@@ -1000,28 +1000,20 @@ public class Room {
     /**
      * @return the room avatar URL. If there is no defined one, use the members one (1:1 chat only).
      */
+    @Nullable
     public String getAvatarUrl() {
         String res = getState().getAvatarUrl();
 
         // detect if it is a room with no more than 2 members (i.e. an alone or a 1:1 chat)
         if (null == res) {
-            RoomSummary summary = getStore().getSummary(getRoomId());
+            if (getNumberOfMembers() == 1 && !getState().getLoadedMembers().isEmpty()) {
+                res = getState().getLoadedMembers().get(0).getAvatarUrl();
+            } else if (getNumberOfMembers() == 2 && getState().getLoadedMembers().size() > 1) {
+                RoomMember m1 = getState().getLoadedMembers().get(0);
+                RoomMember m2 = getState().getLoadedMembers().get(1);
 
-            // TODO LazyLoading
-            // Do something like:
-            // res = summary.getAvatarUrl();
-            throw new RuntimeException("Not yet implemented");
-
-            //List<RoomMember> members = new ArrayList<>(getState().getMembers());
-            //
-            //if (members.size() == 1) {
-            //    res = members.get(0).getAvatarUrl();
-            //} else if (members.size() == 2) {
-            //    RoomMember m1 = members.get(0);
-            //    RoomMember m2 = members.get(1);
-            //
-            //    res = TextUtils.equals(m1.getUserId(), mMyUserId) ? m2.getAvatarUrl() : m1.getAvatarUrl();
-            //}
+                res = TextUtils.equals(m1.getUserId(), mMyUserId) ? m2.getAvatarUrl() : m1.getAvatarUrl();
+            }
         }
 
         return res;
@@ -1033,24 +1025,19 @@ public class Room {
      *
      * @return the call avatar URL.
      */
+    @Nullable
     public String getCallAvatarUrl() {
-        // TODO LazyLoading
-        // Do something like:
-        // res = summary.getAvatarUrl();
-        throw new RuntimeException("Not yet implemented");
-
-        /*
         String avatarURL;
 
-        List<RoomMember> joinedMembers = new ArrayList<>(getJoinedMembers());
+        if (getNumberOfMembers() == 2 && getState().getLoadedMembers().size() > 1) {
+            RoomMember m1 = getState().getLoadedMembers().get(0);
+            RoomMember m2 = getState().getLoadedMembers().get(1);
 
-        // 2 joined members case
-        if (2 == joinedMembers.size()) {
             // use other member avatar.
-            if (TextUtils.equals(mMyUserId, joinedMembers.get(0).getUserId())) {
-                avatarURL = joinedMembers.get(1).getAvatarUrl();
+            if (TextUtils.equals(mMyUserId, m1.getUserId())) {
+                avatarURL = m2.getAvatarUrl();
             } else {
-                avatarURL = joinedMembers.get(0).getAvatarUrl();
+                avatarURL = m1.getAvatarUrl();
             }
         } else {
             //
@@ -1058,7 +1045,6 @@ public class Room {
         }
 
         return avatarURL;
-        */
     }
 
     /**
