@@ -174,6 +174,8 @@ public class RoomState implements Externalizable {
     // true if all members are loaded
     private boolean mAllMembersAreLoaded;
 
+    private List<ApiCallback<List<RoomMember>>> mGetAllMembersCallbacks = new ArrayList<>();
+
     // the third party invite members
     private final Map<String, RoomThirdPartyInvite> mThirdPartyInvites = new HashMap<>();
 
@@ -270,7 +272,7 @@ public class RoomState implements Externalizable {
     /**
      * Get the list of all the room members. Fetch from server if the full list is not loaded yet.
      */
-    public void getMembersAsync(final ApiCallback<List<RoomMember>> callback) {
+    public void getMembersAsync(ApiCallback<List<RoomMember>> callback) {
         if (mAllMembersAreLoaded) {
             List<RoomMember> res;
 
@@ -281,26 +283,42 @@ public class RoomState implements Externalizable {
 
             callback.onSuccess(res);
         } else {
-            // Load members from server
-            getDataHandler().getMembersAsync(roomId, new SimpleApiCallback<List<RoomMember>>(callback) {
-                @Override
-                public void onSuccess(List<RoomMember> info) {
-                    List<RoomMember> res;
+            boolean doTheRequest;
 
-                    synchronized (this) {
+            synchronized (mGetAllMembersCallbacks) {
+                mGetAllMembersCallbacks.add(callback);
+
+                doTheRequest = mGetAllMembersCallbacks.size() == 1;
+            }
+
+            if (doTheRequest) {
+                // Load members from server
+                getDataHandler().getMembersAsync(roomId, new SimpleApiCallback<List<RoomMember>>(callback) {
+                    @Override
+                    public void onSuccess(List<RoomMember> info) {
+                        List<RoomMember> res;
+
                         for (RoomMember member : info) {
                             setMember(member.getUserId(), member);
                         }
 
-                        // make a copy to avoid concurrency modifications
-                        res = new ArrayList<>(mMembers.values());
+                        synchronized (mGetAllMembersCallbacks) {
+                            for (ApiCallback<List<RoomMember>> apiCallback : mGetAllMembersCallbacks) {
+                                synchronized (this) {
+                                    // make a copy to avoid concurrency modifications
+                                    res = new ArrayList<>(mMembers.values());
+                                }
+
+                                apiCallback.onSuccess(res);
+                            }
+
+                            mGetAllMembersCallbacks.clear();
+                        }
 
                         mAllMembersAreLoaded = true;
                     }
-
-                    callback.onSuccess(res);
-                }
-            });
+                });
+            }
         }
     }
 
@@ -381,7 +399,7 @@ public class RoomState implements Externalizable {
      * Provides a list of displayable members.
      * Some dummy members are created to internal stuff.
      *
-     * @return a copy of the displayable room members list.
+     * @param callback The callback to get a copy of the displayable room members list.
      */
     public void getDisplayableMembers(final ApiCallback<List<RoomMember>> callback) {
         getMembersAsync(new SimpleApiCallback<List<RoomMember>>(callback) {
@@ -398,7 +416,6 @@ public class RoomState implements Externalizable {
                 }
             }
         });
-
     }
 
     /**
