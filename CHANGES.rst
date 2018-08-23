@@ -6,7 +6,7 @@ Features:
  - Add handling of filters (#345)
 
 Improvements:
- - 
+ - Add GET /versions request to the LoginRestClient
 
 Bugfix:
  - 

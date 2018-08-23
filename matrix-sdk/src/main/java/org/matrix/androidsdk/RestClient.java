@@ -63,6 +63,7 @@ public class RestClient<T> {
 
     public static final String URI_API_PREFIX_PATH_MEDIA_R0 = "_matrix/media/r0/";
     public static final String URI_API_PREFIX_PATH_MEDIA_PROXY_UNSTABLE = "_matrix/media_proxy/unstable/";
+    public static final String URI_API_PREFIX_PATH = "_matrix/client/";
     public static final String URI_API_PREFIX_PATH_R0 = "_matrix/client/r0/";
     public static final String URI_API_PREFIX_PATH_UNSTABLE = "_matrix/client/unstable/";
 
