@@ -19,6 +19,7 @@ package org.matrix.androidsdk.listeners;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 
@@ -73,6 +74,10 @@ public class MXEventListener implements IMXEventListener {
 
     @Override
     public void onInitialSyncComplete(String toToken) {
+    }
+
+    @Override
+    public void onSyncError(MatrixError matrixError) {
     }
 
     @Override
@@ -146,7 +151,7 @@ public class MXEventListener implements IMXEventListener {
     @Override
     public void onLeaveGroup(String groupId) {
     }
-    
+
     @Override
     public void onGroupProfileUpdate(String groupId) {
     }
