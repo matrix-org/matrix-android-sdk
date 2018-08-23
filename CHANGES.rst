@@ -8,7 +8,7 @@ Improvements:
  -
 
 Bugfix:
- - Room aliases including the '@' character are now recognized as valid (vector-im/riot-android#2079)
+ - Room aliases including the '@' and '=' characters are now recognized as valid (vector-im/riot-android#2079, vector-im/riot-android#2542)
  - Room name and topic can be now set back to empty (vector-im/riot-android#2345)
 
 API Change:
