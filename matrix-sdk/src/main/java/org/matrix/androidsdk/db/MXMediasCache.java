@@ -538,6 +538,7 @@ public class MXMediasCache {
      * Move a decrypted media file to the /share folder, to avoid this file to be deleted if in the /tmp folder
      *
      * @param fileToMove The file to move
+     * @param filename   the filename, without path
      * @return The copied file in the Share folder location
      */
     public File moveToShareFolder(final File fileToMove,
