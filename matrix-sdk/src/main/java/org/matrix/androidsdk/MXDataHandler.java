@@ -1807,7 +1807,7 @@ public class MXDataHandler implements IMXEventListener {
     //================================================================================
 
     /**
-     * @return the current MXEvents listeners .
+     * @return the current MXEvents listeners.
      */
     private List<IMXEventListener> getListenersSnapshot() {
         List<IMXEventListener> eventListeners;
@@ -2168,11 +2168,16 @@ public class MXDataHandler implements IMXEventListener {
     @Override
     public void onSyncError(final MatrixError matrixError) {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
         mUiHandler.post(new Runnable() {
             @Override
             public void run() {
                 for (IMXEventListener listener : eventListeners) {
-                    listener.onSyncError(matrixError);
+                    try {
+                        listener.onSyncError(matrixError);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onSyncError " + e.getMessage(), e);
+                    }
                 }
             }
         });

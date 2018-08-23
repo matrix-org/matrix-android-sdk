@@ -2,7 +2,7 @@ Changes to Matrix Android SDK in 0.9.8 (2018-XX-XX)
 =======================================================
 
 Features:
- - Manage server quota notices
+ - Manage server quota notices (vector-im/riot-android#2440)
 
 Improvements:
  -
