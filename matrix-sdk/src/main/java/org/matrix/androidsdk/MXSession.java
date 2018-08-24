@@ -169,7 +169,7 @@ public class MXSession {
     // so, mEventsThread.start might be not ready
     private boolean mIsBgCatchupPending = false;
 
-    private String mFilterId;
+    private String mFilterOrFilterId;
 
     // the groups manager
     private GroupsManager mGroupsManager;
@@ -880,7 +880,7 @@ public class MXSession {
             final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler) : anEventsListener;
 
             mEventsThread = new EventsThread(mAppContent, mEventsRestClient, fEventsListener, initialToken);
-            mEventsThread.setFilter(mFilterId);
+            mEventsThread.setFilterOrFilterId(mFilterOrFilterId);
             mEventsThread.setMetricsListener(mMetricsListener);
             mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
             mEventsThread.setIsOnline(mIsOnline);
@@ -999,7 +999,7 @@ public class MXSession {
     }
 
      /**
-     * Update the data save mode. Deprecated by setSyncFilter()
+     * Update the data save mode. Deprecated by setSyncFilterOrFilterId()
      *
      * @param enabled true to enable the data save mode
      */
@@ -1008,28 +1008,28 @@ public class MXSession {
         if (enabled) {
             Log.d(LOG_TAG, "Enable DataSyncMode # " + FilterBody.getDataSaveModeFilterBody());
             // enable the filter in JSON representation so do not block sync until the filter response is there
-            setSyncFilter(FilterBody.getDataSaveModeFilterBody().toJSONString());
+            setSyncFilterOrFilterId(FilterBody.getDataSaveModeFilterBody().toJSONString());
             mFilterRestClient.uploadFilter(getMyUserId(), FilterBody.getDataSaveModeFilterBody(), new SimpleApiCallback<FilterResponse>() {
                 @Override
                 public void onSuccess(FilterResponse filter) {
-                    setSyncFilter(filter.filterId);
+                    setSyncFilterOrFilterId(filter.filterId);
                 }
             });
         } else {
             Log.d(LOG_TAG, "Disable DataSyncMode");
-            setSyncFilter(null);
+            setSyncFilterOrFilterId(null);
         }
     }
 
     /**
      * Allows setting the filterId used by the EventsThread
-     * @param filterId
+     * @param filterOrFilterId the content of the filter param on sync requests
      */
-    public synchronized void setSyncFilter(String filterId) {
-        Log.d(LOG_TAG, "setSyncFilter ## " + filterId);
-        mFilterId = filterId;
+    public synchronized void setSyncFilterOrFilterId(String filterOrFilterId) {
+        Log.d(LOG_TAG, "setSyncFilterOrFilterId ## " + filterOrFilterId);
+        mFilterOrFilterId = filterOrFilterId;
         if (null != mEventsThread) {
-            mEventsThread.setFilter(filterId);
+            mEventsThread.setFilterOrFilterId(filterOrFilterId);
         }
     }
 

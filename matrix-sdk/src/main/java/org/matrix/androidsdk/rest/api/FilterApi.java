@@ -35,7 +35,7 @@ public interface FilterApi {
      * @param body   the Json representation of a FilterBody object
      */
     @POST("user/{userId}/filter")
-    Call<FilterResponse> uploadFilter(@Path("userId") String userId, @Body Object body);
+    Call<FilterResponse> uploadFilter(@Path("userId") String userId, @Body FilterBody body);
 
     /**
      * Gets a filter with a given filterId from the homeserver

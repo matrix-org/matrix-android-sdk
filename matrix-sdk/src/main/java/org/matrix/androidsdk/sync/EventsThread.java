@@ -96,7 +96,7 @@ public class EventsThread extends Thread {
 
     // use dedicated filter when enable
     private boolean mIsInDataSaveMode = false;
-    private String mFilterId;
+    private String mFilterOrFilterId;
 
     private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
         @Override
@@ -152,12 +152,12 @@ public class EventsThread extends Thread {
     }
 
     /**
-     * Set filterId used for /sync requests
+     * Set filterOrFilterId used for /sync requests
      *
-     * @param filterId
+     * @param filterOrFilterId
      */
-    public void setFilter(String filterId) {
-        mFilterId = filterId;
+    public void setFilterOrFilterId(String filterOrFilterId) {
+        mFilterOrFilterId = filterOrFilterId;
     }
 
     /**
@@ -574,12 +574,12 @@ public class EventsThread extends Thread {
 
                 final CountDownLatch latch = new CountDownLatch(1);
 
-                Log.d(LOG_TAG, "Get events from token " + mCurrentToken + " with filter " + mFilterId);
+                Log.d(LOG_TAG, "Get events from token " + mCurrentToken + " with filterOrFilterId " + mFilterOrFilterId);
 
                 final int fServerTimeout = serverTimeout;
                 mNextServerTimeoutms = mDefaultServerTimeoutms;
 
-                mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", mFilterId,
+                mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", mFilterOrFilterId,
                         new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                             @Override
                             public void onSuccess(SyncResponse syncResponse) {
