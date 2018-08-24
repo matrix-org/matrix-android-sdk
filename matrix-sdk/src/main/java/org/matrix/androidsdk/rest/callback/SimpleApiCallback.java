@@ -29,7 +29,7 @@ import org.matrix.androidsdk.rest.model.MatrixError;
  * A stub implementation of {@link ApiCallback} which only chosen callbacks
  * can be implemented.
  */
-public class SimpleApiCallback<T> implements ApiCallback<T> {
+public abstract class SimpleApiCallback<T> implements ApiCallback<T> {
 
     private static final String LOG_TAG = "SimpleApiCallback";
 
@@ -77,18 +77,6 @@ public class SimpleApiCallback<T> implements ApiCallback<T> {
      */
     public SimpleApiCallback(ApiFailureCallback failureCallback) {
         this.failureCallback = failureCallback;
-    }
-
-    @Override
-    public void onSuccess(T info) {
-        // If the delegate has an onSuccess implementation, use it
-        if (failureCallback instanceof ApiCallback) {
-            try {
-                ((ApiCallback) failureCallback).onSuccess(info);
-            } catch (Exception exception) {
-                Log.e(LOG_TAG, "## onSuccess() failed" + exception.getMessage(), exception);
-            }
-        }
     }
 
     private void displayToast(final String message) {
