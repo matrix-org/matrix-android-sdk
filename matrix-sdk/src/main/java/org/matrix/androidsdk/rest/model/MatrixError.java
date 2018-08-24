@@ -16,6 +16,7 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.annotations.SerializedName;
@@ -77,8 +78,9 @@ public class MatrixError implements java.io.Serializable {
     // RESOURCE_LIMIT_EXCEEDED data
     @SerializedName("limit_type")
     public String limitType;
+    @Nullable
     @SerializedName("admin_contact")
-    public String adminContact;
+    public String adminUri;
 
 
     // extracted from the error response
