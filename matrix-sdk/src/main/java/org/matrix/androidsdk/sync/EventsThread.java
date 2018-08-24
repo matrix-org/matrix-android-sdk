@@ -101,8 +101,10 @@ public class EventsThread extends Thread {
     private boolean mbIsConnected = true;
 
     // use dedicated filter when enable
-    private boolean mIsInDataSaveMode = false;
     private String mFilterOrFilterId;
+
+    // TODO Lazy Loading: Use this
+    private boolean mUseLazyLoading;
 
     private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
         @Override
@@ -164,6 +166,15 @@ public class EventsThread extends Thread {
      */
     public void setFilterOrFilterId(String filterOrFilterId) {
         mFilterOrFilterId = filterOrFilterId;
+    }
+
+    /**
+     * Update the lazy loading
+     *
+     * @param enabled true to enable the lazy loading
+     */
+    public void setUseLazyLoading(boolean enabled) {
+        mUseLazyLoading = enabled;
     }
 
     /**

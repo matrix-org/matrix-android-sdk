@@ -73,6 +73,7 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.Versions;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.filter.FilterBody;
 import org.matrix.androidsdk.rest.model.filter.FilterResponse;
@@ -96,6 +97,7 @@ import org.matrix.androidsdk.util.ContentUtils;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.UnsentEventsManager;
+import org.matrix.androidsdk.util.VersionsUtil;
 import org.matrix.olm.OlmManager;
 
 import java.io.File;
@@ -174,6 +176,9 @@ public class MXSession {
     private boolean mIsBgCatchupPending = false;
 
     private String mFilterOrFilterId;
+
+    // tell if the lazy loading is enabled
+    private boolean mUseLazyLoading;
 
     // the groups manager
     private GroupsManager mGroupsManager;
@@ -858,6 +863,8 @@ public class MXSession {
                 mEventsThread.setFailureCallback(mFailureCallback);
             }
 
+            mEventsThread.setUseLazyLoading(mUseLazyLoading);
+
             if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
                 // GA issue
                 try {
@@ -997,6 +1004,19 @@ public class MXSession {
         mFilterOrFilterId = filterOrFilterId;
         if (null != mEventsThread) {
             mEventsThread.setFilterOrFilterId(filterOrFilterId);
+        }
+    }
+
+    /**
+     * Update the lazy loading mode
+     * Do not use this method to enable the lazy laoding. Use {@link #canEnableLazyLoading(ApiCallback)}
+     *
+     * @param enabled true to enable the lazy loading
+     */
+    public void setUseLazyLoading(boolean enabled) {
+        mUseLazyLoading = enabled;
+        if (null != mEventsThread) {
+            mEventsThread.setUseLazyLoading(enabled);
         }
     }
 
@@ -1933,6 +1953,23 @@ public class MXSession {
      */
     public NetworkConnectivityReceiver getNetworkConnectivityReceiver() {
         return mNetworkConnectivityReceiver;
+    }
+
+
+    /**
+     * Ask the home server if the lazy loading of room members is supported.
+     *
+     * @param callback the callback, to be notified if the server actually support the lazy loading. True if supported
+     */
+    public void canEnableLazyLoading(final ApiCallback<Boolean> callback) {
+        // Check that the server support the lazy loading
+        mLoginRestClient.getVersions(new SimpleApiCallback<Versions>(callback) {
+            @Override
+            public void onSuccess(Versions info) {
+                // Check if we can enable lazyLoading
+                callback.onSuccess(VersionsUtil.supportLazyLoadMembers(info));
+            }
+        });
     }
 
     /**
