@@ -29,6 +29,8 @@ import android.os.Looper;
 import android.os.PowerManager;
 import android.os.SystemClock;
 
+import com.google.gson.Gson;
+
 import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
@@ -36,6 +38,7 @@ import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.filter.FilterBody;
 import org.matrix.androidsdk.rest.model.sync.RoomsSyncResponse;
 import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 import org.matrix.androidsdk.util.Log;
@@ -55,8 +58,6 @@ public class EventsThread extends Thread {
 
     private static final int DEFAULT_SERVER_TIMEOUT_MS = 30000;
     private static final int DEFAULT_CLIENT_TIMEOUT_MS = 120000;
-
-    private static final String DATA_SAVE_MODE_FILTER = "{\"room\": {\"ephemeral\": {\"types\": [\"m.receipt\"]}}, \"presence\":{\"not_types\": [\"*\"]}}";
 
     private EventsRestClient mEventsRestClient;
     private EventsThreadListener mListener;
@@ -95,6 +96,7 @@ public class EventsThread extends Thread {
 
     // use dedicated filter when enable
     private boolean mIsInDataSaveMode = false;
+    private String mFilterId;
 
     private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
         @Override
@@ -150,12 +152,12 @@ public class EventsThread extends Thread {
     }
 
     /**
-     * Update the data save mode
+     * Set filterId used for /sync requests
      *
-     * @param enabled true to enable the data save mode
+     * @param filterId
      */
-    public void setUseDataSaveMode(boolean enabled) {
-        mIsInDataSaveMode = enabled;
+    public void setFilter(String filterId) {
+        mFilterId = filterId;
     }
 
     /**
@@ -409,9 +411,10 @@ public class EventsThread extends Thread {
     private void executeInitialSync() {
         Log.d(LOG_TAG, "Requesting initial sync...");
         long initialSyncStartTime = System.currentTimeMillis();
+        final String initSyncFilter = new Gson().toJson(FilterBody.getDataSaveModeFilterBody());
         while (!isInitialSyncDone()) {
             final CountDownLatch latch = new CountDownLatch(1);
-            mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", DATA_SAVE_MODE_FILTER,
+            mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", initSyncFilter,
                     new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                         @Override
                         public void onSuccess(SyncResponse syncResponse) {
@@ -569,20 +572,14 @@ public class EventsThread extends Thread {
 
                 long incrementalSyncStartTime = System.currentTimeMillis();
 
-                String inlineFilter = mIsInDataSaveMode ? DATA_SAVE_MODE_FILTER : null; //"{\"room\":{\"timeline\":{\"limit\":250}}}";
-
                 final CountDownLatch latch = new CountDownLatch(1);
 
-                if (mIsInDataSaveMode) {
-                    Log.d(LOG_TAG, "[Data save mode] Get events from token " + mCurrentToken);
-                } else {
-                    Log.d(LOG_TAG, "Get events from token " + mCurrentToken);
-                }
+                Log.d(LOG_TAG, "Get events from token " + mCurrentToken + " with filter " + mFilterId);
 
                 final int fServerTimeout = serverTimeout;
                 mNextServerTimeoutms = mDefaultServerTimeoutms;
 
-                mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", inlineFilter,
+                mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", mFilterId,
                         new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                             @Override
                             public void onSuccess(SyncResponse syncResponse) {

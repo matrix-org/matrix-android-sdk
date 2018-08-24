@@ -3,6 +3,7 @@ Changes to Matrix Android SDK in 0.9.8 (2018-XX-XX)
 
 Features:
  - Manage server_notices tag and server quota notices (vector-im/riot-android#2440)
+ - Add handling of filters (#345)
 
 Improvements:
  -
@@ -21,7 +22,7 @@ Translations:
  -
 
 Others:
- -
+ - MXSession.setUseDataSaveMode(boolean) is now deprecated. Handle filter-id lookup in your app and use MXSession.setSyncFilter(String)
 
 Build:
  -

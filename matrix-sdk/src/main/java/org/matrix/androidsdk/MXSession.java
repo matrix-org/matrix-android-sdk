@@ -55,6 +55,7 @@ import org.matrix.androidsdk.rest.client.AccountDataRestClient;
 import org.matrix.androidsdk.rest.client.CallRestClient;
 import org.matrix.androidsdk.rest.client.CryptoRestClient;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
+import org.matrix.androidsdk.rest.client.FilterRestClient;
 import org.matrix.androidsdk.rest.client.GroupsRestClient;
 import org.matrix.androidsdk.rest.client.LoginRestClient;
 import org.matrix.androidsdk.rest.client.MediaScanRestClient;
@@ -72,6 +73,8 @@ import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
+import org.matrix.androidsdk.rest.model.filter.FilterBody;
+import org.matrix.androidsdk.rest.model.filter.FilterResponse;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.LoginFlow;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
@@ -134,6 +137,7 @@ public class MXSession {
     private final LoginRestClient mLoginRestClient;
     private final GroupsRestClient mGroupsRestClient;
     private final MediaScanRestClient mMediaScanRestClient;
+    private final FilterRestClient mFilterRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -165,8 +169,7 @@ public class MXSession {
     // so, mEventsThread.start might be not ready
     private boolean mIsBgCatchupPending = false;
 
-    // tell if the data save mode is enabled
-    private boolean mUseDataSaveMode;
+    private String mFilterId;
 
     // the groups manager
     private GroupsManager mGroupsManager;
@@ -233,6 +236,7 @@ public class MXSession {
         mLoginRestClient = new LoginRestClient(hsConfig);
         mGroupsRestClient = new GroupsRestClient(hsConfig);
         mMediaScanRestClient = new MediaScanRestClient(hsConfig);
+        mFilterRestClient = new FilterRestClient(hsConfig);
     }
 
     /**
@@ -470,6 +474,11 @@ public class MXSession {
     public PresenceRestClient getPresenceApiClient() {
         checkIfAlive();
         return mPresenceRestClient;
+    }
+
+    public FilterRestClient getFilterRestClient() {
+        checkIfAlive();
+        return mFilterRestClient;
     }
 
     /**
@@ -879,6 +888,7 @@ public class MXSession {
             final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler) : anEventsListener;
 
             mEventsThread = new EventsThread(mAppContent, mEventsRestClient, fEventsListener, initialToken);
+            mEventsThread.setFilter(mFilterId);
             mEventsThread.setMetricsListener(mMetricsListener);
             mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
             mEventsThread.setIsOnline(mIsOnline);
@@ -888,8 +898,6 @@ public class MXSession {
             if (mFailureCallback != null) {
                 mEventsThread.setFailureCallback(mFailureCallback);
             }
-
-            mEventsThread.setUseDataSaveMode(mUseDataSaveMode);
 
             if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
                 // GA issue
@@ -998,15 +1006,38 @@ public class MXSession {
         return mSyncDelay;
     }
 
-    /**
-     * Update the data save mode
+     /**
+     * Update the data save mode. Deprecated by setSyncFilter()
      *
      * @param enabled true to enable the data save mode
      */
+     @Deprecated
     public void setUseDataSaveMode(boolean enabled) {
-        mUseDataSaveMode = enabled;
+        if (enabled) {
+            Log.d(LOG_TAG, "Enable DataSyncMode # " + FilterBody.getDataSaveModeFilterBody());
+            // enable the filter in JSON representation so do not block sync until the filter response is there
+            setSyncFilter(FilterBody.getDataSaveModeFilterBody().toJSONString());
+            mFilterRestClient.uploadFilter(getMyUserId(), FilterBody.getDataSaveModeFilterBody(), new SimpleApiCallback<FilterResponse>() {
+                @Override
+                public void onSuccess(FilterResponse filter) {
+                    setSyncFilter(filter.filterId);
+                }
+            });
+        } else {
+            Log.d(LOG_TAG, "Disable DataSyncMode");
+            setSyncFilter(null);
+        }
+    }
+
+    /**
+     * Allows setting the filterId used by the EventsThread
+     * @param filterId
+     */
+    public synchronized void setSyncFilter(String filterId) {
+        Log.d(LOG_TAG, "setSyncFilter ## " + filterId);
+        mFilterId = filterId;
         if (null != mEventsThread) {
-            mEventsThread.setUseDataSaveMode(enabled);
+            mEventsThread.setFilter(filterId);
         }
     }
 
