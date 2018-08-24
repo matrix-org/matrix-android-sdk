@@ -22,7 +22,7 @@ Translations:
  -
 
 Others:
- - MXSession.setUseDataSaveMode(boolean) is now deprecated. Handle filter-id lookup in your app and use MXSession.setSyncFilter(String)
+ - MXSession.setUseDataSaveMode(boolean) is now deprecated. Handle filter-id lookup in your app and use MXSession.setSyncFilterOrFilterId(String)
 
 Build:
  -
