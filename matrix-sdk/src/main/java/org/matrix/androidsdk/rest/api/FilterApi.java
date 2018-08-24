@@ -1,5 +1,6 @@
 /*
- * Copyright 2015 OpenMarket Ltd
+ * Copyright 2018 Matthias Kesler
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +30,7 @@ import retrofit2.http.Path;
 public interface FilterApi {
 
     /**
-     * Set some account_data for the client.
+     * Upload FilterBody to get a filter_id which can be used for /sync requests
      *
      * @param userId   the user id
      * @param body   the Json representation of a FilterBody object

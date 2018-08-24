@@ -27,7 +27,8 @@ import java.util.List;
  */
 public class RoomFilter {
 
-    public List<String> not_rooms;
+    @SerializedName("not_rooms")
+    public List<String> notRooms;
 
     public List<String> rooms;
 
