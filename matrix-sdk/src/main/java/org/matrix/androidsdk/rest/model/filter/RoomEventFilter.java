@@ -44,5 +44,6 @@ public class RoomEventFilter {
     @SerializedName("not_rooms")
     public List<String> notRooms;
 
-    public Boolean contains_url;
+    @SerializedName("contains_url")
+    public Boolean containsUrl;
 }
