@@ -45,4 +45,7 @@ public class RoomEventFilter {
 
     @SerializedName("contains_url")
     public Boolean containsUrl;
+
+    @SerializedName("lazy_load_members")
+    public Boolean lazyLoadMembers;
 }
