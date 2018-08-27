@@ -208,6 +208,11 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
         if (null != sBitmapByDownloadIdCache) {
             sBitmapByDownloadIdCache.evictAll();
         }
+
+        // Clear the list of unreachable Urls, to retry to download it on next access
+        synchronized (sUnreachableUrls) {
+            sUnreachableUrls.clear();
+        }
     }
 
     /**

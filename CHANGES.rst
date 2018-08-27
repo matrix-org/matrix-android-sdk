@@ -5,7 +5,7 @@ Features:
  -
 
 Improvements:
- -
+ - Clear unreachable Url when clearing media cache (vector-im/riot-android#2479)
 
 Bugfix:
  -
