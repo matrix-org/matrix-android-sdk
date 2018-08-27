@@ -42,4 +42,14 @@ public class RoomFilter {
 
     @SerializedName("account_data")
     public RoomEventFilter accountData;
+
+    public boolean hasData() {
+        return notRooms != null
+                || rooms != null
+                || ephemeral != null
+                || includeLeave != null
+                || state != null
+                || timeline != null
+                || accountData != null;
+    }
 }

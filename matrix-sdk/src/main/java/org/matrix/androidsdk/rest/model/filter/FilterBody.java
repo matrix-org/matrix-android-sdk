@@ -19,7 +19,6 @@ package org.matrix.androidsdk.rest.model.filter;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -42,27 +41,6 @@ public class FilterBody {
     public Filter accountData;
 
     public RoomFilter room;
-
-    private static FilterBody dataSaveModeFilterBody;
-
-    /**
-     * @return FilterBody which represents "{\"room\": {\"ephemeral\": {\"types\": [\"m.receipt\"]}}, \"presence\":{\"notTypes\": [\"*\"]}}"
-     */
-    public static FilterBody getDataSaveModeFilterBody() {
-        if (dataSaveModeFilterBody == null) {
-            FilterBody result = new FilterBody();
-            result.room = new RoomFilter();
-            result.room.ephemeral = new RoomEventFilter();
-            result.room.ephemeral.types = new ArrayList<>();
-            result.room.ephemeral.types.add("m.receipt");
-
-            result.presence = new Filter();
-            result.presence.notTypes = new ArrayList<>();
-            result.presence.notTypes.add("*");
-            dataSaveModeFilterBody = result;
-        }
-        return dataSaveModeFilterBody;
-    }
 
     @Override
     public String toString() {

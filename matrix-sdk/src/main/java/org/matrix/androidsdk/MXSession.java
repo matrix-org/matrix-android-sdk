@@ -94,6 +94,7 @@ import org.matrix.androidsdk.sync.EventsThreadListener;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.ContentUtils;
+import org.matrix.androidsdk.util.FilterUtil;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.UnsentEventsManager;
@@ -175,7 +176,10 @@ public class MXSession {
     // so, mEventsThread.start might be not ready
     private boolean mIsBgCatchupPending = false;
 
-    private String mFilterOrFilterId;
+    private FilterBody mCurrentFilter = new FilterBody();
+
+    // tell if the data save mode is enabled
+    private boolean mUseDataSaveMode;
 
     // tell if the lazy loading is enabled
     private boolean mUseLazyLoading;
@@ -852,7 +856,7 @@ public class MXSession {
             final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler) : anEventsListener;
 
             mEventsThread = new EventsThread(mAppContent, mEventsRestClient, fEventsListener, initialToken);
-            mEventsThread.setFilterOrFilterId(mFilterOrFilterId);
+            setSyncFilter(mCurrentFilter);
             mEventsThread.setMetricsListener(mMetricsListener);
             mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
             mEventsThread.setIsOnline(mIsOnline);
@@ -862,8 +866,6 @@ public class MXSession {
             if (mFailureCallback != null) {
                 mEventsThread.setFailureCallback(mFailureCallback);
             }
-
-            mEventsThread.setUseLazyLoading(mUseLazyLoading);
 
             if (mCredentials.accessToken != null && !mEventsThread.isAlive()) {
                 // GA issue
@@ -972,51 +974,82 @@ public class MXSession {
         return mSyncDelay;
     }
 
-     /**
+    /**
      * Update the data save mode. Deprecated by setSyncFilterOrFilterId()
      *
      * @param enabled true to enable the data save mode
      */
-     @Deprecated
+    @Deprecated
     public void setUseDataSaveMode(boolean enabled) {
-        if (enabled) {
-            Log.d(LOG_TAG, "Enable DataSyncMode # " + FilterBody.getDataSaveModeFilterBody());
-            // enable the filter in JSON representation so do not block sync until the filter response is there
-            setSyncFilterOrFilterId(FilterBody.getDataSaveModeFilterBody().toJSONString());
-            mFilterRestClient.uploadFilter(getMyUserId(), FilterBody.getDataSaveModeFilterBody(), new SimpleApiCallback<FilterResponse>() {
-                @Override
-                public void onSuccess(FilterResponse filter) {
-                    setSyncFilterOrFilterId(filter.filterId);
-                }
-            });
-        } else {
-            Log.d(LOG_TAG, "Disable DataSyncMode");
-            setSyncFilterOrFilterId(null);
-        }
-    }
+        mUseDataSaveMode = enabled;
 
-    /**
-     * Allows setting the filterId used by the EventsThread
-     * @param filterOrFilterId the content of the filter param on sync requests
-     */
-    public synchronized void setSyncFilterOrFilterId(String filterOrFilterId) {
-        Log.d(LOG_TAG, "setSyncFilterOrFilterId ## " + filterOrFilterId);
-        mFilterOrFilterId = filterOrFilterId;
-        if (null != mEventsThread) {
-            mEventsThread.setFilterOrFilterId(filterOrFilterId);
+        if (mEventsThread != null) {
+            setSyncFilter(mCurrentFilter);
         }
     }
 
     /**
      * Update the lazy loading mode
-     * Do not use this method to enable the lazy laoding. Use {@link #canEnableLazyLoading(ApiCallback)}
+     * Do not use this method to enable the lazy loading. Use {@link #canEnableLazyLoading(ApiCallback)}
      *
      * @param enabled true to enable the lazy loading
      */
     public void setUseLazyLoading(boolean enabled) {
         mUseLazyLoading = enabled;
-        if (null != mEventsThread) {
-            mEventsThread.setUseLazyLoading(enabled);
+
+        if (mEventsThread != null) {
+            setSyncFilter(mCurrentFilter);
+        }
+    }
+
+    /**
+     * Allows setting the filter used by the EventsThread
+     *
+     * @param filter the content of the filter param on sync requests
+     */
+    public synchronized void setSyncFilter(FilterBody filter) {
+        Log.d(LOG_TAG, "setSyncFilter ## " + filter);
+        mCurrentFilter = filter;
+
+        // Enable Data save mode and/or LazyLoading
+        FilterUtil.enableDataSaveMode(mCurrentFilter, mUseDataSaveMode);
+        FilterUtil.enableLazyLoading(mCurrentFilter, mUseLazyLoading);
+
+        convertFilterToFilterId();
+    }
+
+    /**
+     * Convert a filter to a filterId
+     * Either it is already known to the server, or send the filter to the server to get a filterId
+     */
+    private void convertFilterToFilterId() {
+        // Ensure mCurrentFilter has not been updated in the same time
+        final String wantedJsonFilter = mCurrentFilter.toJSONString();
+
+        // Check if the current filter is known by the server, to directly use the filterId
+        String filterId = getDataHandler().getStore().getFilters().get(wantedJsonFilter);
+
+        if (TextUtils.isEmpty(filterId)) {
+            // enable the filter in JSON representation so do not block sync until the filter response is there
+            mEventsThread.setFilterOrFilterId(wantedJsonFilter);
+
+            // Send the filter to the server
+            mFilterRestClient.uploadFilter(getMyUserId(), mCurrentFilter, new SimpleApiCallback<FilterResponse>() {
+                @Override
+                public void onSuccess(FilterResponse filter) {
+                    // Store the couple filter/filterId
+                    getDataHandler().getStore().addFilter(wantedJsonFilter, filter.filterId);
+
+                    // Ensure the filter is still corresponding to the current filter
+                    if (TextUtils.equals(wantedJsonFilter, mCurrentFilter.toJSONString())) {
+                        // Tell the event thread to use the id now
+                        mEventsThread.setFilterOrFilterId(filter.filterId);
+                    }
+                }
+            });
+        } else {
+            // Tell the event thread to use the id now
+            mEventsThread.setFilterOrFilterId(filterId);
         }
     }
 

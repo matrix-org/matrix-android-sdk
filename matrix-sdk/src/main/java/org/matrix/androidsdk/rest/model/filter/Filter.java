@@ -42,4 +42,14 @@ public class Filter {
 
     @SerializedName("not_rooms")
     public List<String> notRooms;
+
+    public boolean hasData() {
+        return limit != null
+                || senders != null
+                || notSenders != null
+                || types != null
+                || notTypes != null
+                || rooms != null
+                || notRooms != null;
+    }
 }

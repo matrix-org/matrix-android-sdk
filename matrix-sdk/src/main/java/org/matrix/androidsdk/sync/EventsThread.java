@@ -59,12 +59,6 @@ public class EventsThread extends Thread {
     private static final int DEFAULT_SERVER_TIMEOUT_MS = 30000;
     private static final int DEFAULT_CLIENT_TIMEOUT_MS = 120000;
 
-    // TODO LazyLoading
-    // private static final String DATA_SAVE_MODE_FILTER = "{\"room\": {\"ephemeral\": {\"types\": [\"m.receipt\"]}}, \"presence\":{\"not_types\": [\"*\"]}}";
-    // TODO filter to get RoomSyncSummary
-    private static final String DATA_SAVE_MODE_FILTER = "{\"room\": {\"state\":{\"lazy_load_members\":true}, \"ephemeral\": {\"types\": [\"m.receipt\"]}}, \"presence\":{\"not_types\": [\"*\"]}}";
-    private static final String LAZY_LOADING_FILTER = "{\"room\":{\"state\":{\"lazy_load_members\":true}}}";
-
     private EventsRestClient mEventsRestClient;
     private EventsThreadListener mListener;
     private String mCurrentToken;
@@ -102,9 +96,6 @@ public class EventsThread extends Thread {
 
     // use dedicated filter when enable
     private String mFilterOrFilterId;
-
-    // TODO Lazy Loading: Use this
-    private boolean mUseLazyLoading;
 
     private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
         @Override
@@ -166,15 +157,6 @@ public class EventsThread extends Thread {
      */
     public void setFilterOrFilterId(String filterOrFilterId) {
         mFilterOrFilterId = filterOrFilterId;
-    }
-
-    /**
-     * Update the lazy loading
-     *
-     * @param enabled true to enable the lazy loading
-     */
-    public void setUseLazyLoading(boolean enabled) {
-        mUseLazyLoading = enabled;
     }
 
     /**
@@ -428,10 +410,9 @@ public class EventsThread extends Thread {
     private void executeInitialSync() {
         Log.d(LOG_TAG, "Requesting initial sync...");
         long initialSyncStartTime = System.currentTimeMillis();
-        final String initSyncFilter = new Gson().toJson(FilterBody.getDataSaveModeFilterBody());
         while (!isInitialSyncDone()) {
             final CountDownLatch latch = new CountDownLatch(1);
-            mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", initSyncFilter,
+            mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", mFilterOrFilterId,
                     new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                         @Override
                         public void onSuccess(SyncResponse syncResponse) {

@@ -611,6 +611,16 @@ public interface IMXStore {
     Set<String> getRoomsWithoutURLPreviews();
 
     /**
+     * Add a couple Json filter / filterId
+     */
+    void addFilter(String jsonFilter, String filterId);
+
+    /**
+     * Get the Map of all filters configured server side (note: only by this current instance of Riot)
+     */
+    Map<String, String> getFilters();
+
+    /**
      * Set the public key of the antivirus server
      */
     void setAntivirusServerPublicKey(@Nullable String key);
