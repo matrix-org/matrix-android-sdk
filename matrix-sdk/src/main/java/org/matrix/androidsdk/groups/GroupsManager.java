@@ -105,7 +105,12 @@ public class GroupsManager {
      */
     public void onSessionResumed() {
         refreshGroupProfiles((ApiCallback<Void>) null);
-        getUserPublicisedGroups(mDataHandler.getUserId(), true, new SimpleApiCallback<Set<String>>());
+        getUserPublicisedGroups(mDataHandler.getUserId(), true, new SimpleApiCallback<Set<String>>() {
+            @Override
+            public void onSuccess(Set<String> info) {
+                // Ignore
+            }
+        });
 
         mGroupProfileByGroupId.clear();
         mGroupProfileCallback.clear();

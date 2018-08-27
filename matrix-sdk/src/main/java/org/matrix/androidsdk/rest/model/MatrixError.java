@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +16,7 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.annotations.SerializedName;
@@ -51,11 +53,14 @@ public class MatrixError implements java.io.Serializable {
     public static final String THREEPID_IN_USE = "M_THREEPID_IN_USE";
     public static final String SERVER_NOT_TRUSTED = "M_SERVER_NOT_TRUSTED";
     public static final String TOO_LARGE = "M_TOO_LARGE";
-
     public static final String M_CONSENT_NOT_GIVEN = "M_CONSENT_NOT_GIVEN";
+    public static final String RESOURCE_LIMIT_EXCEEDED = "M_RESOURCE_LIMIT_EXCEEDED";
 
     // custom ones
     public static final String NOT_SUPPORTED = "M_NOT_SUPPORTED";
+
+    // Possible value for "limit_type"
+    public static final String LIMIT_TYPE_MAU = "monthly_active_user";
 
     // Define the configuration error codes.
     // The others matrix errors are requests dedicated
@@ -70,9 +75,17 @@ public class MatrixError implements java.io.Serializable {
     @SerializedName("consent_uri")
     public String consentUri;
 
+    // RESOURCE_LIMIT_EXCEEDED data
+    @SerializedName("limit_type")
+    public String limitType;
+    @Nullable
+    @SerializedName("admin_contact")
+    public String adminUri;
+
+
     // extracted from the error response
     public Integer mStatus;
-    public String  mReason;
+    public String mReason;
     public ResponseBody mErrorBody;
     public String mErrorBodyAsString;
     public MediaType mErrorBodyMimeType;
@@ -131,7 +144,8 @@ public class MatrixError implements java.io.Serializable {
                 MatrixError.TOO_LARGE.equals(errcode) ||
                 MatrixError.BAD_PAGINATION.equals(errcode) ||
                 MatrixError.OLD_VERSION.equals(errcode) ||
-                MatrixError.UNRECOGNIZED.equals(errcode);
+                MatrixError.UNRECOGNIZED.equals(errcode) ||
+                MatrixError.RESOURCE_LIMIT_EXCEEDED.equals(errcode);
     }
 
     /**

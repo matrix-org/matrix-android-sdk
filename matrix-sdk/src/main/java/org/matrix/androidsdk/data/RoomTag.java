@@ -37,6 +37,7 @@ public class RoomTag implements java.io.Serializable {
     public static final String ROOM_TAG_FAVOURITE = "m.favourite";
     public static final String ROOM_TAG_LOW_PRIORITY = "m.lowpriority";
     public static final String ROOM_TAG_NO_TAG = "m.recent";
+    public static final String ROOM_TAG_SERVER_NOTICE = "m.server_notice";
 
     /**
      * The name of a tag.
@@ -75,7 +76,11 @@ public class RoomTag implements java.io.Serializable {
             if ((null != roomtags.tags) && (0 != roomtags.tags.size())) {
                 for (String tagName : roomtags.tags.keySet()) {
                     Map<String, Double> params = roomtags.tags.get(tagName);
-                    tags.put(tagName, new RoomTag(tagName, params.get("order")));
+                    if (params != null) {
+                        tags.put(tagName, new RoomTag(tagName, params.get("order")));
+                    } else {
+                        tags.put(tagName, new RoomTag(tagName, null));
+                    }
                 }
             }
         } catch (Exception e) {

@@ -3,7 +3,7 @@
 
     <string name="notice_room_invite_no_invitee">%s 的邀请</string>
     <string name="notice_room_invite">%1$s 邀请了 %2$s</string>
-    <string name="notice_room_invite_you">%1$s 邀请了你</string>
+    <string name="notice_room_invite_you">%1$s 邀请了您</string>
     <string name="notice_room_join">%1$s 加入了聊天室</string>
     <string name="notice_room_leave">%1$s 退出了聊天室</string>
     <string name="notice_room_reject">%1$s 拒绝了邀请</string>
@@ -23,7 +23,7 @@
     <string name="notice_room_visibility_invited">所有聊天室成员，从他们被邀请开始。</string>
     <string name="notice_room_visibility_joined">所有聊天室成员，从他们加入开始。</string>
     <string name="notice_room_visibility_shared">所有聊天室成员。</string>
-    <string name="notice_room_visibility_world_readable">所有人。</string>
+    <string name="notice_room_visibility_world_readable">任何人。</string>
     <string name="notice_room_visibility_unknown">未知（%s）。</string>
     <string name="notice_end_to_end">%1$s 开启了端对端加密（%2$s）</string>
 
@@ -65,5 +65,12 @@
 
     <string name="summary_message">%1$s：%2$s</string>
     <string name="summary_user_sent_sticker">%1$s 发送了一张贴纸。</string>
+
+    <string name="reply_to_an_image">发送了一张图片。</string>
+    <string name="reply_to_a_video">发送了一个视频。</string>
+    <string name="reply_to_an_audio_file">发送了一段音频。</string>
+    <string name="reply_to_a_file">发送了一个文件。</string>
+
+<string name="message_reply_to_prefix">回复</string>
 
     </resources>

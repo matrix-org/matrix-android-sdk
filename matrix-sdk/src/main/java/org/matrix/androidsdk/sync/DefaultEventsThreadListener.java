@@ -1,6 +1,7 @@
 /*
  * Copyright 2016 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +19,7 @@
 package org.matrix.androidsdk.sync;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 
 /**
@@ -34,6 +36,11 @@ public class DefaultEventsThreadListener implements EventsThreadListener {
     @Override
     public void onSyncResponse(SyncResponse syncResponse, String fromToken, boolean isCatchingUp) {
         mDataHandler.onSyncResponse(syncResponse, fromToken, isCatchingUp);
+    }
+
+    @Override
+    public void onSyncError(MatrixError matrixError) {
+        mDataHandler.onSyncError(matrixError);
     }
 
     @Override
