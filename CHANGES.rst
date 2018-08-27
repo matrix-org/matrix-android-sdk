@@ -1,11 +1,8 @@
-Changes to Matrix Android SDK in 0.9.8 (2018-XX-XX)
+Changes to Matrix Android SDK in 0.9.8 (2018-08-27)
 =======================================================
 
 Features:
  - Manage server_notices tag and server quota notices (vector-im/riot-android#2440)
-
-Improvements:
- -
 
 Bugfix:
  - Room aliases including the '@' and '=' characters are now recognized as valid (vector-im/riot-android#2079, vector-im/riot-android#2542)
@@ -16,18 +13,6 @@ API Change:
  - MXMediasCache.createTmpMediaFile() methods are renamed to createTmpDecryptedMediaFile()
  - MXMediasCache.clearTmpCache() method is renamed to clearTmpDecryptedMediaCache()
  - Add MXMediasCache.moveToShareFolder() to move a tmp decrypted file to another folder to prevent deletion during sharing. New API MXMediasCache.clearShareDecryptedMediaCache() can be called when the application is resumed. (vector-im/riot-android#2530)
-
-Translations:
- -
-
-Others:
- -
-
-Build:
- -
-
-Test:
- -
 
 Changes to Matrix Android SDK in 0.9.7 (2018-08-09)
 =======================================================

@@ -15,7 +15,7 @@ android {
         minSdkVersion 16
         targetSdkVersion 26
         versionCode 908
-        versionName "0.9.8-dev"
+        versionName "0.9.8"
         resValue "string", "flavor_description", "SDKApp"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
