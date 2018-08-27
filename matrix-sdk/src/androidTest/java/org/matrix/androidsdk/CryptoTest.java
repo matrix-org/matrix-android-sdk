@@ -782,7 +782,7 @@ public class CryptoTest {
             }
         };
 
-        ApiCallback<Void> callback = new SimpleApiCallback<>();
+        ApiCallback<Void> callback = new VoidApiCallback();
 
         roomFromBobPOV.addEventListener(bobEventListener);
         roomFromAlicePOV.addEventListener(aliceEventListener);
@@ -1217,7 +1217,7 @@ public class CryptoTest {
 
         roomFromBobPOV.addEventListener(bobEventListener);
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new VoidApiCallback());
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("bobEcho"));
@@ -1245,7 +1245,7 @@ public class CryptoTest {
 
         roomFromAlicePOV.addEventListener(aliceEventListener);
 
-        roomFromBobPOV.sendEvent(buildTextEvent("Hello I'm Bob!", mBobSession), new SimpleApiCallback<Void>());
+        roomFromBobPOV.sendEvent(buildTextEvent("Hello I'm Bob!", mBobSession), new VoidApiCallback());
 
         lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("aliceEcho"));
@@ -1499,7 +1499,7 @@ public class CryptoTest {
             }
         });
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new VoidApiCallback());
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
@@ -1561,7 +1561,7 @@ public class CryptoTest {
 
         roomFromBobPOV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener);
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new VoidApiCallback());
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
@@ -1634,7 +1634,7 @@ public class CryptoTest {
 
         roomFromBobPOV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener);
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new VoidApiCallback());
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
@@ -1731,7 +1731,7 @@ public class CryptoTest {
 
         String aliceMessage1 = "Hello I'm Alice!";
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage1, mAliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage1, mAliceSession), new VoidApiCallback());
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
@@ -1799,7 +1799,7 @@ public class CryptoTest {
         roomFromBobPOV2.getLiveTimeLine().addEventTimelineListener(eventTimelineListener4);
 
         String aliceMessage2 = "Hello I'm still Alice!";
-        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage2, mAliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage2, mAliceSession), new VoidApiCallback());
 
         lock4.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals("received event of type " + results.get("event4"), 1, receivedEvents4.size());
@@ -1855,7 +1855,7 @@ public class CryptoTest {
 
         String aliceMessage1 = "Hello I'm Alice!";
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage1, mAliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage1, mAliceSession), new VoidApiCallback());
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
@@ -1919,7 +1919,7 @@ public class CryptoTest {
         roomFromBob2POV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener2);
 
         String messageFromAlice2 = "Hello I'm still Alice!";
-        roomFromAlice2POV.sendEvent(buildTextEvent(messageFromAlice2, aliceSession2), new SimpleApiCallback<Void>());
+        roomFromAlice2POV.sendEvent(buildTextEvent(messageFromAlice2, aliceSession2), new VoidApiCallback());
 
         lock4.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals(1, receivedEvents2.size());
@@ -1960,7 +1960,7 @@ public class CryptoTest {
 
         String aliceMessage1 = "Hello I'm Alice!";
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage1, mAliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage1, mAliceSession), new VoidApiCallback());
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals(1, receivedEvents.size());
@@ -1999,7 +1999,7 @@ public class CryptoTest {
 
         String aliceMessage2 = "Hello I'm still Alice!";
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage2, mAliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage2, mAliceSession), new VoidApiCallback());
 
         lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals(1, receivedEvents2.size());
@@ -2039,7 +2039,7 @@ public class CryptoTest {
 
         String aliceMessage3 = "Hello I'm still Alice and you can read this!";
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage3, mAliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage3, mAliceSession), new VoidApiCallback());
 
         lock3.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals(1, receivedEvents3.size());
@@ -2463,7 +2463,7 @@ public class CryptoTest {
         };
 
         roomFromBobPOV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener);
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, mAliceSession), new VoidApiCallback());
 
         lock3.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals(1, receivedEvents.size());
@@ -2517,7 +2517,7 @@ public class CryptoTest {
         };
 
         roomFromBobPOV2.getLiveTimeLine().addEventTimelineListener(eventTimelineListener2);
-        roomFromAlicePOV.sendEvent(buildTextEvent(message2FromAlice, mAliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(message2FromAlice, mAliceSession), new VoidApiCallback());
 
         lock6.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals(1, receivedEvents2.size());
@@ -2948,7 +2948,7 @@ public class CryptoTest {
         };
 
         roomFromBobPOV2.getLiveTimeLine().addEventTimelineListener(eventTimelineListener2);
-        roomFromAlicePOV.sendEvent(buildTextEvent(message2FromAlice, mAliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(message2FromAlice, mAliceSession), new VoidApiCallback());
 
         lock4.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals(1, receivedEvents2.size());
@@ -3126,7 +3126,7 @@ public class CryptoTest {
             }
         };
 
-        ApiCallback<Void> callback = new SimpleApiCallback<>();
+        ApiCallback<Void> callback = new VoidApiCallback();
 
         roomFromBobPOV.addEventListener(bobEventListener);
         roomFromAlicePOV.addEventListener(aliceEventListener);
