@@ -48,4 +48,16 @@ public class RoomEventFilter {
 
     @SerializedName("lazy_load_members")
     public Boolean lazyLoadMembers;
+
+    public boolean hasData() {
+        return limit != null
+                || notSenders != null
+                || notTypes != null
+                || senders != null
+                || types != null
+                || rooms != null
+                || notRooms != null
+                || containsUrl != null
+                || lazyLoadMembers != null;
+    }
 }

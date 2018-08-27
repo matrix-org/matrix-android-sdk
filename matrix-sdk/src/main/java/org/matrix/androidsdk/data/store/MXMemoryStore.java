@@ -1613,6 +1613,16 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
+    public void addFilter(String jsonFilter, String filterId) {
+        mMetadata.mKnownFilters.put(jsonFilter, filterId);
+    }
+
+    @Override
+    public Map<String, String> getFilters() {
+        return new HashMap<>(mMetadata.mKnownFilters);
+    }
+
+    @Override
     public void setAntivirusServerPublicKey(@Nullable String key) {
         mMetadata.mAntivirusServerPublicKey = key;
     }

@@ -2566,6 +2566,12 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
+    public void addFilter(String jsonFilter, String filterId) {
+        super.addFilter(jsonFilter, filterId);
+        mMetaDataHasChanged = true;
+    }
+
+    @Override
     public void setAntivirusServerPublicKey(@Nullable String key) {
         super.setAntivirusServerPublicKey(key);
         mMetaDataHasChanged = true;
