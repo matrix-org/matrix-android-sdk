@@ -67,14 +67,15 @@ public class MyUser extends User {
      * @param displayName the new name
      * @param callback    the async callback
      */
-    public void updateDisplayName(final String displayName, ApiCallback<Void> callback) {
+    public void updateDisplayName(final String displayName, final ApiCallback<Void> callback) {
         mDataHandler.getProfileRestClient().updateDisplayname(displayName, new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 // Update the object member before calling the given callback
                 MyUser.this.displayname = displayName;
                 mDataHandler.getStore().setDisplayName(displayName, System.currentTimeMillis());
-                super.onSuccess(info);
+
+                callback.onSuccess(info);
             }
         });
     }
@@ -85,14 +86,15 @@ public class MyUser extends User {
      * @param avatarUrl the new avatar URL
      * @param callback  the async callback
      */
-    public void updateAvatarUrl(final String avatarUrl, ApiCallback<Void> callback) {
+    public void updateAvatarUrl(final String avatarUrl, final ApiCallback<Void> callback) {
         mDataHandler.getProfileRestClient().updateAvatarUrl(avatarUrl, new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 // Update the object member before calling the given callback
                 setAvatarUrl(avatarUrl);
                 mDataHandler.getStore().setAvatarURL(avatarUrl, System.currentTimeMillis());
-                super.onSuccess(info);
+
+                callback.onSuccess(info);
             }
         });
     }

@@ -453,6 +453,7 @@ public class EventsThread extends Thread {
                             if (MatrixError.isConfigurationErrorCode(e.errcode)) {
                                 mListener.onConfigurationError(e.errcode);
                             } else {
+                                mListener.onSyncError(e);
                                 sleepAndUnblock();
                             }
                         }
@@ -471,7 +472,9 @@ public class EventsThread extends Thread {
             } catch (InterruptedException e) {
                 Log.e(LOG_TAG, "Interrupted whilst performing initial sync.", e);
             } catch (Exception e) {
-                Log.e(LOG_TAG, "## startSync() failed " + e.getMessage(), e);
+                // reported by GA
+                // The thread might have been killed.
+                Log.e(LOG_TAG, "latch.await() failed " + e.getMessage(), e);
             }
         }
         long initialSyncEndTime = System.currentTimeMillis();
@@ -665,6 +668,7 @@ public class EventsThread extends Thread {
                                 if (MatrixError.isConfigurationErrorCode(e.errcode)) {
                                     mListener.onConfigurationError(e.errcode);
                                 } else {
+                                    mListener.onSyncError(e);
                                     onError(e.getLocalizedMessage());
                                 }
                             }
