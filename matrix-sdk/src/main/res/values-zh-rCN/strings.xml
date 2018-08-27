@@ -71,4 +71,6 @@
     <string name="reply_to_an_audio_file">发送了一段音频。</string>
     <string name="reply_to_a_file">发送了一个文件。</string>
 
-</resources>
+<string name="message_reply_to_prefix">回复</string>
+
+    </resources>

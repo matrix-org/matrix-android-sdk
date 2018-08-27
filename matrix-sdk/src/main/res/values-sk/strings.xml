@@ -68,4 +68,9 @@
 
     <string name="message_reply_to_prefix">Odpoveď na</string>
 
-    </resources>
+    <string name="reply_to_an_image">odoslal obrázok.</string>
+    <string name="reply_to_a_video">odoslal video.</string>
+    <string name="reply_to_an_audio_file">odoslal zvukový súbor.</string>
+    <string name="reply_to_a_file">Odoslal súbor.</string>
+
+</resources>
