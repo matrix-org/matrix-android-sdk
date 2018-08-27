@@ -6,6 +6,7 @@ Features:
 
 Improvements:
  - Clear unreachable Url when clearing media cache (vector-im/riot-android#2479)
+ - "In reply to" is not clickable on Riot Android yet. Make it a plain text (vector-im/riot-android#2469)
 
 Bugfix:
  -
