@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<resources><string name="encrypted_message">Enkryptert melding</string>
+<resources><string name="encrypted_message">Kryptert melding</string>
 
     <string name="matrix_sdk_app_name">Matrix-Android-SDK</string>
 
