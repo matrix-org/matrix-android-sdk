@@ -475,7 +475,12 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
 
                                         Bitmap transformedBitmap = Bitmap.createBitmap(bitmap,
                                                 0, 0, bitmap.getWidth(), bitmap.getHeight(), bitmapMatrix, false);
-                                        bitmap.recycle();
+
+                                        // Bitmap.createBitmap() can return the same bitmap, so do not recycle it if it is the case
+                                        if (transformedBitmap != bitmap) {
+                                            bitmap.recycle();
+                                        }
+
                                         bitmap = transformedBitmap;
                                     } catch (OutOfMemoryError ex) {
                                         Log.e(LOG_TAG, "bitmapForURL rotation error : " + ex.getMessage(), ex);

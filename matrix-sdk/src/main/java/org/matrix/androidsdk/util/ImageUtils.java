@@ -1,12 +1,13 @@
-/* 
+/*
  * Copyright 2014 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,8 +24,6 @@ import android.media.ExifInterface;
 import android.net.Uri;
 import android.provider.MediaStore;
 import android.text.TextUtils;
-
-import org.matrix.androidsdk.util.Log;
 
 import org.matrix.androidsdk.db.MXMediasCache;
 
@@ -257,7 +256,11 @@ public class ImageUtils {
                 android.graphics.Matrix bitmapMatrix = new android.graphics.Matrix();
                 bitmapMatrix.postRotate(rotationAngle);
                 Bitmap transformedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), bitmapMatrix, false);
-                bitmap.recycle();
+
+                // Bitmap.createBitmap() can return the same bitmap, so do not recycle it if it is the case
+                if (transformedBitmap != bitmap) {
+                    bitmap.recycle();
+                }
 
                 if (null != mediasCache) {
                     mediasCache.saveBitmap(transformedBitmap, imageURL);
