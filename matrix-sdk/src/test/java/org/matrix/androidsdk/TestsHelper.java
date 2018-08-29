@@ -157,7 +157,8 @@ public class TestsHelper {
 
         IMXStore store =  new MXFileStore(hs, context);
 
-        MXSession mxSession = new MXSession(hs, new MXDataHandler(store, credentials), context);
+        MXSession mxSession = new MXSession.Builder(hs, new MXDataHandler(store, credentials), context)
+                .build();
 
 
         if (!startSession) {
