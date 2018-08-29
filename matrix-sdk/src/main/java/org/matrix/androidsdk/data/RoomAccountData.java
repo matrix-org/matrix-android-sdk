@@ -18,6 +18,8 @@
 
 package org.matrix.androidsdk.data;
 
+import android.support.annotation.Nullable;
+
 import org.matrix.androidsdk.rest.model.Event;
 
 import java.util.Map;
@@ -51,6 +53,7 @@ public class RoomAccountData implements java.io.Serializable {
      * @param key the key.
      * @return the roomTag if it is found else null
      */
+    @Nullable
     public RoomTag roomTag(String key) {
         if ((null != tags) && tags.containsKey(key)) {
             return tags.get(key);
@@ -67,8 +70,9 @@ public class RoomAccountData implements java.io.Serializable {
     }
 
     /**
-     * @return the list of keys
+     * @return the list of keys, or null if no tag
      */
+    @Nullable
     public Set<String> getKeys() {
         if (hasTags()) {
             return tags.keySet();
