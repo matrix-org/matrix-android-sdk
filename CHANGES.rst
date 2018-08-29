@@ -12,7 +12,7 @@ Bugfix:
  -
 
 API Change:
- -
+ - MxSession constructor is now private. Please use MxSession.Builder() to create a MxSession
 
 Translations:
  -
