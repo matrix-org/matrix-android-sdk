@@ -5,13 +5,14 @@ Features:
  -
 
 Improvements:
- -
+ - Clear unreachable Url when clearing media cache (vector-im/riot-android#2479)
+ - "In reply to" is not clickable on Riot Android yet. Make it a plain text (vector-im/riot-android#2469)
 
 Bugfix:
- -
+ - Removing room from 'low priority' or 'favorite' does not work (vector-im/riot-android#2526)
 
 API Change:
- -
+ - MxSession constructor is now private. Please use MxSession.Builder() to create a MxSession
 
 Translations:
  -

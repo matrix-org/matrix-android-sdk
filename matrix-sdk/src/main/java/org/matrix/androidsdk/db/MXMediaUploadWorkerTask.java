@@ -174,11 +174,16 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
                                    String uploadId,
                                    String filename,
                                    IMXMediaUploadListener listener) {
-        try {
-            contentStream.reset();
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "MXMediaUploadWorkerTask " + e.getMessage(), e);
+        if (contentStream.markSupported()) {
+            try {
+                contentStream.reset();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "MXMediaUploadWorkerTask " + e.getMessage(), e);
+            }
+        } else {
+            Log.w(LOG_TAG, "Warning, reset() is not supported for this stream");
         }
+
 
         mContentManager = contentManager;
         mContentStream = contentStream;
