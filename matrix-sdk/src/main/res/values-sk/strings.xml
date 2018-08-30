@@ -10,7 +10,7 @@
     <string name="notice_room_join">%1$s vstúpil</string>
     <string name="notice_room_leave">%1$s opustil</string>
     <string name="notice_room_reject">%1$s odmietol pozvanie</string>
-    <string name="notice_room_kick">%1$s vykopol %2$s</string>
+    <string name="notice_room_kick">%1$s vykázal %2$s</string>
     <string name="notice_room_unban">%1$s povolil vstup %2$s</string>
     <string name="notice_room_ban">%1$s zakázal vstup %2$s</string>
     <string name="notice_room_withdraw">%1$s stiahol pozvanie %2$s</string>
