@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<resources><string name="encrypted_message">Enkryptert melding</string>
+<resources><string name="encrypted_message">Kryptert melding</string>
 
     <string name="matrix_sdk_app_name">Matrix-Android-SDK</string>
 
@@ -64,7 +64,7 @@
 
     <string name="room_error_join_failed_empty_room">Det er førebels ikkje mogeleg å fara inn att i eit tomt rom.</string>
 
-    <string name="medium_email">Emailadresse</string>
+    <string name="medium_email">Epostadresse</string>
     <string name="medium_phone_number">Telefonnummer</string>
 
     <string name="reply_to_an_image">sende eit bilete.</string>

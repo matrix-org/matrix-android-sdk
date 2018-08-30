@@ -126,7 +126,7 @@ public class MXSession {
     private PresenceRestClient mPresenceRestClient;
     private RoomsRestClient mRoomsRestClient;
     private final PushRulesRestClient mPushRulesRestClient;
-    private final PushersRestClient mPushersRestClient;
+    private PushersRestClient mPushersRestClient;
     private final ThirdPidRestClient mThirdPidRestClient;
     private final CallRestClient mCallRestClient;
     private final AccountDataRestClient mAccountDataRestClient;
@@ -237,12 +237,13 @@ public class MXSession {
 
     /**
      * Create a user session with a data handler.
+     * Private, please use the MxSession.Builder now
      *
      * @param hsConfig    the home server connection config
      * @param dataHandler the data handler
      * @param appContext  the application context
      */
-    public MXSession(HomeServerConnectionConfig hsConfig, MXDataHandler dataHandler, Context appContext) {
+    private MXSession(HomeServerConnectionConfig hsConfig, MXDataHandler dataHandler, Context appContext) {
         this(hsConfig);
         mDataHandler = dataHandler;
 
@@ -421,15 +422,6 @@ public class MXSession {
     public MXDataHandler getDataHandler() {
         checkIfAlive();
         return mDataHandler;
-    }
-
-    /**
-     * Update the metrics listener
-     *
-     * @param metricsListener the metrics listener
-     */
-    public void setMetricsListener(MetricsListener metricsListener) {
-        mMetricsListener = metricsListener;
     }
 
     /**
@@ -2471,5 +2463,58 @@ public class MXSession {
      */
     public GroupsManager getGroupsManager() {
         return mGroupsManager;
+    }
+
+    /* ==========================================================================================
+     * Builder
+     * ========================================================================================== */
+
+    public static class Builder {
+        private MXSession mxSession;
+
+        public Builder(HomeServerConnectionConfig hsConfig, MXDataHandler dataHandler, Context context) {
+            mxSession = new MXSession(hsConfig, dataHandler, context);
+        }
+
+        /**
+         * Create a pusher rest client, overriding the push server url if necessary
+         *
+         * @param pushServerUrl the push server url, or null or empty to use the default PushersRestClient
+         * @return
+         */
+        public Builder withPushServerUrl(@Nullable String pushServerUrl) {
+            // If not empty, create a special PushersRestClient
+            PushersRestClient pushersRestClient = null;
+
+            if (!TextUtils.isEmpty(pushServerUrl)) {
+                // pusher uses a custom server
+                try {
+                    HomeServerConnectionConfig alteredHsConfig = new HomeServerConnectionConfig(Uri.parse(pushServerUrl));
+                    alteredHsConfig.setCredentials(mxSession.mHsConfig.getCredentials());
+                    pushersRestClient = new PushersRestClient(alteredHsConfig);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## withPushServerUrl() failed " + e.getMessage(), e);
+                }
+            }
+
+            if (null != pushersRestClient) {
+                // Replace the existing client
+                mxSession.mPushersRestClient = pushersRestClient;
+            }
+
+            return this;
+        }
+
+        public Builder withMetricsListener(@Nullable MetricsListener metricsListener) {
+            mxSession.mMetricsListener = metricsListener;
+
+            return this;
+        }
+
+        // TODO LazyLoading: add useLazyLoading() method to this builder
+
+        public MXSession build() {
+            return mxSession;
+        }
     }
 }

@@ -38,9 +38,9 @@ public class RoomComparatorWithTag implements Comparator<Room> {
         final RoomTag tag1 = r1.getAccountData().roomTag(mTag);
         final RoomTag tag2 = r2.getAccountData().roomTag(mTag);
 
-        if (tag1.mOrder != null && tag2.mOrder != null) {
+        if (tag1 != null && tag1.mOrder != null && tag2 != null && tag2.mOrder != null) {
             res = Double.compare(tag1.mOrder, tag2.mOrder);
-        } else if (tag1.mOrder != null) {
+        } else if (tag1 != null && tag1.mOrder != null) {
             res = 1;
         } else {
             res = -1;

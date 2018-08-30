@@ -90,20 +90,20 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
     /**
      * Pending media URLs
      */
-    private static final Map<String, MXMediaDownloadWorkerTask> mPendingDownloadById = new HashMap<>();
+    private static final Map<String, MXMediaDownloadWorkerTask> sPendingDownloadById = new HashMap<>();
 
     /**
      * List of unreachable media urls.
      */
-    private static final List<String> mUnreachableUrls = new ArrayList<>();
+    private static final List<String> sUnreachableUrls = new ArrayList<>();
 
     // avoid sync on "this" because it might differ if there is a timer.
-    private static final Object mSyncObject = new Object();
+    private static final Object sSyncObject = new Object();
 
     /**
      * The medias cache
      */
-    private static LruCache<String, Bitmap> mBitmapByDownloadIdCache = null;
+    private static LruCache<String, Bitmap> sBitmapByDownloadIdCache = null;
 
     /**
      * The downloaded media callbacks.
@@ -205,8 +205,13 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
      * Clear the internal cache.
      */
     public static void clearBitmapsCache() {
-        if (null != mBitmapByDownloadIdCache) {
-            mBitmapByDownloadIdCache.evictAll();
+        if (null != sBitmapByDownloadIdCache) {
+            sBitmapByDownloadIdCache.evictAll();
+        }
+
+        // Clear the list of unreachable Urls, to retry to download it on next access
+        synchronized (sUnreachableUrls) {
+            sUnreachableUrls.clear();
         }
     }
 
@@ -217,10 +222,10 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
      * @return the dedicated MXMediaDownloadWorkerTask if it exists.
      */
     public static MXMediaDownloadWorkerTask getMediaDownloadWorkerTask(String downloadId) {
-        if (mPendingDownloadById.containsKey(downloadId)) {
+        if (sPendingDownloadById.containsKey(downloadId)) {
             MXMediaDownloadWorkerTask task;
-            synchronized (mPendingDownloadById) {
-                task = mPendingDownloadById.get(downloadId);
+            synchronized (sPendingDownloadById) {
+                task = sPendingDownloadById.get(downloadId);
             }
             return task;
         } else {
@@ -293,9 +298,9 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
     public static boolean isMediaCached(String mediaCacheId) {
         boolean res = false;
 
-        if ((null != mBitmapByDownloadIdCache)) {
-            synchronized (mSyncObject) {
-                res = (null != mBitmapByDownloadIdCache.get(mediaCacheId));
+        if ((null != sBitmapByDownloadIdCache)) {
+            synchronized (sSyncObject) {
+                res = (null != sBitmapByDownloadIdCache.get(mediaCacheId));
             }
         }
 
@@ -312,8 +317,8 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
         boolean res = true;
 
         if (!TextUtils.isEmpty(url)) {
-            synchronized (mUnreachableUrls) {
-                res = mUnreachableUrls.indexOf(url) >= 0;
+            synchronized (sUnreachableUrls) {
+                res = sUnreachableUrls.contains(url);
             }
         }
 
@@ -345,12 +350,12 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
             return false;
         }
 
-        if (null == mBitmapByDownloadIdCache) {
+        if (null == sBitmapByDownloadIdCache) {
             int lruSize = Math.min(20 * 1024 * 1024, (int) Runtime.getRuntime().maxMemory() / 8);
 
             Log.d(LOG_TAG, "bitmapForURL  lruSize : " + lruSize);
 
-            mBitmapByDownloadIdCache = new LruCache<String, Bitmap>(lruSize) {
+            sBitmapByDownloadIdCache = new LruCache<String, Bitmap>(lruSize) {
                 @Override
                 protected int sizeOf(String key, Bitmap bitmap) {
                     return bitmap.getRowBytes() * bitmap.getHeight(); // size in bytes
@@ -370,8 +375,8 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
 
         final Bitmap cachedBitmap;
 
-        synchronized (mSyncObject) {
-            cachedBitmap = mBitmapByDownloadIdCache.get(downloadId);
+        synchronized (sSyncObject) {
+            cachedBitmap = sBitmapByDownloadIdCache.get(downloadId);
         }
 
         if (null != cachedBitmap) {
@@ -462,7 +467,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
                         }
 
                         if (null != bitmap) {
-                            synchronized (mSyncObject) {
+                            synchronized (sSyncObject) {
                                 if (0 != rotation) {
                                     try {
                                         android.graphics.Matrix bitmapMatrix = new android.graphics.Matrix();
@@ -470,7 +475,12 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
 
                                         Bitmap transformedBitmap = Bitmap.createBitmap(bitmap,
                                                 0, 0, bitmap.getWidth(), bitmap.getHeight(), bitmapMatrix, false);
-                                        bitmap.recycle();
+
+                                        // Bitmap.createBitmap() can return the same bitmap, so do not recycle it if it is the case
+                                        if (transformedBitmap != bitmap) {
+                                            bitmap.recycle();
+                                        }
+
                                         bitmap = transformedBitmap;
                                     } catch (OutOfMemoryError ex) {
                                         Log.e(LOG_TAG, "bitmapForURL rotation error : " + ex.getMessage(), ex);
@@ -482,7 +492,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
                                 // it would replace small ones.
                                 // let assume that the application must be faster when showing the chat history.
                                 if ((bitmap.getWidth() < 1000) && (bitmap.getHeight() < 1000)) {
-                                    mBitmapByDownloadIdCache.put(downloadId, bitmap);
+                                    sBitmapByDownloadIdCache.put(downloadId, bitmap);
                                 }
                             }
                         }
@@ -554,8 +564,8 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
 
         mImageViewReferences = new ArrayList<>();
 
-        synchronized (mPendingDownloadById) {
-            mPendingDownloadById.put(downloadId, this);
+        synchronized (sPendingDownloadById) {
+            sPendingDownloadById.put(downloadId, this);
         }
     }
 
@@ -579,8 +589,8 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
 
         mImageViewReferences = task.mImageViewReferences;
 
-        synchronized (mPendingDownloadById) {
-            mPendingDownloadById.put(mDownloadId, this);
+        synchronized (sPendingDownloadById) {
+            sPendingDownloadById.put(mDownloadId, this);
         }
     }
 
@@ -830,8 +840,8 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
                 // We can do this only if the av scanner is disabled or if the media is unencrypted,
                 // (because the same url is used for all encrypted media when the av scanner is enabled).
                 if (!mIsAvScannerEnabled || null == mEncryptedFileInfo) {
-                    synchronized (mUnreachableUrls) {
-                        mUnreachableUrls.add(mUrl);
+                    synchronized (sUnreachableUrls) {
+                        sUnreachableUrls.add(mUrl);
                     }
                 }
             }
@@ -848,8 +858,8 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
                 // We can do this only if the av scanner is disabled or if the media is unencrypted,
                 // (because the same url is used for all encrypted media when the av scanner is enabled).
                 if (!mIsAvScannerEnabled || null == mEncryptedFileInfo) {
-                    synchronized (mUnreachableUrls) {
-                        mUnreachableUrls.add(mUrl);
+                    synchronized (sUnreachableUrls) {
+                        sUnreachableUrls.add(mUrl);
                     }
                 }
             }
@@ -950,8 +960,8 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
         }
 
         // remove the task from the loading one
-        synchronized (mPendingDownloadById) {
-            mPendingDownloadById.remove(mDownloadId);
+        synchronized (sPendingDownloadById) {
+            sPendingDownloadById.remove(mDownloadId);
         }
 
         return jsonElementResult;
