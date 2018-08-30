@@ -574,15 +574,14 @@ public class EventDisplay {
                         // Note: <mx-reply> tag has been removed by HtmlToolbox.convert()
 
                         // Replace <blockquote><a href=\"__permalink__\">In reply to</a>
-                        // By <blockquote><a href=\"#\">['In reply to' from resources]</a>
+                        // By <blockquote>['In reply to' from resources]
                         // To disable the link and to localize the "In reply to" string
                         if (htmlBody.startsWith(MESSAGE_IN_REPLY_TO_FIRST_PART)) {
                             final int index = htmlBody.indexOf(MESSAGE_IN_REPLY_TO_LAST_PART);
                             if (index != -1) {
                                 htmlBody = MESSAGE_IN_REPLY_TO_FIRST_PART
-                                        + "<a href=\"#\">"
                                         + context.getString(R.string.message_reply_to_prefix)
-                                        + htmlBody.substring(index);
+                                        + htmlBody.substring(index + MESSAGE_IN_REPLY_TO_LAST_PART.length());
                             }
                         }
                     }

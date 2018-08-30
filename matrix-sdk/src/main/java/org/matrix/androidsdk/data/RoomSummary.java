@@ -31,7 +31,6 @@ import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.util.Log;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -515,7 +514,11 @@ public class RoomSummary implements java.io.Serializable {
      * @param roomTags the room tags
      */
     public void setRoomTags(final Set<String> roomTags) {
-        // wraps the set into a serializable one
-        mRoomTags = new HashSet<>(roomTags);
+        if (roomTags != null) {
+            // wraps the set into a serializable one
+            mRoomTags = new HashSet<>(roomTags);
+        } else {
+            mRoomTags = new HashSet<>();
+        }
     }
 }

@@ -599,6 +599,12 @@ public class MXMediasCache {
             File file = new File(getFolderFile(null), filename);
             FileOutputStream fos = new FileOutputStream(file.getPath());
 
+            // We got an java.lang.IllegalStateException: Can't compress a recycled bitmap
+            if (bitmap.isRecycled()) {
+                Log.w(LOG_TAG, "Trying to compress a recycled Bitmap. Create a copy first.");
+                bitmap = Bitmap.createBitmap(bitmap);
+            }
+
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
 
             fos.flush();

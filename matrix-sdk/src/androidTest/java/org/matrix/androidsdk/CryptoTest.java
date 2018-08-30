@@ -153,8 +153,8 @@ public class CryptoTest {
 
         IMXStore store = new MXFileStore(hs, context);
 
-        MXSession bobSession2 = new MXSession(hs, new MXDataHandler(store, bobCredentials), context);
-
+        MXSession bobSession2 = new MXSession.Builder(hs, new MXDataHandler(store, bobCredentials), context)
+                .build();
 
         final CountDownLatch lock1 = new CountDownLatch(1);
         MXStoreListener listener = new MXStoreListener() {
@@ -321,7 +321,8 @@ public class CryptoTest {
 
         IMXStore store = new MXFileStore(hs, context);
 
-        MXSession bobSession2 = new MXSession(hs, new MXDataHandler(store, bobCredentials), context);
+        MXSession bobSession2 = new MXSession.Builder(hs, new MXDataHandler(store, bobCredentials), context)
+                .build();
 
         final CountDownLatch lock4 = new CountDownLatch(1);
 
@@ -489,7 +490,8 @@ public class CryptoTest {
 
         IMXStore store = new MXFileStore(hs, context);
 
-        MXSession bobSession2 = new MXSession(hs, new MXDataHandler(store, bobCredentials), context);
+        MXSession bobSession2 = new MXSession.Builder(hs, new MXDataHandler(store, bobCredentials), context)
+                .build();
 
         final CountDownLatch lock5 = new CountDownLatch(1);
 
@@ -847,7 +849,8 @@ public class CryptoTest {
 
         final CountDownLatch lock1 = new CountDownLatch(1);
 
-        final MXSession aliceSession2 = new MXSession(hs, new MXDataHandler(store, aliceCredentials), context);
+        final MXSession aliceSession2 = new MXSession.Builder(hs, new MXDataHandler(store, aliceCredentials), context)
+                .build();
 
         MXStoreListener listener = new MXStoreListener() {
             @Override
@@ -977,7 +980,8 @@ public class CryptoTest {
 
         IMXStore store = new MXFileStore(hs, context);
 
-        MXSession aliceSession2 = new MXSession(hs, new MXDataHandler(store, aliceCredentials2), context);
+        MXSession aliceSession2 = new MXSession.Builder(hs, new MXDataHandler(store, aliceCredentials2), context)
+                .build();
 
         aliceSession2.enableCryptoWhenStarting();
 
@@ -1064,7 +1068,8 @@ public class CryptoTest {
 
         final CountDownLatch lock1 = new CountDownLatch(2);
 
-        MXSession bobSession2 = new MXSession(hs, new MXDataHandler(store, bobCredentials), context);
+        MXSession bobSession2 = new MXSession.Builder(hs, new MXDataHandler(store, bobCredentials), context)
+                .build();
 
         MXEventListener eventListener = new MXEventListener() {
             @Override
@@ -2257,7 +2262,8 @@ public class CryptoTest {
 
         IMXStore store = new MXFileStore(hs, context);
 
-        MXSession aliceSession2 = new MXSession(hs, new MXDataHandler(store, aliceCredentials2), context);
+        MXSession aliceSession2 = new MXSession.Builder(hs, new MXDataHandler(store, aliceCredentials2), context)
+                .build();
 
         aliceSession2.enableCryptoWhenStarting();
 
