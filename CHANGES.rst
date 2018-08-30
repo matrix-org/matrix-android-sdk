@@ -1,8 +1,5 @@
-Changes to Matrix Android SDK in 0.9.9 (2018-XX-XX)
+Changes to Matrix Android SDK in 0.9.9 (2018-08-30)
 =======================================================
-
-Features:
- -
 
 Improvements:
  - Clear unreachable Url when clearing media cache (vector-im/riot-android#2479)
@@ -14,18 +11,6 @@ Bugfix:
 
 API Change:
  - MxSession constructor is now private. Please use MxSession.Builder() to create a MxSession
-
-Translations:
- -
-
-Others:
- -
-
-Build:
- -
-
-Test:
- -
 
 Changes to Matrix Android SDK in 0.9.8 (2018-08-27)
 =======================================================
