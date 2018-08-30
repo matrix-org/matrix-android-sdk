@@ -20,6 +20,7 @@ package org.matrix.androidsdk;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.Gson;
@@ -169,6 +170,10 @@ public class MXDataHandler implements IMXEventListener {
 
     // groups manager
     private GroupsManager mGroupsManager;
+
+    // Resource limit exceeded error
+    @Nullable
+    private MatrixError mResourceLimitExceededError;
 
     /**
      * Default constructor.
@@ -400,6 +405,16 @@ public class MXDataHandler implements IMXEventListener {
         if (null != mRequestNetworkErrorListener) {
             mRequestNetworkErrorListener.onSSLCertificateError(exception);
         }
+    }
+
+    /**
+     * Get the last resource limit exceeded error if any or null
+     *
+     * @return the last resource limit exceeded error if any or null
+     */
+    @Nullable
+    public MatrixError getResourceLimitExceededError() {
+        return mResourceLimitExceededError;
     }
 
     /**
@@ -1945,6 +1960,9 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onLiveEventsChunkProcessed(final String startToken, final String toToken) {
+        // reset the resource limit exceeded error
+        mResourceLimitExceededError = null;
+
         refreshUnreadCounters();
 
         if (null != mCryptoEventsListener) {
@@ -2167,6 +2185,11 @@ public class MXDataHandler implements IMXEventListener {
 
     @Override
     public void onSyncError(final MatrixError matrixError) {
+        // Store the resource limit exceeded error
+        if (MatrixError.RESOURCE_LIMIT_EXCEEDED.equals(matrixError.errcode)) {
+            mResourceLimitExceededError = matrixError;
+        }
+
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {

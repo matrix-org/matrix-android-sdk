@@ -10,6 +10,7 @@ Improvements:
 
 Bugfix:
  - Removing room from 'low priority' or 'favorite' does not work (vector-im/riot-android#2526)
+ - MatrixError mResourceLimitExceededError is now managed in MxDataHandler (vector-im/riot-android#2547)
 
 API Change:
  - MxSession constructor is now private. Please use MxSession.Builder() to create a MxSession
