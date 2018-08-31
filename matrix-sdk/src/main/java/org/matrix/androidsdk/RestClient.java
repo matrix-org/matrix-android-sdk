@@ -29,12 +29,13 @@ import android.util.Pair;
 import com.facebook.stetho.okhttp3.StethoInterceptor;
 import com.google.gson.Gson;
 
+import org.matrix.androidsdk.interceptors.CurlLoggingInterceptor;
+import org.matrix.androidsdk.interceptors.FormattedJsonHttpLogger;
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.client.MXRestExecutorService;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.ssl.CertUtil;
-import org.matrix.androidsdk.util.FormattedJsonHttpLogger;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.PolymorphicRequestBodyConverter;
@@ -159,6 +160,7 @@ public class RestClient<T> {
             }
         };
 
+        // TODO Remove this, seems so useless
         Interceptor connectivityInterceptor = new Interceptor() {
             @Override
             public Response intercept(Chain chain) throws IOException {
@@ -171,17 +173,22 @@ public class RestClient<T> {
             }
         };
 
-        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(new FormattedJsonHttpLogger());
-        loggingInterceptor.setLevel(BuildConfig.OKHTTP_LOGGING_LEVEL);
-
         OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient().newBuilder()
                 .connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .readTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .writeTimeout(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .addInterceptor(authentInterceptor)
-                .addInterceptor(connectivityInterceptor)
-                .addInterceptor(loggingInterceptor)
-                .addNetworkInterceptor(new StethoInterceptor());
+                .addInterceptor(connectivityInterceptor);
+
+        if (BuildConfig.DEBUG) {
+            HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(new FormattedJsonHttpLogger());
+            loggingInterceptor.setLevel(BuildConfig.OKHTTP_LOGGING_LEVEL);
+
+            okHttpClientBuilder
+                    .addInterceptor(loggingInterceptor)
+                    .addNetworkInterceptor(new StethoInterceptor())
+                    .addInterceptor(new CurlLoggingInterceptor());
+        }
 
 
         if (mUseMXExecutor) {
