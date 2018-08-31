@@ -178,9 +178,6 @@ public class MXSession {
     // tell if the data save mode is enabled
     private boolean mUseDataSaveMode;
 
-    // tell if the lazy loading is enabled
-    private boolean mUseLazyLoading;
-
     // the groups manager
     private GroupsManager mGroupsManager;
 
@@ -1009,27 +1006,12 @@ public class MXSession {
     }
 
     /**
-     * Update the data save mode. Deprecated by setSyncFilterOrFilterId()
+     * Update the data save mode.
      *
      * @param enabled true to enable the data save mode
      */
-    @Deprecated
     public void setUseDataSaveMode(boolean enabled) {
         mUseDataSaveMode = enabled;
-
-        if (mEventsThread != null) {
-            setSyncFilter(mCurrentFilter);
-        }
-    }
-
-    /**
-     * Update the lazy loading mode
-     * Do not use this method to enable the lazy loading. Use {@link #canEnableLazyLoading(ApiCallback)}
-     *
-     * @param enabled true to enable the lazy loading
-     */
-    public void setUseLazyLoading(boolean enabled) {
-        mUseLazyLoading = enabled;
 
         if (mEventsThread != null) {
             setSyncFilter(mCurrentFilter);
@@ -1047,7 +1029,7 @@ public class MXSession {
 
         // Enable Data save mode and/or LazyLoading
         FilterUtil.enableDataSaveMode(mCurrentFilter, mUseDataSaveMode);
-        FilterUtil.enableLazyLoading(mCurrentFilter, mUseLazyLoading);
+        FilterUtil.enableLazyLoading(mCurrentFilter, mDataHandler.isLazyLoadingEnabled());
 
         convertFilterToFilterId();
     }
@@ -2606,7 +2588,7 @@ public class MXSession {
          * Create a pusher rest client, overriding the push server url if necessary
          *
          * @param pushServerUrl the push server url, or null or empty to use the default PushersRestClient
-         * @return
+         * @return this builder, to chain calls
          */
         public Builder withPushServerUrl(@Nullable String pushServerUrl) {
             // If not empty, create a special PushersRestClient
@@ -2631,14 +2613,23 @@ public class MXSession {
             return this;
         }
 
+        /**
+         * Set the metrics listener of this session
+         *
+         * @param metricsListener the metrics listener
+         * @return this builder, to chain calls
+         */
         public Builder withMetricsListener(@Nullable MetricsListener metricsListener) {
             mxSession.mMetricsListener = metricsListener;
 
             return this;
         }
 
-        // TODO LazyLoading: add useLazyLoading() method to this builder
-
+        /**
+         * Build the session
+         *
+         * @return the build session
+         */
         public MXSession build() {
             return mxSession;
         }
