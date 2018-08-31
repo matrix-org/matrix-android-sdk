@@ -103,9 +103,11 @@ public class RoomState implements Externalizable {
     private Map<String, List<Event>> mStateEvents = new HashMap<>();
 
     // Informs which alias is the canonical one.
+    // TODO LazyLoading Manu: Alias what is this?
     public String alias;
 
     // The canonical alias of the room, if any.
+    // TODO LazyLoading Manu: Alias what is this?
     public String canonical_alias;
 
     // The name of the room as provided by the home server.
@@ -140,6 +142,7 @@ public class RoomState implements Externalizable {
     public String history_visibility;
 
     // the public room alias / name
+    // TODO LazyLoading Manu: Alias what is this?
     public String roomAliasName;
 
     /**
@@ -407,12 +410,28 @@ public class RoomState implements Externalizable {
     }
 
     /**
+     * @return a copy of the displayable members list. May be incomplete if the full list is not loaded yet
+     */
+    public List<RoomMember> getDisplayableLoadedMembers() {
+        List<RoomMember> res = getLoadedMembers();
+
+        RoomMember conferenceUserId = getMember(MXCallsManager.getConferenceUserId(roomId));
+
+        if (null != conferenceUserId) {
+            res.remove(conferenceUserId);
+        }
+
+        return res;
+    }
+
+
+    /**
      * Provides a list of displayable members.
      * Some dummy members are created to internal stuff.
      *
      * @param callback The callback to get a copy of the displayable room members list.
      */
-    public void getDisplayableMembers(final ApiCallback<List<RoomMember>> callback) {
+    public void getDisplayableMembersAsync(final ApiCallback<List<RoomMember>> callback) {
         getMembersAsync(new SimpleApiCallback<List<RoomMember>>(callback) {
             @Override
             public void onSuccess(List<RoomMember> members) {
