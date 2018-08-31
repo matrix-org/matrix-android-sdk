@@ -524,6 +524,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void updateCanonicalAlias(final String roomId, final String canonicalAlias, final ApiCallback<Void> callback) {
         final String description = "updateCanonicalAlias : roomId " + roomId + " canonicalAlias " + canonicalAlias;
 
+        // FIXME Do not use a RoomState object to do this request, create a new object (same for all other next method)
         RoomState roomState = new RoomState();
         roomState.alias = canonicalAlias;
 
