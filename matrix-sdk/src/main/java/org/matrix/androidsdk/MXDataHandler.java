@@ -177,6 +177,9 @@ public class MXDataHandler implements IMXEventListener {
     @Nullable
     private MatrixError mResourceLimitExceededError;
 
+    // tell if the lazy loading is enabled
+    private boolean mIsLazyLoadingEnabled;
+
     /**
      * Default constructor.
      *
@@ -194,6 +197,14 @@ public class MXDataHandler implements IMXEventListener {
         mSyncHandler = new MXOsHandler(mSyncHandlerThread.getLooper());
 
         mLeftRoomsStore = new MXMemoryStore(credentials, store.getContext());
+    }
+
+    public void setLazyLoadingEnabled(boolean enabled) {
+        mIsLazyLoadingEnabled = enabled;
+    }
+
+    public boolean isLazyLoadingEnabled() {
+        return mIsLazyLoadingEnabled;
     }
 
     /**
