@@ -551,7 +551,7 @@ public class RoomSummary implements java.io.Serializable {
 
             mIsConferenceUserRoom = false;
 
-            // FIXME Heroes does not contains me
+            // FIXME LazyLoading Heroes does not contains me
             // FIXME I'ms not sure this code will work anymore
 
             Collection<String> membersId = getHeroes();

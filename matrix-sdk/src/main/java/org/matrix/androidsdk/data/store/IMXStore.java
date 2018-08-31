@@ -392,8 +392,9 @@ public interface IMXStore {
      * Get the stored summary for the given room.
      *
      * @param roomId the room id
-     * @return the summary for the room
+     * @return the summary for the room, or null in case of error
      */
+    @Nullable
     RoomSummary getSummary(String roomId);
 
     /**

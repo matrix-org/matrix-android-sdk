@@ -267,7 +267,7 @@ public class RoomState implements Externalizable {
      * Get the list of all the room members. Fetch from server if the full list is not loaded yet.
      */
     public void getMembersAsync(ApiCallback<List<RoomMember>> callback) {
-        if (mAllMembersAreLoaded) {
+        if (areAllMembersLoaded()) {
             List<RoomMember> res;
 
             synchronized (this) {
@@ -314,6 +314,17 @@ public class RoomState implements Externalizable {
                 });
             }
         }
+    }
+
+    /**
+     * Tell if all members has been loaded
+     *
+     * @return true is LazyLoading is Off, or if all members has been loaded
+     */
+    // TODO LazyLoading maybe compare size of mMembers with number of users instead of using mAllMembersAreLoaded
+    private boolean areAllMembersLoaded() {
+        return mDataHandler != null
+                && (!((MXDataHandler) mDataHandler).isLazyLoadingEnabled() || mAllMembersAreLoaded);
     }
 
     /**
@@ -465,6 +476,7 @@ public class RoomState implements Externalizable {
         }
 
         if (member == null) {
+            // TODO LazyLoading
             Log.e(LOG_TAG, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Null member !!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         }
 
@@ -491,6 +503,7 @@ public class RoomState implements Externalizable {
         }
 
         if (member == null) {
+            // TODO LazyLoading
             Log.e(LOG_TAG, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Null member !!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         }
 
@@ -784,7 +797,7 @@ public class RoomState implements Externalizable {
      * @param selfUserId this user's user id (to exclude from members)
      * @return the display name
      */
-    // TODO Use RoomSummary
+    // TODO LazyLoading Use RoomSummary
     public String getDisplayName(String selfUserId) {
         String displayName = null;
         String alias = getAlias();
