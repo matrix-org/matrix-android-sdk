@@ -1014,6 +1014,7 @@ public class MXMemoryStore implements IMXStore {
             Room room = mRooms.get(roomId);
             if (null != room) {
                 if (null == room.getMember(mCredentials.userId)) {
+                    // TODO it happens with LazyLoading, fix this
                     Log.e(LOG_TAG, "## getSummaries() : a summary exists for the roomId " + roomId + " but the user is not anymore a member");
                 } else {
                     summaries.add(mRoomSummaries.get(roomId));
@@ -1026,6 +1027,7 @@ public class MXMemoryStore implements IMXStore {
         return summaries;
     }
 
+    @Nullable
     @Override
     public RoomSummary getSummary(String roomId) {
         // sanity check

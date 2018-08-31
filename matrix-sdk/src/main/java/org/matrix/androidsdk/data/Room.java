@@ -3088,19 +3088,32 @@ public class Room {
         return mDataHandler.getDirectChatRoomIdsList().contains(getRoomId());
     }
 
+    @Nullable
     public RoomSummary getRoomSummary() {
         return getDataHandler().getStore().getSummary(getRoomId());
     }
 
     public int getNumberOfMembers() {
-        return getRoomSummary().getNumberOfJoinedMembers() + getRoomSummary().getNumberOfInvitedMembers();
+        return getNumberOfJoinedMembers() + getNumberOfInvitedMembers();
     }
 
     public int getNumberOfJoinedMembers() {
-        return getRoomSummary().getNumberOfJoinedMembers();
+        RoomSummary roomSummary = getRoomSummary();
+
+        if (roomSummary != null) {
+            return roomSummary.getNumberOfJoinedMembers();
+        } else {
+            return 0;
+        }
     }
 
     public int getNumberOfInvitedMembers() {
-        return getRoomSummary().getNumberOfInvitedMembers();
+        RoomSummary roomSummary = getRoomSummary();
+
+        if (roomSummary != null) {
+            return roomSummary.getNumberOfInvitedMembers();
+        } else {
+            return 0;
+        }
     }
 }
