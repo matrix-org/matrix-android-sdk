@@ -591,6 +591,7 @@ public class RoomSummary implements java.io.Serializable {
         }
     }
 
+    @NonNull
     public List<String> getHeroes() {
         return mHeroes;
     }
