@@ -48,7 +48,6 @@ public class RoomSummary implements java.io.Serializable {
     private static final long serialVersionUID = -3683013938626566489L;
 
     private String mRoomId = null;
-    private String mName = null;
     private String mTopic = null;
     private Event mLatestReceivedEvent = null;
 
@@ -261,36 +260,6 @@ public class RoomSummary implements java.io.Serializable {
     }
 
     /**
-     * Compute the room summary display name.
-     *
-     * @return the room summary display name.
-     */
-    public String getRoomName() {
-        String name = mName;
-
-        // when invited, the only received message should be the invitation one
-        if (isInvited()) {
-            if (null != mLatestReceivedEvent) {
-                String inviterName;
-
-                // try to retrieve a display name
-                if (null != mLatestRoomState) {
-                    inviterName = mLatestRoomState.getMemberName(mLatestReceivedEvent.getSender());
-                } else {
-                    // use the stored one
-                    inviterName = mInviterName;
-                }
-
-                if (null != inviterName) {
-                    name = inviterName;
-                }
-            }
-        }
-
-        return name;
-    }
-
-    /**
      * @return the topic.
      */
     public String getRoomTopic() {
@@ -346,17 +315,6 @@ public class RoomSummary implements java.io.Serializable {
     }
 
     /**
-     * Set the room's {@link org.matrix.androidsdk.rest.model.Event#EVENT_TYPE_STATE_ROOM_NAME}.
-     *
-     * @param name The name
-     * @return This summary for chaining calls.
-     */
-    public RoomSummary setName(String name) {
-        mName = name;
-        return this;
-    }
-
-    /**
      * Set the room's ID..
      *
      * @param roomId The room ID
@@ -379,7 +337,6 @@ public class RoomSummary implements java.io.Serializable {
         setLatestRoomState(roomState);
 
         if (null != roomState) {
-            setName(roomState.getDisplayName(getMatrixId()));
             setTopic(roomState.topic);
         }
         return this;

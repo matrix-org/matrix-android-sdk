@@ -21,7 +21,6 @@ import android.os.Looper;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXSession;
-
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
@@ -199,7 +198,8 @@ public class RoomPreviewData {
                             mRoomState.applyState(null, event, EventTimeline.Direction.FORWARDS);
                         }
 
-                        mRoomName = mRoomState.getDisplayName(mSession.getMyUserId());
+                        // TODO LazyLoading handle case where room has no name
+                        mRoomName = mRoomState.name;
                         mRoomAvatarUrl = mRoomState.getAvatarUrl();
                         return null;
                     }

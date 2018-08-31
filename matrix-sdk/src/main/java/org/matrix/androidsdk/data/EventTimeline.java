@@ -578,19 +578,6 @@ public class EventTimeline {
                                 }
                                 mStore.storeSummary(summary);
 
-                                String eventType = event.getType();
-
-                                // Watch for potential room name changes
-                                if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType)
-                                        || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(eventType)
-                                        || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
-
-
-                                    if (null != summary) {
-                                        summary.setName(mRoom.getName(myUserId));
-                                    }
-                                }
-
                                 mStore.commit();
                                 break;
                             }
@@ -689,17 +676,6 @@ public class EventTimeline {
             }
 
             mStore.storeSummary(summary);
-
-            String eventType = event.getType();
-
-            // Watch for potential room name changes
-            if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType)
-                    || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(eventType)
-                    || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
-                if (null != summary) {
-                    summary.setName(mRoom.getName(myUserId));
-                }
-            }
         }
     }
 
