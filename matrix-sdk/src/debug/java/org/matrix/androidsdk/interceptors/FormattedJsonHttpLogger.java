@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.util;
+package org.matrix.androidsdk.interceptors;
 
 import android.support.annotation.NonNull;
 
@@ -22,6 +22,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.matrix.androidsdk.BuildConfig;
+import org.matrix.androidsdk.util.Log;
 
 import okhttp3.internal.platform.Platform;
 import okhttp3.logging.HttpLoggingInterceptor;
