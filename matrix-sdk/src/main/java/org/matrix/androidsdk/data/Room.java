@@ -541,10 +541,6 @@ public class Room {
         return getState().topic;
     }
 
-    public String getName(String selfUserId) {
-        return getState().getDisplayName(selfUserId);
-    }
-
     public String getVisibility() {
         return getState().visibility;
     }
