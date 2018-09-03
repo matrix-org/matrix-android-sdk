@@ -46,11 +46,11 @@ public class LazyLoadingTestHelper {
     /**
      * Create a base scenario for all lazy loading tests
      * Common initial conditions:
-     * - Alice, Bob in a room
-     * - Charlie joins the room
+     * - Bob create a public room named "LazyLoading Test Room"
+     * - Sam and Alice join the room
      * - Dave is invited
      * - Alice sends 50 messages
-     * - Bob sends one message
+     * - Bob sends 1 message
      * - Alice sends 50 messages
      * - Alice makes an initial /sync with lazy-loading enabled or not
      *
