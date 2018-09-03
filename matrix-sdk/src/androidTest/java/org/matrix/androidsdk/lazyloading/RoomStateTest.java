@@ -45,8 +45,13 @@ public class RoomStateTest {
         RoomState_InitialSync(false);
     }
 
+    @Test
+    public void RoomState_InitialSync_ShouldLoadAllMembers_LL() throws Exception {
+        RoomState_InitialSync(true);
+    }
+
     private void RoomState_InitialSync(final boolean withLazyLoading) throws Exception {
-        final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario();
+        final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario(withLazyLoading);
         mTestHelper.syncSession(data.aliceSession, false);
         final Room aliceRoom = data.aliceSession.getDataHandler().getRoom(data.roomId);
         if (withLazyLoading) {
@@ -63,8 +68,13 @@ public class RoomStateTest {
         RoomState_IncomingMessage(false);
     }
 
+    @Test
+    public void RoomState_IncomingMessage_ShouldLoadAllMembers_LL() throws Exception {
+        RoomState_IncomingMessage(true);
+    }
+
     private void RoomState_IncomingMessage(final boolean withLazyLoading) throws Exception {
-        final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario();
+        final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario(withLazyLoading);
         mTestHelper.syncSession(data.aliceSession, false);
         mTestHelper.syncSession(data.samSession, false);
         final Room aliceRoom = data.aliceSession.getDataHandler().getRoom(data.roomId);
@@ -92,8 +102,13 @@ public class RoomStateTest {
         RoomState_BackPaginate(false);
     }
 
+    @Test
+    public void RoomState_BackPaginate_ShouldLoadAllMembers_LL() throws Exception {
+        RoomState_BackPaginate(true);
+    }
+
     private void RoomState_BackPaginate(final boolean withLazyLoading) throws Exception {
-        final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario();
+        final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario(withLazyLoading);
         mTestHelper.syncSession(data.aliceSession, false);
         final Room aliceRoom = data.aliceSession.getDataHandler().getRoom(data.roomId);
         final CountDownLatch lock = new CountDownLatch(1);
@@ -135,8 +150,13 @@ public class RoomStateTest {
         RoomState_Permalink(false);
     }
 
+    @Test
+    public void RoomState_Permalink_ShouldLoadAllMembers_LL() throws Exception {
+        RoomState_Permalink(true);
+    }
+
     private void RoomState_Permalink(final boolean withLazyLoading) throws Exception {
-        final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario();
+        final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario(withLazyLoading);
         mTestHelper.syncSession(data.aliceSession, false);
         final Room aliceRoom = data.aliceSession.getDataHandler().getRoom(data.roomId);
         final Event lastEvent = aliceRoom.getDataHandler().getStore().getLatestEvent(data.roomId);
@@ -165,8 +185,13 @@ public class RoomStateTest {
         RoomState_PermalinkWithBackPagination(false);
     }
 
+    @Test
+    public void RoomState_PermalinkWithBackPagination_ShouldLoadAllMembers_LL() throws Exception {
+        RoomState_PermalinkWithBackPagination(true);
+    }
+
     private void RoomState_PermalinkWithBackPagination(final boolean withLazyLoading) throws Exception {
-        final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario();
+        final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario(withLazyLoading);
         mTestHelper.syncSession(data.aliceSession, false);
         final Room aliceRoom = data.aliceSession.getDataHandler().getRoom(data.roomId);
         final CountDownLatch lock = new CountDownLatch(1);
@@ -214,13 +239,18 @@ public class RoomStateTest {
         RoomState_PermalinkWithForwardPagination(false);
     }
 
+    @Test
+    public void RoomState_PermalinkWithForwardPagination_ShouldLoadAllMembers_LL() throws Exception {
+        RoomState_PermalinkWithForwardPagination(true);
+    }
+
     // Test lazy loaded members sent by the HS when paginating forward
     // - Come back to Bob message
     // - We should only know Bob membership
     // - Paginate forward to get Alice next message
     // - We should know Alice membership now
     private void RoomState_PermalinkWithForwardPagination(final boolean withLazyLoading) throws Exception {
-        final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario();
+        final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario(withLazyLoading);
         mTestHelper.syncSession(data.aliceSession, false);
         final CountDownLatch lock = new CountDownLatch(1);
         final EventTimeline eventTimeline = new EventTimeline(data.aliceSession.getDataHandler(), data.roomId, data.bobMessageId);
