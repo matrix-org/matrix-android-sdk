@@ -24,7 +24,7 @@ public class Triple<A, B, C> {
     public C third;
 
     /**
-     * Constructor for a Pair.
+     * Constructor for a Triple.
      *
      * @param first  the first object in the Triple
      * @param second the second object in the Triple
