@@ -95,7 +95,11 @@ public class CurlLoggingInterceptor implements Interceptor {
             curlCmd += " -H " + "\"" + name + ": " + value + "\"";
         }
 
-        curlCmd += ((compressed) ? " --compressed " : " ") + request.url().toString().replaceAll("!", "\\!");
+        curlCmd += ((compressed) ? " --compressed " : " ") + request.url().toString()
+                // Escape '!' because it is interpreted by the shell prompt
+                .replaceAll("!", "\\!")
+                // Replace localhost for emulator by localhost for shell
+                .replaceAll("://10.0.2.2:8080/", "://127.0.0.1:8080/");
 
         // Add Json formatting
         curlCmd += " | python -m json.tool";
