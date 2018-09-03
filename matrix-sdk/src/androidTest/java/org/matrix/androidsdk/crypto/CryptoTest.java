@@ -82,7 +82,6 @@ public class CryptoTest {
     private static final List<String> messagesFromBob = Arrays.asList("1 - Hello I'm Bob!", "2 - Isn't life grand?", "3 - Let's go to the opera.");
 
     private String mRoomId;
-    private int mMessagesCount;
     private int mReceivedMessagesFromAlice;
     private int mReceivedMessagesFromBob;
 
@@ -3378,7 +3377,7 @@ public class CryptoTest {
 
     /**
      *
-     * @return Alice, Bob and Sam session
+     * @return Alice, Bbob and sam session
      * @throws Exception
      */
     private Triple<MXSession, MXSession, MXSession> doE2ETestWithAliceAndBobAndSamInARoom() throws Exception {
@@ -3482,7 +3481,7 @@ public class CryptoTest {
         final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(mRoomId);
         final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
 
-        mMessagesCount = 0;
+        final int[] messagesCount = {0};
 
         final List<CountDownLatch> list = new ArrayList<>();
 
@@ -3490,7 +3489,7 @@ public class CryptoTest {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), bobSession.getMyUserId())) {
-                    mMessagesCount++;
+                    messagesCount[0]++;
                     list.get(0).countDown();
                 }
             }
@@ -3522,41 +3521,41 @@ public class CryptoTest {
         roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(0), aliceSession), callback);
         lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
-        Assert.assertEquals(1, mMessagesCount);
+        Assert.assertEquals(1, messagesCount[0]);
 
         lock = new CountDownLatch(1);
         list.clear();
         list.add(lock);
         roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(0), bobSession), callback);
         // android does not echo the messages sent from itself
-        mMessagesCount++;
+        messagesCount[0]++;
         lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertEquals(2, mMessagesCount);
+        Assert.assertEquals(2, messagesCount[0]);
 
         lock = new CountDownLatch(1);
         list.clear();
         list.add(lock);
         roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(1), bobSession), callback);
         // android does not echo the messages sent from itself
-        mMessagesCount++;
+        messagesCount[0]++;
         lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertEquals(3, mMessagesCount);
+        Assert.assertEquals(3, messagesCount[0]);
 
         lock = new CountDownLatch(1);
         list.clear();
         list.add(lock);
         roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(2), bobSession), callback);
         // android does not echo the messages sent from itself
-        mMessagesCount++;
+        messagesCount[0]++;
         lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertEquals(4, mMessagesCount);
+        Assert.assertEquals(4, messagesCount[0]);
 
         lock = new CountDownLatch(2);
         list.clear();
         list.add(lock);
         roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(1), aliceSession), callback);
         lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertEquals(5, mMessagesCount);
+        Assert.assertEquals(5, messagesCount[0]);
         
         return pair;
     }
