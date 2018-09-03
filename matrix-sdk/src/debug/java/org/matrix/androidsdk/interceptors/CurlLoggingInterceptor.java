@@ -95,7 +95,7 @@ public class CurlLoggingInterceptor implements Interceptor {
             curlCmd += " -H " + "\"" + name + ": " + value + "\"";
         }
 
-        curlCmd += ((compressed) ? " --compressed " : " ") + request.url();
+        curlCmd += ((compressed) ? " --compressed " : " ") + request.url().toString().replaceAll("!", "\\!");
 
         // Add Json formatting
         curlCmd += " | python -m json.tool";
