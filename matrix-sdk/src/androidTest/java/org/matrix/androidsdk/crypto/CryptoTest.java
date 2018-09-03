@@ -38,6 +38,7 @@ import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.common.CommonTestHelper;
+import org.matrix.androidsdk.common.SessionAndRoomId;
 import org.matrix.androidsdk.common.TestApiCallback;
 import org.matrix.androidsdk.common.TestConstants;
 import org.matrix.androidsdk.common.Triple;
@@ -80,8 +81,6 @@ public class CryptoTest {
 
     private static final List<String> messagesFromAlice = Arrays.asList("0 - Hello I'm Alice!", "4 - Go!");
     private static final List<String> messagesFromBob = Arrays.asList("1 - Hello I'm Bob!", "2 - Isn't life grand?", "3 - Let's go to the opera.");
-
-    private String mRoomId;
 
     @Test
     public void test01_testCryptoNoDeviceId() throws Exception {
@@ -589,21 +588,22 @@ public class CryptoTest {
         });
         lock0.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("enableCrypto"));
-        mRoomId = null;
+
+        final String[] roomId = {null};
 
         CountDownLatch lock1 = new CountDownLatch(1);
         bobSession.createRoom(new TestApiCallback<String>(lock1) {
             @Override
             public void onSuccess(String info) {
-                mRoomId = info;
+                roomId[0] = info;
                 super.onSuccess(info);
             }
         });
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertNotNull(mRoomId);
+        Assert.assertNotNull(roomId[0]);
 
-        Room room = bobSession.getDataHandler().getRoom(mRoomId);
+        Room room = bobSession.getDataHandler().getRoom(roomId[0]);
 
         Assert.assertFalse(room.isEncrypted());
 
@@ -629,11 +629,13 @@ public class CryptoTest {
 
         Context context = InstrumentationRegistry.getContext();
 
-        MXSession aliceSession = doE2ETestWithAliceInARoom();
+        SessionAndRoomId sessionAndRoomId = doE2ETestWithAliceInARoom();
+        MXSession aliceSession = sessionAndRoomId.first;
+        String aliceRoomId = sessionAndRoomId.second;
 
         final String message = "Hello myself!";
 
-        Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
+        Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         Assert.assertTrue(roomFromAlicePOV.isEncrypted());
 
@@ -642,7 +644,7 @@ public class CryptoTest {
         // the IOS client echoes the message
         // the android client does not
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(message, aliceSession), new TestApiCallback<Void>(lock1));
+        roomFromAlicePOV.sendEvent(buildTextEvent(message, aliceSession, aliceRoomId), new TestApiCallback<Void>(lock1));
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
 
@@ -656,21 +658,22 @@ public class CryptoTest {
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
 
-        Pair<MXSession, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
-        final MXSession aliceSession = pair.first;
+        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
+        final MXSession aliceSession = pair.first.first;
+        final String aliceRoomId = pair.first.second;
         final MXSession bobSession = pair.second;
 
         final String messageFromAlice = "Hello I'm Alice!";
 
-        Room roomFromBobPOV = bobSession.getDataHandler().getRoom(mRoomId);
-        Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
+        Room roomFromBobPOV = bobSession.getDataHandler().getRoom(aliceRoomId);
+        Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         Assert.assertTrue(roomFromBobPOV.isEncrypted());
         Assert.assertTrue(roomFromAlicePOV.isEncrypted());
 
         CountDownLatch lock1 = new CountDownLatch(1);
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession), new TestApiCallback<Void>(lock1) {
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession, aliceRoomId), new TestApiCallback<Void>(lock1) {
             @Override
             public void onMatrixError(MatrixError e) {
                 results.put("sendEventError", e);
@@ -705,7 +708,7 @@ public class CryptoTest {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                    checkEncryptedEvent(event, mRoomId, messageFromAlice, aliceSession);
+                    checkEncryptedEvent(event, aliceRoomId, messageFromAlice, aliceSession);
 
                     results.put("onLiveEvent", "onLiveEvent");
                     lock3.countDown();
@@ -723,7 +726,7 @@ public class CryptoTest {
 
         roomFromBobPOV.addEventListener(eventListener);
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession), new TestApiCallback<Void>(lock3));
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession, aliceRoomId), new TestApiCallback<Void>(lock3));
 
         lock3.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
@@ -742,15 +745,16 @@ public class CryptoTest {
     public void test08_testAliceAndBobInAEncryptedRoom2() throws Exception {
         Log.e(LOG_TAG, "test08_testAliceAndBobInAEncryptedRoom2");
 
-        Pair<MXSession, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
-        final MXSession aliceSession = pair.first;
+        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
+        final MXSession aliceSession = pair.first.first;
+        final String aliceRoomId = pair.first.second;
         final MXSession bobSession = pair.second;
 
         bobSession.getCrypto().setWarnOnUnknownDevices(false);
         aliceSession.getCrypto().setWarnOnUnknownDevices(false);
 
-        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(mRoomId);
-        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
+        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(aliceRoomId);
+        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         Assert.assertTrue(roomFromBobPOV.isEncrypted());
         Assert.assertTrue(roomFromAlicePOV.isEncrypted());
@@ -764,7 +768,7 @@ public class CryptoTest {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), bobSession.getMyUserId())) {
-                    checkEncryptedEvent(event, mRoomId, messagesFromAlice.get(nbReceivedMessagesFromAlice[0]), aliceSession);
+                    checkEncryptedEvent(event, aliceRoomId, messagesFromAlice.get(nbReceivedMessagesFromAlice[0]), aliceSession);
 
                     nbReceivedMessagesFromAlice[0]++;
                     list.get(list.size() - 1).countDown();
@@ -776,7 +780,7 @@ public class CryptoTest {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), aliceSession.getMyUserId())) {
-                    checkEncryptedEvent(event, mRoomId, messagesFromBob.get(nbReceivedMessagesFromBob[0]), bobSession);
+                    checkEncryptedEvent(event, aliceRoomId, messagesFromBob.get(nbReceivedMessagesFromBob[0]), bobSession);
                     nbReceivedMessagesFromBob[0]++;
 
                     list.get(list.size() - 1).countDown();
@@ -800,28 +804,28 @@ public class CryptoTest {
             }
         });
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(nbReceivedMessagesFromAlice[0]), aliceSession), callback);
+        roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(nbReceivedMessagesFromAlice[0]), aliceSession, aliceRoomId), callback);
         list.get(list.size() - 1).await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
         Assert.assertEquals(1, nbReceivedMessagesFromAlice[0]);
 
         list.add(new CountDownLatch(1));
-        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(nbReceivedMessagesFromBob[0]), bobSession), callback);
+        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(nbReceivedMessagesFromBob[0]), bobSession, aliceRoomId), callback);
         list.get(list.size() - 1).await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals(1, nbReceivedMessagesFromBob[0]);
 
         list.add(new CountDownLatch(1));
-        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(nbReceivedMessagesFromBob[0]), bobSession), callback);
+        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(nbReceivedMessagesFromBob[0]), bobSession, aliceRoomId), callback);
         list.get(list.size() - 1).await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals(2, nbReceivedMessagesFromBob[0]);
 
         list.add(new CountDownLatch(1));
-        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(nbReceivedMessagesFromBob[0]), bobSession), callback);
+        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(nbReceivedMessagesFromBob[0]), bobSession, aliceRoomId), callback);
         list.get(list.size() - 1).await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals(3, nbReceivedMessagesFromBob[0]);
 
         list.add(new CountDownLatch(1));
-        roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(nbReceivedMessagesFromAlice[0]), aliceSession), callback);
+        roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(nbReceivedMessagesFromAlice[0]), aliceSession, aliceRoomId), callback);
         list.get(list.size() - 1).await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals(2, nbReceivedMessagesFromAlice[0]);
     }
@@ -833,7 +837,9 @@ public class CryptoTest {
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
 
-        MXSession aliceSession = doE2ETestWithAliceInARoom();
+        SessionAndRoomId sessionAndRoomId = doE2ETestWithAliceInARoom();
+        MXSession aliceSession = sessionAndRoomId.first;
+        final String aliceRoomId = sessionAndRoomId.second;
 
         aliceSession.getCrypto().setWarnOnUnknownDevices(false);
 
@@ -899,7 +905,7 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("onInitialSyncComplete"));
         Assert.assertTrue(results.containsKey("onCryptoSyncComplete"));
 
-        Room roomFromAlicePOV2 = aliceSession2.getDataHandler().getRoom(mRoomId);
+        Room roomFromAlicePOV2 = aliceSession2.getDataHandler().getRoom(aliceRoomId);
 
         Assert.assertTrue(roomFromAlicePOV2.isEncrypted());
 
@@ -911,7 +917,7 @@ public class CryptoTest {
                 @Override
                 public void onLiveEvent(Event event, RoomState roomState) {
                     if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                        checkEncryptedEvent(event, mRoomId, message, aliceSession2);
+                        checkEncryptedEvent(event, aliceRoomId, message, aliceSession2);
 
                         lock2.countDown();
                     }
@@ -923,7 +929,7 @@ public class CryptoTest {
 
         // the IOS client echoes the message
         // the android client does not
-        roomFromAlicePOV2.sendEvent(buildTextEvent(message, aliceSession2), new TestApiCallback<Void>(lock2) {
+        roomFromAlicePOV2.sendEvent(buildTextEvent(message, aliceSession2, aliceRoomId), new TestApiCallback<Void>(lock2) {
             @Override
             public void onSuccess(Void info) {
                 results.put("sendEvent", "sendEvent");
@@ -944,16 +950,18 @@ public class CryptoTest {
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
 
-        MXSession aliceSession = doE2ETestWithAliceInARoom();
+        SessionAndRoomId sessionAndRoomId = doE2ETestWithAliceInARoom();
+        MXSession aliceSession = sessionAndRoomId.first;
+        String aliceRoomId = sessionAndRoomId.second;
 
         aliceSession.getCrypto().setWarnOnUnknownDevices(false);
 
         String message = "Hello myself!";
 
-        Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
+        Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         CountDownLatch lock1 = new CountDownLatch(1);
-        roomFromAlicePOV.sendEvent(buildTextEvent(message, aliceSession), new TestApiCallback<Void>(lock1) {
+        roomFromAlicePOV.sendEvent(buildTextEvent(message, aliceSession, aliceRoomId), new TestApiCallback<Void>(lock1) {
             @Override
             public void onSuccess(Void info) {
                 results.put("sendEvent", "sendEvent");
@@ -1034,12 +1042,12 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("onInitialSyncComplete"));
         Assert.assertTrue(results.containsKey("onCryptoSyncComplete"));
 
-        Room roomFromAlicePOV2 = aliceSession2.getDataHandler().getRoom(mRoomId);
+        Room roomFromAlicePOV2 = aliceSession2.getDataHandler().getRoom(aliceRoomId);
 
         Assert.assertNotNull(roomFromAlicePOV2);
         Assert.assertTrue(roomFromAlicePOV2.getState().isEncrypted());
 
-        Event event = roomFromAlicePOV2.getDataHandler().getStore().getLatestEvent(mRoomId);
+        Event event = roomFromAlicePOV2.getDataHandler().getStore().getLatestEvent(aliceRoomId);
         Assert.assertNotNull(event);
         Assert.assertTrue(event.isEncrypted());
         Assert.assertNull(event.getClearEvent());
@@ -1055,8 +1063,9 @@ public class CryptoTest {
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap();
 
-        Pair<MXSession, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
-        MXSession aliceSession = pair.first;
+        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
+        MXSession aliceSession = pair.first.first;
+        final String aliceRoomId = pair.first.second;
         MXSession bobSession = pair.second;
 
         Credentials bobCredentials = bobSession.getCredentials();
@@ -1095,7 +1104,7 @@ public class CryptoTest {
 
         Assert.assertNotNull(bobSession2.getCrypto());
 
-        Room roomFromBobPOV = bobSession2.getDataHandler().getRoom(mRoomId);
+        Room roomFromBobPOV = bobSession2.getDataHandler().getRoom(aliceRoomId);
 
         final CountDownLatch lock2 = new CountDownLatch(6);
         final List<Event> receivedEvents = new ArrayList<>();
@@ -1123,15 +1132,15 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("backPaginate"));
         Assert.assertEquals(receivedEvents.size() + " instead of 5", 5, receivedEvents.size());
 
-        checkEncryptedEvent(receivedEvents.get(0), mRoomId, messagesFromAlice.get(1), aliceSession);
+        checkEncryptedEvent(receivedEvents.get(0), aliceRoomId, messagesFromAlice.get(1), aliceSession);
 
-        checkEncryptedEvent(receivedEvents.get(1), mRoomId, messagesFromBob.get(2), bobSession);
+        checkEncryptedEvent(receivedEvents.get(1), aliceRoomId, messagesFromBob.get(2), bobSession);
 
-        checkEncryptedEvent(receivedEvents.get(2), mRoomId, messagesFromBob.get(1), bobSession);
+        checkEncryptedEvent(receivedEvents.get(2), aliceRoomId, messagesFromBob.get(1), bobSession);
 
-        checkEncryptedEvent(receivedEvents.get(3), mRoomId, messagesFromBob.get(0), bobSession);
+        checkEncryptedEvent(receivedEvents.get(3), aliceRoomId, messagesFromBob.get(0), bobSession);
 
-        checkEncryptedEvent(receivedEvents.get(4), mRoomId, messagesFromAlice.get(0), aliceSession);
+        checkEncryptedEvent(receivedEvents.get(4), aliceRoomId, messagesFromAlice.get(0), aliceSession);
 
         bobSession2.clear(context);
         aliceSession.clear(context);
@@ -1144,13 +1153,14 @@ public class CryptoTest {
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap();
 
-        Pair<MXSession, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
-        MXSession aliceSession = pair.first;
+        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
+        MXSession aliceSession = pair.first.first;
+        final String aliceRoomId = pair.first.second;
         MXSession bobSession = pair.second;
 
-        String eventId = bobSession.getDataHandler().getStore().getLatestEvent(mRoomId).eventId;
+        String eventId = bobSession.getDataHandler().getStore().getLatestEvent(aliceRoomId).eventId;
 
-        EventTimeline timeline = new EventTimeline(bobSession.getDataHandler(), mRoomId, eventId);
+        EventTimeline timeline = new EventTimeline(bobSession.getDataHandler(), aliceRoomId, eventId);
 
         final CountDownLatch lock2 = new CountDownLatch(6);
         final List<Event> receivedEvents = new ArrayList<>();
@@ -1177,15 +1187,15 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("backPaginate"));
         Assert.assertEquals(5, receivedEvents.size());
 
-        checkEncryptedEvent(receivedEvents.get(0), mRoomId, messagesFromAlice.get(1), aliceSession);
+        checkEncryptedEvent(receivedEvents.get(0), aliceRoomId, messagesFromAlice.get(1), aliceSession);
 
-        checkEncryptedEvent(receivedEvents.get(1), mRoomId, messagesFromBob.get(2), bobSession);
+        checkEncryptedEvent(receivedEvents.get(1), aliceRoomId, messagesFromBob.get(2), bobSession);
 
-        checkEncryptedEvent(receivedEvents.get(2), mRoomId, messagesFromBob.get(1), bobSession);
+        checkEncryptedEvent(receivedEvents.get(2), aliceRoomId, messagesFromBob.get(1), bobSession);
 
-        checkEncryptedEvent(receivedEvents.get(3), mRoomId, messagesFromBob.get(0), bobSession);
+        checkEncryptedEvent(receivedEvents.get(3), aliceRoomId, messagesFromBob.get(0), bobSession);
 
-        checkEncryptedEvent(receivedEvents.get(4), mRoomId, messagesFromAlice.get(0), aliceSession);
+        checkEncryptedEvent(receivedEvents.get(4), aliceRoomId, messagesFromAlice.get(0), aliceSession);
 
         bobSession.clear(context);
         aliceSession.clear(context);
@@ -1197,14 +1207,15 @@ public class CryptoTest {
 
         final Map<String, Object> results = new HashMap();
 
-        Pair<MXSession, MXSession> pair = doE2ETestWithAliceAndBobInARoom(false);
-        final MXSession aliceSession = pair.first;
+        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(false);
+        final MXSession aliceSession = pair.first.first;
+        final String aliceRoomId = pair.first.second;
         final MXSession bobSession = pair.second;
 
         aliceSession.getCrypto().setWarnOnUnknownDevices(false);
 
-        Room roomFromBobPOV = bobSession.getDataHandler().getRoom(mRoomId);
-        Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
+        Room roomFromBobPOV = bobSession.getDataHandler().getRoom(aliceRoomId);
+        Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         Assert.assertTrue(roomFromBobPOV.isEncrypted());
         Assert.assertTrue(roomFromAlicePOV.isEncrypted());
@@ -1225,7 +1236,7 @@ public class CryptoTest {
 
         roomFromBobPOV.addEventListener(bobEventListener);
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession, aliceRoomId), new SimpleApiCallback<Void>());
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("bobEcho"));
@@ -1253,7 +1264,7 @@ public class CryptoTest {
 
         roomFromAlicePOV.addEventListener(aliceEventListener);
 
-        roomFromBobPOV.sendEvent(buildTextEvent("Hello I'm Bob!", bobSession), new SimpleApiCallback<Void>());
+        roomFromBobPOV.sendEvent(buildTextEvent("Hello I'm Bob!", bobSession, aliceRoomId), new SimpleApiCallback<Void>());
 
         lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("aliceEcho"));
@@ -1269,18 +1280,19 @@ public class CryptoTest {
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
 
-        Triple<MXSession, MXSession, MXSession> triple = doE2ETestWithAliceAndBobAndSamInARoom();
-        MXSession aliceSession = triple.first;
+        Triple<SessionAndRoomId, MXSession, MXSession> triple = doE2ETestWithAliceAndBobAndSamInARoom();
+        MXSession aliceSession = triple.first.first;
+        final String aliceRoomId = triple.first.second;
         MXSession bobSession = triple.second;
         MXSession samSession = triple.third;
-        
+
         bobSession.getCrypto().setWarnOnUnknownDevices(false);
         aliceSession.getCrypto().setWarnOnUnknownDevices(false);
         samSession.getCrypto().setWarnOnUnknownDevices(false);
 
-        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(mRoomId);
-        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
-        final Room roomFromSamPOV = samSession.getDataHandler().getRoom(mRoomId);
+        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(aliceRoomId);
+        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
+        final Room roomFromSamPOV = samSession.getDataHandler().getRoom(aliceRoomId);
 
         Assert.assertNotNull(roomFromBobPOV);
         Assert.assertNotNull(roomFromAlicePOV);
@@ -1310,7 +1322,7 @@ public class CryptoTest {
         roomFromSamPOV.addEventListener(samEventsListener0);
 
         // even if the device blocked, the message must be decrypted until there is a session id rolling
-        roomFromBobPOV.sendEvent(buildTextEvent("msg1", bobSession), new TestApiCallback<Void>(lock0) {
+        roomFromBobPOV.sendEvent(buildTextEvent("msg1", bobSession, aliceRoomId), new TestApiCallback<Void>(lock0) {
             @Override
             public void onSuccess(Void info) {
                 results.put("send0", "send0");
@@ -1349,7 +1361,7 @@ public class CryptoTest {
         };
         roomFromSamPOV.addEventListener(samEventsListener1);
 
-        roomFromAlicePOV.sendEvent(buildTextEvent("msg1", aliceSession), new TestApiCallback<Void>(lock1) {
+        roomFromAlicePOV.sendEvent(buildTextEvent("msg1", aliceSession, aliceRoomId), new TestApiCallback<Void>(lock1) {
             @Override
             public void onSuccess(Void info) {
                 results.put("send1", "send1");
@@ -1400,7 +1412,7 @@ public class CryptoTest {
         roomFromSamPOV.addEventListener(samEventsListener2);
 
         // even if the device blocked, the message must be decrypted until there is a session id rolling
-        roomFromBobPOV.sendEvent(buildTextEvent("msg2", bobSession), new TestApiCallback<Void>(lock2) {
+        roomFromBobPOV.sendEvent(buildTextEvent("msg2", bobSession, aliceRoomId), new TestApiCallback<Void>(lock2) {
             @Override
             public void onSuccess(Void info) {
                 results.put("send2", "send2");
@@ -1449,7 +1461,7 @@ public class CryptoTest {
         roomFromAlicePOV.addEventListener(aliceEventsListener3);
 
         // even if the device blocked, the message must be decrypted until there is a session id rolling
-        roomFromBobPOV.sendEvent(buildTextEvent("msg3", bobSession), new TestApiCallback<Void>(lock4) {
+        roomFromBobPOV.sendEvent(buildTextEvent("msg3", bobSession, aliceRoomId), new TestApiCallback<Void>(lock4) {
             @Override
             public void onSuccess(Void info) {
                 results.put("send3", "send3");
@@ -1470,8 +1482,9 @@ public class CryptoTest {
         Log.e(LOG_TAG, "test15_testReplayAttack");
         final Map<String, Object> results = new HashMap<>();
 
-        Pair<MXSession, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
-        MXSession aliceSession = pair.first;
+        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
+        MXSession aliceSession = pair.first.first;
+        final String aliceRoomId = pair.first.second;
         final MXSession bobSession = pair.second;
 
         bobSession.getCrypto().setWarnOnUnknownDevices(false);
@@ -1479,8 +1492,8 @@ public class CryptoTest {
 
         String messageFromAlice = "Hello I'm Alice!";
 
-        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(mRoomId);
-        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
+        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(aliceRoomId);
+        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         Assert.assertTrue(roomFromBobPOV.isEncrypted());
         Assert.assertTrue(roomFromAlicePOV.isEncrypted());
@@ -1512,7 +1525,7 @@ public class CryptoTest {
             }
         });
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession, aliceRoomId), new SimpleApiCallback<Void>());
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
@@ -1526,7 +1539,7 @@ public class CryptoTest {
 
         // Decrypting it with no replay attack mitigation must still work
         bobSession.getDataHandler().decryptEvent(decryptedEvent, null);
-        checkEncryptedEvent(decryptedEvent, mRoomId, messageFromAlice, aliceSession);
+        checkEncryptedEvent(decryptedEvent, aliceRoomId, messageFromAlice, aliceSession);
     }
 
     @Test
@@ -1535,8 +1548,9 @@ public class CryptoTest {
 
         final Map<String, Object> results = new HashMap<>();
 
-        Pair<MXSession, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
-        MXSession aliceSession = pair.first;
+        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
+        MXSession aliceSession = pair.first.first;
+        final String aliceRoomId = pair.first.second;
         MXSession bobSession = pair.second;
 
         bobSession.getCrypto().setWarnOnUnknownDevices(false);
@@ -1544,8 +1558,8 @@ public class CryptoTest {
 
         String messageFromAlice = "Hello I'm Alice!";
 
-        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(mRoomId);
-        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
+        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(aliceRoomId);
+        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         Assert.assertTrue(roomFromBobPOV.isEncrypted());
         Assert.assertTrue(roomFromAlicePOV.isEncrypted());
@@ -1576,14 +1590,14 @@ public class CryptoTest {
 
         roomFromBobPOV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener);
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession, aliceRoomId), new SimpleApiCallback<Void>());
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
         Assert.assertEquals(1, receivedEvents.size());
 
         Event event = receivedEvents.get(0);
-        checkEncryptedEvent(event, mRoomId, messageFromAlice, aliceSession);
+        checkEncryptedEvent(event, aliceRoomId, messageFromAlice, aliceSession);
 
         // Reinject a modified version of the received room_key event from Alice.
         // From Bob pov, that mimics Alice resharing her keys but with an advanced outbound group session.
@@ -1602,7 +1616,7 @@ public class CryptoTest {
         event.setClearData(null);
 
         bobSession.getDataHandler().decryptEvent(event, null);
-        checkEncryptedEvent(event, mRoomId, messageFromAlice, aliceSession);
+        checkEncryptedEvent(event, aliceRoomId, messageFromAlice, aliceSession);
     }
 
     @Test
@@ -1611,8 +1625,9 @@ public class CryptoTest {
 
         final Map<String, Object> results = new HashMap<>();
 
-        Pair<MXSession, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
-        MXSession aliceSession = pair.first;
+        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
+        MXSession aliceSession = pair.first.first;
+        final String aliceRoomId = pair.first.second;
         MXSession bobSession = pair.second;
 
         bobSession.getCrypto().setWarnOnUnknownDevices(false);
@@ -1620,8 +1635,8 @@ public class CryptoTest {
 
         String messageFromAlice = "Hello I'm Alice!";
 
-        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(mRoomId);
-        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
+        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(aliceRoomId);
+        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         Assert.assertTrue(roomFromBobPOV.isEncrypted());
         Assert.assertTrue(roomFromAlicePOV.isEncrypted());
@@ -1651,14 +1666,14 @@ public class CryptoTest {
 
         roomFromBobPOV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener);
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession, aliceRoomId), new SimpleApiCallback<Void>());
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
         Assert.assertEquals(1, receivedEvents.size());
 
         Event event = receivedEvents.get(0);
-        checkEncryptedEvent(event, mRoomId, messageFromAlice, aliceSession);
+        checkEncryptedEvent(event, aliceRoomId, messageFromAlice, aliceSession);
 
         // Reinject a modified version of the received room_key event from Alice.
         // From Bob pov, that mimics Alice resharing her keys but with an advanced outbound group session.
@@ -1698,7 +1713,7 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("onEventDecrypted"));
         Assert.assertEquals(1, receivedEvents.size());
 
-        checkEncryptedEvent(receivedEvents.get(0), mRoomId, messageFromAlice, aliceSession);
+        checkEncryptedEvent(receivedEvents.get(0), aliceRoomId, messageFromAlice, aliceSession);
         Assert.assertNull(receivedEvents.get(0).getCryptoError());
     }
 
@@ -1708,15 +1723,16 @@ public class CryptoTest {
 
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
-        Pair<MXSession, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
-        MXSession aliceSession = pair.first;
+        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
+        MXSession aliceSession = pair.first.first;
+        final String aliceRoomId = pair.first.second;
         MXSession bobSession = pair.second;
 
         bobSession.getCrypto().setWarnOnUnknownDevices(false);
         aliceSession.getCrypto().setWarnOnUnknownDevices(false);
 
-        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(mRoomId);
-        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
+        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(aliceRoomId);
+        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         String bobDeviceId1 = bobSession.getCredentials().deviceId;
 
@@ -1750,14 +1766,14 @@ public class CryptoTest {
 
         String aliceMessage1 = "Hello I'm Alice!";
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage1, aliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage1, aliceSession, aliceRoomId), new SimpleApiCallback<Void>());
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
         Assert.assertEquals(1, receivedEvents.size());
 
         Event event = receivedEvents.get(0);
-        checkEncryptedEvent(event, mRoomId, aliceMessage1, aliceSession);
+        checkEncryptedEvent(event, aliceRoomId, aliceMessage1, aliceSession);
 
         // logout
         CountDownLatch lock2 = new CountDownLatch(1);
@@ -1797,7 +1813,7 @@ public class CryptoTest {
 
         SystemClock.sleep(1000);
 
-        final Room roomFromBobPOV2 = bobSession2.getDataHandler().getRoom(mRoomId);
+        final Room roomFromBobPOV2 = bobSession2.getDataHandler().getRoom(aliceRoomId);
         Assert.assertNotNull(roomFromBobPOV2);
 
         final List<Event> receivedEvents4 = new ArrayList<>();
@@ -1818,13 +1834,13 @@ public class CryptoTest {
         roomFromBobPOV2.getLiveTimeLine().addEventTimelineListener(eventTimelineListener4);
 
         String aliceMessage2 = "Hello I'm still Alice!";
-        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage2, aliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage2, aliceSession, aliceRoomId), new SimpleApiCallback<Void>());
 
         lock4.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals("received event of type " + results.get("event4"), 1, receivedEvents4.size());
 
         event = receivedEvents4.get(0);
-        checkEncryptedEvent(event, mRoomId, aliceMessage2, aliceSession);
+        checkEncryptedEvent(event, aliceRoomId, aliceMessage2, aliceSession);
     }
 
     @Test
@@ -1833,15 +1849,16 @@ public class CryptoTest {
 
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
-        Pair<MXSession, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
-        MXSession aliceSession = pair.first;
+        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
+        MXSession aliceSession = pair.first.first;
+        final String aliceRoomId = pair.first.second;
         MXSession bobSession = pair.second;
 
         bobSession.getCrypto().setWarnOnUnknownDevices(false);
         aliceSession.getCrypto().setWarnOnUnknownDevices(false);
 
-        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(mRoomId);
-        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
+        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(aliceRoomId);
+        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         String bobUserId1 = bobSession.getMyUserId();
         String aliceUserId1 = aliceSession.getMyUserId();
@@ -1876,14 +1893,14 @@ public class CryptoTest {
 
         String aliceMessage1 = "Hello I'm Alice!";
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage1, aliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage1, aliceSession, aliceRoomId), new SimpleApiCallback<Void>());
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
         Assert.assertEquals(1, receivedEvents.size());
 
         Event event = receivedEvents.get(0);
-        checkEncryptedEvent(event, mRoomId, aliceMessage1, aliceSession);
+        checkEncryptedEvent(event, aliceRoomId, aliceMessage1, aliceSession);
 
         // logout
         CountDownLatch lock2 = new CountDownLatch(1);
@@ -1916,11 +1933,11 @@ public class CryptoTest {
         Assert.assertNotNull(aliceSession2);
         aliceSession2.getCrypto().setWarnOnUnknownDevices(false);
 
-        Room roomFromBob2POV = bobSession2.getDataHandler().getRoom(mRoomId);
-        Room roomFromAlice2POV = aliceSession2.getDataHandler().getRoom(mRoomId);
+        Room roomFromBob2POV = bobSession2.getDataHandler().getRoom(aliceRoomId);
+        Room roomFromAlice2POV = aliceSession2.getDataHandler().getRoom(aliceRoomId);
 
         Assert.assertTrue(roomFromBob2POV.isEncrypted());
-        event = bobSession2.getDataHandler().getStore().getLatestEvent(mRoomId);
+        event = bobSession2.getDataHandler().getStore().getLatestEvent(aliceRoomId);
         Assert.assertNotNull(event);
         Assert.assertTrue(event.isEncrypted());
         Assert.assertNull(event.getClearEvent());
@@ -1940,13 +1957,13 @@ public class CryptoTest {
         roomFromBob2POV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener2);
 
         String messageFromAlice2 = "Hello I'm still Alice!";
-        roomFromAlice2POV.sendEvent(buildTextEvent(messageFromAlice2, aliceSession2), new SimpleApiCallback<Void>());
+        roomFromAlice2POV.sendEvent(buildTextEvent(messageFromAlice2, aliceSession2, aliceRoomId), new SimpleApiCallback<Void>());
 
         lock4.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals(1, receivedEvents2.size());
 
         event = receivedEvents2.get(0);
-        checkEncryptedEvent(event, mRoomId, messageFromAlice2, aliceSession2);
+        checkEncryptedEvent(event, aliceRoomId, messageFromAlice2, aliceSession2);
     }
 
     @Test
@@ -1954,15 +1971,16 @@ public class CryptoTest {
         Log.e(LOG_TAG, "test20_testAliceAndBlockedBob");
         final Map<String, String> results = new HashMap<>();
 
-        Pair<MXSession, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
-        MXSession aliceSession = pair.first;
+        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
+        MXSession aliceSession = pair.first.first;
+        final String aliceRoomId = pair.first.second;
         MXSession bobSession = pair.second;
 
         bobSession.getCrypto().setWarnOnUnknownDevices(false);
         aliceSession.getCrypto().setWarnOnUnknownDevices(false);
 
-        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(mRoomId);
-        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
+        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(aliceRoomId);
+        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         Assert.assertTrue(roomFromBobPOV.isEncrypted());
         Assert.assertTrue(roomFromAlicePOV.isEncrypted());
@@ -1983,13 +2001,13 @@ public class CryptoTest {
 
         String aliceMessage1 = "Hello I'm Alice!";
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage1, aliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage1, aliceSession, aliceRoomId), new SimpleApiCallback<Void>());
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals(1, receivedEvents.size());
 
         Event event = receivedEvents.get(0);
-        checkEncryptedEvent(event, mRoomId, aliceMessage1, aliceSession);
+        checkEncryptedEvent(event, aliceRoomId, aliceMessage1, aliceSession);
 
         // block the bob's device
         CountDownLatch lock1b = new CountDownLatch(1);
@@ -2022,7 +2040,7 @@ public class CryptoTest {
 
         String aliceMessage2 = "Hello I'm still Alice!";
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage2, aliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage2, aliceSession, aliceRoomId), new SimpleApiCallback<Void>());
 
         lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals(1, receivedEvents2.size());
@@ -2062,13 +2080,13 @@ public class CryptoTest {
 
         String aliceMessage3 = "Hello I'm still Alice and you can read this!";
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage3, aliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage3, aliceSession, aliceRoomId), new SimpleApiCallback<Void>());
 
         lock3.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals(1, receivedEvents3.size());
 
         event = receivedEvents3.get(0);
-        checkEncryptedEvent(event, mRoomId, aliceMessage3, aliceSession);
+        checkEncryptedEvent(event, aliceRoomId, aliceMessage3, aliceSession);
     }
 
 
@@ -2077,15 +2095,16 @@ public class CryptoTest {
         Log.e(LOG_TAG, "test21_testDownloadKeysWithUnreachableHS");
 
         final Map<String, Object> results = new HashMap<>();
-        Pair<MXSession, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
-        MXSession aliceSession = pair.first;
+        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
+        MXSession aliceSession = pair.first.first;
+        final String aliceRoomId = pair.first.second;
         MXSession bobSession = pair.second;
 
         bobSession.getCrypto().setWarnOnUnknownDevices(false);
         aliceSession.getCrypto().setWarnOnUnknownDevices(false);
 
-        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(mRoomId);
-        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
+        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(aliceRoomId);
+        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         Assert.assertTrue(roomFromBobPOV.isEncrypted());
         Assert.assertTrue(roomFromAlicePOV.isEncrypted());
@@ -2119,8 +2138,9 @@ public class CryptoTest {
         Log.e(LOG_TAG, "test22_testDownloadKeysForUserWithNoDevice");
 
         final Map<String, Object> results = new HashMap<>();
-        Pair<MXSession, MXSession> pair = doE2ETestWithAliceAndBobInARoom(false);
-        MXSession aliceSession = pair.first;
+        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(false);
+        MXSession aliceSession = pair.first.first;
+        final String aliceRoomId = pair.first.second;
         MXSession bobSession = pair.second;
 
         aliceSession.getCrypto().setWarnOnUnknownDevices(false);
@@ -2168,15 +2188,16 @@ public class CryptoTest {
         final String messageFromAlice = "Hello I'm Alice!";
 
         final Map<String, Object> results = new HashMap<>();
-        Pair<MXSession, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
-        final MXSession aliceSession = pair.first;
+        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
+        final MXSession aliceSession = pair.first.first;
+        final String aliceRoomId = pair.first.second;
         MXSession bobSession = pair.second;
 
         bobSession.getCrypto().setWarnOnUnknownDevices(false);
         aliceSession.getCrypto().setWarnOnUnknownDevices(false);
 
-        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(mRoomId);
-        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
+        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(aliceRoomId);
+        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         Assert.assertTrue(roomFromBobPOV.isEncrypted());
         Assert.assertTrue(roomFromAlicePOV.isEncrypted());
@@ -2188,7 +2209,7 @@ public class CryptoTest {
 
         CountDownLatch lock0 = new CountDownLatch(1);
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession), new TestApiCallback<Void>(lock0) {
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession, aliceRoomId), new TestApiCallback<Void>(lock0) {
             @Override
             public void onSuccess(Void info) {
                 results.put("sendEvent", "sendEvent");
@@ -2204,7 +2225,7 @@ public class CryptoTest {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                    checkEncryptedEvent(event, mRoomId, messageFromAlice, aliceSession);
+                    checkEncryptedEvent(event, aliceRoomId, messageFromAlice, aliceSession);
 
                     results.put("onLiveEvent", "onLiveEvent");
                     lock2.countDown();
@@ -2238,17 +2259,19 @@ public class CryptoTest {
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
 
-        MXSession aliceSession = doE2ETestWithAliceInARoom();
+        SessionAndRoomId sessionAndRoomId = doE2ETestWithAliceInARoom();
+        MXSession aliceSession = sessionAndRoomId.first;
+        String aliceRoomId = sessionAndRoomId.second;
 
         aliceSession.getCrypto().setWarnOnUnknownDevices(false);
 
         String message = "Hello myself!";
         String password = "hello";
 
-        Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
+        Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         CountDownLatch lock1 = new CountDownLatch(1);
-        roomFromAlicePOV.sendEvent(buildTextEvent(message, aliceSession), new TestApiCallback<Void>(lock1) {
+        roomFromAlicePOV.sendEvent(buildTextEvent(message, aliceSession, aliceRoomId), new TestApiCallback<Void>(lock1) {
             @Override
             public void onSuccess(Void info) {
                 results.put("sendEvent", "sendEvent");
@@ -2341,12 +2364,12 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("onInitialSyncComplete"));
         Assert.assertTrue(results.containsKey("onCryptoSyncComplete"));
 
-        Room roomFromAlicePOV2 = aliceSession2.getDataHandler().getRoom(mRoomId);
+        Room roomFromAlicePOV2 = aliceSession2.getDataHandler().getRoom(aliceRoomId);
 
         Assert.assertNotNull(roomFromAlicePOV2);
         Assert.assertTrue(roomFromAlicePOV2.getState().isEncrypted());
 
-        Event event = roomFromAlicePOV2.getDataHandler().getStore().getLatestEvent(mRoomId);
+        Event event = roomFromAlicePOV2.getDataHandler().getStore().getLatestEvent(aliceRoomId);
         Assert.assertNotNull(event);
         Assert.assertTrue(event.isEncrypted());
         Assert.assertNull(event.getClearEvent());
@@ -2386,7 +2409,7 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("importRoomKeys_failed"));
 
         // check that the message cannot be decrypted
-        event = roomFromAlicePOV2.getDataHandler().getStore().getLatestEvent(mRoomId);
+        event = roomFromAlicePOV2.getDataHandler().getStore().getLatestEvent(aliceRoomId);
         Assert.assertNotNull(event);
         Assert.assertTrue(event.isEncrypted());
         Assert.assertNull(event.getClearEvent());
@@ -2405,12 +2428,12 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("importRoomKeys"));
 
         // check that the message CAN be decrypted
-        event = roomFromAlicePOV2.getDataHandler().getStore().getLatestEvent(mRoomId);
+        event = roomFromAlicePOV2.getDataHandler().getStore().getLatestEvent(aliceRoomId);
         Assert.assertNotNull(event);
         Assert.assertTrue(event.isEncrypted());
         Assert.assertNotNull(event.getClearEvent());
         Assert.assertNull(event.getCryptoError());
-        checkEncryptedEvent(event, mRoomId, message, aliceSession);
+        checkEncryptedEvent(event, aliceRoomId, message, aliceSession);
 
         aliceSession2.clear(context);
     }
@@ -2453,9 +2476,9 @@ public class CryptoTest {
                 });
         lock0.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("roomId"));
-        mRoomId = (String) results.get("roomId");
+        String aliceRoomId = (String) results.get("roomId");
 
-        Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
+        Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         CountDownLatch lock1 = new CountDownLatch(1);
         roomFromAlicePOV.enableEncryptionWithAlgorithm(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, new TestApiCallback<Void>(lock1) {
@@ -2469,7 +2492,7 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("enableEncryptionWithAlgorithm"));
 
         CountDownLatch lock2 = new CountDownLatch(1);
-        bobSession.joinRoom(mRoomId, new TestApiCallback<String>(lock2) {
+        bobSession.joinRoom(aliceRoomId, new TestApiCallback<String>(lock2) {
             @Override
             public void onSuccess(String info) {
                 results.put("joinRoom", "joinRoom");
@@ -2479,7 +2502,7 @@ public class CryptoTest {
         lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("joinRoom"));
 
-        Room roomFromBobPOV = bobSession.getDataHandler().getRoom(mRoomId);
+        Room roomFromBobPOV = bobSession.getDataHandler().getRoom(aliceRoomId);
         final CountDownLatch lock3 = new CountDownLatch(1);
         final List<Event> receivedEvents = new ArrayList<>();
         EventTimeline.EventTimelineListener eventTimelineListener = new EventTimeline.EventTimelineListener() {
@@ -2492,13 +2515,13 @@ public class CryptoTest {
         };
 
         roomFromBobPOV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener);
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession, aliceRoomId), new SimpleApiCallback<Void>());
 
         lock3.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals(1, receivedEvents.size());
 
         Event event = receivedEvents.get(0);
-        checkEncryptedEvent(event, mRoomId, messageFromAlice, aliceSession);
+        checkEncryptedEvent(event, aliceRoomId, messageFromAlice, aliceSession);
 
         CountDownLatch lock4 = new CountDownLatch(1);
         roomFromBobPOV.leave(new TestApiCallback<Void>(lock4) {
@@ -2522,7 +2545,7 @@ public class CryptoTest {
         bobSession2.getCrypto().setWarnOnUnknownDevices(false);
 
         CountDownLatch lock5 = new CountDownLatch(1);
-        bobSession2.joinRoom(mRoomId, new TestApiCallback<String>(lock5) {
+        bobSession2.joinRoom(aliceRoomId, new TestApiCallback<String>(lock5) {
             @Override
             public void onSuccess(String info) {
                 results.put("joinRoom2", "joinRoom2");
@@ -2532,7 +2555,7 @@ public class CryptoTest {
         lock5.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("joinRoom2"));
 
-        Room roomFromBobPOV2 = bobSession2.getDataHandler().getRoom(mRoomId);
+        Room roomFromBobPOV2 = bobSession2.getDataHandler().getRoom(aliceRoomId);
 
         final CountDownLatch lock6 = new CountDownLatch(1);
         final List<Event> receivedEvents2 = new ArrayList<>();
@@ -2546,13 +2569,13 @@ public class CryptoTest {
         };
 
         roomFromBobPOV2.getLiveTimeLine().addEventTimelineListener(eventTimelineListener2);
-        roomFromAlicePOV.sendEvent(buildTextEvent(message2FromAlice, aliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(message2FromAlice, aliceSession, aliceRoomId), new SimpleApiCallback<Void>());
 
         lock6.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals(1, receivedEvents2.size());
 
         event = receivedEvents2.get(0);
-        checkEncryptedEvent(event, mRoomId, message2FromAlice, aliceSession);
+        checkEncryptedEvent(event, aliceRoomId, message2FromAlice, aliceSession);
 
         bobSession2.clear(context);
         aliceSession.clear(context);
@@ -2583,16 +2606,17 @@ public class CryptoTest {
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
 
-        Triple<MXSession, MXSession, MXSession> triple = doE2ETestWithAliceAndBobAndSamInARoom();
-        final MXSession aliceSession = triple.first;
+        Triple<SessionAndRoomId, MXSession, MXSession> triple = doE2ETestWithAliceAndBobAndSamInARoom();
+        final MXSession aliceSession = triple.first.first;
+        final String aliceRoomId = triple.first.second;
         MXSession bobSession = triple.second;
         MXSession samSession = triple.third;
 
         final String messageFromAlice = "Hello I'm Alice!";
 
-        Room roomFromBobPOV = bobSession.getDataHandler().getRoom(mRoomId);
-        Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
-        Room roomFromSamPOV = samSession.getDataHandler().getRoom(mRoomId);
+        Room roomFromBobPOV = bobSession.getDataHandler().getRoom(aliceRoomId);
+        Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
+        Room roomFromSamPOV = samSession.getDataHandler().getRoom(aliceRoomId);
 
         Assert.assertTrue(roomFromBobPOV.isEncrypted());
         Assert.assertTrue(roomFromAlicePOV.isEncrypted());
@@ -2600,7 +2624,7 @@ public class CryptoTest {
 
         CountDownLatch lock1 = new CountDownLatch(1);
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession), new TestApiCallback<Void>(lock1) {
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession, aliceRoomId), new TestApiCallback<Void>(lock1) {
             @Override
             public void onMatrixError(MatrixError e) {
                 results.put("sendEventError", e);
@@ -2643,7 +2667,7 @@ public class CryptoTest {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                    checkEncryptedEvent(event, mRoomId, messageFromAlice, aliceSession);
+                    checkEncryptedEvent(event, aliceRoomId, messageFromAlice, aliceSession);
 
                     results.put("onLiveEventBob1", "onLiveEvent");
                     lock3.countDown();
@@ -2655,7 +2679,7 @@ public class CryptoTest {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                    checkEncryptedEvent(event, mRoomId, messageFromAlice, aliceSession);
+                    checkEncryptedEvent(event, aliceRoomId, messageFromAlice, aliceSession);
 
                     results.put("onLiveEventSam1", "onLiveEvent");
                     lock3.countDown();
@@ -2682,7 +2706,7 @@ public class CryptoTest {
         roomFromBobPOV.addEventListener(eventListenerBob1);
         roomFromSamPOV.addEventListener(eventListenerSam1);
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession), new TestApiCallback<Void>(lock3) {
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession, aliceRoomId), new TestApiCallback<Void>(lock3) {
             @Override
             public void onSuccess(Void info) {
                 lock3.countDown();
@@ -2706,7 +2730,7 @@ public class CryptoTest {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                    checkEncryptedEvent(event, mRoomId, activeMessage.get(0), aliceSession);
+                    checkEncryptedEvent(event, aliceRoomId, activeMessage.get(0), aliceSession);
 
                     results.put("eventListenerBob2", "onLiveEvent");
                     activeLock.get(0).countDown();
@@ -2721,7 +2745,7 @@ public class CryptoTest {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                    checkEncryptedEvent(event, mRoomId, activeMessage.get(0), aliceSession);
+                    checkEncryptedEvent(event, aliceRoomId, activeMessage.get(0), aliceSession);
 
                     results.put("eventListenerSam2", "onLiveEvent");
                     activeLock.get(0).countDown();
@@ -2755,7 +2779,7 @@ public class CryptoTest {
         activeMessage.clear();
         activeMessage.add("message 1");
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(activeMessage.get(0), aliceSession), new TestApiCallback<Void>(lock5));
+        roomFromAlicePOV.sendEvent(buildTextEvent(activeMessage.get(0), aliceSession, aliceRoomId), new TestApiCallback<Void>(lock5));
 
         lock5.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertFalse(results.containsKey("eventListenerBob2"));
@@ -2783,7 +2807,7 @@ public class CryptoTest {
         activeMessage.clear();
         activeMessage.add("message 2");
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(activeMessage.get(0), aliceSession), new TestApiCallback<Void>(lock7));
+        roomFromAlicePOV.sendEvent(buildTextEvent(activeMessage.get(0), aliceSession, aliceRoomId), new TestApiCallback<Void>(lock7));
 
         lock7.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("eventListenerBob2"));
@@ -2826,7 +2850,7 @@ public class CryptoTest {
         activeMessage.clear();
         activeMessage.add("message 3");
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(activeMessage.get(0), aliceSession), new TestApiCallback<Void>(lock10));
+        roomFromAlicePOV.sendEvent(buildTextEvent(activeMessage.get(0), aliceSession, aliceRoomId), new TestApiCallback<Void>(lock10));
 
         lock10.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("eventListenerBob2"));
@@ -2854,7 +2878,7 @@ public class CryptoTest {
         activeMessage.clear();
         activeMessage.add("message 3");
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(activeMessage.get(0), aliceSession), new TestApiCallback<Void>(lock12));
+        roomFromAlicePOV.sendEvent(buildTextEvent(activeMessage.get(0), aliceSession, aliceRoomId), new TestApiCallback<Void>(lock12));
 
         lock12.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("eventListenerBob2"));
@@ -2917,10 +2941,10 @@ public class CryptoTest {
                 });
         lock0.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("roomId"));
-        mRoomId = (String) results.get("roomId");
+        String aliceRoomId = (String) results.get("roomId");
 
         CountDownLatch lock1 = new CountDownLatch(1);
-        bobSession.joinRoom(mRoomId, new TestApiCallback<String>(lock1) {
+        bobSession.joinRoom(aliceRoomId, new TestApiCallback<String>(lock1) {
             @Override
             public void onSuccess(String info) {
                 results.put("joinRoom", "joinRoom");
@@ -2930,10 +2954,10 @@ public class CryptoTest {
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("joinRoom"));
 
-        Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
+        Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         CountDownLatch lock2 = new CountDownLatch(1);
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession), new TestApiCallback<Void>(lock2) {
+        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession, aliceRoomId), new TestApiCallback<Void>(lock2) {
             @Override
             public void onSuccess(Void info) {
                 results.put("sendEvent1", "sendEvent1");
@@ -2964,7 +2988,7 @@ public class CryptoTest {
         lock3.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("enableEncryptionWithAlgorithm"));
 
-        Room roomFromBobPOV2 = bobSession2.getDataHandler().getRoom(mRoomId);
+        Room roomFromBobPOV2 = bobSession2.getDataHandler().getRoom(aliceRoomId);
 
         final CountDownLatch lock4 = new CountDownLatch(1);
         final List<Event> receivedEvents2 = new ArrayList<>();
@@ -2980,13 +3004,13 @@ public class CryptoTest {
         };
 
         roomFromBobPOV2.getLiveTimeLine().addEventTimelineListener(eventTimelineListener2);
-        roomFromAlicePOV.sendEvent(buildTextEvent(message2FromAlice, aliceSession), new SimpleApiCallback<Void>());
+        roomFromAlicePOV.sendEvent(buildTextEvent(message2FromAlice, aliceSession, aliceRoomId), new SimpleApiCallback<Void>());
 
         lock4.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals(1, receivedEvents2.size());
 
         Event event = receivedEvents2.get(0);
-        checkEncryptedEvent(event, mRoomId, message2FromAlice, aliceSession);
+        checkEncryptedEvent(event, aliceRoomId, message2FromAlice, aliceSession);
 
         bobSession2.clear(context);
         aliceSession.clear(context);
@@ -3004,14 +3028,15 @@ public class CryptoTest {
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
 
-        Pair<MXSession, MXSession> pair = doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(true);
-        MXSession aliceSession = pair.first;
+        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(true);
+        MXSession aliceSession = pair.first.first;
+        final String aliceRoomId = pair.first.second;
         final MXSession bobSession = pair.second;
-        
+
         // - Bob leaves the room, so stops getting updates
         CountDownLatch lock1 = new CountDownLatch(1);
 
-        final Room bobLeftRoom = bobSession.getDataHandler().getRoom(mRoomId);
+        final Room bobLeftRoom = bobSession.getDataHandler().getRoom(aliceRoomId);
         bobLeftRoom.leave(new TestApiCallback<Void>(lock1) {
             @Override
             public void onSuccess(Void info) {
@@ -3028,20 +3053,22 @@ public class CryptoTest {
         Assert.assertNotNull(aliceSession2);
 
         // - Alice and Bob start sharing a room again
+        final String[] aliceRoomId2 = {null};
+
         CountDownLatch lock3 = new CountDownLatch(1);
         aliceSession2.createRoom(null, null, RoomState.DIRECTORY_VISIBILITY_PUBLIC,
                 null, RoomState.GUEST_ACCESS_CAN_JOIN,
                 null, new TestApiCallback<String>(lock3) {
                     @Override
                     public void onSuccess(String info) {
-                        mRoomId = info;
+                        aliceRoomId2[0] = info;
                         super.onSuccess(info);
                     }
                 });
         lock3.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertNotNull(mRoomId);
+        Assert.assertNotNull(aliceRoomId2[0]);
 
-        Room roomFromAlicePOV = aliceSession2.getDataHandler().getRoom(mRoomId);
+        Room roomFromAlicePOV = aliceSession2.getDataHandler().getRoom(aliceRoomId2[0]);
         CountDownLatch lock4 = new CountDownLatch(1);
         roomFromAlicePOV.enableEncryptionWithAlgorithm(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, new TestApiCallback<Void>(lock4) {
             @Override
@@ -3054,7 +3081,7 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("lock4"));
 
         CountDownLatch lock5 = new CountDownLatch(1);
-        bobSession.joinRoom(mRoomId, new TestApiCallback<String>(lock5) {
+        bobSession.joinRoom(aliceRoomId2[0], new TestApiCallback<String>(lock5) {
             @Override
             public void onSuccess(String info) {
                 results.put("lock5", "lock5");
@@ -3065,14 +3092,14 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("lock5"));
 
         // - Bob has an out of date list of Alice's devices
-        Room roomFromBobPOV = bobSession.getDataHandler().getRoom(mRoomId);
+        Room roomFromBobPOV = bobSession.getDataHandler().getRoom(aliceRoomId2[0]);
         final String messageFromBob = "Hello Alice with new device!";
         final CountDownLatch lock6 = new CountDownLatch(2);
         MXEventListener eventListener = new MXEventListener() {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                    checkEncryptedEvent(event, mRoomId, messageFromBob, bobSession);
+                    checkEncryptedEvent(event, aliceRoomId2[0], messageFromBob, bobSession);
 
                     results.put("lock6", "lock6");
                     lock6.countDown();
@@ -3082,7 +3109,7 @@ public class CryptoTest {
 
         roomFromAlicePOV.addEventListener(eventListener);
 
-        roomFromBobPOV.sendEvent(buildTextEvent(messageFromBob, bobSession), new TestApiCallback<Void>(lock6));
+        roomFromBobPOV.sendEvent(buildTextEvent(messageFromBob, bobSession, aliceRoomId2[0]), new TestApiCallback<Void>(lock6));
 
         lock6.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("lock6"));
@@ -3101,15 +3128,16 @@ public class CryptoTest {
     public void test29_testAliceAndBobInAEncryptedRoomWithReplyTo() throws Exception {
         Log.e(LOG_TAG, "test08_testAliceAndBobInAEncryptedRoom2");
 
-        Pair<MXSession, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
-        final MXSession aliceSession = pair.first;
+        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
+        final MXSession aliceSession = pair.first.first;
+        final String aliceRoomId = pair.first.second;
         final MXSession bobSession = pair.second;
 
         bobSession.getCrypto().setWarnOnUnknownDevices(false);
         aliceSession.getCrypto().setWarnOnUnknownDevices(false);
 
-        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(mRoomId);
-        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
+        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(aliceRoomId);
+        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         Assert.assertTrue(roomFromBobPOV.isEncrypted());
         Assert.assertTrue(roomFromAlicePOV.isEncrypted());
@@ -3128,7 +3156,7 @@ public class CryptoTest {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), bobSession.getMyUserId())) {
                     bobReceivedEvents.add(event);
 
-                    checkEncryptedEvent(event, mRoomId, messagesFromAlice.get(nbReceivedMessagesFromAlice[0]), aliceSession);
+                    checkEncryptedEvent(event, aliceRoomId, messagesFromAlice.get(nbReceivedMessagesFromAlice[0]), aliceSession);
 
                     nbReceivedMessagesFromAlice[0]++;
                     list.get(list.size() - 1).countDown();
@@ -3150,7 +3178,7 @@ public class CryptoTest {
                                 + messagesFromBob.get(nbReceivedMessagesFromBob[0]);
 
 
-                        checkEncryptedEvent(event, mRoomId, expectedMessage, bobSession);
+                        checkEncryptedEvent(event, aliceRoomId, expectedMessage, bobSession);
 
                         nbReceivedMessagesFromBob[0]++;
 
@@ -3179,7 +3207,7 @@ public class CryptoTest {
         });
 
         // Alice sends a first event
-        roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(nbReceivedMessagesFromAlice[0]), aliceSession), callback);
+        roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(nbReceivedMessagesFromAlice[0]), aliceSession, aliceRoomId), callback);
         list.get(list.size() - 1).await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
         Assert.assertEquals(1, nbReceivedMessagesFromAlice[0]);
@@ -3217,11 +3245,10 @@ public class CryptoTest {
 
 
     /**
-     *
      * @return alice session
      * @throws Exception
      */
-    private MXSession doE2ETestWithAliceInARoom() throws Exception {
+    private SessionAndRoomId doE2ETestWithAliceInARoom() throws Exception {
         final Map<String, Object> results = new HashMap<>();
         MXSession aliceSession = mTestHelper.createAliceAccount(true, false);
         CountDownLatch lock0 = new CountDownLatch(1);
@@ -3236,21 +3263,21 @@ public class CryptoTest {
         lock0.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("enableCrypto"));
 
-        mRoomId = null;
+        final String[] roomId = {null};
         CountDownLatch lock1 = new CountDownLatch(1);
 
         aliceSession.createRoom(new TestApiCallback<String>(lock1) {
             @Override
-            public void onSuccess(String roomId) {
-                mRoomId = roomId;
-                super.onSuccess(roomId);
+            public void onSuccess(String createdRoomId) {
+                roomId[0] = createdRoomId;
+                super.onSuccess(createdRoomId);
             }
         });
 
         lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertNotNull(mRoomId);
+        Assert.assertNotNull(roomId[0]);
 
-        Room room = aliceSession.getDataHandler().getRoom(mRoomId);
+        Room room = aliceSession.getDataHandler().getRoom(roomId[0]);
 
         CountDownLatch lock2 = new CountDownLatch(1);
         room.enableEncryptionWithAlgorithm(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, new TestApiCallback<Void>(lock2) {
@@ -3263,21 +3290,22 @@ public class CryptoTest {
         lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("enableEncryptionWithAlgorithm"));
 
-        return aliceSession;
+        return new SessionAndRoomId(aliceSession, roomId[0]);
     }
 
     /**
-     *
      * @param cryptedBob
      * @return alice and bob sessions
      * @throws Exception
      */
-    private Pair<MXSession, MXSession> doE2ETestWithAliceAndBobInARoom(boolean cryptedBob) throws Exception {
+    private Pair<SessionAndRoomId, MXSession> doE2ETestWithAliceAndBobInARoom(boolean cryptedBob) throws Exception {
         final Map<String, String> statuses = new HashMap<>();
 
-        MXSession aliceSession = doE2ETestWithAliceInARoom();
-
-        Room room = aliceSession.getDataHandler().getRoom(mRoomId);
+        SessionAndRoomId sessionAndRoomId = doE2ETestWithAliceInARoom();
+        MXSession aliceSession = sessionAndRoomId.first;
+        final String aliceRoomId = sessionAndRoomId.second;
+        
+        Room room = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         MXSession bobSession = mTestHelper.createBobAccount(true, false);
         CountDownLatch lock0 = new CountDownLatch(1);
@@ -3296,7 +3324,7 @@ public class CryptoTest {
         MXEventListener bobEventListener = new MXEventListener() {
             @Override
             public void onNewRoom(String roomId) {
-                if (TextUtils.equals(roomId, mRoomId)) {
+                if (TextUtils.equals(roomId, aliceRoomId)) {
                     if (!statuses.containsKey("onNewRoom")) {
                         statuses.put("onNewRoom", "onNewRoom");
                         lock1.countDown();
@@ -3323,7 +3351,7 @@ public class CryptoTest {
 
         final CountDownLatch lock2 = new CountDownLatch(2);
 
-        bobSession.joinRoom(mRoomId, new TestApiCallback<String>(lock2) {
+        bobSession.joinRoom(aliceRoomId, new TestApiCallback<String>(lock2) {
             @Override
             public void onSuccess(String info) {
                 statuses.put("joinRoom", "joinRoom");
@@ -3370,21 +3398,21 @@ public class CryptoTest {
 
         bobSession.getDataHandler().removeListener(bobEventListener);
 
-        return new Pair<>(aliceSession, bobSession);
+        return new Pair<>(sessionAndRoomId, bobSession);
     }
 
     /**
-     *
      * @return Alice, Bbob and sam session
      * @throws Exception
      */
-    private Triple<MXSession, MXSession, MXSession> doE2ETestWithAliceAndBobAndSamInARoom() throws Exception {
+    private Triple<SessionAndRoomId, MXSession, MXSession> doE2ETestWithAliceAndBobAndSamInARoom() throws Exception {
         final Map<String, String> statuses = new HashMap<>();
 
-        Pair<MXSession, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
-        MXSession aliceSession = pair.first;
+        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
+        MXSession aliceSession = pair.first.first;
+        final String aliceRoomId = pair.first.second;
 
-        Room room = aliceSession.getDataHandler().getRoom(mRoomId);
+        Room room = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         MXSession samSession = mTestHelper.createSamAccount(true, false);
         CountDownLatch lock0 = new CountDownLatch(1);
@@ -3403,7 +3431,7 @@ public class CryptoTest {
         MXEventListener samEventListener = new MXEventListener() {
             @Override
             public void onNewRoom(String roomId) {
-                if (TextUtils.equals(roomId, mRoomId)) {
+                if (TextUtils.equals(roomId, aliceRoomId)) {
                     if (!statuses.containsKey("onNewRoom")) {
                         statuses.put("onNewRoom", "onNewRoom");
                         lock1.countDown();
@@ -3430,7 +3458,7 @@ public class CryptoTest {
 
         CountDownLatch lock2 = new CountDownLatch(1);
 
-        samSession.joinRoom(mRoomId, new TestApiCallback<String>(lock2) {
+        samSession.joinRoom(aliceRoomId, new TestApiCallback<String>(lock2) {
             @Override
             public void onSuccess(String info) {
                 statuses.put("joinRoom", "joinRoom");
@@ -3445,27 +3473,27 @@ public class CryptoTest {
         SystemClock.sleep(1000);
 
         samSession.getDataHandler().removeListener(samEventListener);
-        
+
         return new Triple<>(pair, samSession);
     }
 
-    private Event buildTextEvent(String text, MXSession session) {
+    private Event buildTextEvent(String text, MXSession session, String roomId) {
         Message message = new Message();
         message.msgtype = Message.MSGTYPE_TEXT;
         message.body = text;
 
-        return new Event(message, session.getCredentials().userId, mRoomId);
+        return new Event(message, session.getCredentials().userId, roomId);
     }
 
     /**
-     *
      * @param cryptedBob
      * @return Alice and Bob sessions
      * @throws Exception
      */
-    private Pair<MXSession, MXSession> doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(boolean cryptedBob) throws Exception {
-        Pair<MXSession, MXSession> pair = doE2ETestWithAliceAndBobInARoom(cryptedBob);
-        final MXSession aliceSession = pair.first;
+    private Pair<SessionAndRoomId, MXSession> doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(boolean cryptedBob) throws Exception {
+        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(cryptedBob);
+        final MXSession aliceSession = pair.first.first;
+        final String aliceRoomId = pair.first.second;
         final MXSession bobSession = pair.second;
 
         if (null != bobSession.getCrypto()) {
@@ -3476,8 +3504,8 @@ public class CryptoTest {
             aliceSession.getCrypto().setWarnOnUnknownDevices(false);
         }
 
-        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(mRoomId);
-        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(mRoomId);
+        final Room roomFromBobPOV = bobSession.getDataHandler().getRoom(aliceRoomId);
+        final Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         final int[] messagesCount = {0};
 
@@ -3516,7 +3544,7 @@ public class CryptoTest {
             }
         });
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(0), aliceSession), callback);
+        roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(0), aliceSession, aliceRoomId), callback);
         lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
         Assert.assertEquals(1, messagesCount[0]);
@@ -3524,7 +3552,7 @@ public class CryptoTest {
         lock = new CountDownLatch(1);
         list.clear();
         list.add(lock);
-        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(0), bobSession), callback);
+        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(0), bobSession, aliceRoomId), callback);
         // android does not echo the messages sent from itself
         messagesCount[0]++;
         lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -3533,7 +3561,7 @@ public class CryptoTest {
         lock = new CountDownLatch(1);
         list.clear();
         list.add(lock);
-        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(1), bobSession), callback);
+        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(1), bobSession, aliceRoomId), callback);
         // android does not echo the messages sent from itself
         messagesCount[0]++;
         lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -3542,7 +3570,7 @@ public class CryptoTest {
         lock = new CountDownLatch(1);
         list.clear();
         list.add(lock);
-        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(2), bobSession), callback);
+        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(2), bobSession, aliceRoomId), callback);
         // android does not echo the messages sent from itself
         messagesCount[0]++;
         lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -3551,10 +3579,10 @@ public class CryptoTest {
         lock = new CountDownLatch(2);
         list.clear();
         list.add(lock);
-        roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(1), aliceSession), callback);
+        roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(1), aliceSession, aliceRoomId), callback);
         lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertEquals(5, messagesCount[0]);
-        
+
         return pair;
     }
 
