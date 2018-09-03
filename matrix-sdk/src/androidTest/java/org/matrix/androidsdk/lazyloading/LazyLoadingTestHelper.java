@@ -54,9 +54,10 @@ public class LazyLoadingTestHelper {
      * - Alice sends 50 messages
      * - Alice makes an initial /sync with lazy-loading enabled or not
      *
+     * @param withLazyLoading true to enable lazy loading for alice account
      * @return initialized data
      */
-    public LazyLoadingScenarioData createScenario() throws Exception {
+    public LazyLoadingScenarioData createScenario(boolean withLazyLoading) throws Exception {
         MXSession bobSession = mTestHelper.createBobAccount(true, false);
         MXSession aliceSession = mTestHelper.createAliceAccount(true, false);
         MXSession samSession = mTestHelper.createSamAccount(true, false);
@@ -117,11 +118,9 @@ public class LazyLoadingTestHelper {
         bobSession.clear(context);
         samSession.clear(context);
 
-        aliceSession = mTestHelper.logIntoAliceAccount(aliceId, false, false);
+        aliceSession = mTestHelper.logIntoAliceAccount(aliceId, false, false, withLazyLoading);
         bobSession = mTestHelper.logIntoBobAccount(bobId, false, false);
         samSession = mTestHelper.logIntoSamAccount(samId, false, false);
         return new LazyLoadingScenarioData(aliceSession, bobSession, samSession, roomId, bobMessageId);
-
     }
-
 }

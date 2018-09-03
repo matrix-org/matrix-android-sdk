@@ -1979,7 +1979,7 @@ public class CryptoTest {
         Assert.assertNotNull(bobSession2);
         bobSession2.getCrypto().setWarnOnUnknownDevices(false);
 
-        MXSession aliceSession2 = mTestHelper.logIntoAliceAccount(aliceSession.getMyUserId(), true, true);
+        MXSession aliceSession2 = mTestHelper.logIntoAliceAccount(aliceSession.getMyUserId(), true, true, false);
         Assert.assertNotNull(aliceSession2);
         aliceSession2.getCrypto().setWarnOnUnknownDevices(false);
 
@@ -3135,7 +3135,7 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("lock1"));
 
         // - Alice adds a new device
-        final MXSession aliceSession2 = mTestHelper.logIntoAliceAccount(aliceSession.getMyUserId(), true, true);
+        final MXSession aliceSession2 = mTestHelper.logIntoAliceAccount(aliceSession.getMyUserId(), true, true, false);
         Assert.assertNotNull(aliceSession2);
 
         // - Alice and Bob start sharing a room again

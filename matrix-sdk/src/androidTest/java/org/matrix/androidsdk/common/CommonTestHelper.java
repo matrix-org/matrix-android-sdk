@@ -71,15 +71,15 @@ public class CommonTestHelper {
     }
 
     public MXSession logIntoBobAccount(final String bobUserId, final boolean withInitialSync, boolean enableCrypto) {
-        return logIntoAccount(bobUserId, TestConstants.BOB_PWD, withInitialSync, enableCrypto);
+        return logIntoAccount(bobUserId, TestConstants.BOB_PWD, withInitialSync, enableCrypto, false);
     }
 
-    public MXSession logIntoAliceAccount(final String aliceUserId, final boolean withInitialSync, boolean enableCrypto) {
-        return logIntoAccount(aliceUserId, TestConstants.ALICE_PWD, withInitialSync, enableCrypto);
+    public MXSession logIntoAliceAccount(final String aliceUserId, final boolean withInitialSync, boolean enableCrypto, boolean withLazyLoading) {
+        return logIntoAccount(aliceUserId, TestConstants.ALICE_PWD, withInitialSync, enableCrypto, withLazyLoading);
     }
 
     public MXSession logIntoSamAccount(final String samUserId, final boolean withInitialSync, boolean enableCrypto) {
-        return logIntoAccount(samUserId, TestConstants.SAM_PWD, withInitialSync, enableCrypto);
+        return logIntoAccount(samUserId, TestConstants.SAM_PWD, withInitialSync, enableCrypto, false);
     }
 
     /**
@@ -144,14 +144,13 @@ public class CommonTestHelper {
     public List<Event> sendTextMessage(@Nonnull final Room room, @Nonnull final String message, final int nbOfMessages) throws Exception {
         final List<Event> sentEvents = new ArrayList<>(nbOfMessages);
         final CountDownLatch latch = new CountDownLatch(nbOfMessages);
-        final MXEventListener onEventsentListener = new MXEventListener() {
+        final MXEventListener onEventSentListener = new MXEventListener() {
             @Override
             public void onEventSent(Event event, String prevEventId) {
-                super.onEventSent(event, prevEventId);
                 latch.countDown();
             }
         };
-        room.addEventListener(onEventsentListener);
+        room.addEventListener(onEventSentListener);
         for (int i = 0; i < nbOfMessages; i++) {
             room.sendTextMessage(message, null, Message.FORMAT_MATRIX_HTML, new RoomMediaMessage.EventCreationListener() {
                 @Override
@@ -172,7 +171,11 @@ public class CommonTestHelper {
             });
         }
         latch.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        room.removeEventListener(onEventsentListener);
+        room.removeEventListener(onEventSentListener);
+
+        // Check that all events has been created
+        Assert.assertEquals(nbOfMessages, sentEvents.size());
+
         return sentEvents;
     }
 
@@ -216,9 +219,10 @@ public class CommonTestHelper {
     private MXSession logIntoAccount(@NonNull final String userId,
                                      @NonNull final String password,
                                      final boolean withInitialSync,
-                                     final boolean enableCrypto) {
+                                     final boolean enableCrypto,
+                                     boolean withLazyLoading) {
         final Context context = InstrumentationRegistry.getContext();
-        final MXSession session = logAccountAndSync(context, userId, password, withInitialSync, enableCrypto);
+        final MXSession session = logAccountAndSync(context, userId, password, withInitialSync, enableCrypto, withLazyLoading);
         Assert.assertNotNull(session);
         return session;
     }
@@ -328,7 +332,12 @@ public class CommonTestHelper {
      * @param withInitialSync true to perform an initial sync
      * @param enableCrypto    true to set enableCryptoWhenStarting
      */
-    private MXSession logAccountAndSync(Context context, String userName, String password, boolean withInitialSync, boolean enableCrypto) {
+    private MXSession logAccountAndSync(Context context,
+                                        String userName,
+                                        String password,
+                                        boolean withInitialSync,
+                                        boolean enableCrypto,
+                                        boolean withLazyLoading) {
         final HomeServerConnectionConfig hs = createHomeServerConfig(null);
         LoginRestClient loginRestClient = new LoginRestClient(hs);
         final Map<String, Object> params = new HashMap<>();
@@ -356,7 +365,11 @@ public class CommonTestHelper {
         hs.setCredentials(credentials);
 
         final IMXStore store = new MXFileStore(hs, false, context);
-        final MXSession mxSession = new MXSession.Builder(hs, new MXDataHandler(store, credentials), context)
+
+        MXDataHandler mxDataHandler = new MXDataHandler(store, credentials);
+        mxDataHandler.setLazyLoadingEnabled(withLazyLoading);
+
+        final MXSession mxSession = new MXSession.Builder(hs, mxDataHandler, context)
                 .build();
 
         if (enableCrypto) {
