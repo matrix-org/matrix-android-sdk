@@ -82,8 +82,6 @@ public class CryptoTest {
     private static final List<String> messagesFromBob = Arrays.asList("1 - Hello I'm Bob!", "2 - Isn't life grand?", "3 - Let's go to the opera.");
 
     private String mRoomId;
-    private int mReceivedMessagesFromAlice;
-    private int mReceivedMessagesFromBob;
 
     @Test
     public void test01_testCryptoNoDeviceId() throws Exception {
@@ -757,8 +755,8 @@ public class CryptoTest {
         Assert.assertTrue(roomFromBobPOV.isEncrypted());
         Assert.assertTrue(roomFromAlicePOV.isEncrypted());
 
-        mReceivedMessagesFromAlice = 0;
-        mReceivedMessagesFromBob = 0;
+        final int[] nbReceivedMessagesFromAlice = {0};
+        final int[] nbReceivedMessagesFromBob = {0};
 
         final List<CountDownLatch> list = new ArrayList<>();
 
@@ -766,9 +764,9 @@ public class CryptoTest {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), bobSession.getMyUserId())) {
-                    checkEncryptedEvent(event, mRoomId, messagesFromAlice.get(mReceivedMessagesFromAlice), aliceSession);
+                    checkEncryptedEvent(event, mRoomId, messagesFromAlice.get(nbReceivedMessagesFromAlice[0]), aliceSession);
 
-                    mReceivedMessagesFromAlice++;
+                    nbReceivedMessagesFromAlice[0]++;
                     list.get(list.size() - 1).countDown();
                 }
             }
@@ -778,8 +776,8 @@ public class CryptoTest {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), aliceSession.getMyUserId())) {
-                    checkEncryptedEvent(event, mRoomId, messagesFromBob.get(mReceivedMessagesFromBob), bobSession);
-                    mReceivedMessagesFromBob++;
+                    checkEncryptedEvent(event, mRoomId, messagesFromBob.get(nbReceivedMessagesFromBob[0]), bobSession);
+                    nbReceivedMessagesFromBob[0]++;
 
                     list.get(list.size() - 1).countDown();
                 }
@@ -802,30 +800,30 @@ public class CryptoTest {
             }
         });
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(mReceivedMessagesFromAlice), aliceSession), callback);
+        roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(nbReceivedMessagesFromAlice[0]), aliceSession), callback);
         list.get(list.size() - 1).await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
-        Assert.assertEquals(1, mReceivedMessagesFromAlice);
+        Assert.assertEquals(1, nbReceivedMessagesFromAlice[0]);
 
         list.add(new CountDownLatch(1));
-        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(mReceivedMessagesFromBob), bobSession), callback);
+        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(nbReceivedMessagesFromBob[0]), bobSession), callback);
         list.get(list.size() - 1).await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertEquals(1, mReceivedMessagesFromBob);
+        Assert.assertEquals(1, nbReceivedMessagesFromBob[0]);
 
         list.add(new CountDownLatch(1));
-        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(mReceivedMessagesFromBob), bobSession), callback);
+        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(nbReceivedMessagesFromBob[0]), bobSession), callback);
         list.get(list.size() - 1).await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertEquals(2, mReceivedMessagesFromBob);
+        Assert.assertEquals(2, nbReceivedMessagesFromBob[0]);
 
         list.add(new CountDownLatch(1));
-        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(mReceivedMessagesFromBob), bobSession), callback);
+        roomFromBobPOV.sendEvent(buildTextEvent(messagesFromBob.get(nbReceivedMessagesFromBob[0]), bobSession), callback);
         list.get(list.size() - 1).await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertEquals(3, mReceivedMessagesFromBob);
+        Assert.assertEquals(3, nbReceivedMessagesFromBob[0]);
 
         list.add(new CountDownLatch(1));
-        roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(mReceivedMessagesFromAlice), aliceSession), callback);
+        roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(nbReceivedMessagesFromAlice[0]), aliceSession), callback);
         list.get(list.size() - 1).await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertEquals(2, mReceivedMessagesFromAlice);
+        Assert.assertEquals(2, nbReceivedMessagesFromAlice[0]);
     }
 
     @Test
@@ -3119,8 +3117,8 @@ public class CryptoTest {
         final List<Event> bobReceivedEvents = new ArrayList<>();
         final List<Event> aliceReceivedEvents = new ArrayList<>();
 
-        mReceivedMessagesFromAlice = 0;
-        mReceivedMessagesFromBob = 0;
+        final int[] nbReceivedMessagesFromAlice = {0};
+        final int[] nbReceivedMessagesFromBob = {0};
 
         final List<CountDownLatch> list = new ArrayList<>();
 
@@ -3130,9 +3128,9 @@ public class CryptoTest {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), bobSession.getMyUserId())) {
                     bobReceivedEvents.add(event);
 
-                    checkEncryptedEvent(event, mRoomId, messagesFromAlice.get(mReceivedMessagesFromAlice), aliceSession);
+                    checkEncryptedEvent(event, mRoomId, messagesFromAlice.get(nbReceivedMessagesFromAlice[0]), aliceSession);
 
-                    mReceivedMessagesFromAlice++;
+                    nbReceivedMessagesFromAlice[0]++;
                     list.get(list.size() - 1).countDown();
                 }
             }
@@ -3147,14 +3145,14 @@ public class CryptoTest {
                     try {
                         // "In reply to" format for body
                         String expectedMessage = "> <" + aliceSession.getMyUserId() + "> "
-                                + messagesFromAlice.get(mReceivedMessagesFromAlice - 1)
+                                + messagesFromAlice.get(nbReceivedMessagesFromAlice[0] - 1)
                                 + "\n\n"
-                                + messagesFromBob.get(mReceivedMessagesFromBob);
+                                + messagesFromBob.get(nbReceivedMessagesFromBob[0]);
 
 
                         checkEncryptedEvent(event, mRoomId, expectedMessage, bobSession);
 
-                        mReceivedMessagesFromBob++;
+                        nbReceivedMessagesFromBob[0]++;
 
                         list.get(list.size() - 1).countDown();
                     } catch (Exception e) {
@@ -3181,18 +3179,18 @@ public class CryptoTest {
         });
 
         // Alice sends a first event
-        roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(mReceivedMessagesFromAlice), aliceSession), callback);
+        roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice.get(nbReceivedMessagesFromAlice[0]), aliceSession), callback);
         list.get(list.size() - 1).await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
-        Assert.assertEquals(1, mReceivedMessagesFromAlice);
+        Assert.assertEquals(1, nbReceivedMessagesFromAlice[0]);
 
         // Bob reply to Alice event
         Assert.assertTrue(roomFromBobPOV.canReplyTo(bobReceivedEvents.get(0)));
 
         list.add(new CountDownLatch(1));
-        roomFromBobPOV.sendTextMessage(messagesFromBob.get(mReceivedMessagesFromBob), null, Message.MSGTYPE_TEXT, bobReceivedEvents.get(0), null);
+        roomFromBobPOV.sendTextMessage(messagesFromBob.get(nbReceivedMessagesFromBob[0]), null, Message.MSGTYPE_TEXT, bobReceivedEvents.get(0), null);
         list.get(list.size() - 1).await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertEquals(1, mReceivedMessagesFromBob);
+        Assert.assertEquals(1, nbReceivedMessagesFromBob[0]);
 
         Event event = aliceReceivedEvents.get(0);
         JsonObject json = event.getContentAsJsonObject();
