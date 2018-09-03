@@ -38,6 +38,7 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 import org.matrix.androidsdk.rest.model.login.RegistrationParams;
+import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
@@ -49,8 +50,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
-
-import static org.matrix.androidsdk.rest.model.message.Message.FORMAT_MATRIX_HTML;
 
 
 /**
@@ -152,7 +151,7 @@ public class CommonTestHelper {
         };
         room.addEventListener(onEventsentListener);
         for (int i = 0; i < nbOfMessages; i++) {
-            room.sendTextMessage(message, null, FORMAT_MATRIX_HTML, new RoomMediaMessage.EventCreationListener() {
+            room.sendTextMessage(message, null, Message.FORMAT_MATRIX_HTML, new RoomMediaMessage.EventCreationListener() {
                 @Override
                 public void onEventCreated(RoomMediaMessage roomMediaMessage) {
                     final Event sentEvent = roomMediaMessage.getEvent();
