@@ -45,7 +45,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -307,7 +306,8 @@ public class CommonTestHelper {
 
         IMXStore store = new MXFileStore(hs, context);
 
-        MXSession mxSession = new MXSession(hs, new MXDataHandler(store, credentials), context);
+        MXSession mxSession = new MXSession.Builder(hs, new MXDataHandler(store, credentials), context)
+                .build();
 
         if (enableCrypto) {
             mxSession.enableCryptoWhenStarting();
@@ -355,7 +355,9 @@ public class CommonTestHelper {
         hs.setCredentials(credentials);
 
         final IMXStore store = new MXFileStore(hs, context);
-        final MXSession mxSession = new MXSession(hs, new MXDataHandler(store, credentials), context);
+        final MXSession mxSession = new MXSession.Builder(hs, new MXDataHandler(store, credentials), context)
+                .build();
+
         if (enableCrypto) {
             mxSession.enableCryptoWhenStarting();
         }

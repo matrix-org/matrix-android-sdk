@@ -145,7 +145,6 @@ public class RoomStateTest {
         eventTimeline.resetPaginationAroundInitialEvent(10, new SimpleApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                super.onSuccess(info);
                 lock.countDown();
             }
         });
@@ -203,7 +202,6 @@ public class RoomStateTest {
         eventTimeline.resetPaginationAroundInitialEvent(0, new SimpleApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                super.onSuccess(info);
                 recursiveBackPaginate(eventTimeline, 0, 30, 120);
             }
         });
@@ -255,8 +253,12 @@ public class RoomStateTest {
         eventTimeline.resetPaginationAroundInitialEvent(0, new SimpleApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                super.onSuccess(info);
-                eventTimeline.forwardPaginate(new SimpleApiCallback<Integer>());
+                eventTimeline.forwardPaginate(new SimpleApiCallback<Integer>() {
+                    @Override
+                    public void onSuccess(Integer info) {
+                        // Ignore
+                    }
+                });
             }
         });
         boolean handled = lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
@@ -275,7 +277,6 @@ public class RoomStateTest {
         timeline.backPaginate(eventCountStep, new SimpleApiCallback<Integer>() {
             @Override
             public void onSuccess(Integer info) {
-                super.onSuccess(info);
                 int realStep = Math.min(eventCountStep, info);
                 int newEventCount = currentEventCount + realStep;
                 if (newEventCount < maxEventCount) {
