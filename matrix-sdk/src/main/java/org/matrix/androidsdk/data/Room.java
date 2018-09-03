@@ -3079,6 +3079,7 @@ public class Room {
         return getNumberOfJoinedMembers() + getNumberOfInvitedMembers();
     }
 
+    // FIXME It returns 0 when LL is off (it will fix avatar issue)
     public int getNumberOfJoinedMembers() {
         RoomSummary roomSummary = getRoomSummary();
 
@@ -3089,6 +3090,7 @@ public class Room {
         }
     }
 
+    // FIXME It returns 0 when LL is off (it will fix avatar issue)
     public int getNumberOfInvitedMembers() {
         RoomSummary roomSummary = getRoomSummary();
 
