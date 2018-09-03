@@ -92,7 +92,7 @@ public class RoomStateTest {
         RoomState_BackPaginate(false);
     }
 
-    public void RoomState_BackPaginate(final boolean withLazyLoading) throws Exception {
+    private void RoomState_BackPaginate(final boolean withLazyLoading) throws Exception {
         final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario();
         mTestHelper.syncSession(data.aliceSession, false);
         final Room aliceRoom = data.aliceSession.getDataHandler().getRoom(data.roomId);
@@ -127,7 +127,7 @@ public class RoomStateTest {
         });
         recursiveBackPaginate(liveTimeline, 0, 30, 120);
         boolean handled = lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertEquals(true, handled);
+        Assert.assertTrue(handled);
     }
 
     @Test
@@ -135,7 +135,7 @@ public class RoomStateTest {
         RoomState_Permalink(false);
     }
 
-    public void RoomState_Permalink(final boolean withLazyLoading) throws Exception {
+    private void RoomState_Permalink(final boolean withLazyLoading) throws Exception {
         final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario();
         mTestHelper.syncSession(data.aliceSession, false);
         final Room aliceRoom = data.aliceSession.getDataHandler().getRoom(data.roomId);
@@ -150,7 +150,7 @@ public class RoomStateTest {
             }
         });
         boolean handled = lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertEquals(true, handled);
+        Assert.assertTrue(handled);
         final RoomState roomState = eventTimeline.getState();
         if (withLazyLoading) {
             Assert.assertEquals(1, roomState.getMembers().size());
@@ -166,7 +166,7 @@ public class RoomStateTest {
         RoomState_PermalinkWithBackPagination(false);
     }
 
-    public void RoomState_PermalinkWithBackPagination(final boolean withLazyLoading) throws Exception {
+    private void RoomState_PermalinkWithBackPagination(final boolean withLazyLoading) throws Exception {
         final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario();
         mTestHelper.syncSession(data.aliceSession, false);
         final Room aliceRoom = data.aliceSession.getDataHandler().getRoom(data.roomId);
@@ -208,7 +208,7 @@ public class RoomStateTest {
             }
         });
         boolean handled = lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertEquals(true, handled);
+        Assert.assertTrue(handled);
     }
 
     @Test
@@ -221,7 +221,7 @@ public class RoomStateTest {
     // - We should only know Bob membership
     // - Paginate forward to get Alice next message
     // - We should know Alice membership now
-    public void RoomState_PermalinkWithForwardPagination(final boolean withLazyLoading) throws Exception {
+    private void RoomState_PermalinkWithForwardPagination(final boolean withLazyLoading) throws Exception {
         final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario();
         mTestHelper.syncSession(data.aliceSession, false);
         final CountDownLatch lock = new CountDownLatch(1);
@@ -260,7 +260,7 @@ public class RoomStateTest {
             }
         });
         boolean handled = lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertEquals(true, handled);
+        Assert.assertTrue(handled);
     }
 
     /**
