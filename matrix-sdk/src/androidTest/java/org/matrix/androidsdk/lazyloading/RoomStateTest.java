@@ -50,11 +50,11 @@ public class RoomStateTest {
         mTestHelper.syncSession(data.aliceSession, false);
         final Room aliceRoom = data.aliceSession.getDataHandler().getRoom(data.roomId);
         if (withLazyLoading) {
-            Assert.assertEquals(1, aliceRoom.getMembers().size());
-            Assert.assertEquals(1, aliceRoom.getJoinedMembers().size());
+            Assert.assertEquals(1, aliceRoom.getState().getLoadedMembers().size());
+            Assert.assertEquals(3, aliceRoom.getNumberOfJoinedMembers());
         } else {
-            Assert.assertEquals(4, aliceRoom.getMembers().size());
-            Assert.assertEquals(3, aliceRoom.getJoinedMembers().size());
+            Assert.assertEquals(4, aliceRoom.getState().getLoadedMembers().size());
+            Assert.assertEquals(3, aliceRoom.getNumberOfJoinedMembers());
         }
     }
 
@@ -79,11 +79,11 @@ public class RoomStateTest {
         mTestHelper.sendTextMessage(samRoom, "A message from Sam", 1);
         lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         if (withLazyLoading) {
-            Assert.assertEquals(2, aliceRoom.getMembers().size());
-            Assert.assertEquals(2, aliceRoom.getJoinedMembers().size());
+            Assert.assertEquals(2, aliceRoom.getState().getLoadedMembers().size());
+            Assert.assertEquals(3, aliceRoom.getNumberOfJoinedMembers());
         } else {
-            Assert.assertEquals(4, aliceRoom.getMembers().size());
-            Assert.assertEquals(3, aliceRoom.getJoinedMembers().size());
+            Assert.assertEquals(4, aliceRoom.getState().getLoadedMembers().size());
+            Assert.assertEquals(3, aliceRoom.getNumberOfJoinedMembers());
         }
     }
 
@@ -152,11 +152,11 @@ public class RoomStateTest {
         Assert.assertTrue(handled);
         final RoomState roomState = eventTimeline.getState();
         if (withLazyLoading) {
-            Assert.assertEquals(1, roomState.getMembers().size());
-            Assert.assertEquals(1, aliceRoom.getJoinedMembers().size());
+            Assert.assertEquals(1, roomState.getLoadedMembers().size());
+            Assert.assertEquals(3, aliceRoom.getNumberOfJoinedMembers());
         } else {
-            Assert.assertEquals(4, roomState.getMembers().size());
-            Assert.assertEquals(3, aliceRoom.getJoinedMembers().size());
+            Assert.assertEquals(4, roomState.getLoadedMembers().size());
+            Assert.assertEquals(3, aliceRoom.getNumberOfJoinedMembers());
         }
     }
 
