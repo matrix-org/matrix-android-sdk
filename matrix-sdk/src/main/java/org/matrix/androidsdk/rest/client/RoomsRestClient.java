@@ -602,16 +602,19 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
     /**
      * Get the room members
-     * // TODO Add token as a parameter
      */
-    public void getRoomMembers(final String roomId, final ApiCallback<TokensChunkResponse<Event>> callback) {
+    public void getRoomMembers(final String roomId,
+                               final String syncToken,
+                               final String membership,
+                               final String notMembership,
+                               final ApiCallback<TokensChunkResponse<Event>> callback) {
         final String description = "getRoomMembers roomId=" + roomId;
 
-        mApi.getMembers(roomId)
+        mApi.getMembers(roomId, syncToken, membership, notMembership)
                 .enqueue(new RestAdapterCallback<TokensChunkResponse<Event>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        getRoomMembers(roomId, callback);
+                        getRoomMembers(roomId, syncToken, membership, notMembership, callback);
                     }
                 }));
     }

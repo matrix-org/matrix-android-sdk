@@ -456,10 +456,16 @@ public interface RoomsApi {
 
     /**
      * Get all members of a room
-     * TODO handle the token id as a parameter
      *
-     * @param roomId the room id where to get the members
+     * @param roomId        the room id where to get the members
+     * @param syncToken
+     * @param membership
+     * @param notMembership
      */
+    // TODO LazyLoading check that the "at" param has an effect...
     @GET("rooms/{roomId}/members")
-    Call<TokensChunkResponse<Event>> getMembers(@Path("roomId") String roomId);
+    Call<TokensChunkResponse<Event>> getMembers(@Path("roomId") String roomId,
+                                                @Query("at") String syncToken,
+                                                @Query("membership") String membership,
+                                                @Query("not_membership") String notMembership);
 }

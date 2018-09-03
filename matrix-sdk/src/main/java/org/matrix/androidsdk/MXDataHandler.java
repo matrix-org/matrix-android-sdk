@@ -180,6 +180,9 @@ public class MXDataHandler implements IMXEventListener {
     // tell if the lazy loading is enabled
     private boolean mIsLazyLoadingEnabled;
 
+    // Current sync token
+    private String mSyncToken;
+
     /**
      * Default constructor.
      *
@@ -952,7 +955,7 @@ public class MXDataHandler implements IMXEventListener {
      * @param callback the callback
      */
     public void getMembersAsync(final String roomId, final ApiCallback<List<RoomMember>> callback) {
-        mRoomsRestClient.getRoomMembers(roomId, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+        mRoomsRestClient.getRoomMembers(roomId, mSyncToken, null, null, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
             @Override
             public void onSuccess(TokensChunkResponse<Event> info) {
                 Room room = getRoom(roomId);
@@ -1284,6 +1287,8 @@ public class MXDataHandler implements IMXEventListener {
      * @param isCatchingUp true when there is a pending catch-up
      */
     public void onSyncResponse(final SyncResponse syncResponse, final String fromToken, final boolean isCatchingUp) {
+        mSyncToken = syncResponse.nextBatch;
+
         // perform the sync in background
         // to avoid UI thread lags.
         mSyncHandler.post(new Runnable() {
@@ -1342,7 +1347,7 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
-     * Manage the sync response in the UI thread.
+     * Manage the sync response in a background thread.
      *
      * @param syncResponse the syncResponse to manage.
      * @param fromToken    the start sync token
