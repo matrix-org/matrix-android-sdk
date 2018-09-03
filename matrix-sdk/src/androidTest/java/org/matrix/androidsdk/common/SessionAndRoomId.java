@@ -14,9 +14,20 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk;
+package org.matrix.androidsdk.common;
 
-class TestConstants {
-    // Time out to use when waiting for server response
-    public static final int AWAIT_TIME_OUT_MILLIS = 30000;
+import android.util.Pair;
+
+import org.matrix.androidsdk.MXSession;
+
+public class SessionAndRoomId extends Pair<MXSession, String> {
+    /**
+     * Constructor for a Pair.
+     *
+     * @param first  the first object in the Pair
+     * @param second the second object in the pair
+     */
+    public SessionAndRoomId(MXSession first, String second) {
+        super(first, second);
+    }
 }

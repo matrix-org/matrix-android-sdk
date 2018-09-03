@@ -1,4 +1,4 @@
-package org.matrix.androidsdk;
+package org.matrix.androidsdk.crypto;
 
 import android.os.MemoryFile;
 import android.support.test.runner.AndroidJUnit4;
@@ -9,7 +9,6 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
-import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileKey;
 
@@ -127,6 +126,6 @@ public class AttachmentEncryptionTest {
 
         Assert.assertNotEquals("YWxwaGFudW1lcmljYWxseWFscGhhbnVtZXJpY2FsbHlhbHBoYW51bWVyaWNhbGx5YWxwaGFudW1lcmljYWxseQ",
                 checkDecryption("tJVNBVJ/vl36UQt4Y5e5m84bRUrQHhcdLPvS/7EkDvlkDLZXamBB6k8THbiawiKZ5Mnq9PZMSSbgOCvmnUBOMA",
-                encryptedFileInfo));
+                        encryptedFileInfo));
     }
 }

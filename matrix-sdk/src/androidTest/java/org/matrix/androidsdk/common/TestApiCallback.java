@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk;
+package org.matrix.androidsdk.common;
 
 import android.support.annotation.CallSuper;
 import android.support.annotation.NonNull;
@@ -30,12 +30,12 @@ import java.util.concurrent.CountDownLatch;
  *
  * @param <T>
  */
-class TestApiCallback<T> implements ApiCallback<T> {
+public class TestApiCallback<T> implements ApiCallback<T> {
 
     @NonNull
     private final CountDownLatch mCountDownLatch;
 
-    TestApiCallback(@NonNull CountDownLatch countDownLatch) {
+    public TestApiCallback(@NonNull CountDownLatch countDownLatch) {
         mCountDownLatch = countDownLatch;
     }
 
@@ -49,7 +49,6 @@ class TestApiCallback<T> implements ApiCallback<T> {
     @Override
     public void onNetworkError(Exception e) {
         Log.e("TestApiCallback", e.getMessage(), e);
-
         mCountDownLatch.countDown();
     }
 
@@ -57,7 +56,6 @@ class TestApiCallback<T> implements ApiCallback<T> {
     @Override
     public void onMatrixError(MatrixError e) {
         Log.e("TestApiCallback", e.getMessage() + " " + e.errcode);
-
         mCountDownLatch.countDown();
     }
 
@@ -65,7 +63,6 @@ class TestApiCallback<T> implements ApiCallback<T> {
     @Override
     public void onUnexpectedError(Exception e) {
         Log.e("TestApiCallback", e.getMessage(), e);
-
         mCountDownLatch.countDown();
     }
 }
