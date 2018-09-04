@@ -16,8 +16,6 @@
  */
 package org.matrix.androidsdk.rest.client;
 
-import com.google.gson.Gson;
-
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.FilterApi;

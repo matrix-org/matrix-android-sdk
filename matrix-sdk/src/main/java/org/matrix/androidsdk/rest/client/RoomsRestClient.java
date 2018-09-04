@@ -148,7 +148,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                                     final ApiCallback<TokensChunkResponse<Event>> callback) {
         final String description = "messagesFrom : roomId " + roomId + " fromToken " + fromToken + "with direction " + direction + " with limit " + limit;
 
-        mApi.getRoomMessagesFrom(roomId, fromToken, (direction == EventTimeline.Direction.BACKWARDS) ? "b" : "f", limit, roomEventFilter)
+        mApi.getRoomMessagesFrom(roomId, fromToken, (direction == EventTimeline.Direction.BACKWARDS) ? "b" : "f", limit, toJson(roomEventFilter))
                 .enqueue(new RestAdapterCallback<TokensChunkResponse<Event>>(description, mUnsentEventsManager, callback,
                         new RestAdapterCallback.RequestRetryCallBack() {
                             @Override
@@ -492,7 +492,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                                   final ApiCallback<EventContext> callback) {
         final String description = "getContextOfEvent : roomId " + roomId + " eventId " + eventId + " limit " + limit;
 
-        mApi.getContextOfEvent(roomId, eventId, limit, roomEventFilter)
+        mApi.getContextOfEvent(roomId, eventId, limit, toJson(roomEventFilter))
                 .enqueue(new RestAdapterCallback<EventContext>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -1034,5 +1034,14 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                         updateGuestAccess(aRoomId, aGuestAccessRule, callback);
                     }
                 }));
+    }
+
+    @Nullable
+    private String toJson(@Nullable RoomEventFilter roomEventFilter) {
+        if (roomEventFilter == null) {
+            return null;
+        }
+
+        return roomEventFilter.toJSONString();
     }
 }

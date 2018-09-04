@@ -16,6 +16,7 @@
  */
 package org.matrix.androidsdk.rest.model.filter;
 
+import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
 import java.util.List;
@@ -59,5 +60,9 @@ public class RoomEventFilter {
                 || notRooms != null
                 || containsUrl != null
                 || lazyLoadMembers != null;
+    }
+
+    public String toJSONString() {
+        return new Gson().toJson(this);
     }
 }

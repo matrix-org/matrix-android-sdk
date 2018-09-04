@@ -290,14 +290,14 @@ public interface RoomsApi {
      * @param from   the token identifying where to start. Required.
      * @param dir    The direction to return messages from. Required.
      * @param limit  the maximum number of messages to retrieve. Optional.
-     * @param filter A RoomEventFilter to filter returned events with. Optional.
+     * @param filter A JSON RoomEventFilter to filter returned events with. Optional.
      */
     @GET("rooms/{roomId}/messages")
     Call<TokensChunkResponse<Event>> getRoomMessagesFrom(@Path("roomId") String roomId,
                                                          @Query("from") String from,
                                                          @Query("dir") String dir,
                                                          @Query("limit") int limit,
-                                                         @Nullable @Query("filter") RoomEventFilter filter);
+                                                         @Nullable @Query("filter") String filter);
 
     /**
      * Get the initial information concerning a specific room.
@@ -314,13 +314,13 @@ public interface RoomsApi {
      * @param roomId  the room id
      * @param eventId the event Id
      * @param limit   the maximum number of messages to retrieve
-     * @param filter  A RoomEventFilter to filter returned events with. Optional.
+     * @param filter  A JSON RoomEventFilter to filter returned events with. Optional.
      */
     @GET("rooms/{roomId}/context/{eventId}")
     Call<EventContext> getContextOfEvent(@Path("roomId") String roomId,
                                          @Path("eventId") String eventId,
                                          @Query("limit") int limit,
-                                         @Nullable @Query("filter") RoomEventFilter filter);
+                                         @Nullable @Query("filter") String filter);
 
     /**
      * Retrieve an event from its room id / events id
