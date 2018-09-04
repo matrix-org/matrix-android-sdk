@@ -21,7 +21,6 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.matrix.androidsdk.common.CommonTestHelper;
-import org.matrix.androidsdk.common.TestConstants;
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
@@ -29,7 +28,6 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 @RunWith(AndroidJUnit4.class)
 public class RoomStateTest {
@@ -43,7 +41,7 @@ public class RoomStateTest {
     }
 
     @Test
-    public void RoomState_InitialSync_ShouldLoadAllMembers_LL() throws Exception {
+    public void RoomState_InitialSync_LazyLoading() throws Exception {
         RoomState_InitialSync(true);
     }
 
@@ -68,7 +66,7 @@ public class RoomStateTest {
     }
 
     @Test
-    public void RoomState_IncomingMessage_ShouldLoadAllMembers_LL() throws Exception {
+    public void RoomState_IncomingMessage_LazyLoading() throws Exception {
         RoomState_IncomingMessage(true);
     }
 
@@ -105,7 +103,7 @@ public class RoomStateTest {
     }
 
     @Test
-    public void RoomState_BackPaginate_ShouldLoadAllMembers_LL() throws Exception {
+    public void RoomState_BackPaginate_LazyLoading() throws Exception {
         RoomState_BackPaginate(true);
     }
 
@@ -156,7 +154,7 @@ public class RoomStateTest {
     }
 
     @Test
-    public void RoomState_Permalink_ShouldLoadAllMembers_LL() throws Exception {
+    public void RoomState_Permalink_LazyLoading() throws Exception {
         RoomState_Permalink(true);
     }
 
@@ -192,7 +190,7 @@ public class RoomStateTest {
     }
 
     @Test
-    public void RoomState_PermalinkWithBackPagination_ShouldLoadAllMembers_LL() throws Exception {
+    public void RoomState_PermalinkWithBackPagination_LazyLoading() throws Exception {
         RoomState_PermalinkWithBackPagination(true);
     }
 
@@ -249,7 +247,7 @@ public class RoomStateTest {
     }
 
     @Test
-    public void RoomState_PermalinkWithForwardPagination_ShouldLoadAllMembers_LL() throws Exception {
+    public void RoomState_PermalinkWithForwardPagination_LazyLoading() throws Exception {
         RoomState_PermalinkWithForwardPagination(true);
     }
 
