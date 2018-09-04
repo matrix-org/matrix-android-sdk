@@ -75,10 +75,13 @@ public class RoomSummary implements java.io.Serializable {
     private String mInviterUserId = null;
 
     // retrieved from the roomState
-    private boolean mIsInvited = false;
     private String mInviterName = null;
 
-    private String mMatrixId = null;
+    private String mUserId = null;
+
+    // Info from sync, depending on the room position in the sync
+    private boolean mIsInInvitedRooms = false;
+    private boolean mIsInJoinedRooms = false;
 
     /**
      * Tell if the room is a user conference user one
@@ -109,7 +112,7 @@ public class RoomSummary implements java.io.Serializable {
                        Event event,
                        RoomState roomState,
                        String userId) {
-        setMatrixId(userId);
+        mUserId = userId;
 
         if (null != roomState) {
             setRoomId(roomState.roomId);
@@ -246,10 +249,10 @@ public class RoomSummary implements java.io.Serializable {
     }
 
     /**
-     * @return the matrix id
+     * @return the user id
      */
-    public String getMatrixId() {
-        return mMatrixId;
+    public String getUserId() {
+        return mUserId;
     }
 
     /**
@@ -284,7 +287,30 @@ public class RoomSummary implements java.io.Serializable {
      * @return true if the current user is invited
      */
     public boolean isInvited() {
-        return mIsInvited || (mInviterUserId != null);
+        return mIsInInvitedRooms;
+    }
+
+    /**
+     * To call when the room is in the invited section of the sync response
+     */
+    public void setIsInvited() {
+        mIsInInvitedRooms = true;
+        mIsInJoinedRooms = false;
+    }
+
+    /**
+     * To call when the room is in the joined section of the sync response
+     */
+    public void setIsJoined() {
+        mIsInInvitedRooms = false;
+        mIsInJoinedRooms = true;
+    }
+
+    /**
+     * @return true if the current user is invited
+     */
+    public boolean isJoined() {
+        return mIsInJoinedRooms;
     }
 
     /**
@@ -292,15 +318,6 @@ public class RoomSummary implements java.io.Serializable {
      */
     public String getInviterUserId() {
         return mInviterUserId;
-    }
-
-    /**
-     * Update the linked matrix id.
-     *
-     * @param matrixId the new matrix id.
-     */
-    public void setMatrixId(String matrixId) {
-        mMatrixId = matrixId;
     }
 
     /**
@@ -362,13 +379,16 @@ public class RoomSummary implements java.io.Serializable {
     public RoomSummary setLatestRoomState(RoomState roomState) {
         mLatestRoomState = roomState;
 
+        // Keep this code for compatibility?
+        boolean isInvited = false;
+
         // check for the invitation status
         if (null != mLatestRoomState) {
-            RoomMember member = mLatestRoomState.getMember(mMatrixId);
-            mIsInvited = (null != member) && RoomMember.MEMBERSHIP_INVITE.equals(member.membership);
+            RoomMember member = mLatestRoomState.getMember(mUserId);
+            isInvited = (null != member) && RoomMember.MEMBERSHIP_INVITE.equals(member.membership);
         }
         // when invited, the only received message should be the invitation one
-        if (mIsInvited) {
+        if (isInvited) {
             mInviterName = null;
 
             if (null != mLatestReceivedEvent) {

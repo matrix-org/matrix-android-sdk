@@ -352,8 +352,6 @@ public class Room {
             });
 
             mOnInitialSyncCallback = null;
-
-
         }
 
         mIsSyncing = false;
@@ -364,6 +362,12 @@ public class Room {
             } // else -> it will be done at the end of the sync
             mRefreshUnreadAfterSync = false;
         }
+
+        RoomSummary roomSummary = getRoomSummary();
+
+        if (roomSummary != null) {
+            roomSummary.setIsJoined();
+        }
     }
 
     /**
@@ -373,6 +377,12 @@ public class Room {
      */
     public void handleInvitedRoomSync(InvitedRoomSync invitedRoomSync) {
         mLiveTimeline.handleInvitedRoomSync(invitedRoomSync);
+
+        RoomSummary roomSummary = getRoomSummary();
+
+        if (roomSummary != null) {
+            roomSummary.setIsInvited();
+        }
     }
 
     /**
@@ -557,20 +567,22 @@ public class Room {
      * @return true if the user is invited to the room
      */
     public boolean isInvited() {
-        return hasMembership(RoomMember.MEMBERSHIP_INVITE);
+        if (getRoomSummary() == null) {
+            return false;
+        }
+
+        return getRoomSummary().isInvited();
     }
 
     /**
-     * @param membership is the string representing one of the membership state
-     * @return true if the user membership is equals to the membership param
+     * @return true if the user is invited to the room
      */
-    public boolean hasMembership(@NonNull final String membership) {
-        final RoomState state = getState();
-        final RoomMember selfMember = state.getMember(mMyUserId);
-        if (selfMember == null) {
+    public boolean isJoined() {
+        if (getRoomSummary() == null) {
             return false;
         }
-        return TextUtils.equals(selfMember.membership, membership);
+
+        return getRoomSummary().isJoined();
     }
 
     /**
