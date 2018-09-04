@@ -42,6 +42,7 @@ import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.sync.RoomSync;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.EventDisplay;
+import org.matrix.androidsdk.util.FilterUtil;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 
@@ -1417,100 +1418,103 @@ public class EventTimeline {
         mForwardsPaginationToken = null;
         mHasReachedHomeServerForwardsPaginationEnd = false;
 
-        mDataHandler.getDataRetriever().getRoomsRestClient().getContextOfEvent(mRoomId, mInitialEventId, limit, new SimpleApiCallback<EventContext>(callback) {
-            @Override
-            public void onSuccess(final EventContext eventContext) {
-
-                AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
-                    @Override
-                    protected Void doInBackground(Void... params) {
-                        // the state is the one after the latest event of the chunk i.e. the last message of eventContext.eventsAfter
-                        for (Event event : eventContext.state) {
-                            processStateEvent(event, Direction.FORWARDS);
-                        }
-
-                        // init the room states
-                        initHistory();
-
-                        // build the events list
-                        List<Event> events = new ArrayList<>();
-
-                        Collections.reverse(eventContext.eventsAfter);
-                        events.addAll(eventContext.eventsAfter);
-                        events.add(eventContext.event);
-                        events.addAll(eventContext.eventsBefore);
-
-                        // add events after
-                        addPaginationEvents(events, Direction.BACKWARDS);
-
-                        return null;
-                    }
-
-                    @Override
-                    protected void onPostExecute(Void args) {
-                        // create dummy forward events list
-                        // to center the selected event id
-                        // else if might be out of screen
-                        List<SnapshotEvent> nextSnapshotEvents = new ArrayList<>(mSnapshotEvents.subList(0, (mSnapshotEvents.size() + 1) / 2));
-
-                        // put in the right order
-                        Collections.reverse(nextSnapshotEvents);
-
-                        // send them one by one
-                        for (SnapshotEvent snapshotEvent : nextSnapshotEvents) {
-                            mSnapshotEvents.remove(snapshotEvent);
-                            onEvent(snapshotEvent.mEvent, Direction.FORWARDS, snapshotEvent.mState);
-                        }
-
-                        // init the tokens
-                        mBackState.setToken(eventContext.start);
-                        mForwardsPaginationToken = eventContext.end;
-
-                        // send the back events to complete pagination
-                        manageBackEvents(MAX_EVENT_COUNT_PER_PAGINATION, new ApiCallback<Integer>() {
+        mDataHandler.getDataRetriever()
+                .getRoomsRestClient()
+                .getContextOfEvent(mRoomId, mInitialEventId, limit, FilterUtil.createRoomEventFilter(mDataHandler.isLazyLoadingEnabled()),
+                        new SimpleApiCallback<EventContext>(callback) {
                             @Override
-                            public void onSuccess(Integer info) {
-                                Log.d(LOG_TAG, "addPaginationEvents succeeds");
-                            }
+                            public void onSuccess(final EventContext eventContext) {
 
-                            @Override
-                            public void onNetworkError(Exception e) {
-                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage(), e);
-                            }
+                                AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
+                                    @Override
+                                    protected Void doInBackground(Void... params) {
+                                        // the state is the one after the latest event of the chunk i.e. the last message of eventContext.eventsAfter
+                                        for (Event event : eventContext.state) {
+                                            processStateEvent(event, Direction.FORWARDS);
+                                        }
 
-                            @Override
-                            public void onMatrixError(MatrixError e) {
-                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage());
-                            }
+                                        // init the room states
+                                        initHistory();
 
-                            @Override
-                            public void onUnexpectedError(Exception e) {
-                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage(), e);
+                                        // build the events list
+                                        List<Event> events = new ArrayList<>();
+
+                                        Collections.reverse(eventContext.eventsAfter);
+                                        events.addAll(eventContext.eventsAfter);
+                                        events.add(eventContext.event);
+                                        events.addAll(eventContext.eventsBefore);
+
+                                        // add events after
+                                        addPaginationEvents(events, Direction.BACKWARDS);
+
+                                        return null;
+                                    }
+
+                                    @Override
+                                    protected void onPostExecute(Void args) {
+                                        // create dummy forward events list
+                                        // to center the selected event id
+                                        // else if might be out of screen
+                                        List<SnapshotEvent> nextSnapshotEvents = new ArrayList<>(mSnapshotEvents.subList(0, (mSnapshotEvents.size() + 1) / 2));
+
+                                        // put in the right order
+                                        Collections.reverse(nextSnapshotEvents);
+
+                                        // send them one by one
+                                        for (SnapshotEvent snapshotEvent : nextSnapshotEvents) {
+                                            mSnapshotEvents.remove(snapshotEvent);
+                                            onEvent(snapshotEvent.mEvent, Direction.FORWARDS, snapshotEvent.mState);
+                                        }
+
+                                        // init the tokens
+                                        mBackState.setToken(eventContext.start);
+                                        mForwardsPaginationToken = eventContext.end;
+
+                                        // send the back events to complete pagination
+                                        manageBackEvents(MAX_EVENT_COUNT_PER_PAGINATION, new ApiCallback<Integer>() {
+                                            @Override
+                                            public void onSuccess(Integer info) {
+                                                Log.d(LOG_TAG, "addPaginationEvents succeeds");
+                                            }
+
+                                            @Override
+                                            public void onNetworkError(Exception e) {
+                                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage(), e);
+                                            }
+
+                                            @Override
+                                            public void onMatrixError(MatrixError e) {
+                                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage());
+                                            }
+
+                                            @Override
+                                            public void onUnexpectedError(Exception e) {
+                                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage(), e);
+                                            }
+                                        });
+
+                                        // everything is done
+                                        callback.onSuccess(null);
+                                    }
+                                };
+
+                                try {
+                                    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                                } catch (final Exception e) {
+                                    Log.e(LOG_TAG, "## resetPaginationAroundInitialEvent() failed " + e.getMessage(), e);
+                                    task.cancel(true);
+
+                                    (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            if (callback != null) {
+                                                callback.onUnexpectedError(e);
+                                            }
+                                        }
+                                    });
+                                }
                             }
                         });
-
-                        // everything is done
-                        callback.onSuccess(null);
-                    }
-                };
-
-                try {
-                    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-                } catch (final Exception e) {
-                    Log.e(LOG_TAG, "## resetPaginationAroundInitialEvent() failed " + e.getMessage(), e);
-                    task.cancel(true);
-
-                    (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (callback != null) {
-                                callback.onUnexpectedError(e);
-                            }
-                        }
-                    });
-                }
-            }
-        });
     }
 
     //==============================================================================================================

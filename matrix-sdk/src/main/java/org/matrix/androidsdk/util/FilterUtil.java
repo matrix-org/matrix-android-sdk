@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.util;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import org.matrix.androidsdk.rest.model.filter.Filter;
 import org.matrix.androidsdk.rest.model.filter.FilterBody;
@@ -129,5 +130,23 @@ public class FilterUtil {
                 }
             }
         }
+    }
+
+    /**
+     * Create a RoomEventFilter
+     *
+     * @param withLazyLoading true when lazy loading is enabled
+     * @return a RoomEventFilter or null if lazy loading if OFF
+     */
+    @Nullable
+    public static RoomEventFilter createRoomEventFilter(boolean withLazyLoading) {
+        RoomEventFilter roomEventFilter = null;
+
+        if (withLazyLoading) {
+            roomEventFilter = new RoomEventFilter();
+            roomEventFilter.lazyLoadMembers = true;
+        }
+
+        return roomEventFilter;
     }
 }

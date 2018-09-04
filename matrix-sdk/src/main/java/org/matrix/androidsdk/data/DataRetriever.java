@@ -17,7 +17,6 @@
 package org.matrix.androidsdk.data;
 
 import android.os.Looper;
-import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.data.store.IMXStore;
@@ -27,7 +26,7 @@ import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
-import org.matrix.androidsdk.rest.model.filter.RoomEventFilter;
+import org.matrix.androidsdk.util.FilterUtil;
 import org.matrix.androidsdk.util.Log;
 
 import java.util.Collection;
@@ -165,7 +164,7 @@ public class DataRetriever {
         } else {
             Log.d(LOG_TAG, "## backPaginate() : trigger a remote request");
 
-            mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.BACKWARDS, limit, createRoomEventFilter(withLazyLoading),
+            mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.BACKWARDS, limit, FilterUtil.createRoomEventFilter(withLazyLoading),
                     new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
                         @Override
                         public void onSuccess(TokensChunkResponse<Event> events) {
@@ -263,7 +262,7 @@ public class DataRetriever {
         putPendingToken(mPendingForwardRequestTokenByRoomId, roomId, token);
 
         mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.FORWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT,
-                createRoomEventFilter(withLazyLoading),
+                FilterUtil.createRoomEventFilter(withLazyLoading),
                 new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
                     @Override
                     public void onSuccess(TokensChunkResponse<Event> events) {
@@ -316,7 +315,7 @@ public class DataRetriever {
                                          final ApiCallback<TokensChunkResponse<Event>> callback) {
         putPendingToken(mPendingRemoteRequestTokenByRoomId, roomId, token);
 
-        mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.BACKWARDS, paginationCount, createRoomEventFilter(withLazyLoading),
+        mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.BACKWARDS, paginationCount, FilterUtil.createRoomEventFilter(withLazyLoading),
                 new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
                     @Override
                     public void onSuccess(TokensChunkResponse<Event> info) {
@@ -396,23 +395,5 @@ public class DataRetriever {
                 dict.put(roomId, token);
             }
         }
-    }
-
-    /**
-     * Create a RoomEventFilter
-     *
-     * @param withLazyLoading true when lazy loading is enabled
-     * @return a RoomEventFilter or null if lazy loading if OFF
-     */
-    @Nullable
-    private RoomEventFilter createRoomEventFilter(boolean withLazyLoading) {
-        RoomEventFilter roomEventFilter = null;
-
-        if (withLazyLoading) {
-            roomEventFilter = new RoomEventFilter();
-            roomEventFilter.lazyLoadMembers = true;
-        }
-
-        return roomEventFilter;
     }
 }

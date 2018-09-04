@@ -419,7 +419,8 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                         @Override
                         public void onMatrixError(MatrixError e) {
                             if (TextUtils.equals(e.errcode, MatrixError.UNRECOGNIZED)) {
-                                getContextOfEvent(roomId, eventId, 1, new SimpleApiCallback<EventContext>(callback) {
+                                // TODO LazyLoading Manu do we should enable lazy loading here?
+                                getContextOfEvent(roomId, eventId, 1, null, new SimpleApiCallback<EventContext>(callback) {
                                     @Override
                                     public void onSuccess(EventContext eventContext) {
                                         callback.onSuccess(eventContext.event);
@@ -478,19 +479,24 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     /**
      * Get the context surrounding an event.
      *
-     * @param roomId   the room id
-     * @param eventId  the event Id
-     * @param limit    the maximum number of messages to retrieve
-     * @param callback the asynchronous callback called with the response
+     * @param roomId          the room id
+     * @param eventId         the event Id
+     * @param limit           the maximum number of messages to retrieve
+     * @param roomEventFilter A RoomEventFilter to filter returned events with. Optional.
+     * @param callback        the asynchronous callback called with the response
      */
-    public void getContextOfEvent(final String roomId, final String eventId, final int limit, final ApiCallback<EventContext> callback) {
+    public void getContextOfEvent(final String roomId,
+                                  final String eventId,
+                                  final int limit,
+                                  @Nullable final RoomEventFilter roomEventFilter,
+                                  final ApiCallback<EventContext> callback) {
         final String description = "getContextOfEvent : roomId " + roomId + " eventId " + eventId + " limit " + limit;
 
-        mApi.getContextOfEvent(roomId, eventId, limit)
+        mApi.getContextOfEvent(roomId, eventId, limit, roomEventFilter)
                 .enqueue(new RestAdapterCallback<EventContext>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        getContextOfEvent(roomId, eventId, limit, callback);
+                        getContextOfEvent(roomId, eventId, limit, roomEventFilter, callback);
                     }
                 }));
     }

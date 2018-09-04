@@ -314,9 +314,13 @@ public interface RoomsApi {
      * @param roomId  the room id
      * @param eventId the event Id
      * @param limit   the maximum number of messages to retrieve
+     * @param filter  A RoomEventFilter to filter returned events with. Optional.
      */
     @GET("rooms/{roomId}/context/{eventId}")
-    Call<EventContext> getContextOfEvent(@Path("roomId") String roomId, @Path("eventId") String eventId, @Query("limit") int limit);
+    Call<EventContext> getContextOfEvent(@Path("roomId") String roomId,
+                                         @Path("eventId") String eventId,
+                                         @Query("limit") int limit,
+                                         @Nullable @Query("filter") RoomEventFilter filter);
 
     /**
      * Retrieve an event from its room id / events id
