@@ -18,10 +18,8 @@ package org.matrix.androidsdk.lazyloading;
 import android.support.test.runner.AndroidJUnit4;
 
 import org.junit.Assert;
-import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.MethodSorters;
 import org.matrix.androidsdk.common.CommonTestHelper;
 import org.matrix.androidsdk.common.TestConstants;
 import org.matrix.androidsdk.data.EventTimeline;
@@ -34,7 +32,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 @RunWith(AndroidJUnit4.class)
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class RoomStateTest {
 
     private CommonTestHelper mTestHelper = new CommonTestHelper();
@@ -54,13 +51,15 @@ public class RoomStateTest {
         final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario(withLazyLoading);
         mTestHelper.syncSession(data.aliceSession, false);
         final Room aliceRoom = data.aliceSession.getDataHandler().getRoom(data.roomId);
+
         if (withLazyLoading) {
             Assert.assertEquals(1, aliceRoom.getState().getLoadedMembers().size());
-            Assert.assertEquals(3, aliceRoom.getNumberOfJoinedMembers());
         } else {
             Assert.assertEquals(4, aliceRoom.getState().getLoadedMembers().size());
-            Assert.assertEquals(3, aliceRoom.getNumberOfJoinedMembers());
         }
+
+        Assert.assertEquals(1, aliceRoom.getNumberOfInvitedMembers());
+        Assert.assertEquals(3, aliceRoom.getNumberOfJoinedMembers());
     }
 
     @Test
@@ -88,13 +87,16 @@ public class RoomStateTest {
         final Room samRoom = data.samSession.getDataHandler().getRoom(data.roomId);
         mTestHelper.sendTextMessage(samRoom, "A message from Sam", 1);
         lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+
         if (withLazyLoading) {
+            // Sam is now loaded
             Assert.assertEquals(2, aliceRoom.getState().getLoadedMembers().size());
-            Assert.assertEquals(3, aliceRoom.getNumberOfJoinedMembers());
         } else {
             Assert.assertEquals(4, aliceRoom.getState().getLoadedMembers().size());
-            Assert.assertEquals(3, aliceRoom.getNumberOfJoinedMembers());
         }
+
+        Assert.assertEquals(1, aliceRoom.getNumberOfInvitedMembers());
+        Assert.assertEquals(3, aliceRoom.getNumberOfJoinedMembers());
     }
 
     @Test
@@ -120,22 +122,26 @@ public class RoomStateTest {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 messageCount++;
                 if (messageCount == 50) {
-                    if (withLazyLoading) {
-                        Assert.assertNull(liveTimeline.getState().getMember(data.bobSession.getMyUserId()));
-                        Assert.assertNull(liveTimeline.getState().getMember(data.samSession.getMyUserId()));
-                        Assert.assertNull(roomState.getMember(data.bobSession.getMyUserId()));
-                    }
                     Assert.assertNotNull(liveTimeline.getState().getMember(data.aliceSession.getMyUserId()));
+
+                    // With LazyLoading, Bob and Sam are not known by Alice yet
+                    Assert.assertEquals(withLazyLoading, liveTimeline.getState().getMember(data.bobSession.getMyUserId()) == null);
+                    Assert.assertEquals(withLazyLoading, liveTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
+                    Assert.assertEquals(withLazyLoading, roomState.getMember(data.bobSession.getMyUserId()) == null);
+                    Assert.assertEquals(withLazyLoading, roomState.getMember(data.samSession.getMyUserId()) == null);
                 } else if (messageCount == 51) {
-                    if (withLazyLoading) {
-                        Assert.assertNull(roomState.getMember(data.samSession.getMyUserId()));
-                        Assert.assertNull(liveTimeline.getState().getMember(data.samSession.getMyUserId()));
-                    }
+                    // Bob is known now
                     Assert.assertNotNull(liveTimeline.getState().getMember(data.bobSession.getMyUserId()));
+
+                    // With LazyLoading, Sam is not known by Alice yet
+                    Assert.assertEquals(withLazyLoading, liveTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
+                    Assert.assertEquals(withLazyLoading, roomState.getMember(data.samSession.getMyUserId()) == null);
                 } else if (messageCount >= 110) {
+                    // All users are known now
                     Assert.assertNotNull(liveTimeline.getState().getMember(data.aliceSession.getMyUserId()));
                     Assert.assertNotNull(liveTimeline.getState().getMember(data.bobSession.getMyUserId()));
                     Assert.assertNotNull(liveTimeline.getState().getMember(data.samSession.getMyUserId()));
+
                     lock.countDown();
                 }
             }
@@ -171,13 +177,15 @@ public class RoomStateTest {
         boolean handled = lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
         Assert.assertTrue(handled);
         final RoomState roomState = eventTimeline.getState();
+
         if (withLazyLoading) {
             Assert.assertEquals(1, roomState.getLoadedMembers().size());
-            Assert.assertEquals(3, aliceRoom.getNumberOfJoinedMembers());
         } else {
             Assert.assertEquals(4, roomState.getLoadedMembers().size());
-            Assert.assertEquals(3, aliceRoom.getNumberOfJoinedMembers());
         }
+
+        Assert.assertEquals(1, aliceRoom.getNumberOfInvitedMembers());
+        Assert.assertEquals(3, aliceRoom.getNumberOfJoinedMembers());
     }
 
     @Test
@@ -204,22 +212,26 @@ public class RoomStateTest {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 messageCount++;
                 if (messageCount == 50) {
-                    if (withLazyLoading) {
-                        Assert.assertNull(eventTimeline.getState().getMember(data.bobSession.getMyUserId()));
-                        Assert.assertNull(eventTimeline.getState().getMember(data.samSession.getMyUserId()));
-                        Assert.assertNull(roomState.getMember(data.bobSession.getMyUserId()));
-                    }
                     Assert.assertNotNull(eventTimeline.getState().getMember(data.aliceSession.getMyUserId()));
+
+                    // With LazyLoading, Bob and Sam are not known by Alice yet
+                    Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.bobSession.getMyUserId()) == null);
+                    Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
+                    Assert.assertEquals(withLazyLoading, roomState.getMember(data.bobSession.getMyUserId()) == null);
+                    Assert.assertEquals(withLazyLoading, roomState.getMember(data.samSession.getMyUserId()) == null);
                 } else if (messageCount == 51) {
-                    if (withLazyLoading) {
-                        Assert.assertNull(roomState.getMember(data.samSession.getMyUserId()));
-                        Assert.assertNull(eventTimeline.getState().getMember(data.samSession.getMyUserId()));
-                    }
+                    // Bob is known now
                     Assert.assertNotNull(eventTimeline.getState().getMember(data.bobSession.getMyUserId()));
+
+                    // With LazyLoading, Sam is not known by Alice yet
+                    Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
+                    Assert.assertEquals(withLazyLoading, roomState.getMember(data.samSession.getMyUserId()) == null);
                 } else if (messageCount >= 110) {
+                    // All users are known now
                     Assert.assertNotNull(eventTimeline.getState().getMember(data.aliceSession.getMyUserId()));
                     Assert.assertNotNull(eventTimeline.getState().getMember(data.bobSession.getMyUserId()));
                     Assert.assertNotNull(eventTimeline.getState().getMember(data.samSession.getMyUserId()));
+
                     lock.countDown();
                 }
             }
@@ -261,21 +273,26 @@ public class RoomStateTest {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 messageCount++;
                 if (messageCount == 1) {
+                    // We received the Event from bob
                     Assert.assertEquals(event.sender, data.bobSession.getMyUserId());
-                    if (withLazyLoading) {
-                        Assert.assertNull(eventTimeline.getState().getMember(data.aliceSession.getMyUserId()));
-                        Assert.assertNull(eventTimeline.getState().getMember(data.samSession.getMyUserId()));
-                    } else {
-                        Assert.assertNotNull(roomState.getMember(data.aliceSession.getMyUserId()));
-                    }
+
+                    // Bob is known
                     Assert.assertNotNull(eventTimeline.getState().getMember(data.bobSession.getMyUserId()));
+
+                    // With LazyLoading, Alice and Sam are not known by Alice yet
+                    Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.aliceSession.getMyUserId()) == null);
+                    Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
                 } else if (messageCount == 2) {
+                    // We received the Event from Alice
                     Assert.assertEquals(event.sender, data.aliceSession.getMyUserId());
-                    if (withLazyLoading) {
-                        Assert.assertNull(eventTimeline.getState().getMember(data.samSession.getMyUserId()));
-                    }
+
+                    // Alice and Bob are known
                     Assert.assertNotNull(eventTimeline.getState().getMember(data.aliceSession.getMyUserId()));
                     Assert.assertNotNull(eventTimeline.getState().getMember(data.bobSession.getMyUserId()));
+
+                    // With LazyLoading, Sam is not known by Alice yet
+                    Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
+
                     lock.countDown();
                 }
             }
@@ -315,5 +332,4 @@ public class RoomStateTest {
             }
         });
     }
-
 }
