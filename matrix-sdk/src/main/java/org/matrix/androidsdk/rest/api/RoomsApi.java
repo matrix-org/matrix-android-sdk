@@ -284,13 +284,15 @@ public interface RoomsApi {
      * Get a list of messages starting from a reference..
      *
      * @param roomId the room id
-     * @param dir    The direction to return messages from.
-     * @param from   the token identifying where to start
-     * @param limit  the maximum number of messages to retrieve
+     * @param from   the token identifying where to start. Required.
+     * @param dir    The direction to return messages from. Required.
+     * @param limit  the maximum number of messages to retrieve. Optional.
      */
     @GET("rooms/{roomId}/messages")
-    Call<TokensChunkResponse<Event>> getRoomMessagesFrom(@Path("roomId") String roomId, @Query("dir") String dir,
-                                                         @Query("from") String from, @Query("limit") int limit);
+    Call<TokensChunkResponse<Event>> getRoomMessagesFrom(@Path("roomId") String roomId,
+                                                         @Query("from") String from,
+                                                         @Query("dir") String dir,
+                                                         @Query("limit") int limit);
 
     /**
      * Get the initial information concerning a specific room.

@@ -95,8 +95,11 @@ public class DataRetriever {
      * @param limit    the maximum number of messages to retrieve
      * @param callback the callback
      */
-    public void backPaginate(final IMXStore store, final String roomId, final String token,
-                             final int limit, final ApiCallback<TokensChunkResponse<Event>> callback) {
+    public void backPaginate(final IMXStore store,
+                             final String roomId,
+                             final String token,
+                             final int limit,
+                             final ApiCallback<TokensChunkResponse<Event>> callback) {
         // reach the marker end
         if (TextUtils.equals(token, Event.PAGINATE_BACK_TOKEN_END)) {
             // nothing more to provide
