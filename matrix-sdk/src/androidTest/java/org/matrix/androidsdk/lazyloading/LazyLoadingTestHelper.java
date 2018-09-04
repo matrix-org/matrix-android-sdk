@@ -18,6 +18,8 @@ package org.matrix.androidsdk.lazyloading;
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
 
+import junit.framework.Assert;
+
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.common.CommonTestHelper;
 import org.matrix.androidsdk.common.TestApiCallback;
@@ -58,8 +60,8 @@ public class LazyLoadingTestHelper {
      * @return initialized data
      */
     public LazyLoadingScenarioData createScenario(boolean withLazyLoading) throws Exception {
-        MXSession bobSession = mTestHelper.createBobAccount(true, false);
         MXSession aliceSession = mTestHelper.createAliceAccount(true, false);
+        MXSession bobSession = mTestHelper.createBobAccount(true, false);
         MXSession samSession = mTestHelper.createSamAccount(true, false);
 
         final String aliceId = aliceSession.getMyUserId();
@@ -75,7 +77,7 @@ public class LazyLoadingTestHelper {
                 super.onSuccess(info);
             }
         });
-        latch.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        mTestHelper.await(latch);
 
         final String roomId = results.get("roomId");
         final Room bobRoom = bobSession.getDataHandler().getRoom(roomId);
@@ -83,33 +85,38 @@ public class LazyLoadingTestHelper {
         //update name and join rules
         latch = new CountDownLatch(1);
         bobRoom.updateName("LazyLoading Test Room", new TestApiCallback<Void>(latch));
-        latch.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        mTestHelper.await(latch);
 
         latch = new CountDownLatch(1);
         bobRoom.updateJoinRules(RoomState.JOIN_RULE_PUBLIC, new TestApiCallback<Void>(latch));
-        latch.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        mTestHelper.await(latch);
 
         // sam join
         latch = new CountDownLatch(1);
         samSession.joinRoom(roomId, new TestApiCallback<String>(latch));
-        latch.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        mTestHelper.await(latch);
 
         //alice join
         latch = new CountDownLatch(1);
         aliceSession.joinRoom(roomId, new TestApiCallback<String>(latch));
-        latch.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        mTestHelper.await(latch);
 
         final Room aliceRoom = aliceSession.getDataHandler().getStore().getRoom(roomId);
 
         //invite dave
         latch = new CountDownLatch(1);
         bobRoom.invite("@dave:localhost:8480", new TestApiCallback<Void>(latch));
-        latch.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        mTestHelper.await(latch);
 
         // Send messages
         final List<Event> aliceFirstMessages = mTestHelper.sendTextMessage(aliceRoom, "Alice message", 50);
         final List<Event> bobMessages = mTestHelper.sendTextMessage(bobRoom, "Bob message", 1);
         final List<Event> aliceLastMessages = mTestHelper.sendTextMessage(aliceRoom, "Alice message", 50);
+
+        Assert.assertEquals(50, aliceFirstMessages.size());
+        Assert.assertEquals(1, bobMessages.size());
+        Assert.assertEquals(50, aliceLastMessages.size());
+
         final String bobMessageId = bobMessages.isEmpty() ? null : bobMessages.get(0).eventId;
 
         // Clear Alice session and open new one

@@ -75,7 +75,7 @@ public class CryptoRestTest  {
                 super.onSuccess(keysUploadResponse);
             }
         });
-        lock0.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        mTestHelper.await(lock0);
 
         KeysUploadResponse keysUploadResponse = (KeysUploadResponse) results.get("keysUploadResponse");
 
@@ -94,7 +94,7 @@ public class CryptoRestTest  {
             }
         });
 
-        lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        mTestHelper.await(lock1);
         KeysQueryResponse keysQueryResponse = (KeysQueryResponse) results.get("keysQueryResponse");
 
         Assert.assertNotNull(keysQueryResponse);
@@ -136,7 +136,7 @@ public class CryptoRestTest  {
                 super.onSuccess(keysUploadResponse);
             }
         });
-        lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        mTestHelper.await(lock1);
 
         KeysUploadResponse keysUploadResponse = (KeysUploadResponse) results.get("keysUploadResponse");
         Assert.assertNotNull(keysUploadResponse);
@@ -194,7 +194,7 @@ public class CryptoRestTest  {
             }
         });
 
-        lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        mTestHelper.await(lock1);
 
         KeysUploadResponse bobKeysUploadResponse = (KeysUploadResponse) results.get("keysUploadResponse");
         Assert.assertNotNull(bobKeysUploadResponse);
@@ -211,7 +211,7 @@ public class CryptoRestTest  {
             }
         });
 
-        lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        mTestHelper.await(lock2);
 
         MXUsersDevicesMap<MXKey> oneTimeKeys = (MXUsersDevicesMap<MXKey>) results.get("usersDevicesMap");
         Assert.assertNotNull(oneTimeKeys);

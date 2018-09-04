@@ -86,7 +86,7 @@ public class RoomStateTest {
         });
         final Room samRoom = data.samSession.getDataHandler().getRoom(data.roomId);
         mTestHelper.sendTextMessage(samRoom, "A message from Sam", 1);
-        lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        mTestHelper.await(lock);
 
         if (withLazyLoading) {
             // Sam is now loaded
@@ -147,8 +147,7 @@ public class RoomStateTest {
             }
         });
         recursiveBackPaginate(liveTimeline, 0, 30, 120);
-        boolean handled = lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(handled);
+        mTestHelper.await(lock);
     }
 
     @Test
@@ -174,8 +173,7 @@ public class RoomStateTest {
                 lock.countDown();
             }
         });
-        boolean handled = lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(handled);
+        mTestHelper.await(lock);
         final RoomState roomState = eventTimeline.getState();
 
         if (withLazyLoading) {
@@ -242,8 +240,7 @@ public class RoomStateTest {
                 recursiveBackPaginate(eventTimeline, 0, 30, 120);
             }
         });
-        boolean handled = lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(handled);
+        mTestHelper.await(lock);
     }
 
     @Test
@@ -308,8 +305,7 @@ public class RoomStateTest {
                 });
             }
         });
-        boolean handled = lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        Assert.assertTrue(handled);
+        mTestHelper.await(lock);
     }
 
     /**
