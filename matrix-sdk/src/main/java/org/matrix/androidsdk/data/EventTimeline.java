@@ -623,10 +623,10 @@ public class EventTimeline {
                 }
             }
 
-            if(roomSync.roomSyncSummary != null) {
+            if (roomSync.roomSyncSummary != null) {
                 RoomSummary summary = mStore.getSummary(mRoomId);
 
-                if(summary == null) {
+                if (summary == null) {
                     // Should never happen here
                     Log.e(LOG_TAG, "!!!!!!!!!!!!!!!!!!!!! RoomSummary is null !!!!!!!!!!!!!!!!!!!!!");
                 } else {
@@ -1239,7 +1239,7 @@ public class EventTimeline {
             return true;
         }
 
-        mDataHandler.getDataRetriever().backPaginate(mStore, mRoomId, getBackState().getToken(), eventCount,
+        mDataHandler.getDataRetriever().backPaginate(mStore, mRoomId, getBackState().getToken(), eventCount, mDataHandler.isLazyLoadingEnabled(),
                 new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
                     @Override
                     public void onSuccess(TokensChunkResponse<Event> response) {
@@ -1330,7 +1330,7 @@ public class EventTimeline {
 
         mIsForwardPaginating = true;
 
-        mDataHandler.getDataRetriever().paginate(mStore, mRoomId, mForwardsPaginationToken, Direction.FORWARDS,
+        mDataHandler.getDataRetriever().paginate(mStore, mRoomId, mForwardsPaginationToken, Direction.FORWARDS, mDataHandler.isLazyLoadingEnabled(),
                 new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
                     @Override
                     public void onSuccess(TokensChunkResponse<Event> response) {

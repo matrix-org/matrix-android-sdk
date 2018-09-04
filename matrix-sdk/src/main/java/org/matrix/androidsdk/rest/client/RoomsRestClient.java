@@ -46,6 +46,7 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.filter.RoomEventFilter;
 import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 
@@ -132,25 +133,27 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * Get a limited amount of messages, for the given room starting from the given token.
      * The amount of message is set to {@link #DEFAULT_MESSAGES_PAGINATION_LIMIT}.
      *
-     * @param roomId    the room id
-     * @param fromToken the token identifying the message to start from Required.
-     * @param direction the direction. Required.
-     * @param limit     the maximum number of messages to retrieve.
-     * @param callback  the callback called with the response. Messages will be returned in reverse order.
+     * @param roomId          the room id
+     * @param fromToken       the token identifying the message to start from Required.
+     * @param direction       the direction. Required.
+     * @param limit           the maximum number of messages to retrieve.
+     * @param roomEventFilter A RoomEventFilter to filter returned events with. Optional.
+     * @param callback        the callback called with the response. Messages will be returned in reverse order.
      */
     public void getRoomMessagesFrom(final String roomId,
                                     final String fromToken,
                                     final EventTimeline.Direction direction,
                                     final int limit,
+                                    @Nullable final RoomEventFilter roomEventFilter,
                                     final ApiCallback<TokensChunkResponse<Event>> callback) {
         final String description = "messagesFrom : roomId " + roomId + " fromToken " + fromToken + "with direction " + direction + " with limit " + limit;
 
-        mApi.getRoomMessagesFrom(roomId, fromToken, (direction == EventTimeline.Direction.BACKWARDS) ? "b" : "f", limit)
+        mApi.getRoomMessagesFrom(roomId, fromToken, (direction == EventTimeline.Direction.BACKWARDS) ? "b" : "f", limit, roomEventFilter)
                 .enqueue(new RestAdapterCallback<TokensChunkResponse<Event>>(description, mUnsentEventsManager, callback,
                         new RestAdapterCallback.RequestRetryCallBack() {
                             @Override
                             public void onRetry() {
-                                getRoomMessagesFrom(roomId, fromToken, direction, limit, callback);
+                                getRoomMessagesFrom(roomId, fromToken, direction, limit, roomEventFilter, callback);
                             }
                         }));
     }
