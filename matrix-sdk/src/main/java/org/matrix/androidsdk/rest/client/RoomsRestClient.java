@@ -133,8 +133,8 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * The amount of message is set to {@link #DEFAULT_MESSAGES_PAGINATION_LIMIT}.
      *
      * @param roomId    the room id
-     * @param fromToken the token identifying the message to start from
-     * @param direction the direction
+     * @param fromToken the token identifying the message to start from Required.
+     * @param direction the direction. Required.
      * @param limit     the maximum number of messages to retrieve.
      * @param callback  the callback called with the response. Messages will be returned in reverse order.
      */
@@ -145,7 +145,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                                     final ApiCallback<TokensChunkResponse<Event>> callback) {
         final String description = "messagesFrom : roomId " + roomId + " fromToken " + fromToken + "with direction " + direction + " with limit " + limit;
 
-        mApi.getRoomMessagesFrom(roomId, (direction == EventTimeline.Direction.BACKWARDS) ? "b" : "f", fromToken, limit)
+        mApi.getRoomMessagesFrom(roomId, fromToken, (direction == EventTimeline.Direction.BACKWARDS) ? "b" : "f", limit)
                 .enqueue(new RestAdapterCallback<TokensChunkResponse<Event>>(description, mUnsentEventsManager, callback,
                         new RestAdapterCallback.RequestRetryCallBack() {
                             @Override
