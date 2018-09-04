@@ -17,6 +17,8 @@
  */
 package org.matrix.androidsdk.rest.api;
 
+import android.support.annotation.Nullable;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -34,6 +36,7 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.filter.RoomEventFilter;
 import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 
@@ -287,12 +290,14 @@ public interface RoomsApi {
      * @param from   the token identifying where to start. Required.
      * @param dir    The direction to return messages from. Required.
      * @param limit  the maximum number of messages to retrieve. Optional.
+     * @param filter A RoomEventFilter to filter returned events with. Optional.
      */
     @GET("rooms/{roomId}/messages")
     Call<TokensChunkResponse<Event>> getRoomMessagesFrom(@Path("roomId") String roomId,
                                                          @Query("from") String from,
                                                          @Query("dir") String dir,
-                                                         @Query("limit") int limit);
+                                                         @Query("limit") int limit,
+                                                         @Nullable @Query("filter") RoomEventFilter filter);
 
     /**
      * Get the initial information concerning a specific room.

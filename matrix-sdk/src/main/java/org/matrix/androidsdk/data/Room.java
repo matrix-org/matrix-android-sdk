@@ -392,14 +392,17 @@ public class Room {
      * @param paginationCount the number of events to retrieve.
      * @param callback        the onComplete callback
      */
-    public void requestServerRoomHistory(final String token, final int paginationCount, final ApiCallback<TokensChunkResponse<Event>> callback) {
+    public void requestServerRoomHistory(final String token,
+                                         final int paginationCount,
+                                         final ApiCallback<TokensChunkResponse<Event>> callback) {
         mDataHandler.getDataRetriever()
-                .requestServerRoomHistory(getRoomId(), token, paginationCount, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
-                    @Override
-                    public void onSuccess(TokensChunkResponse<Event> info) {
-                        callback.onSuccess(info);
-                    }
-                });
+                .requestServerRoomHistory(getRoomId(), token, paginationCount, mDataHandler.isLazyLoadingEnabled(),
+                        new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+                            @Override
+                            public void onSuccess(TokensChunkResponse<Event> info) {
+                                callback.onSuccess(info);
+                            }
+                        });
     }
 
     /**
