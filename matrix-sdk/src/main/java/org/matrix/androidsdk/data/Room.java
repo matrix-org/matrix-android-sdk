@@ -3086,32 +3086,76 @@ public class Room {
 
     @Nullable
     public RoomSummary getRoomSummary() {
+        if (getDataHandler() == null) {
+            return null;
+        }
+
+        if (getDataHandler().getStore() == null) {
+            return null;
+        }
+
         return getDataHandler().getStore().getSummary(getRoomId());
     }
 
     public int getNumberOfMembers() {
-        return getNumberOfJoinedMembers() + getNumberOfInvitedMembers();
+        if (getDataHandler().isLazyLoadingEnabled()) {
+            return getNumberOfJoinedMembers() + getNumberOfInvitedMembers();
+        } else {
+            return getState().getLoadedMembers().size();
+        }
     }
 
-    // FIXME It returns 0 when LL is off (it will fix avatar issue)
     public int getNumberOfJoinedMembers() {
-        RoomSummary roomSummary = getRoomSummary();
+        if (getDataHandler().isLazyLoadingEnabled()) {
+            RoomSummary roomSummary = getRoomSummary();
 
-        if (roomSummary != null) {
-            return roomSummary.getNumberOfJoinedMembers();
+            if (roomSummary != null) {
+                return roomSummary.getNumberOfJoinedMembers();
+            } else {
+                // Should not happen, fallback to loaded members
+                return getNumberOfLoadedJoinedMembers();
+            }
         } else {
-            return 0;
+            return getNumberOfLoadedJoinedMembers();
         }
     }
 
-    // FIXME It returns 0 when LL is off (it will fix avatar issue)
-    public int getNumberOfInvitedMembers() {
-        RoomSummary roomSummary = getRoomSummary();
+    private int getNumberOfLoadedJoinedMembers() {
+        int count = 0;
 
-        if (roomSummary != null) {
-            return roomSummary.getNumberOfInvitedMembers();
-        } else {
-            return 0;
+        for (RoomMember roomMember : getState().getLoadedMembers()) {
+            if (RoomMember.MEMBERSHIP_JOIN.equals(roomMember.membership)) {
+                count++;
+            }
         }
+
+        return count;
+    }
+
+    public int getNumberOfInvitedMembers() {
+        if (getDataHandler().isLazyLoadingEnabled()) {
+            RoomSummary roomSummary = getRoomSummary();
+
+            if (roomSummary != null) {
+                return roomSummary.getNumberOfInvitedMembers();
+            } else {
+                // Should not happen, fallback to loaded members
+                return getNumberOfLoadedInvitedMembers();
+            }
+        } else {
+            return getNumberOfLoadedInvitedMembers();
+        }
+    }
+
+    private int getNumberOfLoadedInvitedMembers() {
+        int count = 0;
+
+        for (RoomMember roomMember : getState().getLoadedMembers()) {
+            if (RoomMember.MEMBERSHIP_INVITE.equals(roomMember.membership)) {
+                count++;
+            }
+        }
+
+        return count;
     }
 }
