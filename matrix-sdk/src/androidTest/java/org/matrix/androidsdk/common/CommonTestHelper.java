@@ -148,7 +148,7 @@ public class CommonTestHelper {
         };
         room.addEventListener(onEventSentListener);
         for (int i = 0; i < nbOfMessages; i++) {
-            room.sendTextMessage(message, null, Message.FORMAT_MATRIX_HTML, new RoomMediaMessage.EventCreationListener() {
+            room.sendTextMessage(message + " #" + (i + 1), null, Message.FORMAT_MATRIX_HTML, new RoomMediaMessage.EventCreationListener() {
                 @Override
                 public void onEventCreated(RoomMediaMessage roomMediaMessage) {
                     final Event sentEvent = roomMediaMessage.getEvent();

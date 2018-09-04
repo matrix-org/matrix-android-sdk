@@ -16,6 +16,7 @@
 package org.matrix.androidsdk.lazyloading;
 
 import android.support.test.runner.AndroidJUnit4;
+import android.text.TextUtils;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -26,6 +27,8 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.concurrent.CountDownLatch;
 
@@ -118,29 +121,36 @@ public class RoomStateTest {
 
             @Override
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
-                messageCount++;
-                if (messageCount == 50) {
-                    Assert.assertNotNull(liveTimeline.getState().getMember(data.aliceSession.getMyUserId()));
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                    messageCount++;
 
-                    // With LazyLoading, Bob and Sam are not known by Alice yet
-                    Assert.assertEquals(withLazyLoading, liveTimeline.getState().getMember(data.bobSession.getMyUserId()) == null);
-                    Assert.assertEquals(withLazyLoading, liveTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
-                    Assert.assertEquals(withLazyLoading, roomState.getMember(data.bobSession.getMyUserId()) == null);
-                    Assert.assertEquals(withLazyLoading, roomState.getMember(data.samSession.getMyUserId()) == null);
-                } else if (messageCount == 51) {
-                    // Bob is known now
-                    Assert.assertNotNull(liveTimeline.getState().getMember(data.bobSession.getMyUserId()));
+                    Log.d("TAG", "Receiving message #" + messageCount + ": " + JsonUtils.toMessage(event.getContent()).body);
 
-                    // With LazyLoading, Sam is not known by Alice yet
-                    Assert.assertEquals(withLazyLoading, liveTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
-                    Assert.assertEquals(withLazyLoading, roomState.getMember(data.samSession.getMyUserId()) == null);
-                } else if (messageCount >= 110) {
-                    // All users are known now
-                    Assert.assertNotNull(liveTimeline.getState().getMember(data.aliceSession.getMyUserId()));
-                    Assert.assertNotNull(liveTimeline.getState().getMember(data.bobSession.getMyUserId()));
-                    Assert.assertNotNull(liveTimeline.getState().getMember(data.samSession.getMyUserId()));
+                    if (messageCount <= 50) {
+                        Assert.assertNotNull(liveTimeline.getState().getMember(data.aliceSession.getMyUserId()));
 
-                    lock.countDown();
+                        // With LazyLoading, Bob and Sam are not known by Alice yet
+                        Assert.assertEquals(withLazyLoading, liveTimeline.getState().getMember(data.bobSession.getMyUserId()) == null);
+                        Assert.assertEquals(withLazyLoading, liveTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
+                        Assert.assertEquals(withLazyLoading, roomState.getMember(data.bobSession.getMyUserId()) == null);
+                        Assert.assertEquals(withLazyLoading, roomState.getMember(data.samSession.getMyUserId()) == null);
+                    } else if (messageCount <= 100) {
+                        // Bob is known now
+                        Assert.assertNotNull(liveTimeline.getState().getMember(data.bobSession.getMyUserId()));
+
+                        // With LazyLoading, Sam is not known by Alice yet
+                        Assert.assertEquals(withLazyLoading, liveTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
+                        Assert.assertEquals(withLazyLoading, roomState.getMember(data.samSession.getMyUserId()) == null);
+                    } else if (messageCount == 101) {
+                        // All users are known now
+                        Assert.assertNotNull(liveTimeline.getState().getMember(data.aliceSession.getMyUserId()));
+                        Assert.assertNotNull(liveTimeline.getState().getMember(data.bobSession.getMyUserId()));
+                        Assert.assertNotNull(liveTimeline.getState().getMember(data.samSession.getMyUserId()));
+
+                        lock.countDown();
+                    }
+                } else {
+                    Log.d("TAG", "Receiving other event: " + event.getType());
                 }
             }
         });
@@ -206,29 +216,36 @@ public class RoomStateTest {
 
             @Override
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
-                messageCount++;
-                if (messageCount == 50) {
-                    Assert.assertNotNull(eventTimeline.getState().getMember(data.aliceSession.getMyUserId()));
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                    messageCount++;
 
-                    // With LazyLoading, Bob and Sam are not known by Alice yet
-                    Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.bobSession.getMyUserId()) == null);
-                    Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
-                    Assert.assertEquals(withLazyLoading, roomState.getMember(data.bobSession.getMyUserId()) == null);
-                    Assert.assertEquals(withLazyLoading, roomState.getMember(data.samSession.getMyUserId()) == null);
-                } else if (messageCount == 51) {
-                    // Bob is known now
-                    Assert.assertNotNull(eventTimeline.getState().getMember(data.bobSession.getMyUserId()));
+                    Log.d("TAG", "Receiving message #" + messageCount + ": " + JsonUtils.toMessage(event.getContent()).body);
 
-                    // With LazyLoading, Sam is not known by Alice yet
-                    Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
-                    Assert.assertEquals(withLazyLoading, roomState.getMember(data.samSession.getMyUserId()) == null);
-                } else if (messageCount >= 110) {
-                    // All users are known now
-                    Assert.assertNotNull(eventTimeline.getState().getMember(data.aliceSession.getMyUserId()));
-                    Assert.assertNotNull(eventTimeline.getState().getMember(data.bobSession.getMyUserId()));
-                    Assert.assertNotNull(eventTimeline.getState().getMember(data.samSession.getMyUserId()));
+                    if (messageCount <= 50) {
+                        Assert.assertNotNull(eventTimeline.getState().getMember(data.aliceSession.getMyUserId()));
 
-                    lock.countDown();
+                        // With LazyLoading, Bob and Sam are not known by Alice yet
+                        Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.bobSession.getMyUserId()) == null);
+                        Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
+                        Assert.assertEquals(withLazyLoading, roomState.getMember(data.bobSession.getMyUserId()) == null);
+                        Assert.assertEquals(withLazyLoading, roomState.getMember(data.samSession.getMyUserId()) == null);
+                    } else if (messageCount <= 100) {
+                        // Bob is known now
+                        Assert.assertNotNull(eventTimeline.getState().getMember(data.bobSession.getMyUserId()));
+
+                        // With LazyLoading, Sam is not known by Alice yet
+                        Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
+                        Assert.assertEquals(withLazyLoading, roomState.getMember(data.samSession.getMyUserId()) == null);
+                    } else if (messageCount == 101) {
+                        // All users are known now
+                        Assert.assertNotNull(eventTimeline.getState().getMember(data.aliceSession.getMyUserId()));
+                        Assert.assertNotNull(eventTimeline.getState().getMember(data.bobSession.getMyUserId()));
+                        Assert.assertNotNull(eventTimeline.getState().getMember(data.samSession.getMyUserId()));
+
+                        lock.countDown();
+                    }
+                } else {
+                    Log.d("TAG", "Receiving other event: " + event.getType());
                 }
             }
         });
@@ -266,29 +283,36 @@ public class RoomStateTest {
 
             @Override
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
-                messageCount++;
-                if (messageCount == 1) {
-                    // We received the Event from bob
-                    Assert.assertEquals(event.sender, data.bobSession.getMyUserId());
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
+                    messageCount++;
 
-                    // Bob is known
-                    Assert.assertNotNull(eventTimeline.getState().getMember(data.bobSession.getMyUserId()));
+                    Log.d("TAG", "Receiving message #" + messageCount + ": " + JsonUtils.toMessage(event.getContent()).body);
 
-                    // With LazyLoading, Alice and Sam are not known by Alice yet
-                    Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.aliceSession.getMyUserId()) == null);
-                    Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
-                } else if (messageCount == 2) {
-                    // We received the Event from Alice
-                    Assert.assertEquals(event.sender, data.aliceSession.getMyUserId());
+                    if (messageCount == 1) {
+                        // We received the Event from bob
+                        Assert.assertEquals(event.sender, data.bobSession.getMyUserId());
 
-                    // Alice and Bob are known
-                    Assert.assertNotNull(eventTimeline.getState().getMember(data.aliceSession.getMyUserId()));
-                    Assert.assertNotNull(eventTimeline.getState().getMember(data.bobSession.getMyUserId()));
+                        // Bob is known
+                        Assert.assertNotNull(eventTimeline.getState().getMember(data.bobSession.getMyUserId()));
 
-                    // With LazyLoading, Sam is not known by Alice yet
-                    Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
+                        // With LazyLoading, Alice and Sam are not known by Alice yet
+                        Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.aliceSession.getMyUserId()) == null);
+                        Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
+                    } else if (messageCount == 2) {
+                        // We received the Event from Alice
+                        Assert.assertEquals(event.sender, data.aliceSession.getMyUserId());
 
-                    lock.countDown();
+                        // Alice and Bob are known
+                        Assert.assertNotNull(eventTimeline.getState().getMember(data.aliceSession.getMyUserId()));
+                        Assert.assertNotNull(eventTimeline.getState().getMember(data.bobSession.getMyUserId()));
+
+                        // With LazyLoading, Sam is not known by Alice yet
+                        Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
+
+                        lock.countDown();
+                    }
+                } else {
+                    Log.d("TAG", "Receiving other event: " + event.getType());
                 }
             }
         });
