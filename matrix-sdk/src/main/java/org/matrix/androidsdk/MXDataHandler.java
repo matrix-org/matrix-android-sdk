@@ -1383,7 +1383,6 @@ public class MXDataHandler implements IMXEventListener {
             // sanity check
             if (null != syncResponse.rooms) {
                 // joined rooms events
-
                 if ((null != syncResponse.rooms.join) && (syncResponse.rooms.join.size() > 0)) {
                     Log.d(LOG_TAG, "Received " + syncResponse.rooms.join.size() + " joined rooms");
                     if (mMetricsListener != null) {
