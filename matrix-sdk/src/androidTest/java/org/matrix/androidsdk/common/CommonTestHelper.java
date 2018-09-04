@@ -58,27 +58,28 @@ import javax.annotation.Nonnull;
  */
 public class CommonTestHelper {
 
-    public MXSession createBobAccount(boolean withInitialSync, boolean enableCrypto) {
+    public MXSession createBobAccount(boolean withInitialSync, boolean enableCrypto) throws InterruptedException {
         return createAccount(TestConstants.BOB_USER_ID, TestConstants.BOB_PWD, withInitialSync, enableCrypto);
     }
 
-    public MXSession createAliceAccount(boolean withInitialSync, boolean enableCrypto) {
+    public MXSession createAliceAccount(boolean withInitialSync, boolean enableCrypto) throws InterruptedException {
         return createAccount(TestConstants.ALICE_USER_ID, TestConstants.ALICE_PWD, withInitialSync, enableCrypto);
     }
 
-    public MXSession createSamAccount(boolean withInitialSync, boolean enableCrypto) {
+    public MXSession createSamAccount(boolean withInitialSync, boolean enableCrypto) throws InterruptedException {
         return createAccount(TestConstants.SAM_USER_ID, TestConstants.SAM_PWD, withInitialSync, enableCrypto);
     }
 
-    public MXSession logIntoBobAccount(final String bobUserId, final boolean withInitialSync, boolean enableCrypto) {
+    public MXSession logIntoBobAccount(final String bobUserId, final boolean withInitialSync, boolean enableCrypto) throws InterruptedException {
         return logIntoAccount(bobUserId, TestConstants.BOB_PWD, withInitialSync, enableCrypto, false);
     }
 
-    public MXSession logIntoAliceAccount(final String aliceUserId, final boolean withInitialSync, boolean enableCrypto, boolean withLazyLoading) {
+    public MXSession logIntoAliceAccount(final String aliceUserId, final boolean withInitialSync, boolean enableCrypto, boolean withLazyLoading)
+            throws InterruptedException {
         return logIntoAccount(aliceUserId, TestConstants.ALICE_PWD, withInitialSync, enableCrypto, withLazyLoading);
     }
 
-    public MXSession logIntoSamAccount(final String samUserId, final boolean withInitialSync, boolean enableCrypto) {
+    public MXSession logIntoSamAccount(final String samUserId, final boolean withInitialSync, boolean enableCrypto) throws InterruptedException {
         return logIntoAccount(samUserId, TestConstants.SAM_PWD, withInitialSync, enableCrypto, false);
     }
 
@@ -101,7 +102,7 @@ public class CommonTestHelper {
      * @param session    the session to sync
      * @param withCrypto true if crypto is enabled and should be checked
      */
-    public void syncSession(@Nonnull final MXSession session, final boolean withCrypto) {
+    public void syncSession(@Nonnull final MXSession session, final boolean withCrypto) throws InterruptedException {
         final Map<String, Boolean> params = new HashMap<>();
         final int sizeOfLock = withCrypto ? 2 : 1;
         final CountDownLatch lock2 = new CountDownLatch(sizeOfLock);
@@ -120,11 +121,8 @@ public class CommonTestHelper {
         });
         session.getDataHandler().getStore().open();
         session.startEventStream(null);
-        try {
-            lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+
+        await(lock2);
         Assert.assertTrue(params.containsKey("isInit"));
         if (withCrypto) {
             Assert.assertTrue(params.containsKey("onCryptoSyncComplete"));
@@ -168,7 +166,7 @@ public class CommonTestHelper {
                 }
             });
         }
-        latch.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        await(latch);
         room.removeEventListener(onEventSentListener);
 
         // Check that all events has been created
@@ -192,7 +190,7 @@ public class CommonTestHelper {
     private MXSession createAccount(@NonNull final String userId,
                                     @NonNull final String password,
                                     final boolean withInitialSync,
-                                    final boolean enableCrypto) {
+                                    final boolean enableCrypto) throws InterruptedException {
         final Context context = InstrumentationRegistry.getContext();
         final MXSession session = createAccountAndSync(
                 context,
@@ -218,7 +216,7 @@ public class CommonTestHelper {
                                      @NonNull final String password,
                                      final boolean withInitialSync,
                                      final boolean enableCrypto,
-                                     boolean withLazyLoading) {
+                                     boolean withLazyLoading) throws InterruptedException {
         final Context context = InstrumentationRegistry.getContext();
         final MXSession session = logAccountAndSync(context, userId, password, withInitialSync, enableCrypto, withLazyLoading);
         Assert.assertNotNull(session);
@@ -234,7 +232,11 @@ public class CommonTestHelper {
      * @param withInitialSync true to perform an initial sync
      * @param enableCrypto    true to set enableCryptoWhenStarting
      */
-    private MXSession createAccountAndSync(Context context, String userName, String password, boolean withInitialSync, boolean enableCrypto) {
+    private MXSession createAccountAndSync(Context context,
+                                           String userName,
+                                           String password,
+                                           boolean withInitialSync,
+                                           boolean enableCrypto) throws InterruptedException {
         final HomeServerConnectionConfig hs = createHomeServerConfig(null);
 
         final LoginRestClient loginRestClient = new LoginRestClient(hs);
@@ -268,11 +270,7 @@ public class CommonTestHelper {
             }
         });
 
-        try {
-            lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-
-        }
+        await(lock);
 
         final String session = (String) params.get("session");
 
@@ -295,11 +293,7 @@ public class CommonTestHelper {
             }
         });
 
-        try {
-            lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        await(lock);
 
         Credentials credentials = (Credentials) params.get("credentials");
 
@@ -335,7 +329,7 @@ public class CommonTestHelper {
                                         String password,
                                         boolean withInitialSync,
                                         boolean enableCrypto,
-                                        boolean withLazyLoading) {
+                                        boolean withLazyLoading) throws InterruptedException {
         final HomeServerConnectionConfig hs = createHomeServerConfig(null);
         LoginRestClient loginRestClient = new LoginRestClient(hs);
         final Map<String, Object> params = new HashMap<>();
@@ -350,11 +344,7 @@ public class CommonTestHelper {
             }
         });
 
-        try {
-            lock.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        await(lock);
 
         final Credentials credentials = (Credentials) params.get("credentials");
 
@@ -379,4 +369,13 @@ public class CommonTestHelper {
         return mxSession;
     }
 
+    /**
+     * Await for a latch and ensure the result is true
+     *
+     * @param latch
+     * @throws InterruptedException
+     */
+    public void await(CountDownLatch latch) throws InterruptedException {
+        Assert.assertTrue(latch.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS));
+    }
 }
