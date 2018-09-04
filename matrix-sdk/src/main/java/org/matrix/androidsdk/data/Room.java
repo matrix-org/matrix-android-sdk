@@ -502,6 +502,7 @@ public class Room {
         });
     }
 
+    @Nullable
     public RoomMember getMember(String userId) {
         return getState().getMember(userId);
     }
