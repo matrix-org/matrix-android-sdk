@@ -571,7 +571,7 @@ public class Room {
     }
 
     /**
-     * @return true if the user is invited to the room
+     * @return true if the user has joined the room
      */
     public boolean isJoined() {
         if (getRoomSummary() == null) {
@@ -579,6 +579,13 @@ public class Room {
         }
 
         return getRoomSummary().isJoined();
+    }
+
+    /**
+     * @return true is the user is a member of the room (invited or joined)
+     */
+    public boolean isMember() {
+        return isJoined() || isInvited();
     }
 
     /**
@@ -761,16 +768,6 @@ public class Room {
                         callback.onUnexpectedError(e);
                     }
                 });
-    }
-
-    /**
-     * @return true if the user joined the room
-     */
-    private boolean selfJoined() {
-        RoomMember roomMember = getMember(mMyUserId);
-
-        // send the event only if the user has joined the room.
-        return ((null != roomMember) && RoomMember.MEMBERSHIP_JOIN.equals(roomMember.membership));
     }
 
     /**
@@ -1638,7 +1635,7 @@ public class Room {
      */
     public void sendTypingNotification(boolean isTyping, int timeout, ApiCallback<Void> callback) {
         // send the event only if the user has joined the room.
-        if (selfJoined()) {
+        if (isJoined()) {
             mDataHandler.getDataRetriever().getRoomsRestClient().sendTypingNotification(getRoomId(), mMyUserId, isTyping, timeout, callback);
         }
     }
@@ -2325,7 +2322,7 @@ public class Room {
      */
     public void sendEvent(final Event event, final ApiCallback<Void> callback) {
         // wait that the room is synced before sending messages
-        if (!mIsReady || !selfJoined()) {
+        if (!mIsReady || !isJoined()) {
             mDataHandler.updateEventState(event, Event.SentState.WAITING_RETRY);
             try {
                 callback.onNetworkError(null);
