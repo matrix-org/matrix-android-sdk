@@ -1353,7 +1353,7 @@ public class MXSession {
                 final Room createdRoom = mDataHandler.getRoom(roomId);
 
                 // the creation events are not be called during the creation
-                if (createdRoom.isWaitingInitialSync()) {
+                if (!createdRoom.isJoined()) {
                     createdRoom.setOnInitialSyncCallback(new SimpleApiCallback<Void>(callback) {
                         @Override
                         public void onSuccess(Void info) {
@@ -1397,7 +1397,7 @@ public class MXSession {
                     Room joinedRoom = mDataHandler.getRoom(roomId);
 
                     // wait until the initial sync is done
-                    if (joinedRoom.isWaitingInitialSync()) {
+                    if (!joinedRoom.isJoined()) {
                         joinedRoom.setOnInitialSyncCallback(new SimpleApiCallback<Void>(callback) {
                             @Override
                             public void onSuccess(Void info) {
