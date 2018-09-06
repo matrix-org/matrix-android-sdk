@@ -302,6 +302,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void kickFromRoom(final String roomId, final String userId, final ApiCallback<Void> callback) {
         final String description = "kickFromRoom : roomId " + roomId + " userId " + userId;
 
+        // TODO It does not look like this in the Matrix spec
         // Kicking is done by posting that the user is now in a "leave" state
         RoomMember member = new RoomMember();
         member.membership = RoomMember.MEMBERSHIP_LEAVE;
@@ -511,10 +512,10 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void updateRoomName(final String roomId, final String name, final ApiCallback<Void> callback) {
         final String description = "updateName : roomId " + roomId + " name " + name;
 
-        RoomState roomState = new RoomState();
-        roomState.name = name;
+        Map<String, Object> params = new HashMap<>();
+        params.put("name", name);
 
-        mApi.setRoomName(roomId, roomState)
+        mApi.sendStateEvent(roomId, Event.EVENT_TYPE_STATE_ROOM_NAME, params)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -533,11 +534,10 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void updateCanonicalAlias(final String roomId, final String canonicalAlias, final ApiCallback<Void> callback) {
         final String description = "updateCanonicalAlias : roomId " + roomId + " canonicalAlias " + canonicalAlias;
 
-        // FIXME Do not use a RoomState object to do this request, create a new object (same for all other next method)
-        RoomState roomState = new RoomState();
-        roomState.alias = canonicalAlias;
+        Map<String, Object> params = new HashMap<>();
+        params.put("alias", canonicalAlias);
 
-        mApi.setCanonicalAlias(roomId, roomState)
+        mApi.sendStateEvent(roomId, Event.EVENT_TYPE_STATE_CANONICAL_ALIAS, params)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -556,10 +556,10 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void updateHistoryVisibility(final String roomId, final String aVisibility, final ApiCallback<Void> callback) {
         final String description = "updateHistoryVisibility : roomId " + roomId + " visibility " + aVisibility;
 
-        RoomState roomState = new RoomState();
-        roomState.history_visibility = aVisibility;
+        Map<String, Object> params = new HashMap<>();
+        params.put("history_visibility", aVisibility);
 
-        mApi.setHistoryVisibility(roomId, roomState)
+        mApi.sendStateEvent(roomId, Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY, params)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -578,10 +578,10 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void updateDirectoryVisibility(final String aRoomId, final String aDirectoryVisibility, final ApiCallback<Void> callback) {
         final String description = "updateRoomDirectoryVisibility : roomId=" + aRoomId + " visibility=" + aDirectoryVisibility;
 
-        RoomState roomState = new RoomState();
-        roomState.visibility = aDirectoryVisibility;
+        Map<String, Object> params = new HashMap<>();
+        params.put("visibility", aDirectoryVisibility);
 
-        mApi.setRoomDirectoryVisibility(aRoomId, roomState)
+        mApi.setRoomDirectoryVisibility(aRoomId, params)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -638,10 +638,10 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void updateTopic(final String roomId, final String topic, final ApiCallback<Void> callback) {
         final String description = "updateTopic : roomId " + roomId + " topic " + topic;
 
-        RoomState roomState = new RoomState();
-        roomState.topic = topic;
+        Map<String, Object> params = new HashMap<>();
+        params.put("topic", topic);
 
-        mApi.setRoomTopic(roomId, roomState)
+        mApi.sendStateEvent(roomId, Event.EVENT_TYPE_STATE_ROOM_TOPIC, params)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -822,10 +822,10 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void updateAvatarUrl(final String roomId, final String avatarUrl, final ApiCallback<Void> callback) {
         final String description = "updateAvatarUrl : roomId " + roomId + " avatarUrl " + avatarUrl;
 
-        Map<String, String> params = new HashMap<>();
+        Map<String, Object> params = new HashMap<>();
         params.put("url", avatarUrl);
 
-        mApi.setRoomAvatarUrl(roomId, params)
+        mApi.sendStateEvent(roomId, Event.EVENT_TYPE_STATE_ROOM_AVATAR, params)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -999,11 +999,10 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void updateJoinRules(final String aRoomId, final String aJoinRule, final ApiCallback<Void> callback) {
         final String description = "updateJoinRules : roomId=" + aRoomId + " rule=" + aJoinRule;
 
-        // build RoomState as input parameter
-        RoomState roomStateParam = new RoomState();
-        roomStateParam.join_rule = aJoinRule;
+        Map<String, Object> params = new HashMap<>();
+        params.put("join_rule", aJoinRule);
 
-        mApi.setJoinRules(aRoomId, roomStateParam)
+        mApi.sendStateEvent(aRoomId, Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES, params)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -1023,11 +1022,10 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void updateGuestAccess(final String aRoomId, final String aGuestAccessRule, final ApiCallback<Void> callback) {
         final String description = "updateGuestAccess : roomId=" + aRoomId + " rule=" + aGuestAccessRule;
 
-        // build RoomState as input parameter
-        RoomState roomStateParam = new RoomState();
-        roomStateParam.guest_access = aGuestAccessRule;
+        Map<String, Object> params = new HashMap<>();
+        params.put("guest_access", aGuestAccessRule);
 
-        mApi.setGuestAccess(aRoomId, roomStateParam)
+        mApi.sendStateEvent(aRoomId, Event.EVENT_TYPE_STATE_ROOM_GUEST_ACCESS, params)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
