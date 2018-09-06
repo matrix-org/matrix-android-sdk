@@ -82,7 +82,8 @@ import java.util.TimerTask;
  * UI Fragment containing matrix messages for a given room.
  * Contains {@link MatrixMessagesFragment} as a nested fragment to do the work.
  */
-public class MatrixMessageListFragment extends Fragment implements MatrixMessagesFragment.MatrixMessagesListener {
+public abstract class MatrixMessageListFragment<MessagesAdapter extends AbstractMessagesAdapter> extends Fragment
+        implements MatrixMessagesFragment.MatrixMessagesListener {
 
     // search interface
     public interface OnSearchResultListener {
@@ -165,11 +166,11 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     }
 
     // fragment parameters
-    public static final String ARG_LAYOUT_ID = "MatrixMessageListFragment.ARG_LAYOUT_ID";
-    public static final String ARG_MATRIX_ID = "MatrixMessageListFragment.ARG_MATRIX_ID";
-    public static final String ARG_ROOM_ID = "MatrixMessageListFragment.ARG_ROOM_ID";
-    public static final String ARG_EVENT_ID = "MatrixMessageListFragment.ARG_EVENT_ID";
-    public static final String ARG_PREVIEW_MODE_ID = "MatrixMessageListFragment.ARG_PREVIEW_MODE_ID";
+    private static final String ARG_MATRIX_ID = "MatrixMessageListFragment.ARG_MATRIX_ID";
+    private static final String ARG_ROOM_ID = "MatrixMessageListFragment.ARG_ROOM_ID";
+    private static final String ARG_LAYOUT_ID = "MatrixMessageListFragment.ARG_LAYOUT_ID";
+    protected static final String ARG_EVENT_ID = "MatrixMessageListFragment.ARG_EVENT_ID";
+    protected static final String ARG_PREVIEW_MODE_ID = "MatrixMessageListFragment.ARG_PREVIEW_MODE_ID";
 
     // default preview mode
     public static final String PREVIEW_MODE_READ_ONLY = "PREVIEW_MODE_READ_ONLY";
@@ -179,17 +180,16 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     private static final int UNDEFINED_VIEW_Y_POS = -12345678;
 
-    public static MatrixMessageListFragment newInstance(String matrixId, String roomId, int layoutResId) {
-        MatrixMessageListFragment f = new MatrixMessageListFragment();
+    public static Bundle getArguments(String matrixId, String roomId, int layoutResId) {
         Bundle args = new Bundle();
+        args.putString(ARG_MATRIX_ID, matrixId);
         args.putString(ARG_ROOM_ID, roomId);
         args.putInt(ARG_LAYOUT_ID, layoutResId);
-        args.putString(ARG_MATRIX_ID, matrixId);
-        return f;
+        return args;
     }
 
     private MatrixMessagesFragment mMatrixMessagesFragment;
-    protected AbstractMessagesAdapter mAdapter;
+    protected MessagesAdapter mAdapter;
     public AutoScrollDownListView mMessageListView;
     protected Handler mUiHandler;
     protected MXSession mSession;
@@ -205,6 +205,9 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     // timeline management
     protected final boolean mIsLive = true;
+
+    // From Fragment parameters
+    protected String mRoomId;
 
     // by default the
     protected EventTimeline mEventTimeLine;
@@ -249,21 +252,22 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
     // because there is no way to detect if enough data were retrieved
     private boolean mFillHistoryOnResume;
 
-    public MXMediasCache getMXMediasCache() {
-        return null;
-    }
+    /**
+     * Get MxMediaCache
+     *
+     * @return
+     */
+    public abstract MXMediasCache getMXMediasCache();
 
-    public MXSession getSession(String matrixId) {
-        return null;
-    }
+    /**
+     * Get MxSession
+     *
+     * @param matrixId
+     * @return
+     */
+    public abstract MXSession getSession(String matrixId);
 
     public MXSession getSession() {
-        // if the session has not been set
-        if (null == mSession) {
-            // find it out
-            mSession = getSession(mMatrixId);
-        }
-
         return mSession;
     }
 
@@ -476,7 +480,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             throw new RuntimeException("Must have valid default MediasCache.");
         }
 
-        String roomId = args.getString(ARG_ROOM_ID);
+        mRoomId = args.getString(ARG_ROOM_ID);
 
         View v = inflater.inflate(args.getInt(ARG_LAYOUT_ID), container, false);
         mMessageListView = v.findViewById(R.id.listView_messages);
@@ -501,7 +505,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             final String previewMode = args.getString(ARG_PREVIEW_MODE_ID);
             // the fragment displays the history around a message
             if (!TextUtils.isEmpty(mEventId)) {
-                mEventTimeLine = new EventTimeline(mSession.getDataHandler(), roomId, mEventId);
+                mEventTimeLine = new EventTimeline(mSession.getDataHandler(), mRoomId, mEventId);
                 mRoom = mEventTimeLine.getRoom();
                 if (PREVIEW_MODE_UNREAD_MESSAGE.equals(previewMode)) {
                     mAdapter.setIsUnreadViewMode(true);
@@ -510,13 +514,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             // display a room preview
             else if (PREVIEW_MODE_READ_ONLY.equals(previewMode)) {
                 mAdapter.setIsPreviewMode(true);
-                mEventTimeLine = new EventTimeline(mSession.getDataHandler(), roomId);
+                mEventTimeLine = new EventTimeline(mSession.getDataHandler(), mRoomId);
                 mRoom = mEventTimeLine.getRoom();
             }
             // standard case
             else {
-                if (!TextUtils.isEmpty(roomId)) {
-                    mRoom = mSession.getDataHandler().getRoom(roomId);
+                if (!TextUtils.isEmpty(mRoomId)) {
+                    mRoom = mSession.getDataHandler().getRoom(mRoomId);
                     mEventTimeLine = mRoom.getLiveTimeLine();
                 }
             }
@@ -585,13 +589,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             fm.beginTransaction().add(mMatrixMessagesFragment, getMatrixMessagesFragmentTag()).commit();
         } else {
             Log.d(LOG_TAG, "onActivityCreated - reuse");
-
-            // Set the listener because this is not done when the system restores the fragment (newInstance is not called)
-            mMatrixMessagesFragment.setMatrixMessagesListener(this);
-
-            // Also set the session
-            mMatrixMessagesFragment.setMXSession(getSession());
         }
+
+        // Set the listener
+        mMatrixMessagesFragment.setMatrixMessagesListener(this);
+
+        // Set the session
+        mMatrixMessagesFragment.setMXSession(getSession());
 
         mMatrixMessagesFragment.mKeepRoomHistory = (-1 != mFirstVisibleRow);
     }
@@ -653,13 +657,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Create the messageFragment.
-     * Should be inherited.
+     * Should be overridden.
      *
      * @param roomId the roomID
      * @return the MatrixMessagesFragment
      */
     public MatrixMessagesFragment createMessagesFragmentInstance(String roomId) {
-        return MatrixMessagesFragment.newInstance(getSession(), roomId, this);
+        return MatrixMessagesFragment.newInstance(roomId);
     }
 
     /**
@@ -671,13 +675,10 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
     /**
      * Create the messages adapter.
-     * This method must be overriden to provide a valid creation
      *
      * @return the messages adapter.
      */
-    public AbstractMessagesAdapter createMessagesAdapter() {
-        return null;
-    }
+    public abstract MessagesAdapter createMessagesAdapter();
 
     /**
      * The user scrolls the list.
@@ -2216,7 +2217,6 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         if (mIsMediaSearch) {
             mSession.searchMediasByName(mPattern, roomIds, mNextBatch, callback);
-
         } else {
             mSession.searchMessagesByText(mPattern, roomIds, mNextBatch, callback);
         }

@@ -12,7 +12,7 @@ Bugfix:
  - 
 
 API Change:
- - 
+ - MatrixMessageListFragment is now abstract and take an Adapter type as class parameter
 
 Translations:
  -
