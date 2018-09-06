@@ -704,36 +704,11 @@ public class RoomState implements Externalizable {
         return copy;
     }
 
-
     /**
-     * @return the room alias
-     * // TODO Remove this
+     * @return the room canonical alias
      */
     public String getAlias() {
-        // SPEC-125
-        if (!TextUtils.isEmpty(alias)) {
-            return alias;
-        } else if (!TextUtils.isEmpty(getFirstAlias())) {
-            return getFirstAlias();
-        }
-
-        return null;
-    }
-
-    /**
-     * Returns the first room alias.
-     * // TODO Remove this
-     *
-     * @return the first room alias
-     */
-    private String getFirstAlias() {
-        List<String> mergedAliases = getAliases();
-
-        if (mergedAliases.size() != 0) {
-            return mergedAliases.get(0);
-        }
-
-        return null;
+        return alias;
     }
 
     /**
