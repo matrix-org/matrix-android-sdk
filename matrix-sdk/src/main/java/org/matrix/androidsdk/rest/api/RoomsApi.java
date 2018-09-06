@@ -36,7 +36,6 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkResponse;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
-import org.matrix.androidsdk.rest.model.filter.RoomEventFilter;
 import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 
@@ -76,60 +75,6 @@ public interface RoomsApi {
      */
     @PUT("rooms/{roomId}/send/m.room.message/{txId}")
     Call<CreatedEvent> sendMessage(@Path("txId") String txId, @Path("roomId") String roomId, @Body Message message);
-
-    /**
-     * Set the room topic.
-     *
-     * @param roomId the room id
-     * @param state  state object containing the new topic in the topic field
-     */
-    @PUT("rooms/{roomId}/state/m.room.topic")
-    Call<Void> setRoomTopic(@Path("roomId") String roomId, @Body RoomState state);
-
-    /**
-     * Set the room name.
-     *
-     * @param roomId the room id
-     * @param state  state object containing the new room name in the name field
-     */
-    @PUT("rooms/{roomId}/state/m.room.name")
-    Call<Void> setRoomName(@Path("roomId") String roomId, @Body RoomState state);
-
-    /**
-     * Set the canonical alias name.
-     *
-     * @param roomId the room id
-     * @param state  state object containing the new canonical alias in the name field
-     */
-    @PUT("rooms/{roomId}/state/m.room.canonical_alias")
-    Call<Void> setCanonicalAlias(@Path("roomId") String roomId, @Body RoomState state);
-
-    /**
-     * Set the history visibility.
-     *
-     * @param roomId the room id
-     * @param state  state object containing the new history visibility in the name field
-     */
-    @PUT("rooms/{roomId}/state/m.room.history_visibility")
-    Call<Void> setHistoryVisibility(@Path("roomId") String roomId, @Body RoomState state);
-
-    /**
-     * Set the join rule for the given room.
-     *
-     * @param roomId the room id where to apply the request
-     * @param state  state object containing the new join rule in its {@link RoomState#join_rule} field
-     */
-    @PUT("rooms/{roomId}/state/m.room.join_rules")
-    Call<Void> setJoinRules(@Path("roomId") String roomId, @Body RoomState state);
-
-    /**
-     * Set the guest access rule for the given room.
-     *
-     * @param roomId the room id where to apply the request
-     * @param state  state object containing the new guest access rule in its {@link RoomState#guest_access} field
-     */
-    @PUT("rooms/{roomId}/state/m.room.guest_access")
-    Call<Void> setGuestAccess(@Path("roomId") String roomId, @Body RoomState state);
 
     /**
      * Update the power levels
@@ -360,15 +305,6 @@ public interface RoomsApi {
     Call<Void> reportEvent(@Path("roomId") String roomId, @Path("eventId") String eventId, @Body ReportContentParams param);
 
     /**
-     * Set the room avatar url.
-     *
-     * @param roomId the room id
-     * @param params the put params.
-     */
-    @PUT("rooms/{roomId}/state/m.room.avatar")
-    Call<Void> setRoomAvatarUrl(@Path("roomId") String roomId, @Body Map<String, String> params);
-
-    /**
      * Send a read receipt.
      *
      * @param roomId  the room id
@@ -451,11 +387,11 @@ public interface RoomsApi {
      * Set the visibility of the given room in the list directory. If the visibility is set to public, the room
      * name is listed among the directory list.
      *
-     * @param roomId the room id where to apply the request
-     * @param state  state object containing the new guest access rule in its {@link RoomState#visibility} field
+     * @param roomId  the room id where to apply the request
+     * @param content the put params containing the new "visibility" field
      */
     @PUT("directory/list/room/{roomId}")
-    Call<Void> setRoomDirectoryVisibility(@Path("roomId") String roomId, @Body RoomState state);
+    Call<Void> setRoomDirectoryVisibility(@Path("roomId") String roomId, Map<String, Object> content);
 
     /**
      * Get the visibility of the given room in the list directory.
