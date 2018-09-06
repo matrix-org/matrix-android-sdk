@@ -946,26 +946,27 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
-     * Get the members of a Room with a request to the server
+     * Get the members of a Room with a request to the server. it will exclude the members who has left the room
      *
      * @param roomId   the id of the room
      * @param callback the callback
      */
     public void getMembersAsync(final String roomId, final ApiCallback<List<RoomMember>> callback) {
-        mRoomsRestClient.getRoomMembers(roomId, getStore().getEventStreamToken(), null, null, new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
-            @Override
-            public void onSuccess(TokensChunkResponse<Event> info) {
-                Room room = getRoom(roomId);
+        mRoomsRestClient.getRoomMembers(roomId, getStore().getEventStreamToken(), null, RoomMember.MEMBERSHIP_LEAVE,
+                new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+                    @Override
+                    public void onSuccess(TokensChunkResponse<Event> info) {
+                        Room room = getRoom(roomId);
 
-                if (info.chunk != null) {
-                    for (Event event : info.chunk) {
-                        room.getState().applyState(getStore(), event, EventTimeline.Direction.FORWARDS);
+                        if (info.chunk != null) {
+                            for (Event event : info.chunk) {
+                                room.getState().applyState(getStore(), event, EventTimeline.Direction.FORWARDS);
+                            }
+                        }
+
+                        callback.onSuccess(room.getState().getLoadedMembers());
                     }
-                }
-
-                callback.onSuccess(room.getState().getLoadedMembers());
-            }
-        });
+                });
     }
 
     /**

@@ -405,14 +405,13 @@ public interface RoomsApi {
      * Get all members of a room
      *
      * @param roomId        the room id where to get the members
-     * @param syncToken
-     * @param membership
-     * @param notMembership
+     * @param syncToken     the sync token (optional)
+     * @param membership    to include only one type of membership (optional)
+     * @param notMembership to exclude one type of membership (optional)
      */
-    // TODO LazyLoading check that the "at" param has an effect...
     @GET("rooms/{roomId}/members")
     Call<TokensChunkResponse<Event>> getMembers(@Path("roomId") String roomId,
-                                                @Query("at") String syncToken,
-                                                @Query("membership") String membership,
-                                                @Query("not_membership") String notMembership);
+                                                @Nullable @Query("at") String syncToken,
+                                                @Nullable @Query("membership") String membership,
+                                                @Nullable @Query("not_membership") String notMembership);
 }
