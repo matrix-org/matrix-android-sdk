@@ -102,13 +102,8 @@ public class RoomState implements Externalizable {
     //
     private Map<String, List<Event>> mStateEvents = new HashMap<>();
 
-    // Informs which alias is the canonical one.
-    // TODO LazyLoading Manu: Alias what is this?
+    // The canonical alias of the room
     public String alias;
-
-    // The canonical alias of the room, if any.
-    // TODO LazyLoading Manu: Alias what is this?
-    public String canonical_alias;
 
     // The name of the room as provided by the home server.
     public String name;
@@ -140,10 +135,6 @@ public class RoomState implements Externalizable {
 
     // SPEC-134
     public String history_visibility;
-
-    // the public room alias / name
-    // TODO LazyLoading Manu: Alias what is this?
-    public String roomAliasName;
 
     /**
      * the room visibility in the directory list (i.e. public, private...)
@@ -688,7 +679,6 @@ public class RoomState implements Externalizable {
         copy.guest_access = guest_access;
         copy.history_visibility = history_visibility;
         copy.visibility = visibility;
-        copy.roomAliasName = roomAliasName;
         copy.token = token;
         copy.groups = groups;
         copy.mDataHandler = mDataHandler;
@@ -723,6 +713,7 @@ public class RoomState implements Externalizable {
 
     /**
      * @return the room alias
+     * // TODO Remove this
      */
     public String getAlias() {
         // SPEC-125
@@ -730,8 +721,6 @@ public class RoomState implements Externalizable {
             return alias;
         } else if (!TextUtils.isEmpty(getFirstAlias())) {
             return getFirstAlias();
-        } else if (!TextUtils.isEmpty(canonical_alias)) {
-            return canonical_alias;
         }
 
         return null;
@@ -739,6 +728,7 @@ public class RoomState implements Externalizable {
 
     /**
      * Returns the first room alias.
+     * // TODO Remove this
      *
      * @return the first room alias
      */
@@ -1193,10 +1183,6 @@ public class RoomState implements Externalizable {
         }
 
         if (input.readBoolean()) {
-            roomAliasName = input.readUTF();
-        }
-
-        if (input.readBoolean()) {
             visibility = input.readUTF();
         }
 
@@ -1319,11 +1305,6 @@ public class RoomState implements Externalizable {
         output.writeBoolean(null != history_visibility);
         if (null != history_visibility) {
             output.writeUTF(history_visibility);
-        }
-
-        output.writeBoolean(null != roomAliasName);
-        if (null != roomAliasName) {
-            output.writeUTF(roomAliasName);
         }
 
         output.writeBoolean(null != visibility);

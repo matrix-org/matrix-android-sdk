@@ -856,7 +856,7 @@ public class Room {
         mDataHandler.getDataRetriever().getRoomsRestClient().updateCanonicalAlias(getRoomId(), fCanonicalAlias, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
-                getState().roomAliasName = fCanonicalAlias;
+                getState().alias = aCanonicalAlias;
                 super.onSuccess(info);
             }
         });
