@@ -39,7 +39,6 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 import org.matrix.androidsdk.rest.model.sync.RoomSync;
 import org.matrix.androidsdk.rest.model.sync.RoomSyncState;
@@ -232,6 +231,10 @@ public class MatrixMessagesFragment extends Fragment {
                 // check if some required fields are initialized
                 // else, the joining could have been half broken (network error)
                 if (null != mRoom.getState().getRoomCreateContent()) {
+                    joinedRoom = mRoom.isJoined();
+
+                    // TODO LazyLoading: handle KICK and BAN membership?
+                    /*
                     RoomMember self = mRoom.getMember(mSession.getCredentials().userId);
                     if (self != null &&
                             (RoomMember.MEMBERSHIP_JOIN.equals(self.membership) ||
@@ -239,6 +242,7 @@ public class MatrixMessagesFragment extends Fragment {
                                     RoomMember.MEMBERSHIP_BAN.equals(self.membership))) {
                         joinedRoom = true;
                     }
+                    */
                 }
 
                 mRoom.addEventListener(mEventListener);
