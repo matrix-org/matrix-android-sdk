@@ -611,11 +611,17 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
 
     /**
      * Get the room members
+     *
+     * @param roomId        the room id where to get the members
+     * @param syncToken     the sync token (optional)
+     * @param membership    to include only one type of membership (optional)
+     * @param notMembership to exclude one type of membership (optional)
+     * @param callback      the callback
      */
     public void getRoomMembers(final String roomId,
-                               final String syncToken,
-                               final String membership,
-                               final String notMembership,
+                               @Nullable final String syncToken,
+                               @Nullable final String membership,
+                               @Nullable final String notMembership,
                                final ApiCallback<TokensChunkResponse<Event>> callback) {
         final String description = "getRoomMembers roomId=" + roomId;
 
