@@ -1,6 +1,7 @@
 /*
  * Copyright 2015 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +22,6 @@ import android.content.Context;
 import android.os.Bundle;
 import android.os.Looper;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -59,29 +59,18 @@ public class MatrixMessagesFragment extends Fragment {
      * The room ID to get messages for.
      * Fragment argument: String.
      */
-    public static final String ARG_ROOM_ID = "org.matrix.androidsdk.fragments.MatrixMessageFragment.ARG_ROOM_ID";
+    private static final String ARG_ROOM_ID = "org.matrix.androidsdk.fragments.MatrixMessageFragment.ARG_ROOM_ID";
 
-    public static MatrixMessagesFragment newInstance(MXSession session, String roomId, MatrixMessagesListener listener) {
+    public static MatrixMessagesFragment newInstance(String roomId) {
         MatrixMessagesFragment fragment = new MatrixMessagesFragment();
-        Bundle args = new Bundle();
-
-
-        if (null == listener) {
-            throw new RuntimeException("Must define a listener.");
-        }
-
-        if (null == session) {
-            throw new RuntimeException("Must define a session.");
-        }
-
-        if (null != roomId) {
-            args.putString(ARG_ROOM_ID, roomId);
-        }
-
-        fragment.setArguments(args);
-        fragment.setMatrixMessagesListener(listener);
-        fragment.setMXSession(session);
+        fragment.setArguments(getArgument(roomId));
         return fragment;
+    }
+
+    public static Bundle getArgument(String roomId) {
+        Bundle args = new Bundle();
+        args.putString(ARG_ROOM_ID, roomId);
+        return args;
     }
 
     public interface MatrixMessagesListener {
@@ -200,28 +189,7 @@ public class MatrixMessagesFragment extends Fragment {
         // it saves only few ms but it reduces the white screen flash.
         mContext = getActivity().getApplicationContext();
 
-        String roomId = getArguments().getString(ARG_ROOM_ID);
-
-        // this code should never be called
-        // but we've got some crashes when the session was null
-        // so try to find it from the fragments call stack.
-        if (null == mSession) {
-            List<Fragment> fragments = null;
-            FragmentManager fm = getActivity().getSupportFragmentManager();
-
-            if (null != fm) {
-                fragments = fm.getFragments();
-            }
-
-            if (null != fragments) {
-                for (Fragment fragment : fragments) {
-                    if (fragment instanceof MatrixMessageListFragment) {
-                        mMatrixMessagesListener = (MatrixMessageListFragment) fragment;
-                        mSession = ((MatrixMessageListFragment) fragment).getSession();
-                    }
-                }
-            }
-        }
+        String roomId = getArguments().getString(ARG_ROOM_ID);member?
 
         if (mSession == null) {
             throw new RuntimeException("Must have valid default MXSession.");
