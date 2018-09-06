@@ -782,13 +782,14 @@ public class Room {
      * This class dispatches the error to the dedicated callbacks.
      * If the operation succeeds, the room state is saved because calling the callback.
      */
-    private class RoomInfoUpdateCallback<T> implements ApiCallback<T> {
+    private class RoomInfoUpdateCallback<T> extends SimpleApiCallback<T> {
         private final ApiCallback<T> mCallback;
 
         /**
          * Constructor
          */
         public RoomInfoUpdateCallback(ApiCallback<T> callback) {
+            super(callback);
             mCallback = callback;
         }
 
@@ -798,27 +799,6 @@ public class Room {
 
             if (null != mCallback) {
                 mCallback.onSuccess(info);
-            }
-        }
-
-        @Override
-        public void onNetworkError(Exception e) {
-            if (null != mCallback) {
-                mCallback.onNetworkError(e);
-            }
-        }
-
-        @Override
-        public void onMatrixError(final MatrixError e) {
-            if (null != mCallback) {
-                mCallback.onMatrixError(e);
-            }
-        }
-
-        @Override
-        public void onUnexpectedError(final Exception e) {
-            if (null != mCallback) {
-                mCallback.onUnexpectedError(e);
             }
         }
     }
