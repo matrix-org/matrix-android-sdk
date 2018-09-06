@@ -624,6 +624,7 @@ public class EventTimeline {
                 }
             }
 
+            // TODO LazyLoading, maybe this should be done earlier, because nb of members can be usefull in the instruction above.
             if (roomSync.roomSyncSummary != null) {
                 RoomSummary summary = mStore.getSummary(mRoomId);
 

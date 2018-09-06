@@ -447,12 +447,11 @@ public class Room {
     }
 
     public void getMembersAsync(@NonNull final ApiCallback<List<RoomMember>> callback) {
-        getState().getMembersAsync(new SimpleApiCallback<List<RoomMember>>(callback) {
-            @Override
-            public void onSuccess(List<RoomMember> members) {
-                callback.onSuccess(members);
-            }
-        });
+        getState().getMembersAsync(callback);
+    }
+
+    public void getDisplayableMembersAsync(@NonNull final ApiCallback<List<RoomMember>> callback) {
+        getState().getDisplayableMembersAsync(callback);
     }
 
     public EventTimeline getLiveTimeLine() {

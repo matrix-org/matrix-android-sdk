@@ -260,6 +260,8 @@ public class RoomState implements Externalizable {
 
     /**
      * Get the list of all the room members. Fetch from server if the full list is not loaded yet.
+     *
+     * @param callback The callback to get a copy of the room members list.
      */
     public void getMembersAsync(ApiCallback<List<RoomMember>> callback) {
         if (areAllMembersLoaded()) {
@@ -285,6 +287,8 @@ public class RoomState implements Externalizable {
                 getDataHandler().getMembersAsync(roomId, new SimpleApiCallback<List<RoomMember>>(callback) {
                     @Override
                     public void onSuccess(List<RoomMember> info) {
+                        Log.d(LOG_TAG, "getMembers has returned " + info.size() + " users.");
+
                         List<RoomMember> res;
 
                         for (RoomMember member : info) {
@@ -316,7 +320,6 @@ public class RoomState implements Externalizable {
      *
      * @return true is LazyLoading is Off, or if all members has been loaded
      */
-    // TODO LazyLoading maybe compare size of mMembers with number of users instead of using mAllMembersAreLoaded
     private boolean areAllMembersLoaded() {
         return mDataHandler != null
                 && (!((MXDataHandler) mDataHandler).isLazyLoadingEnabled() || mAllMembersAreLoaded);
@@ -409,7 +412,6 @@ public class RoomState implements Externalizable {
 
         return res;
     }
-
 
     /**
      * Provides a list of displayable members.
