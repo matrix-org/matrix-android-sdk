@@ -188,7 +188,7 @@ public class MatrixMessagesFragment extends Fragment {
         // it saves only few ms but it reduces the white screen flash.
         mContext = getActivity().getApplicationContext();
 
-        String roomId = getArguments().getString(ARG_ROOM_ID);member?
+        String roomId = getArguments().getString(ARG_ROOM_ID);
 
         if (mSession == null) {
             throw new RuntimeException("Must have valid default MXSession.");
