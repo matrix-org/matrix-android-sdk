@@ -457,6 +457,7 @@ public class EventTimeline {
         if (null != roomSync.timeline) {
             if (roomSync.timeline.limited) {
                 if (!isRoomInitialSync) {
+                    // There is a gap between known events and received events in this incremental sync.
                     currentSummary = mStore.getSummary(mRoomId);
 
                     // define a summary if some messages are left
@@ -476,6 +477,9 @@ public class EventTimeline {
                             }
                         }
                     }
+
+                    // Force a fetch of the loaded members the next time they will be requested
+                    mState.forceMembersRequest();
                 }
 
                 // if the prev batch is set to null

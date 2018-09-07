@@ -331,6 +331,13 @@ public class RoomState implements Externalizable {
     }
 
     /**
+     * Force a fetch of the loaded members the next time they will be requested
+     */
+    public void forceMembersRequest() {
+        mAllMembersAreLoaded = true;
+    }
+
+    /**
      * Provides the loaded states event list.
      * The room member events are NOT included.
      *
