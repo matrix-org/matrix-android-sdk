@@ -236,6 +236,24 @@ public class EventsRestClient extends RestClient<EventsApi> {
     }
 
     /**
+     * Retrieve an event from its event id.
+     *
+     * @param eventId  the event id
+     * @param callback the asynchronous callback.
+     */
+    public void getEventFromEventId(final String eventId, final ApiCallback<Event> callback) {
+        final String description = "getEventFromEventId : eventId " + eventId;
+
+        mApi.getEvent(eventId)
+                .enqueue(new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        getEventFromEventId(eventId, callback);
+                    }
+                }));
+    }
+
+    /**
      * Search a text in room messages.
      *
      * @param text        the text to search for.
