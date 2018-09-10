@@ -277,14 +277,6 @@ public interface RoomsApi {
     Call<Event> getEvent(@Path("roomId") String roomId, @Path("eventId") String eventId);
 
     /**
-     * Retrieve an event from its event id
-     *
-     * @param eventId the event Id
-     */
-    @GET("events/{eventId}")
-    Call<Event> getEvent(@Path("eventId") String eventId);
-
-    /**
      * Redact an event from the room>.
      *
      * @param roomId  the room id

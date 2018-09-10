@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.rest.api;
 
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.pid.ThirdPartyProtocol;
 import org.matrix.androidsdk.rest.model.publicroom.PublicRoomsParams;
 import org.matrix.androidsdk.rest.model.publicroom.PublicRoomsResponse;
@@ -32,6 +33,7 @@ import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
+import retrofit2.http.Path;
 import retrofit2.http.Query;
 import retrofit2.http.QueryMap;
 
@@ -47,6 +49,14 @@ public interface EventsApi {
      */
     @GET(RestClient.URI_API_PREFIX_PATH_R0 + "sync")
     Call<SyncResponse> sync(@QueryMap Map<String, Object> params);
+
+    /**
+     * Retrieve an event from its event id
+     *
+     * @param eventId the event Id
+     */
+    @GET(RestClient.URI_API_PREFIX_PATH_R0 + "events/{eventId}")
+    Call<Event> getEvent(@Path("eventId") String eventId);
 
     /**
      * Get the third party server protocols.

@@ -411,25 +411,12 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
             @Override
             public void onMatrixError(MatrixError e) {
                 if (TextUtils.equals(e.errcode, MatrixError.UNRECOGNIZED)) {
-                    getEventFromEventId(eventId, new SimpleApiCallback<Event>(callback) {
+                    // Try to retrieve the event using the context API
+                    // It's ok to pass null as a filter here
+                    getContextOfEvent(roomId, eventId, 1, null, new SimpleApiCallback<EventContext>(callback) {
                         @Override
-                        public void onSuccess(Event event) {
-                            callback.onSuccess(event);
-                        }
-
-                        @Override
-                        public void onMatrixError(MatrixError e) {
-                            if (TextUtils.equals(e.errcode, MatrixError.UNRECOGNIZED)) {
-                                // TODO LazyLoading Manu do we should enable lazy loading here?
-                                getContextOfEvent(roomId, eventId, 1, null, new SimpleApiCallback<EventContext>(callback) {
-                                    @Override
-                                    public void onSuccess(EventContext eventContext) {
-                                        callback.onSuccess(eventContext.event);
-                                    }
-                                });
-                            } else {
-                                callback.onMatrixError(e);
-                            }
+                        public void onSuccess(EventContext eventContext) {
+                            callback.onSuccess(eventContext.event);
                         }
                     });
                 } else {
@@ -457,25 +444,6 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     }
                 }));
     }
-
-    /**
-     * Retrieve an event from its event id.
-     *
-     * @param eventId  the event id
-     * @param callback the asynchronous callback.
-     */
-    private void getEventFromEventId(final String eventId, final ApiCallback<Event> callback) {
-        final String description = "getEventFromEventId : eventId " + eventId;
-
-        mApi.getEvent(eventId)
-                .enqueue(new RestAdapterCallback<Event>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                    @Override
-                    public void onRetry() {
-                        getEventFromEventId(eventId, callback);
-                    }
-                }));
-    }
-
 
     /**
      * Get the context surrounding an event.
