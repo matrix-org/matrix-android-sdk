@@ -146,6 +146,8 @@ public class RoomSummary implements java.io.Serializable {
             mHeroes.addAll(fromSummary.mHeroes);
             mJoinedMembersCountFromSyncRoomSummary = fromSummary.mJoinedMembersCountFromSyncRoomSummary;
             mInvitedMembersCountFromSyncRoomSummary = fromSummary.mInvitedMembersCountFromSyncRoomSummary;
+
+            mUserMembership = fromSummary.mUserMembership;
         }
     }
 
