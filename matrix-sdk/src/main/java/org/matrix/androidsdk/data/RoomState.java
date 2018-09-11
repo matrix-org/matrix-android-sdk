@@ -22,6 +22,7 @@ import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
+import com.google.gson.annotations.SerializedName;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.call.MXCallsManager;
@@ -103,7 +104,8 @@ public class RoomState implements Externalizable {
     private Map<String, List<Event>> mStateEvents = new HashMap<>();
 
     // The canonical alias of the room
-    public String alias;
+    @SerializedName("canonical_alias")
+    private String canonicalAlias;
 
     // The name of the room as provided by the home server.
     public String name;
@@ -683,7 +685,7 @@ public class RoomState implements Externalizable {
         copy.setPowerLevels((powerLevels == null) ? null : powerLevels.deepCopy());
         copy.aliases = (aliases == null) ? null : new ArrayList<>(aliases);
         copy.mAliasesByDomain = new HashMap<>(mAliasesByDomain);
-        copy.alias = alias;
+        copy.canonicalAlias = canonicalAlias;
         copy.name = name;
         copy.topic = topic;
         copy.url = url;
@@ -727,8 +729,17 @@ public class RoomState implements Externalizable {
     /**
      * @return the room canonical alias
      */
-    public String getAlias() {
-        return alias;
+    public String getCanonicalAlias() {
+        return canonicalAlias;
+    }
+
+    /**
+     * Update the canonical alias of a room
+     *
+     * @param newCanonicalAlias the new canonical alias
+     */
+    public void setCanonicalAlias(String newCanonicalAlias) {
+        canonicalAlias = newCanonicalAlias;
     }
 
     /**
@@ -905,7 +916,7 @@ public class RoomState implements Externalizable {
                 }
             } else if (Event.EVENT_TYPE_STATE_CANONICAL_ALIAS.equals(eventType)) {
                 // SPEC-125
-                alias = JsonUtils.toRoomState(contentToConsider).alias;
+                canonicalAlias = JsonUtils.toRoomState(contentToConsider).canonicalAlias;
             } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(eventType)) {
                 // SPEC-134
                 history_visibility = JsonUtils.toRoomState(contentToConsider).history_visibility;
@@ -1132,7 +1143,7 @@ public class RoomState implements Externalizable {
         }
 
         if (input.readBoolean()) {
-            alias = input.readUTF();
+            canonicalAlias = input.readUTF();
         }
 
         if (input.readBoolean()) {
@@ -1246,9 +1257,9 @@ public class RoomState implements Externalizable {
 
         output.writeObject(mStateEvents);
 
-        output.writeBoolean(null != alias);
-        if (null != alias) {
-            output.writeUTF(alias);
+        output.writeBoolean(null != canonicalAlias);
+        if (null != canonicalAlias) {
+            output.writeUTF(canonicalAlias);
         }
 
         output.writeBoolean(null != name);

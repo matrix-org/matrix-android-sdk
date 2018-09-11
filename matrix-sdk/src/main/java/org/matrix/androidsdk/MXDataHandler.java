@@ -900,7 +900,7 @@ public class MXDataHandler {
         Collection<Room> rooms = getStore().getRooms();
 
         for (Room room : rooms) {
-            if (TextUtils.equals(room.getState().alias, roomAlias)) {
+            if (TextUtils.equals(room.getState().getCanonicalAlias(), roomAlias)) {
                 roomId = room.getRoomId();
                 break;
             } else {
