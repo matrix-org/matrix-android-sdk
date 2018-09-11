@@ -1573,6 +1573,7 @@ public class EventTimeline {
                     // It used to have many out of memory errors because they are too many stored small memory objects.
                     // see https://github.com/matrix-org/matrix-android-sdk/issues/196
 
+                    // Note: if lazy loading is on, getMemberByEventId() can return null, but it is ok, because we just want to update our cache
                     RoomMember member = mState.getMemberByEventId(eventId);
                     if (member != null) {
                         Log.d(LOG_TAG, "checkStateEventRedaction: the current room members list has been modified by the event redaction");
