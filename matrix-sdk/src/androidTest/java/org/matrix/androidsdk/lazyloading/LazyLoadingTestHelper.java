@@ -82,6 +82,7 @@ public class LazyLoadingTestHelper {
         final String roomId = results.get("roomId");
         final Room bobRoom = bobSession.getDataHandler().getRoom(roomId);
 
+
         //update name and join rules
         latch = new CountDownLatch(1);
         bobRoom.updateName("LazyLoading Test Room", new TestApiCallback<Void>(latch));
@@ -119,7 +120,7 @@ public class LazyLoadingTestHelper {
 
         final String bobMessageId = bobMessages.isEmpty() ? null : bobMessages.get(0).eventId;
 
-        // Clear Alice session and open new one
+        // Clear sessions and open new ones
         final Context context = InstrumentationRegistry.getContext();
         aliceSession.clear(context);
         bobSession.clear(context);
