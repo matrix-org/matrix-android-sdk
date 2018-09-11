@@ -1,5 +1,4 @@
 /*
- * Copyright 2014 OpenMarket Ltd
  * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.matrix.androidsdk.rest.callback;
 
-/**
- * Generic callback interface for asynchronously returning information.
- *
- * @param <T> the type of information to return on success
- */
-public interface ApiCallback<T> extends ApiSuccessCallback<T>, ApiFailureCallback {
-
+public interface ApiSuccessCallback<T> {
+    /**
+     * Called if the result is successful.
+     *
+     * @param info the returned information
+     */
+    void onSuccess(T info);
 }
