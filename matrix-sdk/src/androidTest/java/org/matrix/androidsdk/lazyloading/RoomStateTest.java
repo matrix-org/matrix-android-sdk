@@ -19,8 +19,10 @@ import android.support.test.runner.AndroidJUnit4;
 import android.text.TextUtils;
 
 import org.junit.Assert;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.MethodSorters;
 import org.matrix.androidsdk.common.CommonTestHelper;
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.Room;
@@ -33,6 +35,7 @@ import org.matrix.androidsdk.util.Log;
 import java.util.concurrent.CountDownLatch;
 
 @RunWith(AndroidJUnit4.class)
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class RoomStateTest {
 
     private CommonTestHelper mTestHelper = new CommonTestHelper();
@@ -107,7 +110,7 @@ public class RoomStateTest {
 
     @Test
     public void RoomState_BackPaginate_LazyLoading() throws Exception {
-       RoomState_BackPaginate(true);
+        RoomState_BackPaginate(true);
     }
 
     private void RoomState_BackPaginate(final boolean withLazyLoading) throws Exception {
@@ -165,7 +168,7 @@ public class RoomStateTest {
 
     @Test
     public void RoomState_Permalink_LazyLoading() throws Exception {
-       RoomState_Permalink(true);
+        RoomState_Permalink(true);
     }
 
     private void RoomState_Permalink(final boolean withLazyLoading) throws Exception {
