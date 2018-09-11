@@ -2123,18 +2123,6 @@ public class Room {
             }
 
             @Override
-            public void onRoomInitialSyncComplete(String roomId) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(getRoomId(), roomId)) {
-                    try {
-                        eventListener.onRoomInitialSyncComplete(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomInitialSyncComplete exception " + e.getMessage(), e);
-                    }
-                }
-            }
-
-            @Override
             public void onRoomInternalUpdate(String roomId) {
                 // Filter out events for other rooms
                 if (TextUtils.equals(getRoomId(), roomId)) {
