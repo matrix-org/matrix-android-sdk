@@ -2010,11 +2010,6 @@ public class MXDataHandler {
         mMxEventDispatcher.dispatchOnJoinRoom(roomId, ignoreEvent(roomId));
     }
 
-    // FIXME Check why this method is never called
-    public void onRoomInitialSyncComplete(final String roomId) {
-        mMxEventDispatcher.dispatchOnRoomInitialSyncComplete(roomId, ignoreEvent(roomId));
-    }
-
     public void onRoomInternalUpdate(final String roomId) {
         mMxEventDispatcher.dispatchOnRoomInternalUpdate(roomId, ignoreEvent(roomId));
     }

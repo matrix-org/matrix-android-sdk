@@ -356,27 +356,6 @@ import java.util.Set;
         });
     }
 
-    public void dispatchOnRoomInitialSyncComplete(final String roomId, boolean ignoreEvent) {
-        if (ignoreEvent) {
-            return;
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onRoomInitialSyncComplete(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomInitialSyncComplete " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
-    }
-
     public void dispatchOnRoomInternalUpdate(final String roomId, boolean ignoreEvent) {
         if (ignoreEvent) {
             return;
