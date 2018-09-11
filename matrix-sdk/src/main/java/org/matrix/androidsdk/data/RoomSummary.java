@@ -80,8 +80,7 @@ public class RoomSummary implements java.io.Serializable {
     private String mUserId = null;
 
     // Info from sync, depending on the room position in the sync
-    private boolean mIsInInvitedRooms = false;
-    private boolean mIsInJoinedRooms = false;
+    private String mUserMembership;
 
     /**
      * Tell if the room is a user conference user one
@@ -287,30 +286,28 @@ public class RoomSummary implements java.io.Serializable {
      * @return true if the current user is invited
      */
     public boolean isInvited() {
-        return mIsInInvitedRooms;
+        return RoomMember.MEMBERSHIP_INVITE.equals(mUserMembership);
     }
 
     /**
      * To call when the room is in the invited section of the sync response
      */
     public void setIsInvited() {
-        mIsInInvitedRooms = true;
-        mIsInJoinedRooms = false;
+        mUserMembership = RoomMember.MEMBERSHIP_INVITE;
     }
 
     /**
      * To call when the room is in the joined section of the sync response
      */
     public void setIsJoined() {
-        mIsInInvitedRooms = false;
-        mIsInJoinedRooms = true;
+        mUserMembership = RoomMember.MEMBERSHIP_JOIN;
     }
 
     /**
      * @return true if the current user is invited
      */
     public boolean isJoined() {
-        return mIsInJoinedRooms;
+        return RoomMember.MEMBERSHIP_JOIN.equals(mUserMembership);
     }
 
     /**
