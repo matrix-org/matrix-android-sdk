@@ -547,7 +547,7 @@ public class MXCrypto {
      */
     public void close() {
         if (null != mEncryptingHandlerThread) {
-            mSession.getDataHandler().removeListener(mEventListener);
+            mSession.getDataHandler().setCryptoEventsListener(null);
             getEncryptingThreadHandler().post(new Runnable() {
                 @Override
                 public void run() {

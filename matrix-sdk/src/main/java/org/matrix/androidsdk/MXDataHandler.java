@@ -591,11 +591,11 @@ public class MXDataHandler {
     }
 
     /**
-     * Set the crypto events listener
+     * Set the crypto events listener, or remove it
      *
-     * @param listener the listener
+     * @param listener the listener or null to remove the listener
      */
-    public void setCryptoEventsListener(IMXEventListener listener) {
+    public void setCryptoEventsListener(@Nullable IMXEventListener listener) {
         mMxEventDispatcher.setCryptoEventsListener(listener);
     }
 

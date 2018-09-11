@@ -17,6 +17,7 @@
 package org.matrix.androidsdk;
 
 import android.os.Looper;
+import android.support.annotation.Nullable;
 
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
@@ -42,7 +43,9 @@ import java.util.Set;
 
     private final MXOsHandler mUiHandler;
 
+    @Nullable
     private IMXEventListener mCryptoEventsListener = null;
+
     private final Set<IMXEventListener> mEventListeners = new HashSet<>();
 
     MxEventDispatcher() {
@@ -54,11 +57,11 @@ import java.util.Set;
      * ========================================================================================== */
 
     /**
-     * Set the crypto events listener
+     * Set the crypto events listener, or remove it
      *
-     * @param listener the listener
+     * @param listener the listener or null to remove the listener
      */
-    public void setCryptoEventsListener(IMXEventListener listener) {
+    public void setCryptoEventsListener(@Nullable IMXEventListener listener) {
         mCryptoEventsListener = listener;
     }
 
