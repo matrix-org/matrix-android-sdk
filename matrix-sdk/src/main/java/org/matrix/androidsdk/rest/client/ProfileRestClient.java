@@ -96,6 +96,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         //final String description = "updateDisplayname newName : " + newName;
         final String description = "update display name";
 
+        // TODO Do not create a User for this
         User user = new User();
         user.displayname = newName;
 
@@ -145,6 +146,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         //final String description = "updateAvatarUrl newUrl : " + newUrl;
         final String description = "updateAvatarUrl";
 
+        // TODO Do not create a User for this
         User user = new User();
         user.setAvatarUrl(newUrl);
 
