@@ -33,7 +33,7 @@ import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReportContentParams;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.message.Message;
@@ -238,11 +238,11 @@ public interface RoomsApi {
      * @param filter A JSON RoomEventFilter to filter returned events with. Optional.
      */
     @GET("rooms/{roomId}/messages")
-    Call<TokensChunkResponse<Event>> getRoomMessagesFrom(@Path("roomId") String roomId,
-                                                         @Query("from") String from,
-                                                         @Query("dir") String dir,
-                                                         @Query("limit") int limit,
-                                                         @Nullable @Query("filter") String filter);
+    Call<TokensChunkEvents> getRoomMessagesFrom(@Path("roomId") String roomId,
+                                                @Query("from") String from,
+                                                @Query("dir") String dir,
+                                                @Query("limit") int limit,
+                                                @Nullable @Query("filter") String filter);
 
     /**
      * Get the initial information concerning a specific room.
@@ -402,8 +402,8 @@ public interface RoomsApi {
      * @param notMembership to exclude one type of membership (optional)
      */
     @GET("rooms/{roomId}/members")
-    Call<TokensChunkResponse<Event>> getMembers(@Path("roomId") String roomId,
-                                                @Nullable @Query("at") String syncToken,
-                                                @Nullable @Query("membership") String membership,
-                                                @Nullable @Query("not_membership") String notMembership);
+    Call<TokensChunkEvents> getMembers(@Path("roomId") String roomId,
+                                       @Nullable @Query("at") String syncToken,
+                                       @Nullable @Query("membership") String membership,
+                                       @Nullable @Query("not_membership") String notMembership);
 }

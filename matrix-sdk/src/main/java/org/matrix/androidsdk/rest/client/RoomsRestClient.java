@@ -43,7 +43,7 @@ import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReportContentParams;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.filter.RoomEventFilter;
@@ -145,11 +145,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                                     final EventTimeline.Direction direction,
                                     final int limit,
                                     @Nullable final RoomEventFilter roomEventFilter,
-                                    final ApiCallback<TokensChunkResponse<Event>> callback) {
+                                    final ApiCallback<TokensChunkEvents> callback) {
         final String description = "messagesFrom : roomId " + roomId + " fromToken " + fromToken + "with direction " + direction + " with limit " + limit;
 
         mApi.getRoomMessagesFrom(roomId, fromToken, (direction == EventTimeline.Direction.BACKWARDS) ? "b" : "f", limit, toJson(roomEventFilter))
-                .enqueue(new RestAdapterCallback<TokensChunkResponse<Event>>(description, mUnsentEventsManager, callback,
+                .enqueue(new RestAdapterCallback<TokensChunkEvents>(description, mUnsentEventsManager, callback,
                         new RestAdapterCallback.RequestRetryCallBack() {
                             @Override
                             public void onRetry() {
@@ -590,11 +590,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                                @Nullable final String syncToken,
                                @Nullable final String membership,
                                @Nullable final String notMembership,
-                               final ApiCallback<TokensChunkResponse<Event>> callback) {
+                               final ApiCallback<TokensChunkEvents> callback) {
         final String description = "getRoomMembers roomId=" + roomId;
 
         mApi.getMembers(roomId, syncToken, membership, notMembership)
-                .enqueue(new RestAdapterCallback<TokensChunkResponse<Event>>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                .enqueue(new RestAdapterCallback<TokensChunkEvents>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
                         getRoomMembers(roomId, syncToken, membership, notMembership, callback);
