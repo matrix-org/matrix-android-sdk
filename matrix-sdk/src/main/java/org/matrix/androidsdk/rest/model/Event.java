@@ -23,6 +23,7 @@ import android.text.TextUtils;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.annotations.SerializedName;
 
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
@@ -73,7 +74,7 @@ public class Event implements Externalizable {
 
     // when there is no more message to be paginated in a room
     // the server returns a null token.
-    // defines by a non null one to ben able tp store it.
+    // defines by a non null one to be able to store it.
     public static final String PAGINATE_BACK_TOKEN_END = "PAGINATE_BACK_TOKEN_END";
 
     public static final String EVENT_TYPE_PRESENCE = "m.presence";
@@ -140,6 +141,7 @@ public class Event implements Externalizable {
     public Long age;
 
     // Specific to state events
+    @SerializedName("state_key")
     public String stateKey;
 
     // Contains optional extra information about the event.

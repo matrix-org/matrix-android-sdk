@@ -20,6 +20,7 @@ package org.matrix.androidsdk.data;
 
 import android.os.AsyncTask;
 import android.os.Looper;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
@@ -1048,12 +1049,27 @@ public class EventTimeline {
     /**
      * Add some events in a dedicated direction.
      *
-     * @param events    the events list
-     * @param direction the direction
+     * @param events      the events list
+     * @param stateEvents the received state events (in case of lazy loading of room members)
+     * @param direction   the direction
      */
-    private void addPaginationEvents(List<Event> events, Direction direction) {
+    private void addPaginationEvents(List<Event> events,
+                                     @Nullable List<Event> stateEvents,
+                                     Direction direction) {
         RoomSummary summary = mStore.getSummary(mRoomId);
         boolean shouldCommitStore = false;
+
+        // Process additional state events (this happens in case of lazy loading)
+        if (stateEvents != null) {
+            for (Event stateEvent : stateEvents) {
+                if (direction == Direction.BACKWARDS) {
+                    // Enrich the timeline root state with the additional state events observed during back pagination
+                    processStateEvent(stateEvent, Direction.FORWARDS);
+                }
+
+                processStateEvent(stateEvent, direction);
+            }
+        }
 
         // the backward events have a dedicated management to avoid providing too many events for each request
         for (Event event : events) {
@@ -1098,15 +1114,19 @@ public class EventTimeline {
     /**
      * Add some events in a dedicated direction.
      *
-     * @param events    the events list
-     * @param direction the direction
-     * @param callback  the callback.
+     * @param events      the events list
+     * @param stateEvents the received state events (in case of lazy loading of room members)
+     * @param direction   the direction
+     * @param callback    the callback.
      */
-    private void addPaginationEvents(final List<Event> events, final Direction direction, final ApiCallback<Integer> callback) {
+    private void addPaginationEvents(final List<Event> events,
+                                     @Nullable final List<Event> stateEvents,
+                                     final Direction direction,
+                                     final ApiCallback<Integer> callback) {
         AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... params) {
-                addPaginationEvents(events, direction);
+                addPaginationEvents(events, stateEvents, direction);
                 return null;
             }
 
@@ -1274,7 +1294,10 @@ public class EventTimeline {
                                 }
                             }
 
-                            addPaginationEvents((null == response.chunk) ? new ArrayList<Event>() : response.chunk, Direction.BACKWARDS, callback);
+                            addPaginationEvents((null == response.chunk) ? new ArrayList<Event>() : response.chunk,
+                                    response.stateEvents,
+                                    Direction.BACKWARDS,
+                                    callback);
 
                         } else {
                             Log.d(LOG_TAG, "mDataHandler is not active.");
@@ -1346,7 +1369,10 @@ public class EventTimeline {
                             mHasReachedHomeServerForwardsPaginationEnd = (0 == response.chunk.size()) && TextUtils.equals(response.end, response.start);
                             mForwardsPaginationToken = response.end;
 
-                            addPaginationEvents(response.chunk, Direction.FORWARDS, callback);
+                            addPaginationEvents(response.chunk,
+                                    response.stateEvents,
+                                    Direction.FORWARDS,
+                                    callback);
 
                             mIsForwardPaginating = false;
                         } else {
@@ -1450,7 +1476,7 @@ public class EventTimeline {
                                         events.addAll(eventContext.eventsBefore);
 
                                         // add events after
-                                        addPaginationEvents(events, Direction.BACKWARDS);
+                                        addPaginationEvents(events, null, Direction.BACKWARDS);
 
                                         return null;
                                     }
