@@ -107,7 +107,7 @@ public class RoomStateTest {
 
     @Test
     public void RoomState_BackPaginate_LazyLoading() throws Exception {
-        RoomState_BackPaginate(true);
+       RoomState_BackPaginate(true);
     }
 
     private void RoomState_BackPaginate(final boolean withLazyLoading) throws Exception {
@@ -165,7 +165,7 @@ public class RoomStateTest {
 
     @Test
     public void RoomState_Permalink_LazyLoading() throws Exception {
-        RoomState_Permalink(true);
+       RoomState_Permalink(true);
     }
 
     private void RoomState_Permalink(final boolean withLazyLoading) throws Exception {
@@ -204,13 +204,16 @@ public class RoomStateTest {
         RoomState_PermalinkWithBackPagination(true);
     }
 
+    // Test lazy loaded members sent by the HS when paginating backward
+    // - Come back to Bob message
+    // - We should only know Bob membership
+    // - Paginate backward to get Alice next message
+    // - We should know Alice membership now
     private void RoomState_PermalinkWithBackPagination(final boolean withLazyLoading) throws Exception {
         final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario(withLazyLoading);
         mTestHelper.syncSession(data.aliceSession, false);
-        final Room aliceRoom = data.aliceSession.getDataHandler().getRoom(data.roomId);
         final CountDownLatch lock = new CountDownLatch(1);
-        final Event lastEvent = aliceRoom.getDataHandler().getStore().getLatestEvent(data.roomId);
-        final EventTimeline eventTimeline = new EventTimeline(data.aliceSession.getDataHandler(), lastEvent.roomId, lastEvent.eventId);
+        final EventTimeline eventTimeline = new EventTimeline(data.aliceSession.getDataHandler(), data.roomId, data.bobMessageId);
         eventTimeline.addEventTimelineListener(new EventTimeline.EventTimelineListener() {
             int messageCount = 0;
 
@@ -218,30 +221,23 @@ public class RoomStateTest {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
                     messageCount++;
-
                     Log.d("TAG", "Receiving message #" + messageCount + ": " + JsonUtils.toMessage(event.getContent()).body);
-
-                    if (messageCount <= 50) {
-                        Assert.assertNotNull(eventTimeline.getState().getMember(data.aliceSession.getMyUserId()));
-
-                        // With LazyLoading, Bob and Sam are not known by Alice yet
-                        Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.bobSession.getMyUserId()) == null);
-                        Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
-                        Assert.assertEquals(withLazyLoading, roomState.getMember(data.bobSession.getMyUserId()) == null);
-                        Assert.assertEquals(withLazyLoading, roomState.getMember(data.samSession.getMyUserId()) == null);
-                    } else if (messageCount <= 100) {
-                        // Bob is known now
+                    if (messageCount == 1) {
+                        // We received the Event from bob
+                        Assert.assertEquals(event.sender, data.bobSession.getMyUserId());
+                        // Bob is known
                         Assert.assertNotNull(eventTimeline.getState().getMember(data.bobSession.getMyUserId()));
-
+                        // With LazyLoading, Alice and Sam are not known by Alice yet
+                        Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.aliceSession.getMyUserId()) == null);
+                        Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
+                    } else if (messageCount == 2) {
+                        // We received the Event from Alice
+                        Assert.assertEquals(event.sender, data.aliceSession.getMyUserId());
+                        // Alice and Bob are known
+                        Assert.assertNotNull(eventTimeline.getState().getMember(data.aliceSession.getMyUserId()));
+                        Assert.assertNotNull(eventTimeline.getState().getMember(data.bobSession.getMyUserId()));
                         // With LazyLoading, Sam is not known by Alice yet
                         Assert.assertEquals(withLazyLoading, eventTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
-                        Assert.assertEquals(withLazyLoading, roomState.getMember(data.samSession.getMyUserId()) == null);
-                    } else if (messageCount == 101) {
-                        // All users are known now
-                        Assert.assertNotNull(eventTimeline.getState().getMember(data.aliceSession.getMyUserId()));
-                        Assert.assertNotNull(eventTimeline.getState().getMember(data.bobSession.getMyUserId()));
-                        Assert.assertNotNull(eventTimeline.getState().getMember(data.samSession.getMyUserId()));
-
                         lock.countDown();
                     }
                 } else {
@@ -252,7 +248,12 @@ public class RoomStateTest {
         eventTimeline.resetPaginationAroundInitialEvent(0, new SimpleApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                recursiveBackPaginate(eventTimeline, 0, 30, 120);
+                eventTimeline.backPaginate(new SimpleApiCallback<Integer>() {
+                    @Override
+                    public void onSuccess(Integer info) {
+                        // ignore
+                    }
+                });
             }
         });
         mTestHelper.await(lock);
