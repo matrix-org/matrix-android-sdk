@@ -146,6 +146,10 @@ public class MXCrypto {
     };
 
     private final MXEventListener mEventListener = new MXEventListener() {
+        /*
+         * Warning, if a method is added here, the corresponding call has to be also added in MxEventDispatcher
+         */
+
         @Override
         public void onToDeviceEvent(Event event) {
             MXCrypto.this.onToDeviceEvent(event);

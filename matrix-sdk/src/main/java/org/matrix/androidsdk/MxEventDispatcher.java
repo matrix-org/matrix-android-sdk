@@ -95,10 +95,6 @@ import java.util.Set;
      * ========================================================================================== */
 
     public void dispatchOnStoreReady() {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onStoreReady();
-        }
-
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -116,10 +112,6 @@ import java.util.Set;
     }
 
     public void dispatchOnAccountInfoUpdate(final MyUser myUser) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onAccountInfoUpdate(myUser);
-        }
-
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -137,10 +129,6 @@ import java.util.Set;
     }
 
     public void dispatchOnPresenceUpdate(final Event event, final User user) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onPresenceUpdate(event, user);
-        }
-
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -179,10 +167,6 @@ import java.util.Set;
     }
 
     public void dispatchOnLiveEventsChunkProcessed(final String startToken, final String toToken) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onLiveEventsChunkProcessed(startToken, toToken);
-        }
-
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -200,10 +184,6 @@ import java.util.Set;
     }
 
     public void dispatchOnBingEvent(final Event event, final RoomState roomState, final BingRule bingRule, boolean ignoreEvent) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onBingEvent(event, roomState, bingRule);
-        }
-
         if (ignoreEvent) {
             return;
         }
@@ -246,10 +226,6 @@ import java.util.Set;
     }
 
     public void dispatchOnEventSent(final Event event, final String prevEventId, boolean ignoreEvent) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onEventSent(event, prevEventId);
-        }
-
         if (ignoreEvent) {
             return;
         }
@@ -271,10 +247,6 @@ import java.util.Set;
     }
 
     public void dispatchOnBingRulesUpdate() {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onBingRulesUpdate();
-        }
-
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -292,10 +264,6 @@ import java.util.Set;
     }
 
     public void dispatchOnInitialSyncComplete(final String toToken) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onInitialSyncComplete(toToken);
-        }
-
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -347,10 +315,6 @@ import java.util.Set;
     }
 
     public void dispatchOnNewRoom(final String roomId, boolean ignoreEvent) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onNewRoom(roomId);
-        }
-
         if (ignoreEvent) {
             return;
         }
@@ -372,10 +336,6 @@ import java.util.Set;
     }
 
     public void dispatchOnJoinRoom(final String roomId, boolean ignoreEvent) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onJoinRoom(roomId);
-        }
-
         if (ignoreEvent) {
             return;
         }
@@ -397,10 +357,6 @@ import java.util.Set;
     }
 
     public void dispatchOnRoomInitialSyncComplete(final String roomId, boolean ignoreEvent) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onRoomInitialSyncComplete(roomId);
-        }
-
         if (ignoreEvent) {
             return;
         }
@@ -422,10 +378,6 @@ import java.util.Set;
     }
 
     public void dispatchOnRoomInternalUpdate(final String roomId, boolean ignoreEvent) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onRoomInternalUpdate(roomId);
-        }
-
         if (ignoreEvent) {
             return;
         }
@@ -447,10 +399,6 @@ import java.util.Set;
     }
 
     public void dispatchOnLeaveRoom(final String roomId, boolean ignoreEvent) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onLeaveRoom(roomId);
-        }
-
         if (ignoreEvent) {
             return;
         }
@@ -472,10 +420,6 @@ import java.util.Set;
     }
 
     public void dispatchOnRoomKick(final String roomId, boolean ignoreEvent) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onRoomKick(roomId);
-        }
-
         if (ignoreEvent) {
             return;
         }
@@ -497,10 +441,6 @@ import java.util.Set;
     }
 
     public void dispatchOnReceiptEvent(final String roomId, final List<String> senderIds, boolean ignoreEvent) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onReceiptEvent(roomId, senderIds);
-        }
-
         if (ignoreEvent) {
             return;
         }
@@ -522,10 +462,6 @@ import java.util.Set;
     }
 
     public void dispatchOnRoomTagEvent(final String roomId, boolean ignoreEvent) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onRoomTagEvent(roomId);
-        }
-
         if (ignoreEvent) {
             return;
         }
@@ -547,10 +483,6 @@ import java.util.Set;
     }
 
     public void dispatchOnReadMarkerEvent(final String roomId, boolean ignoreEvent) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onReadMarkerEvent(roomId);
-        }
-
         if (ignoreEvent) {
             return;
         }
@@ -572,10 +504,6 @@ import java.util.Set;
     }
 
     public void dispatchOnRoomFlush(final String roomId, boolean ignoreEvent) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onRoomFlush(roomId);
-        }
-
         if (ignoreEvent) {
             return;
         }
@@ -597,10 +525,6 @@ import java.util.Set;
     }
 
     public void dispatchOnIgnoredUsersListUpdate() {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onIgnoredUsersListUpdate();
-        }
-
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -796,10 +720,6 @@ import java.util.Set;
     }
 
     public void dispatchOnNotificationCountUpdate(final String roomId, boolean ignoreEvent) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onNotificationCountUpdate(roomId);
-        }
-
         if (ignoreEvent) {
             return;
         }
