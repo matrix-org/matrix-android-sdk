@@ -230,7 +230,7 @@ public interface RoomsApi {
     Call<CreateRoomResponse> createRoom(@Body CreateRoomParams createRoomRequest);
 
     /**
-     * Get a list of messages starting from a reference..
+     * Get a list of messages starting from a reference.
      *
      * @param roomId the room id
      * @param from   the token identifying where to start. Required.
