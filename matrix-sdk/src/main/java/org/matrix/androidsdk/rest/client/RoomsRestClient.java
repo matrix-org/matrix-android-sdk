@@ -33,6 +33,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.BannedUser;
+import org.matrix.androidsdk.rest.model.ChunkEvents;
 import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.CreatedEvent;
@@ -590,11 +591,11 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                                @Nullable final String syncToken,
                                @Nullable final String membership,
                                @Nullable final String notMembership,
-                               final ApiCallback<TokensChunkEvents> callback) {
+                               final ApiCallback<ChunkEvents> callback) {
         final String description = "getRoomMembers roomId=" + roomId;
 
         mApi.getMembers(roomId, syncToken, membership, notMembership)
-                .enqueue(new RestAdapterCallback<TokensChunkEvents>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                .enqueue(new RestAdapterCallback<ChunkEvents>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
                         getRoomMembers(roomId, syncToken, membership, notMembership, callback);

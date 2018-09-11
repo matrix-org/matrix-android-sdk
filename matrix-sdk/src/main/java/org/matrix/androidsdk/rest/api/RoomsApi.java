@@ -24,6 +24,7 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.BannedUser;
+import org.matrix.androidsdk.rest.model.ChunkEvents;
 import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.CreatedEvent;
@@ -402,8 +403,8 @@ public interface RoomsApi {
      * @param notMembership to exclude one type of membership (optional)
      */
     @GET("rooms/{roomId}/members")
-    Call<TokensChunkEvents> getMembers(@Path("roomId") String roomId,
-                                       @Nullable @Query("at") String syncToken,
-                                       @Nullable @Query("membership") String membership,
-                                       @Nullable @Query("not_membership") String notMembership);
+    Call<ChunkEvents> getMembers(@Path("roomId") String roomId,
+                                 @Nullable @Query("at") String syncToken,
+                                 @Nullable @Query("membership") String membership,
+                                 @Nullable @Query("not_membership") String notMembership);
 }
