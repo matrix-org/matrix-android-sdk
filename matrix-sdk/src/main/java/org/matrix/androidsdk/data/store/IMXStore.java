@@ -30,7 +30,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.group.Group;
 import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
@@ -257,11 +257,11 @@ public interface IMXStore {
     /**
      * Store a block of room events either live or from pagination.
      *
-     * @param roomId         the room id
-     * @param eventsResponse The events to be stored.
-     * @param direction      the direction; forwards for live, backwards for pagination
+     * @param roomId            the room id
+     * @param tokensChunkEvents the events to be stored.
+     * @param direction         the direction; forwards for live, backwards for pagination
      */
-    void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, EventTimeline.Direction direction);
+    void storeRoomEvents(String roomId, TokensChunkEvents tokensChunkEvents, EventTimeline.Direction direction);
 
     /**
      * Store the back token of a room.
@@ -348,7 +348,7 @@ public interface IMXStore {
      * @param limit     the maximum number of messages to retrieve.
      * @return A collection of events. null if there is no cached event.
      */
-    TokensChunkResponse<Event> getEarlierMessages(final String roomId, final String fromToken, final int limit);
+    TokensChunkEvents getEarlierMessages(final String roomId, final String fromToken, final int limit);
 
     /**
      * Get the oldest event from the given room (to prevent pagination overlap).
@@ -561,6 +561,7 @@ public interface IMXStore {
 
     /**
      * Delete a group
+     *
      * @param groupId the group id to delete
      */
     void deleteGroup(String groupId);
@@ -580,18 +581,21 @@ public interface IMXStore {
 
     /**
      * Set the URL preview status
+     *
      * @param value the URL preview status
      */
     void setURLPreviewEnabled(boolean value);
 
     /**
      * Tells if the global URL preview is enabled.
+     *
      * @return true if it is enabled
      */
     boolean isURLPreviewEnabled();
 
     /**
      * Update the rooms list which don't have URL previews
+     *
      * @param roomIds the room ids list
      */
     void setRoomsWithoutURLPreview(Set<String> roomIds);

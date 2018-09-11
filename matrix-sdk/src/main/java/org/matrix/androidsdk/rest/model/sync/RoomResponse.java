@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +17,7 @@
 package org.matrix.androidsdk.rest.model.sync;
 
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 
 import java.util.List;
 
@@ -28,7 +29,7 @@ public class RoomResponse {
     public String roomId;
 
     // The last recent messages of the room.
-    public TokensChunkResponse<Event> messages;
+    public TokensChunkEvents messages;
 
     // The state events.
     public List<Event> state;

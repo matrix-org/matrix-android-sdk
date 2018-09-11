@@ -33,7 +33,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.group.Group;
 import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
@@ -806,7 +806,7 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
-    public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, EventTimeline.Direction direction) {
+    public void storeRoomEvents(String roomId, TokensChunkEvents tokensChunkEvents, EventTimeline.Direction direction) {
         boolean canStore = true;
 
         // do not flush the room messages file
@@ -823,7 +823,7 @@ public class MXFileStore extends MXMemoryStore {
             }
         }
 
-        super.storeRoomEvents(roomId, eventsResponse, direction);
+        super.storeRoomEvents(roomId, tokensChunkEvents, direction);
 
         if (canStore) {
             mRoomsToCommitForMessages.add(roomId);

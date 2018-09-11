@@ -59,7 +59,7 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.message.FileInfo;
 import org.matrix.androidsdk.rest.model.message.FileMessage;
@@ -397,12 +397,12 @@ public class Room {
      */
     public void requestServerRoomHistory(final String token,
                                          final int paginationCount,
-                                         final ApiCallback<TokensChunkResponse<Event>> callback) {
+                                         final ApiCallback<TokensChunkEvents> callback) {
         mDataHandler.getDataRetriever()
                 .requestServerRoomHistory(getRoomId(), token, paginationCount, mDataHandler.isLazyLoadingEnabled(),
-                        new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+                        new SimpleApiCallback<TokensChunkEvents>(callback) {
                             @Override
-                            public void onSuccess(TokensChunkResponse<Event> info) {
+                            public void onSuccess(TokensChunkEvents info) {
                                 callback.onSuccess(info);
                             }
                         });

@@ -36,7 +36,7 @@ import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.sync.RoomSync;
@@ -1246,9 +1246,9 @@ public class EventTimeline {
         }
 
         mDataHandler.getDataRetriever().backPaginate(mStore, mRoomId, getBackState().getToken(), eventCount, mDataHandler.isLazyLoadingEnabled(),
-                new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+                new SimpleApiCallback<TokensChunkEvents>(callback) {
                     @Override
-                    public void onSuccess(TokensChunkResponse<Event> response) {
+                    public void onSuccess(TokensChunkEvents response) {
                         if (mDataHandler.isAlive()) {
 
                             if (null != response.chunk) {
@@ -1337,9 +1337,9 @@ public class EventTimeline {
         mIsForwardPaginating = true;
 
         mDataHandler.getDataRetriever().paginate(mStore, mRoomId, mForwardsPaginationToken, Direction.FORWARDS, mDataHandler.isLazyLoadingEnabled(),
-                new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+                new SimpleApiCallback<TokensChunkEvents>(callback) {
                     @Override
-                    public void onSuccess(TokensChunkResponse<Event> response) {
+                    public void onSuccess(TokensChunkEvents response) {
                         if (mDataHandler.isAlive()) {
                             Log.d(LOG_TAG, "forwardPaginate : " + response.chunk.size() + " are retrieved.");
 

@@ -59,7 +59,7 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
@@ -951,9 +951,9 @@ public class MXDataHandler {
      */
     public void getMembersAsync(final String roomId, final ApiCallback<List<RoomMember>> callback) {
         mRoomsRestClient.getRoomMembers(roomId, getStore().getEventStreamToken(), null, RoomMember.MEMBERSHIP_LEAVE,
-                new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+                new SimpleApiCallback<TokensChunkEvents>(callback) {
                     @Override
-                    public void onSuccess(TokensChunkResponse<Event> info) {
+                    public void onSuccess(TokensChunkEvents info) {
                         Room room = getRoom(roomId);
 
                         if (info.chunk != null) {
