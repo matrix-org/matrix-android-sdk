@@ -23,6 +23,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 import android.text.TextUtils;
 import android.util.Pair;
 
@@ -336,6 +337,7 @@ public class RestClient<T> {
             Log.d(LOG_TAG, "## refreshConnectionTimeout()  : update the requests timeout to 1 ms");
         }
 
+        // FIXME It has no effect to the rest client
         mOkHttpClient = builder.build();
     }
 
@@ -360,6 +362,7 @@ public class RestClient<T> {
         }
 
         if (timeoutMs != mOkHttpClient.connectTimeoutMillis()) {
+            // FIXME It has no effect to the rest client
             mOkHttpClient = mOkHttpClient.newBuilder().connectTimeout(timeoutMs, TimeUnit.MILLISECONDS).build();
         }
     }
@@ -413,6 +416,7 @@ public class RestClient<T> {
      *
      * @param api the api object
      */
+    @VisibleForTesting()
     protected void setApi(T api) {
         mApi = api;
     }
