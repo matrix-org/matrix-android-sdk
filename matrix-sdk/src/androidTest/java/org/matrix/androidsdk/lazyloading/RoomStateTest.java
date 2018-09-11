@@ -132,36 +132,36 @@ public class RoomStateTest {
 
             @Override
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
+                messageCount++;
+
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                    messageCount++;
-
                     Log.d("TAG", "Receiving message #" + messageCount + ": " + JsonUtils.toMessage(event.getContent()).body);
-
-                    if (messageCount <= 50) {
-                        Assert.assertNotNull(liveTimeline.getState().getMember(data.aliceSession.getMyUserId()));
-
-                        // With LazyLoading, Bob and Sam are not known by Alice yet
-                        Assert.assertEquals(withLazyLoading, liveTimeline.getState().getMember(data.bobSession.getMyUserId()) == null);
-                        Assert.assertEquals(withLazyLoading, liveTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
-                        Assert.assertEquals(withLazyLoading, roomState.getMember(data.bobSession.getMyUserId()) == null);
-                        Assert.assertEquals(withLazyLoading, roomState.getMember(data.samSession.getMyUserId()) == null);
-                    } else if (messageCount <= 100) {
-                        // Bob is known now
-                        Assert.assertNotNull(liveTimeline.getState().getMember(data.bobSession.getMyUserId()));
-
-                        // With LazyLoading, Sam is not known by Alice yet
-                        Assert.assertEquals(withLazyLoading, liveTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
-                        Assert.assertEquals(withLazyLoading, roomState.getMember(data.samSession.getMyUserId()) == null);
-                    } else if (messageCount == 101) {
-                        // All users are known now
-                        Assert.assertNotNull(liveTimeline.getState().getMember(data.aliceSession.getMyUserId()));
-                        Assert.assertNotNull(liveTimeline.getState().getMember(data.bobSession.getMyUserId()));
-                        Assert.assertNotNull(liveTimeline.getState().getMember(data.samSession.getMyUserId()));
-
-                        lock.countDown();
-                    }
                 } else {
-                    Log.d("TAG", "Receiving other event: " + event.getType());
+                    Log.d("TAG", "Receiving event: #" + messageCount + " of type " + event.getType());
+                }
+
+                if (messageCount == 10) {
+                    Assert.assertNotNull(liveTimeline.getState().getMember(data.aliceSession.getMyUserId()));
+
+                    // With LazyLoading, Bob and Sam are not known by Alice yet
+                    Assert.assertEquals(withLazyLoading, liveTimeline.getState().getMember(data.bobSession.getMyUserId()) == null);
+                    Assert.assertEquals(withLazyLoading, liveTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
+                    Assert.assertEquals(withLazyLoading, roomState.getMember(data.bobSession.getMyUserId()) == null);
+                    Assert.assertEquals(withLazyLoading, roomState.getMember(data.samSession.getMyUserId()) == null);
+                } else if (messageCount == 50) {
+                    // Bob is known now
+                    Assert.assertNotNull(liveTimeline.getState().getMember(data.bobSession.getMyUserId()));
+
+                    // With LazyLoading, Sam is not known by Alice yet
+                    Assert.assertEquals(withLazyLoading, liveTimeline.getState().getMember(data.samSession.getMyUserId()) == null);
+                    Assert.assertEquals(withLazyLoading, roomState.getMember(data.samSession.getMyUserId()) == null);
+                } else if (messageCount == 105) {
+                    // All users are known now
+                    Assert.assertNotNull(liveTimeline.getState().getMember(data.aliceSession.getMyUserId()));
+                    Assert.assertNotNull(liveTimeline.getState().getMember(data.bobSession.getMyUserId()));
+                    Assert.assertNotNull(liveTimeline.getState().getMember(data.samSession.getMyUserId()));
+
+                    lock.countDown();
                 }
             }
         });
