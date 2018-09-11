@@ -315,7 +315,10 @@ public class Room {
 
         synchronized (this) {
             mLiveTimeline.handleJoinedRoomSync(roomSync, isGlobalInitialSync);
-
+            RoomSummary roomSummary = getRoomSummary();
+            if (roomSummary != null) {
+                roomSummary.setIsJoined();
+            }
             // ephemeral events
             if ((null != roomSync.ephemeral) && (null != roomSync.ephemeral.events)) {
                 handleEphemeralEvents(roomSync.ephemeral.events);
@@ -361,12 +364,6 @@ public class Room {
                 refreshUnreadCounter();
             } // else -> it will be done at the end of the sync
             mRefreshUnreadAfterSync = false;
-        }
-
-        RoomSummary roomSummary = getRoomSummary();
-
-        if (roomSummary != null) {
-            roomSummary.setIsJoined();
         }
     }
 
