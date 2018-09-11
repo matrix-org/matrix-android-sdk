@@ -518,11 +518,11 @@ public class RoomState implements Externalizable {
 
     /**
      * Retrieve a room member from its original event id.
+     * It can return null if the lazy loading is enabled and if the member is not loaded yet.
      *
      * @param eventId the event id.
-     * @return the linked member it exists.
+     * @return the linked member if it exists and if it is loaded.
      */
-    // TODO Change this? Can return null if all members are not loaded yet
     @Nullable
     public RoomMember getMemberByEventId(String eventId) {
         RoomMember member = null;
@@ -534,11 +534,6 @@ public class RoomState implements Externalizable {
                     break;
                 }
             }
-        }
-
-        if (member == null) {
-            // TODO LazyLoading
-            Log.e(LOG_TAG, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Null member for event '" + eventId + "' !!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         }
 
         return member;
