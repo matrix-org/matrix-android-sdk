@@ -47,6 +47,7 @@ import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.androidsdk.listeners.MxRoomEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.AccountDataRestClient;
@@ -61,7 +62,6 @@ import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomDirectoryVisibility;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkEvents;
-import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.message.FileInfo;
 import org.matrix.androidsdk.rest.model.message.FileMessage;
 import org.matrix.androidsdk.rest.model.message.ImageInfo;
@@ -2053,196 +2053,7 @@ public class Room {
         }
 
         // Create a global listener that we'll add to the data handler
-        IMXEventListener globalListener = new MXEventListener() {
-            @Override
-            public void onPresenceUpdate(Event event, User user) {
-                // Only pass event through if the user is a member of the room
-                if (getMember(user.user_id) != null) {
-                    try {
-                        eventListener.onPresenceUpdate(event, user);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onPresenceUpdate exception " + e.getMessage(), e);
-                    }
-                }
-            }
-
-            @Override
-            public void onLiveEvent(Event event, RoomState roomState) {
-                // Filter out events for other rooms and events while we are joining (before the room is ready)
-                if (TextUtils.equals(getRoomId(), event.roomId) && mIsReady) {
-                    try {
-                        eventListener.onLiveEvent(event, roomState);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onLiveEvent exception " + e.getMessage(), e);
-                    }
-                }
-            }
-
-            @Override
-            public void onLiveEventsChunkProcessed(String fromToken, String toToken) {
-                try {
-                    eventListener.onLiveEventsChunkProcessed(fromToken, toToken);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "onLiveEventsChunkProcessed exception " + e.getMessage(), e);
-                }
-            }
-
-            @Override
-            public void onEventSentStateUpdated(Event event) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(getRoomId(), event.roomId)) {
-                    try {
-                        eventListener.onEventSentStateUpdated(event);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onEventSentStateUpdated exception " + e.getMessage(), e);
-                    }
-                }
-            }
-
-            @Override
-            public void onEventDecrypted(Event event) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(getRoomId(), event.roomId)) {
-                    try {
-                        eventListener.onEventDecrypted(event);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onDecryptedEvent exception " + e.getMessage(), e);
-                    }
-                }
-            }
-
-            @Override
-            public void onEventSent(final Event event, final String prevEventId) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(getRoomId(), event.roomId)) {
-                    try {
-                        eventListener.onEventSent(event, prevEventId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onEventSent exception " + e.getMessage(), e);
-                    }
-                }
-            }
-
-            @Override
-            public void onRoomInternalUpdate(String roomId) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(getRoomId(), roomId)) {
-                    try {
-                        eventListener.onRoomInternalUpdate(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomInternalUpdate exception " + e.getMessage(), e);
-                    }
-                }
-            }
-
-            @Override
-            public void onNotificationCountUpdate(String roomId) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(getRoomId(), roomId)) {
-                    try {
-                        eventListener.onNotificationCountUpdate(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onNotificationCountUpdate exception " + e.getMessage(), e);
-                    }
-                }
-            }
-
-            @Override
-            public void onNewRoom(String roomId) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(getRoomId(), roomId)) {
-                    try {
-                        eventListener.onNewRoom(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onNewRoom exception " + e.getMessage(), e);
-                    }
-                }
-            }
-
-            @Override
-            public void onJoinRoom(String roomId) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(getRoomId(), roomId)) {
-                    try {
-                        eventListener.onJoinRoom(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onJoinRoom exception " + e.getMessage(), e);
-                    }
-                }
-            }
-
-            @Override
-            public void onReceiptEvent(String roomId, List<String> senderIds) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(getRoomId(), roomId)) {
-                    try {
-                        eventListener.onReceiptEvent(roomId, senderIds);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onReceiptEvent exception " + e.getMessage(), e);
-                    }
-                }
-            }
-
-            @Override
-            public void onRoomTagEvent(String roomId) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(getRoomId(), roomId)) {
-                    try {
-                        eventListener.onRoomTagEvent(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomTagEvent exception " + e.getMessage(), e);
-                    }
-                }
-            }
-
-            @Override
-            public void onReadMarkerEvent(String roomId) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(getRoomId(), roomId)) {
-                    try {
-                        eventListener.onReadMarkerEvent(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onReadMarkerEvent exception " + e.getMessage(), e);
-                    }
-                }
-            }
-
-            @Override
-            public void onRoomFlush(String roomId) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(getRoomId(), roomId)) {
-                    try {
-                        eventListener.onRoomFlush(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomFlush exception " + e.getMessage(), e);
-                    }
-                }
-            }
-
-            @Override
-            public void onLeaveRoom(String roomId) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(getRoomId(), roomId)) {
-                    try {
-                        eventListener.onLeaveRoom(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onLeaveRoom exception " + e.getMessage(), e);
-                    }
-                }
-            }
-
-            @Override
-            public void onRoomKick(String roomId) {
-                // Filter out events for other rooms
-                if (TextUtils.equals(getRoomId(), roomId)) {
-                    try {
-                        eventListener.onRoomKick(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomKick exception " + e.getMessage(), e);
-                    }
-                }
-            }
-        };
+        IMXEventListener globalListener = new MxRoomEventListener(this, eventListener);
 
         mEventListeners.put(eventListener, globalListener);
 
