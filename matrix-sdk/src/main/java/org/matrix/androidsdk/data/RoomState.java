@@ -103,9 +103,9 @@ public class RoomState implements Externalizable {
     //
     private Map<String, List<Event>> mStateEvents = new HashMap<>();
 
-    // The canonical alias of the room
-    @SerializedName("canonical_alias")
-    private String canonicalAlias;
+    // The canonical alias of the room. Keep it public for Gson, because private fields are excluded.
+    @SerializedName("alias")
+    public String canonicalAlias;
 
     // The name of the room as provided by the home server.
     public String name;
