@@ -58,6 +58,7 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ReceiptData;
+import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.message.MediaMessage;
 import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.search.SearchResponse;
@@ -539,6 +540,16 @@ public abstract class MatrixMessageListFragment<MessagesAdapter extends Abstract
         });
 
         mDisplayAllEvents = isDisplayAllEvents();
+
+        // Ensure all RoomMember are loaded (ignore error)
+        mRoom.getMembersAsync(new SimpleApiCallback<List<RoomMember>>() {
+            @Override
+            public void onSuccess(List<RoomMember> info) {
+                if (isAdded()) {
+                    mAdapter.setLiveRoomMembers(info);
+                }
+            }
+        });
 
         return v;
     }
