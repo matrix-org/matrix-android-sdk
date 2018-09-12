@@ -177,11 +177,6 @@ public class RoomState implements Externalizable {
     private final Map<String, RoomMember> mMembersWithThirdPartyInviteTokenCache = new HashMap<>();
 
     /**
-     * Additional and optional metadata got from initialSync
-     */
-    private String mMembership;
-
-    /**
      * Tell if the roomstate if a live one.
      */
     private boolean mIsLive;
@@ -687,7 +682,6 @@ public class RoomState implements Externalizable {
         copy.token = token;
         copy.groups = groups;
         copy.mDataHandler = mDataHandler;
-        copy.mMembership = mMembership;
         copy.mIsLive = mIsLive;
         copy.mAllMembersAreLoaded = mAllMembersAreLoaded;
         copy.algorithm = algorithm;
@@ -1187,10 +1181,6 @@ public class RoomState implements Externalizable {
             mMembersWithThirdPartyInviteTokenCache.put(r.getThirdPartyInviteToken(), r);
         }
 
-        if (input.readBoolean()) {
-            mMembership = input.readUTF();
-        }
-
         mIsLive = input.readBoolean();
 
         mAllMembersAreLoaded = input.readBoolean();
@@ -1298,11 +1288,6 @@ public class RoomState implements Externalizable {
         output.writeObject(new ArrayList<>(mMembers.values()));
         output.writeObject(new ArrayList<>(mThirdPartyInvites.values()));
         output.writeObject(new ArrayList<>(mMembersWithThirdPartyInviteTokenCache.values()));
-
-        output.writeBoolean(null != mMembership);
-        if (null != mMembership) {
-            output.writeUTF(mMembership);
-        }
 
         output.writeBoolean(mIsLive);
 
