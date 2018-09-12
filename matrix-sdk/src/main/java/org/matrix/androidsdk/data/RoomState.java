@@ -165,7 +165,7 @@ public class RoomState implements Externalizable {
     // true if all members are loaded
     private boolean mAllMembersAreLoaded;
 
-    private List<ApiCallback<List<RoomMember>>> mGetAllMembersCallbacks = new ArrayList<>();
+    private final List<ApiCallback<List<RoomMember>>> mGetAllMembersCallbacks = new ArrayList<>();
 
     // the third party invite members
     private final Map<String, RoomThirdPartyInvite> mThirdPartyInvites = new HashMap<>();
