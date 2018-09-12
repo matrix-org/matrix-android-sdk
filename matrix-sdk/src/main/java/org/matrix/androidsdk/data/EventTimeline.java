@@ -1169,10 +1169,14 @@ public class EventTimeline {
      * @return true if a back pagination can be triggered.
      */
     public boolean canBackPaginate() {
-        return !mIsBackPaginating && // One at a time please
-                mState.canBackPaginated(mDataHandler.getUserId()) && // history_visibility flag management
-                mCanBackPaginate && // If we have already reached the end of history
-                mRoom.isReady(); // If the room is not finished being set up
+        // One at a time please
+        return !mIsBackPaginating
+                // history_visibility flag management
+                && mState.canBackPaginate(mRoom.isJoined(), mRoom.isInvited())
+                // If we have already reached the end of history
+                && mCanBackPaginate
+                // If the room is not finished being set up
+                && mRoom.isReady();
     }
 
     /**
@@ -1205,10 +1209,8 @@ public class EventTimeline {
      * @return true if request starts
      */
     public boolean backPaginate(final int eventCount, final boolean useCachedOnly, final ApiCallback<Integer> callback) {
-        final String myUserId = mDataHandler.getUserId();
-
         if (!canBackPaginate()) {
-            Log.d(LOG_TAG, "cannot requestHistory " + mIsBackPaginating + " " + !getState().canBackPaginated(myUserId)
+            Log.d(LOG_TAG, "cannot requestHistory " + mIsBackPaginating + " " + !getState().canBackPaginate(mRoom.isJoined(), mRoom.isInvited())
                     + " " + !mCanBackPaginate + " " + !mRoom.isReady());
             return false;
         }

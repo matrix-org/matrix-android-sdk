@@ -642,19 +642,17 @@ public class RoomState implements Externalizable {
     /**
      * Check if the user userId can back paginate.
      *
-     * @param userId the user Id.
-     * @return true if the user can backpaginate.
+     * @param isJoined  true is user is in the room
+     * @param isInvited true is user is invited to the room
+     * @return true if the user can back paginate.
      */
-    public boolean canBackPaginated(String userId) {
-        RoomMember member = getMember(userId);
-        String membership = (null != member) ? member.membership : "";
+    public boolean canBackPaginate(boolean isJoined, boolean isInvited) {
         String visibility = TextUtils.isEmpty(history_visibility) ? HISTORY_VISIBILITY_SHARED : history_visibility;
 
-        return visibility.equals(HISTORY_VISIBILITY_WORLD_READABLE) ||
-                visibility.equals(HISTORY_VISIBILITY_SHARED) ||
-                (RoomMember.MEMBERSHIP_JOIN.equals(membership)) /*&&visibility == invited or joined */ ||
-                (RoomMember.MEMBERSHIP_INVITE.equals(membership) && visibility.equals(HISTORY_VISIBILITY_INVITED))
-                ;
+        return isJoined
+                || visibility.equals(HISTORY_VISIBILITY_WORLD_READABLE)
+                || visibility.equals(HISTORY_VISIBILITY_SHARED)
+                || (visibility.equals(HISTORY_VISIBILITY_INVITED) && isInvited);
     }
 
     /**
