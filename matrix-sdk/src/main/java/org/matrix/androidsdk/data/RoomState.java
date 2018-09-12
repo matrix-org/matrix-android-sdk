@@ -32,6 +32,7 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomCreateContent;
+import org.matrix.androidsdk.rest.model.RoomDirectoryVisibility;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomPinnedEventsContent;
 import org.matrix.androidsdk.rest.model.RoomTombstoneContent;
@@ -58,9 +59,6 @@ import java.util.Set;
 public class RoomState implements Externalizable {
     private static final String LOG_TAG = RoomState.class.getSimpleName();
     private static final long serialVersionUID = -6019932024524988201L;
-
-    public static final String DIRECTORY_VISIBILITY_PRIVATE = "private";
-    public static final String DIRECTORY_VISIBILITY_PUBLIC = "public";
 
     public static final String JOIN_RULE_PUBLIC = "public";
     public static final String JOIN_RULE_INVITE = "invite";
@@ -1032,7 +1030,7 @@ public class RoomState implements Externalizable {
      * @return true if the room is a public one
      */
     public boolean isPublic() {
-        return TextUtils.equals((null != visibility) ? visibility : join_rule, DIRECTORY_VISIBILITY_PUBLIC);
+        return TextUtils.equals((null != visibility) ? visibility : join_rule, RoomDirectoryVisibility.DIRECTORY_VISIBILITY_PUBLIC);
     }
 
     /**

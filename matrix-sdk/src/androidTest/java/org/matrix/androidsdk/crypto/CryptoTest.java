@@ -40,7 +40,6 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.common.CommonTestHelper;
 import org.matrix.androidsdk.common.SessionAndRoomId;
 import org.matrix.androidsdk.common.TestApiCallback;
-import org.matrix.androidsdk.common.TestConstants;
 import org.matrix.androidsdk.common.Triple;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
@@ -56,6 +55,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.RoomDirectoryVisibility;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.message.Message;
@@ -69,7 +69,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 @RunWith(AndroidJUnit4.class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -2536,7 +2535,7 @@ public class CryptoTest {
         bobSession.getCrypto().setWarnOnUnknownDevices(false);
 
         CountDownLatch lock0 = new CountDownLatch(1);
-        aliceSession.createRoom(null, null, RoomState.DIRECTORY_VISIBILITY_PUBLIC,
+        aliceSession.createRoom(null, null, RoomDirectoryVisibility.DIRECTORY_VISIBILITY_PUBLIC,
                 null, RoomState.GUEST_ACCESS_CAN_JOIN,
                 null, new TestApiCallback<String>(lock0) {
                     @Override
@@ -3011,7 +3010,7 @@ public class CryptoTest {
         bobSession.getCrypto().setWarnOnUnknownDevices(false);
 
         CountDownLatch lock0 = new CountDownLatch(1);
-        aliceSession.createRoom(null, null, RoomState.DIRECTORY_VISIBILITY_PUBLIC,
+        aliceSession.createRoom(null, null, RoomDirectoryVisibility.DIRECTORY_VISIBILITY_PUBLIC,
                 null, RoomState.GUEST_ACCESS_CAN_JOIN,
                 null, new TestApiCallback<String>(lock0) {
                     @Override
@@ -3142,7 +3141,7 @@ public class CryptoTest {
         final String[] aliceRoomId2 = {null};
 
         CountDownLatch lock3 = new CountDownLatch(1);
-        aliceSession2.createRoom(null, null, RoomState.DIRECTORY_VISIBILITY_PUBLIC,
+        aliceSession2.createRoom(null, null, RoomDirectoryVisibility.DIRECTORY_VISIBILITY_PUBLIC,
                 null, RoomState.GUEST_ACCESS_CAN_JOIN,
                 null, new TestApiCallback<String>(lock3) {
                     @Override
