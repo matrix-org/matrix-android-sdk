@@ -103,6 +103,7 @@ public class MatrixMessagesFragment extends Fragment {
 
     // The listener to send messages back
     private MatrixMessagesListener mMatrixMessagesListener;
+
     // The adapted listener to register to the SDK
     private final IMXEventListener mEventListener = new MXEventListener() {
         @Override
@@ -298,7 +299,7 @@ public class MatrixMessagesFragment extends Fragment {
     private void sendInitialMessagesLoaded() {
         final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
 
-        // add a delay to avoid calling MatrixListFragment before it is fully initialized
+        // add a delay to avoid calling MatrixMessageListFragment before it is fully initialized
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
