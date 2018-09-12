@@ -59,6 +59,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReceiptData;
+import org.matrix.androidsdk.rest.model.RoomDirectoryVisibility;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.User;
@@ -1088,16 +1089,16 @@ public class Room {
         RoomsRestClient roomRestApi = mDataHandler.getDataRetriever().getRoomsRestClient();
 
         if (null != roomRestApi) {
-            roomRestApi.getDirectoryVisibility(roomId, new SimpleApiCallback<RoomState>(callback) {
+            roomRestApi.getDirectoryVisibility(roomId, new SimpleApiCallback<RoomDirectoryVisibility>(callback) {
                 @Override
-                public void onSuccess(RoomState roomState) {
+                public void onSuccess(RoomDirectoryVisibility roomDirectoryVisibility) {
                     RoomState currentRoomState = getState();
                     if (null != currentRoomState) {
-                        currentRoomState.visibility = roomState.visibility;
+                        currentRoomState.visibility = roomDirectoryVisibility.visibility;
                     }
 
                     if (null != callback) {
-                        callback.onSuccess(roomState.visibility);
+                        callback.onSuccess(roomDirectoryVisibility.visibility);
                     }
                 }
             });

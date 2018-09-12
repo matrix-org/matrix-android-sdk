@@ -43,6 +43,7 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReportContentParams;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
+import org.matrix.androidsdk.rest.model.RoomDirectoryVisibility;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.Typing;
@@ -547,10 +548,10 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void updateDirectoryVisibility(final String aRoomId, final String aDirectoryVisibility, final ApiCallback<Void> callback) {
         final String description = "updateRoomDirectoryVisibility : roomId=" + aRoomId + " visibility=" + aDirectoryVisibility;
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("visibility", aDirectoryVisibility);
+        RoomDirectoryVisibility roomDirectoryVisibility = new RoomDirectoryVisibility();
+        roomDirectoryVisibility.visibility = aDirectoryVisibility;
 
-        mApi.setRoomDirectoryVisibility(aRoomId, params)
+        mApi.setRoomDirectoryVisibility(aRoomId, roomDirectoryVisibility)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -564,13 +565,13 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * Get the directory visibility of the room (see {@link #updateDirectoryVisibility(String, String, ApiCallback)}).
      *
      * @param aRoomId  the room ID
-     * @param callback on success callback containing a RoomState object populated with the directory visibility
+     * @param callback on success callback containing a the room directory visibility
      */
-    public void getDirectoryVisibility(final String aRoomId, final ApiCallback<RoomState> callback) {
+    public void getDirectoryVisibility(final String aRoomId, final ApiCallback<RoomDirectoryVisibility> callback) {
         final String description = "getDirectoryVisibility roomId=" + aRoomId;
 
         mApi.getRoomDirectoryVisibility(aRoomId)
-                .enqueue(new RestAdapterCallback<RoomState>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                .enqueue(new RestAdapterCallback<RoomDirectoryVisibility>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
                         getDirectoryVisibility(aRoomId, callback);

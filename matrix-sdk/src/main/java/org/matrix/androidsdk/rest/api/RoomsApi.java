@@ -22,7 +22,6 @@ import android.support.annotation.Nullable;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.ChunkEvents;
 import org.matrix.androidsdk.rest.model.CreateRoomParams;
@@ -33,6 +32,7 @@ import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReportContentParams;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
+import org.matrix.androidsdk.rest.model.RoomDirectoryVisibility;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.Typing;
@@ -380,11 +380,11 @@ public interface RoomsApi {
      * Set the visibility of the given room in the list directory. If the visibility is set to public, the room
      * name is listed among the directory list.
      *
-     * @param roomId  the room id where to apply the request
-     * @param content the put params containing the new "visibility" field
+     * @param roomId                  the room id where to apply the request
+     * @param roomDirectoryVisibility the put params containing the new "visibility" field
      */
     @PUT("directory/list/room/{roomId}")
-    Call<Void> setRoomDirectoryVisibility(@Path("roomId") String roomId, Map<String, Object> content);
+    Call<Void> setRoomDirectoryVisibility(@Path("roomId") String roomId, RoomDirectoryVisibility roomDirectoryVisibility);
 
     /**
      * Get the visibility of the given room in the list directory.
@@ -392,7 +392,7 @@ public interface RoomsApi {
      * @param roomId the room id where to apply the request
      */
     @GET("directory/list/room/{roomId}")
-    Call<RoomState> getRoomDirectoryVisibility(@Path("roomId") String roomId);
+    Call<RoomDirectoryVisibility> getRoomDirectoryVisibility(@Path("roomId") String roomId);
 
     /**
      * Get all members of a room
