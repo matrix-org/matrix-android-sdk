@@ -239,7 +239,11 @@ public class RoomSummary implements java.io.Serializable {
                     && !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS, type)
                     && !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES, type)
                     && !TextUtils.equals(Event.EVENT_TYPE_STATE_CANONICAL_ALIAS, type)
-                    && !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_ALIASES, type)) {
+                    && !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_ALIASES, type)
+                    && !TextUtils.equals(Event.EVENT_TYPE_URL_PREVIEW, type)
+                    && !TextUtils.equals(Event.EVENT_TYPE_STATE_RELATED_GROUPS, type)
+                    && !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_GUEST_ACCESS, type)
+                    && !TextUtils.equals(Event.EVENT_TYPE_REDACTION, type)) {
                 Log.e(LOG_TAG, "isSupportedEvent :  Unsupported event type " + type);
             }
         }
