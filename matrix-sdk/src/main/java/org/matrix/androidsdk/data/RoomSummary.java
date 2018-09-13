@@ -190,7 +190,36 @@ public class RoomSummary implements java.io.Serializable {
             }
         } else if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, type)) {
             isSupported = event.hasContentFields();
-        } else if (!TextUtils.isEmpty(type)) {
+        } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type)) {
+            JsonObject eventContentAsJsonObject = event.getContentAsJsonObject();
+
+            if (null != eventContentAsJsonObject) {
+                if (eventContentAsJsonObject.entrySet().isEmpty()) {
+                    Log.d(LOG_TAG, "isSupportedEvent : room member with no content is not supported");
+                } else {
+                    // do not display the avatar / display name update
+                    EventContent prevEventContent = event.getPrevContent();
+                    EventContent eventContent = event.getEventContent();
+
+                    String membership = null;
+                    String preMembership = null;
+
+                    if (null != prevEventContent) {
+                        membership = eventContent.membership;
+                    }
+
+                    if (null != prevEventContent) {
+                        preMembership = prevEventContent.membership;
+                    }
+
+                    isSupported = (null == membership) || !TextUtils.equals(membership, preMembership);
+
+                    if (!isSupported) {
+                        Log.d(LOG_TAG, "isSupportedEvent : do not support avatar display name update");
+                    }
+                }
+            }
+        } else {
             isSupported = TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_TOPIC, type)
                     || TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, type)
                     || TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTION, type)
@@ -200,48 +229,18 @@ public class RoomSummary implements java.io.Serializable {
                     || TextUtils.equals(Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY, type)
                     || TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE, type)
                     || TextUtils.equals(Event.EVENT_TYPE_STICKER, type)
-                    || (event.isCallEvent() && !Event.EVENT_TYPE_CALL_CANDIDATES.equals(type));
+                    || (event.isCallEvent() && !TextUtils.isEmpty(type) && !Event.EVENT_TYPE_CALL_CANDIDATES.equals(type));
+        }
 
-            if (!isSupported) {
-                // some events are known to be never traced
-                // avoid warning when it is not required.
-                if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type)
-                        && !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS, type)
-                        && !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES, type)
-                        && !TextUtils.equals(Event.EVENT_TYPE_STATE_CANONICAL_ALIAS, type)
-                        && !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_ALIASES, type)) {
-                    Log.e(LOG_TAG, "isSupportedEvent :  Unsupported event type " + type);
-                }
-            } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type)) {
-                JsonObject eventContentAsJsonObject = event.getContentAsJsonObject();
-
-                if (null != eventContentAsJsonObject) {
-                    if (0 == eventContentAsJsonObject.entrySet().size()) {
-                        isSupported = false;
-                        Log.d(LOG_TAG, "isSupportedEvent : room member with no content is not supported");
-                    } else {
-                        // do not display the avatar / display name update
-                        EventContent prevEventContent = event.getPrevContent();
-                        EventContent eventContent = event.getEventContent();
-
-                        String membership = null;
-                        String preMembership = null;
-
-                        if (null != prevEventContent) {
-                            membership = eventContent.membership;
-                        }
-
-                        if (null != prevEventContent) {
-                            preMembership = prevEventContent.membership;
-                        }
-
-                        isSupported = (null == membership) || !TextUtils.equals(membership, preMembership);
-
-                        if (!isSupported) {
-                            Log.d(LOG_TAG, "isSupportedEvent : do not support avatar display name update");
-                        }
-                    }
-                }
+        if (!isSupported) {
+            // some events are known to be never traced
+            // avoid warning when it is not required.
+            if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type)
+                    && !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS, type)
+                    && !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES, type)
+                    && !TextUtils.equals(Event.EVENT_TYPE_STATE_CANONICAL_ALIAS, type)
+                    && !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_ALIASES, type)) {
+                Log.e(LOG_TAG, "isSupportedEvent :  Unsupported event type " + type);
             }
         }
 
