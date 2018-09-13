@@ -1013,7 +1013,7 @@ public class MXMemoryStore implements IMXStore {
         for (String roomId : mRoomSummaries.keySet()) {
             Room room = mRooms.get(roomId);
             if (null != room) {
-                if (!room.isJoined()) {
+                if (!room.isJoined() && !room.isInvited()) {
                     Log.e(LOG_TAG, "## getSummaries() : a summary exists for the roomId " + roomId + " but the user is not anymore a member");
                 } else {
                     summaries.add(mRoomSummaries.get(roomId));
