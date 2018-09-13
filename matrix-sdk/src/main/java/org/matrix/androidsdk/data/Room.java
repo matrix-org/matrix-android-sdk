@@ -262,7 +262,7 @@ public class Room {
                     if (event.roomId != null) {
                         List<String> senders = handleReceiptEvent(event);
 
-                        if ((null != senders) && (senders.size() > 0)) {
+                        if (senders != null && !senders.isEmpty()) {
                             mDataHandler.onReceiptEvent(event.roomId, senders);
                         }
                     }
@@ -270,19 +270,20 @@ public class Room {
                     JsonObject eventContent = event.getContentAsJsonObject();
 
                     if (eventContent.has("user_ids")) {
-                        synchronized (Room.this) {
-                            mTypingUsers = null;
+                        synchronized (mTypingUsers) {
+                            mTypingUsers.clear();
+
+                            List<String> typingUsers = null;
 
                             try {
-                                mTypingUsers = (new Gson()).fromJson(eventContent.get("user_ids"), new TypeToken<List<String>>() {
+                                typingUsers = (new Gson()).fromJson(eventContent.get("user_ids"), new TypeToken<List<String>>() {
                                 }.getType());
                             } catch (Exception e) {
                                 Log.e(LOG_TAG, "## handleEphemeralEvents() : exception " + e.getMessage(), e);
                             }
 
-                            // avoid null list
-                            if (null == mTypingUsers) {
-                                mTypingUsers = new ArrayList<>();
+                            if (typingUsers != null) {
+                                mTypingUsers.addAll(typingUsers);
                             }
                         }
                     }
@@ -1578,18 +1579,20 @@ public class Room {
     //================================================================================
 
     // userIds list
-    private List<String> mTypingUsers = new ArrayList<>();
+    @NonNull
+    private final List<String> mTypingUsers = new ArrayList<>();
 
     /**
      * Get typing users
      *
      * @return the userIds list
      */
+    @NonNull
     public List<String> getTypingUsers() {
         List<String> typingUsers;
 
-        synchronized (Room.this) {
-            typingUsers = (null == mTypingUsers) ? new ArrayList<String>() : new ArrayList<>(mTypingUsers);
+        synchronized (mTypingUsers) {
+            typingUsers = new ArrayList<>(mTypingUsers);
         }
 
         return typingUsers;
