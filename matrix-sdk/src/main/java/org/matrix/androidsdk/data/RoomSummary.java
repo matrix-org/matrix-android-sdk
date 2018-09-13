@@ -204,15 +204,15 @@ public class RoomSummary implements java.io.Serializable {
                     String membership = null;
                     String preMembership = null;
 
-                    if (null != prevEventContent) {
+                    if (eventContent != null) {
                         membership = eventContent.membership;
                     }
 
-                    if (null != prevEventContent) {
+                    if (prevEventContent != null) {
                         preMembership = prevEventContent.membership;
                     }
 
-                    isSupported = (null == membership) || !TextUtils.equals(membership, preMembership);
+                    isSupported = !TextUtils.equals(membership, preMembership);
 
                     if (!isSupported) {
                         Log.d(LOG_TAG, "isSupportedEvent : do not support avatar display name update");
