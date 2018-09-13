@@ -174,13 +174,13 @@ public class RoomSummary implements java.io.Serializable {
                     msgType = element.getAsString();
                 }
 
-                isSupported = TextUtils.equals(msgType, Message.MSGTYPE_TEXT) ||
-                        TextUtils.equals(msgType, Message.MSGTYPE_EMOTE) ||
-                        TextUtils.equals(msgType, Message.MSGTYPE_NOTICE) ||
-                        TextUtils.equals(msgType, Message.MSGTYPE_IMAGE) ||
-                        TextUtils.equals(msgType, Message.MSGTYPE_AUDIO) ||
-                        TextUtils.equals(msgType, Message.MSGTYPE_VIDEO) ||
-                        TextUtils.equals(msgType, Message.MSGTYPE_FILE);
+                isSupported = TextUtils.equals(msgType, Message.MSGTYPE_TEXT)
+                        || TextUtils.equals(msgType, Message.MSGTYPE_EMOTE)
+                        || TextUtils.equals(msgType, Message.MSGTYPE_NOTICE)
+                        || TextUtils.equals(msgType, Message.MSGTYPE_IMAGE)
+                        || TextUtils.equals(msgType, Message.MSGTYPE_AUDIO)
+                        || TextUtils.equals(msgType, Message.MSGTYPE_VIDEO)
+                        || TextUtils.equals(msgType, Message.MSGTYPE_FILE);
 
                 if (!isSupported && !TextUtils.isEmpty(msgType)) {
                     Log.e(LOG_TAG, "isSupportedEvent : Unsupported msg type " + msgType);
@@ -191,26 +191,25 @@ public class RoomSummary implements java.io.Serializable {
         } else if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, type)) {
             isSupported = event.hasContentFields();
         } else if (!TextUtils.isEmpty(type)) {
-            isSupported = TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_TOPIC, type) ||
-                    TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, type) ||
-                    TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTION, type) ||
-                    TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_NAME, type) ||
-                    TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type) ||
-                    TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_CREATE, type) ||
-                    TextUtils.equals(Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY, type) ||
-                    TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE, type) ||
-                    TextUtils.equals(Event.EVENT_TYPE_STICKER, type) ||
-                    (event.isCallEvent() && !Event.EVENT_TYPE_CALL_CANDIDATES.equals(type));
+            isSupported = TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_TOPIC, type)
+                    || TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, type)
+                    || TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTION, type)
+                    || TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_NAME, type)
+                    || TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type)
+                    || TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_CREATE, type)
+                    || TextUtils.equals(Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY, type)
+                    || TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE, type)
+                    || TextUtils.equals(Event.EVENT_TYPE_STICKER, type)
+                    || (event.isCallEvent() && !Event.EVENT_TYPE_CALL_CANDIDATES.equals(type));
 
             if (!isSupported) {
                 // some events are known to be never traced
                 // avoid warning when it is not required.
-                if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type) &&
-                        !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS, type) &&
-                        !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES, type) &&
-                        !TextUtils.equals(Event.EVENT_TYPE_STATE_CANONICAL_ALIAS, type) &&
-                        !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_ALIASES, type)
-                        ) {
+                if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type)
+                        && !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS, type)
+                        && !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES, type)
+                        && !TextUtils.equals(Event.EVENT_TYPE_STATE_CANONICAL_ALIAS, type)
+                        && !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_ALIASES, type)) {
                     Log.e(LOG_TAG, "isSupportedEvent :  Unsupported event type " + type);
                 }
             } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type)) {
@@ -370,7 +369,7 @@ public class RoomSummary implements java.io.Serializable {
     }
 
     /**
-     * Set the latest tracked event (e.g. the latest m.room.message)
+     * Set the latest RoomState
      *
      * @param roomState The room state of the latest event.
      * @return This summary for chaining calls.
