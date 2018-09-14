@@ -289,10 +289,19 @@ public class RoomState implements Externalizable {
                     public void onSuccess(List<RoomMember> info) {
                         Log.d(LOG_TAG, "getMembers has returned " + info.size() + " users.");
 
+                        IMXStore store = ((MXDataHandler) mDataHandler).getStore();
                         List<RoomMember> res;
 
                         for (RoomMember member : info) {
-                            setMember(member.getUserId(), member);
+                            // Do not erase already known members form the sync
+                            if (getMember(member.getUserId()) == null) {
+                                setMember(member.getUserId(), member);
+
+                                // Also create a User
+                                if (store != null) {
+                                    store.updateUserWithRoomMemberEvent(member);
+                                }
+                            }
                         }
 
                         synchronized (mGetAllMembersCallbacks) {
