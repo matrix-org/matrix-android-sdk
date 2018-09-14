@@ -45,7 +45,7 @@ public abstract class AbstractMessagesAdapter extends ArrayAdapter<MessageRow> {
      * Add a row and refresh the adapter if it is required.
      *
      * @param row     the row to append
-     * @param refresh tru to refresh the display.
+     * @param refresh true to refresh the display.
      */
     public abstract void add(MessageRow row, boolean refresh);
 

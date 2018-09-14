@@ -927,18 +927,18 @@ public abstract class MatrixMessageListFragment<MessagesAdapter extends Abstract
      */
     protected boolean canAddEvent(final Event event) {
         final String type = event.getType();
-        return mDisplayAllEvents ||
-                Event.EVENT_TYPE_MESSAGE.equals(type) ||
-                Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(type) ||
-                Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(type) ||
-                Event.EVENT_TYPE_STATE_ROOM_NAME.equals(type) ||
-                Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(type) ||
-                Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(type) ||
-                Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(type) ||
-                Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(type) ||
-                Event.EVENT_TYPE_STICKER.equals(type) ||
-                Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(type) ||
-                (event.isCallEvent() && !Event.EVENT_TYPE_CALL_CANDIDATES.equals(type));
+        return mDisplayAllEvents
+                || Event.EVENT_TYPE_MESSAGE.equals(type)
+                || Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(type)
+                || Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(type)
+                || Event.EVENT_TYPE_STATE_ROOM_NAME.equals(type)
+                || Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(type)
+                || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(type)
+                || Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE.equals(type)
+                || Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(type)
+                || Event.EVENT_TYPE_STICKER.equals(type)
+                || Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(type)
+                || (event.isCallEvent() && !Event.EVENT_TYPE_CALL_CANDIDATES.equals(type));
     }
 
     //==============================================================================================================
