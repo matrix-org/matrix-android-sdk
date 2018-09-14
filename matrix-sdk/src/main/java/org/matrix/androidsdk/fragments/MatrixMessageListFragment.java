@@ -23,6 +23,7 @@ import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -449,7 +450,7 @@ public abstract class MatrixMessageListFragment<MessagesAdapter extends Abstract
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         Log.d(LOG_TAG, "onCreateView");
 
         View defaultView = super.onCreateView(inflater, container, savedInstanceState);
@@ -491,7 +492,7 @@ public abstract class MatrixMessageListFragment<MessagesAdapter extends Abstract
             // only init the adapter if it wasn't before, so we can preserve messages/position.
             mAdapter = createMessagesAdapter();
 
-            if (null == getMXMediasCache()) {
+            if (null == mAdapter) {
                 throw new RuntimeException("Must have valid default MessagesAdapter.");
             }
         } else if (null != savedInstanceState) {
