@@ -93,6 +93,7 @@ public class Event implements Externalizable {
     public static final String EVENT_TYPE_ROOM_KEY_REQUEST = "m.room_key_request";
     public static final String EVENT_TYPE_FORWARDED_ROOM_KEY = "m.forwarded_room_key";
     public static final String EVENT_TYPE_URL_PREVIEW = "org.matrix.room.preview_urls";
+    public static final String EVENT_TYPE_SERVER_NOTICE_USAGE_LIMIT = "m.server_notice.usage_limit_reached";
 
     // State events
     public static final String EVENT_TYPE_STATE_ROOM_NAME = "m.room.name";
@@ -109,6 +110,7 @@ public class Event implements Externalizable {
     public static final String EVENT_TYPE_STATE_CANONICAL_ALIAS = "m.room.canonical_alias";
     public static final String EVENT_TYPE_STATE_HISTORY_VISIBILITY = "m.room.history_visibility";
     public static final String EVENT_TYPE_STATE_RELATED_GROUPS = "m.room.related_groups";
+    public static final String EVENT_TYPE_STATE_PINNED_EVENT = "m.room.pinned_events";
 
     // call events
     public static final String EVENT_TYPE_CALL_INVITE = "m.call.invite";

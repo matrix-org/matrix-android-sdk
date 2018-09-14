@@ -36,6 +36,7 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomCreateContent;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.RoomPinnedEventsContent;
 import org.matrix.androidsdk.rest.model.RoomTags;
 import org.matrix.androidsdk.rest.model.RoomTombstoneContent;
 import org.matrix.androidsdk.rest.model.User;
@@ -477,6 +478,19 @@ public class JsonUtils {
     public static RoomCreateContent toRoomCreateContent(final JsonElement jsonElement) {
         return toClass(jsonElement, RoomCreateContent.class);
     }
+
+    /**
+     * Convert a JSON object to a RoomPinnedEventsContent.
+     * The result is never null.
+     *
+     * @param jsonElement the json to convert
+     * @return a RoomPinnedEventsContent
+     */
+    public static RoomPinnedEventsContent toRoomPinnedEventsContent(final JsonElement jsonElement) {
+        return toClass(jsonElement, RoomPinnedEventsContent.class);
+    }
+
+
 
     /**
      * Convert a JSON object into a class instance.

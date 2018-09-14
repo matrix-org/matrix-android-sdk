@@ -18,6 +18,7 @@
 
 package org.matrix.androidsdk.data;
 
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
@@ -31,6 +32,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomCreateContent;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.RoomPinnedEventsContent;
 import org.matrix.androidsdk.rest.model.RoomTombstoneContent;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
@@ -121,6 +123,10 @@ public class RoomState implements Externalizable {
 
     // the room create content
     private RoomCreateContent mRoomCreateContent;
+
+    // the room pinned events content
+    @Nullable
+    private RoomPinnedEventsContent mRoomPinnedEventsContent;
 
     // the join rule
     public String join_rule;
@@ -595,6 +601,7 @@ public class RoomState implements Externalizable {
         copy.topic = topic;
         copy.url = url;
         copy.mRoomCreateContent = mRoomCreateContent != null ? mRoomCreateContent.deepCopy() : null;
+        copy.mRoomPinnedEventsContent = mRoomPinnedEventsContent != null ? mRoomPinnedEventsContent.deepCopy() : null;
         copy.join_rule = join_rule;
         copy.guest_access = guest_access;
         copy.history_visibility = history_visibility;
@@ -858,6 +865,14 @@ public class RoomState implements Externalizable {
     }
 
     /**
+     * @return the room pinned events content
+     */
+    @Nullable
+    public RoomPinnedEventsContent getRoomPinnedEventsContent() {
+        return mRoomPinnedEventsContent;
+    }
+
+    /**
      * @return the encryption algorithm
      */
     public String encryptionAlgorithm() {
@@ -1016,6 +1031,8 @@ public class RoomState implements Externalizable {
                 }
             } else if (Event.EVENT_TYPE_STATE_ROOM_TOMBSTONE.equals(eventType)) {
                 mRoomTombstoneContent = JsonUtils.toRoomTombstoneContent(contentToConsider);
+            } else if (Event.EVENT_TYPE_STATE_PINNED_EVENT.equals(eventType)) {
+                mRoomPinnedEventsContent = JsonUtils.toRoomPinnedEventsContent(contentToConsider);
             }
             // same the latest room state events
             // excepts the membership ones
@@ -1166,6 +1183,10 @@ public class RoomState implements Externalizable {
         }
 
         if (input.readBoolean()) {
+            mRoomPinnedEventsContent = (RoomPinnedEventsContent) input.readObject();
+        }
+
+        if (input.readBoolean()) {
             join_rule = input.readUTF();
         }
 
@@ -1287,6 +1308,11 @@ public class RoomState implements Externalizable {
         output.writeBoolean(null != mRoomCreateContent);
         if (null != mRoomCreateContent) {
             output.writeObject(mRoomCreateContent);
+        }
+
+        output.writeBoolean(null != mRoomPinnedEventsContent);
+        if (null != mRoomPinnedEventsContent) {
+            output.writeObject(mRoomPinnedEventsContent);
         }
 
         output.writeBoolean(null != join_rule);
