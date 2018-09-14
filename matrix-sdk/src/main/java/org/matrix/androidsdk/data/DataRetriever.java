@@ -1,13 +1,13 @@
-/* 
+/*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -87,6 +87,24 @@ public class DataRetriever {
     }
 
     /**
+     * Get the event associated with the eventId and roomId
+     * Look in the store before hitting the rest client.
+     *
+     * @param store    the store to look in
+     * @param roomId   the room Id
+     * @param eventId  the eventId
+     * @param callback the callback
+     */
+    public void getEvent(final IMXStore store, final String roomId, final String eventId, final ApiCallback<Event> callback) {
+        final Event event = store.getEvent(eventId, roomId);
+        if (event == null) {
+            mRestClient.getEvent(roomId, eventId, callback);
+        } else {
+            callback.onSuccess(event);
+        }
+    }
+
+    /**
      * Trigger a back pagination for a dedicated room from Token.
      *
      * @param store    the store to use
@@ -159,82 +177,82 @@ public class DataRetriever {
             Log.d(LOG_TAG, "## backPaginate() : trigger a remote request");
             mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.BACKWARDS, limit,
                     new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
-                @Override
-                public void onSuccess(TokensChunkResponse<Event> events) {
-                    String expectedToken = getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
+                        @Override
+                        public void onSuccess(TokensChunkResponse<Event> events) {
+                            String expectedToken = getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
 
-                    Log.d(LOG_TAG, "## backPaginate() succeeds : roomId " + roomId + " token " + token + " vs " + expectedToken);
+                            Log.d(LOG_TAG, "## backPaginate() succeeds : roomId " + roomId + " token " + token + " vs " + expectedToken);
 
-                    if (TextUtils.equals(expectedToken, token)) {
-                        clearPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
+                            if (TextUtils.equals(expectedToken, token)) {
+                                clearPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
 
-                        // Watch for the one event overlap
-                        Event oldestEvent = store.getOldestEvent(roomId);
+                                // Watch for the one event overlap
+                                Event oldestEvent = store.getOldestEvent(roomId);
 
-                        if (events.chunk.size() != 0) {
-                            events.chunk.get(0).mToken = events.start;
+                                if (events.chunk.size() != 0) {
+                                    events.chunk.get(0).mToken = events.start;
 
-                            // there is no more data on server side
-                            if (null == events.end) {
-                                events.end = Event.PAGINATE_BACK_TOKEN_END;
+                                    // there is no more data on server side
+                                    if (null == events.end) {
+                                        events.end = Event.PAGINATE_BACK_TOKEN_END;
+                                    }
+
+                                    events.chunk.get(events.chunk.size() - 1).mToken = events.end;
+
+                                    Event firstReturnedEvent = events.chunk.get(0);
+                                    if ((oldestEvent != null) && (firstReturnedEvent != null)
+                                            && TextUtils.equals(oldestEvent.eventId, firstReturnedEvent.eventId)) {
+                                        events.chunk.remove(0);
+                                    }
+
+                                    store.storeRoomEvents(roomId, events, EventTimeline.Direction.BACKWARDS);
+                                }
+
+                                Log.d(LOG_TAG, "## backPaginate() succeed : roomId " + roomId + " token " + token + " got " + events.chunk.size());
+                                callback.onSuccess(events);
                             }
-
-                            events.chunk.get(events.chunk.size() - 1).mToken = events.end;
-
-                            Event firstReturnedEvent = events.chunk.get(0);
-                            if ((oldestEvent != null) && (firstReturnedEvent != null)
-                                    && TextUtils.equals(oldestEvent.eventId, firstReturnedEvent.eventId)) {
-                                events.chunk.remove(0);
-                            }
-
-                            store.storeRoomEvents(roomId, events, EventTimeline.Direction.BACKWARDS);
                         }
 
-                        Log.d(LOG_TAG, "## backPaginate() succeed : roomId " + roomId + " token " + token + " got " + events.chunk.size());
-                        callback.onSuccess(events);
-                    }
-                }
+                        private void logErrorMessage(String expectedToken, String errorMessage) {
+                            Log.e(LOG_TAG, "## backPaginate() failed : roomId " + roomId + " token " + token + " expected " + expectedToken + " with " + errorMessage);
+                        }
 
-                private void logErrorMessage(String expectedToken, String errorMessage) {
-                    Log.e(LOG_TAG, "## backPaginate() failed : roomId " + roomId + " token " + token + " expected " + expectedToken + " with " + errorMessage);
-                }
+                        @Override
+                        public void onNetworkError(Exception e) {
+                            String expectedToken = getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
+                            logErrorMessage(expectedToken, e.getMessage());
 
-                @Override
-                public void onNetworkError(Exception e) {
-                    String expectedToken = getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
-                    logErrorMessage(expectedToken, e.getMessage());
+                            // dispatch only if it is expected
+                            if (TextUtils.equals(token, expectedToken)) {
+                                clearPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
+                                callback.onNetworkError(e);
+                            }
+                        }
 
-                    // dispatch only if it is expected
-                    if (TextUtils.equals(token, expectedToken)) {
-                        clearPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
-                        callback.onNetworkError(e);
-                    }
-                }
+                        @Override
+                        public void onMatrixError(MatrixError e) {
+                            String expectedToken = getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
+                            logErrorMessage(expectedToken, e.getMessage());
 
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    String expectedToken = getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
-                    logErrorMessage(expectedToken, e.getMessage());
+                            // dispatch only if it is expected
+                            if (TextUtils.equals(token, expectedToken)) {
+                                clearPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
+                                callback.onMatrixError(e);
+                            }
+                        }
 
-                    // dispatch only if it is expected
-                    if (TextUtils.equals(token, expectedToken)) {
-                        clearPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
-                        callback.onMatrixError(e);
-                    }
-                }
+                        @Override
+                        public void onUnexpectedError(Exception e) {
+                            String expectedToken = getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
+                            logErrorMessage(expectedToken, e.getMessage());
 
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    String expectedToken = getPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
-                    logErrorMessage(expectedToken, e.getMessage());
-
-                    // dispatch only if it is expected
-                    if (TextUtils.equals(token, expectedToken)) {
-                        clearPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
-                        callback.onUnexpectedError(e);
-                    }
-                }
-            });
+                            // dispatch only if it is expected
+                            if (TextUtils.equals(token, expectedToken)) {
+                                clearPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);
+                                callback.onUnexpectedError(e);
+                            }
+                        }
+                    });
         }
     }
 
@@ -246,20 +264,21 @@ public class DataRetriever {
      * @param token    the start token.
      * @param callback the callback
      */
-    private void forwardPaginate(final IMXStore store, final String roomId, final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
+    private void forwardPaginate(final IMXStore store, final String roomId,
+                                 final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
         putPendingToken(mPendingForwardRequestTokenByRoomId, roomId, token);
 
         mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.FORWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT,
                 new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
-            @Override
-            public void onSuccess(TokensChunkResponse<Event> events) {
-                if (TextUtils.equals(getPendingToken(mPendingForwardRequestTokenByRoomId, roomId), token)) {
-                    clearPendingToken(mPendingForwardRequestTokenByRoomId, roomId);
-                    store.storeRoomEvents(roomId, events, EventTimeline.Direction.FORWARDS);
-                    callback.onSuccess(events);
-                }
-            }
-        });
+                    @Override
+                    public void onSuccess(TokensChunkResponse<Event> events) {
+                        if (TextUtils.equals(getPendingToken(mPendingForwardRequestTokenByRoomId, roomId), token)) {
+                            clearPendingToken(mPendingForwardRequestTokenByRoomId, roomId);
+                            store.storeRoomEvents(roomId, events, EventTimeline.Direction.FORWARDS);
+                            callback.onSuccess(events);
+                        }
+                    }
+                });
     }
 
     /**
@@ -272,7 +291,8 @@ public class DataRetriever {
      * @param callback  the onComplete callback
      */
     public void paginate(final IMXStore store, final String roomId, final String token,
-                         final EventTimeline.Direction direction, final ApiCallback<TokensChunkResponse<Event>> callback) {
+                         final EventTimeline.Direction direction,
+                         final ApiCallback<TokensChunkResponse<Event>> callback) {
         if (direction == EventTimeline.Direction.BACKWARDS) {
             backPaginate(store, roomId, token, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT, callback);
         } else {
@@ -297,20 +317,20 @@ public class DataRetriever {
 
         mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.BACKWARDS, paginationCount,
                 new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
-            @Override
-            public void onSuccess(TokensChunkResponse<Event> info) {
+                    @Override
+                    public void onSuccess(TokensChunkResponse<Event> info) {
 
-                if (TextUtils.equals(getPendingToken(mPendingRemoteRequestTokenByRoomId, roomId), token)) {
-                    if (info.chunk.size() != 0) {
-                        info.chunk.get(0).mToken = info.start;
-                        info.chunk.get(info.chunk.size() - 1).mToken = info.end;
+                        if (TextUtils.equals(getPendingToken(mPendingRemoteRequestTokenByRoomId, roomId), token)) {
+                            if (info.chunk.size() != 0) {
+                                info.chunk.get(0).mToken = info.start;
+                                info.chunk.get(info.chunk.size() - 1).mToken = info.end;
+                            }
+
+                            clearPendingToken(mPendingRemoteRequestTokenByRoomId, roomId);
+                            callback.onSuccess(info);
+                        }
                     }
-
-                    clearPendingToken(mPendingRemoteRequestTokenByRoomId, roomId);
-                    callback.onSuccess(info);
-                }
-            }
-        });
+                });
     }
 
     //==============================================================================================================
