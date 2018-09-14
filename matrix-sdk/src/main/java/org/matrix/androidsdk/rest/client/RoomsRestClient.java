@@ -170,6 +170,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void inviteUserToRoom(final String roomId, final String userId, final ApiCallback<Void> callback) {
         final String description = "inviteToRoom : roomId " + roomId + " userId " + userId;
 
+        // TODO Do not create a User for this
         User user = new User();
         user.user_id = userId;
 
