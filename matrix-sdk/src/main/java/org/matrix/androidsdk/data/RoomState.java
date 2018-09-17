@@ -101,9 +101,8 @@ public class RoomState implements Externalizable {
     //
     private Map<String, List<Event>> mStateEvents = new HashMap<>();
 
-    // The canonical alias of the room. Keep it public for Gson, because private fields are excluded.
-    @SerializedName("alias")
-    public String canonicalAlias;
+    // The canonical alias of the room.
+    private String canonicalAlias;
 
     // The name of the room as provided by the home server.
     public String name;
@@ -876,19 +875,19 @@ public class RoomState implements Externalizable {
 
         try {
             if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType)) {
-                name = JsonUtils.toRoomState(contentToConsider).name;
+                name = JsonUtils.toStateEvent(contentToConsider).name;
             } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType)) {
-                topic = JsonUtils.toRoomState(contentToConsider).topic;
+                topic = JsonUtils.toStateEvent(contentToConsider).topic;
             } else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(eventType)) {
                 mRoomCreateContent = JsonUtils.toRoomCreateContent(contentToConsider);
             } else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(eventType)) {
-                join_rule = JsonUtils.toRoomState(contentToConsider).join_rule;
+                join_rule = JsonUtils.toStateEvent(contentToConsider).joinRule;
             } else if (Event.EVENT_TYPE_STATE_ROOM_GUEST_ACCESS.equals(eventType)) {
-                guest_access = JsonUtils.toRoomState(contentToConsider).guest_access;
+                guest_access = JsonUtils.toStateEvent(contentToConsider).guestAccess;
             } else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(eventType)) {
                 if (!TextUtils.isEmpty(event.stateKey)) {
                     // backward compatibility
-                    aliases = JsonUtils.toRoomState(contentToConsider).aliases;
+                    aliases = JsonUtils.toStateEvent(contentToConsider).aliases;
 
                     // sanity check
                     if (null != aliases) {
@@ -899,7 +898,7 @@ public class RoomState implements Externalizable {
                     }
                 }
             } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
-                algorithm = JsonUtils.toRoomState(contentToConsider).algorithm;
+                algorithm = JsonUtils.toStateEvent(contentToConsider).algorithm;
 
                 // When a client receives an m.room.encryption event as above, it should set a flag to indicate that messages sent
                 // in the room should be encrypted.
@@ -911,14 +910,14 @@ public class RoomState implements Externalizable {
                 }
             } else if (Event.EVENT_TYPE_STATE_CANONICAL_ALIAS.equals(eventType)) {
                 // SPEC-125
-                canonicalAlias = JsonUtils.toRoomState(contentToConsider).canonicalAlias;
+                canonicalAlias = JsonUtils.toStateEvent(contentToConsider).canonicalAlias;
             } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(eventType)) {
                 // SPEC-134
-                history_visibility = JsonUtils.toRoomState(contentToConsider).history_visibility;
+                history_visibility = JsonUtils.toStateEvent(contentToConsider).historyVisibility;
             } else if (Event.EVENT_TYPE_STATE_ROOM_AVATAR.equals(eventType)) {
-                url = JsonUtils.toRoomState(contentToConsider).url;
+                url = JsonUtils.toStateEvent(contentToConsider).url;
             } else if (Event.EVENT_TYPE_STATE_RELATED_GROUPS.equals(eventType)) {
-                groups = JsonUtils.toRoomState(contentToConsider).groups;
+                groups = JsonUtils.toStateEvent(contentToConsider).groups;
             } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
                 RoomMember member = JsonUtils.toRoomMember(contentToConsider);
                 String userId = event.stateKey;
