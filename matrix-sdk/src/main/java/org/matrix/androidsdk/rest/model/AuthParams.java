@@ -18,7 +18,7 @@ package org.matrix.androidsdk.rest.model;
 import java.util.Map;
 
 /**
- * Class to define the authentification parameters
+ * Class to define the authentication parameters
  */
 public class AuthParams {
     //
