@@ -32,8 +32,8 @@ public class GroupRoom extends PublicRoom {
             return name;
         }
 
-        if (!TextUtils.isEmpty(getCanonicalAlias())) {
-            return getCanonicalAlias();
+        if (!TextUtils.isEmpty(canonicalAlias)) {
+            return canonicalAlias;
         }
 
         return roomId;
