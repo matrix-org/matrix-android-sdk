@@ -185,6 +185,7 @@ public class RoomState implements Externalizable {
     private boolean mIsLive;
 
     // the unitary tests crash when MXDataHandler type is set.
+    // TODO Try to avoid this ^^
     private transient Object mDataHandler = null;
 
     // member display cache

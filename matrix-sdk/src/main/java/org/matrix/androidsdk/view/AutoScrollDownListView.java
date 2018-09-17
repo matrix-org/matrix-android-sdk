@@ -1,6 +1,7 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -24,6 +25,7 @@ import org.matrix.androidsdk.util.Log;
 /**
  * The listView automatically scrolls down when its height is updated.
  * It is used to scroll the list when the keyboard is displayed
+ * Note that the list scrolls down automatically thank to android:transcriptMode="normal" in the XML
  */
 public class AutoScrollDownListView extends ListView {
     private static final String LOG_TAG = AutoScrollDownListView.class.getSimpleName();
