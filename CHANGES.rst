@@ -8,7 +8,7 @@ Improvements:
  - 
 
 Bugfix:
- - 
+ - Fix excessive whitespace on quoted messages (#348)
 
 API Change:
  - 
