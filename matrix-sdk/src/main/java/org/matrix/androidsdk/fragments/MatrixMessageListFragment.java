@@ -543,14 +543,17 @@ public abstract class MatrixMessageListFragment<MessagesAdapter extends Abstract
         mDisplayAllEvents = isDisplayAllEvents();
 
         // Ensure all RoomMember are loaded (ignore error)
-        mRoom.getMembersAsync(new SimpleApiCallback<List<RoomMember>>() {
-            @Override
-            public void onSuccess(List<RoomMember> info) {
-                if (isAdded()) {
-                    mAdapter.setLiveRoomMembers(info);
+        // mRoom can be null for global search
+        if (mRoom != null) {
+            mRoom.getMembersAsync(new SimpleApiCallback<List<RoomMember>>() {
+                @Override
+                public void onSuccess(List<RoomMember> info) {
+                    if (isAdded()) {
+                        mAdapter.setLiveRoomMembers(info);
+                    }
                 }
-            }
-        });
+            });
+        }
 
         return v;
     }
