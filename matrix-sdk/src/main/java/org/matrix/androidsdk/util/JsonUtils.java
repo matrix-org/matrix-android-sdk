@@ -27,7 +27,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.json.ConditionDeserializer;
 import org.matrix.androidsdk.rest.model.ContentResponse;
 import org.matrix.androidsdk.rest.model.Event;
@@ -38,6 +37,7 @@ import org.matrix.androidsdk.rest.model.RoomCreateContent;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.RoomTags;
 import org.matrix.androidsdk.rest.model.RoomTombstoneContent;
+import org.matrix.androidsdk.rest.model.StateEvent;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedEventContent;
@@ -142,14 +142,14 @@ public class JsonUtils {
     }
 
     /**
-     * Convert a JSON object to a room state.
+     * Convert a JSON object to a state event.
      * The result is never null.
      *
      * @param jsonObject the json to convert
      * @return a room state
      */
-    public static RoomState toRoomState(JsonElement jsonObject) {
-        return toClass(jsonObject, RoomState.class);
+    public static StateEvent toStateEvent(JsonElement jsonObject) {
+        return toClass(jsonObject, StateEvent.class);
     }
 
     /**
