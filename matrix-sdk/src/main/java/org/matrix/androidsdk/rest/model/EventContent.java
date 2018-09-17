@@ -28,7 +28,7 @@ public class EventContent implements java.io.Serializable {
     public String displayname;
 
     /**
-     * The avatar URL for this user, if any. T
+     * The avatar URL for this user, if any.
      */
     public String avatar_url;
 
