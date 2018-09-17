@@ -9,8 +9,7 @@
     <org.matrix.androidsdk.view.AutoScrollDownListView
         android:id="@+id/listView_messages"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
+        android:layout_height="match_parent"
         tools:background="#190986"
         android:cacheColorHint="@android:color/transparent"
         android:childDivider="@android:color/transparent"
