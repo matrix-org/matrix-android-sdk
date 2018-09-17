@@ -47,8 +47,10 @@ import org.matrix.androidsdk.util.MXOsHandler;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -2303,10 +2305,12 @@ public class MXFileStore extends MXMemoryStore {
         boolean succeed = false;
         try {
             FileOutputStream fos = new FileOutputStream(file);
-            GZIPOutputStream gz = CompatUtil.createGzipOutputStream(fos);
+            OutputStream cos = CompatUtil.createCipherOutputStream(fos, mContext);
+            GZIPOutputStream gz = CompatUtil.createGzipOutputStream(cos);
             ObjectOutputStream out = new ObjectOutputStream(gz);
 
             out.writeObject(object);
+            out.flush();
             out.close();
 
             succeed = true;
@@ -2346,7 +2350,17 @@ public class MXFileStore extends MXMemoryStore {
         Object object = null;
         try {
             FileInputStream fis = new FileInputStream(file);
-            GZIPInputStream gz = new GZIPInputStream(fis);
+            InputStream cis = CompatUtil.createCipherInputStream(fis, mContext);
+            GZIPInputStream gz;
+
+            if (cis != null) {
+                gz = new GZIPInputStream(cis);
+            } else {
+                //fallback to unencrypted stream for backward compatibility
+                Log.i(LOG_TAG, "## readObject() : failed to read encrypted, fallback to unencrypted read");
+                gz = new GZIPInputStream(fis);
+            }
+
             ObjectInputStream ois = new ObjectInputStream(gz);
             object = ois.readObject();
             ois.close();
