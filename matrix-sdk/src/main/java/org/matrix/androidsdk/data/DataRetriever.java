@@ -197,13 +197,18 @@ public class DataRetriever {
                                     store.storeRoomEvents(roomId, tokensChunkEvents, EventTimeline.Direction.BACKWARDS);
                                 }
 
-                                Log.d(LOG_TAG, "## backPaginate() succeed : roomId " + roomId + " token " + token + " got " + tokensChunkEvents.chunk.size());
+                                Log.d(LOG_TAG, "## backPaginate() succeed : roomId " + roomId
+                                        + " token " + token
+                                        + " got " + tokensChunkEvents.chunk.size());
                                 callback.onSuccess(tokensChunkEvents);
                             }
                         }
 
                         private void logErrorMessage(String expectedToken, String errorMessage) {
-                            Log.e(LOG_TAG, "## backPaginate() failed : roomId " + roomId + " token " + token + " expected " + expectedToken + " with " + errorMessage);
+                            Log.e(LOG_TAG, "## backPaginate() failed : roomId " + roomId
+                                    + " token " + token
+                                    + " expected " + expectedToken
+                                    + " with " + errorMessage);
                         }
 
                         @Override

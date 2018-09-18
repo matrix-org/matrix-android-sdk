@@ -572,12 +572,13 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         final String description = "getDirectoryVisibility roomId=" + aRoomId;
 
         mApi.getRoomDirectoryVisibility(aRoomId)
-                .enqueue(new RestAdapterCallback<RoomDirectoryVisibility>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-                    @Override
-                    public void onRetry() {
-                        getDirectoryVisibility(aRoomId, callback);
-                    }
-                }));
+                .enqueue(new RestAdapterCallback<RoomDirectoryVisibility>(description, mUnsentEventsManager, callback,
+                        new RestAdapterCallback.RequestRetryCallBack() {
+                            @Override
+                            public void onRetry() {
+                                getDirectoryVisibility(aRoomId, callback);
+                            }
+                        }));
     }
 
     /**
