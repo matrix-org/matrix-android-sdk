@@ -16,8 +16,9 @@
  */
 package org.matrix.androidsdk.rest.model.filter;
 
-import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
+
+import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.List;
 
@@ -48,6 +49,6 @@ public class FilterBody {
     }
 
     public String toJSONString() {
-        return new Gson().toJson(this);
+        return JsonUtils.getGson(false).toJson(this);
     }
 }
