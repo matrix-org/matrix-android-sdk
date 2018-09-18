@@ -166,7 +166,16 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     private Context mContext;
 
-    public MXFileCryptoStore() {
+    // True if file encryption is enabled
+    private final boolean mEnableFileEncryption;
+
+    /**
+     * Constructor
+     *
+     * @param enableFileEncryption set to true to enable file encryption.
+     */
+    public MXFileCryptoStore(boolean enableFileEncryption) {
+        mEnableFileEncryption = enableFileEncryption;
     }
 
     @Override
@@ -387,7 +396,12 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 }
 
                 FileOutputStream fos = new FileOutputStream(file);
-                OutputStream cos = CompatUtil.createCipherOutputStream(fos, mContext);
+                OutputStream cos;
+                if (mEnableFileEncryption) {
+                    cos = CompatUtil.createCipherOutputStream(fos, mContext);
+                } else {
+                    cos = fos;
+                }
                 GZIPOutputStream gz = CompatUtil.createGzipOutputStream(cos);
                 ObjectOutputStream out = new ObjectOutputStream(gz);
 
@@ -1119,7 +1133,12 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             try {
                 // the files are now zipped to reduce saving time
                 FileInputStream fis = new FileInputStream(file);
-                InputStream cis = CompatUtil.createCipherInputStream(fis, mContext);
+                InputStream cis;
+                if (mEnableFileEncryption) {
+                    cis = CompatUtil.createCipherInputStream(fis, mContext);
+                } else {
+                    cis = fis;
+                }
                 GZIPInputStream gz;
 
                 if (cis != null) {

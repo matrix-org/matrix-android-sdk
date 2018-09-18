@@ -161,6 +161,9 @@ public class MXSession {
 
     private final HomeServerConnectionConfig mHsConfig;
 
+    // True if file encryption is enabled
+    private boolean mEnableFileEncryption;
+
     // the application is launched from a notification
     // so, mEventsThread.start might be not ready
     private boolean mIsBgCatchupPending = false;
@@ -270,7 +273,7 @@ public class MXSession {
 
                 // test if the crypto instance has already been created
                 if (null == mCrypto) {
-                    MXFileCryptoStore store = new MXFileCryptoStore();
+                    MXFileCryptoStore store = new MXFileCryptoStore(mEnableFileEncryption);
                     store.initWithCredentials(mAppContent, mCredentials);
 
                     if (store.hasData() || mEnableCryptoWhenStartingMXSession) {
@@ -2184,7 +2187,7 @@ public class MXSession {
      * Launch it it is was not yet done.
      */
     public void checkCrypto() {
-        MXFileCryptoStore fileCryptoStore = new MXFileCryptoStore();
+        MXFileCryptoStore fileCryptoStore = new MXFileCryptoStore(mEnableFileEncryption);
         fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
 
         if ((fileCryptoStore.hasData() || mEnableCryptoWhenStartingMXSession) && (null == mCrypto)) {
@@ -2238,7 +2241,7 @@ public class MXSession {
         if (cryptoEnabled != isCryptoEnabled()) {
             if (cryptoEnabled) {
                 Log.d(LOG_TAG, "Crypto is enabled");
-                MXFileCryptoStore fileCryptoStore = new MXFileCryptoStore();
+                MXFileCryptoStore fileCryptoStore = new MXFileCryptoStore(mEnableFileEncryption);
                 fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
                 fileCryptoStore.open();
                 mCrypto = new MXCrypto(this, fileCryptoStore, sCryptoConfig);
@@ -2474,6 +2477,11 @@ public class MXSession {
 
         public Builder(HomeServerConnectionConfig hsConfig, MXDataHandler dataHandler, Context context) {
             mxSession = new MXSession(hsConfig, dataHandler, context);
+        }
+
+        public Builder withFileEncryption() {
+            mxSession.mEnableFileEncryption = true;
+            return this;
         }
 
         /**
