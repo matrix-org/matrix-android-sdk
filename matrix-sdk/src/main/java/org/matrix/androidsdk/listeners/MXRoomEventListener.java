@@ -30,15 +30,15 @@ import java.util.List;
 /**
  * A listener which filter event for a specific room
  */
-public class MxRoomEventListener extends MXEventListener {
+public class MXRoomEventListener extends MXEventListener {
 
-    private static final String LOG_TAG = MxRoomEventListener.class.getSimpleName();
+    private static final String LOG_TAG = MXRoomEventListener.class.getSimpleName();
 
     private final String mRoomId;
     private final IMXEventListener mEventListener;
     private final Room mRoom;
 
-    public MxRoomEventListener(@NonNull Room room,
+    public MXRoomEventListener(@NonNull Room room,
                                @NonNull IMXEventListener eventListener) {
         mRoom = room;
         mRoomId = room.getRoomId();
