@@ -47,7 +47,7 @@ import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
-import org.matrix.androidsdk.listeners.MxRoomEventListener;
+import org.matrix.androidsdk.listeners.MXRoomEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.AccountDataRestClient;
@@ -2056,7 +2056,7 @@ public class Room {
         }
 
         // Create a global listener that we'll add to the data handler
-        IMXEventListener globalListener = new MxRoomEventListener(this, eventListener);
+        IMXEventListener globalListener = new MXRoomEventListener(this, eventListener);
 
         mEventListeners.put(eventListener, globalListener);
 
