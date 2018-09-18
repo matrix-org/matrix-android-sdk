@@ -36,17 +36,17 @@ public class RoomSyncSummary {
      * the list if helpful for UX
      */
     @SerializedName("m.heroes")
-    public List<String> mHeroes;
+    public List<String> heroes;
 
     /**
      * The number of m.room.members in state 'joined' (including the syncing user) (can be null)
      */
     @SerializedName("m.joined_member_count")
-    public Integer mJoinedMembersCount;
+    public Integer joinedMembersCount;
 
     /**
      * The number of m.room.members in state 'invited' (can be null)
      */
     @SerializedName("m.invited_member_count")
-    public Integer mInvitedMembersCount;
+    public Integer invitedMembersCount;
 }

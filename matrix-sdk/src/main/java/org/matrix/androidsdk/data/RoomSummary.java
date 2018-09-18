@@ -562,19 +562,19 @@ public class RoomSummary implements java.io.Serializable {
     }
 
     public void setRoomSyncSummary(@NonNull RoomSyncSummary roomSyncSummary) {
-        if (roomSyncSummary.mHeroes != null) {
+        if (roomSyncSummary.heroes != null) {
             mHeroes.clear();
-            mHeroes.addAll(roomSyncSummary.mHeroes);
+            mHeroes.addAll(roomSyncSummary.heroes);
         }
 
-        if (roomSyncSummary.mJoinedMembersCount != null) {
+        if (roomSyncSummary.joinedMembersCount != null) {
             // Update the value
-            mJoinedMembersCountFromSyncRoomSummary = roomSyncSummary.mJoinedMembersCount;
+            mJoinedMembersCountFromSyncRoomSummary = roomSyncSummary.joinedMembersCount;
         }
 
-        if (roomSyncSummary.mInvitedMembersCount != null) {
+        if (roomSyncSummary.invitedMembersCount != null) {
             // Update the value
-            mInvitedMembersCountFromSyncRoomSummary = roomSyncSummary.mInvitedMembersCount;
+            mInvitedMembersCountFromSyncRoomSummary = roomSyncSummary.invitedMembersCount;
         }
     }
 
