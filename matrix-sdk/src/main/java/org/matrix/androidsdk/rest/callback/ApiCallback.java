@@ -21,6 +21,6 @@ package org.matrix.androidsdk.rest.callback;
  *
  * @param <T> the type of information to return on success
  */
-public interface ApiCallback<T> extends ApiSuccessCallback<T>, ApiFailureCallback {
+public interface ApiCallback<T> extends SuccessCallback<T>, ApiFailureCallback {
 
 }

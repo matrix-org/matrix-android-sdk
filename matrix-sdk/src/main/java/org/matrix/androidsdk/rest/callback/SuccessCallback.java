@@ -16,7 +16,7 @@
 
 package org.matrix.androidsdk.rest.callback;
 
-public interface ApiSuccessCallback<T> {
+public interface SuccessCallback<T> {
     /**
      * Called if the result is successful.
      *
