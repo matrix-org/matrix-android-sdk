@@ -1117,7 +1117,7 @@ public class MXCallsManager {
 
             CreateRoomParams params = new CreateRoomParams();
             params.preset = CreateRoomParams.PRESET_PRIVATE_CHAT;
-            params.invite = Arrays.asList(conferenceUserId);
+            params.invitedUserIds = Arrays.asList(conferenceUserId);
 
             mSession.createRoom(params, new ApiCallback<String>() {
                 @Override

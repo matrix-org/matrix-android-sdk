@@ -36,7 +36,6 @@ import org.matrix.androidsdk.crypto.MXCryptoConfig;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
-import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.RoomTag;
 import org.matrix.androidsdk.data.comparator.RoomComparatorWithTag;
@@ -1228,25 +1227,23 @@ public class MXSession {
      * @param callback the async callback once the room is ready
      */
     public void createRoom(String name, String topic, String alias, final ApiCallback<String> callback) {
-        createRoom(name, topic, RoomDirectoryVisibility.DIRECTORY_VISIBILITY_PRIVATE, alias, RoomState.GUEST_ACCESS_CAN_JOIN, null, callback);
+        createRoom(name, topic, RoomDirectoryVisibility.DIRECTORY_VISIBILITY_PRIVATE, alias, null, callback);
     }
 
     /**
      * Create a new room with given properties. Needs the data handler.
      *
-     * @param name        the room name
-     * @param topic       the room topic
-     * @param visibility  the room visibility
-     * @param alias       the room alias
-     * @param guestAccess the guest access rule (see {@link RoomState#GUEST_ACCESS_CAN_JOIN} or {@link RoomState#GUEST_ACCESS_FORBIDDEN})
-     * @param algorithm   the crypto algorithm (null to create an unencrypted room)
-     * @param callback    the async callback once the room is ready
+     * @param name       the room name
+     * @param topic      the room topic
+     * @param visibility the room visibility
+     * @param alias      the room alias
+     * @param algorithm  the crypto algorithm (null to create an unencrypted room)
+     * @param callback   the async callback once the room is ready
      */
     public void createRoom(String name,
                            String topic,
                            String visibility,
                            String alias,
-                           String guestAccess,
                            String algorithm,
                            final ApiCallback<String> callback) {
         checkIfAlive();
@@ -1256,7 +1253,6 @@ public class MXSession {
         params.topic = !TextUtils.isEmpty(topic) ? topic : null;
         params.visibility = !TextUtils.isEmpty(visibility) ? visibility : null;
         params.roomAliasName = !TextUtils.isEmpty(alias) ? alias : null;
-        params.guest_access = !TextUtils.isEmpty(guestAccess) ? guestAccess : null;
         params.addCryptoAlgorithm(algorithm);
 
         createRoom(params, callback);
