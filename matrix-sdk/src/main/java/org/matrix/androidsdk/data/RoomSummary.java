@@ -34,6 +34,7 @@ import org.matrix.androidsdk.rest.model.sync.RoomSyncSummary;
 import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -46,6 +47,30 @@ public class RoomSummary implements java.io.Serializable {
     private static final String LOG_TAG = RoomSummary.class.getSimpleName();
 
     private static final long serialVersionUID = -3683013938626566489L;
+
+    // list of supported types
+    private static final List<String> sSupportedType = Arrays.asList(
+            Event.EVENT_TYPE_STATE_ROOM_TOPIC,
+            Event.EVENT_TYPE_MESSAGE_ENCRYPTED,
+            Event.EVENT_TYPE_MESSAGE_ENCRYPTION,
+            Event.EVENT_TYPE_STATE_ROOM_NAME,
+            Event.EVENT_TYPE_STATE_ROOM_MEMBER,
+            Event.EVENT_TYPE_STATE_ROOM_CREATE,
+            Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY,
+            Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE,
+            Event.EVENT_TYPE_STICKER);
+
+    // List of known unsupported types
+    private static final List<String> sKnownUnsupportedType = Arrays.asList(
+            Event.EVENT_TYPE_TYPING,
+            Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS,
+            Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES,
+            Event.EVENT_TYPE_STATE_CANONICAL_ALIAS,
+            Event.EVENT_TYPE_STATE_ROOM_ALIASES,
+            Event.EVENT_TYPE_URL_PREVIEW,
+            Event.EVENT_TYPE_STATE_RELATED_GROUPS,
+            Event.EVENT_TYPE_STATE_ROOM_GUEST_ACCESS,
+            Event.EVENT_TYPE_REDACTION);
 
     private String mRoomId = null;
     private String mTopic = null;
@@ -220,30 +245,14 @@ public class RoomSummary implements java.io.Serializable {
                 }
             }
         } else {
-            isSupported = TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_TOPIC, type)
-                    || TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, type)
-                    || TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTION, type)
-                    || TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_NAME, type)
-                    || TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type)
-                    || TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_CREATE, type)
-                    || TextUtils.equals(Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY, type)
-                    || TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE, type)
-                    || TextUtils.equals(Event.EVENT_TYPE_STICKER, type)
+            isSupported = sSupportedType.contains(type)
                     || (event.isCallEvent() && !TextUtils.isEmpty(type) && !Event.EVENT_TYPE_CALL_CANDIDATES.equals(type));
         }
 
         if (!isSupported) {
             // some events are known to be never traced
             // avoid warning when it is not required.
-            if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type)
-                    && !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS, type)
-                    && !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES, type)
-                    && !TextUtils.equals(Event.EVENT_TYPE_STATE_CANONICAL_ALIAS, type)
-                    && !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_ALIASES, type)
-                    && !TextUtils.equals(Event.EVENT_TYPE_URL_PREVIEW, type)
-                    && !TextUtils.equals(Event.EVENT_TYPE_STATE_RELATED_GROUPS, type)
-                    && !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_GUEST_ACCESS, type)
-                    && !TextUtils.equals(Event.EVENT_TYPE_REDACTION, type)) {
+            if (!sKnownUnsupportedType.contains(type)) {
                 Log.e(LOG_TAG, "isSupportedEvent :  Unsupported event type " + type);
             }
         }
