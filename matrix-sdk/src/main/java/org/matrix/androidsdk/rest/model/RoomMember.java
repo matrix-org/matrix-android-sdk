@@ -1,7 +1,8 @@
 /*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -17,6 +18,8 @@
 package org.matrix.androidsdk.rest.model;
 
 import android.text.TextUtils;
+
+import com.google.gson.annotations.SerializedName;
 
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.Log;
@@ -47,7 +50,8 @@ public class RoomMember implements Externalizable {
     public Invite thirdPartyInvite;
 
     // tells that the inviter starts a direct chat room
-    public Boolean is_direct;
+    @SerializedName("is_direct")
+    public Boolean isDirect;
 
     private String userId = null;
     // timestamp of the event which has created this member
@@ -80,7 +84,7 @@ public class RoomMember implements Externalizable {
         }
 
         if (input.readBoolean()) {
-            is_direct = input.readBoolean();
+            isDirect = input.readBoolean();
         }
 
         if (input.readBoolean()) {
@@ -124,9 +128,9 @@ public class RoomMember implements Externalizable {
             output.writeObject(thirdPartyInvite);
         }
 
-        output.writeBoolean(null != is_direct);
-        if (null != is_direct) {
-            output.writeBoolean(is_direct);
+        output.writeBoolean(null != isDirect);
+        if (null != isDirect) {
+            output.writeBoolean(isDirect);
         }
 
         output.writeBoolean(null != userId);

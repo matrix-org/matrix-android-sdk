@@ -64,11 +64,11 @@ public class RoomState implements Externalizable {
 
     /**
      * room access is granted to guests
-     **/
+     */
     public static final String GUEST_ACCESS_CAN_JOIN = "can_join";
     /**
      * room access is denied to guests
-     **/
+     */
     public static final String GUEST_ACCESS_FORBIDDEN = "forbidden";
 
     public static final String HISTORY_VISIBILITY_SHARED = "shared";

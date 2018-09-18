@@ -597,8 +597,8 @@ public class Room {
 
             RoomMember selfMember = state.getMember(mMyUserId);
 
-            if ((null != selfMember) && (null != selfMember.is_direct)) {
-                return selfMember.is_direct;
+            if ((null != selfMember) && (null != selfMember.isDirect)) {
+                return selfMember.isDirect;
             }
         }
 
