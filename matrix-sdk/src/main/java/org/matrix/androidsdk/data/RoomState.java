@@ -952,9 +952,9 @@ public class RoomState implements Externalizable {
                                 }
 
                                 // test if the user has been kicked
-                                if (!TextUtils.equals(event.getSender(), event.stateKey) &&
-                                        TextUtils.equals(currentMember.membership, RoomMember.MEMBERSHIP_JOIN) &&
-                                        TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_LEAVE)) {
+                                if (!TextUtils.equals(event.getSender(), event.stateKey)
+                                        && TextUtils.equals(currentMember.membership, RoomMember.MEMBERSHIP_JOIN)
+                                        && TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_LEAVE)) {
                                     member.membership = RoomMember.MEMBERSHIP_KICK;
                                 }
                             }

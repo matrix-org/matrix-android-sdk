@@ -786,8 +786,8 @@ public abstract class MatrixMessageListFragment<MessagesAdapter extends Abstract
      * @return true if the read marker can be updated
      */
     private boolean canUpdateReadMarker(MessageRow newMessageRow, MessageRow currentReadMarkerRow) {
-        return (currentReadMarkerRow != null &&
-                mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
+        return (currentReadMarkerRow != null
+                && mAdapter.getPosition(newMessageRow) == mAdapter.getPosition(currentReadMarkerRow) + 1
                 && newMessageRow.getEvent().getOriginServerTs() > currentReadMarkerRow.getEvent().originServerTs);
     }
 

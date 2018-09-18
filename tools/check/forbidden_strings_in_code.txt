@@ -138,3 +138,8 @@ URI_API_PREFIX_PATH_MEDIA_R0 \+ \"\/
 URI_API_PREFIX_PATH_R0 \+ \"\/
 URI_API_PREFIX_PATH_UNSTABLE \+ \"\/
 URI_API_PREFIX_IDENTITY \+ \"\/
+
+### Put the operator at the beginning of next line
+&&$
+\|\|$
+ ==$

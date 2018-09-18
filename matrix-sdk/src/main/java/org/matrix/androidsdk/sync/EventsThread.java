@@ -29,8 +29,6 @@ import android.os.Looper;
 import android.os.PowerManager;
 import android.os.SystemClock;
 
-import com.google.gson.Gson;
-
 import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
@@ -38,7 +36,6 @@ import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.filter.FilterBody;
 import org.matrix.androidsdk.rest.model.sync.RoomsSyncResponse;
 import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 import org.matrix.androidsdk.util.Log;
@@ -368,9 +365,9 @@ public class EventsThread extends Thread {
      * @return true if the response contains some changed devices.
      */
     private static boolean hasDevicesChanged(SyncResponse syncResponse) {
-        return (null != syncResponse.deviceLists) &&
-                (null != syncResponse.deviceLists.changed) &&
-                (syncResponse.deviceLists.changed.size() > 0);
+        return (null != syncResponse.deviceLists)
+                && (null != syncResponse.deviceLists.changed)
+                && (syncResponse.deviceLists.changed.size() > 0);
     }
 
 

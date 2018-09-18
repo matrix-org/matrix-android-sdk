@@ -315,8 +315,11 @@ public class MXMemoryStore implements IMXStore {
                 Log.d(LOG_TAG, "## setDisplayName() : from " + mMetadata.mUserDisplayName + " to " + displayName + " ts " + ts);
             }
 
-            isUpdated = (null != mMetadata) && !TextUtils.equals(mMetadata.mUserDisplayName, displayName) &&
-                    (mUserDisplayNameTs < ts) && (ts != 0) && (ts <= System.currentTimeMillis());
+            isUpdated = (null != mMetadata)
+                    && !TextUtils.equals(mMetadata.mUserDisplayName, displayName)
+                    && (mUserDisplayNameTs < ts)
+                    && (ts != 0)
+                    && (ts <= System.currentTimeMillis());
 
             if (isUpdated) {
                 mMetadata.mUserDisplayName = (null != displayName) ? displayName.trim() : null;
@@ -355,8 +358,8 @@ public class MXMemoryStore implements IMXStore {
                 Log.d(LOG_TAG, "## setAvatarURL() : from " + mMetadata.mUserAvatarUrl + " to " + avatarURL + " ts " + ts);
             }
 
-            isUpdated = (null != mMetadata) && !TextUtils.equals(mMetadata.mUserAvatarUrl, avatarURL) &&
-                    (mUserAvatarUrlTs < ts) && (ts != 0) && (ts <= System.currentTimeMillis());
+            isUpdated = (null != mMetadata) && !TextUtils.equals(mMetadata.mUserAvatarUrl, avatarURL)
+                    && (mUserAvatarUrlTs < ts) && (ts != 0) && (ts <= System.currentTimeMillis());
 
             if (isUpdated) {
                 mMetadata.mUserAvatarUrl = avatarURL;

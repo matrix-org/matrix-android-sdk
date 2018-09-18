@@ -198,8 +198,10 @@ public class CreateRoomParams {
      * @return true if it is a direct chat
      */
     public boolean isDirect() {
-        return TextUtils.equals(preset, CreateRoomParams.PRESET_TRUSTED_PRIVATE_CHAT) && (null != isDirect) && isDirect &&
-                (1 == getInviteCount() || (1 == getInvite3PidCount()));
+        return TextUtils.equals(preset, CreateRoomParams.PRESET_TRUSTED_PRIVATE_CHAT)
+                && (null != isDirect)
+                && isDirect
+                && (1 == getInviteCount() || (1 == getInvite3PidCount()));
     }
 
     /**
