@@ -2,7 +2,7 @@ Changes to Matrix Android SDK in 0.9.10 (2018-XX-XX)
 =======================================================
 
 Features:
- - 
+ - Handle m.room.pinned_events state event and ServerNoticeUsageLimitContent
 
 Improvements:
  - 
