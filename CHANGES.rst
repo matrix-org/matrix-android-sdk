@@ -5,7 +5,7 @@ Features:
  - 
 
 Improvements:
- - 
+ - Encrypt local data (PR #305)
 
 Bugfix:
  - Fix excessive whitespace on quoted messages (#348)
