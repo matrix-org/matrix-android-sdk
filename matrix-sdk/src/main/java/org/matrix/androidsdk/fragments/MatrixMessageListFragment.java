@@ -735,6 +735,8 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
             @Override
             public void run() {
                 mMessageListView.setSelection(mAdapter.getCount() - 1);
+                // stop any scroll inertia after the jump
+                mMessageListView.smoothScrollBy(0, 0);
             }
         }, Math.max(delayMs, 0));
     }
