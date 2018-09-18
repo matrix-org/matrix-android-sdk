@@ -477,7 +477,8 @@ public class Room {
 
                 for (RoomMember member : members) {
                     if (!TextUtils.equals(member.getUserId(), conferenceUserId)) {
-                        if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN) || TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_INVITE)) {
+                        if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN)
+                                || TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_INVITE)) {
                             activeMembers.add(member);
                         }
                     }

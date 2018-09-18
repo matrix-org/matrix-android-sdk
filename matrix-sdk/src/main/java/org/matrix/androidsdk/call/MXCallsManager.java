@@ -565,50 +565,53 @@ public class MXCallsManager {
                                                                 Log.d(LOG_TAG, "## checkPendingIncomingCalls() : check the unknown devices");
 
                                                                 //
-                                                                mSession.getCrypto().checkUnknownDevices(Arrays.asList(userId1, userId2), new ApiCallback<Void>() {
-                                                                    @Override
-                                                                    public void onSuccess(Void anything) {
-                                                                        Log.d(LOG_TAG, "## checkPendingIncomingCalls() : no unknown device");
-                                                                        dispatchOnIncomingCall(call, null);
-                                                                    }
-
-                                                                    @Override
-                                                                    public void onNetworkError(Exception e) {
-                                                                        Log.e(LOG_TAG, "## checkPendingIncomingCalls() : checkUnknownDevices failed "
-                                                                                + e.getMessage(), e);
-                                                                        dispatchOnIncomingCall(call, null);
-                                                                    }
-
-                                                                    @Override
-                                                                    public void onMatrixError(MatrixError e) {
-                                                                        MXUsersDevicesMap<MXDeviceInfo> unknownDevices = null;
-
-                                                                        if (e instanceof MXCryptoError) {
-                                                                            MXCryptoError cryptoError = (MXCryptoError) e;
-
-                                                                            if (MXCryptoError.UNKNOWN_DEVICES_CODE.equals(cryptoError.errcode)) {
-                                                                                unknownDevices = (MXUsersDevicesMap<MXDeviceInfo>) cryptoError.mExceptionData;
+                                                                mSession.getCrypto()
+                                                                        .checkUnknownDevices(Arrays.asList(userId1, userId2), new ApiCallback<Void>() {
+                                                                            @Override
+                                                                            public void onSuccess(Void anything) {
+                                                                                Log.d(LOG_TAG, "## checkPendingIncomingCalls() : no unknown device");
+                                                                                dispatchOnIncomingCall(call, null);
                                                                             }
-                                                                        }
 
-                                                                        if (null != unknownDevices) {
-                                                                            Log.d(LOG_TAG, "## checkPendingIncomingCalls() :" +
-                                                                                    " checkUnknownDevices found some unknown devices");
-                                                                        } else {
-                                                                            Log.e(LOG_TAG, "## checkPendingIncomingCalls() :" +
-                                                                                    " checkUnknownDevices failed " + e.getMessage());
-                                                                        }
+                                                                            @Override
+                                                                            public void onNetworkError(Exception e) {
+                                                                                Log.e(LOG_TAG,
+                                                                                        "## checkPendingIncomingCalls() : checkUnknownDevices failed "
+                                                                                                + e.getMessage(), e);
+                                                                                dispatchOnIncomingCall(call, null);
+                                                                            }
 
-                                                                        dispatchOnIncomingCall(call, unknownDevices);
-                                                                    }
+                                                                            @Override
+                                                                            public void onMatrixError(MatrixError e) {
+                                                                                MXUsersDevicesMap<MXDeviceInfo> unknownDevices = null;
 
-                                                                    @Override
-                                                                    public void onUnexpectedError(Exception e) {
-                                                                        Log.e(LOG_TAG, "## checkPendingIncomingCalls() :" +
-                                                                                " checkUnknownDevices failed " + e.getMessage(), e);
-                                                                        dispatchOnIncomingCall(call, null);
-                                                                    }
-                                                                });
+                                                                                if (e instanceof MXCryptoError) {
+                                                                                    MXCryptoError cryptoError = (MXCryptoError) e;
+
+                                                                                    if (MXCryptoError.UNKNOWN_DEVICES_CODE.equals(cryptoError.errcode)) {
+                                                                                        unknownDevices =
+                                                                                                (MXUsersDevicesMap<MXDeviceInfo>) cryptoError.mExceptionData;
+                                                                                    }
+                                                                                }
+
+                                                                                if (null != unknownDevices) {
+                                                                                    Log.d(LOG_TAG, "## checkPendingIncomingCalls() :" +
+                                                                                            " checkUnknownDevices found some unknown devices");
+                                                                                } else {
+                                                                                    Log.e(LOG_TAG, "## checkPendingIncomingCalls() :" +
+                                                                                            " checkUnknownDevices failed " + e.getMessage());
+                                                                                }
+
+                                                                                dispatchOnIncomingCall(call, unknownDevices);
+                                                                            }
+
+                                                                            @Override
+                                                                            public void onUnexpectedError(Exception e) {
+                                                                                Log.e(LOG_TAG, "## checkPendingIncomingCalls() :" +
+                                                                                        " checkUnknownDevices failed " + e.getMessage(), e);
+                                                                                dispatchOnIncomingCall(call, null);
+                                                                            }
+                                                                        });
                                                             }
                                                         });
                                                     }

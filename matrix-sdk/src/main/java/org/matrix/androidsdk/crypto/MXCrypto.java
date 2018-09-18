@@ -1340,7 +1340,8 @@ public class MXCrypto {
                                 getUIHandler().post(new Runnable() {
                                     @Override
                                     public void run() {
-                                        callback.onMatrixError(new MXCryptoError(MXCryptoError.UNABLE_TO_ENCRYPT_ERROR_CODE, MXCryptoError.UNABLE_TO_ENCRYPT, reason));
+                                        callback.onMatrixError(new MXCryptoError(MXCryptoError.UNABLE_TO_ENCRYPT_ERROR_CODE,
+                                                MXCryptoError.UNABLE_TO_ENCRYPT, reason));
                                     }
                                 });
                             }

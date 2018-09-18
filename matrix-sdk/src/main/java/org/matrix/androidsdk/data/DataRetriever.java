@@ -215,7 +215,9 @@ public class DataRetriever {
                                     store.storeRoomEvents(roomId, tokensChunkEvents, EventTimeline.Direction.BACKWARDS);
                                 }
 
-                                Log.d(LOG_TAG, "## backPaginate() succeed : roomId " + roomId + " token " + token + " got " + tokensChunkEvents.chunk.size());
+                                Log.d(LOG_TAG, "## backPaginate() succeed : roomId " + roomId
+                                        + " token " + token
+                                        + " got " + tokensChunkEvents.chunk.size());
                                 callback.onSuccess(tokensChunkEvents);
                             }
                         }

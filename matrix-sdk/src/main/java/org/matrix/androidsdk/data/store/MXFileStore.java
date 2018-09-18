@@ -504,7 +504,9 @@ public class MXFileStore extends MXMemoryStore {
                                             int membersCount = room.getState().getLoadedMembers().size();
                                             int eventsCount = mRoomEvents.get(roomId).size();
 
-                                            Log.d(LOG_TAG, " room " + roomId + " : (lazy loaded) membersCount " + membersCount + " - eventsCount " + eventsCount);
+                                            Log.d(LOG_TAG, " room " + roomId
+                                                    + " : (lazy loaded) membersCount " + membersCount
+                                                    + " - eventsCount " + eventsCount);
                                         }
                                     }
 
