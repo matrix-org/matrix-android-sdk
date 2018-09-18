@@ -26,5 +26,7 @@ public class ServerNoticeUsageLimitContent {
     public String limit;
     @SerializedName("admin_contact")
     public String adminUri;
+    @SerializedName("server_notice_type")
+    public String type;
 
 }
