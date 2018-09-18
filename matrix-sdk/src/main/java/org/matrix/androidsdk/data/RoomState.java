@@ -22,7 +22,6 @@ import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
-import com.google.gson.annotations.SerializedName;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.call.MXCallsManager;
@@ -301,10 +300,8 @@ public class RoomState implements Externalizable {
 
                         synchronized (mGetAllMembersCallbacks) {
                             for (ApiCallback<List<RoomMember>> apiCallback : mGetAllMembersCallbacks) {
-                                synchronized (this) {
-                                    // make a copy to avoid concurrency modifications
-                                    res = new ArrayList<>(mMembers.values());
-                                }
+                                // make a copy to avoid concurrency modifications
+                                res = new ArrayList<>(mMembers.values());
 
                                 apiCallback.onSuccess(res);
                             }
