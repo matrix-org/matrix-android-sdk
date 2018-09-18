@@ -1321,9 +1321,9 @@ public class Room {
             RoomSummary summary = (null != getStore()) ? getStore().getSummary(getRoomId()) : null;
 
             if (null != summary) {
-                if ((0 != summary.getUnreadEventsCount()) ||
-                        (0 != summary.getHighlightCount()) ||
-                        (0 != summary.getNotificationCount())) {
+                if ((0 != summary.getUnreadEventsCount())
+                        || (0 != summary.getHighlightCount())
+                        || (0 != summary.getNotificationCount())) {
                     Log.e(LOG_TAG, "## markAllAsRead() : the summary events counters should be cleared for " + getRoomId());
 
                     Event latestEvent = getStore().getLatestEvent(getRoomId());
@@ -1774,10 +1774,10 @@ public class Room {
             // extract the Exif info
             if ((null != sWidth) && (null != sHeight)) {
 
-                if ((imageInfo.orientation == ExifInterface.ORIENTATION_TRANSPOSE) ||
-                        (imageInfo.orientation == ExifInterface.ORIENTATION_ROTATE_90) ||
-                        (imageInfo.orientation == ExifInterface.ORIENTATION_TRANSVERSE) ||
-                        (imageInfo.orientation == ExifInterface.ORIENTATION_ROTATE_270)) {
+                if ((imageInfo.orientation == ExifInterface.ORIENTATION_TRANSPOSE)
+                        || (imageInfo.orientation == ExifInterface.ORIENTATION_ROTATE_90)
+                        || (imageInfo.orientation == ExifInterface.ORIENTATION_TRANSVERSE)
+                        || (imageInfo.orientation == ExifInterface.ORIENTATION_ROTATE_270)) {
                     height = Integer.parseInt(sWidth);
                     width = Integer.parseInt(sHeight);
                 } else {
@@ -2280,10 +2280,10 @@ public class Room {
      */
     public void cancelEventSending(final Event event) {
         if (null != event) {
-            if ((Event.SentState.UNSENT == event.mSentState) ||
-                    (Event.SentState.SENDING == event.mSentState) ||
-                    (Event.SentState.WAITING_RETRY == event.mSentState) ||
-                    (Event.SentState.ENCRYPTING == event.mSentState)) {
+            if ((Event.SentState.UNSENT == event.mSentState)
+                    || (Event.SentState.SENDING == event.mSentState)
+                    || (Event.SentState.WAITING_RETRY == event.mSentState)
+                    || (Event.SentState.ENCRYPTING == event.mSentState)) {
 
                 // the message cannot be sent anymore
                 mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);

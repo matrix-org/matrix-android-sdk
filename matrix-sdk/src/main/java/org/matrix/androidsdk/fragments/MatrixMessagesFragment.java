@@ -237,10 +237,10 @@ public class MatrixMessagesFragment extends Fragment {
                     // TODO LazyLoading: handle KICK and BAN membership?
                     /*
                     RoomMember self = mRoom.getMember(mSession.getCredentials().userId);
-                    if (self != null &&
-                            (RoomMember.MEMBERSHIP_JOIN.equals(self.membership) ||
-                                    RoomMember.MEMBERSHIP_KICK.equals(self.membership) ||
-                                    RoomMember.MEMBERSHIP_BAN.equals(self.membership))) {
+                    if (self != null
+                         && (RoomMember.MEMBERSHIP_JOIN.equals(self.membership)
+                                    || RoomMember.MEMBERSHIP_KICK.equals(self.membership)
+                                    || RoomMember.MEMBERSHIP_BAN.equals(self.membership))) {
                         joinedRoom = true;
                     }
                     */

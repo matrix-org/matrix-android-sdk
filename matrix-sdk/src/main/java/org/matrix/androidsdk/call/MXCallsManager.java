@@ -329,17 +329,16 @@ public class MXCallsManager {
 
         if (null != call) {
             String callState = call.getCallState();
-            res =
-                    TextUtils.equals(callState, IMXCall.CALL_STATE_CREATED) ||
-                            TextUtils.equals(callState, IMXCall.CALL_STATE_CREATING_CALL_VIEW) ||
-                            TextUtils.equals(callState, IMXCall.CALL_STATE_READY) ||
-                            TextUtils.equals(callState, IMXCall.CALL_STATE_WAIT_LOCAL_MEDIA) ||
-                            TextUtils.equals(callState, IMXCall.CALL_STATE_WAIT_CREATE_OFFER) ||
-                            TextUtils.equals(callState, IMXCall.CALL_STATE_INVITE_SENT) ||
-                            TextUtils.equals(callState, IMXCall.CALL_STATE_RINGING) ||
-                            TextUtils.equals(callState, IMXCall.CALL_STATE_CREATE_ANSWER) ||
-                            TextUtils.equals(callState, IMXCall.CALL_STATE_CONNECTING) ||
-                            TextUtils.equals(callState, IMXCall.CALL_STATE_CONNECTED);
+            res = TextUtils.equals(callState, IMXCall.CALL_STATE_CREATED)
+                    || TextUtils.equals(callState, IMXCall.CALL_STATE_CREATING_CALL_VIEW)
+                    || TextUtils.equals(callState, IMXCall.CALL_STATE_READY)
+                    || TextUtils.equals(callState, IMXCall.CALL_STATE_WAIT_LOCAL_MEDIA)
+                    || TextUtils.equals(callState, IMXCall.CALL_STATE_WAIT_CREATE_OFFER)
+                    || TextUtils.equals(callState, IMXCall.CALL_STATE_INVITE_SENT)
+                    || TextUtils.equals(callState, IMXCall.CALL_STATE_RINGING)
+                    || TextUtils.equals(callState, IMXCall.CALL_STATE_CREATE_ANSWER)
+                    || TextUtils.equals(callState, IMXCall.CALL_STATE_CONNECTING)
+                    || TextUtils.equals(callState, IMXCall.CALL_STATE_CONNECTED);
         }
 
         return res;
@@ -521,10 +520,10 @@ public class MXCallsManager {
                             // check if there are some unknown devices before warning
                             // of the incoming call.
                             // If there are some unknown devices, the answer event would not be encrypted.
-                            if ((null != room) &&
-                                    room.isEncrypted() &&
-                                    mSession.getCrypto().warnOnUnknownDevices() &&
-                                    room.getNumberOfJoinedMembers() == 2) {
+                            if ((null != room)
+                                    && room.isEncrypted()
+                                    && mSession.getCrypto().warnOnUnknownDevices()
+                                    && room.getNumberOfJoinedMembers() == 2) {
 
                                 // test if the encrypted events are sent only to the verified devices (any room)
                                 mSession.getCrypto().getGlobalBlacklistUnverifiedDevices(new SimpleApiCallback<Boolean>() {

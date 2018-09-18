@@ -359,9 +359,9 @@ public class MXFileStore extends MXMemoryStore {
                                 Log.e(LOG_TAG, "Open the store in the background thread.");
 
                                 String errorDescription = null;
-                                boolean succeed = (mMetadata.mVersion == MXFILE_VERSION) &&
-                                        TextUtils.equals(mMetadata.mUserId, mCredentials.userId) &&
-                                        TextUtils.equals(mMetadata.mAccessToken, mCredentials.accessToken);
+                                boolean succeed = (mMetadata.mVersion == MXFILE_VERSION)
+                                        && TextUtils.equals(mMetadata.mUserId, mCredentials.userId)
+                                        && TextUtils.equals(mMetadata.mAccessToken, mCredentials.accessToken);
 
                                 if (!succeed) {
                                     errorDescription = "Invalid store content";
@@ -1223,10 +1223,10 @@ public class MXFileStore extends MXMemoryStore {
                 // finalizes the deserialization
                 for (Event event : events.values()) {
                     // if a message was not sent, mark it as UNDELIVERED
-                    if ((event.mSentState == Event.SentState.UNSENT) ||
-                            (event.mSentState == Event.SentState.SENDING) ||
-                            (event.mSentState == Event.SentState.WAITING_RETRY) ||
-                            (event.mSentState == Event.SentState.ENCRYPTING)) {
+                    if ((event.mSentState == Event.SentState.UNSENT)
+                            || (event.mSentState == Event.SentState.SENDING)
+                            || (event.mSentState == Event.SentState.WAITING_RETRY)
+                            || (event.mSentState == Event.SentState.ENCRYPTING)) {
                         event.mSentState = Event.SentState.UNDELIVERED;
                         shouldSave = true;
                     }

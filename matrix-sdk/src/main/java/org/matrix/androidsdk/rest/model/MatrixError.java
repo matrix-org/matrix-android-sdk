@@ -133,19 +133,19 @@ public class MatrixError implements java.io.Serializable {
      * @return true if the error code is a supported one
      */
     public boolean isSupportedErrorCode() {
-        return MatrixError.FORBIDDEN.equals(errcode) ||
-                MatrixError.UNKNOWN_TOKEN.equals(errcode) ||
-                MatrixError.BAD_JSON.equals(errcode) ||
-                MatrixError.NOT_JSON.equals(errcode) ||
-                MatrixError.NOT_FOUND.equals(errcode) ||
-                MatrixError.LIMIT_EXCEEDED.equals(errcode) ||
-                MatrixError.USER_IN_USE.equals(errcode) ||
-                MatrixError.ROOM_IN_USE.equals(errcode) ||
-                MatrixError.TOO_LARGE.equals(errcode) ||
-                MatrixError.BAD_PAGINATION.equals(errcode) ||
-                MatrixError.OLD_VERSION.equals(errcode) ||
-                MatrixError.UNRECOGNIZED.equals(errcode) ||
-                MatrixError.RESOURCE_LIMIT_EXCEEDED.equals(errcode);
+        return MatrixError.FORBIDDEN.equals(errcode)
+                || MatrixError.UNKNOWN_TOKEN.equals(errcode)
+                || MatrixError.BAD_JSON.equals(errcode)
+                || MatrixError.NOT_JSON.equals(errcode)
+                || MatrixError.NOT_FOUND.equals(errcode)
+                || MatrixError.LIMIT_EXCEEDED.equals(errcode)
+                || MatrixError.USER_IN_USE.equals(errcode)
+                || MatrixError.ROOM_IN_USE.equals(errcode)
+                || MatrixError.TOO_LARGE.equals(errcode)
+                || MatrixError.BAD_PAGINATION.equals(errcode)
+                || MatrixError.OLD_VERSION.equals(errcode)
+                || MatrixError.UNRECOGNIZED.equals(errcode)
+                || MatrixError.RESOURCE_LIMIT_EXCEEDED.equals(errcode);
     }
 
     /**

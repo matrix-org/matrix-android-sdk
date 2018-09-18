@@ -551,10 +551,10 @@ public class Event implements Externalizable {
      * @return true if the event if a call event.
      */
     public boolean isCallEvent() {
-        return EVENT_TYPE_CALL_INVITE.equals(getType()) ||
-                EVENT_TYPE_CALL_CANDIDATES.equals(getType()) ||
-                EVENT_TYPE_CALL_ANSWER.equals(getType()) ||
-                EVENT_TYPE_CALL_HANGUP.equals(getType());
+        return EVENT_TYPE_CALL_INVITE.equals(getType())
+                || EVENT_TYPE_CALL_CANDIDATES.equals(getType())
+                || EVENT_TYPE_CALL_ANSWER.equals(getType())
+                || EVENT_TYPE_CALL_HANGUP.equals(getType());
     }
 
     /**

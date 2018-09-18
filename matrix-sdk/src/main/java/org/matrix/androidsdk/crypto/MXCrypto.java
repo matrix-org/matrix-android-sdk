@@ -1520,8 +1520,8 @@ public class MXCrypto {
      * @param event the event
      */
     private void onToDeviceEvent(final Event event) {
-        if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_ROOM_KEY) ||
-                TextUtils.equals(event.getType(), Event.EVENT_TYPE_FORWARDED_ROOM_KEY)) {
+        if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_ROOM_KEY)
+                || TextUtils.equals(event.getType(), Event.EVENT_TYPE_FORWARDED_ROOM_KEY)) {
             getDecryptingThreadHandler().post(new Runnable() {
                 @Override
                 public void run() {
