@@ -24,6 +24,7 @@ import java.util.List;
  */
 public class RoomPinnedEventsContent implements Serializable {
 
+    // List of eventIds of pinned events
     public List<String> pinned;
 
     public RoomPinnedEventsContent deepCopy() {

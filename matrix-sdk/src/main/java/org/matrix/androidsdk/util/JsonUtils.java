@@ -490,8 +490,6 @@ public class JsonUtils {
         return toClass(jsonElement, RoomPinnedEventsContent.class);
     }
 
-
-
     /**
      * Convert a JSON object into a class instance.
      * The returned value cannot be null.

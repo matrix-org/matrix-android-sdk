@@ -48,7 +48,7 @@ public class DataRetriever {
         return mRestClient;
     }
 
-    public void setRoomsRestClient(RoomsRestClient client) {
+    public void setRoomsRestClient(final RoomsRestClient client) {
         mRestClient = client;
     }
 
@@ -59,7 +59,7 @@ public class DataRetriever {
      * @param roomId the roomId
      * @return the events list, null if the room does not exist
      */
-    public Collection<Event> getCachedRoomMessages(IMXStore store, final String roomId) {
+    public Collection<Event> getCachedRoomMessages(final IMXStore store, final String roomId) {
         return store.getRoomMessages(roomId);
     }
 
@@ -68,7 +68,7 @@ public class DataRetriever {
      *
      * @param roomId the room id.
      */
-    public void cancelHistoryRequest(String roomId) {
+    public void cancelHistoryRequest(final String roomId) {
         Log.d(LOG_TAG, "## cancelHistoryRequest() : roomId " + roomId);
 
         clearPendingToken(mPendingForwardRequestTokenByRoomId, roomId);
@@ -80,7 +80,7 @@ public class DataRetriever {
      *
      * @param roomId the room id.
      */
-    public void cancelRemoteHistoryRequest(String roomId) {
+    public void cancelRemoteHistoryRequest(final String roomId) {
         Log.d(LOG_TAG, "## cancelRemoteHistoryRequest() : roomId " + roomId);
 
         clearPendingToken(mPendingRemoteRequestTokenByRoomId, roomId);
@@ -113,8 +113,11 @@ public class DataRetriever {
      * @param limit    the maximum number of messages to retrieve
      * @param callback the callback
      */
-    public void backPaginate(final IMXStore store, final String roomId, final String token,
-                             final int limit, final ApiCallback<TokensChunkResponse<Event>> callback) {
+    public void backPaginate(final IMXStore store,
+                             final String roomId,
+                             final String token,
+                             final int limit,
+                             final ApiCallback<TokensChunkResponse<Event>> callback) {
         // reach the marker end
         if (TextUtils.equals(token, Event.PAGINATE_BACK_TOKEN_END)) {
             // nothing more to provide
@@ -264,8 +267,10 @@ public class DataRetriever {
      * @param token    the start token.
      * @param callback the callback
      */
-    private void forwardPaginate(final IMXStore store, final String roomId,
-                                 final String token, final ApiCallback<TokensChunkResponse<Event>> callback) {
+    private void forwardPaginate(final IMXStore store,
+                                 final String roomId,
+                                 final String token,
+                                 final ApiCallback<TokensChunkResponse<Event>> callback) {
         putPendingToken(mPendingForwardRequestTokenByRoomId, roomId, token);
 
         mRestClient.getRoomMessagesFrom(roomId, token, EventTimeline.Direction.FORWARDS, RoomsRestClient.DEFAULT_MESSAGES_PAGINATION_LIMIT,
@@ -290,7 +295,9 @@ public class DataRetriever {
      * @param direction the pagination direction
      * @param callback  the onComplete callback
      */
-    public void paginate(final IMXStore store, final String roomId, final String token,
+    public void paginate(final IMXStore store,
+                         final String roomId,
+                         final String token,
                          final EventTimeline.Direction direction,
                          final ApiCallback<TokensChunkResponse<Event>> callback) {
         if (direction == EventTimeline.Direction.BACKWARDS) {
@@ -343,7 +350,7 @@ public class DataRetriever {
      * @param dict   the token cache
      * @param roomId the room id
      */
-    private void clearPendingToken(Map<String, String> dict, String roomId) {
+    private void clearPendingToken(final Map<String, String> dict, final String roomId) {
         Log.d(LOG_TAG, "## clearPendingToken() : roomId " + roomId);
 
         if (null != roomId) {
@@ -360,7 +367,7 @@ public class DataRetriever {
      * @param roomId the room Id
      * @return the token
      */
-    private String getPendingToken(Map<String, String> dict, String roomId) {
+    private String getPendingToken(final Map<String, String> dict, final String roomId) {
         String expectedToken = "Not a valid token";
 
         synchronized (dict) {
@@ -385,7 +392,7 @@ public class DataRetriever {
      * @param roomId the room id
      * @param token  the token
      */
-    private void putPendingToken(Map<String, String> dict, String roomId, String token) {
+    private void putPendingToken(final Map<String, String> dict, final String roomId, final String token) {
         Log.d(LOG_TAG, "## putPendingToken() : roomId " + roomId + " token " + token);
 
         synchronized (dict) {
