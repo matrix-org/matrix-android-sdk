@@ -22,8 +22,8 @@ import junit.framework.Assert;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.common.CommonTestHelper;
+import org.matrix.androidsdk.common.SessionTestParams;
 import org.matrix.androidsdk.common.TestApiCallback;
-import org.matrix.androidsdk.common.TestConstants;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
@@ -32,7 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -60,9 +59,11 @@ public class LazyLoadingTestHelper {
      * @return initialized data
      */
     public LazyLoadingScenarioData createScenario(boolean withLazyLoading) throws Exception {
-        MXSession aliceSession = mTestHelper.createAliceAccount(true, false);
-        MXSession bobSession = mTestHelper.createBobAccount(true, false);
-        MXSession samSession = mTestHelper.createSamAccount(true, false);
+
+        final SessionTestParams createSessionParams = SessionTestParams.newBuilder().withInitialSync(true).build();
+        MXSession aliceSession = mTestHelper.createAliceAccount(createSessionParams);
+        MXSession bobSession = mTestHelper.createBobAccount(createSessionParams);
+        MXSession samSession = mTestHelper.createSamAccount(createSessionParams);
 
         final String aliceId = aliceSession.getMyUserId();
         final String bobId = bobSession.getMyUserId();
@@ -83,11 +84,7 @@ public class LazyLoadingTestHelper {
         final Room bobRoom = bobSession.getDataHandler().getRoom(roomId);
 
 
-        //update name and join rules
-        latch = new CountDownLatch(1);
-        bobRoom.updateName("LazyLoading Test Room", new TestApiCallback<Void>(latch));
-        mTestHelper.await(latch);
-
+        //update join rules
         latch = new CountDownLatch(1);
         bobRoom.updateJoinRules(RoomState.JOIN_RULE_PUBLIC, new TestApiCallback<Void>(latch));
         mTestHelper.await(latch);
@@ -126,9 +123,10 @@ public class LazyLoadingTestHelper {
         bobSession.clear(context);
         samSession.clear(context);
 
-        aliceSession = mTestHelper.logIntoAliceAccount(aliceId, false, false, withLazyLoading);
-        bobSession = mTestHelper.logIntoBobAccount(bobId, false, false);
-        samSession = mTestHelper.logIntoSamAccount(samId, false, false);
+        final SessionTestParams logSessionParams = SessionTestParams.newBuilder().withLazyLoading(withLazyLoading).build();
+        aliceSession = mTestHelper.logIntoAliceAccount(aliceId, logSessionParams);
+        bobSession = mTestHelper.logIntoBobAccount(bobId, logSessionParams);
+        samSession = mTestHelper.logIntoSamAccount(samId, logSessionParams);
         return new LazyLoadingScenarioData(aliceSession, bobSession, samSession, roomId, bobMessageId);
     }
 }

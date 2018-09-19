@@ -58,29 +58,29 @@ import javax.annotation.Nonnull;
  */
 public class CommonTestHelper {
 
-    public MXSession createBobAccount(boolean withInitialSync, boolean enableCrypto) throws InterruptedException {
-        return createAccount(TestConstants.BOB_USER_ID, TestConstants.BOB_PWD, withInitialSync, enableCrypto);
+    public MXSession createBobAccount(final SessionTestParams testParams) throws InterruptedException {
+        return createAccount(TestConstants.BOB_USER_ID, TestConstants.BOB_PWD, testParams);
     }
 
-    public MXSession createAliceAccount(boolean withInitialSync, boolean enableCrypto) throws InterruptedException {
-        return createAccount(TestConstants.ALICE_USER_ID, TestConstants.ALICE_PWD, withInitialSync, enableCrypto);
+    public MXSession createAliceAccount(final SessionTestParams testParams) throws InterruptedException {
+        return createAccount(TestConstants.ALICE_USER_ID, TestConstants.ALICE_PWD, testParams);
     }
 
-    public MXSession createSamAccount(boolean withInitialSync, boolean enableCrypto) throws InterruptedException {
-        return createAccount(TestConstants.SAM_USER_ID, TestConstants.SAM_PWD, withInitialSync, enableCrypto);
+    public MXSession createSamAccount(final SessionTestParams testParams) throws InterruptedException {
+        return createAccount(TestConstants.SAM_USER_ID, TestConstants.SAM_PWD, testParams);
     }
 
-    public MXSession logIntoBobAccount(final String bobUserId, final boolean withInitialSync, boolean enableCrypto) throws InterruptedException {
-        return logIntoAccount(bobUserId, TestConstants.BOB_PWD, withInitialSync, enableCrypto, false);
+    public MXSession logIntoBobAccount(final String bobUserId, final SessionTestParams testParams) throws InterruptedException {
+        return logIntoAccount(bobUserId, TestConstants.BOB_PWD, testParams);
     }
 
-    public MXSession logIntoAliceAccount(final String aliceUserId, final boolean withInitialSync, boolean enableCrypto, boolean withLazyLoading)
+    public MXSession logIntoAliceAccount(final String aliceUserId, final SessionTestParams testParams)
             throws InterruptedException {
-        return logIntoAccount(aliceUserId, TestConstants.ALICE_PWD, withInitialSync, enableCrypto, withLazyLoading);
+        return logIntoAccount(aliceUserId, TestConstants.ALICE_PWD, testParams);
     }
 
-    public MXSession logIntoSamAccount(final String samUserId, final boolean withInitialSync, boolean enableCrypto) throws InterruptedException {
-        return logIntoAccount(samUserId, TestConstants.SAM_PWD, withInitialSync, enableCrypto, false);
+    public MXSession logIntoSamAccount(final String samUserId, final SessionTestParams testParams) throws InterruptedException {
+        return logIntoAccount(samUserId, TestConstants.SAM_PWD, testParams);
     }
 
     /**
@@ -181,23 +181,21 @@ public class CommonTestHelper {
     /**
      * Creates a unique account
      *
-     * @param userId          the base userId
-     * @param password        the password
-     * @param withInitialSync true to perform an initial sync
-     * @param enableCrypto    true to set enableCryptoWhenStarting
+     * @param userId     the base userId
+     * @param password   the password
+     * @param testParams test params about the session
      * @return the session associated with the newly created account
      */
     private MXSession createAccount(@NonNull final String userId,
                                     @NonNull final String password,
-                                    final boolean withInitialSync,
-                                    final boolean enableCrypto) throws InterruptedException {
+                                    @NonNull final SessionTestParams testParams) throws InterruptedException {
         final Context context = InstrumentationRegistry.getContext();
         final MXSession session = createAccountAndSync(
                 context,
                 userId + System.currentTimeMillis() + UUID.randomUUID(),
                 password,
-                withInitialSync,
-                enableCrypto
+                testParams.withInitialSync,
+                testParams.enableCrypto
         );
         Assert.assertNotNull(session);
         return session;
@@ -206,19 +204,16 @@ public class CommonTestHelper {
     /**
      * Logs into an existing account
      *
-     * @param userId          the userId to log in
-     * @param password        the password to log in
-     * @param withInitialSync true to perform an initial sync
-     * @param enableCrypto    true to set enableCryptoWhenStarting
+     * @param userId     the userId to log in
+     * @param password   the password to log in
+     * @param testParams test params about the session
      * @return the session associated with the existing account
      */
     private MXSession logIntoAccount(@NonNull final String userId,
                                      @NonNull final String password,
-                                     final boolean withInitialSync,
-                                     final boolean enableCrypto,
-                                     boolean withLazyLoading) throws InterruptedException {
+                                     @NonNull final SessionTestParams testParams) throws InterruptedException {
         final Context context = InstrumentationRegistry.getContext();
-        final MXSession session = logAccountAndSync(context, userId, password, withInitialSync, enableCrypto, withLazyLoading);
+        final MXSession session = logAccountAndSync(context, userId, password, testParams.withInitialSync, testParams.enableCrypto, testParams.withLazyLoading);
         Assert.assertNotNull(session);
         return session;
     }
@@ -323,13 +318,14 @@ public class CommonTestHelper {
      * @param password        the password
      * @param withInitialSync true to perform an initial sync
      * @param enableCrypto    true to set enableCryptoWhenStarting
+     * @param withLazyLoading true to enable lazyLoading
      */
-    private MXSession logAccountAndSync(Context context,
-                                        String userName,
-                                        String password,
-                                        boolean withInitialSync,
-                                        boolean enableCrypto,
-                                        boolean withLazyLoading) throws InterruptedException {
+    private MXSession logAccountAndSync(final Context context,
+                                        final String userName,
+                                        final String password,
+                                        final boolean withInitialSync,
+                                        final boolean enableCrypto,
+                                        final boolean withLazyLoading) throws InterruptedException {
         final HomeServerConnectionConfig hs = createHomeServerConfig(null);
         LoginRestClient loginRestClient = new LoginRestClient(hs);
         final Map<String, Object> params = new HashMap<>();
