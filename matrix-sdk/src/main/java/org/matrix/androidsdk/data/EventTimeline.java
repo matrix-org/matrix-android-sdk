@@ -20,6 +20,7 @@ package org.matrix.androidsdk.data;
 
 import android.os.AsyncTask;
 import android.os.Looper;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
@@ -36,12 +37,13 @@ import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.sync.RoomSync;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.EventDisplay;
+import org.matrix.androidsdk.util.FilterUtil;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 
@@ -447,7 +449,7 @@ public class EventTimeline {
             // if it is an initial sync, the live state is initialized here
             // so the back state must also be initialized
             if (isRoomInitialSync) {
-                Log.d(LOG_TAG, "## handleJoinedRoomSync() : retrieve " + mState.getMembers().size() + " members for room " + mRoomId);
+                Log.d(LOG_TAG, "## handleJoinedRoomSync() : retrieve X " + mState.getLoadedMembers().size() + " members for room " + mRoomId);
                 mBackState = mState.deepCopy();
             }
         }
@@ -456,6 +458,7 @@ public class EventTimeline {
         if (null != roomSync.timeline) {
             if (roomSync.timeline.limited) {
                 if (!isRoomInitialSync) {
+                    // There is a gap between known events and received events in this incremental sync.
                     currentSummary = mStore.getSummary(mRoomId);
 
                     // define a summary if some messages are left
@@ -475,6 +478,9 @@ public class EventTimeline {
                             }
                         }
                     }
+
+                    // Force a fetch of the loaded members the next time they will be requested
+                    mState.forceMembersRequest();
                 }
 
                 // if the prev batch is set to null
@@ -523,7 +529,6 @@ public class EventTimeline {
         }
         // Finalize initial sync
         else {
-
             if ((null != roomSync.timeline) && roomSync.timeline.limited) {
                 // The room has been synced with a limited timeline
                 mDataHandler.onRoomFlush(mRoomId);
@@ -579,19 +584,6 @@ public class EventTimeline {
                                 }
                                 mStore.storeSummary(summary);
 
-                                String eventType = event.getType();
-
-                                // Watch for potential room name changes
-                                if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType)
-                                        || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(eventType)
-                                        || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
-
-
-                                    if (null != summary) {
-                                        summary.setName(mRoom.getName(myUserId));
-                                    }
-                                }
-
                                 mStore.commit();
                                 break;
                             }
@@ -636,6 +628,21 @@ public class EventTimeline {
                     mDataHandler.onNotificationCountUpdate(mRoomId);
                 }
             }
+
+            // TODO LazyLoading, maybe this should be done earlier, because nb of members can be usefull in the instruction above.
+            if (roomSync.roomSyncSummary != null) {
+                RoomSummary summary = mStore.getSummary(mRoomId);
+
+                if (summary == null) {
+                    // Should never happen here
+                    Log.e(LOG_TAG, "!!!!!!!!!!!!!!!!!!!!! RoomSummary is null !!!!!!!!!!!!!!!!!!!!!");
+                } else {
+                    summary.setRoomSyncSummary(roomSync.roomSyncSummary);
+
+                    mStore.flushSummary(summary);
+                }
+            }
+
         }
     }
 
@@ -676,17 +683,6 @@ public class EventTimeline {
             }
 
             mStore.storeSummary(summary);
-
-            String eventType = event.getType();
-
-            // Watch for potential room name changes
-            if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType)
-                    || Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(eventType)
-                    || Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
-                if (null != summary) {
-                    summary.setName(mRoom.getName(myUserId));
-                }
-            }
         }
     }
 
@@ -1053,12 +1049,27 @@ public class EventTimeline {
     /**
      * Add some events in a dedicated direction.
      *
-     * @param events    the events list
-     * @param direction the direction
+     * @param events      the events list
+     * @param stateEvents the received state events (in case of lazy loading of room members)
+     * @param direction   the direction
      */
-    private void addPaginationEvents(List<Event> events, Direction direction) {
+    private void addPaginationEvents(List<Event> events,
+                                     @Nullable List<Event> stateEvents,
+                                     Direction direction) {
         RoomSummary summary = mStore.getSummary(mRoomId);
         boolean shouldCommitStore = false;
+
+        // Process additional state events (this happens in case of lazy loading)
+        if (stateEvents != null) {
+            for (Event stateEvent : stateEvents) {
+                if (direction == Direction.BACKWARDS) {
+                    // Enrich the timeline root state with the additional state events observed during back pagination
+                    processStateEvent(stateEvent, Direction.FORWARDS);
+                }
+
+                processStateEvent(stateEvent, direction);
+            }
+        }
 
         // the backward events have a dedicated management to avoid providing too many events for each request
         for (Event event : events) {
@@ -1103,15 +1114,19 @@ public class EventTimeline {
     /**
      * Add some events in a dedicated direction.
      *
-     * @param events    the events list
-     * @param direction the direction
-     * @param callback  the callback.
+     * @param events      the events list
+     * @param stateEvents the received state events (in case of lazy loading of room members)
+     * @param direction   the direction
+     * @param callback    the callback.
      */
-    private void addPaginationEvents(final List<Event> events, final Direction direction, final ApiCallback<Integer> callback) {
+    private void addPaginationEvents(final List<Event> events,
+                                     @Nullable final List<Event> stateEvents,
+                                     final Direction direction,
+                                     final ApiCallback<Integer> callback) {
         AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... params) {
-                addPaginationEvents(events, direction);
+                addPaginationEvents(events, stateEvents, direction);
                 return null;
             }
 
@@ -1154,10 +1169,14 @@ public class EventTimeline {
      * @return true if a back pagination can be triggered.
      */
     public boolean canBackPaginate() {
-        return !mIsBackPaginating && // One at a time please
-                mState.canBackPaginated(mDataHandler.getUserId()) && // history_visibility flag management
-                mCanBackPaginate && // If we have already reached the end of history
-                mRoom.isReady(); // If the room is not finished being set up
+        // One at a time please
+        return !mIsBackPaginating
+                // history_visibility flag management
+                && mState.canBackPaginate(mRoom.isJoined(), mRoom.isInvited())
+                // If we have already reached the end of history
+                && mCanBackPaginate
+                // If the room is not finished being set up
+                && mRoom.isReady();
     }
 
     /**
@@ -1190,10 +1209,8 @@ public class EventTimeline {
      * @return true if request starts
      */
     public boolean backPaginate(final int eventCount, final boolean useCachedOnly, final ApiCallback<Integer> callback) {
-        final String myUserId = mDataHandler.getUserId();
-
         if (!canBackPaginate()) {
-            Log.d(LOG_TAG, "cannot requestHistory " + mIsBackPaginating + " " + !getState().canBackPaginated(myUserId)
+            Log.d(LOG_TAG, "cannot requestHistory " + mIsBackPaginating + " " + !getState().canBackPaginate(mRoom.isJoined(), mRoom.isInvited())
                     + " " + !mCanBackPaginate + " " + !mRoom.isReady());
             return false;
         }
@@ -1250,10 +1267,10 @@ public class EventTimeline {
             return true;
         }
 
-        mDataHandler.getDataRetriever().backPaginate(mStore, mRoomId, getBackState().getToken(), eventCount,
-                new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+        mDataHandler.getDataRetriever().backPaginate(mStore, mRoomId, getBackState().getToken(), eventCount, mDataHandler.isLazyLoadingEnabled(),
+                new SimpleApiCallback<TokensChunkEvents>(callback) {
                     @Override
-                    public void onSuccess(TokensChunkResponse<Event> response) {
+                    public void onSuccess(TokensChunkEvents response) {
                         if (mDataHandler.isAlive()) {
 
                             if (null != response.chunk) {
@@ -1279,7 +1296,10 @@ public class EventTimeline {
                                 }
                             }
 
-                            addPaginationEvents((null == response.chunk) ? new ArrayList<Event>() : response.chunk, Direction.BACKWARDS, callback);
+                            addPaginationEvents((null == response.chunk) ? new ArrayList<Event>() : response.chunk,
+                                    response.stateEvents,
+                                    Direction.BACKWARDS,
+                                    callback);
 
                         } else {
                             Log.d(LOG_TAG, "mDataHandler is not active.");
@@ -1341,17 +1361,20 @@ public class EventTimeline {
 
         mIsForwardPaginating = true;
 
-        mDataHandler.getDataRetriever().paginate(mStore, mRoomId, mForwardsPaginationToken, Direction.FORWARDS,
-                new SimpleApiCallback<TokensChunkResponse<Event>>(callback) {
+        mDataHandler.getDataRetriever().paginate(mStore, mRoomId, mForwardsPaginationToken, Direction.FORWARDS, mDataHandler.isLazyLoadingEnabled(),
+                new SimpleApiCallback<TokensChunkEvents>(callback) {
                     @Override
-                    public void onSuccess(TokensChunkResponse<Event> response) {
+                    public void onSuccess(TokensChunkEvents response) {
                         if (mDataHandler.isAlive()) {
                             Log.d(LOG_TAG, "forwardPaginate : " + response.chunk.size() + " are retrieved.");
 
                             mHasReachedHomeServerForwardsPaginationEnd = (0 == response.chunk.size()) && TextUtils.equals(response.end, response.start);
                             mForwardsPaginationToken = response.end;
 
-                            addPaginationEvents(response.chunk, Direction.FORWARDS, callback);
+                            addPaginationEvents(response.chunk,
+                                    response.stateEvents,
+                                    Direction.FORWARDS,
+                                    callback);
 
                             mIsForwardPaginating = false;
                         } else {
@@ -1428,100 +1451,103 @@ public class EventTimeline {
         mForwardsPaginationToken = null;
         mHasReachedHomeServerForwardsPaginationEnd = false;
 
-        mDataHandler.getDataRetriever().getRoomsRestClient().getContextOfEvent(mRoomId, mInitialEventId, limit, new SimpleApiCallback<EventContext>(callback) {
-            @Override
-            public void onSuccess(final EventContext eventContext) {
-
-                AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
-                    @Override
-                    protected Void doInBackground(Void... params) {
-                        // the state is the one after the latest event of the chunk i.e. the last message of eventContext.eventsAfter
-                        for (Event event : eventContext.state) {
-                            processStateEvent(event, Direction.FORWARDS);
-                        }
-
-                        // init the room states
-                        initHistory();
-
-                        // build the events list
-                        List<Event> events = new ArrayList<>();
-
-                        Collections.reverse(eventContext.eventsAfter);
-                        events.addAll(eventContext.eventsAfter);
-                        events.add(eventContext.event);
-                        events.addAll(eventContext.eventsBefore);
-
-                        // add events after
-                        addPaginationEvents(events, Direction.BACKWARDS);
-
-                        return null;
-                    }
-
-                    @Override
-                    protected void onPostExecute(Void args) {
-                        // create dummy forward events list
-                        // to center the selected event id
-                        // else if might be out of screen
-                        List<SnapshotEvent> nextSnapshotEvents = new ArrayList<>(mSnapshotEvents.subList(0, (mSnapshotEvents.size() + 1) / 2));
-
-                        // put in the right order
-                        Collections.reverse(nextSnapshotEvents);
-
-                        // send them one by one
-                        for (SnapshotEvent snapshotEvent : nextSnapshotEvents) {
-                            mSnapshotEvents.remove(snapshotEvent);
-                            onEvent(snapshotEvent.mEvent, Direction.FORWARDS, snapshotEvent.mState);
-                        }
-
-                        // init the tokens
-                        mBackState.setToken(eventContext.start);
-                        mForwardsPaginationToken = eventContext.end;
-
-                        // send the back events to complete pagination
-                        manageBackEvents(MAX_EVENT_COUNT_PER_PAGINATION, new ApiCallback<Integer>() {
+        mDataHandler.getDataRetriever()
+                .getRoomsRestClient()
+                .getContextOfEvent(mRoomId, mInitialEventId, limit, FilterUtil.createRoomEventFilter(mDataHandler.isLazyLoadingEnabled()),
+                        new SimpleApiCallback<EventContext>(callback) {
                             @Override
-                            public void onSuccess(Integer info) {
-                                Log.d(LOG_TAG, "addPaginationEvents succeeds");
-                            }
+                            public void onSuccess(final EventContext eventContext) {
 
-                            @Override
-                            public void onNetworkError(Exception e) {
-                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage(), e);
-                            }
+                                AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
+                                    @Override
+                                    protected Void doInBackground(Void... params) {
+                                        // the state is the one after the latest event of the chunk i.e. the last message of eventContext.eventsAfter
+                                        for (Event event : eventContext.state) {
+                                            processStateEvent(event, Direction.FORWARDS);
+                                        }
 
-                            @Override
-                            public void onMatrixError(MatrixError e) {
-                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage());
-                            }
+                                        // init the room states
+                                        initHistory();
 
-                            @Override
-                            public void onUnexpectedError(Exception e) {
-                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage(), e);
+                                        // build the events list
+                                        List<Event> events = new ArrayList<>();
+
+                                        Collections.reverse(eventContext.eventsAfter);
+                                        events.addAll(eventContext.eventsAfter);
+                                        events.add(eventContext.event);
+                                        events.addAll(eventContext.eventsBefore);
+
+                                        // add events after
+                                        addPaginationEvents(events, null, Direction.BACKWARDS);
+
+                                        return null;
+                                    }
+
+                                    @Override
+                                    protected void onPostExecute(Void args) {
+                                        // create dummy forward events list
+                                        // to center the selected event id
+                                        // else if might be out of screen
+                                        List<SnapshotEvent> nextSnapshotEvents = new ArrayList<>(mSnapshotEvents.subList(0, (mSnapshotEvents.size() + 1) / 2));
+
+                                        // put in the right order
+                                        Collections.reverse(nextSnapshotEvents);
+
+                                        // send them one by one
+                                        for (SnapshotEvent snapshotEvent : nextSnapshotEvents) {
+                                            mSnapshotEvents.remove(snapshotEvent);
+                                            onEvent(snapshotEvent.mEvent, Direction.FORWARDS, snapshotEvent.mState);
+                                        }
+
+                                        // init the tokens
+                                        mBackState.setToken(eventContext.start);
+                                        mForwardsPaginationToken = eventContext.end;
+
+                                        // send the back events to complete pagination
+                                        manageBackEvents(MAX_EVENT_COUNT_PER_PAGINATION, new ApiCallback<Integer>() {
+                                            @Override
+                                            public void onSuccess(Integer info) {
+                                                Log.d(LOG_TAG, "addPaginationEvents succeeds");
+                                            }
+
+                                            @Override
+                                            public void onNetworkError(Exception e) {
+                                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage(), e);
+                                            }
+
+                                            @Override
+                                            public void onMatrixError(MatrixError e) {
+                                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage());
+                                            }
+
+                                            @Override
+                                            public void onUnexpectedError(Exception e) {
+                                                Log.e(LOG_TAG, "addPaginationEvents failed " + e.getMessage(), e);
+                                            }
+                                        });
+
+                                        // everything is done
+                                        callback.onSuccess(null);
+                                    }
+                                };
+
+                                try {
+                                    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                                } catch (final Exception e) {
+                                    Log.e(LOG_TAG, "## resetPaginationAroundInitialEvent() failed " + e.getMessage(), e);
+                                    task.cancel(true);
+
+                                    (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            if (callback != null) {
+                                                callback.onUnexpectedError(e);
+                                            }
+                                        }
+                                    });
+                                }
                             }
                         });
-
-                        // everything is done
-                        callback.onSuccess(null);
-                    }
-                };
-
-                try {
-                    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-                } catch (final Exception e) {
-                    Log.e(LOG_TAG, "## resetPaginationAroundInitialEvent() failed " + e.getMessage(), e);
-                    task.cancel(true);
-
-                    (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (callback != null) {
-                                callback.onUnexpectedError(e);
-                            }
-                        }
-                    });
-                }
-            }
-        });
     }
 
     //==============================================================================================================
@@ -1575,6 +1601,7 @@ public class EventTimeline {
                     // It used to have many out of memory errors because they are too many stored small memory objects.
                     // see https://github.com/matrix-org/matrix-android-sdk/issues/196
 
+                    // Note: if lazy loading is on, getMemberByEventId() can return null, but it is ok, because we just want to update our cache
                     RoomMember member = mState.getMemberByEventId(eventId);
                     if (member != null) {
                         Log.d(LOG_TAG, "checkStateEventRedaction: the current room members list has been modified by the event redaction");

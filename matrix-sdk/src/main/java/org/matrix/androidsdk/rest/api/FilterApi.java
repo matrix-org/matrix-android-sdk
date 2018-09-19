@@ -19,8 +19,6 @@ package org.matrix.androidsdk.rest.api;
 import org.matrix.androidsdk.rest.model.filter.FilterBody;
 import org.matrix.androidsdk.rest.model.filter.FilterResponse;
 
-import java.util.Map;
-
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;

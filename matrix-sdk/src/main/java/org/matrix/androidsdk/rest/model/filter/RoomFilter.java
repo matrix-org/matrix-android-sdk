@@ -18,7 +18,6 @@ package org.matrix.androidsdk.rest.model.filter;
 
 import com.google.gson.annotations.SerializedName;
 
-import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -43,4 +42,14 @@ public class RoomFilter {
 
     @SerializedName("account_data")
     public RoomEventFilter accountData;
+
+    public boolean hasData() {
+        return notRooms != null
+                || rooms != null
+                || ephemeral != null
+                || includeLeave != null
+                || state != null
+                || timeline != null
+                || accountData != null;
+    }
 }

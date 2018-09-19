@@ -1,6 +1,7 @@
 /* 
  * Copyright 2016 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,7 +19,7 @@ package org.matrix.androidsdk.rest.model.sync;
 import java.util.Map;
 
 // RoomsSyncResponse represents the rooms list in server sync v2 response.
-public class RoomsSyncResponse implements java.io.Serializable {
+public class RoomsSyncResponse {
 
     /**
      * Joined rooms: keys are rooms ids.

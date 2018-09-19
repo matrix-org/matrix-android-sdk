@@ -20,8 +20,8 @@ import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
-import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.RoomDirectoryVisibility;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 
 import java.util.regex.Pattern;
@@ -96,7 +96,7 @@ public class EventUtils {
         }
 
         Room room = session.getDataHandler().getRoom(event.roomId);
-        return RoomState.DIRECTORY_VISIBILITY_PRIVATE.equals(room.getVisibility())
+        return RoomDirectoryVisibility.DIRECTORY_VISIBILITY_PRIVATE.equals(room.getVisibility())
                 && !TextUtils.equals(event.getSender(), session.getCredentials().userId);
     }
 

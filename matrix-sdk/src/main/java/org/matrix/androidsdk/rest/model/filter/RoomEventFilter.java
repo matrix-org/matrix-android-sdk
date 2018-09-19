@@ -18,7 +18,8 @@ package org.matrix.androidsdk.rest.model.filter;
 
 import com.google.gson.annotations.SerializedName;
 
-import java.io.Serializable;
+import org.matrix.androidsdk.util.JsonUtils;
+
 import java.util.List;
 
 /**
@@ -46,4 +47,23 @@ public class RoomEventFilter {
 
     @SerializedName("contains_url")
     public Boolean containsUrl;
+
+    @SerializedName("lazy_load_members")
+    public Boolean lazyLoadMembers;
+
+    public boolean hasData() {
+        return limit != null
+                || notSenders != null
+                || notTypes != null
+                || senders != null
+                || types != null
+                || rooms != null
+                || notRooms != null
+                || containsUrl != null
+                || lazyLoadMembers != null;
+    }
+
+    public String toJSONString() {
+        return JsonUtils.getGson(false).toJson(this);
+    }
 }

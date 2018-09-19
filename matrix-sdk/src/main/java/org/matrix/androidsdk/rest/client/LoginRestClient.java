@@ -28,6 +28,7 @@ import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.LoginApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.model.Versions;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.LoginFlow;
 import org.matrix.androidsdk.rest.model.login.LoginFlowResponse;
@@ -61,7 +62,19 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * @param hsConfig the home server connection config
      */
     public LoginRestClient(HomeServerConnectionConfig hsConfig) {
-        super(hsConfig, LoginApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
+        super(hsConfig, LoginApi.class, "", false);
+    }
+
+    /**
+     * Get Versions supported by the server and other server capabilities
+     *
+     * @param callback the callback
+     */
+    public void getVersions(final ApiCallback<Versions> callback) {
+        final String description = "getVersions";
+
+        mApi.versions()
+                .enqueue(new RestAdapterCallback<Versions>(description, mUnsentEventsManager, callback, null));
     }
 
     /**
@@ -93,7 +106,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
      * Request an account creation
      *
      * @param params   the registration parameters
-     * @param callback the callbacks
+     * @param callback the callback
      */
     public void register(final RegistrationParams params, final ApiCallback<Credentials> callback) {
         final String description = "register";

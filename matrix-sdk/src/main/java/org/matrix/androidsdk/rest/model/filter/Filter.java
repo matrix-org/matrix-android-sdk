@@ -18,7 +18,6 @@ package org.matrix.androidsdk.rest.model.filter;
 
 import com.google.gson.annotations.SerializedName;
 
-import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -43,4 +42,14 @@ public class Filter {
 
     @SerializedName("not_rooms")
     public List<String> notRooms;
+
+    public boolean hasData() {
+        return limit != null
+                || senders != null
+                || notSenders != null
+                || types != null
+                || notTypes != null
+                || rooms != null
+                || notRooms != null;
+    }
 }

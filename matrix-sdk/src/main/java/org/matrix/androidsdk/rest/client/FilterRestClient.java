@@ -16,8 +16,6 @@
  */
 package org.matrix.androidsdk.rest.client;
 
-import com.google.gson.Gson;
-
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.FilterApi;
@@ -25,8 +23,6 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.filter.FilterBody;
 import org.matrix.androidsdk.rest.model.filter.FilterResponse;
-
-import retrofit2.Response;
 
 public class FilterRestClient extends RestClient<FilterApi>{
 

@@ -1,13 +1,13 @@
-/* 
+/*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -433,7 +433,7 @@ public class BingRulesManager {
     /**
      * Check if an event matches a conditions set
      *
-     * @param event      the evnt to test
+     * @param event      the event to test
      * @param conditions the conditions set
      * @return true if the event matches all the conditions set.
      */
@@ -446,17 +446,26 @@ public class BingRulesManager {
                             return false;
                         }
                     } else if (condition instanceof ContainsDisplayNameCondition) {
+                        String myDisplayName = null;
+
                         if (event.roomId != null) {
                             Room room = mDataHandler.getRoom(event.roomId, false);
 
                             // sanity checks
-                            if ((null != room) && (null != room.getMember(mMyUserId))) {
+                            if (room != null && room.getMember(mMyUserId) != null) {
                                 // Best way to get your display name for now
-                                String myDisplayName = room.getMember(mMyUserId).displayname;
-                                if (!((ContainsDisplayNameCondition) condition).isSatisfied(event, myDisplayName)) {
-                                    return false;
-                                }
+                                myDisplayName = room.getMember(mMyUserId).displayname;
                             }
+                        }
+
+                        if (TextUtils.isEmpty(myDisplayName)) {
+                            // RoomMember is maybe not known due to lazy loading
+                            // Get displayName from the session
+                            myDisplayName = mSession.getMyUser().displayname;
+                        }
+
+                        if (!((ContainsDisplayNameCondition) condition).isSatisfied(event, myDisplayName)) {
+                            return false;
                         }
                     } else if (condition instanceof RoomMemberCountCondition) {
                         if (event.roomId != null) {

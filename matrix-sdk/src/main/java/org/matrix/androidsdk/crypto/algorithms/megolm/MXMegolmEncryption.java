@@ -249,11 +249,11 @@ public class MXMegolmEncryption implements IMXEncrypting {
     private void ensureOutboundSession(MXUsersDevicesMap<MXDeviceInfo> devicesInRoom, final ApiCallback<MXOutboundSessionInfo> callback) {
         MXOutboundSessionInfo session = mOutboundSession;
 
-        if ((null == session) ||
+        if ((null == session)
                 // Need to make a brand new session?
-                session.needsRotation(mSessionRotationPeriodMsgs, mSessionRotationPeriodMs) ||
+                || session.needsRotation(mSessionRotationPeriodMsgs, mSessionRotationPeriodMs)
                 // Determine if we have shared with anyone we shouldn't have
-                session.sharedWithTooManyDevices(devicesInRoom)) {
+                || session.sharedWithTooManyDevices(devicesInRoom)) {
             mOutboundSession = session = prepareNewSessionInRoom();
         }
 

@@ -30,11 +30,10 @@ import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.group.Group;
 import org.matrix.androidsdk.rest.model.login.Credentials;
@@ -316,8 +315,11 @@ public class MXMemoryStore implements IMXStore {
                 Log.d(LOG_TAG, "## setDisplayName() : from " + mMetadata.mUserDisplayName + " to " + displayName + " ts " + ts);
             }
 
-            isUpdated = (null != mMetadata) && !TextUtils.equals(mMetadata.mUserDisplayName, displayName) &&
-                    (mUserDisplayNameTs < ts) && (ts != 0) && (ts <= System.currentTimeMillis());
+            isUpdated = (null != mMetadata)
+                    && !TextUtils.equals(mMetadata.mUserDisplayName, displayName)
+                    && (mUserDisplayNameTs < ts)
+                    && (ts != 0)
+                    && (ts <= System.currentTimeMillis());
 
             if (isUpdated) {
                 mMetadata.mUserDisplayName = (null != displayName) ? displayName.trim() : null;
@@ -356,8 +358,8 @@ public class MXMemoryStore implements IMXStore {
                 Log.d(LOG_TAG, "## setAvatarURL() : from " + mMetadata.mUserAvatarUrl + " to " + avatarURL + " ts " + ts);
             }
 
-            isUpdated = (null != mMetadata) && !TextUtils.equals(mMetadata.mUserAvatarUrl, avatarURL) &&
-                    (mUserAvatarUrlTs < ts) && (ts != 0) && (ts <= System.currentTimeMillis());
+            isUpdated = (null != mMetadata) && !TextUtils.equals(mMetadata.mUserAvatarUrl, avatarURL)
+                    && (mUserAvatarUrlTs < ts) && (ts != 0) && (ts <= System.currentTimeMillis());
 
             if (isUpdated) {
                 mMetadata.mUserAvatarUrl = avatarURL;
@@ -757,7 +759,7 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public void storeRoomEvents(String roomId, TokensChunkResponse<Event> eventsResponse, EventTimeline.Direction direction) {
+    public void storeRoomEvents(String roomId, TokensChunkEvents tokensChunkEvents, EventTimeline.Direction direction) {
         try {
             if (null != roomId) {
                 synchronized (mRoomEventsLock) {
@@ -768,9 +770,9 @@ public class MXMemoryStore implements IMXStore {
                     }
 
                     if (direction == EventTimeline.Direction.FORWARDS) {
-                        mRoomTokens.put(roomId, eventsResponse.start);
+                        mRoomTokens.put(roomId, tokensChunkEvents.start);
 
-                        for (Event event : eventsResponse.chunk) {
+                        for (Event event : tokensChunkEvents.chunk) {
                             events.put(event.eventId, event);
                         }
                     } else { // BACKWARD
@@ -779,19 +781,19 @@ public class MXMemoryStore implements IMXStore {
                         // no stored events
                         if (events.size() == 0) {
                             // insert the catchup events in reverse order
-                            for (int index = eventsResponse.chunk.size() - 1; index >= 0; index--) {
-                                Event backEvent = eventsResponse.chunk.get(index);
+                            for (int index = tokensChunkEvents.chunk.size() - 1; index >= 0; index--) {
+                                Event backEvent = tokensChunkEvents.chunk.get(index);
                                 events.put(backEvent.eventId, backEvent);
                             }
 
                             // define a token
-                            mRoomTokens.put(roomId, eventsResponse.start);
+                            mRoomTokens.put(roomId, tokensChunkEvents.start);
                         } else {
                             LinkedHashMap<String, Event> events2 = new LinkedHashMap<>();
 
                             // insert the catchup events in reverse order
-                            for (int index = eventsResponse.chunk.size() - 1; index >= 0; index--) {
-                                Event backEvent = eventsResponse.chunk.get(index);
+                            for (int index = tokensChunkEvents.chunk.size() - 1; index >= 0; index--) {
+                                Event backEvent = tokensChunkEvents.chunk.get(index);
                                 events2.put(backEvent.eventId, backEvent);
                             }
 
@@ -925,7 +927,7 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public TokensChunkResponse<Event> getEarlierMessages(final String roomId, final String fromToken, final int limit) {
+    public TokensChunkEvents getEarlierMessages(final String roomId, final String fromToken, final int limit) {
         // For now, we return everything we have for the original null token request
         // For older requests (providing a token), returning null for now
         if (null != roomId) {
@@ -952,7 +954,7 @@ public class MXMemoryStore implements IMXStore {
             // search from the latest to the oldest events
             Collections.reverse(eventsList);
 
-            TokensChunkResponse<Event> response = new TokensChunkResponse<>();
+            TokensChunkEvents response = new TokensChunkEvents();
 
             // start the latest event and there is enough events to provide to the caller ?
             if ((null == fromToken) && (eventsList.size() <= limit)) {
@@ -1013,7 +1015,7 @@ public class MXMemoryStore implements IMXStore {
         for (String roomId : mRoomSummaries.keySet()) {
             Room room = mRooms.get(roomId);
             if (null != room) {
-                if (null == room.getMember(mCredentials.userId)) {
+                if (!room.isJoined() && !room.isInvited()) {
                     Log.e(LOG_TAG, "## getSummaries() : a summary exists for the roomId " + roomId + " but the user is not anymore a member");
                 } else {
                     summaries.add(mRoomSummaries.get(roomId));
@@ -1026,6 +1028,7 @@ public class MXMemoryStore implements IMXStore {
         return summaries;
     }
 
+    @Nullable
     @Override
     public RoomSummary getSummary(String roomId) {
         // sanity check
@@ -1610,6 +1613,16 @@ public class MXMemoryStore implements IMXStore {
     @Override
     public Set<String> getRoomsWithoutURLPreviews() {
         return (null != mMetadata.mRoomsListWithoutURLPrevew) ? mMetadata.mRoomsListWithoutURLPrevew : new HashSet<String>();
+    }
+
+    @Override
+    public void addFilter(String jsonFilter, String filterId) {
+        mMetadata.mKnownFilters.put(jsonFilter, filterId);
+    }
+
+    @Override
+    public Map<String, String> getFilters() {
+        return new HashMap<>(mMetadata.mKnownFilters);
     }
 
     @Override
