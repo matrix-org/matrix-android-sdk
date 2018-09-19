@@ -285,7 +285,7 @@ public class CompatUtil {
             return in;
         }
 
-        in.mark(4 + AES_GCM_IV_LENGTH);
+        in.mark(1 + AES_GCM_IV_LENGTH);
         final int iv_len = in.read();
         if (iv_len != AES_GCM_IV_LENGTH) {
             Log.e(TAG, "Invalid IV length " + iv_len);
