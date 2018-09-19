@@ -13,6 +13,7 @@ Bugfix:
 
 API Change:
  - MatrixMessageListFragment is now abstract and take an Adapter type as class parameter
+ - Parameter guestAccess removed from MxSession.createRoom(). It had no effect.
 
 Translations:
  -

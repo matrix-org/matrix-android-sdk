@@ -2535,9 +2535,8 @@ public class CryptoTest {
         bobSession.getCrypto().setWarnOnUnknownDevices(false);
 
         CountDownLatch lock0 = new CountDownLatch(1);
-        aliceSession.createRoom(null, null, RoomDirectoryVisibility.DIRECTORY_VISIBILITY_PUBLIC,
-                null, RoomState.GUEST_ACCESS_CAN_JOIN,
-                null, new TestApiCallback<String>(lock0) {
+        aliceSession.createRoom(null, null, RoomDirectoryVisibility.DIRECTORY_VISIBILITY_PUBLIC, null, null,
+                new TestApiCallback<String>(lock0) {
                     @Override
                     public void onSuccess(String roomId) {
                         results.put("roomId", roomId);
@@ -3010,9 +3009,8 @@ public class CryptoTest {
         bobSession.getCrypto().setWarnOnUnknownDevices(false);
 
         CountDownLatch lock0 = new CountDownLatch(1);
-        aliceSession.createRoom(null, null, RoomDirectoryVisibility.DIRECTORY_VISIBILITY_PUBLIC,
-                null, RoomState.GUEST_ACCESS_CAN_JOIN,
-                null, new TestApiCallback<String>(lock0) {
+        aliceSession.createRoom(null, null, RoomDirectoryVisibility.DIRECTORY_VISIBILITY_PUBLIC, null, null,
+                new TestApiCallback<String>(lock0) {
                     @Override
                     public void onSuccess(String roomId) {
                         results.put("roomId", roomId);
@@ -3141,9 +3139,8 @@ public class CryptoTest {
         final String[] aliceRoomId2 = {null};
 
         CountDownLatch lock3 = new CountDownLatch(1);
-        aliceSession2.createRoom(null, null, RoomDirectoryVisibility.DIRECTORY_VISIBILITY_PUBLIC,
-                null, RoomState.GUEST_ACCESS_CAN_JOIN,
-                null, new TestApiCallback<String>(lock3) {
+        aliceSession2.createRoom(null, null, RoomDirectoryVisibility.DIRECTORY_VISIBILITY_PUBLIC, null, null,
+                new TestApiCallback<String>(lock3) {
                     @Override
                     public void onSuccess(String info) {
                         aliceRoomId2[0] = info;
@@ -3394,7 +3391,7 @@ public class CryptoTest {
         SessionAndRoomId sessionAndRoomId = doE2ETestWithAliceInARoom();
         MXSession aliceSession = sessionAndRoomId.first;
         final String aliceRoomId = sessionAndRoomId.second;
-        
+
         Room room = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         MXSession bobSession = mTestHelper.createBobAccount(true, false);
