@@ -2479,8 +2479,8 @@ public class MXSession {
             mxSession = new MXSession(hsConfig, dataHandler, context);
         }
 
-        public Builder withFileEncryption() {
-            mxSession.mEnableFileEncryption = true;
+        public Builder withFileEncryption(boolean enableFileEncryption) {
+            mxSession.mEnableFileEncryption = enableFileEncryption;
             return this;
         }
 
