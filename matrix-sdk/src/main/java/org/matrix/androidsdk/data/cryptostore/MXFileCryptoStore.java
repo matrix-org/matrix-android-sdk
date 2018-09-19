@@ -1136,19 +1136,18 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 InputStream cis;
                 if (mEnableFileEncryption) {
                     cis = CompatUtil.createCipherInputStream(fis, mContext);
+
+                    if (cis == null) {
+                        // fallback to unencrypted stream for backward compatibility
+                        Log.i(LOG_TAG, "## loadObject() : failed to read encrypted, fallback to unencrypted read");
+                        fis.close();
+                        cis = new FileInputStream(file);
+                    }
                 } else {
                     cis = fis;
                 }
-                GZIPInputStream gz;
 
-                if (cis != null) {
-                    gz = new GZIPInputStream(cis);
-                } else {
-                    //fallback to unencrypted stream for backward compatibility
-                    Log.i(LOG_TAG, "## loadObject() : failed to read encrypted, fallback to unencrypted read");
-                    gz = new GZIPInputStream(fis);
-                }
-
+                GZIPInputStream gz = new GZIPInputStream(cis);
                 ObjectInputStream ois = new ObjectInputStream(gz);
 
                 object = ois.readObject();

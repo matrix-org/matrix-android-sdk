@@ -270,11 +270,12 @@ public class CompatUtil {
 
     /**
      * Create a CipherInputStream instance.
-     * Before Kitkat, this method will return in as local storage encryption is not implemented
-     * for devices before KitKat.
+     * Before Kitkat, this method will return `in` because local storage encryption is not implemented for devices before KitKat.
+     * Warning, if `in` is not an encrypted stream, it's up to the caller to close and reopen `in`, because the stream has been read.
      *
-     * @param in      the output stream
+     * @param in      the input stream
      * @param context the context holding the application shared preferences
+     * @return in, or the created InputStream, or null if the InputStream `in`  does not contain encrypted data
      */
     @Nullable
     public static InputStream createCipherInputStream(InputStream in, Context context)
@@ -285,15 +286,13 @@ public class CompatUtil {
             return in;
         }
 
-        in.mark(1 + AES_GCM_IV_LENGTH);
         final int iv_len = in.read();
         if (iv_len != AES_GCM_IV_LENGTH) {
             Log.e(TAG, "Invalid IV length " + iv_len);
-            in.reset();
             return null;
         }
 
-        final byte[] iv = new byte[iv_len];
+        final byte[] iv = new byte[AES_GCM_IV_LENGTH];
         in.read(iv);
 
         final Cipher cipher = Cipher.getInstance(AES_GCM_CIPHER_TYPE);
