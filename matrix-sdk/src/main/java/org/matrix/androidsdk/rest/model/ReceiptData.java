@@ -1,12 +1,13 @@
-/* 
+/*
  * Copyright 2014 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,9 +16,9 @@
  */
 package org.matrix.androidsdk.rest.model;
 
-import java.util.Comparator;
+import org.matrix.androidsdk.interfaces.DatedObject;
 
-public class ReceiptData implements java.io.Serializable {
+public class ReceiptData implements java.io.Serializable, DatedObject {
 
     // the user id
     public String userId;
@@ -34,19 +35,8 @@ public class ReceiptData implements java.io.Serializable {
         originServerTs = aTs;
     }
 
-    // comparator to sort from the oldest to the latest.
-    public static final Comparator<ReceiptData> ascComparator = new Comparator<ReceiptData>() {
-        @Override
-        public int compare(ReceiptData receipt1, ReceiptData receipt2) {
-            return (int) (receipt1.originServerTs - receipt2.originServerTs);
-        }
-    };
-
-    // comparator to sort from the latest to the oldest.
-    public static final Comparator<ReceiptData> descComparator = new Comparator<ReceiptData>() {
-        @Override
-        public int compare(ReceiptData receipt1, ReceiptData receipt2) {
-            return (int) (receipt2.originServerTs - receipt1.originServerTs);
-        }
-    };
+    @Override
+    public long getDate() {
+        return originServerTs;
+    }
 }

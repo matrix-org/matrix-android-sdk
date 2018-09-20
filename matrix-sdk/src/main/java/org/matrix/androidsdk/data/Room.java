@@ -1194,8 +1194,8 @@ public class Room {
      * Event content will contains the receipts dictionaries
      * <pre>
      * key   : $EventId
-     * value : dict key $UserId
-     *              value dict key ts
+     * value : dict key @UserId
+     *              value dict key "ts"
      *                    dict value ts value
      * </pre>
      * <p>

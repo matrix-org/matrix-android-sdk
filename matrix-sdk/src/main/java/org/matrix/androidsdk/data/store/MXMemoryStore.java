@@ -24,13 +24,13 @@ import android.os.Looper;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
+import org.matrix.androidsdk.comparators.Comparators;
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -1174,7 +1174,7 @@ public class MXMemoryStore implements IMXStore {
         }
 
         if (sort && (receipts.size() > 0)) {
-            Collections.sort(receipts, ReceiptData.descComparator);
+            Collections.sort(receipts, Comparators.descComparator);
         }
 
         return receipts;
