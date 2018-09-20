@@ -98,7 +98,6 @@ public class CompatUtil {
      * From Marshmallow, this key is generated and operated directly from the android keystore.
      * From KitKat and before Marshmallow, this key is stored in the application shared preferences
      * wrapped by a RSA key generated and operated directly from the android keystore.
-     * Before Kitkat, this param does not exist and after Kitkat it is set to false by default.
      *
      * @param context the context holding the application shared preferences
      */
@@ -116,7 +115,9 @@ public class CompatUtil {
             SecretKey key;
 
             final SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
-            final int androidVersion = sharedPreferences.getInt(SHARED_KEY_ANDROID_VERSION_WHEN_KEY_HAS_BEEN_GENERATED, Build.VERSION.SDK_INT);
+            // Get the version of Android when the key has been generated, default to the current version of the system. In this case, the
+            // key will be generated
+            final int androidVersionWhenTheKeyHasBeenGenerated = sharedPreferences.getInt(SHARED_KEY_ANDROID_VERSION_WHEN_KEY_HAS_BEEN_GENERATED, Build.VERSION.SDK_INT);
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 if (keyStore.containsAlias(AES_LOCAL_PROTECTION_KEY_ALIAS)) {
@@ -181,7 +182,7 @@ public class CompatUtil {
                 }
             }
 
-            sSecretKeyAndVersion = new SecretKeyAndVersion(key, androidVersion);
+            sSecretKeyAndVersion = new SecretKeyAndVersion(key, androidVersionWhenTheKeyHasBeenGenerated);
         }
 
         return sSecretKeyAndVersion;
@@ -241,20 +242,20 @@ public class CompatUtil {
         }
 
         final SecretKeyAndVersion keyAndVersion = getAesGcmLocalProtectionKey(context);
-        if (keyAndVersion == null || keyAndVersion.getLocalProtectionKey() == null) {
+        if (keyAndVersion == null || keyAndVersion.getSecretKey() == null) {
             throw new KeyStoreException();
         }
 
         final Cipher cipher = Cipher.getInstance(AES_GCM_CIPHER_TYPE);
         byte[] iv;
 
-        if (keyAndVersion.getAndroidVersion() >= Build.VERSION_CODES.M) {
-            cipher.init(Cipher.ENCRYPT_MODE, keyAndVersion.getLocalProtectionKey());
+        if (keyAndVersion.getAndroidVersionWhenTheKeyHasBeenGenerated() >= Build.VERSION_CODES.M) {
+            cipher.init(Cipher.ENCRYPT_MODE, keyAndVersion.getSecretKey());
             iv = cipher.getIV();
         } else {
             iv = new byte[AES_GCM_IV_LENGTH];
             getPrng().nextBytes(iv);
-            cipher.init(Cipher.ENCRYPT_MODE, keyAndVersion.getLocalProtectionKey(), new IvParameterSpec(iv));
+            cipher.init(Cipher.ENCRYPT_MODE, keyAndVersion.getSecretKey(), new IvParameterSpec(iv));
         }
 
         if (iv.length != AES_GCM_IV_LENGTH) {
@@ -298,19 +299,19 @@ public class CompatUtil {
         final Cipher cipher = Cipher.getInstance(AES_GCM_CIPHER_TYPE);
 
         final SecretKeyAndVersion keyAndVersion = getAesGcmLocalProtectionKey(context);
-        if (keyAndVersion == null || keyAndVersion.getLocalProtectionKey() == null) {
+        if (keyAndVersion == null || keyAndVersion.getSecretKey() == null) {
             throw new KeyStoreException();
         }
 
         AlgorithmParameterSpec spec;
 
-        if (keyAndVersion.getAndroidVersion() >= Build.VERSION_CODES.M) {
+        if (keyAndVersion.getAndroidVersionWhenTheKeyHasBeenGenerated() >= Build.VERSION_CODES.M) {
             spec = new GCMParameterSpec(AES_GCM_KEY_SIZE_IN_BITS, iv);
         } else {
             spec = new IvParameterSpec(iv);
         }
 
-        cipher.init(Cipher.DECRYPT_MODE, keyAndVersion.getLocalProtectionKey(), spec);
+        cipher.init(Cipher.DECRYPT_MODE, keyAndVersion.getSecretKey(), spec);
 
         return new CipherInputStream(in, cipher);
     }

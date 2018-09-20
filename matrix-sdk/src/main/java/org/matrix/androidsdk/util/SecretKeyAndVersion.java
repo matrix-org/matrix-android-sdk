@@ -18,23 +18,40 @@ package org.matrix.androidsdk.util;
 
 import javax.crypto.SecretKey;
 
+/**
+ * Tuple which contains the secret key and the version of Android when the key has been generated
+ */
 public class SecretKeyAndVersion {
     // The key
-    private final SecretKey localProtectionKey;
+    private final SecretKey secretKey;
 
     // the android version when the key has been generated
-    private final int androidVersion;
+    private final int androidVersionWhenTheKeyHasBeenGenerated;
 
-    public SecretKeyAndVersion(SecretKey localProtectionKey, int androidVersion) {
-        this.localProtectionKey = localProtectionKey;
-        this.androidVersion = androidVersion;
+    /**
+     * @param secretKey                       the key
+     * @param androidVersionWhenTheKeyHasBeenGenerated the android version when the key has been generated
+     */
+    public SecretKeyAndVersion(SecretKey secretKey, int androidVersionWhenTheKeyHasBeenGenerated) {
+        this.secretKey = secretKey;
+        this.androidVersionWhenTheKeyHasBeenGenerated = androidVersionWhenTheKeyHasBeenGenerated;
     }
 
-    public SecretKey getLocalProtectionKey() {
-        return localProtectionKey;
+    /**
+     * Get the key
+     *
+     * @return the key
+     */
+    public SecretKey getSecretKey() {
+        return secretKey;
     }
 
-    public int getAndroidVersion() {
-        return androidVersion;
+    /**
+     * Get the android version when the key has been generated
+     *
+     * @return the android version when the key has been generated
+     */
+    public int getAndroidVersionWhenTheKeyHasBeenGenerated() {
+        return androidVersionWhenTheKeyHasBeenGenerated;
     }
 }
