@@ -16,17 +16,22 @@
 package org.matrix.androidsdk.lazyloading;
 
 import android.support.test.InstrumentationRegistry;
+import android.support.test.runner.AndroidJUnit4;
 
 import junit.framework.Assert;
 
 import org.junit.BeforeClass;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.MethodSorters;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.common.CommonTestHelper;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 
+@FixMethodOrder(MethodSorters.JVM)
 public class RoomSummaryTest {
 
     private CommonTestHelper mTestHelper = new CommonTestHelper();
@@ -81,28 +86,5 @@ public class RoomSummaryTest {
         Assert.assertEquals(3, roomSummary.getNumberOfJoinedMembers());
         Assert.assertEquals(1, roomSummary.getNumberOfInvitedMembers());
     }
-
-    @Test
-    public void RoomSummary_DisplayNameFromHeroes_LazyLoadedMembers() throws Exception {
-        RoomSummary_DisplayNameFromHeroes(true);
-    }
-
-    @Test
-    public void RoomSummary_DisplayNameFromHeroes_LoadAllMembers() throws Exception {
-        RoomSummary_DisplayNameFromHeroes(false);
-    }
-
-    private void RoomSummary_DisplayNameFromHeroes(boolean withLazyLoading) throws Exception {
-        final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario(withLazyLoading);
-        mTestHelper.syncSession(data.aliceSession, false);
-        final Room room = data.aliceSession.getDataHandler().getStore().getRoom(data.roomId);
-        final RoomState roomState = room.getState();
-
-        Assert.assertNotNull(roomState.getMember(data.bobSession.getMyUserId()));
-        Assert.assertNotNull(roomState.getMember(data.aliceSession.getMyUserId()));
-        Assert.assertNotNull(roomState.getMember(data.samSession.getMyUserId()));
-        Assert.assertEquals(withLazyLoading, roomState.name != null);
-    }
-
 
 }

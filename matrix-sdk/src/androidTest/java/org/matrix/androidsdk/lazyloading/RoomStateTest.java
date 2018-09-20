@@ -37,8 +37,7 @@ import org.matrix.androidsdk.util.Log;
 
 import java.util.concurrent.CountDownLatch;
 
-@RunWith(AndroidJUnit4.class)
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@FixMethodOrder(MethodSorters.JVM)
 public class RoomStateTest {
 
     private CommonTestHelper mTestHelper = new CommonTestHelper();
