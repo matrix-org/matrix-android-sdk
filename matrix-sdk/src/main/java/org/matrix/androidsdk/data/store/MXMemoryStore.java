@@ -24,11 +24,11 @@ import android.os.Looper;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.comparators.Comparators;
 import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.data.comparator.Comparators;
 import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;

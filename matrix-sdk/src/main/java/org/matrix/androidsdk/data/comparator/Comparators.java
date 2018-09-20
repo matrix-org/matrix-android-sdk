@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.comparators;
+package org.matrix.androidsdk.data.comparator;
 
 import org.matrix.androidsdk.interfaces.DatedObject;
 

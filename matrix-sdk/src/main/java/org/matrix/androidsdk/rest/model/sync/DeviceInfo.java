@@ -17,7 +17,7 @@
  */
 package org.matrix.androidsdk.rest.model.sync;
 
-import org.matrix.androidsdk.comparators.Comparators;
+import org.matrix.androidsdk.data.comparator.Comparators;
 import org.matrix.androidsdk.interfaces.DatedObject;
 
 import java.util.Collections;
