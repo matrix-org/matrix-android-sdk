@@ -34,7 +34,6 @@ import android.text.TextUtils;
 import android.util.Pair;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
@@ -125,9 +124,6 @@ public class Room {
 
     // initial sync callback.
     private ApiCallback<Void> mOnInitialSyncCallback;
-
-    // gson parser
-    private final Gson gson = new GsonBuilder().create();
 
     // This is used to block live events and history requests until the state is fully processed and ready
     private boolean mIsReady = false;
@@ -549,7 +545,6 @@ public class Room {
     }
 
     /**
-     *
      * @param membership is the string representing one of the membership state
      * @return true if the user membership is equals to the membership param
      */
@@ -1196,6 +1191,29 @@ public class Room {
 
     /**
      * Handle receipt event.
+     * Event content will contains the receipts dictionaries
+     * <pre>
+     * key   : $EventId
+     * value : dict key $UserId
+     *              value dict key ts
+     *                    dict value ts value
+     * </pre>
+     * <p>
+     * Example:
+     * <pre>
+     * {
+     *     "$1535657109773196ZjoWE:matrix.org": {
+     *         "m.read": {
+     *             "@slash_benoit:matrix.org": {
+     *                 "ts": 1535708570621
+     *             },
+     *             "@benoit.marty:matrix.org": {
+     *                 "ts": 1535657109472
+     *             }
+     *         }
+     *     }
+     * },
+     * </pre>
      *
      * @param event the event receipts.
      * @return the sender user IDs list.
@@ -1204,14 +1222,9 @@ public class Room {
         List<String> senderIDs = new ArrayList<>();
 
         try {
-            // the receipts dictionnaries
-            // key   : $EventId
-            // value : dict key $UserId
-            //              value dict key ts
-            //                    dict value ts value
             Type type = new TypeToken<Map<String, Map<String, Map<String, Map<String, Object>>>>>() {
             }.getType();
-            Map<String, Map<String, Map<String, Map<String, Object>>>> receiptsDict = gson.fromJson(event.getContent(), type);
+            Map<String, Map<String, Map<String, Map<String, Object>>>> receiptsDict = JsonUtils.getGson(false).fromJson(event.getContent(), type);
 
             for (String eventId : receiptsDict.keySet()) {
                 Map<String, Map<String, Map<String, Object>>> receiptDict = receiptsDict.get(eventId);
