@@ -1033,11 +1033,7 @@ public class MXDataHandler implements IMXEventListener {
 
             if (TextUtils.equals(type, "m.push_rules")) {
                 if (event.containsKey("content")) {
-                    Gson gson = new GsonBuilder()
-                            .setFieldNamingStrategy(new JsonUtils.MatrixFieldNamingStrategy())
-                            .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
-                            .registerTypeAdapter(Condition.class, new ConditionDeserializer())
-                            .create();
+                    Gson gson = JsonUtils.getGson(false);
 
                     // convert the data to PushRulesResponse
                     // because BingRulesManager supports only PushRulesResponse
