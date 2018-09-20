@@ -9,6 +9,7 @@ Improvements:
 
 Bugfix:
  - Fix excessive whitespace on quoted messages (#348)
+ - Scroll to bottom no longer keeps inertia after position change (#354)
 
 API Change:
  - 
