@@ -61,9 +61,9 @@ public class LazyLoadingTestHelper {
     public LazyLoadingScenarioData createScenario(boolean withLazyLoading) throws Exception {
 
         final SessionTestParams createSessionParams = SessionTestParams.newBuilder().withInitialSync(true).build();
-        MXSession aliceSession = mTestHelper.createAliceAccount(createSessionParams);
-        MXSession bobSession = mTestHelper.createBobAccount(createSessionParams);
-        MXSession samSession = mTestHelper.createSamAccount(createSessionParams);
+        MXSession aliceSession = mTestHelper.createAccount(createSessionParams);
+        MXSession bobSession = mTestHelper.createAccount(createSessionParams);
+        MXSession samSession = mTestHelper.createAccount(createSessionParams);
 
         final String aliceId = aliceSession.getMyUserId();
         final String bobId = bobSession.getMyUserId();
@@ -83,8 +83,11 @@ public class LazyLoadingTestHelper {
         final String roomId = results.get("roomId");
         final Room bobRoom = bobSession.getDataHandler().getRoom(roomId);
 
+        //update name and join rules
+        latch = new CountDownLatch(1);
+        bobRoom.updateName("LazyLoading Test Room", new TestApiCallback<Void>(latch));
+        mTestHelper.await(latch);
 
-        //update join rules
         latch = new CountDownLatch(1);
         bobRoom.updateJoinRules(RoomState.JOIN_RULE_PUBLIC, new TestApiCallback<Void>(latch));
         mTestHelper.await(latch);
@@ -123,10 +126,11 @@ public class LazyLoadingTestHelper {
         bobSession.clear(context);
         samSession.clear(context);
 
+
         final SessionTestParams logSessionParams = SessionTestParams.newBuilder().withLazyLoading(withLazyLoading).build();
-        aliceSession = mTestHelper.logIntoAliceAccount(aliceId, logSessionParams);
-        bobSession = mTestHelper.logIntoBobAccount(bobId, logSessionParams);
-        samSession = mTestHelper.logIntoSamAccount(samId, logSessionParams);
+        aliceSession = mTestHelper.logIntoAccount(aliceId, logSessionParams);
+        bobSession = mTestHelper.logIntoAccount(bobId, logSessionParams);
+        samSession = mTestHelper.logIntoAccount(samId, logSessionParams);
         return new LazyLoadingScenarioData(aliceSession, bobSession, samSession, roomId, bobMessageId);
     }
 }

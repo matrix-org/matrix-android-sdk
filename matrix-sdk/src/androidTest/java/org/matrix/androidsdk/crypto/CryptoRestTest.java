@@ -54,7 +54,7 @@ public class CryptoRestTest {
     public void test01_testDeviceKeys() throws Exception {
         final Context context = InstrumentationRegistry.getContext();
         final SessionTestParams testParams = SessionTestParams.newBuilder().withInitialSync(true).build();
-        final MXSession bobSession = mTestHelper.createBobAccount(testParams);
+        final MXSession bobSession = mTestHelper.createAccount(testParams);
         final Map<String, Object> results = new HashMap<>();
 
         String ed25519key = "wV5E3EUSHpHuoZLljNzojlabjGdXT3Mz7rugG9zgbkI";
@@ -120,7 +120,7 @@ public class CryptoRestTest {
     public void test02_testOneTimeKeys() throws Exception {
         Context context = InstrumentationRegistry.getContext();
         final SessionTestParams testParams = SessionTestParams.newBuilder().withInitialSync(true).build();
-        final MXSession bobSession = mTestHelper.createBobAccount(testParams);
+        final MXSession bobSession = mTestHelper.createAccount(testParams);
 
         final Map<String, Object> results = new HashMap<>();
         final Map<String, Object> otks = new HashMap<>();
@@ -153,8 +153,8 @@ public class CryptoRestTest {
     public void test03_testClaimOneTimeKeysForUsersDevices() throws Exception {
         Context context = InstrumentationRegistry.getContext();
         final SessionTestParams testParams = SessionTestParams.newBuilder().withInitialSync(true).build();
-        final MXSession bobSession = mTestHelper.createBobAccount(testParams);
-        final MXSession aliceSession = mTestHelper.createAliceAccount(testParams);
+        final MXSession bobSession = mTestHelper.createAccount(testParams);
+        final MXSession aliceSession = mTestHelper.createAccount(testParams);
 
         final Map<String, Object> results = new HashMap<>();
         final Map<String, Object> otks = new HashMap<>();

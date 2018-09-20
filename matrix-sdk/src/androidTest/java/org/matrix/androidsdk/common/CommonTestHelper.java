@@ -58,29 +58,12 @@ import javax.annotation.Nonnull;
  */
 public class CommonTestHelper {
 
-    public MXSession createBobAccount(final SessionTestParams testParams) throws InterruptedException {
-        return createAccount(TestConstants.BOB_USER_ID, TestConstants.BOB_PWD, testParams);
+    public MXSession createAccount(final SessionTestParams testParams) throws InterruptedException {
+        return createAccount(TestConstants.USER_ID, TestConstants.PASSWORD, testParams);
     }
 
-    public MXSession createAliceAccount(final SessionTestParams testParams) throws InterruptedException {
-        return createAccount(TestConstants.ALICE_USER_ID, TestConstants.ALICE_PWD, testParams);
-    }
-
-    public MXSession createSamAccount(final SessionTestParams testParams) throws InterruptedException {
-        return createAccount(TestConstants.SAM_USER_ID, TestConstants.SAM_PWD, testParams);
-    }
-
-    public MXSession logIntoBobAccount(final String bobUserId, final SessionTestParams testParams) throws InterruptedException {
-        return logIntoAccount(bobUserId, TestConstants.BOB_PWD, testParams);
-    }
-
-    public MXSession logIntoAliceAccount(final String aliceUserId, final SessionTestParams testParams)
-            throws InterruptedException {
-        return logIntoAccount(aliceUserId, TestConstants.ALICE_PWD, testParams);
-    }
-
-    public MXSession logIntoSamAccount(final String samUserId, final SessionTestParams testParams) throws InterruptedException {
-        return logIntoAccount(samUserId, TestConstants.SAM_PWD, testParams);
+    public MXSession logIntoAccount(final String userId, final SessionTestParams testParams) throws InterruptedException {
+        return logIntoAccount(userId, TestConstants.PASSWORD, testParams);
     }
 
     /**
