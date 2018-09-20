@@ -217,7 +217,10 @@ public class DataRetriever {
                         }
 
                         private void logErrorMessage(String expectedToken, String errorMessage) {
-                            Log.e(LOG_TAG, "## backPaginate() failed : roomId " + roomId + " token " + token + " expected " + expectedToken + " with " + errorMessage);
+                            Log.e(LOG_TAG, "## backPaginate() failed : roomId " + roomId
+                                    + " token " + token
+                                    + " expected " + expectedToken
+                                    + " with " + errorMessage);
                         }
 
                         @Override
