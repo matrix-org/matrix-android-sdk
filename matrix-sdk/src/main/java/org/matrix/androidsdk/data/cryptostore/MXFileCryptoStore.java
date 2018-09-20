@@ -38,8 +38,10 @@ import org.matrix.olm.OlmSession;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -162,7 +164,18 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     // tell if the store is ready
     private boolean mIsReady = false;
 
-    public MXFileCryptoStore() {
+    private Context mContext;
+
+    // True if file encryption is enabled
+    private final boolean mEnableFileEncryption;
+
+    /**
+     * Constructor
+     *
+     * @param enableFileEncryption set to true to enable file encryption.
+     */
+    public MXFileCryptoStore(boolean enableFileEncryption) {
+        mEnableFileEncryption = enableFileEncryption;
     }
 
     @Override
@@ -216,6 +229,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         mTrackingStatuses = new HashMap<>();
         mOlmSessions = new HashMap<>();
         mInboundGroupSessions = new HashMap<>();
+
+        mContext = context;
     }
 
     @Override
@@ -381,14 +396,22 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 }
 
                 FileOutputStream fos = new FileOutputStream(file);
-                GZIPOutputStream gz = CompatUtil.createGzipOutputStream(fos);
+                OutputStream cos;
+                if (mEnableFileEncryption) {
+                    cos = CompatUtil.createCipherOutputStream(fos, mContext);
+                } else {
+                    cos = fos;
+                }
+                GZIPOutputStream gz = CompatUtil.createGzipOutputStream(cos);
                 ObjectOutputStream out = new ObjectOutputStream(gz);
 
                 out.writeObject(object);
+                out.flush();
                 out.close();
 
                 succeed = true;
                 Log.d(LOG_TAG, "## storeObject () : " + description + " done in " + (System.currentTimeMillis() - t0) + " ms");
+
             } catch (OutOfMemoryError oom) {
                 Log.e(LOG_TAG, "storeObject failed : " + description + " -- " + oom.getMessage(), oom);
             } catch (Exception e) {
@@ -1110,8 +1133,23 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             try {
                 // the files are now zipped to reduce saving time
                 FileInputStream fis = new FileInputStream(file);
-                GZIPInputStream gz = new GZIPInputStream(fis);
+                InputStream cis;
+                if (mEnableFileEncryption) {
+                    cis = CompatUtil.createCipherInputStream(fis, mContext);
+
+                    if (cis == null) {
+                        // fallback to unencrypted stream for backward compatibility
+                        Log.i(LOG_TAG, "## loadObject() : failed to read encrypted, fallback to unencrypted read");
+                        fis.close();
+                        cis = new FileInputStream(file);
+                    }
+                } else {
+                    cis = fis;
+                }
+
+                GZIPInputStream gz = new GZIPInputStream(cis);
                 ObjectInputStream ois = new ObjectInputStream(gz);
+
                 object = ois.readObject();
                 ois.close();
             } catch (Exception e) {
@@ -1123,7 +1161,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     ObjectInputStream out = new ObjectInputStream(fis2);
 
                     object = out.readObject();
-                    fis2.close();
+                    out.close();
                 } catch (Exception subEx) {
                     // warn that some file loading fails
                     mIsCorrupted = true;

@@ -29,9 +29,7 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
-import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -47,8 +45,10 @@ import org.matrix.androidsdk.util.MXOsHandler;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -142,6 +142,9 @@ public class MXFileStore extends MXMemoryStore {
     // store some stats
     private final Map<String, Long> mStoreStats = new HashMap<>();
 
+    // True if file encryption is enabled
+    private final boolean mEnableFileEncryption;
+
     /**
      * Create the file store dirtrees
      */
@@ -212,14 +215,16 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     /**
-     * Default constructor
+     * Constructor
      *
-     * @param hsConfig the expected credentials
-     * @param context  the context.
+     * @param hsConfig             the expected credentials
+     * @param enableFileEncryption set to true to enable file encryption.
+     * @param context              the context.
      */
-    public MXFileStore(HomeServerConnectionConfig hsConfig, Context context) {
-        initCommon();
+    public MXFileStore(HomeServerConnectionConfig hsConfig, boolean enableFileEncryption, Context context) {
         setContext(context);
+
+        mEnableFileEncryption = enableFileEncryption;
 
         mIsReady = false;
         mCredentials = hsConfig.getCredentials();
@@ -2303,10 +2308,17 @@ public class MXFileStore extends MXMemoryStore {
         boolean succeed = false;
         try {
             FileOutputStream fos = new FileOutputStream(file);
-            GZIPOutputStream gz = CompatUtil.createGzipOutputStream(fos);
+            OutputStream cos;
+            if (mEnableFileEncryption) {
+                cos = CompatUtil.createCipherOutputStream(fos, mContext);
+            } else {
+                cos = fos;
+            }
+            GZIPOutputStream gz = CompatUtil.createGzipOutputStream(cos);
             ObjectOutputStream out = new ObjectOutputStream(gz);
 
             out.writeObject(object);
+            out.flush();
             out.close();
 
             succeed = true;
@@ -2346,7 +2358,21 @@ public class MXFileStore extends MXMemoryStore {
         Object object = null;
         try {
             FileInputStream fis = new FileInputStream(file);
-            GZIPInputStream gz = new GZIPInputStream(fis);
+            InputStream cis;
+            if (mEnableFileEncryption) {
+                cis = CompatUtil.createCipherInputStream(fis, mContext);
+
+                if (cis == null) {
+                    // fallback to unencrypted stream for backward compatibility
+                    Log.i(LOG_TAG, "## readObject() : failed to read encrypted, fallback to unencrypted read");
+                    fis.close();
+                    cis = new FileInputStream(file);
+                }
+            } else {
+                cis = fis;
+            }
+
+            GZIPInputStream gz = new GZIPInputStream(cis);
             ObjectInputStream ois = new ObjectInputStream(gz);
             object = ois.readObject();
             ois.close();
