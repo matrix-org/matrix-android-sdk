@@ -180,7 +180,7 @@ public class CommonTestHelper {
                 userId + System.currentTimeMillis() + UUID.randomUUID(),
                 password,
                 testParams.withInitialSync,
-                testParams.enableCrypto
+                testParams.withCryptoEnabled
         );
         Assert.assertNotNull(session);
         return session;
@@ -198,7 +198,7 @@ public class CommonTestHelper {
                                      @NonNull final String password,
                                      @NonNull final SessionTestParams testParams) throws InterruptedException {
         final Context context = InstrumentationRegistry.getContext();
-        final MXSession session = logAccountAndSync(context, userId, password, testParams.withInitialSync, testParams.enableCrypto, testParams.withLazyLoading);
+        final MXSession session = logAccountAndSync(context, userId, password, testParams.withInitialSync, testParams.withCryptoEnabled, testParams.withLazyLoading);
         Assert.assertNotNull(session);
         return session;
     }
