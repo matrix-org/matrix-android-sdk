@@ -24,7 +24,7 @@ import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
-import org.matrix.androidsdk.data.EventTimeline;
+import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomState;

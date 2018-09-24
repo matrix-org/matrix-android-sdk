@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.data;
+package org.matrix.androidsdk.data.timeline;
 
 import android.os.AsyncTask;
 import android.os.Looper;
@@ -24,28 +24,21 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
-import com.google.gson.JsonObject;
-
 import org.matrix.androidsdk.MXDataHandler;
-import org.matrix.androidsdk.call.MXCall;
+import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXMemoryStore;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.ReceiptData;
-import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkEvents;
-import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.sync.RoomSync;
-import org.matrix.androidsdk.util.BingRulesManager;
-import org.matrix.androidsdk.util.EventDisplay;
 import org.matrix.androidsdk.util.FilterUtil;
-import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
@@ -148,6 +141,13 @@ public class EventTimeline implements IEventTimeline {
      */
     private final String mTimelineId = System.currentTimeMillis() + "";
 
+    // Allows to store event and roomSummary
+    private final TimelineEventSaver mTimelineEventSaver = new TimelineEventSaver(this);
+
+    private final StateEventRedactionChecker mStateEventRedactionChecker = new StateEventRedactionChecker(this);
+
+    private TimelinePushWorker mTimelinePushWorker;
+
     /**
      * Constructor from room.
      *
@@ -188,6 +188,7 @@ public class EventTimeline implements IEventTimeline {
 
         mState.setDataHandler(dataHandler);
         mBackState.setDataHandler(dataHandler);
+        mTimelinePushWorker = new TimelinePushWorker(mDataHandler);
     }
 
     /**
@@ -200,9 +201,18 @@ public class EventTimeline implements IEventTimeline {
         mIsHistorical = isHistorical;
     }
 
+    /**
+     * Returns true if the current timeline is an historical one
+     */
+    @Override
+    public boolean isHistorical() {
+        return mIsHistorical;
+    }
+
     /*
      * @return the unique identifier
      */
+    @Override
     public String getTimelineId() {
         return mTimelineId;
     }
@@ -269,12 +279,14 @@ public class EventTimeline implements IEventTimeline {
         mDataHandler = dataHandler;
         mState.setDataHandler(dataHandler);
         mBackState.setDataHandler(dataHandler);
+        mTimelinePushWorker = new TimelinePushWorker(mDataHandler);
     }
 
     /**
      * Reset the back state so that future history requests start over from live.
      * Must be called when opening a room if interested in history.
      */
+    @Override
     public void initHistory() {
         mBackState = mState.deepCopy();
         mCanBackPaginate = true;
@@ -340,7 +352,7 @@ public class EventTimeline implements IEventTimeline {
      *
      * @param direction the room state direction to deep copy.
      */
-    private void deepCopyState(Direction direction) {
+    public void deepCopyState(Direction direction) {
         if (direction == Direction.FORWARDS) {
             mState = mState.deepCopy();
         } else {
@@ -420,184 +432,9 @@ public class EventTimeline implements IEventTimeline {
      * @param event the event to store
      */
     private void storeEvent(Event event) {
-        String myUserId = mDataHandler.getCredentials().userId;
-
-        // create dummy read receipt for any incoming event
-        // to avoid not synchronized read receipt and event
-        if ((null != event.getSender()) && (null != event.eventId)) {
-            mRoom.handleReceiptData(new ReceiptData(event.getSender(), event.eventId, event.originServerTs));
-        }
-
-        mStore.storeLiveRoomEvent(event);
-
-        if (RoomSummary.isSupportedEvent(event)) {
-            RoomSummary summary = mStore.getSummary(event.roomId);
-
-            if (null == summary) {
-                summary = new RoomSummary(summary, event, mState, myUserId);
-            } else {
-                summary.setLatestReceivedEvent(event, mState);
-            }
-
-            mStore.storeSummary(summary);
-        }
+        mTimelineEventSaver.storeEvent(event);
     }
 
-    /**
-     * Store a live room event.
-     *
-     * @param event                   The event to be stored.
-     * @param checkRedactedStateEvent true to check if this event redacts a state event
-     */
-    private void storeLiveRoomEvent(Event event, boolean checkRedactedStateEvent) {
-        boolean store = false;
-        String myUserId = mDataHandler.getCredentials().userId;
-
-        if (Event.EVENT_TYPE_REDACTION.equals(event.getType())) {
-            if (event.getRedacts() != null) {
-                Event eventToPrune = mStore.getEvent(event.getRedacts(), event.roomId);
-
-                // when an event is redacted, some fields must be kept.
-                if (null != eventToPrune) {
-                    store = true;
-
-                    // remove expected keys
-                    eventToPrune.prune(event);
-
-                    // store the prune event
-                    storeEvent(eventToPrune);
-
-                    // store the redaction event too (for the read markers management)
-                    storeEvent(event);
-
-                    // the redaction check must not be done during an initial sync
-                    // or the redacted event is received with roomSync.timeline.limited
-                    if (checkRedactedStateEvent && eventToPrune.stateKey != null) {
-                        checkStateEventRedaction(event);
-                    }
-
-                    // search the latest displayable event
-                    // to replace the summary text
-                    List<Event> events = new ArrayList<>(mStore.getRoomMessages(event.roomId));
-                    for (int index = events.size() - 1; index >= 0; index--) {
-                        Event anEvent = events.get(index);
-                        if (RoomSummary.isSupportedEvent(anEvent)) {
-                            // Decrypt event if necessary
-                            if (TextUtils.equals(anEvent.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
-                                if (null != mDataHandler.getCrypto()) {
-                                    mDataHandler.decryptEvent(anEvent, getTimelineId());
-                                }
-                            }
-
-                            EventDisplay eventDisplay = new EventDisplay(mStore.getContext(), anEvent, mState);
-
-                            // ensure that message can be displayed
-                            if (!TextUtils.isEmpty(eventDisplay.getTextualDisplay())) {
-                                event = anEvent;
-                                break;
-                            }
-                        }
-
-                    }
-                } else {
-                    // the redaction check must not be done during an initial sync
-                    // or the redacted event is received with roomSync.timeline.limited
-                    if (checkRedactedStateEvent) {
-                        checkStateEventRedaction(event);
-                    }
-                }
-            }
-        } else {
-            // the candidate events are not stored.
-            store = !event.isCallEvent() || !Event.EVENT_TYPE_CALL_CANDIDATES.equals(event.getType());
-
-            // thread issue
-            // if the user leaves a room,
-            if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.getType()) && myUserId.equals(event.stateKey)) {
-                String membership = event.getContentAsJsonObject().getAsJsonPrimitive("membership").getAsString();
-
-                if (RoomMember.MEMBERSHIP_LEAVE.equals(membership) || RoomMember.MEMBERSHIP_BAN.equals(membership)) {
-                    store = mIsHistorical;
-                    // delete the room and warn the listener of the leave event only at the end of the events chunk processing
-                }
-            }
-        }
-
-        if (store) {
-            storeEvent(event);
-        }
-
-        // warn the listener that a new room has been created
-        if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(event.getType())) {
-            mDataHandler.onNewRoom(event.roomId);
-        }
-
-        // warn the listeners that a room has been joined
-        if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.getType()) && myUserId.equals(event.stateKey)) {
-            String membership = event.getContentAsJsonObject().getAsJsonPrimitive("membership").getAsString();
-
-            if (RoomMember.MEMBERSHIP_JOIN.equals(membership)) {
-                mDataHandler.onJoinRoom(event.roomId);
-            } else if (RoomMember.MEMBERSHIP_INVITE.equals(membership)) {
-                mDataHandler.onNewRoom(event.roomId);
-            }
-        }
-    }
-
-    /**
-     * Trigger a push if there is a dedicated push rules which implies it.
-     *
-     * @param event the event
-     */
-    private void triggerPush(Event event) {
-        BingRule bingRule;
-        boolean outOfTimeEvent = false;
-        long maxlifetime = 0;
-        long eventLifeTime = 0;
-
-        JsonObject eventContent = event.getContentAsJsonObject();
-
-        if (eventContent.has("lifetime")) {
-            maxlifetime = eventContent.get("lifetime").getAsLong();
-            eventLifeTime = System.currentTimeMillis() - event.getOriginServerTs();
-
-            outOfTimeEvent = eventLifeTime > maxlifetime;
-        }
-
-        BingRulesManager bingRulesManager = mDataHandler.getBingRulesManager();
-
-        // If the bing rules apply, bing
-        if (!outOfTimeEvent
-                && (bingRulesManager != null)
-                && (null != (bingRule = bingRulesManager.fulfilledBingRule(event)))) {
-
-            if (bingRule.shouldNotify()) {
-                // bing the call events only if they make sense
-                if (Event.EVENT_TYPE_CALL_INVITE.equals(event.getType())) {
-                    long lifeTime = event.getAge();
-
-                    if (Long.MAX_VALUE == lifeTime) {
-                        lifeTime = System.currentTimeMillis() - event.getOriginServerTs();
-                    }
-
-                    if (lifeTime > MXCall.CALL_TIMEOUT_MS) {
-                        Log.d(LOG_TAG, "handleLiveEvent : IGNORED onBingEvent rule id " + bingRule.ruleId + " event id " + event.eventId
-                                + " in " + event.roomId);
-                        return;
-                    }
-                }
-
-                Log.d(LOG_TAG, "handleLiveEvent : onBingEvent rule id " + bingRule.ruleId + " event id " + event.eventId + " in " + event.roomId);
-                mDataHandler.onBingEvent(event, mState, bingRule);
-            } else {
-                Log.d(LOG_TAG, "handleLiveEvent :rule id " + bingRule.ruleId + " event id " + event.eventId
-                        + " in " + event.roomId + " has a mute notify rule");
-            }
-        } else if (outOfTimeEvent) {
-            Log.e(LOG_TAG, "handleLiveEvent : outOfTimeEvent for " + event.eventId + " in " + event.roomId);
-            Log.e(LOG_TAG, "handleLiveEvent : outOfTimeEvent maxlifetime " + maxlifetime + " eventLifeTime " + eventLifeTime);
-        }
-    }
 
     /**
      * Handle events coming down from the event stream.
@@ -608,122 +445,8 @@ public class EventTimeline implements IEventTimeline {
      */
     @Override
     public void handleLiveEvent(Event event, boolean checkRedactedStateEvent, boolean withPush) {
-        MyUser myUser = mDataHandler.getMyUser();
-
-        // Decrypt event if necessary
-        mDataHandler.decryptEvent(event, getTimelineId());
-
-        // dispatch the call events to the calls manager
-        if (event.isCallEvent()) {
-            mDataHandler.getCallsManager().handleCallEvent(mStore, event);
-
-            storeLiveRoomEvent(event, false);
-
-            // the candidates events are not tracked
-            // because the users don't need to see the peer exchanges.
-            if (!TextUtils.equals(event.getType(), Event.EVENT_TYPE_CALL_CANDIDATES)) {
-                // warn the listeners
-                // general listeners
-                mDataHandler.onLiveEvent(event, mState);
-
-                // timeline listeners
-                onEvent(event, Direction.FORWARDS, mState);
-            }
-
-            // trigger pushes when it is required
-            if (withPush) {
-                triggerPush(event);
-            }
-
-        } else {
-            Event storedEvent = mStore.getEvent(event.eventId, event.roomId);
-
-            // avoid processing event twice
-            if (null != storedEvent) {
-                // an event has been echoed
-                if (storedEvent.getAge() == Event.DUMMY_EVENT_AGE) {
-                    mStore.deleteEvent(storedEvent);
-                    mStore.storeLiveRoomEvent(event);
-                    mStore.commit();
-                    Log.d(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " has been echoed");
-                } else {
-                    Log.d(LOG_TAG, "handleLiveEvent : the event " + event.eventId + " in " + event.roomId + " already exist.");
-                    return;
-                }
-            }
-
-            // Room event
-            if (event.roomId != null) {
-                // check if the room has been joined
-                // the initial sync + the first requestHistory call is done here
-                // instead of being done in the application
-                if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(event.getType()) && TextUtils.equals(event.getSender(), mDataHandler.getUserId())) {
-                    EventContent eventContent = JsonUtils.toEventContent(event.getContentAsJsonObject());
-                    EventContent prevEventContent = event.getPrevContent();
-
-                    String prevMembership = null;
-
-                    if (null != prevEventContent) {
-                        prevMembership = prevEventContent.membership;
-                    }
-
-                    // if the membership keeps the same value "join".
-                    // it should mean that the user profile has been updated.
-                    if (!event.isRedacted() && TextUtils.equals(prevMembership, eventContent.membership)
-                            && TextUtils.equals(RoomMember.MEMBERSHIP_JOIN, eventContent.membership)) {
-                        // check if the user updates his profile from another device.
-
-                        boolean hasAccountInfoUpdated = false;
-
-                        if (!TextUtils.equals(eventContent.displayname, myUser.displayname)) {
-                            hasAccountInfoUpdated = true;
-                            myUser.displayname = eventContent.displayname;
-                            mStore.setDisplayName(myUser.displayname, event.getOriginServerTs());
-                        }
-
-                        if (!TextUtils.equals(eventContent.avatar_url, myUser.getAvatarUrl())) {
-                            hasAccountInfoUpdated = true;
-                            myUser.setAvatarUrl(eventContent.avatar_url);
-                            mStore.setAvatarURL(myUser.avatar_url, event.getOriginServerTs());
-                        }
-
-                        if (hasAccountInfoUpdated) {
-                            mDataHandler.onAccountInfoUpdate(myUser);
-                        }
-                    }
-                }
-
-                RoomState previousState = mState;
-
-                if (event.stateKey != null) {
-                    // copy the live state before applying any update
-                    deepCopyState(Direction.FORWARDS);
-
-                    // check if the event has been processed
-                    if (!processStateEvent(event, Direction.FORWARDS)) {
-                        // not processed -> do not warn the application
-                        // assume that the event is a duplicated one.
-                        return;
-                    }
-                }
-
-                storeLiveRoomEvent(event, checkRedactedStateEvent);
-
-                // warn the listeners
-                // general listeners
-                mDataHandler.onLiveEvent(event, previousState);
-
-                // timeline listeners
-                onEvent(event, Direction.FORWARDS, previousState);
-
-                // trigger pushes when it is required
-                if (withPush) {
-                    triggerPush(event);
-                }
-            } else {
-                Log.e(LOG_TAG, "Unknown live event type: " + event.getType());
-            }
-        }
+        final TimelineLiveEventHandler liveEventHandler = new TimelineLiveEventHandler(this, mTimelineEventSaver, mStateEventRedactionChecker, mTimelinePushWorker);
+        liveEventHandler.handleLiveEvent(event, checkRedactedStateEvent, withPush);
     }
 
 
@@ -1310,133 +1033,6 @@ public class EventTimeline implements IEventTimeline {
     }
 
     //==============================================================================================================
-    // State events redactions
-    //==============================================================================================================
-
-    /**
-     * Redaction of a state event might require to reload the timeline
-     * because the room states has to be updated.
-     *
-     * @param redactionEvent the redaction event
-     */
-    private void checkStateEventRedaction(final Event redactionEvent) {
-
-        final String eventId = redactionEvent.getRedacts();
-        Log.d(LOG_TAG, "checkStateEventRedaction of event " + eventId);
-
-        // check if the state events is locally known
-        mState.getStateEvents(getStore(), null, new SimpleApiCallback<List<Event>>() {
-            @Override
-            public void onSuccess(List<Event> stateEvents) {
-
-                // Check whether the current room state depends on this redacted event.
-                boolean isFound = false;
-                for (int index = 0; index < stateEvents.size(); index++) {
-                    Event stateEvent = stateEvents.get(index);
-
-                    if (TextUtils.equals(stateEvent.eventId, eventId)) {
-
-                        Log.d(LOG_TAG, "checkStateEventRedaction: the current room state has been modified by the event redaction");
-
-                        // remove expected keys
-                        stateEvent.prune(redactionEvent);
-
-                        stateEvents.set(index, stateEvent);
-
-                        // digest the updated state
-                        processStateEvent(stateEvent, Direction.FORWARDS);
-
-                        isFound = true;
-                        break;
-                    }
-                }
-
-                if (!isFound) {
-                    // Else try to find the redacted event among members which
-                    // are stored apart from other state events
-
-                    // Reason: The membership events are not anymore stored in the application store
-                    // until we have found a way to improve the way they are stored.
-                    // It used to have many out of memory errors because they are too many stored small memory objects.
-                    // see https://github.com/matrix-org/matrix-android-sdk/issues/196
-
-                    // Note: if lazy loading is on, getMemberByEventId() can return null, but it is ok, because we just want to update our cache
-                    RoomMember member = mState.getMemberByEventId(eventId);
-                    if (member != null) {
-                        Log.d(LOG_TAG, "checkStateEventRedaction: the current room members list has been modified by the event redaction");
-
-                        // the android SDK does not store stock member events but a representation of them, RoomMember.
-                        // Prune this representation
-                        member.prune();
-
-                        isFound = true;
-                    }
-                }
-
-                if (isFound) {
-                    mStore.storeLiveStateForRoom(mRoomId);
-
-                    // warn that there was a flush
-                    initHistory();
-                    mDataHandler.onRoomFlush(mRoomId);
-                } else {
-                    Log.d(LOG_TAG, "checkStateEventRedaction: the redacted event is unknown. Fetch it from the homeserver");
-                    checkStateEventRedactionWithHomeserver(eventId);
-                }
-            }
-        });
-    }
-
-    /**
-     * Check with the HS whether the redacted event impacts the room data we have locally.
-     * If yes, local data must be pruned.
-     *
-     * @param eventId the redacted event id
-     */
-    private void checkStateEventRedactionWithHomeserver(String eventId) {
-        Log.d(LOG_TAG, "checkStateEventRedactionWithHomeserver on event Id " + eventId);
-
-        // We need to figure out if this redacted event is a room state in the past.
-        // If yes, we must prune the `prev_content` of the state event that replaced it.
-        // Indeed, redacted information shouldn't spontaneously appear when you backpaginate...
-        // TODO: This is no more implemented (see https://github.com/vector-im/riot-ios/issues/443).
-        // The previous implementation based on a room initial sync was too heavy server side
-        // and has been removed.
-
-        if (!TextUtils.isEmpty(eventId)) {
-            Log.d(LOG_TAG, "checkStateEventRedactionWithHomeserver : retrieving the event");
-
-            mDataHandler.getDataRetriever().getRoomsRestClient().getEvent(mRoomId, eventId, new ApiCallback<Event>() {
-                @Override
-                public void onSuccess(Event event) {
-                    if ((null != event) && (null != event.stateKey)) {
-                        Log.d(LOG_TAG, "checkStateEventRedactionWithHomeserver : the redacted event is a state event in the past." +
-                                " TODO: prune prev_content of the new state event");
-
-                    } else {
-                        Log.d(LOG_TAG, "checkStateEventRedactionWithHomeserver : the redacted event is a not state event -> job is done");
-                    }
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    Log.e(LOG_TAG, "checkStateEventRedactionWithHomeserver : failed to retrieved the redacted event: onNetworkError " + e.getMessage(), e);
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    Log.e(LOG_TAG, "checkStateEventRedactionWithHomeserver : failed to retrieved the redacted event: onNetworkError " + e.getMessage());
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    Log.e(LOG_TAG, "checkStateEventRedactionWithHomeserver : failed to retrieved the redacted event: onNetworkError " + e.getMessage(), e);
-                }
-            });
-        }
-    }
-
-    //==============================================================================================================
     // onEvent listener management.
     //==============================================================================================================
 
@@ -1477,7 +1073,8 @@ public class EventTimeline implements IEventTimeline {
      * @param direction the direction.
      * @param roomState the roomState.
      */
-    private void onEvent(final Event event, final Direction direction, final RoomState roomState) {
+    @Override
+    public void onEvent(final Event event, final Direction direction, final RoomState roomState) {
         // ensure that the listeners are called in the UI thread
         if (Looper.getMainLooper().getThread() != Thread.currentThread()) {
             final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());

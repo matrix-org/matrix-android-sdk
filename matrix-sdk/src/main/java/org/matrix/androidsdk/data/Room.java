@@ -45,6 +45,7 @@ import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
 import org.matrix.androidsdk.data.store.IMXStore;
+import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -156,7 +157,6 @@ public class Room {
         mLiveTimeline.setRoomId(roomId);
         mDataHandler = dataHandler;
         mStore = store;
-
         if (null != mDataHandler) {
             mMyUserId = mDataHandler.getUserId();
             mLiveTimeline.setDataHandler(mStore, dataHandler);

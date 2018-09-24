@@ -26,8 +26,8 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
-import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.rest.api.RoomsApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;

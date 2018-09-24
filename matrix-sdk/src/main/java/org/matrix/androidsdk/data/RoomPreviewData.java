@@ -22,6 +22,7 @@ import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
