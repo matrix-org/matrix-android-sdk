@@ -43,7 +43,7 @@ import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.adapters.AbstractMessagesAdapter;
 import org.matrix.androidsdk.adapters.MessageRow;
 import org.matrix.androidsdk.crypto.MXCryptoError;
-import org.matrix.androidsdk.data.EventTimeline;
+import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomMediaMessage;
 import org.matrix.androidsdk.data.RoomPreviewData;

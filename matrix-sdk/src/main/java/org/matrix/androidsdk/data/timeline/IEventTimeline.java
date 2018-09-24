@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.data;
+package org.matrix.androidsdk.data.timeline;
 
+import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
@@ -23,11 +25,17 @@ import org.matrix.androidsdk.rest.model.Event;
 interface IEventTimeline {
     void setIsHistorical(boolean isHistorical);
 
+    boolean isHistorical();
+
+    void initHistory();
+
     Room getRoom();
 
     IMXStore getStore();
 
     boolean isLiveTimeline();
+
+    String getTimelineId();
 
     RoomState getState();
 
@@ -37,6 +45,8 @@ interface IEventTimeline {
 
     RoomState getBackState();
 
+    void deepCopyState(Direction direction);
+
     boolean processStateEvent(Event event, Direction direction);
 
     void handleLiveEvent(Event event, boolean checkRedactedStateEvent, boolean withPush);
@@ -44,6 +54,8 @@ interface IEventTimeline {
     boolean canBackPaginate();
 
     void setCanBackPaginate(boolean canBackPaginate);
+
+    void onEvent(final Event event, final Direction direction, final RoomState roomState);
 
     /**
      * The direction from which an incoming event is considered.

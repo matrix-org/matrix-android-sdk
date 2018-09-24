@@ -1,10 +1,13 @@
-package org.matrix.androidsdk.data;
+package org.matrix.androidsdk.data.timeline;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -20,15 +23,15 @@ import java.util.List;
  */
 class TimelineJoinRoomSyncHandler {
 
-    private static final String LOG_TAG = EventTimeline.class.getSimpleName();
+    private static final String LOG_TAG = TimelineJoinRoomSyncHandler.class.getSimpleName();
 
     private final IEventTimeline mEventTimeline;
     private final RoomSync mRoomSync;
     private final boolean mIsGlobalInitialSync;
 
-    public TimelineJoinRoomSyncHandler(@NonNull final IEventTimeline eventTimeline,
-                                       @NonNull final RoomSync roomSync,
-                                       final boolean isGlobalInitialSync) {
+    TimelineJoinRoomSyncHandler(@NonNull final IEventTimeline eventTimeline,
+                                @NonNull final RoomSync roomSync,
+                                final boolean isGlobalInitialSync) {
         mEventTimeline = eventTimeline;
         mRoomSync = roomSync;
         mIsGlobalInitialSync = isGlobalInitialSync;
@@ -202,7 +205,7 @@ class TimelineJoinRoomSyncHandler {
             if (summary == null) {
                 // define a summary if some messages are left
                 // the unsent messages are often displayed messages.
-                Event oldestEvent = store.getOldestEvent(roomId);
+                final Event oldestEvent = store.getOldestEvent(roomId);
 
                 // if there is an oldest event, use it to set a summary
                 if (oldestEvent != null) {

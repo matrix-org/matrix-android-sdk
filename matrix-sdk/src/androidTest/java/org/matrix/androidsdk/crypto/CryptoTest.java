@@ -45,7 +45,7 @@ import org.matrix.androidsdk.common.Triple;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
-import org.matrix.androidsdk.data.EventTimeline;
+import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.store.IMXStore;

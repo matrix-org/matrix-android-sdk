@@ -21,7 +21,7 @@ package org.matrix.androidsdk.data.store;
 import android.content.Context;
 import android.support.annotation.Nullable;
 
-import org.matrix.androidsdk.data.EventTimeline;
+import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomSummary;

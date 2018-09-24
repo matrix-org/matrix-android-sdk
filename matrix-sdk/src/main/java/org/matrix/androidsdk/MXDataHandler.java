@@ -33,7 +33,7 @@ import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXDecryptionException;
 import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
 import org.matrix.androidsdk.data.DataRetriever;
-import org.matrix.androidsdk.data.EventTimeline;
+import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;

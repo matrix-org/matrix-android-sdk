@@ -20,6 +20,7 @@ import android.os.Looper;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.data.store.IMXStore;
+import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
