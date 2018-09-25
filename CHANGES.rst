@@ -18,7 +18,7 @@ Translations:
  -
 
 Others:
- - 
+ - Boolean deserialization is more permissive: "1" or 1 will be handle as a true value (#358)
 
 Build:
  - 
