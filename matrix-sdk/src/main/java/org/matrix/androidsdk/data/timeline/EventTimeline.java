@@ -385,23 +385,8 @@ public class EventTimeline implements IEventTimeline {
      * @param invitedRoomSync the invitation room events.
      */
     public void handleInvitedRoomSync(InvitedRoomSync invitedRoomSync) {
-        // Handle the state events as live events (the room state will be updated, and the listeners (if any) will be notified).
-        if ((null != invitedRoomSync) && (null != invitedRoomSync.inviteState) && (null != invitedRoomSync.inviteState.events)) {
-
-            for (Event event : invitedRoomSync.inviteState.events) {
-                // Add a fake event id if none in order to be able to store the event
-                if (null == event.eventId) {
-                    event.eventId = mRoomId + "-" + System.currentTimeMillis() + "-" + event.hashCode();
-                }
-
-                // The roomId is not defined.
-                event.roomId = mRoomId;
-                handleLiveEvent(event, false, true);
-            }
-
-            // The room related to the pending invite can be considered as ready from now
-            mRoom.setReadyState(true);
-        }
+        final TimelineInvitedRoomSyncHandler invitedRoomSyncHandler = new TimelineInvitedRoomSyncHandler(this, invitedRoomSync);
+        invitedRoomSyncHandler.handle();
     }
 
     /**
