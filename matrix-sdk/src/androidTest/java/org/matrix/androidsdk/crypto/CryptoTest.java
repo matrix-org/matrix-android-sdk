@@ -148,7 +148,7 @@ public class CryptoTest {
 
         HomeServerConnectionConfig hs = mTestHelper.createHomeServerConfig(bobCredentials);
 
-        IMXStore store = new MXFileStore(hs, context);
+        IMXStore store = new MXFileStore(hs, false, context);
 
         MXSession bobSession2 = new MXSession.Builder(hs, new MXDataHandler(store, bobCredentials), context)
                 .build();
@@ -316,7 +316,7 @@ public class CryptoTest {
 
         HomeServerConnectionConfig hs = mTestHelper.createHomeServerConfig(bobCredentials);
 
-        IMXStore store = new MXFileStore(hs, context);
+        IMXStore store = new MXFileStore(hs, false, context);
 
         MXSession bobSession2 = new MXSession.Builder(hs, new MXDataHandler(store, bobCredentials), context)
                 .build();
@@ -485,7 +485,7 @@ public class CryptoTest {
 
         HomeServerConnectionConfig hs = mTestHelper.createHomeServerConfig(bobCredentials);
 
-        IMXStore store = new MXFileStore(hs, context);
+        IMXStore store = new MXFileStore(hs, false, context);
 
         MXSession bobSession2 = new MXSession.Builder(hs, new MXDataHandler(store, bobCredentials), context)
                 .build();
@@ -858,7 +858,7 @@ public class CryptoTest {
 
         HomeServerConnectionConfig hs = mTestHelper.createHomeServerConfig(aliceCredentials);
 
-        IMXStore store = new MXFileStore(hs, context);
+        IMXStore store = new MXFileStore(hs, false, context);
 
         final CountDownLatch lock1 = new CountDownLatch(1);
 
@@ -993,7 +993,7 @@ public class CryptoTest {
 
         HomeServerConnectionConfig hs = mTestHelper.createHomeServerConfig(aliceCredentials2);
 
-        IMXStore store = new MXFileStore(hs, context);
+        IMXStore store = new MXFileStore(hs,false, context);
 
         MXSession aliceSession2 = new MXSession.Builder(hs, new MXDataHandler(store, aliceCredentials2), context)
                 .build();
@@ -1082,7 +1082,7 @@ public class CryptoTest {
 
         HomeServerConnectionConfig hs = mTestHelper.createHomeServerConfig(bobCredentials);
 
-        IMXStore store = new MXFileStore(hs, context);
+        IMXStore store = new MXFileStore(hs, false, context);
 
         final CountDownLatch lock1 = new CountDownLatch(2);
 
@@ -2377,7 +2377,7 @@ public class CryptoTest {
 
         HomeServerConnectionConfig hs = mTestHelper.createHomeServerConfig(aliceCredentials2);
 
-        IMXStore store = new MXFileStore(hs, context);
+        IMXStore store = new MXFileStore(hs, false, context);
 
         MXSession aliceSession2 = new MXSession.Builder(hs, new MXDataHandler(store, aliceCredentials2), context)
                 .build();

@@ -155,7 +155,7 @@ public class TestsHelper {
 
         hs.setCredentials(credentials);
 
-        IMXStore store =  new MXFileStore(hs, context);
+        IMXStore store =  new MXFileStore(hs, false, context);
 
         MXSession mxSession = new MXSession.Builder(hs, new MXDataHandler(store, credentials), context)
                 .build();

@@ -303,7 +303,7 @@ public class CommonTestHelper {
 
         hs.setCredentials(credentials);
 
-        IMXStore store = new MXFileStore(hs, context);
+        IMXStore store = new MXFileStore(hs, false, context);
 
         MXSession mxSession = new MXSession.Builder(hs, new MXDataHandler(store, credentials), context)
                 .build();
@@ -353,7 +353,7 @@ public class CommonTestHelper {
 
         hs.setCredentials(credentials);
 
-        final IMXStore store = new MXFileStore(hs, context);
+        final IMXStore store = new MXFileStore(hs, false, context);
         final MXSession mxSession = new MXSession.Builder(hs, new MXDataHandler(store, credentials), context)
                 .build();
 

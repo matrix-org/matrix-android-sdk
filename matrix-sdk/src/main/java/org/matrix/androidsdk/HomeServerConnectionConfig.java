@@ -300,7 +300,7 @@ public class HomeServerConnectionConfig {
                 ", mPin=" + mPin +
                 ", mShouldAcceptTlsExtensions=" + mShouldAcceptTlsExtensions +
                 ", mTlsVersions=" + (null == mTlsVersions ? "" : mTlsVersions.size()) +
-                ", mTlsCipherSuitess=" + (null == mTlsCipherSuites ? "" : mTlsCipherSuites.size()) +
+                ", mTlsCipherSuites=" + (null == mTlsCipherSuites ? "" : mTlsCipherSuites.size()) +
                 '}';
     }
 
