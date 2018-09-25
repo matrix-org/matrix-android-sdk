@@ -74,16 +74,6 @@ public class EventTimeline implements IEventTimeline {
     private boolean mIsLiveTimeline;
 
     /**
-     * The state of the room at the top most recent event of the timeline.
-     */
-    private RoomState mState = new RoomState();
-
-    /**
-     * The historical state of the room when paginating back.
-     */
-    private RoomState mBackState = new RoomState();
-
-    /**
      * The associated room.
      */
     private final Room mRoom;
@@ -141,12 +131,10 @@ public class EventTimeline implements IEventTimeline {
      */
     private final String mTimelineId = System.currentTimeMillis() + "";
 
-    // Allows to store event and roomSummary
-    private final TimelineEventSaver mTimelineEventSaver = new TimelineEventSaver(this);
-
-    private final StateEventRedactionChecker mStateEventRedactionChecker = new StateEventRedactionChecker(this);
-
+    private TimelineEventSaver mTimelineEventSaver;
+    private StateEventRedactionChecker mStateEventRedactionChecker;
     private TimelinePushWorker mTimelinePushWorker;
+    private TimelineStateHolder mStateHolder;
 
     /**
      * Constructor from room.
@@ -179,16 +167,15 @@ public class EventTimeline implements IEventTimeline {
     public EventTimeline(MXDataHandler dataHandler, String roomId, String eventId) {
         mInitialEventId = eventId;
         mDataHandler = dataHandler;
-
         mStore = new MXMemoryStore(dataHandler.getCredentials(), null);
         mRoom = mDataHandler.getRoom(mStore, roomId, true);
         mRoom.setLiveTimeline(this);
         mRoom.setReadyState(true);
-        setRoomId(roomId);
-
-        mState.setDataHandler(dataHandler);
-        mBackState.setDataHandler(dataHandler);
         mTimelinePushWorker = new TimelinePushWorker(mDataHandler);
+        mStateHolder = new TimelineStateHolder(mDataHandler, mStore);
+        mStateEventRedactionChecker = new StateEventRedactionChecker(this, mStateHolder);
+        mTimelineEventSaver = new TimelineEventSaver(this, mStateHolder);
+        setRoomId(roomId);
     }
 
     /**
@@ -264,8 +251,7 @@ public class EventTimeline implements IEventTimeline {
      */
     public void setRoomId(String roomId) {
         mRoomId = roomId;
-        mState.roomId = roomId;
-        mBackState.roomId = roomId;
+        mStateHolder.setRoomId(roomId);
     }
 
     /**
@@ -277,9 +263,10 @@ public class EventTimeline implements IEventTimeline {
     public void setDataHandler(IMXStore store, MXDataHandler dataHandler) {
         mStore = store;
         mDataHandler = dataHandler;
-        mState.setDataHandler(dataHandler);
-        mBackState.setDataHandler(dataHandler);
         mTimelinePushWorker = new TimelinePushWorker(mDataHandler);
+        mStateHolder = new TimelineStateHolder(mDataHandler, mStore);
+        mStateEventRedactionChecker = new StateEventRedactionChecker(this, mStateHolder);
+        mTimelineEventSaver = new TimelineEventSaver(this, mStateHolder);
     }
 
     /**
@@ -288,7 +275,8 @@ public class EventTimeline implements IEventTimeline {
      */
     @Override
     public void initHistory() {
-        mBackState = mState.deepCopy();
+        final RoomState backState = getState().deepCopy();
+        setBackState(backState);
         mCanBackPaginate = true;
 
         mIsBackPaginating = false;
@@ -304,9 +292,8 @@ public class EventTimeline implements IEventTimeline {
     /**
      * @return The state of the room at the top most recent event of the timeline.
      */
-    @Override
     public RoomState getState() {
-        return mState;
+        return mStateHolder.getState();
     }
 
     /**
@@ -314,9 +301,8 @@ public class EventTimeline implements IEventTimeline {
      *
      * @param state the new state.
      */
-    @Override
     public void setState(RoomState state) {
-        mState = state;
+        mStateHolder.setState(state);
     }
 
     /**
@@ -324,17 +310,15 @@ public class EventTimeline implements IEventTimeline {
      *
      * @param state the new backState.
      */
-    @Override
-    public void setBackState(RoomState state) {
-        mBackState = state;
+    private void setBackState(RoomState state) {
+        mStateHolder.setBackState(state);
     }
 
     /**
      * @return the backState.
      */
-    @Override
-    public RoomState getBackState() {
-        return mBackState;
+    private RoomState getBackState() {
+        return mStateHolder.getBackState();
     }
 
     /**
@@ -353,11 +337,7 @@ public class EventTimeline implements IEventTimeline {
      * @param direction the room state direction to deep copy.
      */
     public void deepCopyState(Direction direction) {
-        if (direction == Direction.FORWARDS) {
-            mState = mState.deepCopy();
-        } else {
-            mBackState = mBackState.deepCopy();
-        }
+        mStateHolder.deepCopyState(direction);
     }
 
     /**
@@ -367,16 +347,8 @@ public class EventTimeline implements IEventTimeline {
      * @param direction the direction; ie. forwards for live state, backwards for back state
      * @return true if the event has been processed.
      */
-    @Override
-    public boolean processStateEvent(Event event, Direction direction) {
-        RoomState affectedState = (direction == Direction.FORWARDS) ? mState : mBackState;
-        boolean isProcessed = affectedState.applyState(getStore(), event, direction);
-
-        if ((isProcessed) && (direction == Direction.FORWARDS)) {
-            mStore.storeLiveStateForRoom(mRoomId);
-        }
-
-        return isProcessed;
+    private boolean processStateEvent(Event event, Direction direction) {
+        return mStateHolder.processStateEvent(event, direction);
     }
 
     /**
@@ -396,8 +368,21 @@ public class EventTimeline implements IEventTimeline {
      * @param isGlobalInitialSync true if the sync has been triggered by a global initial sync
      */
     public void handleJoinedRoomSync(@NonNull final RoomSync roomSync, final boolean isGlobalInitialSync) {
-        final TimelineJoinRoomSyncHandler joinRoomSyncHandler = new TimelineJoinRoomSyncHandler(this, roomSync, isGlobalInitialSync);
+        final TimelineJoinRoomSyncHandler joinRoomSyncHandler = new TimelineJoinRoomSyncHandler(this, roomSync, mStateHolder, isGlobalInitialSync);
         joinRoomSyncHandler.handle();
+    }
+
+    /**
+     * Handle events coming down from the event stream.
+     *
+     * @param event                   the live event
+     * @param checkRedactedStateEvent set to true to check if it triggers a state event redaction
+     * @param withPush                set to true to trigger pushes when it is required
+     */
+    @Override
+    public void handleLiveEvent(Event event, boolean checkRedactedStateEvent, boolean withPush) {
+        final TimelineLiveEventHandler liveEventHandler = new TimelineLiveEventHandler(this, mTimelineEventSaver, mStateEventRedactionChecker, mTimelinePushWorker, mStateHolder);
+        liveEventHandler.handleLiveEvent(event, checkRedactedStateEvent, withPush);
     }
 
     /**
@@ -419,21 +404,6 @@ public class EventTimeline implements IEventTimeline {
     private void storeEvent(Event event) {
         mTimelineEventSaver.storeEvent(event);
     }
-
-
-    /**
-     * Handle events coming down from the event stream.
-     *
-     * @param event                   the live event
-     * @param checkRedactedStateEvent set to true to check if it triggers a state event redaction
-     * @param withPush                set to true to trigger pushes when it is required
-     */
-    @Override
-    public void handleLiveEvent(Event event, boolean checkRedactedStateEvent, boolean withPush) {
-        final TimelineLiveEventHandler liveEventHandler = new TimelineLiveEventHandler(this, mTimelineEventSaver, mStateEventRedactionChecker, mTimelinePushWorker);
-        liveEventHandler.handleLiveEvent(event, checkRedactedStateEvent, withPush);
-    }
-
 
     //================================================================================
     // History request
@@ -493,7 +463,7 @@ public class EventTimeline implements IEventTimeline {
         RoomSummary summary = mStore.getSummary(mRoomId);
 
         if ((null != latestSupportedEvent) && ((null == summary) || !RoomSummary.isSupportedEvent(summary.getLatestReceivedEvent()))) {
-            mStore.storeSummary(new RoomSummary(null, latestSupportedEvent, mState, mDataHandler.getUserId()));
+            mStore.storeSummary(new RoomSummary(null, latestSupportedEvent, getState(), mDataHandler.getUserId()));
         }
 
         Log.d(LOG_TAG, "manageEvents : commit");
@@ -639,7 +609,7 @@ public class EventTimeline implements IEventTimeline {
         // One at a time please
         return !mIsBackPaginating
                 // history_visibility flag management
-                && mState.canBackPaginate(mRoom.isJoined(), mRoom.isInvited())
+                && getState().canBackPaginate(mRoom.isJoined(), mRoom.isInvited())
                 // If we have already reached the end of history
                 && mCanBackPaginate
                 // If the room is not finished being set up
@@ -967,7 +937,7 @@ public class EventTimeline implements IEventTimeline {
                                         }
 
                                         // init the tokens
-                                        mBackState.setToken(eventContext.start);
+                                        getBackState().setToken(eventContext.start);
                                         mForwardsPaginationToken = eventContext.end;
 
                                         // send the back events to complete pagination
@@ -1056,7 +1026,7 @@ public class EventTimeline implements IEventTimeline {
      *
      * @param event     the event.
      * @param direction the direction.
-     * @param roomState the roomState.
+     * @param roomState the roogetState().
      */
     @Override
     public void onEvent(final Event event, final Direction direction, final RoomState roomState) {

@@ -150,13 +150,13 @@ public class Room {
      * @param dataHandler the data handler
      */
     public void init(IMXStore store, String roomId, MXDataHandler dataHandler) {
-        mLiveTimeline.setRoomId(roomId);
         mDataHandler = dataHandler;
         mStore = store;
         if (null != mDataHandler) {
             mMyUserId = mDataHandler.getUserId();
             mLiveTimeline.setDataHandler(mStore, dataHandler);
         }
+        mLiveTimeline.setRoomId(roomId);
     }
 
     /**

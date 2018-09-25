@@ -27,13 +27,16 @@ class TimelineJoinRoomSyncHandler {
 
     private final IEventTimeline mEventTimeline;
     private final RoomSync mRoomSync;
+    private final TimelineStateHolder mTimelineStateHolder;
     private final boolean mIsGlobalInitialSync;
 
     TimelineJoinRoomSyncHandler(@NonNull final IEventTimeline eventTimeline,
                                 @NonNull final RoomSync roomSync,
+                                @NonNull final TimelineStateHolder timelineStateHolder,
                                 final boolean isGlobalInitialSync) {
         mEventTimeline = eventTimeline;
         mRoomSync = roomSync;
+        mTimelineStateHolder = timelineStateHolder;
         mIsGlobalInitialSync = isGlobalInitialSync;
     }
 
@@ -44,7 +47,7 @@ class TimelineJoinRoomSyncHandler {
         final MXDataHandler dataHandler = room.getDataHandler();
         final String roomId = room.getRoomId();
         final String myUserId = dataHandler.getMyUser().user_id;
-        final RoomMember selfMember = mEventTimeline.getState().getMember(myUserId);
+        final RoomMember selfMember = mTimelineStateHolder.getState().getMember(myUserId);
         final RoomSummary currentSummary = store.getSummary(roomId);
 
         final String membership = selfMember != null ? selfMember.membership : null;
@@ -53,7 +56,7 @@ class TimelineJoinRoomSyncHandler {
         // Check whether the room was pending on an invitation.
         if (RoomMember.MEMBERSHIP_INVITE.equals(membership)) {
             // Reset the storage of this room. An initial sync of the room will be done with the provided 'roomSync'.
-            cleanInvitedRoom(dataHandler, store, roomId);
+            cleanInvitedRoom(store, roomId);
         }
         if ((mRoomSync.state != null) && (mRoomSync.state.events != null) && (mRoomSync.state.events.size() > 0)) {
             handleRoomSyncState(room, store, isRoomInitialSync);
@@ -90,7 +93,7 @@ class TimelineJoinRoomSyncHandler {
         if (room.getDataHandler().isAlive()) {
             for (Event event : mRoomSync.state.events) {
                 try {
-                    mEventTimeline.processStateEvent(event, EventTimeline.Direction.FORWARDS);
+                    mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "processStateEvent failed " + e.getMessage(), e);
                 }
@@ -103,23 +106,17 @@ class TimelineJoinRoomSyncHandler {
         // if it is an initial sync, the live state is initialized here
         // so the back state must also be initialized
         if (isRoomInitialSync) {
-            final RoomState state = mEventTimeline.getState();
+            final RoomState state = mTimelineStateHolder.getState();
             Log.d(LOG_TAG, "## handleJoinedRoomSync() : retrieve X " + state.getLoadedMembers().size() + " members for room " + room.getRoomId());
-            mEventTimeline.setBackState(state.deepCopy());
+            mTimelineStateHolder.setBackState(state.deepCopy());
         }
     }
 
-    private void cleanInvitedRoom(@NonNull final MXDataHandler dataHandler,
-                                  @NonNull final IMXStore store,
+    private void cleanInvitedRoom(@NonNull final IMXStore store,
                                   @NonNull final String roomId) {
         Log.d(LOG_TAG, "clean invited room from the store " + roomId);
         store.deleteRoomData(roomId);
-        // clear the states
-        final RoomState state = new RoomState();
-        state.roomId = roomId;
-        state.setDataHandler(dataHandler);
-        mEventTimeline.setBackState(state);
-        mEventTimeline.setState(state);
+        mTimelineStateHolder.clear();
     }
 
     private void handleRoomSyncTimeline(@NonNull final IMXStore store,
@@ -129,7 +126,7 @@ class TimelineJoinRoomSyncHandler {
                                         final boolean isRoomInitialSync) {
         if (mRoomSync.timeline.limited) {
             if (!isRoomInitialSync) {
-                final RoomState state = mEventTimeline.getState();
+                final RoomState state = mTimelineStateHolder.getState();
                 // There is a gap between known events and received events in this incremental sync.
                 // define a summary if some messages are left
                 // the unsent messages are often displayed messages.
@@ -161,7 +158,7 @@ class TimelineJoinRoomSyncHandler {
             // reset the state back token
             // because it does not make anymore sense
             // by setting at null, the events cache will be cleared when a requesthistory will be called
-            mEventTimeline.getBackState().setToken(null);
+            mTimelineStateHolder.getBackState().setToken(null);
             // reset the back paginate lock
             mEventTimeline.setCanBackPaginate(true);
         }
@@ -195,7 +192,7 @@ class TimelineJoinRoomSyncHandler {
                                     @NonNull final String roomId,
                                     @NonNull final String myUserId,
                                     @Nullable final RoomSummary currentSummary) {
-        final RoomState state = mEventTimeline.getState();
+        final RoomState state = mTimelineStateHolder.getState();
         // check if the summary is defined
         // after a sync, the room summary might not be defined because the latest message did not generate a room summary/
         if (null != store.getRoom(roomId)) {

@@ -16,6 +16,7 @@
 
 package org.matrix.androidsdk.data.timeline;
 
+import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXDataHandler;
@@ -38,9 +39,11 @@ class StateEventRedactionChecker {
 
     private static final String LOG_TAG = StateEventRedactionChecker.class.getSimpleName();
     private final IEventTimeline mEventTimeline;
+    private final TimelineStateHolder mTimelineStateHolder;
 
-    StateEventRedactionChecker(IEventTimeline eventTimeline) {
+    StateEventRedactionChecker(@NonNull final IEventTimeline eventTimeline, @NonNull final TimelineStateHolder timelineStateHolder) {
         mEventTimeline = eventTimeline;
+        mTimelineStateHolder = timelineStateHolder;
     }
 
     /**
@@ -55,7 +58,7 @@ class StateEventRedactionChecker {
         final MXDataHandler dataHandler = room.getDataHandler();
         final String roomId = room.getRoomId();
         final String eventId = redactionEvent.getRedacts();
-        final RoomState state = mEventTimeline.getState();
+        final RoomState state = mTimelineStateHolder.getState();
         Log.d(LOG_TAG, "checkStateEventRedaction of event " + eventId);
         // check if the state events is locally known
         state.getStateEvents(store, null, new SimpleApiCallback<List<Event>>() {
@@ -75,7 +78,7 @@ class StateEventRedactionChecker {
                         stateEvent.prune(redactionEvent);
                         stateEvents.set(index, stateEvent);
                         // digest the updated state
-                        mEventTimeline.processStateEvent(stateEvent, IEventTimeline.Direction.FORWARDS);
+                        mTimelineStateHolder.processStateEvent(stateEvent, IEventTimeline.Direction.FORWARDS);
                         isFound = true;
                         break;
                     }
