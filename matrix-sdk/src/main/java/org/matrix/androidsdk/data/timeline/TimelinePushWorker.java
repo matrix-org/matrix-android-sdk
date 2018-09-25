@@ -28,14 +28,14 @@ import org.matrix.androidsdk.util.Log;
 
 import javax.annotation.Nonnull;
 
-public class TimelinePushWorker {
+class TimelinePushWorker {
 
     private static final String LOG_TAG = TimelinePushWorker.class.getSimpleName();
 
     @Nonnull
     private final MXDataHandler mDataHandler;
 
-    public TimelinePushWorker(@Nonnull final MXDataHandler dataHandler) {
+    TimelinePushWorker(@Nonnull final MXDataHandler dataHandler) {
         mDataHandler = dataHandler;
     }
 

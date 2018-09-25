@@ -19,7 +19,6 @@ package org.matrix.androidsdk.data.timeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.store.IMXStore;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 
 interface IEventTimeline {
@@ -36,18 +35,6 @@ interface IEventTimeline {
     boolean isLiveTimeline();
 
     String getTimelineId();
-
-    RoomState getState();
-
-    void setState(RoomState state);
-
-    void setBackState(RoomState state);
-
-    RoomState getBackState();
-
-    void deepCopyState(Direction direction);
-
-    boolean processStateEvent(Event event, Direction direction);
 
     void handleLiveEvent(Event event, boolean checkRedactedStateEvent, boolean withPush);
 

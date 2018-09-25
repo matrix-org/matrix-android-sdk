@@ -16,6 +16,7 @@
 
 package org.matrix.androidsdk.data.timeline;
 
+import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXDataHandler;
@@ -44,15 +45,18 @@ class TimelineLiveEventHandler {
     private final TimelineEventSaver mTimelineEventSaver;
     private final StateEventRedactionChecker mStateEventRedactionChecker;
     private final TimelinePushWorker mTimelinePushWorker;
+    private final TimelineStateHolder mTimelineStateHolder;
 
     TimelineLiveEventHandler(@Nonnull final IEventTimeline eventTimeline,
                              @Nonnull final TimelineEventSaver timelineEventSaver,
                              @Nonnull final StateEventRedactionChecker stateEventRedactionChecker,
-                             @Nonnull final TimelinePushWorker timelinePushWorker) {
+                             @Nonnull final TimelinePushWorker timelinePushWorker,
+                             @NonNull final TimelineStateHolder timelineStateHolder) {
         mEventTimeline = eventTimeline;
         mTimelineEventSaver = timelineEventSaver;
         mStateEventRedactionChecker = stateEventRedactionChecker;
         mTimelinePushWorker = timelinePushWorker;
+        mTimelineStateHolder = timelineStateHolder;
     }
 
     /**
@@ -74,7 +78,7 @@ class TimelineLiveEventHandler {
 
         // dispatch the call events to the calls manager
         if (event.isCallEvent()) {
-            final RoomState roomState = mEventTimeline.getState();
+            final RoomState roomState = mTimelineStateHolder.getState();
             dataHandler.getCallsManager().handleCallEvent(store, event);
             storeLiveRoomEvent(dataHandler, store, false, event);
             // the candidates events are not tracked
@@ -150,12 +154,12 @@ class TimelineLiveEventHandler {
                     }
                 }
 
-                final RoomState previousState = mEventTimeline.getState();
+                final RoomState previousState = mTimelineStateHolder.getState();
                 if (event.stateKey != null) {
                     // copy the live state before applying any update
-                    mEventTimeline.deepCopyState(IEventTimeline.Direction.FORWARDS);
+                    mTimelineStateHolder.deepCopyState(IEventTimeline.Direction.FORWARDS);
                     // check if the event has been processed
-                    if (!mEventTimeline.processStateEvent(event, IEventTimeline.Direction.FORWARDS)) {
+                    if (!mTimelineStateHolder.processStateEvent(event, IEventTimeline.Direction.FORWARDS)) {
                         // not processed -> do not warn the application
                         // assume that the event is a duplicated one.
                         return;
@@ -172,7 +176,7 @@ class TimelineLiveEventHandler {
 
                 // trigger pushes when it is required
                 if (withPush) {
-                    mTimelinePushWorker.triggerPush(mEventTimeline.getState(), event);
+                    mTimelinePushWorker.triggerPush(mTimelineStateHolder.getState(), event);
                 }
             } else {
                 Log.e(LOG_TAG, "Unknown live event type: " + event.getType());
@@ -225,7 +229,7 @@ class TimelineLiveEventHandler {
                                     dataHandler.decryptEvent(indexedEvent, mEventTimeline.getTimelineId());
                                 }
                             }
-                            final RoomState state = mEventTimeline.getState();
+                            final RoomState state = mTimelineStateHolder.getState();
                             final EventDisplay eventDisplay = new EventDisplay(store.getContext(), indexedEvent, state);
                             // ensure that message can be displayed
                             if (!TextUtils.isEmpty(eventDisplay.getTextualDisplay())) {

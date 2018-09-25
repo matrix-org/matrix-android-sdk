@@ -16,6 +16,8 @@
 
 package org.matrix.androidsdk.data.timeline;
 
+import android.support.annotation.NonNull;
+
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
@@ -27,9 +29,11 @@ import org.matrix.androidsdk.rest.model.ReceiptData;
 class TimelineEventSaver {
 
     private final IEventTimeline mEventTimeline;
+    private final TimelineStateHolder mTimelineStateHolder;
 
-    TimelineEventSaver(IEventTimeline mEventTimeline) {
-        this.mEventTimeline = mEventTimeline;
+    TimelineEventSaver(@NonNull final IEventTimeline eventTimeline, @NonNull final TimelineStateHolder timelineStateHolder) {
+        mEventTimeline = eventTimeline;
+        mTimelineStateHolder = timelineStateHolder;
     }
 
     /**
@@ -51,14 +55,13 @@ class TimelineEventSaver {
         }
         store.storeLiveRoomEvent(event);
         if (RoomSummary.isSupportedEvent(event)) {
-            final RoomState roomState = mEventTimeline.getState();
+            final RoomState roomState = mTimelineStateHolder.getState();
             RoomSummary summary = store.getSummary(event.roomId);
             if (null == summary) {
                 summary = new RoomSummary(summary, event, roomState, myUserId);
             } else {
                 summary.setLatestReceivedEvent(event, roomState);
             }
-
             store.storeSummary(summary);
         }
     }
