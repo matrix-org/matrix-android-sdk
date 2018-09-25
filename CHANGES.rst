@@ -12,7 +12,7 @@ Bugfix:
  - Scroll to bottom no longer keeps inertia after position change (#354)
 
 API Change:
- - 
+ - A Builder has been added to create HomeServerConnectionConfig instances.
 
 Translations:
  -

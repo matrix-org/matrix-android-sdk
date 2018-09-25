@@ -89,9 +89,11 @@ public class CommonTestHelper {
      * @return
      */
     public HomeServerConnectionConfig createHomeServerConfig(@Nullable Credentials credentials) {
-        final HomeServerConnectionConfig hs = new HomeServerConnectionConfig(Uri.parse(TestConstants.TESTS_HOME_SERVER_URL));
-        hs.allowHttpConnection();
-        hs.setCredentials(credentials);
+        final HomeServerConnectionConfig hs = new HomeServerConnectionConfig.Builder()
+                .withHomeServerUri(Uri.parse(TestConstants.TESTS_HOME_SERVER_URL))
+                .withCredentials(credentials)
+                .withAllowHttpConnection()
+                .build();
         return hs;
     }
 
