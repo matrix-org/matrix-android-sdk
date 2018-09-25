@@ -2497,8 +2497,10 @@ public class MXSession {
             if (!TextUtils.isEmpty(pushServerUrl)) {
                 // pusher uses a custom server
                 try {
-                    HomeServerConnectionConfig alteredHsConfig = new HomeServerConnectionConfig(Uri.parse(pushServerUrl));
-                    alteredHsConfig.setCredentials(mxSession.mHsConfig.getCredentials());
+                    HomeServerConnectionConfig alteredHsConfig = new HomeServerConnectionConfig.Builder()
+                            .withHomeServerUri(Uri.parse(pushServerUrl))
+                            .withCredentials(mxSession.mHsConfig.getCredentials())
+                            .build();
                     pushersRestClient = new PushersRestClient(alteredHsConfig);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "## withPushServerUrl() failed " + e.getMessage(), e);
