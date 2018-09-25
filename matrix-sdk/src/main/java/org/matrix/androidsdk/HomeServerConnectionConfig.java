@@ -18,6 +18,7 @@
 package org.matrix.androidsdk;
 
 import android.net.Uri;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 
@@ -28,7 +29,6 @@ import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.ssl.Fingerprint;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import okhttp3.CipherSuite;
@@ -269,26 +269,22 @@ public class HomeServerConnectionConfig {
 
         // Set the TLS versions if any
         if (jsonObject.has("tls_versions")) {
-            List<TlsVersion> tlsVersions = new ArrayList<>();
             JSONArray tlsVersionsArray = jsonObject.optJSONArray("tls_versions");
             if (tlsVersionsArray != null) {
                 for (int i = 0; i < tlsVersionsArray.length(); i++) {
-                    tlsVersions.add(TlsVersion.forJavaName(tlsVersionsArray.getString(i)));
+                    builder.addAcceptedTlsVersion(TlsVersion.forJavaName(tlsVersionsArray.getString(i)));
                 }
             }
-            builder.withAcceptedTlsVersions(tlsVersions);
         }
 
         // Set the TLS cipher suites if any
         if (jsonObject.has("tls_cipher_suites")) {
-            List<CipherSuite> tlsCipherSuites = new ArrayList<>();
             JSONArray tlsCipherSuitesArray = jsonObject.optJSONArray("tls_cipher_suites");
             if (tlsCipherSuitesArray != null) {
                 for (int i = 0; i < tlsCipherSuitesArray.length(); i++) {
-                    tlsCipherSuites.add(CipherSuite.forJavaName(tlsCipherSuitesArray.getString(i)));
+                    builder.addAcceptedTlsCipherSuite(CipherSuite.forJavaName(tlsCipherSuitesArray.getString(i)));
                 }
             }
-            builder.withAcceptedTlsCipherSuites(tlsCipherSuites);
         }
 
         return builder.build();
@@ -393,31 +389,31 @@ public class HomeServerConnectionConfig {
         }
 
         /**
-         * Update the set of TLS versions accepted for TLS connections with the home server.
+         * Add an accepted TLS version for TLS connections with the home server.
          *
-         * @param tlsVersions the set of TLS versions accepted.
+         * @param tlsVersion the tls version to add to the set of TLS versions accepted.
          */
-        public Builder withAcceptedTlsVersions(@Nullable List<TlsVersion> tlsVersions) {
-            if (tlsVersions == null) {
-                mHomeServerConnectionConfig.mTlsVersions = null;
-            } else {
-                mHomeServerConnectionConfig.mTlsVersions = Collections.unmodifiableList(tlsVersions);
+        public Builder addAcceptedTlsVersion(@NonNull TlsVersion tlsVersion) {
+            if (mHomeServerConnectionConfig.mTlsVersions == null) {
+                mHomeServerConnectionConfig.mTlsVersions = new ArrayList<>();
             }
+
+            mHomeServerConnectionConfig.mTlsVersions.add(tlsVersion);
 
             return this;
         }
 
         /**
-         * Update the set of TLS cipher suites accepted for TLS connections with the home server.
+         * Add a TLS cipher suite to the list of accepted TLS connections with the home server.
          *
-         * @param tlsCipherSuites the set of TLS cipher suites accepted.
+         * @param tlsCipherSuite the tls cipher suite to add.
          */
-        public Builder withAcceptedTlsCipherSuites(@Nullable List<CipherSuite> tlsCipherSuites) {
-            if (tlsCipherSuites == null) {
-                mHomeServerConnectionConfig.mTlsCipherSuites = null;
-            } else {
-                mHomeServerConnectionConfig.mTlsCipherSuites = Collections.unmodifiableList(tlsCipherSuites);
+        public Builder addAcceptedTlsCipherSuite(@NonNull CipherSuite tlsCipherSuite) {
+            if (mHomeServerConnectionConfig.mTlsCipherSuites == null) {
+                mHomeServerConnectionConfig.mTlsCipherSuites = new ArrayList<>();
             }
+
+            mHomeServerConnectionConfig.mTlsCipherSuites.add(tlsCipherSuite);
 
             return this;
         }
