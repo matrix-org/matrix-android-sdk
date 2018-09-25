@@ -51,6 +51,7 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXFileStore;
 import org.matrix.androidsdk.data.store.MXStoreListener;
+import org.matrix.androidsdk.data.timeline.EventTimelineFactory;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -1131,9 +1132,9 @@ public class CryptoTest {
             }
         };
 
-        roomFromBobPOV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener);
+        roomFromBobPOV.getTimeline().addEventTimelineListener(eventTimelineListener);
 
-        roomFromBobPOV.getLiveTimeLine().backPaginate(new TestApiCallback<Integer>(lock2) {
+        roomFromBobPOV.getTimeline().backPaginate(new TestApiCallback<Integer>(lock2) {
             @Override
             public void onSuccess(Integer info) {
                 results.put("backPaginate", "backPaginate");
@@ -1173,7 +1174,7 @@ public class CryptoTest {
 
         String eventId = bobSession.getDataHandler().getStore().getLatestEvent(aliceRoomId).eventId;
 
-        EventTimeline timeline = new EventTimeline(bobSession.getDataHandler(), aliceRoomId, eventId);
+        EventTimeline timeline = EventTimelineFactory.pastTimeline(bobSession.getDataHandler(), aliceRoomId, eventId);
 
         final CountDownLatch lock2 = new CountDownLatch(6);
         final List<Event> receivedEvents = new ArrayList<>();
@@ -1530,7 +1531,7 @@ public class CryptoTest {
 
                     event.setClearData(null);
 
-                    bobSession.getDataHandler().decryptEvent(event, roomFromBobPOV.getLiveTimeLine().getTimelineId());
+                    bobSession.getDataHandler().decryptEvent(event, roomFromBobPOV.getTimeline().getTimelineId());
                     results.put("decrypted", event);
 
                     lock1.countDown();
@@ -1616,7 +1617,7 @@ public class CryptoTest {
             }
         };
 
-        roomFromBobPOV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener);
+        roomFromBobPOV.getTimeline().addEventTimelineListener(eventTimelineListener);
 
         roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession, aliceRoomId), new SimpleApiCallback<Void>() {
             @Override
@@ -1697,7 +1698,7 @@ public class CryptoTest {
             }
         };
 
-        roomFromBobPOV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener);
+        roomFromBobPOV.getTimeline().addEventTimelineListener(eventTimelineListener);
 
         roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession, aliceRoomId), new SimpleApiCallback<Void>() {
             @Override
@@ -1800,7 +1801,7 @@ public class CryptoTest {
             }
         };
 
-        roomFromBobPOV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener);
+        roomFromBobPOV.getTimeline().addEventTimelineListener(eventTimelineListener);
 
         String aliceMessage1 = "Hello I'm Alice!";
 
@@ -1874,7 +1875,7 @@ public class CryptoTest {
             }
         };
 
-        roomFromBobPOV2.getLiveTimeLine().addEventTimelineListener(eventTimelineListener4);
+        roomFromBobPOV2.getTimeline().addEventTimelineListener(eventTimelineListener4);
 
         String aliceMessage2 = "Hello I'm still Alice!";
         roomFromAlicePOV.sendEvent(buildTextEvent(aliceMessage2, aliceSession, aliceRoomId), new SimpleApiCallback<Void>() {
@@ -1937,7 +1938,7 @@ public class CryptoTest {
             }
         };
 
-        roomFromBobPOV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener);
+        roomFromBobPOV.getTimeline().addEventTimelineListener(eventTimelineListener);
 
         String aliceMessage1 = "Hello I'm Alice!";
 
@@ -2007,7 +2008,7 @@ public class CryptoTest {
                 }
             }
         };
-        roomFromBob2POV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener2);
+        roomFromBob2POV.getTimeline().addEventTimelineListener(eventTimelineListener2);
 
         String messageFromAlice2 = "Hello I'm still Alice!";
         roomFromAlice2POV.sendEvent(buildTextEvent(messageFromAlice2, aliceSession2, aliceRoomId), new SimpleApiCallback<Void>() {
@@ -2055,7 +2056,7 @@ public class CryptoTest {
             }
         };
 
-        roomFromBobPOV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener);
+        roomFromBobPOV.getTimeline().addEventTimelineListener(eventTimelineListener);
 
         String aliceMessage1 = "Hello I'm Alice!";
 
@@ -2099,7 +2100,7 @@ public class CryptoTest {
             }
         };
 
-        roomFromBobPOV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener2);
+        roomFromBobPOV.getTimeline().addEventTimelineListener(eventTimelineListener2);
 
         String aliceMessage2 = "Hello I'm still Alice!";
 
@@ -2144,7 +2145,7 @@ public class CryptoTest {
             }
         };
 
-        roomFromBobPOV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener3);
+        roomFromBobPOV.getTimeline().addEventTimelineListener(eventTimelineListener3);
 
         String aliceMessage3 = "Hello I'm still Alice and you can read this!";
 
@@ -2587,7 +2588,7 @@ public class CryptoTest {
             }
         };
 
-        roomFromBobPOV.getLiveTimeLine().addEventTimelineListener(eventTimelineListener);
+        roomFromBobPOV.getTimeline().addEventTimelineListener(eventTimelineListener);
         roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession, aliceRoomId), new SimpleApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
@@ -2646,7 +2647,7 @@ public class CryptoTest {
             }
         };
 
-        roomFromBobPOV2.getLiveTimeLine().addEventTimelineListener(eventTimelineListener2);
+        roomFromBobPOV2.getTimeline().addEventTimelineListener(eventTimelineListener2);
         roomFromAlicePOV.sendEvent(buildTextEvent(message2FromAlice, aliceSession, aliceRoomId), new SimpleApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
@@ -3085,7 +3086,7 @@ public class CryptoTest {
             }
         };
 
-        roomFromBobPOV2.getLiveTimeLine().addEventTimelineListener(eventTimelineListener2);
+        roomFromBobPOV2.getTimeline().addEventTimelineListener(eventTimelineListener2);
         roomFromAlicePOV.sendEvent(buildTextEvent(message2FromAlice, aliceSession, aliceRoomId), new SimpleApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {

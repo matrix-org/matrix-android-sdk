@@ -29,7 +29,6 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.store.IMXStore;
-import org.matrix.androidsdk.data.store.MXMemoryStore;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
@@ -137,45 +136,28 @@ public class EventTimeline implements IEventTimeline {
     private TimelineStateHolder mStateHolder;
 
     /**
-     * Constructor from room.
-     *
-     * @param room   the linked room.
-     * @param isLive true if it is a live EventTimeline
-     */
-    public EventTimeline(Room room, boolean isLive) {
-        mRoom = room;
-        mIsLiveTimeline = isLive;
-    }
-
-    /**
-     * Constructor from a room Id
-     *
-     * @param dataHandler the data handler
-     * @param roomId      the room Id
-     */
-    public EventTimeline(MXDataHandler dataHandler, String roomId) {
-        this(dataHandler, roomId, null);
-    }
-
-    /**
      * Constructor from room and event Id
      *
      * @param dataHandler the data handler
-     * @param roomId      the room Id
      * @param eventId     the event id.
      */
-    public EventTimeline(MXDataHandler dataHandler, String roomId, String eventId) {
+    EventTimeline(@NonNull final IMXStore store,
+                  @NonNull final MXDataHandler dataHandler,
+                  @NonNull final Room room,
+                  @NonNull final String roomId,
+                  @Nullable final String eventId,
+                  final boolean isLive) {
+        mIsLiveTimeline = isLive;
         mInitialEventId = eventId;
         mDataHandler = dataHandler;
-        mStore = new MXMemoryStore(dataHandler.getCredentials(), null);
-        mRoom = mDataHandler.getRoom(mStore, roomId, true);
-        mRoom.setLiveTimeline(this);
-        mRoom.setReadyState(true);
+        mRoom = room;
+        mRoomId = roomId;
+        mStore = store;
         mTimelinePushWorker = new TimelinePushWorker(mDataHandler);
         mStateHolder = new TimelineStateHolder(mDataHandler, mStore);
         mStateEventRedactionChecker = new StateEventRedactionChecker(this, mStateHolder);
         mTimelineEventSaver = new TimelineEventSaver(this, mStateHolder);
-        setRoomId(roomId);
+        mStateHolder.setRoomId(mRoomId);
     }
 
     /**
@@ -244,30 +226,6 @@ public class EventTimeline implements IEventTimeline {
         return mHasReachedHomeServerForwardsPaginationEnd;
     }
 
-    /**
-     * Set the room Id
-     *
-     * @param roomId the new room id.
-     */
-    public void setRoomId(String roomId) {
-        mRoomId = roomId;
-        mStateHolder.setRoomId(roomId);
-    }
-
-    /**
-     * Set the data handler.
-     *
-     * @param store       the store
-     * @param dataHandler the data handler.
-     */
-    public void setDataHandler(IMXStore store, MXDataHandler dataHandler) {
-        mStore = store;
-        mDataHandler = dataHandler;
-        mTimelinePushWorker = new TimelinePushWorker(mDataHandler);
-        mStateHolder = new TimelineStateHolder(mDataHandler, mStore);
-        mStateEventRedactionChecker = new StateEventRedactionChecker(this, mStateHolder);
-        mTimelineEventSaver = new TimelineEventSaver(this, mStateHolder);
-    }
 
     /**
      * Reset the back state so that future history requests start over from live.

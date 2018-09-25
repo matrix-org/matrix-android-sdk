@@ -16,6 +16,8 @@
 
 package org.matrix.androidsdk.data.timeline;
 
+import android.support.annotation.NonNull;
+
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXDataHandler;
@@ -26,16 +28,13 @@ import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.Log;
 
-import javax.annotation.Nonnull;
-
 class TimelinePushWorker {
 
     private static final String LOG_TAG = TimelinePushWorker.class.getSimpleName();
 
-    @Nonnull
     private final MXDataHandler mDataHandler;
 
-    TimelinePushWorker(@Nonnull final MXDataHandler dataHandler) {
+    TimelinePushWorker(@NonNull final MXDataHandler dataHandler) {
         mDataHandler = dataHandler;
     }
 
@@ -44,8 +43,8 @@ class TimelinePushWorker {
      *
      * @param event the event
      */
-    public void triggerPush(@Nonnull final RoomState state,
-                            @Nonnull Event event) {
+    public void triggerPush(@NonNull final RoomState state,
+                            @NonNull final Event event) {
         BingRule bingRule;
         boolean outOfTimeEvent = false;
         long maxLifetime = 0;

@@ -25,9 +25,10 @@ import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.common.CommonTestHelper;
-import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.timeline.EventTimeline;
+import org.matrix.androidsdk.data.timeline.EventTimelineFactory;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -87,7 +88,7 @@ public class RoomStateTest {
         mTestHelper.syncSession(data.samSession, false);
         final Room aliceRoom = data.aliceSession.getDataHandler().getRoom(data.roomId);
         final CountDownLatch lock = new CountDownLatch(1);
-        aliceRoom.getLiveTimeLine().addEventTimelineListener(new EventTimeline.EventTimelineListener() {
+        aliceRoom.getTimeline().addEventTimelineListener(new EventTimeline.EventTimelineListener() {
             @Override
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 lock.countDown();
@@ -123,7 +124,7 @@ public class RoomStateTest {
         mTestHelper.syncSession(data.aliceSession, false);
         final Room aliceRoom = data.aliceSession.getDataHandler().getRoom(data.roomId);
         final CountDownLatch lock = new CountDownLatch(1);
-        final EventTimeline liveTimeline = aliceRoom.getLiveTimeLine();
+        final EventTimeline liveTimeline = aliceRoom.getTimeline();
         liveTimeline.addEventTimelineListener(new EventTimeline.EventTimelineListener() {
             int messageCount = 0;
 
@@ -181,7 +182,7 @@ public class RoomStateTest {
         mTestHelper.syncSession(data.aliceSession, false);
         final Room aliceRoom = data.aliceSession.getDataHandler().getRoom(data.roomId);
         final Event lastEvent = aliceRoom.getDataHandler().getStore().getLatestEvent(data.roomId);
-        final EventTimeline eventTimeline = new EventTimeline(data.aliceSession.getDataHandler(), lastEvent.roomId, lastEvent.eventId);
+        final EventTimeline eventTimeline = EventTimelineFactory.pastTimeline(data.aliceSession.getDataHandler(), lastEvent.roomId, lastEvent.eventId);
         final CountDownLatch lock = new CountDownLatch(1);
         eventTimeline.resetPaginationAroundInitialEvent(10, new SimpleApiCallback<Void>() {
             @Override
@@ -221,7 +222,7 @@ public class RoomStateTest {
         final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario(withLazyLoading);
         mTestHelper.syncSession(data.aliceSession, false);
         final CountDownLatch lock = new CountDownLatch(1);
-        final EventTimeline eventTimeline = new EventTimeline(data.aliceSession.getDataHandler(), data.roomId, data.bobMessageId);
+        final EventTimeline eventTimeline = EventTimelineFactory.pastTimeline(data.aliceSession.getDataHandler(), data.roomId, data.bobMessageId);
         eventTimeline.addEventTimelineListener(new EventTimeline.EventTimelineListener() {
             int messageCount = 0;
 
@@ -286,7 +287,7 @@ public class RoomStateTest {
         final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario(withLazyLoading);
         mTestHelper.syncSession(data.aliceSession, false);
         final CountDownLatch lock = new CountDownLatch(1);
-        final EventTimeline eventTimeline = new EventTimeline(data.aliceSession.getDataHandler(), data.roomId, data.bobMessageId);
+        final EventTimeline eventTimeline = EventTimelineFactory.pastTimeline(data.aliceSession.getDataHandler(), data.roomId, data.bobMessageId);
         eventTimeline.addEventTimelineListener(new EventTimeline.EventTimelineListener() {
             int messageCount = 0;
 
