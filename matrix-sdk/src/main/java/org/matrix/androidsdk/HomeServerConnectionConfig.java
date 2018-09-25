@@ -305,7 +305,7 @@ public class HomeServerConnectionConfig {
 
         /**
          * @param hsUri The URI to use to connect to the homeserver. Cannot be null
-         * @return
+         * @return this builder
          */
         public Builder withHomeServerUri(final Uri hsUri) {
             if (hsUri == null || (!"http".equals(hsUri.getScheme()) && !"https".equals(hsUri.getScheme()))) {
@@ -329,7 +329,7 @@ public class HomeServerConnectionConfig {
 
         /**
          * @param identityServerUri The URI to use to manage identity. Can be null
-         * @return
+         * @return this builder
          */
         public Builder withIdentityServerUri(final Uri identityServerUri) {
             if ((null != identityServerUri) && (!"http".equals(identityServerUri.getScheme()) && !"https".equals(identityServerUri.getScheme()))) {
@@ -353,7 +353,7 @@ public class HomeServerConnectionConfig {
 
         /**
          * @param credentials The credentials to use, if needed. Can be null.
-         * @return
+         * @return this builder
          */
         public Builder withCredentials(@Nullable Credentials credentials) {
             mHomeServerConnectionConfig.mCredentials = credentials;
@@ -362,7 +362,7 @@ public class HomeServerConnectionConfig {
 
         /**
          * @param allowedFingerprints If using SSL, allow server certs that match these fingerprints.
-         * @return
+         * @return this builder
          */
         public Builder withAllowedFingerPrints(@Nullable List<Fingerprint> allowedFingerprints) {
             if (allowedFingerprints != null) {
@@ -375,6 +375,7 @@ public class HomeServerConnectionConfig {
         /**
          * @param pin If true only allow certs matching given fingerprints, otherwise fallback to
          *            standard X509 checks.
+         * @return this builder
          */
         public Builder withPin(boolean pin) {
             mHomeServerConnectionConfig.mPin = pin;
@@ -382,6 +383,10 @@ public class HomeServerConnectionConfig {
             return this;
         }
 
+        /**
+         * @param shouldAcceptTlsExtension
+         * @return this builder
+         */
         public Builder withShouldAcceptTlsExtensions(boolean shouldAcceptTlsExtension) {
             mHomeServerConnectionConfig.mShouldAcceptTlsExtensions = shouldAcceptTlsExtension;
 
@@ -392,6 +397,7 @@ public class HomeServerConnectionConfig {
          * Add an accepted TLS version for TLS connections with the home server.
          *
          * @param tlsVersion the tls version to add to the set of TLS versions accepted.
+         * @return this builder
          */
         public Builder addAcceptedTlsVersion(@NonNull TlsVersion tlsVersion) {
             if (mHomeServerConnectionConfig.mTlsVersions == null) {
@@ -407,6 +413,7 @@ public class HomeServerConnectionConfig {
          * Add a TLS cipher suite to the list of accepted TLS connections with the home server.
          *
          * @param tlsCipherSuite the tls cipher suite to add.
+         * @return this builder
          */
         public Builder addAcceptedTlsCipherSuite(@NonNull CipherSuite tlsCipherSuite) {
             if (mHomeServerConnectionConfig.mTlsCipherSuites == null) {
@@ -422,6 +429,7 @@ public class HomeServerConnectionConfig {
          * Update the anti-virus server URI.
          *
          * @param antivirusServerUri the new anti-virus uri. Can be null
+         * @return this builder
          */
         public Builder withAntiVirusServerUri(Uri antivirusServerUri) {
             if ((null != antivirusServerUri) && (!"http".equals(antivirusServerUri.getScheme()) && !"https".equals(antivirusServerUri.getScheme()))) {
@@ -439,6 +447,37 @@ public class HomeServerConnectionConfig {
         @VisibleForTesting
         public Builder withAllowHttpConnection() {
             mHomeServerConnectionConfig.mAllowHttpExtension = true;
+            return this;
+        }
+
+        /**
+         * Convenient method to limit the TLS versions and cipher suites for this Builder
+         * Ref:
+         * - https://www.ssi.gouv.fr/uploads/2017/02/security-recommendations-for-tls_v1.1.pdf
+         * - https://developer.android.com/reference/javax/net/ssl/SSLEngine
+         *
+         * @param tlsLimitations true to use Tls limitations
+         * @return this builder
+         */
+        public Builder withTlsLimitations(boolean tlsLimitations) {
+            if (tlsLimitations) {
+                withShouldAcceptTlsExtensions(false);
+
+                // Tls versions
+                addAcceptedTlsVersion(TlsVersion.TLS_1_2);
+                addAcceptedTlsVersion(TlsVersion.TLS_1_3);
+
+                // Cipher suites
+                addAcceptedTlsCipherSuite(CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256);
+                addAcceptedTlsCipherSuite(CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256);
+                addAcceptedTlsCipherSuite(CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256);
+                addAcceptedTlsCipherSuite(CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256);
+                addAcceptedTlsCipherSuite(CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384);
+                addAcceptedTlsCipherSuite(CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384);
+                addAcceptedTlsCipherSuite(CipherSuite.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256);
+                addAcceptedTlsCipherSuite(CipherSuite.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256);
+            }
+
             return this;
         }
 
