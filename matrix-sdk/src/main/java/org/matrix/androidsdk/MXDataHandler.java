@@ -863,7 +863,7 @@ public class MXDataHandler {
             if (null == room.getDataHandler()) {
                 Log.e(LOG_TAG, "checkRoom : the room was not initialized");
                 room.init(mStore, room.getRoomId(), this);
-            } else if ((null != room.getLiveTimeLine()) && (null == room.getLiveTimeLine().mDataHandler)) {
+            } else if ((null != room.getTimeline()) && (null == room.getTimeline().mDataHandler)) {
                 Log.e(LOG_TAG, "checkRoom : the timeline was not initialized");
                 room.init(mStore, room.getRoomId(), this);
             }
@@ -1336,7 +1336,7 @@ public class MXDataHandler {
                 }
 
                 // copy the state
-                leftRoom.getLiveTimeLine().setState(r.getLiveTimeLine().getState());
+                leftRoom.getTimeline().setState(r.getTimeline().getState());
             }
 
             // remove the previous definition

@@ -43,13 +43,14 @@ import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.adapters.AbstractMessagesAdapter;
 import org.matrix.androidsdk.adapters.MessageRow;
 import org.matrix.androidsdk.crypto.MXCryptoError;
-import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomMediaMessage;
 import org.matrix.androidsdk.data.RoomPreviewData;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.store.IMXStore;
+import org.matrix.androidsdk.data.timeline.EventTimeline;
+import org.matrix.androidsdk.data.timeline.EventTimelineFactory;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -507,7 +508,7 @@ public abstract class MatrixMessageListFragment<MessagesAdapter extends Abstract
             final String previewMode = args.getString(ARG_PREVIEW_MODE_ID);
             // the fragment displays the history around a message
             if (!TextUtils.isEmpty(mEventId)) {
-                mEventTimeLine = new EventTimeline(mSession.getDataHandler(), mRoomId, mEventId);
+                mEventTimeLine = EventTimelineFactory.pastTimeline(mSession.getDataHandler(), mRoomId, mEventId);
                 mRoom = mEventTimeLine.getRoom();
                 if (PREVIEW_MODE_UNREAD_MESSAGE.equals(previewMode)) {
                     mAdapter.setIsUnreadViewMode(true);
@@ -516,14 +517,14 @@ public abstract class MatrixMessageListFragment<MessagesAdapter extends Abstract
             // display a room preview
             else if (PREVIEW_MODE_READ_ONLY.equals(previewMode)) {
                 mAdapter.setIsPreviewMode(true);
-                mEventTimeLine = new EventTimeline(mSession.getDataHandler(), mRoomId);
+                mEventTimeLine = EventTimelineFactory.pastTimeline(mSession.getDataHandler(), mRoomId);
                 mRoom = mEventTimeLine.getRoom();
             }
             // standard case
             else {
                 if (!TextUtils.isEmpty(mRoomId)) {
                     mRoom = mSession.getDataHandler().getRoom(mRoomId);
-                    mEventTimeLine = mRoom.getLiveTimeLine();
+                    mEventTimeLine = mRoom.getTimeline();
                 }
             }
         }

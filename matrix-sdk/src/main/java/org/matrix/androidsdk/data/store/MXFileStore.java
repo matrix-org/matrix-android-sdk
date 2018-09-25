@@ -1648,7 +1648,7 @@ public class MXFileStore extends MXMemoryStore {
             }
 
             if (null != liveState) {
-                room.getLiveTimeLine().setState(liveState);
+                room.getTimeline().setState(liveState);
             } else {
                 deleteRoom(roomId);
             }

@@ -46,6 +46,7 @@ import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.timeline.EventTimeline;
+import org.matrix.androidsdk.data.timeline.EventTimelineFactory;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
@@ -122,7 +123,7 @@ public class Room {
     private boolean mRefreshUnreadAfterSync = false;
 
     // the time line
-    private EventTimeline mLiveTimeline;
+    private EventTimeline mTimeline;
 
     // initial sync callback.
     private ApiCallback<Void> mOnInitialSyncCallback;
@@ -140,13 +141,6 @@ public class Room {
     private boolean mIsLeft;
 
     /**
-     * Default room creator
-     */
-    public Room() {
-        mLiveTimeline = new EventTimeline(this, true);
-    }
-
-    /**
      * Init the room fields.
      *
      * @param store       the store.
@@ -156,11 +150,10 @@ public class Room {
     public void init(IMXStore store, String roomId, MXDataHandler dataHandler) {
         mDataHandler = dataHandler;
         mStore = store;
-        if (null != mDataHandler) {
+        if (mDataHandler != null) {
             mMyUserId = mDataHandler.getUserId();
-            mLiveTimeline.setDataHandler(mStore, dataHandler);
         }
-        mLiveTimeline.setRoomId(roomId);
+        mTimeline = EventTimelineFactory.liveTimeline(mStore, mDataHandler, this, roomId);
     }
 
     /**
@@ -236,7 +229,7 @@ public class Room {
      */
     public void setIsLeft(boolean isLeft) {
         mIsLeft = isLeft;
-        mLiveTimeline.setIsHistorical(isLeft);
+        mTimeline.setIsHistorical(isLeft);
     }
 
     /**
@@ -316,7 +309,7 @@ public class Room {
         mIsSyncing = true;
 
         synchronized (this) {
-            mLiveTimeline.handleJoinedRoomSync(roomSync, isGlobalInitialSync);
+            mTimeline.handleJoinedRoomSync(roomSync, isGlobalInitialSync);
             RoomSummary roomSummary = getRoomSummary();
             if (roomSummary != null) {
                 roomSummary.setIsJoined();
@@ -375,7 +368,7 @@ public class Room {
      * @param invitedRoomSync the invitation room events.
      */
     public void handleInvitedRoomSync(InvitedRoomSync invitedRoomSync) {
-        mLiveTimeline.handleInvitedRoomSync(invitedRoomSync);
+        mTimeline.handleInvitedRoomSync(invitedRoomSync);
 
         RoomSummary roomSummary = getRoomSummary();
 
@@ -390,7 +383,7 @@ public class Room {
      * @param event the event.
      */
     public void storeOutgoingEvent(Event event) {
-        mLiveTimeline.storeOutgoingEvent(event);
+        mTimeline.storeOutgoingEvent(event);
     }
 
     /**
@@ -426,7 +419,7 @@ public class Room {
     //================================================================================
 
     public String getRoomId() {
-        return mLiveTimeline.getState().roomId;
+        return mTimeline.getState().roomId;
     }
 
     public void setAccountData(RoomAccountData accountData) {
@@ -438,7 +431,7 @@ public class Room {
     }
 
     public RoomState getState() {
-        return mLiveTimeline.getState();
+        return mTimeline.getState();
     }
 
     public boolean isLeaving() {
@@ -453,12 +446,12 @@ public class Room {
         getState().getDisplayableMembersAsync(callback);
     }
 
-    public EventTimeline getLiveTimeLine() {
-        return mLiveTimeline;
+    public EventTimeline getTimeline() {
+        return mTimeline;
     }
 
-    public void setLiveTimeline(EventTimeline eventTimeline) {
-        mLiveTimeline = eventTimeline;
+    public void setTimeline(EventTimeline eventTimeline) {
+        mTimeline = eventTimeline;
     }
 
     public void setReadyState(boolean isReady) {
