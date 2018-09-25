@@ -27,6 +27,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.rest.json.BooleanDeserializer;
 import org.matrix.androidsdk.rest.json.ConditionDeserializer;
 import org.matrix.androidsdk.rest.json.MatrixFieldNamingStrategy;
 import org.matrix.androidsdk.rest.model.ContentResponse;
@@ -73,6 +74,8 @@ public class JsonUtils {
             .setFieldNamingStrategy(new MatrixFieldNamingStrategy())
             .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
             .registerTypeAdapter(Condition.class, new ConditionDeserializer())
+            .registerTypeAdapter(boolean.class, new BooleanDeserializer(false))
+            .registerTypeAdapter(Boolean.class, new BooleanDeserializer(true))
             .create();
 
     // add a call to serializeNulls().
@@ -83,6 +86,8 @@ public class JsonUtils {
             .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
             .serializeNulls()
             .registerTypeAdapter(Condition.class, new ConditionDeserializer())
+            .registerTypeAdapter(boolean.class, new BooleanDeserializer(false))
+            .registerTypeAdapter(Boolean.class, new BooleanDeserializer(true))
             .create();
 
     // for crypto (canonicalize)
@@ -92,6 +97,8 @@ public class JsonUtils {
             .disableHtmlEscaping()
             .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
             .registerTypeAdapter(Condition.class, new ConditionDeserializer())
+            .registerTypeAdapter(boolean.class, new BooleanDeserializer(false))
+            .registerTypeAdapter(Boolean.class, new BooleanDeserializer(true))
             .create();
 
     /**
