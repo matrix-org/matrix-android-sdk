@@ -62,13 +62,20 @@ public class Event implements Externalizable {
     private static final long serialVersionUID = -1431845331022808337L;
 
     public enum SentState {
-        UNSENT,  // the event has not been sent
-        ENCRYPTING, // the event is encrypting
-        SENDING, // the event is currently sending
-        WAITING_RETRY, // the event is going to be resent asap
-        SENT,    // the event has been sent
-        UNDELIVERABLE,   // The event failed to be sent
-        FAILED_UNKNOWN_DEVICES // the event failed to be sent because some unknown devices have been found while encrypting it
+        // the event has not been sent
+        UNSENT,
+        // the event is encrypting
+        ENCRYPTING,
+        // the event is currently sending
+        SENDING,
+        // the event is going to be resent asap
+        WAITING_RETRY,
+        // the event has been sent
+        SENT,
+        // The event failed to be sent
+        UNDELIVERABLE,
+        // the event failed to be sent because some unknown devices have been found while encrypting it
+        FAILED_UNKNOWN_DEVICES
     }
 
     // when there is no more message to be paginated in a room
