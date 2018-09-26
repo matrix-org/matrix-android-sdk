@@ -97,7 +97,7 @@ public class EventTimeline implements IEventTimeline {
     /**
      * The data handler : used to retrieve data from the store or to trigger REST requests.
      */
-    public MXDataHandler mDataHandler;
+    private MXDataHandler mDataHandler;
 
     /**
      * Pending request statuses
@@ -131,17 +131,19 @@ public class EventTimeline implements IEventTimeline {
     private final String mTimelineId = System.currentTimeMillis() + "";
 
     private final TimelineEventSaver mTimelineEventSaver;
-    private final StateEventRedactionChecker mStateEventRedactionChecker;
-    private final TimelinePushWorker mTimelinePushWorker;
     private final TimelineStateHolder mStateHolder;
     private final TimelineEventListeners mEventListeners;
     private final TimelineLiveEventHandler mLiveEventHandler;
 
     /**
-     * Constructor from room and event Id
+     * Constructor with package visibility. Creation should be done through EventTimelineFactory
      *
-     * @param dataHandler the data handler
-     * @param eventId     the event id.
+     * @param store       the store associated (in case of past timeline, the store is memory only)
+     * @param dataHandler the dataHandler
+     * @param room        the room
+     * @param roomId      the room id
+     * @param eventId     the eventId
+     * @param isLive      true if the timeline is a live one
      */
     EventTimeline(@NonNull final IMXStore store,
                   @NonNull final MXDataHandler dataHandler,
@@ -155,16 +157,15 @@ public class EventTimeline implements IEventTimeline {
         mRoom = room;
         mRoomId = roomId;
         mStore = store;
-        mTimelinePushWorker = new TimelinePushWorker(mDataHandler);
-        mStateHolder = new TimelineStateHolder(mDataHandler, mStore);
-        mStateEventRedactionChecker = new StateEventRedactionChecker(this, mStateHolder);
-        mTimelineEventSaver = new TimelineEventSaver(this, mStateHolder);
-        mStateHolder.setRoomId(mRoomId);
         mEventListeners = new TimelineEventListeners();
+        mStateHolder = new TimelineStateHolder(mDataHandler, mStore, roomId);
+        final StateEventRedactionChecker stateEventRedactionChecker = new StateEventRedactionChecker(this, mStateHolder);
+        mTimelineEventSaver = new TimelineEventSaver(this, mStateHolder);
+        final TimelinePushWorker timelinePushWorker = new TimelinePushWorker(mDataHandler);
         mLiveEventHandler = new TimelineLiveEventHandler(this,
                 mTimelineEventSaver,
-                mStateEventRedactionChecker,
-                mTimelinePushWorker,
+                stateEventRedactionChecker,
+                timelinePushWorker,
                 mStateHolder,
                 mEventListeners);
     }
