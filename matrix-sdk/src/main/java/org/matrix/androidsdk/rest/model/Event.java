@@ -164,7 +164,7 @@ public class Event implements Externalizable {
     public MatrixError unsentMatrixError = null;
 
     // sent state
-    public SentState mSentState = SentState.SENT;
+    public SentState mSentState;
 
     // save the token to back paginate
     // the room history could have been reduced to save memory.
@@ -483,7 +483,7 @@ public class Event implements Externalizable {
         originServerTs = System.currentTimeMillis();
         sender = userId = anUserId;
         roomId = aRoomId;
-        mSentState = Event.SentState.SENDING;
+        mSentState = Event.SentState.UNSENT;
         createDummyEventId();
     }
 
@@ -501,7 +501,7 @@ public class Event implements Externalizable {
         originServerTs = System.currentTimeMillis();
         sender = userId = anUserId;
         roomId = aRoomId;
-        mSentState = Event.SentState.SENDING;
+        mSentState = Event.SentState.UNSENT;
         createDummyEventId();
     }
 
