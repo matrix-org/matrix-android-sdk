@@ -451,7 +451,8 @@ public class Event implements Externalizable {
     /**
      * @return the redacted event id.
      */
-    public String getRedacts() {
+    @Nullable
+    public String getRedactedEventId() {
         if (null != redacts) {
             return redacts;
         } else if (isRedacted()) {

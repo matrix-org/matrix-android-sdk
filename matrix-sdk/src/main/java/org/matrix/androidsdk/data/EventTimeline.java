@@ -701,8 +701,8 @@ public class EventTimeline {
         String myUserId = mDataHandler.getCredentials().userId;
 
         if (Event.EVENT_TYPE_REDACTION.equals(event.getType())) {
-            if (event.getRedacts() != null) {
-                Event eventToPrune = mStore.getEvent(event.getRedacts(), event.roomId);
+            if (event.getRedactedEventId() != null) {
+                Event eventToPrune = mStore.getEvent(event.getRedactedEventId(), event.roomId);
 
                 // when an event is redacted, some fields must be kept.
                 if (null != eventToPrune) {
@@ -1536,7 +1536,7 @@ public class EventTimeline {
      */
     private void checkStateEventRedaction(final Event redactionEvent) {
 
-        final String eventId = redactionEvent.getRedacts();
+        final String eventId = redactionEvent.getRedactedEventId();
         Log.d(LOG_TAG, "checkStateEventRedaction of event " + eventId);
 
         // check if the state events is locally known

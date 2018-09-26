@@ -1763,13 +1763,13 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         if (direction == EventTimeline.Direction.FORWARDS) {
             if (Event.EVENT_TYPE_REDACTION.equals(event.getType())) {
-                MessageRow messageRow = mAdapter.getMessageRow(event.getRedacts());
+                MessageRow messageRow = mAdapter.getMessageRow(event.getRedactedEventId());
 
                 if (null != messageRow) {
-                    Event prunedEvent = mSession.getDataHandler().getStore().getEvent(event.getRedacts(), event.roomId);
+                    Event prunedEvent = mSession.getDataHandler().getStore().getEvent(event.getRedactedEventId(), event.roomId);
 
                     if (null == prunedEvent) {
-                        mAdapter.removeEventById(event.getRedacts());
+                        mAdapter.removeEventById(event.getRedactedEventId());
                     } else {
                         messageRow.updateEvent(prunedEvent);
                         JsonObject content = messageRow.getEvent().getContentAsJsonObject();
