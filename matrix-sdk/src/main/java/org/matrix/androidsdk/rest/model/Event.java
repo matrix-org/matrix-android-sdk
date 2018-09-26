@@ -73,7 +73,7 @@ public class Event implements Externalizable {
         // the event has been sent
         SENT,
         // The event failed to be sent
-        UNDELIVERABLE,
+        UNDELIVERED,
         // the event failed to be sent because some unknown devices have been found while encrypting it
         FAILED_UNKNOWN_DEVICES
     }
@@ -602,7 +602,7 @@ public class Event implements Externalizable {
      * @return true if it can be resent.
      */
     public boolean canBeResent() {
-        return (mSentState == SentState.WAITING_RETRY) || (mSentState == SentState.UNDELIVERABLE) || (mSentState == SentState.FAILED_UNKNOWN_DEVICES);
+        return (mSentState == SentState.WAITING_RETRY) || (mSentState == SentState.UNDELIVERED) || (mSentState == SentState.FAILED_UNKNOWN_DEVICES);
     }
 
     /**
@@ -633,12 +633,12 @@ public class Event implements Externalizable {
     }
 
     /**
-     * Tell if the message is undeliverable
+     * Tell if the message sending failed
      *
-     * @return true if the event is undeliverable
+     * @return true if the event has not been sent because of a failure
      */
-    public boolean isUndeliverable() {
-        return (mSentState == SentState.UNDELIVERABLE);
+    public boolean isUndelivered() {
+        return (mSentState == SentState.UNDELIVERED);
     }
 
     /**
@@ -855,8 +855,8 @@ public class Event implements Externalizable {
             text += "WAITING_RETRY";
         } else if (mSentState == SentState.SENT) {
             text += "SENT";
-        } else if (mSentState == SentState.UNDELIVERABLE) {
-            text += "UNDELIVERABLE";
+        } else if (mSentState == SentState.UNDELIVERED) {
+            text += "UNDELIVERED";
         } else if (mSentState == SentState.FAILED_UNKNOWN_DEVICES) {
             text += "FAILED UNKNOWN DEVICES";
         }

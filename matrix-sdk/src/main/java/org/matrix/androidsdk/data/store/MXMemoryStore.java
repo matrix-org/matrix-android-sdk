@@ -1076,12 +1076,12 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public List<Event> getUndeliverableEvents(String roomId) {
+    public List<Event> getUndeliveredEvents(String roomId) {
         if (null == roomId) {
             return null;
         }
 
-        List<Event> undeliverableRoomEvents = new ArrayList<>();
+        List<Event> undeliveredEvents = new ArrayList<>();
 
         synchronized (mRoomEventsLock) {
             LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
@@ -1093,16 +1093,16 @@ public class MXMemoryStore implements IMXStore {
                 for (int index = events.size() - 1; index >= 0; index--) {
                     Event event = eventsList.get(index);
 
-                    if (event.isUndeliverable()) {
-                        undeliverableRoomEvents.add(event);
+                    if (event.isUndelivered()) {
+                        undeliveredEvents.add(event);
                     }
                 }
 
-                Collections.reverse(undeliverableRoomEvents);
+                Collections.reverse(undeliveredEvents);
             }
         }
 
-        return undeliverableRoomEvents;
+        return undeliveredEvents;
     }
 
     @Override

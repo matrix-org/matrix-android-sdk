@@ -1009,7 +1009,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
         final Event event = messageRow.getEvent();
 
-        if (!event.isUndeliverable()) {
+        if (!event.isUndelivered()) {
             ApiCallback<Void> callback = new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
@@ -1029,7 +1029,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
 
                             if (null != activity) {
                                 // display the error message only if the message cannot be resent
-                                if ((null != event.unsentException) && (event.isUndeliverable())) {
+                                if ((null != event.unsentException) && (event.isUndelivered())) {
                                     if (event.unsentException instanceof IOException) {
                                         Toast.makeText(activity, activity.getString(R.string.unable_to_send_message) + " : "
                                                 + activity.getString(R.string.network_error), Toast.LENGTH_LONG).show();
@@ -1181,7 +1181,7 @@ public class MatrixMessageListFragment extends Fragment implements MatrixMessage
                 Log.e(LOG_TAG, "relaunchTimer.schedule failed " + throwable.getMessage(), throwable);
             }
         } else {
-            messageRow.getEvent().mSentState = Event.SentState.UNDELIVERABLE;
+            messageRow.getEvent().mSentState = Event.SentState.UNDELIVERED;
             onMessageSendingFailed(messageRow.getEvent());
             mAdapter.notifyDataSetChanged();
 
