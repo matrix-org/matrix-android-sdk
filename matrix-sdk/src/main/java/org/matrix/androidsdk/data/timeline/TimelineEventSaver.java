@@ -28,11 +28,15 @@ import org.matrix.androidsdk.rest.model.ReceiptData;
 
 class TimelineEventSaver {
 
-    private final IEventTimeline mEventTimeline;
+    private final IMXStore mStore;
+    private final Room mRoom;
     private final TimelineStateHolder mTimelineStateHolder;
 
-    TimelineEventSaver(@NonNull final IEventTimeline eventTimeline, @NonNull final TimelineStateHolder timelineStateHolder) {
-        mEventTimeline = eventTimeline;
+    TimelineEventSaver(@NonNull final IMXStore store,
+                       @NonNull final Room room,
+                       @NonNull final TimelineStateHolder timelineStateHolder) {
+        mStore = store;
+        mRoom = room;
         mTimelineStateHolder = timelineStateHolder;
     }
 
@@ -43,26 +47,24 @@ class TimelineEventSaver {
      */
 
     public void storeEvent(Event event) {
-        final IMXStore store = mEventTimeline.getStore();
-        final Room room = mEventTimeline.getRoom();
-        final MXDataHandler dataHandler = room.getDataHandler();
+        final MXDataHandler dataHandler = mRoom.getDataHandler();
         final String myUserId = dataHandler.getCredentials().userId;
 
         // create dummy read receipt for any incoming event
         // to avoid not synchronized read receipt and event
         if ((null != event.getSender()) && (null != event.eventId)) {
-            room.handleReceiptData(new ReceiptData(event.getSender(), event.eventId, event.originServerTs));
+            mRoom.handleReceiptData(new ReceiptData(event.getSender(), event.eventId, event.originServerTs));
         }
-        store.storeLiveRoomEvent(event);
+        mStore.storeLiveRoomEvent(event);
         if (RoomSummary.isSupportedEvent(event)) {
             final RoomState roomState = mTimelineStateHolder.getState();
-            RoomSummary summary = store.getSummary(event.roomId);
+            RoomSummary summary = mStore.getSummary(event.roomId);
             if (null == summary) {
                 summary = new RoomSummary(summary, event, roomState, myUserId);
             } else {
                 summary.setLatestReceivedEvent(event, roomState);
             }
-            store.storeSummary(summary);
+            mStore.storeSummary(summary);
         }
     }
 

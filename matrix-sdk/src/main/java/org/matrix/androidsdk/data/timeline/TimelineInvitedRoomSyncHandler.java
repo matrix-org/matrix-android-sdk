@@ -22,7 +22,6 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
@@ -30,14 +29,14 @@ import javax.annotation.Nullable;
  */
 class TimelineInvitedRoomSyncHandler {
 
-    private final IEventTimeline mEventTimeline;
+    private final Room mRoom;
     private final TimelineLiveEventHandler mLiveEventHandler;
     private final InvitedRoomSync mInvitedRoomSync;
 
-    TimelineInvitedRoomSyncHandler(@Nonnull final IEventTimeline eventTimeline,
+    TimelineInvitedRoomSyncHandler(@NonNull final Room room,
                                    @NonNull final TimelineLiveEventHandler liveEventHandler,
                                    @Nullable final InvitedRoomSync invitedRoomSync) {
-        mEventTimeline = eventTimeline;
+        mRoom = room;
         mLiveEventHandler = liveEventHandler;
         mInvitedRoomSync = invitedRoomSync;
     }
@@ -48,8 +47,7 @@ class TimelineInvitedRoomSyncHandler {
     public void handle() {
         // Handle the state events as live events (the room state will be updated, and the listeners (if any) will be notified).
         if ((mInvitedRoomSync != null) && (mInvitedRoomSync.inviteState != null) && (mInvitedRoomSync.inviteState.events != null)) {
-            final Room room = mEventTimeline.getRoom();
-            final String roomId = room.getRoomId();
+            final String roomId = mRoom.getRoomId();
 
             for (Event event : mInvitedRoomSync.inviteState.events) {
                 // Add a fake event id if none in order to be able to store the event
@@ -62,7 +60,7 @@ class TimelineInvitedRoomSyncHandler {
                 mLiveEventHandler.handleLiveEvent(event, false, true);
             }
             // The room related to the pending invite can be considered as ready from now
-            room.setReadyState(true);
+            mRoom.setReadyState(true);
         }
     }
 

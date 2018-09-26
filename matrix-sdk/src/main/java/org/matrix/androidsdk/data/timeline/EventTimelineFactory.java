@@ -35,7 +35,7 @@ public class EventTimelineFactory {
     public static EventTimeline liveTimeline(@NonNull final MXDataHandler dataHandler,
                                              @NonNull final Room room,
                                              @NonNull final String roomId) {
-        return new EventTimeline(dataHandler.getStore(roomId), dataHandler, room, roomId, null, true);
+        return new MXEventTimeline(dataHandler.getStore(roomId), dataHandler, room, roomId, null, true);
     }
 
     /**
@@ -63,7 +63,7 @@ public class EventTimelineFactory {
                                              @Nullable String eventId) {
         final MXMemoryStore store = new MXMemoryStore(dataHandler.getCredentials(), null);
         final Room room = dataHandler.getRoom(store, roomId, true);
-        final EventTimeline eventTimeline = new EventTimeline(store, dataHandler, room, roomId, eventId, false);
+        final EventTimeline eventTimeline = new MXEventTimeline(store, dataHandler, room, roomId, eventId, false);
         room.setTimeline(eventTimeline);
         room.setReadyState(true);
         return eventTimeline;

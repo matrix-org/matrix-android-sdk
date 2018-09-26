@@ -25,13 +25,13 @@ class TimelineJoinRoomSyncHandler {
 
     private static final String LOG_TAG = TimelineJoinRoomSyncHandler.class.getSimpleName();
 
-    private final IEventTimeline mEventTimeline;
+    private final MXEventTimeline mEventTimeline;
     private final RoomSync mRoomSync;
     private final TimelineStateHolder mTimelineStateHolder;
     private final TimelineLiveEventHandler mTimelineLiveEventHandler;
     private final boolean mIsGlobalInitialSync;
 
-    TimelineJoinRoomSyncHandler(@NonNull final IEventTimeline eventTimeline,
+    TimelineJoinRoomSyncHandler(@NonNull final MXEventTimeline eventTimeline,
                                 @NonNull final RoomSync roomSync,
                                 @NonNull final TimelineStateHolder timelineStateHolder,
                                 @NonNull final TimelineLiveEventHandler timelineLiveEventHandler,

@@ -38,10 +38,10 @@ import javax.annotation.Nonnull;
 class StateEventRedactionChecker {
 
     private static final String LOG_TAG = StateEventRedactionChecker.class.getSimpleName();
-    private final IEventTimeline mEventTimeline;
+    private final EventTimeline mEventTimeline;
     private final TimelineStateHolder mTimelineStateHolder;
 
-    StateEventRedactionChecker(@NonNull final IEventTimeline eventTimeline, @NonNull final TimelineStateHolder timelineStateHolder) {
+    StateEventRedactionChecker(@NonNull final EventTimeline eventTimeline, @NonNull final TimelineStateHolder timelineStateHolder) {
         mEventTimeline = eventTimeline;
         mTimelineStateHolder = timelineStateHolder;
     }
@@ -78,7 +78,7 @@ class StateEventRedactionChecker {
                         stateEvent.prune(redactionEvent);
                         stateEvents.set(index, stateEvent);
                         // digest the updated state
-                        mTimelineStateHolder.processStateEvent(stateEvent, IEventTimeline.Direction.FORWARDS);
+                        mTimelineStateHolder.processStateEvent(stateEvent, EventTimeline.Direction.FORWARDS);
                         isFound = true;
                         break;
                     }

@@ -92,8 +92,8 @@ class TimelineStateHolder {
      *
      * @param direction the room state direction to deep copy.
      */
-    public void deepCopyState(final IEventTimeline.Direction direction) {
-        if (direction == IEventTimeline.Direction.FORWARDS) {
+    public void deepCopyState(final EventTimeline.Direction direction) {
+        if (direction == EventTimeline.Direction.FORWARDS) {
             mState = mState.deepCopy();
         } else {
             mBackState = mBackState.deepCopy();
@@ -107,10 +107,10 @@ class TimelineStateHolder {
      * @param direction the direction; ie. forwards for live state, backwards for back state
      * @return true if the event has been processed.
      */
-    public boolean processStateEvent(@NonNull final Event event, final IEventTimeline.Direction direction) {
-        final RoomState affectedState = (direction == IEventTimeline.Direction.FORWARDS) ? mState : mBackState;
+    public boolean processStateEvent(@NonNull final Event event, final EventTimeline.Direction direction) {
+        final RoomState affectedState = (direction == EventTimeline.Direction.FORWARDS) ? mState : mBackState;
         boolean isProcessed = affectedState.applyState(mStore, event, direction);
-        if (isProcessed && direction == IEventTimeline.Direction.FORWARDS) {
+        if (isProcessed && direction == EventTimeline.Direction.FORWARDS) {
             mStore.storeLiveStateForRoom(mRoomId);
         }
         return isProcessed;
