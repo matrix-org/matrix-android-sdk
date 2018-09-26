@@ -1239,7 +1239,7 @@ public class MXFileStore extends MXMemoryStore {
         // succeeds to extract the message list
         if (null != events) {
             // create the room object
-            final Room room = new Room(getDataHandler(), roomId);
+            final Room room = new Room(getDataHandler(), this, roomId);
             // do not wait that the live state update
             room.setReadyState(true);
             storeRoom(room);

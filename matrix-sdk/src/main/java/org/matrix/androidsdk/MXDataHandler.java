@@ -827,7 +827,7 @@ public class MXDataHandler {
             room = store.getRoom(roomId);
             if ((room == null) && create) {
                 Log.d(LOG_TAG, "## getRoom() : create the room " + roomId);
-                room = new Room(this, roomId);
+                room = new Room(this, store, roomId);
                 store.storeRoom(room);
             } else if ((null != room) && (null == room.getDataHandler())) {
                 // GA reports that some rooms have no data handler
