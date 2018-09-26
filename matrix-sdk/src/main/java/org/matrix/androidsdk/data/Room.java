@@ -140,9 +140,9 @@ public class Room {
     // true when the current room is a left one
     private boolean mIsLeft;
 
-    public Room(@NonNull final MXDataHandler dataHandler, @NonNull final String roomId) {
+    public Room(@NonNull final MXDataHandler dataHandler, @NonNull final IMXStore store, @NonNull final String roomId) {
         mDataHandler = dataHandler;
-        mStore = mDataHandler.getStore(roomId);
+        mStore = store;
         mMyUserId = mDataHandler.getUserId();
         mTimeline = EventTimelineFactory.liveTimeline(mDataHandler, this, roomId);
     }
