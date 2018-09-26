@@ -24,11 +24,11 @@ import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
-import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
+import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
@@ -1233,8 +1233,7 @@ public class MXFileStore extends MXMemoryStore {
         // succeeds to extract the message list
         if (null != events) {
             // create the room object
-            Room room = new Room();
-            room.init(this, roomId, null);
+            final Room room = new Room(getDataHandler(), roomId);
             // do not wait that the live state update
             room.setReadyState(true);
             storeRoom(room);

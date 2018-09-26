@@ -140,24 +140,15 @@ public class Room {
     // true when the current room is a left one
     private boolean mIsLeft;
 
-    /**
-     * Init the room fields.
-     *
-     * @param store       the store.
-     * @param roomId      the room id
-     * @param dataHandler the data handler
-     */
-    public void init(IMXStore store, String roomId, MXDataHandler dataHandler) {
+    public Room(@NonNull final MXDataHandler dataHandler, @NonNull final String roomId) {
         mDataHandler = dataHandler;
-        mStore = store;
-        if (mDataHandler != null) {
-            mMyUserId = mDataHandler.getUserId();
-        }
-        mTimeline = EventTimelineFactory.liveTimeline(mStore, mDataHandler, this, roomId);
+        mStore = mDataHandler.getStore(roomId);
+        mMyUserId = mDataHandler.getUserId();
+        mTimeline = EventTimelineFactory.liveTimeline(mDataHandler, this, roomId);
     }
 
     /**
-     * @return the used datahandler
+     * @return the used data handler
      */
     public MXDataHandler getDataHandler() {
         return mDataHandler;

@@ -29,10 +29,10 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomPreviewData;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -214,11 +214,6 @@ public class MatrixMessagesFragment extends Fragment {
             // check if this room has been joined, if not, join it then get messages.
             mRoom = mSession.getDataHandler().getRoom(roomId);
         }
-
-        // GA reported some weird room content
-        // so ensure that the room fields are properly initialized
-        mSession.getDataHandler().checkRoom(mRoom);
-
         // display the message history around a dedicated message
         if ((null != mEventTimeline) && !mEventTimeline.isLiveTimeline() && (null != mEventTimeline.getInitialEventId())) {
             initializeTimeline();

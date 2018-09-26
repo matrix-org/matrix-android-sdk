@@ -528,11 +528,6 @@ public abstract class MatrixMessageListFragment<MessagesAdapter extends Abstract
                 }
             }
         }
-
-        // GA reported some weird room content
-        // so ensure that the room fields are properly initialized
-        mSession.getDataHandler().checkRoom(mRoom);
-
         mMessageListView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {

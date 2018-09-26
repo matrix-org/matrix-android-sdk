@@ -24,11 +24,12 @@ import android.os.Looper;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.data.timeline.EventTimeline;
+import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.metrics.MetricsListener;
+import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
@@ -104,6 +105,9 @@ public class MXMemoryStore implements IMXStore {
     // last time the avatar / displayname was updated
     protected long mUserDisplayNameTs;
     protected long mUserAvatarUrlTs;
+
+    // DataHandler -- added waiting to be refactored
+    private MXDataHandler mDataHandler;
 
     /**
      * Initialization method.
@@ -1643,5 +1647,23 @@ public class MXMemoryStore implements IMXStore {
      */
     public void setMetricsListener(MetricsListener metricsListener) {
         mMetricsListener = metricsListener;
+    }
+
+    /**
+     * Get the associated dataHandler
+     *
+     * @return the associated dataHandler
+     */
+    protected MXDataHandler getDataHandler() {
+        return mDataHandler;
+    }
+
+    /**
+     * Update the associated dataHandler
+     *
+     * @param dataHandler the dataHandler
+     */
+    public void setDataHandler(final MXDataHandler dataHandler) {
+        mDataHandler = dataHandler;
     }
 }
