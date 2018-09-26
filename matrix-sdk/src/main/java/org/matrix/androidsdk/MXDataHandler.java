@@ -33,7 +33,6 @@ import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXDecryptionException;
 import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
 import org.matrix.androidsdk.data.DataRetriever;
-import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
@@ -41,6 +40,7 @@ import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXMemoryStore;
+import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.groups.GroupsManager;
 import org.matrix.androidsdk.listeners.IMXEventListener;
@@ -193,7 +193,6 @@ public class MXDataHandler {
         mSyncHandlerThread = new HandlerThread("MXDataHandler" + mCredentials.userId, Thread.MIN_PRIORITY);
         mSyncHandlerThread.start();
         mSyncHandler = new MXOsHandler(mSyncHandlerThread.getLooper());
-
         mLeftRoomsStore = new MXMemoryStore(credentials, store.getContext());
     }
 
@@ -673,13 +672,6 @@ public class MXDataHandler {
         // some fields are not retrieved :
         // They are used to retrieve some data
         // so add the missing links.
-
-        Collection<Room> rooms = mStore.getRooms();
-
-        for (Room room : rooms) {
-            room.init(mStore, room.getRoomId(), this);
-        }
-
         Collection<RoomSummary> summaries = mStore.getSummaries();
         for (RoomSummary summary : summaries) {
             if (null != summary.getLatestRoomState()) {
@@ -835,39 +827,17 @@ public class MXDataHandler {
             room = store.getRoom(roomId);
             if ((room == null) && create) {
                 Log.d(LOG_TAG, "## getRoom() : create the room " + roomId);
-                room = new Room();
-                room.init(store, roomId, this);
+                room = new Room(this, roomId);
                 store.storeRoom(room);
             } else if ((null != room) && (null == room.getDataHandler())) {
                 // GA reports that some rooms have no data handler
                 // so ensure that it is not properly set
                 Log.e(LOG_TAG, "getRoom " + roomId + " was not initialized");
-                room.init(store, roomId, this);
                 store.storeRoom(room);
             }
         }
 
         return room;
-    }
-
-    /**
-     * Checks if the room is properly initialized.
-     * GA reported us that some room fields are not initialized.
-     * But, i really don't know how it is possible.
-     *
-     * @param room the room check
-     */
-    public void checkRoom(Room room) {
-        // sanity check
-        if (null != room) {
-            if (null == room.getDataHandler()) {
-                Log.e(LOG_TAG, "checkRoom : the room was not initialized");
-                room.init(mStore, room.getRoomId(), this);
-            } else if ((null != room.getTimeline()) && (null == room.getTimeline().mDataHandler)) {
-                Log.e(LOG_TAG, "checkRoom : the timeline was not initialized");
-                room.init(mStore, room.getRoomId(), this);
-            }
-        }
     }
 
     /**
