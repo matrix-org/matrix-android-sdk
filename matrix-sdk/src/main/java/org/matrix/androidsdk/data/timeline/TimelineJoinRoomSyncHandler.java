@@ -28,15 +28,18 @@ class TimelineJoinRoomSyncHandler {
     private final IEventTimeline mEventTimeline;
     private final RoomSync mRoomSync;
     private final TimelineStateHolder mTimelineStateHolder;
+    private final TimelineLiveEventHandler mTimelineLiveEventHandler;
     private final boolean mIsGlobalInitialSync;
 
     TimelineJoinRoomSyncHandler(@NonNull final IEventTimeline eventTimeline,
                                 @NonNull final RoomSync roomSync,
                                 @NonNull final TimelineStateHolder timelineStateHolder,
+                                @NonNull final TimelineLiveEventHandler timelineLiveEventHandler,
                                 final boolean isGlobalInitialSync) {
         mEventTimeline = eventTimeline;
         mRoomSync = roomSync;
         mTimelineStateHolder = timelineStateHolder;
+        mTimelineLiveEventHandler = timelineLiveEventHandler;
         mIsGlobalInitialSync = isGlobalInitialSync;
     }
 
@@ -179,7 +182,7 @@ class TimelineJoinRoomSyncHandler {
                     boolean isLimited = (null != mRoomSync.timeline) && mRoomSync.timeline.limited;
 
                     // digest the forward event
-                    mEventTimeline.handleLiveEvent(event, !isLimited && !mIsGlobalInitialSync, !mIsGlobalInitialSync && !isRoomInitialSync);
+                    mTimelineLiveEventHandler.handleLiveEvent(event, !isLimited && !mIsGlobalInitialSync, !mIsGlobalInitialSync && !isRoomInitialSync);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "timeline event failed " + e.getMessage(), e);
                 }

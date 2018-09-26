@@ -135,6 +135,7 @@ public class EventTimeline implements IEventTimeline {
     private final TimelinePushWorker mTimelinePushWorker;
     private final TimelineStateHolder mStateHolder;
     private final TimelineEventListeners mEventListeners;
+    private final TimelineLiveEventHandler mLiveEventHandler;
 
     /**
      * Constructor from room and event Id
@@ -160,6 +161,12 @@ public class EventTimeline implements IEventTimeline {
         mTimelineEventSaver = new TimelineEventSaver(this, mStateHolder);
         mStateHolder.setRoomId(mRoomId);
         mEventListeners = new TimelineEventListeners();
+        mLiveEventHandler = new TimelineLiveEventHandler(this,
+                mTimelineEventSaver,
+                mStateEventRedactionChecker,
+                mTimelinePushWorker,
+                mStateHolder,
+                mEventListeners);
     }
 
     /**
@@ -317,7 +324,7 @@ public class EventTimeline implements IEventTimeline {
      * @param invitedRoomSync the invitation room events.
      */
     public void handleInvitedRoomSync(InvitedRoomSync invitedRoomSync) {
-        final TimelineInvitedRoomSyncHandler invitedRoomSyncHandler = new TimelineInvitedRoomSyncHandler(this, invitedRoomSync);
+        final TimelineInvitedRoomSyncHandler invitedRoomSyncHandler = new TimelineInvitedRoomSyncHandler(this, mLiveEventHandler, invitedRoomSync);
         invitedRoomSyncHandler.handle();
     }
 
@@ -331,26 +338,8 @@ public class EventTimeline implements IEventTimeline {
         final TimelineJoinRoomSyncHandler joinRoomSyncHandler = new TimelineJoinRoomSyncHandler(this,
                 roomSync,
                 mStateHolder,
-                isGlobalInitialSync);
+                mLiveEventHandler, isGlobalInitialSync);
         joinRoomSyncHandler.handle();
-    }
-
-    /**
-     * Handle events coming down from the event stream.
-     *
-     * @param event                   the live event
-     * @param checkRedactedStateEvent set to true to check if it triggers a state event redaction
-     * @param withPush                set to true to trigger pushes when it is required
-     */
-    @Override
-    public void handleLiveEvent(Event event, boolean checkRedactedStateEvent, boolean withPush) {
-        final TimelineLiveEventHandler liveEventHandler = new TimelineLiveEventHandler(this,
-                mTimelineEventSaver,
-                mStateEventRedactionChecker,
-                mTimelinePushWorker,
-                mStateHolder,
-                mEventListeners);
-        liveEventHandler.handleLiveEvent(event, checkRedactedStateEvent, withPush);
     }
 
     /**

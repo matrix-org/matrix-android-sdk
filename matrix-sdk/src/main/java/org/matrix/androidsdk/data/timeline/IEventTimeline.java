@@ -36,8 +36,6 @@ interface IEventTimeline {
 
     String getTimelineId();
 
-    void handleLiveEvent(Event event, boolean checkRedactedStateEvent, boolean withPush);
-
     boolean canBackPaginate();
 
     void setCanBackPaginate(boolean canBackPaginate);
