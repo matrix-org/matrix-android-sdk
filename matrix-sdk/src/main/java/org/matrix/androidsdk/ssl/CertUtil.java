@@ -183,9 +183,16 @@ public class CertUtil {
                     new PinnedTrustManager(hsConfig.getAllowedFingerprints(), defaultTrustManager)
             };
 
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, trustPinned, new java.security.SecureRandom());
-            SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+            SSLSocketFactory sslSocketFactory;
+
+            if (hsConfig.getAcceptedTlsVersions() == null) {
+                SSLContext sslContext = SSLContext.getInstance("TLS");
+                sslContext.init(null, trustPinned, new java.security.SecureRandom());
+                sslSocketFactory = sslContext.getSocketFactory();
+            } else {
+                // Force usage of accepted Tls Versions for Android < 20
+                sslSocketFactory = new TLSSocketFactory(trustPinned, hsConfig.getAcceptedTlsVersions());
+            }
 
             return new Pair<>(sslSocketFactory, defaultTrustManager);
         } catch (Exception e) {
