@@ -651,14 +651,6 @@ public class Event implements Externalizable {
     }
 
     /**
-     * @deprecated call isUnknownDevice()
-     */
-    @Deprecated
-    public boolean isUnkownDevice() {
-        return isUnknownDevice();
-    }
-
-    /**
      * Check if the current event is sent.
      *
      * @return true if it is sent.
