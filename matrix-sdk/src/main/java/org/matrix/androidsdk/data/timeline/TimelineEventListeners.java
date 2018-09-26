@@ -37,14 +37,14 @@ public class TimelineEventListeners {
     private static final String LOG_TAG = TimelineEventListeners.class.getSimpleName();
 
     // The inner listeners
-    private final List<IEventTimeline.EventTimelineListener> mEventTimelineListeners = new ArrayList<>();
+    private final List<EventTimeline.EventTimelineListener> mEventTimelineListeners = new ArrayList<>();
 
     /**
      * Add an events listener.
      *
      * @param listener the listener to add.
      */
-    public void add(@Nullable final IEventTimeline.EventTimelineListener listener) {
+    public void add(@Nullable final EventTimeline.EventTimelineListener listener) {
         if (listener != null) {
             synchronized (this) {
                 if (mEventTimelineListeners.indexOf(listener) == -1) {
@@ -59,7 +59,7 @@ public class TimelineEventListeners {
      *
      * @param listener the listener to remove.
      */
-    public void remove(@Nullable final IEventTimeline.EventTimelineListener listener) {
+    public void remove(@Nullable final EventTimeline.EventTimelineListener listener) {
         if (null != listener) {
             synchronized (this) {
                 mEventTimelineListeners.remove(listener);
@@ -75,15 +75,15 @@ public class TimelineEventListeners {
      * @param roomState the roomState.
      */
     public void onEvent(@NonNull final Event event,
-                        @NonNull final IEventTimeline.Direction direction,
+                        @NonNull final EventTimeline.Direction direction,
                         @NonNull final RoomState roomState) {
         // ensure that the listeners are called in the UI thread
         if (Looper.getMainLooper().getThread() == Thread.currentThread()) {
-            final List<IEventTimeline.EventTimelineListener> listeners;
+            final List<EventTimeline.EventTimelineListener> listeners;
             synchronized (this) {
                 listeners = new ArrayList<>(mEventTimelineListeners);
             }
-            for (IEventTimeline.EventTimelineListener listener : listeners) {
+            for (EventTimeline.EventTimelineListener listener : listeners) {
                 try {
                     listener.onEvent(event, direction, roomState);
                 } catch (Exception e) {

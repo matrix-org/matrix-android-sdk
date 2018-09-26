@@ -41,14 +41,14 @@ class TimelineLiveEventHandler {
 
     private static final String LOG_TAG = TimelineLiveEventHandler.class.getSimpleName();
 
-    private final IEventTimeline mEventTimeline;
+    private final MXEventTimeline mEventTimeline;
     private final TimelineEventSaver mTimelineEventSaver;
     private final StateEventRedactionChecker mStateEventRedactionChecker;
     private final TimelinePushWorker mTimelinePushWorker;
     private final TimelineStateHolder mTimelineStateHolder;
     private final TimelineEventListeners mEventListeners;
 
-    TimelineLiveEventHandler(@Nonnull final IEventTimeline eventTimeline,
+    TimelineLiveEventHandler(@Nonnull final MXEventTimeline eventTimeline,
                              @Nonnull final TimelineEventSaver timelineEventSaver,
                              @Nonnull final StateEventRedactionChecker stateEventRedactionChecker,
                              @Nonnull final TimelinePushWorker timelinePushWorker,
@@ -91,7 +91,7 @@ class TimelineLiveEventHandler {
                 // general listeners
                 dataHandler.onLiveEvent(event, roomState);
                 // timeline listeners
-                mEventListeners.onEvent(event, IEventTimeline.Direction.FORWARDS, roomState);
+                mEventListeners.onEvent(event, EventTimeline.Direction.FORWARDS, roomState);
             }
 
             // trigger pushes when it is required
@@ -160,9 +160,9 @@ class TimelineLiveEventHandler {
                 final RoomState previousState = mTimelineStateHolder.getState();
                 if (event.stateKey != null) {
                     // copy the live state before applying any update
-                    mTimelineStateHolder.deepCopyState(IEventTimeline.Direction.FORWARDS);
+                    mTimelineStateHolder.deepCopyState(EventTimeline.Direction.FORWARDS);
                     // check if the event has been processed
-                    if (!mTimelineStateHolder.processStateEvent(event, IEventTimeline.Direction.FORWARDS)) {
+                    if (!mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS)) {
                         // not processed -> do not warn the application
                         // assume that the event is a duplicated one.
                         return;
@@ -175,7 +175,7 @@ class TimelineLiveEventHandler {
                 dataHandler.onLiveEvent(event, previousState);
 
                 // timeline listeners
-                mEventListeners.onEvent(event, IEventTimeline.Direction.FORWARDS, previousState);
+                mEventListeners.onEvent(event, EventTimeline.Direction.FORWARDS, previousState);
 
                 // trigger pushes when it is required
                 if (withPush) {
