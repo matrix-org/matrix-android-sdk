@@ -130,10 +130,11 @@ public class EventTimeline implements IEventTimeline {
      */
     private final String mTimelineId = System.currentTimeMillis() + "";
 
-    private TimelineEventSaver mTimelineEventSaver;
-    private StateEventRedactionChecker mStateEventRedactionChecker;
-    private TimelinePushWorker mTimelinePushWorker;
-    private TimelineStateHolder mStateHolder;
+    private final TimelineEventSaver mTimelineEventSaver;
+    private final StateEventRedactionChecker mStateEventRedactionChecker;
+    private final TimelinePushWorker mTimelinePushWorker;
+    private final TimelineStateHolder mStateHolder;
+    private final TimelineEventListeners mEventListeners;
 
     /**
      * Constructor from room and event Id
@@ -158,6 +159,7 @@ public class EventTimeline implements IEventTimeline {
         mStateEventRedactionChecker = new StateEventRedactionChecker(this, mStateHolder);
         mTimelineEventSaver = new TimelineEventSaver(this, mStateHolder);
         mStateHolder.setRoomId(mRoomId);
+        mEventListeners = new TimelineEventListeners();
     }
 
     /**
@@ -326,7 +328,10 @@ public class EventTimeline implements IEventTimeline {
      * @param isGlobalInitialSync true if the sync has been triggered by a global initial sync
      */
     public void handleJoinedRoomSync(@NonNull final RoomSync roomSync, final boolean isGlobalInitialSync) {
-        final TimelineJoinRoomSyncHandler joinRoomSyncHandler = new TimelineJoinRoomSyncHandler(this, roomSync, mStateHolder, isGlobalInitialSync);
+        final TimelineJoinRoomSyncHandler joinRoomSyncHandler = new TimelineJoinRoomSyncHandler(this,
+                roomSync,
+                mStateHolder,
+                isGlobalInitialSync);
         joinRoomSyncHandler.handle();
     }
 
@@ -339,7 +344,12 @@ public class EventTimeline implements IEventTimeline {
      */
     @Override
     public void handleLiveEvent(Event event, boolean checkRedactedStateEvent, boolean withPush) {
-        final TimelineLiveEventHandler liveEventHandler = new TimelineLiveEventHandler(this, mTimelineEventSaver, mStateEventRedactionChecker, mTimelinePushWorker, mStateHolder);
+        final TimelineLiveEventHandler liveEventHandler = new TimelineLiveEventHandler(this,
+                mTimelineEventSaver,
+                mStateEventRedactionChecker,
+                mTimelinePushWorker,
+                mStateHolder,
+                mEventListeners);
         liveEventHandler.handleLiveEvent(event, checkRedactedStateEvent, withPush);
     }
 
@@ -413,7 +423,7 @@ public class EventTimeline implements IEventTimeline {
             }
 
             mSnapshotEvents.remove(0);
-            onEvent(snapshotedEvent.mEvent, Direction.BACKWARDS, snapshotedEvent.mState);
+            mEventListeners.onEvent(snapshotedEvent.mEvent, Direction.BACKWARDS, snapshotedEvent.mState);
         }
 
         // https://github.com/vector-im/vector-android/pull/354
@@ -530,7 +540,7 @@ public class EventTimeline implements IEventTimeline {
                     manageBackEvents(MAX_EVENT_COUNT_PER_PAGINATION, callback);
                 } else {
                     for (Event event : events) {
-                        onEvent(event, Direction.FORWARDS, getState());
+                        mEventListeners.onEvent(event, Direction.FORWARDS, getState());
                     }
 
                     if (null != callback) {
@@ -891,7 +901,7 @@ public class EventTimeline implements IEventTimeline {
                                         // send them one by one
                                         for (SnapshotEvent snapshotEvent : nextSnapshotEvents) {
                                             mSnapshotEvents.remove(snapshotEvent);
-                                            onEvent(snapshotEvent.mEvent, Direction.FORWARDS, snapshotEvent.mState);
+                                            mEventListeners.onEvent(snapshotEvent.mEvent, Direction.FORWARDS, snapshotEvent.mState);
                                         }
 
                                         // init the tokens
@@ -949,21 +959,13 @@ public class EventTimeline implements IEventTimeline {
     // onEvent listener management.
     //==============================================================================================================
 
-    private final List<EventTimelineListener> mEventTimelineListeners = new ArrayList<>();
-
     /**
      * Add an events listener.
      *
      * @param listener the listener to add.
      */
     public void addEventTimelineListener(EventTimelineListener listener) {
-        if (null != listener) {
-            synchronized (this) {
-                if (-1 == mEventTimelineListeners.indexOf(listener)) {
-                    mEventTimelineListeners.add(listener);
-                }
-            }
-        }
+        mEventListeners.add(listener);
     }
 
     /**
@@ -972,45 +974,6 @@ public class EventTimeline implements IEventTimeline {
      * @param listener the listener to remove.
      */
     public void removeEventTimelineListener(EventTimelineListener listener) {
-        if (null != listener) {
-            synchronized (this) {
-                mEventTimelineListeners.remove(listener);
-            }
-        }
-    }
-
-    /**
-     * Dispatch the onEvent callback.
-     *
-     * @param event     the event.
-     * @param direction the direction.
-     * @param roomState the roogetState().
-     */
-    @Override
-    public void onEvent(final Event event, final Direction direction, final RoomState roomState) {
-        // ensure that the listeners are called in the UI thread
-        if (Looper.getMainLooper().getThread() != Thread.currentThread()) {
-            final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    onEvent(event, direction, roomState);
-                }
-            });
-        } else {
-            List<EventTimelineListener> listeners;
-
-            synchronized (this) {
-                listeners = new ArrayList<>(mEventTimelineListeners);
-            }
-
-            for (EventTimelineListener listener : listeners) {
-                try {
-                    listener.onEvent(event, direction, roomState);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "EventTimeline.onEvent " + listener + " crashes " + e.getMessage(), e);
-                }
-            }
-        }
+        mEventListeners.remove(listener);
     }
 }

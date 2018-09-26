@@ -42,8 +42,6 @@ interface IEventTimeline {
 
     void setCanBackPaginate(boolean canBackPaginate);
 
-    void onEvent(final Event event, final Direction direction, final RoomState roomState);
-
     /**
      * The direction from which an incoming event is considered.
      */

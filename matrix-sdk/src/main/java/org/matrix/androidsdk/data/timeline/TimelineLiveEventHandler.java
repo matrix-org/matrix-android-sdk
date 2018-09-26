@@ -46,17 +46,20 @@ class TimelineLiveEventHandler {
     private final StateEventRedactionChecker mStateEventRedactionChecker;
     private final TimelinePushWorker mTimelinePushWorker;
     private final TimelineStateHolder mTimelineStateHolder;
+    private final TimelineEventListeners mEventListeners;
 
     TimelineLiveEventHandler(@Nonnull final IEventTimeline eventTimeline,
                              @Nonnull final TimelineEventSaver timelineEventSaver,
                              @Nonnull final StateEventRedactionChecker stateEventRedactionChecker,
                              @Nonnull final TimelinePushWorker timelinePushWorker,
-                             @NonNull final TimelineStateHolder timelineStateHolder) {
+                             @NonNull final TimelineStateHolder timelineStateHolder,
+                             @NonNull final TimelineEventListeners eventListeners) {
         mEventTimeline = eventTimeline;
         mTimelineEventSaver = timelineEventSaver;
         mStateEventRedactionChecker = stateEventRedactionChecker;
         mTimelinePushWorker = timelinePushWorker;
         mTimelineStateHolder = timelineStateHolder;
+        mEventListeners = eventListeners;
     }
 
     /**
@@ -88,7 +91,7 @@ class TimelineLiveEventHandler {
                 // general listeners
                 dataHandler.onLiveEvent(event, roomState);
                 // timeline listeners
-                mEventTimeline.onEvent(event, IEventTimeline.Direction.FORWARDS, roomState);
+                mEventListeners.onEvent(event, IEventTimeline.Direction.FORWARDS, roomState);
             }
 
             // trigger pushes when it is required
@@ -172,7 +175,7 @@ class TimelineLiveEventHandler {
                 dataHandler.onLiveEvent(event, previousState);
 
                 // timeline listeners
-                mEventTimeline.onEvent(event, IEventTimeline.Direction.FORWARDS, previousState);
+                mEventListeners.onEvent(event, IEventTimeline.Direction.FORWARDS, previousState);
 
                 // trigger pushes when it is required
                 if (withPush) {
