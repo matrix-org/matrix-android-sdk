@@ -1090,15 +1090,13 @@ public class MXMemoryStore implements IMXStore {
             if ((null != events) && (events.size() > 0)) {
                 List<Event> eventsList = new ArrayList<>(events.values());
 
-                for (int index = events.size() - 1; index >= 0; index--) {
+                for (int index = 0; index < events.size(); index++) {
                     Event event = eventsList.get(index);
 
                     if (event.isUndelivered()) {
                         undeliveredEvents.add(event);
                     }
                 }
-
-                Collections.reverse(undeliveredEvents);
             }
         }
 
@@ -1120,15 +1118,13 @@ public class MXMemoryStore implements IMXStore {
             if ((null != events) && (events.size() > 0)) {
                 List<Event> eventsList = new ArrayList<>(events.values());
 
-                for (int index = events.size() - 1; index >= 0; index--) {
+                for (int index = 0; index < events.size(); index++) {
                     Event event = eventsList.get(index);
 
                     if (event.isUnknownDevice()) {
                         unknownDeviceEvents.add(event);
                     }
                 }
-
-                Collections.reverse(unknownDeviceEvents);
             }
         }
 
