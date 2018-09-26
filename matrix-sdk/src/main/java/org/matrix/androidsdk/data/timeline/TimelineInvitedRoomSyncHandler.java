@@ -16,6 +16,8 @@
 
 package org.matrix.androidsdk.data.timeline;
 
+import android.support.annotation.NonNull;
+
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
@@ -29,11 +31,14 @@ import javax.annotation.Nullable;
 class TimelineInvitedRoomSyncHandler {
 
     private final IEventTimeline mEventTimeline;
+    private final TimelineLiveEventHandler mLiveEventHandler;
     private final InvitedRoomSync mInvitedRoomSync;
 
     TimelineInvitedRoomSyncHandler(@Nonnull final IEventTimeline eventTimeline,
+                                   @NonNull final TimelineLiveEventHandler liveEventHandler,
                                    @Nullable final InvitedRoomSync invitedRoomSync) {
         mEventTimeline = eventTimeline;
+        mLiveEventHandler = liveEventHandler;
         mInvitedRoomSync = invitedRoomSync;
     }
 
@@ -54,7 +59,7 @@ class TimelineInvitedRoomSyncHandler {
 
                 // The roomId is not defined.
                 event.roomId = roomId;
-                mEventTimeline.handleLiveEvent(event, false, true);
+                mLiveEventHandler.handleLiveEvent(event, false, true);
             }
             // The room related to the pending invite can be considered as ready from now
             room.setReadyState(true);
