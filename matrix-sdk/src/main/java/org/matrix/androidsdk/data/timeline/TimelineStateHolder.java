@@ -42,16 +42,15 @@ class TimelineStateHolder {
      */
     private RoomState mBackState;
 
-    TimelineStateHolder(@NonNull final MXDataHandler dataHandler, @NonNull final IMXStore store) {
+    TimelineStateHolder(@NonNull final MXDataHandler dataHandler, @NonNull final IMXStore store, final String roomId) {
         mDataHandler = dataHandler;
         mStore = store;
+        mRoomId = roomId;
         initStates();
     }
 
     public void clear() {
         initStates();
-        mBackState.roomId = mRoomId;
-        mState.roomId = mRoomId;
     }
 
     /**
@@ -131,8 +130,10 @@ class TimelineStateHolder {
     private void initStates() {
         mBackState = new RoomState();
         mBackState.setDataHandler(mDataHandler);
+        mBackState.roomId = mRoomId;
         mState = new RoomState();
         mState.setDataHandler(mDataHandler);
+        mState.roomId = mRoomId;
     }
 
 
