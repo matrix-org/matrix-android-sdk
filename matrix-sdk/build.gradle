@@ -26,15 +26,6 @@ android {
         include "**/*Test.class" // whatever Ant pattern matches your test class files
     }
 
-    signingConfigs {
-        release {
-            storeFile file(project.hasProperty("RELEASE_STORE_FILE") ? RELEASE_STORE_FILE : "/dummy/path")
-            storePassword project.hasProperty("RELEASE_STORE_PASSWORD") ? RELEASE_STORE_PASSWORD : "dummy password"
-            keyAlias project.hasProperty("RELEASE_KEY_ALIAS") ? RELEASE_KEY_ALIAS : "dummy alias"
-            keyPassword project.hasProperty("RELEASE_KEY_PASSWORD") ? RELEASE_KEY_PASSWORD : "dummy password"
-        }
-    }
-
     android.libraryVariants.all { variant ->
         task("${variant.name}Docs", type: Javadoc) {
             source = variant.javaCompiler.source
