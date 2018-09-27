@@ -35,7 +35,7 @@ public class TimelineStateHolderTest {
     }
 
     @Test
-    public void State_WhenProcessForward__ShouldStoreLiveState() {
+    public void processStateEvent_WhenDirectionIsForward__ShouldStoreLiveState() {
         final Event event = new Event();
         event.roomId = ROOM_ID;
         event.stateKey = EVENT_TYPE_STATE_ROOM_NAME;
@@ -45,7 +45,7 @@ public class TimelineStateHolderTest {
     }
 
     @Test
-    public void State_WhenProcessWithNoStateKey__ShouldNotBeProcessed() {
+    public void processStateEvent_WhenNoStateKeyIsGiven__ShouldNotBeProcessed() {
         final Event event = new Event();
         event.roomId = ROOM_ID;
         event.type = EVENT_TYPE_STATE_ROOM_NAME;
@@ -53,7 +53,16 @@ public class TimelineStateHolderTest {
     }
 
     @Test
-    public void State_WhenProcessForward__ShouldUseState() {
+    public void processStateEvent_WithConformingEvent__ShouldBeProcessed() {
+        final Event event = new Event();
+        event.roomId = ROOM_ID;
+        event.type = EVENT_TYPE_STATE_ROOM_NAME;
+        event.stateKey = EVENT_TYPE_STATE_ROOM_NAME;
+        Assert.assertTrue(mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS));
+    }
+
+    @Test
+    public void processStateEvent_WhenDirectionIsForward__ShouldUseState() {
         final Event event = new Event();
         event.roomId = ROOM_ID;
         event.stateKey = EVENT_TYPE_STATE_ROOM_NAME;
@@ -65,7 +74,7 @@ public class TimelineStateHolderTest {
     }
 
     @Test
-    public void State_WhenProcessBackward__ShouldUseBackState() {
+    public void processStateEvent_WhenDirectionIsBackward__ShouldUseBackState() {
         final Event event = new Event();
         event.roomId = ROOM_ID;
         event.stateKey = EVENT_TYPE_STATE_ROOM_NAME;
@@ -77,7 +86,7 @@ public class TimelineStateHolderTest {
     }
 
     @Test
-    public void State_WhenDeepCopyForward__ShouldUseState() {
+    public void deepCopyState_WhenDirectionIsForward__ShouldCopyState() {
         final RoomState state = Mockito.spy(new RoomState());
         final RoomState backState = Mockito.spy(new RoomState());
         mTimelineStateHolder.setState(state);
@@ -88,7 +97,7 @@ public class TimelineStateHolderTest {
     }
 
     @Test
-    public void State_WhenDeepCopyBackward__ShouldUseBackState() {
+    public void deepCopyState_WhenDirectionIsBackward__ShouldCopyBackState() {
         final RoomState state = Mockito.spy(new RoomState());
         final RoomState backState = Mockito.spy(new RoomState());
         mTimelineStateHolder.setState(state);
