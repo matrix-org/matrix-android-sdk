@@ -144,7 +144,7 @@ public class MatrixMessagesFragment extends Fragment {
         }
     };
 
-    private final EventTimeline.EventTimelineListener mEventTimelineListener = new EventTimeline.EventTimelineListener() {
+    private final EventTimeline.Listener mEventTimelineListener = new EventTimeline.Listener() {
         @Override
         public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
             if (null != mMatrixMessagesListener) {

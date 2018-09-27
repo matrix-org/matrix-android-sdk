@@ -974,7 +974,7 @@ class MXEventTimeline implements EventTimeline {
      * @param listener the listener to add.
      */
     @Override
-    public void addEventTimelineListener(@Nullable final EventTimelineListener listener) {
+    public void addEventTimelineListener(@Nullable final Listener listener) {
         mEventListeners.add(listener);
     }
 
@@ -984,7 +984,7 @@ class MXEventTimeline implements EventTimeline {
      * @param listener the listener to remove.
      */
     @Override
-    public void removeEventTimelineListener(@Nullable final EventTimelineListener listener) {
+    public void removeEventTimelineListener(@Nullable final Listener listener) {
         mEventListeners.remove(listener);
     }
 }

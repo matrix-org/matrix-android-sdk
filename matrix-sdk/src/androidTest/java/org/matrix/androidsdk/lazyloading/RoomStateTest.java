@@ -88,7 +88,7 @@ public class RoomStateTest {
         mTestHelper.syncSession(data.samSession, false);
         final Room aliceRoom = data.aliceSession.getDataHandler().getRoom(data.roomId);
         final CountDownLatch lock = new CountDownLatch(1);
-        aliceRoom.getTimeline().addEventTimelineListener(new EventTimeline.EventTimelineListener() {
+        aliceRoom.getTimeline().addEventTimelineListener(new EventTimeline.Listener() {
             @Override
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 lock.countDown();
@@ -125,7 +125,7 @@ public class RoomStateTest {
         final Room aliceRoom = data.aliceSession.getDataHandler().getRoom(data.roomId);
         final CountDownLatch lock = new CountDownLatch(1);
         final EventTimeline liveTimeline = aliceRoom.getTimeline();
-        liveTimeline.addEventTimelineListener(new EventTimeline.EventTimelineListener() {
+        liveTimeline.addEventTimelineListener(new EventTimeline.Listener() {
             int messageCount = 0;
 
             @Override
@@ -223,7 +223,7 @@ public class RoomStateTest {
         mTestHelper.syncSession(data.aliceSession, false);
         final CountDownLatch lock = new CountDownLatch(1);
         final EventTimeline eventTimeline = EventTimelineFactory.pastTimeline(data.aliceSession.getDataHandler(), data.roomId, data.bobMessageId);
-        eventTimeline.addEventTimelineListener(new EventTimeline.EventTimelineListener() {
+        eventTimeline.addEventTimelineListener(new EventTimeline.Listener() {
             int messageCount = 0;
 
             @Override
@@ -288,7 +288,7 @@ public class RoomStateTest {
         mTestHelper.syncSession(data.aliceSession, false);
         final CountDownLatch lock = new CountDownLatch(1);
         final EventTimeline eventTimeline = EventTimelineFactory.pastTimeline(data.aliceSession.getDataHandler(), data.roomId, data.bobMessageId);
-        eventTimeline.addEventTimelineListener(new EventTimeline.EventTimelineListener() {
+        eventTimeline.addEventTimelineListener(new EventTimeline.Listener() {
             int messageCount = 0;
 
             @Override
