@@ -185,13 +185,13 @@ public class CertUtil {
 
             SSLSocketFactory sslSocketFactory;
 
-            if (hsConfig.getAcceptedTlsVersions() == null) {
+            if (hsConfig.forceUsageOfTlsVersions() && hsConfig.getAcceptedTlsVersions() != null) {
+                // Force usage of accepted Tls Versions for Android < 20
+                sslSocketFactory = new TLSSocketFactory(trustPinned, hsConfig.getAcceptedTlsVersions());
+            } else {
                 SSLContext sslContext = SSLContext.getInstance("TLS");
                 sslContext.init(null, trustPinned, new java.security.SecureRandom());
                 sslSocketFactory = sslContext.getSocketFactory();
-            } else {
-                // Force usage of accepted Tls Versions for Android < 20
-                sslSocketFactory = new TLSSocketFactory(trustPinned, hsConfig.getAcceptedTlsVersions());
             }
 
             return new Pair<>(sslSocketFactory, defaultTrustManager);
