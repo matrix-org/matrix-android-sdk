@@ -16,6 +16,8 @@
 
 package org.matrix.androidsdk.ssl;
 
+import org.matrix.androidsdk.util.Log;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -23,6 +25,8 @@ import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.net.ssl.SSLContext;
@@ -37,6 +41,7 @@ import okhttp3.TlsVersion;
  * Inspired from https://blog.dev-area.net/2015/08/13/android-4-1-enable-tls-1-1-and-tls-1-2/
  */
 /*package*/ class TLSSocketFactory extends SSLSocketFactory {
+    private static final String LOG_TAG = TLSSocketFactory.class.getSimpleName();
 
     private SSLSocketFactory internalSSLSocketFactory;
 
@@ -105,7 +110,24 @@ import okhttp3.TlsVersion;
 
     private Socket enableTLSOnSocket(Socket socket) {
         if (socket != null && (socket instanceof SSLSocket)) {
-            ((SSLSocket) socket).setEnabledProtocols(enabledProtocol);
+            SSLSocket sslSocket = (SSLSocket) socket;
+
+            List<String> supportedProtocols = Arrays.asList(sslSocket.getSupportedProtocols());
+            List<String> filteredEnabledProtocols = new ArrayList<>();
+
+            for (String protocol : enabledProtocol) {
+                if (supportedProtocols.contains(protocol)) {
+                    filteredEnabledProtocols.add(protocol);
+                }
+            }
+
+            if (!filteredEnabledProtocols.isEmpty()) {
+                try {
+                    sslSocket.setEnabledProtocols(filteredEnabledProtocols.toArray(new String[filteredEnabledProtocols.size()]));
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "Exception: ", e);
+                }
+            }
         }
         return socket;
     }
