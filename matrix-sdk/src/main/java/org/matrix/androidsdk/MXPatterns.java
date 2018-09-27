@@ -72,7 +72,7 @@ public class MXPatterns {
      * @return true if the string is a valid user id
      */
     public static boolean isUserId(String anUserId) {
-        return (null != anUserId) && PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER.matcher(anUserId).matches();
+        return anUserId != null && PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER.matcher(anUserId).matches();
     }
 
     /**
@@ -82,7 +82,7 @@ public class MXPatterns {
      * @return true if the string is a valid room Id
      */
     public static boolean isRoomId(String aRoomId) {
-        return (null != aRoomId) && PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER.matcher(aRoomId).matches();
+        return aRoomId != null && PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER.matcher(aRoomId).matches();
     }
 
     /**
@@ -92,7 +92,7 @@ public class MXPatterns {
      * @return true if the string is a valid room alias.
      */
     public static boolean isRoomAlias(String aRoomAlias) {
-        return (null != aRoomAlias) && PATTERN_CONTAIN_MATRIX_ALIAS.matcher(aRoomAlias).matches();
+        return aRoomAlias != null && PATTERN_CONTAIN_MATRIX_ALIAS.matcher(aRoomAlias).matches();
     }
 
     /**
@@ -102,7 +102,7 @@ public class MXPatterns {
      * @return true if the string is a valid message id.
      */
     public static boolean isMessageId(String aMessageId) {
-        return (null != aMessageId) && PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER.matcher(aMessageId).matches();
+        return aMessageId != null && PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER.matcher(aMessageId).matches();
     }
 
     /**
@@ -112,6 +112,6 @@ public class MXPatterns {
      * @return true if the string is a valid message id.
      */
     public static boolean isGroupId(String aGroupId) {
-        return (null != aGroupId) && PATTERN_CONTAIN_MATRIX_GROUP_IDENTIFIER.matcher(aGroupId).matches();
+        return aGroupId != null && PATTERN_CONTAIN_MATRIX_GROUP_IDENTIFIER.matcher(aGroupId).matches();
     }
 }
