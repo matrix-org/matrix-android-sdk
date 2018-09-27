@@ -177,43 +177,6 @@ public class MXSession {
     // load the crypto libs.
     public static OlmManager mOlmManager = new OlmManager();
 
-    // regex pattern to find matrix user ids in a string.
-    // See https://matrix.org/speculator/spec/HEAD/appendices.html#historical-user-ids
-    public static final String MATRIX_USER_IDENTIFIER_REGEX = "@[A-Z0-9\\x21-\\x39\\x3B-\\x7F]+:[A-Z0-9.-]+(\\.[A-Z]{2,})?+(\\:[0-9]{2,})?";
-    public static final Pattern PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER = Pattern.compile(MATRIX_USER_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
-
-    // regex pattern to find room aliases in a string.
-    public static final String MATRIX_ROOM_ALIAS_REGEX = "#[A-Z0-9._%#@=+-]+:[A-Z0-9.-]+(\\.[A-Z]{2,})?+(\\:[0-9]{2,})?";
-    public static final Pattern PATTERN_CONTAIN_MATRIX_ALIAS = Pattern.compile(MATRIX_ROOM_ALIAS_REGEX, Pattern.CASE_INSENSITIVE);
-
-    // regex pattern to find room ids in a string.
-    public static final String MATRIX_ROOM_IDENTIFIER_REGEX = "![A-Z0-9]+:[A-Z0-9.-]+(\\.[A-Z]{2,})?+(\\:[0-9]{2,})?";
-    public static final Pattern PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER = Pattern.compile(MATRIX_ROOM_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
-
-    // regex pattern to find message ids in a string.
-    public static final String MATRIX_MESSAGE_IDENTIFIER_REGEX = "\\$[A-Z0-9]+:[A-Z0-9.-]+(\\.[A-Z]{2,})?+(\\:[0-9]{2,})?";
-    public static final Pattern PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER = Pattern.compile(MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
-
-    // regex pattern to find group ids in a string.
-    public static final String MATRIX_GROUP_IDENTIFIER_REGEX = "\\+[A-Z0-9=_\\-./]+:[A-Z0-9.-]+(\\.[A-Z]{2,})?+(\\:[0-9]{2,})?";
-    public static final Pattern PATTERN_CONTAIN_MATRIX_GROUP_IDENTIFIER = Pattern.compile(MATRIX_GROUP_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
-
-    // regex pattern to find permalink with message id.
-    // Android does not support in URL so extract it.
-    public static final Pattern PATTERN_CONTAIN_MATRIX_TO_PERMALINK_ROOM_ID
-            = Pattern.compile("https:\\/\\/matrix\\.to\\/#\\/" + MATRIX_ROOM_IDENTIFIER_REGEX + "\\/"
-            + MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
-    public static final Pattern PATTERN_CONTAIN_MATRIX_TO_PERMALINK_ROOM_ALIAS
-            = Pattern.compile("https:\\/\\/matrix\\.to\\/#\\/" + MATRIX_ROOM_ALIAS_REGEX + "\\/"
-            + MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
-
-    public static final Pattern PATTERN_CONTAIN_APP_LINK_PERMALINK_ROOM_ID
-            = Pattern.compile("https:\\/\\/[A-Z0-9.-]+\\.[A-Z]{2,}\\/[A-Z]{3,}\\/#\\/room\\/" + MATRIX_ROOM_IDENTIFIER_REGEX + "\\/"
-            + MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
-    public static final Pattern PATTERN_CONTAIN_APP_LINK_PERMALINK_ROOM_ALIAS =
-            Pattern.compile("https:\\/\\/[A-Z0-9.-]+\\.[A-Z]{2,}\\/[A-Z]{3,}\\/#\\/room\\/" + MATRIX_ROOM_ALIAS_REGEX + "\\/"
-                    + MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
-
     /**
      * Create a basic session for direct API calls.
      *
@@ -2398,56 +2361,6 @@ public class MXSession {
                 }
             }
         });
-    }
-
-    /**
-     * Tells if a string is a valid user Id.
-     *
-     * @param anUserId the string to test
-     * @return true if the string is a valid user id
-     */
-    public static boolean isUserId(String anUserId) {
-        return (null != anUserId) && PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER.matcher(anUserId).matches();
-    }
-
-    /**
-     * Tells if a string is a valid room id.
-     *
-     * @param aRoomId the string to test
-     * @return true if the string is a valid room Id
-     */
-    public static boolean isRoomId(String aRoomId) {
-        return (null != aRoomId) && PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER.matcher(aRoomId).matches();
-    }
-
-    /**
-     * Tells if a string is a valid room alias.
-     *
-     * @param aRoomAlias the string to test
-     * @return true if the string is a valid room alias.
-     */
-    public static boolean isRoomAlias(String aRoomAlias) {
-        return (null != aRoomAlias) && PATTERN_CONTAIN_MATRIX_ALIAS.matcher(aRoomAlias).matches();
-    }
-
-    /**
-     * Tells if a string is a valid message id.
-     *
-     * @param aMessageId the string to test
-     * @return true if the string is a valid message id.
-     */
-    public static boolean isMessageId(String aMessageId) {
-        return (null != aMessageId) && PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER.matcher(aMessageId).matches();
-    }
-
-    /**
-     * Tells if a string is a valid group id.
-     *
-     * @param aGroupId the string to test
-     * @return true if the string is a valid message id.
-     */
-    public static boolean isGroupId(String aGroupId) {
-        return (null != aGroupId) && PATTERN_CONTAIN_MATRIX_GROUP_IDENTIFIER.matcher(aGroupId).matches();
     }
 
     /**

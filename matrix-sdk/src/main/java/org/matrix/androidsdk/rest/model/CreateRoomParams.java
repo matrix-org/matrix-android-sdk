@@ -20,7 +20,7 @@ package org.matrix.androidsdk.rest.model;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
-import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.MXPatterns;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.pid.Invite3Pid;
 import org.matrix.androidsdk.rest.model.pid.ThreePid;
@@ -234,7 +234,7 @@ public class CreateRoomParams {
                 pid.address = id;
 
                 invite_3pid.add(pid);
-            } else if (MXSession.isUserId(id)) {
+            } else if (MXPatterns.isUserId(id)) {
                 // do not invite oneself
                 if (!TextUtils.equals(hsConfig.getCredentials().userId, id)) {
                     if (null == invite) {
