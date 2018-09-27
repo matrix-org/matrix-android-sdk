@@ -59,6 +59,8 @@ public class HomeServerConnectionConfig {
     private boolean mShouldAcceptTlsExtensions = true;
     // allow Http connection
     private boolean mAllowHttpExtension;
+    // Force usage of TLS versions
+    private boolean mForceUsageTlsVersions;
 
     /**
      * Private constructor. Please use the Builder
@@ -166,6 +168,13 @@ public class HomeServerConnectionConfig {
         return mAllowHttpExtension;
     }
 
+    /**
+     * @return true if the usage of TlsVersions has to be forced
+     */
+    public boolean forceUsageOfTlsVersions() {
+        return mForceUsageTlsVersions;
+    }
+
     @Override
     public String toString() {
         return "HomeserverConnectionConfig{" +
@@ -220,6 +229,8 @@ public class HomeServerConnectionConfig {
 
             json.put("tls_versions", new JSONArray(tlsVersions));
         }
+
+        json.put("force_usage_of_tls_versions", mForceUsageTlsVersions);
 
         if (mTlsCipherSuites != null) {
             List<String> tlsCipherSuites = new ArrayList<>(mTlsCipherSuites.size());
@@ -277,6 +288,8 @@ public class HomeServerConnectionConfig {
             }
         }
 
+        builder.forceUsageOfTlsVersions(jsonObject.optBoolean("force_usage_of_tls_versions", false));
+
         // Set the TLS cipher suites if any
         if (jsonObject.has("tls_cipher_suites")) {
             JSONArray tlsCipherSuitesArray = jsonObject.optJSONArray("tls_cipher_suites");
@@ -331,7 +344,7 @@ public class HomeServerConnectionConfig {
          * @param identityServerUri The URI to use to manage identity. Can be null
          * @return this builder
          */
-        public Builder withIdentityServerUri(final Uri identityServerUri) {
+        public Builder withIdentityServerUri(@Nullable final Uri identityServerUri) {
             if ((null != identityServerUri) && (!"http".equals(identityServerUri.getScheme()) && !"https".equals(identityServerUri.getScheme()))) {
                 throw new RuntimeException("Invalid identity server URI: " + identityServerUri);
             }
@@ -410,6 +423,18 @@ public class HomeServerConnectionConfig {
         }
 
         /**
+         * Force the usage of TlsVersion. This can be usefull for device on Android version < 20
+         *
+         * @param forceUsageOfTlsVersions set to true to force the usage of specified TlsVersions (with {@link #addAcceptedTlsVersion(TlsVersion)}
+         * @return this builder
+         */
+        public Builder forceUsageOfTlsVersions(boolean forceUsageOfTlsVersions) {
+            mHomeServerConnectionConfig.mForceUsageTlsVersions = forceUsageOfTlsVersions;
+
+            return this;
+        }
+
+        /**
          * Add a TLS cipher suite to the list of accepted TLS connections with the home server.
          *
          * @param tlsCipherSuite the tls cipher suite to add.
@@ -431,7 +456,7 @@ public class HomeServerConnectionConfig {
          * @param antivirusServerUri the new anti-virus uri. Can be null
          * @return this builder
          */
-        public Builder withAntiVirusServerUri(Uri antivirusServerUri) {
+        public Builder withAntiVirusServerUri(@Nullable Uri antivirusServerUri) {
             if ((null != antivirusServerUri) && (!"http".equals(antivirusServerUri.getScheme()) && !"https".equals(antivirusServerUri.getScheme()))) {
                 throw new RuntimeException("Invalid antivirus server URI: " + antivirusServerUri);
             }
@@ -456,16 +481,19 @@ public class HomeServerConnectionConfig {
          * - https://www.ssi.gouv.fr/uploads/2017/02/security-recommendations-for-tls_v1.1.pdf
          * - https://developer.android.com/reference/javax/net/ssl/SSLEngine
          *
-         * @param tlsLimitations true to use Tls limitations
+         * @param tlsLimitations         true to use Tls limitations
+         * @param forceUsageOfTlsVersion set to true for Android < 20
          * @return this builder
          */
-        public Builder withTlsLimitations(boolean tlsLimitations) {
+        public Builder withTlsLimitations(boolean tlsLimitations, boolean forceUsageOfTlsVersion) {
             if (tlsLimitations) {
                 withShouldAcceptTlsExtensions(false);
 
                 // Tls versions
                 addAcceptedTlsVersion(TlsVersion.TLS_1_2);
                 addAcceptedTlsVersion(TlsVersion.TLS_1_3);
+
+                forceUsageOfTlsVersions(forceUsageOfTlsVersion);
 
                 // Cipher suites
                 addAcceptedTlsCipherSuite(CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256);
