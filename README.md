@@ -38,7 +38,9 @@ Logging in
 To log in, use an instance of the login API client.
 
 ```java
-HomeServerConnectionConfig hsConfig = new HomeServerConnectionConfig(Uri.parse("https://matrix.org"));
+HomeServerConnectionConfig hsConfig = new HomeServerConnectionConfig.Builder()
+    .withHomeServerUri(Uri.parse("https://matrix.org"))
+    .build();
 new LoginRestClient(hsConfig).loginWithUser(username, password, new SimpleApiCallback<Credentials>());
 ```
 
@@ -49,7 +51,8 @@ Starting the matrix session
 The session represents one user's session with a particular home server. There can potentially be multiple sessions for handling multiple accounts.
 
 ```java
-MXSession session = new MXSession(hsConfig, new MXDataHandler(store, credentials), getApplicationContext());
+MXSession session = new MXSession.Builder(hsConfig, new MXDataHandler(store, credentials), getApplicationContext())
+    .build();
 ```
 
 sets up a session for interacting with the home server.
