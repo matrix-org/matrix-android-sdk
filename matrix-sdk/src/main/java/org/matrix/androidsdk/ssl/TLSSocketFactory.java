@@ -34,8 +34,9 @@ import okhttp3.TlsVersion;
 
 /**
  * Force the usage of Tls versions on every created socket
+ * Inspired from https://blog.dev-area.net/2015/08/13/android-4-1-enable-tls-1-1-and-tls-1-2/
  */
-public class TLSSocketFactory extends SSLSocketFactory {
+/*package*/ class TLSSocketFactory extends SSLSocketFactory {
 
     private SSLSocketFactory internalSSLSocketFactory;
 
@@ -49,7 +50,7 @@ public class TLSSocketFactory extends SSLSocketFactory {
      * @throws KeyManagementException
      * @throws NoSuchAlgorithmException
      */
-    public TLSSocketFactory(TrustManager[] trustPinned, List<TlsVersion> acceptedTlsVersions) throws KeyManagementException, NoSuchAlgorithmException {
+    /*package*/ TLSSocketFactory(TrustManager[] trustPinned, List<TlsVersion> acceptedTlsVersions) throws KeyManagementException, NoSuchAlgorithmException {
         SSLContext context = SSLContext.getInstance("TLS");
         context.init(null, trustPinned, new SecureRandom());
         internalSSLSocketFactory = context.getSocketFactory();
