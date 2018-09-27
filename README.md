@@ -103,18 +103,6 @@ MXDataHandler dataHandler = new MXDataHandler(new MXMemoryStore());
 
 creates a data handler with the default in-memory storage implementation.
 
-### Setting up the session
-
-```java
-MXSession session = new MXSession(credentials, dataHandler);
-```
-
-### Starting the event stream
-
-```java
-session.startEventStream();
-```
-
 ### Registering a listener
 To be informed of events, the app needs to implement an event listener.
 
@@ -211,9 +199,13 @@ content can now be found.
 
 **See the sample app and Javadoc for more details.**
 
+References
+----------
+- [Matrix home page](https://matrix.org)
+- [Matrix api documentation](https://matrix.org/docs/spec/client_server/latest.html)
+- [Matrix api](https://matrix.org/docs/api/client-server/)
+
 License
 -------
 Apache 2.0
 
-[Matrix]:http://matrix.org
-[matrix api]:http://matrix.org/docs/api/client-server/
