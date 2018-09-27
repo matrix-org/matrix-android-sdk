@@ -1119,7 +1119,7 @@ public class CryptoTest {
         final CountDownLatch lock2 = new CountDownLatch(6);
         final List<Event> receivedEvents = new ArrayList<>();
 
-        EventTimeline.EventTimelineListener eventTimelineListener = new EventTimeline.EventTimelineListener() {
+        EventTimeline.Listener eventTimelineListener = new EventTimeline.Listener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
                     receivedEvents.add(event);
@@ -1175,7 +1175,7 @@ public class CryptoTest {
         final CountDownLatch lock2 = new CountDownLatch(6);
         final List<Event> receivedEvents = new ArrayList<>();
 
-        EventTimeline.EventTimelineListener eventTimelineListener = new EventTimeline.EventTimelineListener() {
+        EventTimeline.Listener eventTimelineListener = new EventTimeline.Listener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
                     receivedEvents.add(event);
@@ -1604,7 +1604,7 @@ public class CryptoTest {
         bobSession.getDataHandler().addListener(bobEventListener);
 
         final List<Event> receivedEvents = new ArrayList<>();
-        EventTimeline.EventTimelineListener eventTimelineListener = new EventTimeline.EventTimelineListener() {
+        EventTimeline.Listener eventTimelineListener = new EventTimeline.Listener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
                     receivedEvents.add(event);
@@ -1685,7 +1685,7 @@ public class CryptoTest {
         bobSession.getDataHandler().addListener(bobEventListener);
 
         final List<Event> receivedEvents = new ArrayList<>();
-        EventTimeline.EventTimelineListener eventTimelineListener = new EventTimeline.EventTimelineListener() {
+        EventTimeline.Listener eventTimelineListener = new EventTimeline.Listener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
                     receivedEvents.add(event);
@@ -1788,7 +1788,7 @@ public class CryptoTest {
         bobSession.getDataHandler().addListener(bobEventListener);
 
         final List<Event> receivedEvents = new ArrayList<>();
-        EventTimeline.EventTimelineListener eventTimelineListener = new EventTimeline.EventTimelineListener() {
+        EventTimeline.Listener eventTimelineListener = new EventTimeline.Listener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
                     receivedEvents.add(event);
@@ -1859,7 +1859,7 @@ public class CryptoTest {
         final List<Event> receivedEvents4 = new ArrayList<>();
         final CountDownLatch lock4 = new CountDownLatch(1);
 
-        EventTimeline.EventTimelineListener eventTimelineListener4 = new EventTimeline.EventTimelineListener() {
+        EventTimeline.Listener eventTimelineListener4 = new EventTimeline.Listener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
                     receivedEvents4.add(event);
@@ -1925,7 +1925,7 @@ public class CryptoTest {
         bobSession.getDataHandler().addListener(bobEventListener);
 
         final List<Event> receivedEvents = new ArrayList<>();
-        EventTimeline.EventTimelineListener eventTimelineListener = new EventTimeline.EventTimelineListener() {
+        EventTimeline.Listener eventTimelineListener = new EventTimeline.Listener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
                     receivedEvents.add(event);
@@ -1996,7 +1996,7 @@ public class CryptoTest {
 
         final CountDownLatch lock4 = new CountDownLatch(1);
         final List<Event> receivedEvents2 = new ArrayList<>();
-        EventTimeline.EventTimelineListener eventTimelineListener2 = new EventTimeline.EventTimelineListener() {
+        EventTimeline.Listener eventTimelineListener2 = new EventTimeline.Listener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
                     receivedEvents2.add(event);
@@ -2043,7 +2043,7 @@ public class CryptoTest {
         final CountDownLatch lock1 = new CountDownLatch(1);
 
         final List<Event> receivedEvents = new ArrayList<>();
-        EventTimeline.EventTimelineListener eventTimelineListener = new EventTimeline.EventTimelineListener() {
+        EventTimeline.Listener eventTimelineListener = new EventTimeline.Listener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
                     receivedEvents.add(event);
@@ -2087,7 +2087,7 @@ public class CryptoTest {
         final CountDownLatch lock2 = new CountDownLatch(1);
 
         final List<Event> receivedEvents2 = new ArrayList<>();
-        EventTimeline.EventTimelineListener eventTimelineListener2 = new EventTimeline.EventTimelineListener() {
+        EventTimeline.Listener eventTimelineListener2 = new EventTimeline.Listener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTED)) {
                     receivedEvents2.add(event);
@@ -2132,7 +2132,7 @@ public class CryptoTest {
         final CountDownLatch lock3 = new CountDownLatch(1);
 
         final List<Event> receivedEvents3 = new ArrayList<>();
-        EventTimeline.EventTimelineListener eventTimelineListener3 = new EventTimeline.EventTimelineListener() {
+        EventTimeline.Listener eventTimelineListener3 = new EventTimeline.Listener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
                     receivedEvents3.add(event);
@@ -2575,7 +2575,7 @@ public class CryptoTest {
         Room roomFromBobPOV = bobSession.getDataHandler().getRoom(aliceRoomId);
         final CountDownLatch lock3 = new CountDownLatch(1);
         final List<Event> receivedEvents = new ArrayList<>();
-        EventTimeline.EventTimelineListener eventTimelineListener = new EventTimeline.EventTimelineListener() {
+        EventTimeline.Listener eventTimelineListener = new EventTimeline.Listener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
                     receivedEvents.add(event);
@@ -2634,7 +2634,7 @@ public class CryptoTest {
 
         final CountDownLatch lock6 = new CountDownLatch(1);
         final List<Event> receivedEvents2 = new ArrayList<>();
-        EventTimeline.EventTimelineListener eventTimelineListener2 = new EventTimeline.EventTimelineListener() {
+        EventTimeline.Listener eventTimelineListener2 = new EventTimeline.Listener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
                     receivedEvents2.add(event);
@@ -3071,7 +3071,7 @@ public class CryptoTest {
 
         final CountDownLatch lock4 = new CountDownLatch(1);
         final List<Event> receivedEvents2 = new ArrayList<>();
-        EventTimeline.EventTimelineListener eventTimelineListener2 = new EventTimeline.EventTimelineListener() {
+        EventTimeline.Listener eventTimelineListener2 = new EventTimeline.Listener() {
             public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
                     receivedEvents2.add(event);

@@ -195,14 +195,14 @@ public interface EventTimeline {
      *
      * @param listener the listener to add.
      */
-    void addEventTimelineListener(EventTimelineListener listener);
+    void addEventTimelineListener(Listener listener);
 
     /**
      * Remove an events listener.
      *
      * @param listener the listener to remove.
      */
-    void removeEventTimelineListener(EventTimelineListener listener);
+    void removeEventTimelineListener(Listener listener);
 
     /**
      * The direction from which an incoming event is considered.
@@ -221,7 +221,7 @@ public interface EventTimeline {
         BACKWARDS
     }
 
-    interface EventTimelineListener {
+    interface Listener {
 
         /**
          * Call when an event has been handled in the timeline.
