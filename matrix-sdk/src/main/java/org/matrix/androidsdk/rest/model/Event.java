@@ -62,13 +62,20 @@ public class Event implements Externalizable {
     private static final long serialVersionUID = -1431845331022808337L;
 
     public enum SentState {
-        UNSENT,  // the event has not been sent
-        ENCRYPTING, // the event is encrypting
-        SENDING, // the event is currently sending
-        WAITING_RETRY, // the event is going to be resent asap
-        SENT,    // the event has been sent
-        UNDELIVERABLE,   // The event failed to be sent
-        FAILED_UNKNOWN_DEVICES // the event failed to be sent because some unknown devices have been found while encrypting it
+        // the event has not been sent
+        UNSENT,
+        // the event is encrypting
+        ENCRYPTING,
+        // the event is currently sending
+        SENDING,
+        // the event is going to be resent asap
+        WAITING_RETRY,
+        // the event has been sent
+        SENT,
+        // The event failed to be sent
+        UNDELIVERED,
+        // the event failed to be sent because some unknown devices have been found while encrypting it
+        FAILED_UNKNOWN_DEVICES
     }
 
     // when there is no more message to be paginated in a room
@@ -157,7 +164,7 @@ public class Event implements Externalizable {
     public MatrixError unsentMatrixError = null;
 
     // sent state
-    public SentState mSentState = SentState.SENT;
+    public SentState mSentState;
 
     // save the token to back paginate
     // the room history could have been reduced to save memory.
@@ -451,7 +458,8 @@ public class Event implements Externalizable {
     /**
      * @return the redacted event id.
      */
-    public String getRedacts() {
+    @Nullable
+    public String getRedactedEventId() {
         if (null != redacts) {
             return redacts;
         } else if (isRedacted()) {
@@ -475,7 +483,7 @@ public class Event implements Externalizable {
         originServerTs = System.currentTimeMillis();
         sender = userId = anUserId;
         roomId = aRoomId;
-        mSentState = Event.SentState.SENDING;
+        mSentState = Event.SentState.UNSENT;
         createDummyEventId();
     }
 
@@ -493,7 +501,7 @@ public class Event implements Externalizable {
         originServerTs = System.currentTimeMillis();
         sender = userId = anUserId;
         roomId = aRoomId;
-        mSentState = Event.SentState.SENDING;
+        mSentState = Event.SentState.UNSENT;
         createDummyEventId();
     }
 
@@ -594,7 +602,7 @@ public class Event implements Externalizable {
      * @return true if it can be resent.
      */
     public boolean canBeResent() {
-        return (mSentState == SentState.WAITING_RETRY) || (mSentState == SentState.UNDELIVERABLE) || (mSentState == SentState.FAILED_UNKNOWN_DEVICES);
+        return (mSentState == SentState.WAITING_RETRY) || (mSentState == SentState.UNDELIVERED) || (mSentState == SentState.FAILED_UNKNOWN_DEVICES);
     }
 
     /**
@@ -625,12 +633,12 @@ public class Event implements Externalizable {
     }
 
     /**
-     * Tell if the message is undeliverable
+     * Tell if the message sending failed
      *
-     * @return true if the event is undeliverable
+     * @return true if the event has not been sent because of a failure
      */
-    public boolean isUndeliverable() {
-        return (mSentState == SentState.UNDELIVERABLE);
+    public boolean isUndelivered() {
+        return (mSentState == SentState.UNDELIVERED);
     }
 
     /**
@@ -640,14 +648,6 @@ public class Event implements Externalizable {
      */
     public boolean isUnknownDevice() {
         return (mSentState == SentState.FAILED_UNKNOWN_DEVICES);
-    }
-
-    /**
-     * @deprecated call isUnknownDevice()
-     */
-    @Deprecated
-    public boolean isUnkownDevice() {
-        return isUnknownDevice();
     }
 
     /**
@@ -847,8 +847,8 @@ public class Event implements Externalizable {
             text += "WAITING_RETRY";
         } else if (mSentState == SentState.SENT) {
             text += "SENT";
-        } else if (mSentState == SentState.UNDELIVERABLE) {
-            text += "UNDELIVERABLE";
+        } else if (mSentState == SentState.UNDELIVERED) {
+            text += "UNDELIVERED";
         } else if (mSentState == SentState.FAILED_UNKNOWN_DEVICES) {
             text += "FAILED UNKNOWN DEVICES";
         }

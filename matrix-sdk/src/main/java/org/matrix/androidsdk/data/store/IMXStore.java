@@ -450,12 +450,12 @@ public interface IMXStore {
     List<Event> getLatestUnsentEvents(String roomId);
 
     /**
-     * Return the list of undeliverable events
+     * Return the list of undelivered events
      *
      * @param roomId the room id
-     * @return list of undeliverable events
+     * @return list of undelivered events
      */
-    List<Event> getUndeliverableEvents(String roomId);
+    List<Event> getUndeliveredEvents(String roomId);
 
     /**
      * Return the list of unknown device events.

@@ -2349,7 +2349,7 @@ public class Room {
             @Override
             public void onNetworkError(Exception e) {
                 event.unsentException = e;
-                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERABLE);
+                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);
                 try {
                     callback.onNetworkError(e);
                 } catch (Exception anException) {
@@ -2360,7 +2360,7 @@ public class Room {
             @Override
             public void onMatrixError(MatrixError e) {
                 event.unsentMatrixError = e;
-                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERABLE);
+                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);
 
                 if (MatrixError.isConfigurationErrorCode(e.errcode)) {
                     mDataHandler.onConfigurationError(e.errcode);
@@ -2376,7 +2376,7 @@ public class Room {
             @Override
             public void onUnexpectedError(Exception e) {
                 event.unsentException = e;
-                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERABLE);
+                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);
                 try {
                     callback.onUnexpectedError(e);
                 } catch (Exception anException) {
@@ -2429,7 +2429,7 @@ public class Room {
                         @Override
                         public void onNetworkError(Exception e) {
                             event.unsentException = e;
-                            mDataHandler.updateEventState(event, Event.SentState.UNDELIVERABLE);
+                            mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);
 
                             if (null != callback) {
                                 callback.onNetworkError(e);
@@ -2442,7 +2442,7 @@ public class Room {
                             if ((e instanceof MXCryptoError) && TextUtils.equals(((MXCryptoError) e).errcode, MXCryptoError.UNKNOWN_DEVICES_CODE)) {
                                 event.mSentState = Event.SentState.FAILED_UNKNOWN_DEVICES;
                             } else {
-                                event.mSentState = Event.SentState.UNDELIVERABLE;
+                                event.mSentState = Event.SentState.UNDELIVERED;
                             }
                             event.unsentMatrixError = e;
                             mDataHandler.onEventSentStateUpdated(event);
@@ -2455,7 +2455,7 @@ public class Room {
                         @Override
                         public void onUnexpectedError(Exception e) {
                             event.unsentException = e;
-                            mDataHandler.updateEventState(event, Event.SentState.UNDELIVERABLE);
+                            mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);
 
                             if (null != callback) {
                                 callback.onUnexpectedError(e);
@@ -2490,7 +2490,7 @@ public class Room {
                     (Event.SentState.ENCRYPTING == event.mSentState)) {
 
                 // the message cannot be sent anymore
-                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERABLE);
+                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);
             }
 
             List<String> urls = event.getMediaUrls();
@@ -3015,7 +3015,7 @@ public class Room {
         List<Event> unsent = new ArrayList<>();
 
         if (null != getStore()) {
-            List<Event> undeliverableEvents = getStore().getUndeliverableEvents(getRoomId());
+            List<Event> undeliverableEvents = getStore().getUndeliveredEvents(getRoomId());
             List<Event> unknownDeviceEvents = getStore().getUnknownDeviceEvents(getRoomId());
 
             if (null != undeliverableEvents) {

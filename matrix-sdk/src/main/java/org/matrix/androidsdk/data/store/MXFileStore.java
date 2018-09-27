@@ -1220,13 +1220,12 @@ public class MXFileStore extends MXMemoryStore {
 
                 // finalizes the deserialization
                 for (Event event : events.values()) {
-                    // if a message was not sent, mark at as UNDELIVERABLE
-                    if ((event.mSentState == Event.SentState.UNDELIVERABLE) ||
-                            (event.mSentState == Event.SentState.UNSENT) ||
+                    // if a message was not sent, mark it as UNDELIVERED
+                    if ((event.mSentState == Event.SentState.UNSENT) ||
                             (event.mSentState == Event.SentState.SENDING) ||
                             (event.mSentState == Event.SentState.WAITING_RETRY) ||
                             (event.mSentState == Event.SentState.ENCRYPTING)) {
-                        event.mSentState = Event.SentState.UNDELIVERABLE;
+                        event.mSentState = Event.SentState.UNDELIVERED;
                         shouldSave = true;
                     }
                 }

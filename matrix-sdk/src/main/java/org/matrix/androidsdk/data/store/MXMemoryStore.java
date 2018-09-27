@@ -1076,12 +1076,12 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public List<Event> getUndeliverableEvents(String roomId) {
+    public List<Event> getUndeliveredEvents(String roomId) {
         if (null == roomId) {
             return null;
         }
 
-        List<Event> undeliverableRoomEvents = new ArrayList<>();
+        List<Event> undeliveredEvents = new ArrayList<>();
 
         synchronized (mRoomEventsLock) {
             LinkedHashMap<String, Event> events = mRoomEvents.get(roomId);
@@ -1090,19 +1090,17 @@ public class MXMemoryStore implements IMXStore {
             if ((null != events) && (events.size() > 0)) {
                 List<Event> eventsList = new ArrayList<>(events.values());
 
-                for (int index = events.size() - 1; index >= 0; index--) {
+                for (int index = 0; index < events.size(); index++) {
                     Event event = eventsList.get(index);
 
-                    if (event.isUndeliverable()) {
-                        undeliverableRoomEvents.add(event);
+                    if (event.isUndelivered()) {
+                        undeliveredEvents.add(event);
                     }
                 }
-
-                Collections.reverse(undeliverableRoomEvents);
             }
         }
 
-        return undeliverableRoomEvents;
+        return undeliveredEvents;
     }
 
     @Override
@@ -1120,15 +1118,13 @@ public class MXMemoryStore implements IMXStore {
             if ((null != events) && (events.size() > 0)) {
                 List<Event> eventsList = new ArrayList<>(events.values());
 
-                for (int index = events.size() - 1; index >= 0; index--) {
+                for (int index = 0; index < events.size(); index++) {
                     Event event = eventsList.get(index);
 
                     if (event.isUnknownDevice()) {
                         unknownDeviceEvents.add(event);
                     }
                 }
-
-                Collections.reverse(unknownDeviceEvents);
             }
         }
 
