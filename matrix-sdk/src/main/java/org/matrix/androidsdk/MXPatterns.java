@@ -43,8 +43,8 @@ public class MXPatterns {
     public static final Pattern PATTERN_CONTAIN_MATRIX_ALIAS = Pattern.compile(MATRIX_ROOM_ALIAS_REGEX, Pattern.CASE_INSENSITIVE);
 
     // regex pattern to find message ids in a string.
-    private static final String MATRIX_MESSAGE_IDENTIFIER_REGEX = "\\$[A-Z0-9]+:[A-Z0-9.-]+(\\.[A-Z]{2,})?+(\\:[0-9]{2,})?";
-    public static final Pattern PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER = Pattern.compile(MATRIX_MESSAGE_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
+    private static final String MATRIX_EVENT_IDENTIFIER_REGEX = "\\$[A-Z0-9]+:[A-Z0-9.-]+(\\.[A-Z]{2,})?+(\\:[0-9]{2,})?";
+    public static final Pattern PATTERN_CONTAIN_MATRIX_EVENT_IDENTIFIER = Pattern.compile(MATRIX_EVENT_IDENTIFIER_REGEX, Pattern.CASE_INSENSITIVE);
 
     // regex pattern to find group ids in a string.
     private static final String MATRIX_GROUP_IDENTIFIER_REGEX = "\\+[A-Z0-9=_\\-./]+:[A-Z0-9.-]+(\\.[A-Z]{2,})?+(\\:[0-9]{2,})?";
@@ -56,16 +56,16 @@ public class MXPatterns {
     private static final String APP_BASE_REGEX = "https:\\/\\/[A-Z0-9.-]+\\.[A-Z]{2,}\\/[A-Z]{3,}\\/#\\/room\\/";
     private static final String SEP_REGEX = "\\/";
 
-    private static final String LINK_TO_ROOM_ID_REGEXP = PERMALINK_BASE_REGEX + MATRIX_ROOM_IDENTIFIER_REGEX + SEP_REGEX + MATRIX_MESSAGE_IDENTIFIER_REGEX;
+    private static final String LINK_TO_ROOM_ID_REGEXP = PERMALINK_BASE_REGEX + MATRIX_ROOM_IDENTIFIER_REGEX + SEP_REGEX + MATRIX_EVENT_IDENTIFIER_REGEX;
     public static final Pattern PATTERN_CONTAIN_MATRIX_TO_PERMALINK_ROOM_ID = Pattern.compile(LINK_TO_ROOM_ID_REGEXP, Pattern.CASE_INSENSITIVE);
 
-    private static final String LINK_TO_ROOM_ALIAS_REGEXP = PERMALINK_BASE_REGEX + MATRIX_ROOM_ALIAS_REGEX + SEP_REGEX + MATRIX_MESSAGE_IDENTIFIER_REGEX;
+    private static final String LINK_TO_ROOM_ALIAS_REGEXP = PERMALINK_BASE_REGEX + MATRIX_ROOM_ALIAS_REGEX + SEP_REGEX + MATRIX_EVENT_IDENTIFIER_REGEX;
     public static final Pattern PATTERN_CONTAIN_MATRIX_TO_PERMALINK_ROOM_ALIAS = Pattern.compile(LINK_TO_ROOM_ALIAS_REGEXP, Pattern.CASE_INSENSITIVE);
 
-    private static final String LINK_TO_APP_ROOM_ID_REGEXP = APP_BASE_REGEX + MATRIX_ROOM_IDENTIFIER_REGEX + SEP_REGEX + MATRIX_MESSAGE_IDENTIFIER_REGEX;
+    private static final String LINK_TO_APP_ROOM_ID_REGEXP = APP_BASE_REGEX + MATRIX_ROOM_IDENTIFIER_REGEX + SEP_REGEX + MATRIX_EVENT_IDENTIFIER_REGEX;
     public static final Pattern PATTERN_CONTAIN_APP_LINK_PERMALINK_ROOM_ID = Pattern.compile(LINK_TO_APP_ROOM_ID_REGEXP, Pattern.CASE_INSENSITIVE);
 
-    private static final String LINK_TO_APP_ROOM_ALIAS_REGEXP = APP_BASE_REGEX + MATRIX_ROOM_ALIAS_REGEX + SEP_REGEX + MATRIX_MESSAGE_IDENTIFIER_REGEX;
+    private static final String LINK_TO_APP_ROOM_ALIAS_REGEXP = APP_BASE_REGEX + MATRIX_ROOM_ALIAS_REGEX + SEP_REGEX + MATRIX_EVENT_IDENTIFIER_REGEX;
     public static final Pattern PATTERN_CONTAIN_APP_LINK_PERMALINK_ROOM_ALIAS = Pattern.compile(LINK_TO_APP_ROOM_ALIAS_REGEXP, Pattern.CASE_INSENSITIVE);
 
     // list of patterns to find some matrix item.
@@ -77,7 +77,7 @@ public class MXPatterns {
             MXPatterns.PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER,
             MXPatterns.PATTERN_CONTAIN_MATRIX_ALIAS,
             MXPatterns.PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER,
-            MXPatterns.PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER,
+            MXPatterns.PATTERN_CONTAIN_MATRIX_EVENT_IDENTIFIER,
             MXPatterns.PATTERN_CONTAIN_MATRIX_GROUP_IDENTIFIER
     );
 
@@ -112,20 +112,20 @@ public class MXPatterns {
     }
 
     /**
-     * Tells if a string is a valid message id.
+     * Tells if a string is a valid event id.
      *
-     * @param aMessageId the string to test
-     * @return true if the string is a valid message id.
+     * @param aEventId the string to test
+     * @return true if the string is a valid event id.
      */
-    public static boolean isMessageId(String aMessageId) {
-        return aMessageId != null && PATTERN_CONTAIN_MATRIX_MESSAGE_IDENTIFIER.matcher(aMessageId).matches();
+    public static boolean isEventId(String aEventId) {
+        return aEventId != null && PATTERN_CONTAIN_MATRIX_EVENT_IDENTIFIER.matcher(aEventId).matches();
     }
 
     /**
      * Tells if a string is a valid group id.
      *
      * @param aGroupId the string to test
-     * @return true if the string is a valid message id.
+     * @return true if the string is a valid group id.
      */
     public static boolean isGroupId(String aGroupId) {
         return aGroupId != null && PATTERN_CONTAIN_MATRIX_GROUP_IDENTIFIER.matcher(aGroupId).matches();
