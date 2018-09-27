@@ -13,6 +13,7 @@ Bugfix:
 
 API Change:
  - A Builder has been added to create HomeServerConnectionConfig instances.
+ - SentState.UNDELIVERABLE has been renamed to SentState.UNDELIVERED
 
 Translations:
  -
