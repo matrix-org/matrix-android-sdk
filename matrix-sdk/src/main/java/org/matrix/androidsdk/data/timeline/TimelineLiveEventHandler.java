@@ -69,7 +69,9 @@ class TimelineLiveEventHandler {
      * @param checkRedactedStateEvent set to true to check if it triggers a state event redaction
      * @param withPush                set to true to trigger pushes when it is required
      */
-    public void handleLiveEvent(Event event, boolean checkRedactedStateEvent, boolean withPush) {
+    public void handleLiveEvent(@NonNull final Event event,
+                                final boolean checkRedactedStateEvent,
+                                final boolean withPush) {
         final IMXStore store = mEventTimeline.getStore();
         final Room room = mEventTimeline.getRoom();
         final MXDataHandler dataHandler = room.getDataHandler();
@@ -83,7 +85,7 @@ class TimelineLiveEventHandler {
         if (event.isCallEvent()) {
             final RoomState roomState = mTimelineStateHolder.getState();
             dataHandler.getCallsManager().handleCallEvent(store, event);
-            storeLiveRoomEvent(dataHandler, store, false, event);
+            storeLiveRoomEvent(dataHandler, store, event, false);
             // the candidates events are not tracked
             // because the users don't need to see the peer exchanges.
             if (!TextUtils.equals(event.getType(), Event.EVENT_TYPE_CALL_CANDIDATES)) {
@@ -103,7 +105,7 @@ class TimelineLiveEventHandler {
             final Event storedEvent = store.getEvent(event.eventId, event.roomId);
 
             // avoid processing event twice
-            if (null != storedEvent) {
+            if (storedEvent != null) {
                 // an event has been echoed
                 if (storedEvent.getAge() == Event.DUMMY_EVENT_AGE) {
                     store.deleteEvent(storedEvent);
@@ -168,7 +170,7 @@ class TimelineLiveEventHandler {
                         return;
                     }
                 }
-                storeLiveRoomEvent(dataHandler, store, checkRedactedStateEvent, event);
+                storeLiveRoomEvent(dataHandler, store, event, checkRedactedStateEvent);
 
                 // warn the listeners
                 // general listeners
@@ -193,10 +195,10 @@ class TimelineLiveEventHandler {
      * @param event                   The event to be stored.
      * @param checkRedactedStateEvent true to check if this event redacts a state event
      */
-    private void storeLiveRoomEvent(final MXDataHandler dataHandler,
-                                    final IMXStore store,
-                                    final boolean checkRedactedStateEvent,
-                                    Event event) {
+    private void storeLiveRoomEvent(@NonNull final MXDataHandler dataHandler,
+                                    @NonNull final IMXStore store,
+                                    @NonNull Event event,
+                                    final boolean checkRedactedStateEvent) {
 
 
         boolean shouldBeSaved = false;

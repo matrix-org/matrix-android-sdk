@@ -42,13 +42,18 @@ class TimelineStateHolder {
      */
     private RoomState mBackState;
 
-    TimelineStateHolder(@NonNull final MXDataHandler dataHandler, @NonNull final IMXStore store, final String roomId) {
+    TimelineStateHolder(@NonNull final MXDataHandler dataHandler,
+                        @NonNull final IMXStore store,
+                        @NonNull final String roomId) {
         mDataHandler = dataHandler;
         mStore = store;
         mRoomId = roomId;
         initStates();
     }
 
+    /**
+     * Clear the states
+     */
     public void clear() {
         initStates();
     }
@@ -107,9 +112,10 @@ class TimelineStateHolder {
      * @param direction the direction; ie. forwards for live state, backwards for back state
      * @return true if the event has been processed.
      */
-    public boolean processStateEvent(@NonNull final Event event, final EventTimeline.Direction direction) {
-        final RoomState affectedState = (direction == EventTimeline.Direction.FORWARDS) ? mState : mBackState;
-        boolean isProcessed = affectedState.applyState(mStore, event, direction);
+    public boolean processStateEvent(@NonNull final Event event,
+                                     @NonNull final EventTimeline.Direction direction) {
+        final RoomState affectedState = direction == EventTimeline.Direction.FORWARDS ? mState : mBackState;
+        final boolean isProcessed = affectedState.applyState(mStore, event, direction);
         if (isProcessed && direction == EventTimeline.Direction.FORWARDS) {
             mStore.storeLiveStateForRoom(mRoomId);
         }
@@ -127,6 +133,9 @@ class TimelineStateHolder {
         mBackState.roomId = roomId;
     }
 
+    /**
+     * Initialize the state and backState to default, with roomId and dataHandler
+     */
     private void initStates() {
         mBackState = new RoomState();
         mBackState.setDataHandler(mDataHandler);

@@ -46,12 +46,12 @@ class TimelineInvitedRoomSyncHandler {
      */
     public void handle() {
         // Handle the state events as live events (the room state will be updated, and the listeners (if any) will be notified).
-        if ((mInvitedRoomSync != null) && (mInvitedRoomSync.inviteState != null) && (mInvitedRoomSync.inviteState.events != null)) {
+        if (mInvitedRoomSync != null && mInvitedRoomSync.inviteState != null && mInvitedRoomSync.inviteState.events != null) {
             final String roomId = mRoom.getRoomId();
 
             for (Event event : mInvitedRoomSync.inviteState.events) {
                 // Add a fake event id if none in order to be able to store the event
-                if (null == event.eventId) {
+                if (event.eventId == null) {
                     event.eventId = roomId + "-" + System.currentTimeMillis() + "-" + event.hashCode();
                 }
 

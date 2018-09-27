@@ -58,8 +58,8 @@ class TimelinePushWorker {
         final BingRulesManager bingRulesManager = mDataHandler.getBingRulesManager();
         // If the bing rules apply, bing
         if (!outOfTimeEvent
-                && (bingRulesManager != null)
-                && (null != (bingRule = bingRulesManager.fulfilledBingRule(event)))) {
+                && bingRulesManager != null
+                && (bingRule = bingRulesManager.fulfilledBingRule(event)) != null) {
 
             if (bingRule.shouldNotify()) {
                 // bing the call events only if they make sense

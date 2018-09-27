@@ -54,14 +54,14 @@ class TimelineJoinRoomSyncHandler {
         final RoomSummary currentSummary = store.getSummary(roomId);
 
         final String membership = selfMember != null ? selfMember.membership : null;
-        final boolean isRoomInitialSync = (membership == null) || TextUtils.equals(membership, RoomMember.MEMBERSHIP_INVITE);
+        final boolean isRoomInitialSync = membership == null || TextUtils.equals(membership, RoomMember.MEMBERSHIP_INVITE);
 
         // Check whether the room was pending on an invitation.
         if (RoomMember.MEMBERSHIP_INVITE.equals(membership)) {
             // Reset the storage of this room. An initial sync of the room will be done with the provided 'roomSync'.
             cleanInvitedRoom(store, roomId);
         }
-        if ((mRoomSync.state != null) && (mRoomSync.state.events != null) && (mRoomSync.state.events.size() > 0)) {
+        if (mRoomSync.state != null && mRoomSync.state.events != null && mRoomSync.state.events.size() > 0) {
             handleRoomSyncState(room, store, isRoomInitialSync);
         }
         // Handle now timeline.events, the room state is updated during this step too (Note: timeline events are in chronological order)
@@ -83,7 +83,9 @@ class TimelineJoinRoomSyncHandler {
         }
     }
 
-    private void handleRoomSyncState(@NonNull final Room room, @NonNull final IMXStore store, boolean isRoomInitialSync) {
+    private void handleRoomSyncState(@NonNull final Room room,
+                                     @NonNull final IMXStore store,
+                                     final boolean isRoomInitialSync) {
         if (isRoomInitialSync) {
             Log.d(LOG_TAG, "##" + mRoomSync.state.events.size() + " events "
                     + "for room " + room.getRoomId()
@@ -167,9 +169,8 @@ class TimelineJoinRoomSyncHandler {
         }
 
         // any event ?
-        if ((null != mRoomSync.timeline.events) && (mRoomSync.timeline.events.size() > 0)) {
-            List<Event> events = mRoomSync.timeline.events;
-
+        if (mRoomSync.timeline.events != null && !mRoomSync.timeline.events.isEmpty()) {
+            final List<Event> events = mRoomSync.timeline.events;
             // save the back token
             events.get(0).mToken = mRoomSync.timeline.prevBatch;
 
@@ -179,7 +180,7 @@ class TimelineJoinRoomSyncHandler {
                 // the roomId is not defined.
                 event.roomId = roomId;
                 try {
-                    boolean isLimited = (null != mRoomSync.timeline) && mRoomSync.timeline.limited;
+                    boolean isLimited = mRoomSync.timeline != null && mRoomSync.timeline.limited;
 
                     // digest the forward event
                     mTimelineLiveEventHandler.handleLiveEvent(event, !isLimited && !mIsGlobalInitialSync, !mIsGlobalInitialSync && !isRoomInitialSync);
@@ -226,7 +227,7 @@ class TimelineJoinRoomSyncHandler {
                     store.commit();
                 }
                 // try to build a summary from the state events
-                else if ((mRoomSync.state != null) && (mRoomSync.state.events != null) && (mRoomSync.state.events.size() > 0)) {
+                else if (mRoomSync.state != null && mRoomSync.state.events != null && mRoomSync.state.events.size() > 0) {
                     final List<Event> events = new ArrayList<>(mRoomSync.state.events);
                     Collections.reverse(events);
 
@@ -255,7 +256,7 @@ class TimelineJoinRoomSyncHandler {
                 notifCount = mRoomSync.unreadNotifications.notificationCount;
             }
 
-            if ((notifCount != state.getNotificationCount()) || (state.getHighlightCount() != highlightCount)) {
+            if (notifCount != state.getNotificationCount() || state.getHighlightCount() != highlightCount) {
                 Log.d(LOG_TAG, "## handleJoinedRoomSync() : update room state notifs count for room id " + roomId
                         + ": highlightCount " + highlightCount + " - notifCount " + notifCount);
 
@@ -267,9 +268,8 @@ class TimelineJoinRoomSyncHandler {
 
             // some users reported that the summary notification counts were sometimes invalid
             // so check roomstates and summaries separately
-            RoomSummary summary = store.getSummary(roomId);
-
-            if ((null != summary) && ((notifCount != summary.getNotificationCount()) || (summary.getHighlightCount() != highlightCount))) {
+            final RoomSummary summary = store.getSummary(roomId);
+            if (summary != null && (notifCount != summary.getNotificationCount() || summary.getHighlightCount() != highlightCount)) {
                 Log.d(LOG_TAG, "## handleJoinedRoomSync() : update room summary notifs count for room id " + roomId
                         + ": highlightCount " + highlightCount + " - notifCount " + notifCount);
 
