@@ -26,6 +26,9 @@ import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 
+/**
+ * This class handles storing a live room event in a dedicated store.
+ */
 class TimelineEventSaver {
 
     private final IMXStore mStore;
@@ -46,20 +49,20 @@ class TimelineEventSaver {
      * @param event the event to be stored.
      */
 
-    public void storeEvent(Event event) {
+    public void storeEvent(@NonNull final Event event) {
         final MXDataHandler dataHandler = mRoom.getDataHandler();
         final String myUserId = dataHandler.getCredentials().userId;
 
         // create dummy read receipt for any incoming event
         // to avoid not synchronized read receipt and event
-        if ((null != event.getSender()) && (null != event.eventId)) {
+        if (event.getSender() != null && event.eventId != null) {
             mRoom.handleReceiptData(new ReceiptData(event.getSender(), event.eventId, event.originServerTs));
         }
         mStore.storeLiveRoomEvent(event);
         if (RoomSummary.isSupportedEvent(event)) {
             final RoomState roomState = mTimelineStateHolder.getState();
             RoomSummary summary = mStore.getSummary(event.roomId);
-            if (null == summary) {
+            if (summary == null) {
                 summary = new RoomSummary(summary, event, roomState, myUserId);
             } else {
                 summary.setLatestReceivedEvent(event, roomState);

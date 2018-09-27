@@ -174,7 +174,7 @@ public interface EventTimeline {
      * @param callback  the callback.
      * @return true if the operation succeeds
      */
-    boolean paginate(EventTimeline.Direction direction, ApiCallback<Integer> callback);
+    boolean paginate(Direction direction, ApiCallback<Integer> callback);
 
     /**
      * Cancel any pending pagination requests
@@ -195,14 +195,14 @@ public interface EventTimeline {
      *
      * @param listener the listener to add.
      */
-    void addEventTimelineListener(EventTimeline.EventTimelineListener listener);
+    void addEventTimelineListener(EventTimelineListener listener);
 
     /**
      * Remove an events listener.
      *
      * @param listener the listener to remove.
      */
-    void removeEventTimelineListener(EventTimeline.EventTimelineListener listener);
+    void removeEventTimelineListener(EventTimelineListener listener);
 
     /**
      * The direction from which an incoming event is considered.

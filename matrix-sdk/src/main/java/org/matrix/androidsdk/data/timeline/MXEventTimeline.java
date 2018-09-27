@@ -45,18 +45,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * A `EventTimeline` instance represents a contiguous sequence of events in a room.
- * <p>
- * There are two kinds of timeline:
- * <p>
- * - live timelines: they receive live events from the events stream. You can paginate
- * backwards but not forwards.
- * All (live or backwards) events they receive are stored in the store of the current
- * MXSession.
- * <p>
- * - past timelines: they start in the past from an `initialEventId`. They are filled
- * with events on calls of [MXEventTimeline paginate] in backwards or forwards direction.
- * Events are stored in a in-memory store (MXMemoryStore).
+ * A private implementation of EventTimeline interface. It's not exposed as you don't have to directly instantiate it.
+ * Should be instantiated through EventTimelineFactory.
  */
 class MXEventTimeline implements EventTimeline {
     private static final String LOG_TAG = MXEventTimeline.class.getSimpleName();
@@ -130,9 +120,24 @@ class MXEventTimeline implements EventTimeline {
      */
     private final String mTimelineId = System.currentTimeMillis() + "";
 
+    /**
+     * * This class handles storing a live room event in a dedicated store.
+     */
     private final TimelineEventSaver mTimelineEventSaver;
+
+    /**
+     * This class is responsible for holding the state and backState of a room timeline
+     */
     private final TimelineStateHolder mStateHolder;
+
+    /**
+     * This class handle the timeline event listeners
+     */
     private final TimelineEventListeners mEventListeners;
+
+    /**
+     * This class is responsible for handling events coming down from the event stream.
+     */
     private final TimelineLiveEventHandler mLiveEventHandler;
 
     /**
@@ -253,7 +258,7 @@ class MXEventTimeline implements EventTimeline {
         mIsForwardPaginating = false;
 
         // sanity check
-        if ((null != mDataHandler) && (null != mDataHandler.getDataRetriever())) {
+        if (null != mDataHandler && null != mDataHandler.getDataRetriever()) {
             mDataHandler.resetReplayAttackCheckInTimeline(getTimelineId());
             mDataHandler.getDataRetriever().cancelHistoryRequest(mRoomId);
         }
@@ -344,7 +349,8 @@ class MXEventTimeline implements EventTimeline {
         final TimelineJoinRoomSyncHandler joinRoomSyncHandler = new TimelineJoinRoomSyncHandler(this,
                 roomSync,
                 mStateHolder,
-                mLiveEventHandler, isGlobalInitialSync);
+                mLiveEventHandler,
+                isGlobalInitialSync);
         joinRoomSyncHandler.handle();
     }
 
@@ -414,7 +420,7 @@ class MXEventTimeline implements EventTimeline {
 
             // in some cases, there is no displayed summary
             // https://github.com/vector-im/vector-android/pull/354
-            if ((null == latestSupportedEvent) && RoomSummary.isSupportedEvent(snapshotedEvent.mEvent)) {
+            if (null == latestSupportedEvent && RoomSummary.isSupportedEvent(snapshotedEvent.mEvent)) {
                 latestSupportedEvent = snapshotedEvent.mEvent;
             }
 
@@ -426,14 +432,14 @@ class MXEventTimeline implements EventTimeline {
         // defines a new summary if the known is not supported
         RoomSummary summary = mStore.getSummary(mRoomId);
 
-        if ((null != latestSupportedEvent) && ((null == summary) || !RoomSummary.isSupportedEvent(summary.getLatestReceivedEvent()))) {
+        if (null != latestSupportedEvent && (null == summary || !RoomSummary.isSupportedEvent(summary.getLatestReceivedEvent()))) {
             mStore.storeSummary(new RoomSummary(null, latestSupportedEvent, getState(), mDataHandler.getUserId()));
         }
 
         Log.d(LOG_TAG, "manageEvents : commit");
         mStore.commit();
 
-        if ((mSnapshotEvents.size() < MAX_EVENT_COUNT_PER_PAGINATION) && mIsLastBackChunk) {
+        if (mSnapshotEvents.size() < MAX_EVENT_COUNT_PER_PAGINATION && mIsLastBackChunk) {
             mCanBackPaginate = false;
         }
         mIsBackPaginating = false;
@@ -490,11 +496,11 @@ class MXEventTimeline implements EventTimeline {
                     if (mIsLiveTimeline) {
                         // update the summary is the event has been received after the oldest known event
                         // it might happen after a timeline update (hole in the chat history)
-                        if ((null != summary)
-                                && ((null == summary.getLatestReceivedEvent())
-                                || (event.isValidOriginServerTs()
-                                && (summary.getLatestReceivedEvent().originServerTs < event.originServerTs)
-                                && RoomSummary.isSupportedEvent(event)))) {
+                        if (null != summary
+                                && (null == summary.getLatestReceivedEvent()
+                                || event.isValidOriginServerTs()
+                                && summary.getLatestReceivedEvent().originServerTs < event.originServerTs
+                                && RoomSummary.isSupportedEvent(event))) {
                             summary.setLatestReceivedEvent(event, getState());
                             mStore.storeSummary(summary);
                             shouldCommitStore = true;
@@ -552,7 +558,7 @@ class MXEventTimeline implements EventTimeline {
             Log.e(LOG_TAG, "## addPaginationEvents() failed " + e.getMessage(), e);
             task.cancel(true);
 
-            (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
+            new android.os.Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override
                 public void run() {
                     if (null != callback) {
@@ -632,7 +638,7 @@ class MXEventTimeline implements EventTimeline {
 
         // enough buffered data
         if (useCachedOnly
-                || (mSnapshotEvents.size() >= eventCount)
+                || mSnapshotEvents.size() >= eventCount
                 || TextUtils.equals(fromBackToken, mBackwardTopToken)
                 || TextUtils.equals(fromBackToken, Event.PAGINATE_BACK_TOKEN_END)) {
 
@@ -644,7 +650,7 @@ class MXEventTimeline implements EventTimeline {
             if (useCachedOnly) {
                 Log.d(LOG_TAG, "backPaginate : load " + mSnapshotEvents.size() + "cached events list");
                 maxEventsCount = Math.min(mSnapshotEvents.size(), eventCount);
-            } else if ((mSnapshotEvents.size() >= eventCount)) {
+            } else if (mSnapshotEvents.size() >= eventCount) {
                 Log.d(LOG_TAG, "backPaginate : the events are already loaded.");
                 maxEventsCount = eventCount;
             } else {
@@ -683,12 +689,12 @@ class MXEventTimeline implements EventTimeline {
                                 Log.d(LOG_TAG, "backPaginate : there is no event");
                             }
 
-                            mIsLastBackChunk = ((null != response.chunk)
-                                    && (0 == response.chunk.size())
-                                    && TextUtils.equals(response.end, response.start))
-                                    || (null == response.end);
+                            mIsLastBackChunk = null != response.chunk
+                                    && 0 == response.chunk.size()
+                                    && TextUtils.equals(response.end, response.start)
+                                    || null == response.end;
 
-                            if (mIsLastBackChunk && (null != response.end)) {
+                            if (mIsLastBackChunk && null != response.end) {
                                 // save its token to avoid useless request
                                 mBackwardTopToken = fromBackToken;
                             } else {
@@ -700,7 +706,7 @@ class MXEventTimeline implements EventTimeline {
                                 }
                             }
 
-                            addPaginationEvents((null == response.chunk) ? new ArrayList<Event>() : response.chunk,
+                            addPaginationEvents(null == response.chunk ? new ArrayList<Event>() : response.chunk,
                                     response.stateEvents,
                                     Direction.BACKWARDS,
                                     callback);
@@ -773,7 +779,7 @@ class MXEventTimeline implements EventTimeline {
                         if (mDataHandler.isAlive()) {
                             Log.d(LOG_TAG, "forwardPaginate : " + response.chunk.size() + " are retrieved.");
 
-                            mHasReachedHomeServerForwardsPaginationEnd = (0 == response.chunk.size()) && TextUtils.equals(response.end, response.start);
+                            mHasReachedHomeServerForwardsPaginationEnd = 0 == response.chunk.size() && TextUtils.equals(response.end, response.start);
                             mForwardsPaginationToken = response.end;
 
                             addPaginationEvents(response.chunk,
@@ -945,7 +951,7 @@ class MXEventTimeline implements EventTimeline {
                                     Log.e(LOG_TAG, "## resetPaginationAroundInitialEvent() failed " + e.getMessage(), e);
                                     task.cancel(true);
 
-                                    (new android.os.Handler(Looper.getMainLooper())).post(new Runnable() {
+                                    new android.os.Handler(Looper.getMainLooper()).post(new Runnable() {
                                         @Override
                                         public void run() {
                                             if (callback != null) {
@@ -968,7 +974,7 @@ class MXEventTimeline implements EventTimeline {
      * @param listener the listener to add.
      */
     @Override
-    public void addEventTimelineListener(EventTimelineListener listener) {
+    public void addEventTimelineListener(@Nullable final EventTimelineListener listener) {
         mEventListeners.add(listener);
     }
 
@@ -978,7 +984,7 @@ class MXEventTimeline implements EventTimeline {
      * @param listener the listener to remove.
      */
     @Override
-    public void removeEventTimelineListener(EventTimelineListener listener) {
+    public void removeEventTimelineListener(@Nullable final EventTimelineListener listener) {
         mEventListeners.remove(listener);
     }
 }

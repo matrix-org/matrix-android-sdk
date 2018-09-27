@@ -41,7 +41,8 @@ class StateEventRedactionChecker {
     private final EventTimeline mEventTimeline;
     private final TimelineStateHolder mTimelineStateHolder;
 
-    StateEventRedactionChecker(@NonNull final EventTimeline eventTimeline, @NonNull final TimelineStateHolder timelineStateHolder) {
+    StateEventRedactionChecker(@NonNull final EventTimeline eventTimeline,
+                               @NonNull final TimelineStateHolder timelineStateHolder) {
         mEventTimeline = eventTimeline;
         mTimelineStateHolder = timelineStateHolder;
     }
@@ -52,7 +53,7 @@ class StateEventRedactionChecker {
      *
      * @param redactionEvent the redaction event
      */
-    public void checkStateEventRedaction(final Event redactionEvent) {
+    public void checkStateEventRedaction(@NonNull final Event redactionEvent) {
         final IMXStore store = mEventTimeline.getStore();
         final Room room = mEventTimeline.getRoom();
         final MXDataHandler dataHandler = room.getDataHandler();
@@ -141,7 +142,7 @@ class StateEventRedactionChecker {
             dataHandler.getDataRetriever().getRoomsRestClient().getEvent(roomId, eventId, new ApiCallback<Event>() {
                 @Override
                 public void onSuccess(Event event) {
-                    if ((null != event) && (null != event.stateKey)) {
+                    if (null != event && null != event.stateKey) {
                         Log.d(LOG_TAG, "checkStateEventRedactionWithHomeserver : the redacted event is a state event in the past." +
                                 " TODO: prune prev_content of the new state event");
 

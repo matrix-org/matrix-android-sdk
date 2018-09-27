@@ -32,7 +32,7 @@ import java.util.List;
  * Handle the timeline event listeners
  * Is responsible for dispatching events
  */
-public class TimelineEventListeners {
+class TimelineEventListeners {
 
     private static final String LOG_TAG = TimelineEventListeners.class.getSimpleName();
 

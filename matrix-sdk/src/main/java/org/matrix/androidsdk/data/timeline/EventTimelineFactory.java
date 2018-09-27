@@ -44,9 +44,8 @@ public class EventTimelineFactory {
      * @param dataHandler the data handler
      * @param roomId      the room id.
      */
-    public static EventTimeline pastTimeline(
-            @NonNull MXDataHandler dataHandler,
-            @NonNull String roomId) {
+    public static EventTimeline pastTimeline(@NonNull final MXDataHandler dataHandler,
+                                             @NonNull final String roomId) {
         return pastTimeline(dataHandler, roomId, null);
     }
 
@@ -58,9 +57,9 @@ public class EventTimelineFactory {
      * @param roomId      the room id.
      * @param eventId     the event id
      */
-    public static EventTimeline pastTimeline(@NonNull MXDataHandler dataHandler,
-                                             @NonNull String roomId,
-                                             @Nullable String eventId) {
+    public static EventTimeline pastTimeline(@NonNull final MXDataHandler dataHandler,
+                                             @NonNull final String roomId,
+                                             @Nullable final String eventId) {
         final MXMemoryStore store = new MXMemoryStore(dataHandler.getCredentials(), null);
         final Room room = dataHandler.getRoom(store, roomId, true);
         final EventTimeline eventTimeline = new MXEventTimeline(store, dataHandler, room, roomId, eventId, false);
