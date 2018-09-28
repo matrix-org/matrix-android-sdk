@@ -61,7 +61,9 @@ public class LazyLoadingTestHelper {
      */
     public LazyLoadingScenarioData createScenario(boolean withLazyLoading) throws Exception {
 
-        final SessionTestParams createSessionParams = SessionTestParams.newBuilder().withInitialSync(true).build();
+        final SessionTestParams createSessionParams = SessionTestParams.newBuilder()
+                .withInitialSync(true)
+                .build();
         MXSession aliceSession = mTestHelper.createAccount(TestConstants.USER_ALICE, createSessionParams);
         MXSession bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, createSessionParams);
         MXSession samSession = mTestHelper.createAccount(TestConstants.USER_SAM, createSessionParams);
@@ -128,7 +130,9 @@ public class LazyLoadingTestHelper {
         samSession.clear(context);
 
 
-        final SessionTestParams logSessionParams = SessionTestParams.newBuilder().withLazyLoading(withLazyLoading).build();
+        final SessionTestParams logSessionParams = SessionTestParams.newBuilder()
+                .withLazyLoading(withLazyLoading)
+                .build();
         aliceSession = mTestHelper.logIntoAccount(aliceId, logSessionParams);
         bobSession = mTestHelper.logIntoAccount(bobId, logSessionParams);
         samSession = mTestHelper.logIntoAccount(samId, logSessionParams);

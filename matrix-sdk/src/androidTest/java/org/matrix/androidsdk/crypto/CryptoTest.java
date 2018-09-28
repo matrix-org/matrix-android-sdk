@@ -78,8 +78,13 @@ public class CryptoTest {
 
     private CommonTestHelper mTestHelper = new CommonTestHelper();
 
-    private final SessionTestParams defaultSessionParams = SessionTestParams.newBuilder().withInitialSync(true).build();
-    private final SessionTestParams encryptedSessionParams = SessionTestParams.newBuilder().withInitialSync(true).withCryptoEnabled(true).build();
+    private final SessionTestParams defaultSessionParams = SessionTestParams.newBuilder()
+            .withInitialSync(true)
+            .build();
+    private final SessionTestParams encryptedSessionParams = SessionTestParams.newBuilder()
+            .withInitialSync(true)
+            .withCryptoEnabled(true)
+            .build();
 
     private static final String LOG_TAG = "CryptoTest";
 
