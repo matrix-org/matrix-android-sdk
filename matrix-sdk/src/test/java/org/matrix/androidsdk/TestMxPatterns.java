@@ -91,6 +91,7 @@ public class TestMxPatterns {
         testAllTrueWithCorrectPrefix("id:matrix.org:80");
         testAllTrueWithCorrectPrefix("id:matrix.org:808");
         testAllTrueWithCorrectPrefix("id:matrix.org:8080");
+        testAllTrueWithCorrectPrefix("id:matrix.org:65535");
     }
 
     @Test
@@ -99,12 +100,14 @@ public class TestMxPatterns {
         testAllTrueWithCorrectPrefix("id:matrix-new.org:80");
         testAllTrueWithCorrectPrefix("id:matrix-new.org:808");
         testAllTrueWithCorrectPrefix("id:matrix-new.org:8080");
+        testAllTrueWithCorrectPrefix("id:matrix-new.org:65535");
     }
 
     @Test
     public void MxPatterns_common_ok_localhost() {
         testAllTrueWithCorrectPrefix("id:localhost");
         testAllTrueWithCorrectPrefix("id:localhost:8080");
+        testAllTrueWithCorrectPrefix("id:localhost:65535");
     }
 
     @Test
@@ -113,6 +116,7 @@ public class TestMxPatterns {
         testAllTrueWithCorrectPrefix("id:1.1.1.1:8080");
         testAllTrueWithCorrectPrefix("id:888.888.888.888");
         testAllTrueWithCorrectPrefix("id:888.888.888.888:8080");
+        testAllTrueWithCorrectPrefix("id:888.888.888.888:65535");
     }
 
     /* ==========================================================================================
@@ -137,14 +141,7 @@ public class TestMxPatterns {
 
     @Test
     public void MxPatterns_common_error_noDomain() {
-        testAllFalseWithCorrectPrefix("id:.org");
-    }
-
-    @Test
-    public void MxPatterns_common_error_noTld() {
-        // Tld is not mandatory
-        // testAllFalseWithCorrectPrefix("id:matrix");
-        testAllFalseWithCorrectPrefix("id:matrix.");
+        testAllFalseWithCorrectPrefix("id:");
     }
 
     @Test
@@ -153,6 +150,7 @@ public class TestMxPatterns {
         testAllFalseWithCorrectPrefix("id:matrix.org:8");
         testAllFalseWithCorrectPrefix("id:matrix.org:abc");
         testAllFalseWithCorrectPrefix("id:matrix.org:8080a");
+        testAllFalseWithCorrectPrefix("id:matrix.org:808080");
     }
 
     /* ==========================================================================================
