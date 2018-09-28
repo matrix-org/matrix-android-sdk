@@ -114,6 +114,8 @@ public class MxPatternsTest {
     public void MxPatterns_common_ok_ipAddress() {
         assertAllTrueWithCorrectPrefix("id:1.1.1.1");
         assertAllTrueWithCorrectPrefix("id:1.1.1.1:8080");
+        assertAllTrueWithCorrectPrefix("id:1.1.1.1:65535");
+
         assertAllTrueWithCorrectPrefix("id:888.888.888.888");
         assertAllTrueWithCorrectPrefix("id:888.888.888.888:8080");
         assertAllTrueWithCorrectPrefix("id:888.888.888.888:65535");
