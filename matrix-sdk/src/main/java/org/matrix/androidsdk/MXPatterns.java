@@ -16,6 +16,8 @@
 
 package org.matrix.androidsdk;
 
+import android.support.annotation.Nullable;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -84,50 +86,50 @@ public class MXPatterns {
     /**
      * Tells if a string is a valid user Id.
      *
-     * @param anUserId the string to test
+     * @param str the string to test
      * @return true if the string is a valid user id
      */
-    public static boolean isUserId(String anUserId) {
-        return anUserId != null && PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER.matcher(anUserId).matches();
+    public static boolean isUserId(@Nullable final String str) {
+        return str != null && PATTERN_CONTAIN_MATRIX_USER_IDENTIFIER.matcher(str).matches();
     }
 
     /**
      * Tells if a string is a valid room id.
      *
-     * @param aRoomId the string to test
+     * @param str the string to test
      * @return true if the string is a valid room Id
      */
-    public static boolean isRoomId(String aRoomId) {
-        return aRoomId != null && PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER.matcher(aRoomId).matches();
+    public static boolean isRoomId(@Nullable final String str) {
+        return str != null && PATTERN_CONTAIN_MATRIX_ROOM_IDENTIFIER.matcher(str).matches();
     }
 
     /**
      * Tells if a string is a valid room alias.
      *
-     * @param aRoomAlias the string to test
+     * @param str the string to test
      * @return true if the string is a valid room alias.
      */
-    public static boolean isRoomAlias(String aRoomAlias) {
-        return aRoomAlias != null && PATTERN_CONTAIN_MATRIX_ALIAS.matcher(aRoomAlias).matches();
+    public static boolean isRoomAlias(@Nullable final String str) {
+        return str != null && PATTERN_CONTAIN_MATRIX_ALIAS.matcher(str).matches();
     }
 
     /**
      * Tells if a string is a valid event id.
      *
-     * @param aEventId the string to test
+     * @param str the string to test
      * @return true if the string is a valid event id.
      */
-    public static boolean isEventId(String aEventId) {
-        return aEventId != null && PATTERN_CONTAIN_MATRIX_EVENT_IDENTIFIER.matcher(aEventId).matches();
+    public static boolean isEventId(@Nullable final String str) {
+        return str != null && PATTERN_CONTAIN_MATRIX_EVENT_IDENTIFIER.matcher(str).matches();
     }
 
     /**
      * Tells if a string is a valid group id.
      *
-     * @param aGroupId the string to test
+     * @param str the string to test
      * @return true if the string is a valid group id.
      */
-    public static boolean isGroupId(String aGroupId) {
-        return aGroupId != null && PATTERN_CONTAIN_MATRIX_GROUP_IDENTIFIER.matcher(aGroupId).matches();
+    public static boolean isGroupId(@Nullable final String str) {
+        return str != null && PATTERN_CONTAIN_MATRIX_GROUP_IDENTIFIER.matcher(str).matches();
     }
 }
