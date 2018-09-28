@@ -31,6 +31,7 @@ public class MXPatterns {
         // Cannot be instantiated
     }
 
+    // Note: TLD is not mandatory (localhost, IP address...)
     private static final String DOMAIN_REGEX = ":[A-Z0-9.-]+(\\.[A-Z]{2,})?+(:[0-9]{2,})?";
 
     // regex pattern to find matrix user ids in a string.

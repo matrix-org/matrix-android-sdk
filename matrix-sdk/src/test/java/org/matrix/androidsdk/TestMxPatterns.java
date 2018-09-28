@@ -73,7 +73,7 @@ public class TestMxPatterns {
     }
 
     @Test
-    public void MxPatterns_common_error_invalid() {
+    public void MxPatterns_common_error_invalidPrefix() {
         testAllFalse("a");
         testAllFalse("1");
         testAllFalse("test@example.org");
@@ -91,6 +91,28 @@ public class TestMxPatterns {
         testAllTrueWithCorrectPrefix("id:matrix.org:80");
         testAllTrueWithCorrectPrefix("id:matrix.org:808");
         testAllTrueWithCorrectPrefix("id:matrix.org:8080");
+    }
+
+    @Test
+    public void MxPatterns_common_ok_dash() {
+        testAllTrueWithCorrectPrefix("id:matrix-new.org");
+        testAllTrueWithCorrectPrefix("id:matrix-new.org:80");
+        testAllTrueWithCorrectPrefix("id:matrix-new.org:808");
+        testAllTrueWithCorrectPrefix("id:matrix-new.org:8080");
+    }
+
+    @Test
+    public void MxPatterns_common_ok_localhost() {
+        testAllTrueWithCorrectPrefix("id:localhost");
+        testAllTrueWithCorrectPrefix("id:localhost:8080");
+    }
+
+    @Test
+    public void MxPatterns_common_ok_ipAddress() {
+        testAllTrueWithCorrectPrefix("id:1.1.1.1");
+        testAllTrueWithCorrectPrefix("id:1.1.1.1:8080");
+        testAllTrueWithCorrectPrefix("id:888.888.888.888");
+        testAllTrueWithCorrectPrefix("id:888.888.888.888:8080");
     }
 
     /* ==========================================================================================
@@ -120,7 +142,8 @@ public class TestMxPatterns {
 
     @Test
     public void MxPatterns_common_error_noTld() {
-        testAllFalseWithCorrectPrefix("id:matrix");
+        // Tld is not mandatory
+        // testAllFalseWithCorrectPrefix("id:matrix");
         testAllFalseWithCorrectPrefix("id:matrix.");
     }
 
