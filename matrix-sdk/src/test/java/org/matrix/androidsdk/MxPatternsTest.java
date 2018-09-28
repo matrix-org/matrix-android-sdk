@@ -64,21 +64,21 @@ public class MxPatternsTest {
 
     @Test
     public void MxPatterns_common_error_null() {
-        testAllFalse(null);
+        assertAllFalse(null);
     }
 
     @Test
     public void MxPatterns_common_error_empty() {
-        testAllFalse("");
+        assertAllFalse("");
     }
 
     @Test
     public void MxPatterns_common_error_invalidPrefix() {
-        testAllFalse("a");
-        testAllFalse("1");
-        testAllFalse("test@example.org");
-        testAllFalse("https://www.example.org");
-        testAllFalse("benoit:matrix.org");
+        assertAllFalse("a");
+        assertAllFalse("1");
+        assertAllFalse("test@example.org");
+        assertAllFalse("https://www.example.org");
+        assertAllFalse("benoit:matrix.org");
     }
 
     /* ==========================================================================================
@@ -87,36 +87,36 @@ public class MxPatternsTest {
 
     @Test
     public void MxPatterns_common_ok() {
-        testAllTrueWithCorrectPrefix("id:matrix.org");
-        testAllTrueWithCorrectPrefix("id:matrix.org:80");
-        testAllTrueWithCorrectPrefix("id:matrix.org:808");
-        testAllTrueWithCorrectPrefix("id:matrix.org:8080");
-        testAllTrueWithCorrectPrefix("id:matrix.org:65535");
+        assertAllTrueWithCorrectPrefix("id:matrix.org");
+        assertAllTrueWithCorrectPrefix("id:matrix.org:80");
+        assertAllTrueWithCorrectPrefix("id:matrix.org:808");
+        assertAllTrueWithCorrectPrefix("id:matrix.org:8080");
+        assertAllTrueWithCorrectPrefix("id:matrix.org:65535");
     }
 
     @Test
     public void MxPatterns_common_ok_dash() {
-        testAllTrueWithCorrectPrefix("id:matrix-new.org");
-        testAllTrueWithCorrectPrefix("id:matrix-new.org:80");
-        testAllTrueWithCorrectPrefix("id:matrix-new.org:808");
-        testAllTrueWithCorrectPrefix("id:matrix-new.org:8080");
-        testAllTrueWithCorrectPrefix("id:matrix-new.org:65535");
+        assertAllTrueWithCorrectPrefix("id:matrix-new.org");
+        assertAllTrueWithCorrectPrefix("id:matrix-new.org:80");
+        assertAllTrueWithCorrectPrefix("id:matrix-new.org:808");
+        assertAllTrueWithCorrectPrefix("id:matrix-new.org:8080");
+        assertAllTrueWithCorrectPrefix("id:matrix-new.org:65535");
     }
 
     @Test
     public void MxPatterns_common_ok_localhost() {
-        testAllTrueWithCorrectPrefix("id:localhost");
-        testAllTrueWithCorrectPrefix("id:localhost:8080");
-        testAllTrueWithCorrectPrefix("id:localhost:65535");
+        assertAllTrueWithCorrectPrefix("id:localhost");
+        assertAllTrueWithCorrectPrefix("id:localhost:8080");
+        assertAllTrueWithCorrectPrefix("id:localhost:65535");
     }
 
     @Test
     public void MxPatterns_common_ok_ipAddress() {
-        testAllTrueWithCorrectPrefix("id:1.1.1.1");
-        testAllTrueWithCorrectPrefix("id:1.1.1.1:8080");
-        testAllTrueWithCorrectPrefix("id:888.888.888.888");
-        testAllTrueWithCorrectPrefix("id:888.888.888.888:8080");
-        testAllTrueWithCorrectPrefix("id:888.888.888.888:65535");
+        assertAllTrueWithCorrectPrefix("id:1.1.1.1");
+        assertAllTrueWithCorrectPrefix("id:1.1.1.1:8080");
+        assertAllTrueWithCorrectPrefix("id:888.888.888.888");
+        assertAllTrueWithCorrectPrefix("id:888.888.888.888:8080");
+        assertAllTrueWithCorrectPrefix("id:888.888.888.888:65535");
     }
 
     /* ==========================================================================================
@@ -125,37 +125,37 @@ public class MxPatternsTest {
 
     @Test
     public void MxPatterns_common_error_with_prefix_invalidChars() {
-        testAllFalseWithCorrectPrefix("idé:matrix.org");
-        testAllFalseWithCorrectPrefix("id :matrix.org");
+        assertAllFalseWithCorrectPrefix("idé:matrix.org");
+        assertAllFalseWithCorrectPrefix("id :matrix.org");
     }
 
     @Test
     public void MxPatterns_common_error_with_prefix_empty() {
-        testAllFalseWithCorrectPrefix("");
+        assertAllFalseWithCorrectPrefix("");
     }
 
     @Test
     public void MxPatterns_common_error_with_prefix_noTwoPoint() {
-        testAllFalseWithCorrectPrefix("idmatrix.org");
+        assertAllFalseWithCorrectPrefix("idmatrix.org");
     }
 
     @Test
     public void MxPatterns_common_error_with_prefix_noId() {
-        testAllFalseWithCorrectPrefix(":matrix.org");
+        assertAllFalseWithCorrectPrefix(":matrix.org");
     }
 
     @Test
     public void MxPatterns_common_error_with_prefix_noDomain() {
-        testAllFalseWithCorrectPrefix("id:");
+        assertAllFalseWithCorrectPrefix("id:");
     }
 
     @Test
     public void MxPatterns_common_error_with_prefix_bad_port() {
-        testAllFalseWithCorrectPrefix("id:matrix.org:");
-        testAllFalseWithCorrectPrefix("id:matrix.org:8");
-        testAllFalseWithCorrectPrefix("id:matrix.org:abc");
-        testAllFalseWithCorrectPrefix("id:matrix.org:8080a");
-        testAllFalseWithCorrectPrefix("id:matrix.org:808080");
+        assertAllFalseWithCorrectPrefix("id:matrix.org:");
+        assertAllFalseWithCorrectPrefix("id:matrix.org:8");
+        assertAllFalseWithCorrectPrefix("id:matrix.org:abc");
+        assertAllFalseWithCorrectPrefix("id:matrix.org:8080a");
+        assertAllFalseWithCorrectPrefix("id:matrix.org:808080");
     }
 
     /* ==========================================================================================
@@ -229,7 +229,7 @@ public class MxPatternsTest {
      * Private methods
      * ========================================================================================== */
 
-    private void testAllTrueWithCorrectPrefix(String value) {
+    private void assertAllTrueWithCorrectPrefix(String value) {
         Assert.assertTrue(MXPatterns.isUserId("@" + value));
         Assert.assertTrue(MXPatterns.isRoomId("!" + value));
         Assert.assertTrue(MXPatterns.isRoomAlias("#" + value));
@@ -237,15 +237,15 @@ public class MxPatternsTest {
         Assert.assertTrue(MXPatterns.isGroupId("+" + value));
     }
 
-    private void testAllFalseWithCorrectPrefix(String value) {
-        testAllFalse("@" + value);
-        testAllFalse("!" + value);
-        testAllFalse("#" + value);
-        testAllFalse("$" + value);
-        testAllFalse("+" + value);
+    private void assertAllFalseWithCorrectPrefix(String value) {
+        assertAllFalse("@" + value);
+        assertAllFalse("!" + value);
+        assertAllFalse("#" + value);
+        assertAllFalse("$" + value);
+        assertAllFalse("+" + value);
     }
 
-    private void testAllFalse(String value) {
+    private void assertAllFalse(String value) {
         Assert.assertFalse(MXPatterns.isUserId(value));
         Assert.assertFalse(MXPatterns.isRoomId(value));
         Assert.assertFalse(MXPatterns.isRoomAlias(value));
