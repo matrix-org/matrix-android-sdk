@@ -19,6 +19,7 @@ package org.matrix.androidsdk.crypto;
 
 import android.text.TextUtils;
 
+import org.matrix.androidsdk.MXPatterns;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
@@ -174,7 +175,7 @@ public class MXDeviceList {
             List<String> invalidUserIds = new ArrayList<>();
 
             for (String userId : userIds) {
-                if (MXSession.isUserId(userId)) {
+                if (MXPatterns.isUserId(userId)) {
                     filteredUserIds.add(userId);
                 } else {
                     Log.e(LOG_TAG, "## userId " + userId + "is not a valid user id");

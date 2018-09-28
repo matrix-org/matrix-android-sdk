@@ -14,6 +14,7 @@ Bugfix:
 API Change:
  - A Builder has been added to create HomeServerConnectionConfig instances.
  - SentState.UNDELIVERABLE has been renamed to SentState.UNDELIVERED
+ - Extract patterns and corresponding methods from MXSession to a dedicated MXPatterns class.
 
 Translations:
  -

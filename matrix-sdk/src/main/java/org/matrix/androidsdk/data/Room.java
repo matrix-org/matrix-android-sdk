@@ -39,7 +39,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.MXDataHandler;
-import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.MXPatterns;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
@@ -1442,7 +1442,7 @@ public class Room {
 
         String readMarkerEventId = aReadMarkerEventId;
         if (!TextUtils.isEmpty(aReadMarkerEventId)) {
-            if (!MXSession.isMessageId(aReadMarkerEventId)) {
+            if (!MXPatterns.isEventId(aReadMarkerEventId)) {
                 Log.e(LOG_TAG, "## sendReadMarkers() : invalid event id " + readMarkerEventId);
                 // Read marker is invalid, ignore it
                 readMarkerEventId = null;
@@ -1502,8 +1502,8 @@ public class Room {
         Log.d(LOG_TAG, "## setReadMarkers(): readMarkerEventId " + aReadMarkerEventId + " readReceiptEventId " + aReadMarkerEventId);
 
         // check if the message ids are valid
-        final String readMarkerEventId = MXSession.isMessageId(aReadMarkerEventId) ? aReadMarkerEventId : null;
-        final String readReceiptEventId = MXSession.isMessageId(aReadReceiptEventId) ? aReadReceiptEventId : null;
+        final String readMarkerEventId = MXPatterns.isEventId(aReadMarkerEventId) ? aReadMarkerEventId : null;
+        final String readReceiptEventId = MXPatterns.isEventId(aReadReceiptEventId) ? aReadReceiptEventId : null;
 
         // if there is nothing to do
         if (TextUtils.isEmpty(readMarkerEventId) && TextUtils.isEmpty(readReceiptEventId)) {
