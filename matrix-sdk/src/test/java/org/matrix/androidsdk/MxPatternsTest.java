@@ -26,7 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class TestMxPatterns {
+public class MxPatternsTest {
 
     private static final List<String> validUserIds = Arrays.asList(
             "@benoit:matrix.org",
