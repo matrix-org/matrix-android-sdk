@@ -45,7 +45,7 @@ import okhttp3.TlsVersion;
 
     private SSLSocketFactory internalSSLSocketFactory;
 
-    private String[] enabledProtocol;
+    private String[] enabledProtocols;
 
     /**
      * Constructor
@@ -60,10 +60,10 @@ import okhttp3.TlsVersion;
         context.init(null, trustPinned, new SecureRandom());
         internalSSLSocketFactory = context.getSocketFactory();
 
-        enabledProtocol = new String[acceptedTlsVersions.size()];
+        enabledProtocols = new String[acceptedTlsVersions.size()];
         int i = 0;
         for (TlsVersion tlsVersion : acceptedTlsVersions) {
-            enabledProtocol[i] = tlsVersion.javaName();
+            enabledProtocols[i] = tlsVersion.javaName();
             i++;
         }
     }
@@ -115,7 +115,7 @@ import okhttp3.TlsVersion;
             List<String> supportedProtocols = Arrays.asList(sslSocket.getSupportedProtocols());
             List<String> filteredEnabledProtocols = new ArrayList<>();
 
-            for (String protocol : enabledProtocol) {
+            for (String protocol : enabledProtocols) {
                 if (supportedProtocols.contains(protocol)) {
                     filteredEnabledProtocols.add(protocol);
                 }
