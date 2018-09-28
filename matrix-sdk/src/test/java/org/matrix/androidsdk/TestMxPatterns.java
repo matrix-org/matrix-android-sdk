@@ -124,28 +124,33 @@ public class TestMxPatterns {
      * ========================================================================================== */
 
     @Test
-    public void MxPatterns_common_error_invalidChars() {
+    public void MxPatterns_common_error_with_prefix_invalidChars() {
         testAllFalseWithCorrectPrefix("idé:matrix.org");
         testAllFalseWithCorrectPrefix("id :matrix.org");
     }
 
     @Test
-    public void MxPatterns_common_error_noTwoPoint() {
+    public void MxPatterns_common_error_with_prefix_empty() {
+        testAllFalseWithCorrectPrefix("");
+    }
+
+    @Test
+    public void MxPatterns_common_error_with_prefix_noTwoPoint() {
         testAllFalseWithCorrectPrefix("idmatrix.org");
     }
 
     @Test
-    public void MxPatterns_common_error_noId() {
+    public void MxPatterns_common_error_with_prefix_noId() {
         testAllFalseWithCorrectPrefix(":matrix.org");
     }
 
     @Test
-    public void MxPatterns_common_error_noDomain() {
+    public void MxPatterns_common_error_with_prefix_noDomain() {
         testAllFalseWithCorrectPrefix("id:");
     }
 
     @Test
-    public void MxPatterns_common_error_bad_port() {
+    public void MxPatterns_common_error_with_prefix_bad_port() {
         testAllFalseWithCorrectPrefix("id:matrix.org:");
         testAllFalseWithCorrectPrefix("id:matrix.org:8");
         testAllFalseWithCorrectPrefix("id:matrix.org:abc");
