@@ -58,8 +58,8 @@ import javax.annotation.Nonnull;
  */
 public class CommonTestHelper {
 
-    public MXSession createAccount(final SessionTestParams testParams) throws InterruptedException {
-        return createAccount(TestConstants.USER_ID, TestConstants.PASSWORD, testParams);
+    public MXSession createAccount(final String userNamePrefix, final SessionTestParams testParams) throws InterruptedException {
+        return createAccount(userNamePrefix, TestConstants.PASSWORD, testParams);
     }
 
     public MXSession logIntoAccount(final String userId, final SessionTestParams testParams) throws InterruptedException {
@@ -164,18 +164,18 @@ public class CommonTestHelper {
     /**
      * Creates a unique account
      *
-     * @param userId     the base userId
-     * @param password   the password
-     * @param testParams test params about the session
+     * @param userNamePrefix the user name prefix
+     * @param password       the password
+     * @param testParams     test params about the session
      * @return the session associated with the newly created account
      */
-    private MXSession createAccount(@NonNull final String userId,
+    private MXSession createAccount(@NonNull final String userNamePrefix,
                                     @NonNull final String password,
                                     @NonNull final SessionTestParams testParams) throws InterruptedException {
         final Context context = InstrumentationRegistry.getContext();
         final MXSession session = createAccountAndSync(
                 context,
-                userId + System.currentTimeMillis() + UUID.randomUUID(),
+                userNamePrefix + "_" + System.currentTimeMillis() + UUID.randomUUID(),
                 password,
                 testParams.withInitialSync,
                 testParams.withCryptoEnabled

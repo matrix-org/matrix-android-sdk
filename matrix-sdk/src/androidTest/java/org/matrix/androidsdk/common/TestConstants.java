@@ -23,6 +23,9 @@ public class TestConstants {
     // Time out to use when waiting for server response
     public static final int AWAIT_TIME_OUT_MILLIS = 30000;
 
-    public static final String USER_ID = "userid";
+    public static final String USER_ALICE = "Alice";
+    public static final String USER_BOB = "Bob";
+    public static final String USER_SAM = "Sam";
+
     public static final String PASSWORD = "password";
 }
