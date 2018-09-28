@@ -41,6 +41,7 @@ import org.matrix.androidsdk.common.CommonTestHelper;
 import org.matrix.androidsdk.common.SessionAndRoomId;
 import org.matrix.androidsdk.common.SessionTestParams;
 import org.matrix.androidsdk.common.TestApiCallback;
+import org.matrix.androidsdk.common.TestConstants;
 import org.matrix.androidsdk.common.Triple;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
@@ -92,7 +93,7 @@ public class CryptoTest {
 
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
-        MXSession bobSession = mTestHelper.createAccount(defaultSessionParams);
+        MXSession bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, defaultSessionParams);
 
         Assert.assertNull(bobSession.getCrypto());
         bobSession.getCredentials().deviceId = null;
@@ -120,7 +121,7 @@ public class CryptoTest {
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
 
-        MXSession bobSession = mTestHelper.createAccount(defaultSessionParams);
+        MXSession bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, defaultSessionParams);
         bobSession.getCredentials().deviceId = "BobDevice";
 
         Assert.assertNull(bobSession.getCrypto());
@@ -230,7 +231,7 @@ public class CryptoTest {
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
 
-        MXSession aliceSession = mTestHelper.createAccount(defaultSessionParams);
+        MXSession aliceSession = mTestHelper.createAccount(TestConstants.USER_ALICE, defaultSessionParams);
         aliceSession.getCredentials().deviceId = "AliceDevice";
 
         CountDownLatch lock0 = new CountDownLatch(1);
@@ -244,7 +245,7 @@ public class CryptoTest {
         mTestHelper.await(lock0);
         Assert.assertTrue(results.containsKey("enableCrypto"));
 
-        MXSession bobSession = mTestHelper.createAccount(defaultSessionParams);
+        MXSession bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, defaultSessionParams);
         CountDownLatch lock2 = new CountDownLatch(1);
         bobSession.getCredentials().deviceId = "BobDevice";
         bobSession.enableCrypto(true, new TestApiCallback<Void>(lock2) {
@@ -417,7 +418,7 @@ public class CryptoTest {
 
         Context context = InstrumentationRegistry.getContext();
 
-        MXSession aliceSession = mTestHelper.createAccount(defaultSessionParams);
+        MXSession aliceSession = mTestHelper.createAccount(TestConstants.USER_ALICE, defaultSessionParams);
         final Map<String, Object> results = new HashMap<>();
 
         aliceSession.getCredentials().deviceId = "AliceDevice";
@@ -435,7 +436,7 @@ public class CryptoTest {
         mTestHelper.await(lock0);
         Assert.assertTrue(results.containsKey("enableCryptoAlice"));
 
-        MXSession bobSession = mTestHelper.createAccount(defaultSessionParams);
+        MXSession bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, defaultSessionParams);
 
         CountDownLatch lock2 = new CountDownLatch(1);
         bobSession.enableCrypto(true, new TestApiCallback<Void>(lock2) {
@@ -582,7 +583,7 @@ public class CryptoTest {
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
 
-        MXSession bobSession = mTestHelper.createAccount(defaultSessionParams);
+        MXSession bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, defaultSessionParams);
 
         CountDownLatch lock0 = new CountDownLatch(1);
         bobSession.enableCrypto(true, new TestApiCallback<Void>(lock0) {
@@ -2524,8 +2525,8 @@ public class CryptoTest {
 
         final Map<String, Object> results = new HashMap<>();
 
-        MXSession aliceSession = mTestHelper.createAccount(defaultSessionParams);
-        MXSession bobSession = mTestHelper.createAccount(defaultSessionParams);
+        MXSession aliceSession = mTestHelper.createAccount(TestConstants.USER_ALICE, defaultSessionParams);
+        MXSession bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, defaultSessionParams);
 
         CountDownLatch lock_1 = new CountDownLatch(2);
 
@@ -2988,8 +2989,8 @@ public class CryptoTest {
         final String messageFromAlice = "Hello I'm Alice!";
         final String message2FromAlice = "I'm still Alice!";
 
-        MXSession aliceSession = mTestHelper.createAccount(defaultSessionParams);
-        MXSession bobSession = mTestHelper.createAccount(defaultSessionParams);
+        MXSession aliceSession = mTestHelper.createAccount(TestConstants.USER_ALICE, defaultSessionParams);
+        MXSession bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, defaultSessionParams);
 
         CountDownLatch lock00b = new CountDownLatch(2);
         aliceSession.enableCrypto(true, new TestApiCallback<Void>(lock00b) {
@@ -3342,7 +3343,7 @@ public class CryptoTest {
      */
     private SessionAndRoomId doE2ETestWithAliceInARoom() throws Exception {
         final Map<String, Object> results = new HashMap<>();
-        MXSession aliceSession = mTestHelper.createAccount(defaultSessionParams);
+        MXSession aliceSession = mTestHelper.createAccount(TestConstants.USER_ALICE, defaultSessionParams);
         CountDownLatch lock0 = new CountDownLatch(1);
 
         aliceSession.enableCrypto(true, new TestApiCallback<Void>(lock0) {
@@ -3399,7 +3400,7 @@ public class CryptoTest {
 
         Room room = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
-        MXSession bobSession = mTestHelper.createAccount(defaultSessionParams);
+        MXSession bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, defaultSessionParams);
         CountDownLatch lock0 = new CountDownLatch(1);
 
         bobSession.enableCrypto(cryptedBob, new TestApiCallback<Void>(lock0) {
@@ -3506,7 +3507,7 @@ public class CryptoTest {
 
         Room room = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
-        MXSession samSession = mTestHelper.createAccount(defaultSessionParams);
+        MXSession samSession = mTestHelper.createAccount(TestConstants.USER_SAM, defaultSessionParams);
         CountDownLatch lock0 = new CountDownLatch(1);
 
         samSession.enableCrypto(true, new TestApiCallback<Void>(lock0) {

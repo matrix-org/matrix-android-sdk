@@ -24,6 +24,7 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.common.CommonTestHelper;
 import org.matrix.androidsdk.common.SessionTestParams;
 import org.matrix.androidsdk.common.TestApiCallback;
+import org.matrix.androidsdk.common.TestConstants;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
@@ -61,9 +62,9 @@ public class LazyLoadingTestHelper {
     public LazyLoadingScenarioData createScenario(boolean withLazyLoading) throws Exception {
 
         final SessionTestParams createSessionParams = SessionTestParams.newBuilder().withInitialSync(true).build();
-        MXSession aliceSession = mTestHelper.createAccount(createSessionParams);
-        MXSession bobSession = mTestHelper.createAccount(createSessionParams);
-        MXSession samSession = mTestHelper.createAccount(createSessionParams);
+        MXSession aliceSession = mTestHelper.createAccount(TestConstants.USER_ALICE, createSessionParams);
+        MXSession bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, createSessionParams);
+        MXSession samSession = mTestHelper.createAccount(TestConstants.USER_SAM, createSessionParams);
 
         final String aliceId = aliceSession.getMyUserId();
         final String bobId = bobSession.getMyUserId();
