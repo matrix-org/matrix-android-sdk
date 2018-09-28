@@ -61,7 +61,7 @@ public class RoomMembersTest {
             @Override
             public void onSuccess(List<RoomMember> roomMembers) {
                 Assert.assertEquals(4, roomMembers.size());
-                lock.countDown();
+                super.onSuccess(roomMembers);
             }
         });
         mTestHelper.await(lock);
@@ -86,7 +86,7 @@ public class RoomMembersTest {
             @Override
             public void onSuccess(List<RoomMember> roomMembers) {
                 Assert.assertEquals(4, roomMembers.size());
-                lock.countDown();
+                super.onSuccess(roomMembers);
             }
         });
         mTestHelper.await(lock);
@@ -111,7 +111,7 @@ public class RoomMembersTest {
             @Override
             public void onSuccess(List<RoomMember> roomMembers) {
                 Assert.assertEquals(3, roomMembers.size());
-                lock.countDown();
+                super.onSuccess(roomMembers);
             }
         });
         mTestHelper.await(lock);
@@ -138,6 +138,5 @@ public class RoomMembersTest {
             Assert.assertEquals(4, members.size());
         }
     }
-
 
 }

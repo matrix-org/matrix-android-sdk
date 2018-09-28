@@ -25,8 +25,11 @@ import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.common.CommonTestHelper;
+import org.matrix.androidsdk.common.TestApiCallback;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomSummary;
+
+import java.util.concurrent.CountDownLatch;
 
 @FixMethodOrder(MethodSorters.JVM)
 public class RoomSummaryTest {
@@ -82,6 +85,29 @@ public class RoomSummaryTest {
         Assert.assertNotNull(roomSummary);
         Assert.assertEquals(3, roomSummary.getNumberOfJoinedMembers());
         Assert.assertEquals(1, roomSummary.getNumberOfInvitedMembers());
+    }
+
+    @Test
+    public void RoomSummary_CheckRoomSummaryIsNullAfterLeavingFromAnotherDevice_LazyLoadedMembers() throws Exception {
+        RoomSummary_CheckRoomSummaryIsNullAfterLeavingFromAnotherDevice(true);
+    }
+
+    @Test
+    public void RoomSummary_CheckRoomSummaryIsNullAfterLeavingFromAnotherDevice_LoadAllMembers() throws Exception {
+        RoomSummary_CheckRoomSummaryIsNullAfterLeavingFromAnotherDevice(false);
+    }
+
+    private void RoomSummary_CheckRoomSummaryIsNullAfterLeavingFromAnotherDevice(boolean withLazyLoading) throws Exception {
+        final LazyLoadingScenarioData data = mLazyLoadingTestHelper.createScenario(withLazyLoading);
+        final CountDownLatch lock = new CountDownLatch(1);
+        data.aliceSession.getDataHandler().getDataRetriever().getRoomsRestClient().leaveRoom(data.roomId, new TestApiCallback<Void>(lock));
+        mTestHelper.await(lock);
+        mTestHelper.syncSession(data.bobSession, false);
+        final Room bobRoom = data.bobSession.getDataHandler().getRoom(data.roomId);
+        mTestHelper.sendTextMessage(bobRoom, "New bob message", 50);
+        mTestHelper.syncSession(data.aliceSession, false);
+        final RoomSummary roomSummary = data.aliceSession.getDataHandler().getStore().getSummary(data.roomId);
+        Assert.assertNull(roomSummary);
     }
 
 }
