@@ -3000,6 +3000,7 @@ public class CryptoTest {
             @Override
             public void onSuccess(Void info) {
                 results.put("enableCrypto2", "enableCrypto2");
+                super.onSuccess(info);
             }
         });
         mTestHelper.await(lock00b);
