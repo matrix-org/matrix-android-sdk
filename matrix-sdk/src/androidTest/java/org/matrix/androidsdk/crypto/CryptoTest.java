@@ -46,12 +46,12 @@ import org.matrix.androidsdk.common.Triple;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
-import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXFileStore;
 import org.matrix.androidsdk.data.store.MXStoreListener;
+import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.timeline.EventTimelineFactory;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -1080,7 +1080,7 @@ public class CryptoTest {
         Log.e(LOG_TAG, "test11_testAliceAndBobInAEncryptedRoomBackPaginationFromMemoryStore");
 
         Context context = InstrumentationRegistry.getContext();
-        final Map<String, Object> results = new HashMap();
+        final Map<String, Object> results = new HashMap<>();
 
         Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
         MXSession aliceSession = pair.first.first;
@@ -1171,7 +1171,7 @@ public class CryptoTest {
         Log.e(LOG_TAG, "test12_testAliceAndBobInAEncryptedRoomBackPaginationFromHomeServer");
 
         Context context = InstrumentationRegistry.getContext();
-        final Map<String, Object> results = new HashMap();
+        final Map<String, Object> results = new HashMap<>();
 
         Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
         MXSession aliceSession = pair.first.first;
@@ -1225,7 +1225,7 @@ public class CryptoTest {
     public void test13_testAliceAndNotEncryptedBobInACryptedRoom() throws Exception {
         Log.e(LOG_TAG, "test13_testAliceAndNotEncryptedBobInACryptedRoom");
 
-        final Map<String, Object> results = new HashMap();
+        final Map<String, Object> results = new HashMap<>();
 
         Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(false);
         final MXSession aliceSession = pair.first.first;

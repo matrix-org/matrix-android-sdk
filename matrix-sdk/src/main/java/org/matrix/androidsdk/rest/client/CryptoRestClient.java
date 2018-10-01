@@ -160,7 +160,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
             public void success(KeysClaimResponse keysClaimResponse, Response response) {
                 onEventSent();
 
-                Map<String, Map<String, MXKey>> map = new HashMap();
+                Map<String, Map<String, MXKey>> map = new HashMap<>();
 
                 if (null != keysClaimResponse.oneTimeKeys) {
                     for (String userId : keysClaimResponse.oneTimeKeys.keySet()) {

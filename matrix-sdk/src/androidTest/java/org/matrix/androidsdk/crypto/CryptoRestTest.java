@@ -30,7 +30,6 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.common.CommonTestHelper;
 import org.matrix.androidsdk.common.SessionTestParams;
 import org.matrix.androidsdk.common.TestApiCallback;
-import org.matrix.androidsdk.common.TestConstants;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXKey;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
@@ -66,7 +65,7 @@ public class CryptoRestTest {
         bobDevice.userId = bobSession.getMyUserId();
         bobDevice.algorithms = Arrays.asList(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM);
 
-        Map<String, String> keysMap = new HashMap();
+        Map<String, String> keysMap = new HashMap<>();
         keysMap.put("ed25519:" + bobDevice.deviceId, ed25519key);
         bobDevice.keys = keysMap;
 
