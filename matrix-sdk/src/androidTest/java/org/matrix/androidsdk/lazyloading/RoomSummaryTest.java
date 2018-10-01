@@ -83,8 +83,15 @@ public class RoomSummaryTest {
         mTestHelper.syncSession(data.aliceSession, false);
         final RoomSummary roomSummary = data.aliceSession.getDataHandler().getStore().getSummary(data.roomId);
         Assert.assertNotNull(roomSummary);
-        Assert.assertEquals(3, roomSummary.getNumberOfJoinedMembers());
-        Assert.assertEquals(1, roomSummary.getNumberOfInvitedMembers());
+
+        if (withLazyLoading) {
+            Assert.assertEquals(3, roomSummary.getNumberOfJoinedMembers());
+            Assert.assertEquals(1, roomSummary.getNumberOfInvitedMembers());
+        } else {
+            // Without lazy loading the room summary does not contains this data yet
+            Assert.assertEquals(0, roomSummary.getNumberOfJoinedMembers());
+            Assert.assertEquals(0, roomSummary.getNumberOfInvitedMembers());
+        }
     }
 
     @Test
