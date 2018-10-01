@@ -2896,7 +2896,7 @@ public class CryptoTest {
         Assert.assertFalse(results.containsKey("eventListenerEncyptedSam2"));
 
         // verify the bob device
-        CountDownLatch lock8 = new CountDownLatch(3);
+        CountDownLatch lock8 = new CountDownLatch(1);
         aliceSession.getCrypto().setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED,
                 bobSession.getCrypto().getMyDevice().deviceId,
                 bobSession.getMyUserId(), new TestApiCallback<Void>(lock8) {
@@ -2910,7 +2910,7 @@ public class CryptoTest {
         mTestHelper.await(lock8);
         Assert.assertTrue(results.containsKey("setDeviceVerificationBob"));
 
-        CountDownLatch lock9 = new CountDownLatch(3);
+        CountDownLatch lock9 = new CountDownLatch(1);
         aliceSession.getCrypto().setRoomBlacklistUnverifiedDevices(roomFromAlicePOV.getRoomId(), new TestApiCallback<Void>(lock9) {
             @Override
             public void onSuccess(Void info) {
@@ -2938,7 +2938,7 @@ public class CryptoTest {
         Assert.assertFalse(results.containsKey("eventListenerEncyptedBob2"));
         Assert.assertTrue(results.containsKey("eventListenerEncyptedSam2"));
 
-        CountDownLatch lock11 = new CountDownLatch(3);
+        CountDownLatch lock11 = new CountDownLatch(1);
         aliceSession.getCrypto().setRoomUnblacklistUnverifiedDevices(roomFromAlicePOV.getRoomId(), new TestApiCallback<Void>(lock11) {
             @Override
             public void onSuccess(Void info) {
