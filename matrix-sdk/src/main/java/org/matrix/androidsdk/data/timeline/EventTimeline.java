@@ -182,7 +182,7 @@ public interface EventTimeline {
     void cancelPaginationRequests();
 
     /**
-     * Reset the pagination timelime and start loading the context around its `initialEventId`.
+     * Reset the pagination timeline and start loading the context around its `initialEventId`.
      * The retrieved (backwards and forwards) events will be sent to registered listeners.
      *
      * @param limit    the maximum number of messages to get around the initial event.
