@@ -29,7 +29,6 @@ import org.junit.runners.MethodSorters;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.common.CommonTestHelper;
 import org.matrix.androidsdk.common.TestApiCallback;
-import org.matrix.androidsdk.common.TestConstants;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXKey;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
@@ -42,7 +41,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 @RunWith(AndroidJUnit4.class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -63,7 +61,7 @@ public class CryptoRestTest  {
         bobDevice.userId = bobSession.getMyUserId();
         bobDevice.algorithms = Arrays.asList(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM);
 
-        Map<String, String> keysMap = new HashMap();
+        Map<String, String> keysMap = new HashMap<>();
         keysMap.put("ed25519:" + bobDevice.deviceId, ed25519key);
         bobDevice.keys = keysMap;
 
