@@ -194,7 +194,7 @@ public class MatrixMessagesFragment extends Fragment {
         if (mSession == null) {
             throw new RuntimeException("Must have valid default MXSession.");
         }
-        // get the timelime
+        // get the timeline
         if (null == mEventTimeline) {
             mEventTimeline = mMatrixMessagesListener.getEventTimeLine();
         } else {
