@@ -34,8 +34,6 @@ import org.robolectric.RobolectricTestRunner;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.matrix.androidsdk.rest.model.Event.EVENT_TYPE_CALL_INVITE;
-
 @RunWith(RobolectricTestRunner.class)
 public class TimelinePushWorkerTest {
 
@@ -97,7 +95,7 @@ public class TimelinePushWorkerTest {
         Mockito.when(bingRule.shouldNotify()).thenReturn(true);
         Mockito.when(mBingRulesManager.fulfilledBingRule(Mockito.any(Event.class))).thenReturn(bingRule);
         final Event event = new Event();
-        event.type = EVENT_TYPE_CALL_INVITE;
+        event.type = Event.EVENT_TYPE_CALL_INVITE;
         event.originServerTs = System.currentTimeMillis() - 124000;
         final RoomState roomState = new RoomState();
         mTimelinePushWorker.triggerPush(roomState, event);
@@ -110,7 +108,7 @@ public class TimelinePushWorkerTest {
         Mockito.when(bingRule.shouldNotify()).thenReturn(true);
         Mockito.when(mBingRulesManager.fulfilledBingRule(Mockito.any(Event.class))).thenReturn(bingRule);
         final Event event = new Event();
-        event.type = EVENT_TYPE_CALL_INVITE;
+        event.type = Event.EVENT_TYPE_CALL_INVITE;
         event.originServerTs = System.currentTimeMillis() - 8000;
         final RoomState roomState = new RoomState();
         mTimelinePushWorker.triggerPush(roomState, event);

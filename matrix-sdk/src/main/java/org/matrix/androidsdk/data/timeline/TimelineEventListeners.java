@@ -47,7 +47,7 @@ class TimelineEventListeners {
     public void add(@Nullable final EventTimeline.Listener listener) {
         if (listener != null) {
             synchronized (this) {
-                if (mListeners.indexOf(listener) == -1) {
+                if (!mListeners.contains(listener)) {
                     mListeners.add(listener);
                 }
             }

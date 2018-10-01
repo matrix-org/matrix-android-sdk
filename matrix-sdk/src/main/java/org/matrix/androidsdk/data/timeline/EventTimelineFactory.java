@@ -23,14 +23,17 @@ import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.store.MXMemoryStore;
 
+/**
+ * This factory creates MXEventTimeline instances
+ */
 public class EventTimelineFactory {
 
     /**
      * Method to create a live timeline associated with the room.
      *
      * @param dataHandler the dataHandler
-     * @param room        the linked room.
-     * @param roomId      the roomId
+     * @param room        the linked room
+     * @param roomId      the room id
      */
     public static EventTimeline liveTimeline(@NonNull final MXDataHandler dataHandler,
                                              @NonNull final Room room,
@@ -39,14 +42,14 @@ public class EventTimelineFactory {
     }
 
     /**
-     * Method to create a past timeline.
+     * Method to create an in memory timeline for a room.
      *
      * @param dataHandler the data handler
      * @param roomId      the room id.
      */
-    public static EventTimeline pastTimeline(@NonNull final MXDataHandler dataHandler,
-                                             @NonNull final String roomId) {
-        return pastTimeline(dataHandler, roomId, null);
+    public static EventTimeline inMemoryTimeline(@NonNull final MXDataHandler dataHandler,
+                                                 @NonNull final String roomId) {
+        return inMemoryTimeline(dataHandler, roomId, null);
     }
 
     /**
@@ -54,12 +57,30 @@ public class EventTimelineFactory {
      * It will create a memory store and a room
      *
      * @param dataHandler the data handler
-     * @param roomId      the room id.
+     * @param roomId      the room id
      * @param eventId     the event id
      */
     public static EventTimeline pastTimeline(@NonNull final MXDataHandler dataHandler,
                                              @NonNull final String roomId,
-                                             @Nullable final String eventId) {
+                                             @NonNull final String eventId) {
+        return inMemoryTimeline(dataHandler, roomId, eventId);
+    }
+
+    /* ==========================================================================================
+     * Private
+     * ========================================================================================== */
+
+    /**
+     * Method to create a in memory timeline.
+     * It will create a memory store and a room
+     *
+     * @param dataHandler the data handler
+     * @param roomId      the room id
+     * @param eventId     the event id or null
+     */
+    private static EventTimeline inMemoryTimeline(@NonNull final MXDataHandler dataHandler,
+                                                  @NonNull final String roomId,
+                                                  @Nullable final String eventId) {
         final MXMemoryStore store = new MXMemoryStore(dataHandler.getCredentials(), null);
         final Room room = dataHandler.getRoom(store, roomId, true);
         final EventTimeline eventTimeline = new MXEventTimeline(store, dataHandler, room, roomId, eventId, false);
@@ -67,6 +88,4 @@ public class EventTimelineFactory {
         room.setReadyState(true);
         return eventTimeline;
     }
-
-
 }

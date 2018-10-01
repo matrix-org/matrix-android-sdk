@@ -260,7 +260,7 @@ class MXEventTimeline implements EventTimeline {
         // sanity check
         if (null != mDataHandler && null != mDataHandler.getDataRetriever()) {
             mDataHandler.resetReplayAttackCheckInTimeline(getTimelineId());
-            mDataHandler.getDataRetriever().cancelHistoryRequest(mRoomId);
+            mDataHandler.getDataRetriever().cancelHistoryRequests(mRoomId);
         }
     }
 
@@ -752,7 +752,7 @@ class MXEventTimeline implements EventTimeline {
     }
 
     /**
-     * Request older messages.
+     * Request newer messages.
      *
      * @param callback callback to implement to be informed that the pagination request has been completed. Can be null.
      * @return true if request starts
@@ -838,8 +838,8 @@ class MXEventTimeline implements EventTimeline {
      * Cancel any pending pagination requests
      */
     @Override
-    public void cancelPaginationRequest() {
-        mDataHandler.getDataRetriever().cancelHistoryRequest(mRoomId);
+    public void cancelPaginationRequests() {
+        mDataHandler.getDataRetriever().cancelHistoryRequests(mRoomId);
         mIsBackPaginating = false;
         mIsForwardPaginating = false;
     }

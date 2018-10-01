@@ -70,8 +70,8 @@ public class DataRetriever {
      *
      * @param roomId the room id.
      */
-    public void cancelHistoryRequest(String roomId) {
-        Log.d(LOG_TAG, "## cancelHistoryRequest() : roomId " + roomId);
+    public void cancelHistoryRequests(String roomId) {
+        Log.d(LOG_TAG, "## cancelHistoryRequests() : roomId " + roomId);
 
         clearPendingToken(mPendingForwardRequestTokenByRoomId, roomId);
         clearPendingToken(mPendingBackwardRequestTokenByRoomId, roomId);

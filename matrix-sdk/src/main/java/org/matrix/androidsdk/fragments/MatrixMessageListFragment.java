@@ -517,7 +517,7 @@ public abstract class MatrixMessageListFragment<MessagesAdapter extends Abstract
             // display a room preview
             else if (PREVIEW_MODE_READ_ONLY.equals(previewMode)) {
                 mAdapter.setIsPreviewMode(true);
-                mEventTimeLine = EventTimelineFactory.pastTimeline(mSession.getDataHandler(), mRoomId);
+                mEventTimeLine = EventTimelineFactory.inMemoryTimeline(mSession.getDataHandler(), mRoomId);
                 mRoom = mEventTimeLine.getRoom();
             }
             // standard case
@@ -1724,7 +1724,7 @@ public abstract class MatrixMessageListFragment<MessagesAdapter extends Abstract
         mPattern = null;
 
         if (null != mEventTimeLine) {
-            mEventTimeLine.cancelPaginationRequest();
+            mEventTimeLine.cancelPaginationRequests();
         }
 
         mIsInitialSyncing = false;
