@@ -198,7 +198,7 @@ public class CommonTestHelper {
                                      @NonNull final String password,
                                      @NonNull final SessionTestParams testParams) throws InterruptedException {
         final Context context = InstrumentationRegistry.getContext();
-        final MXSession session = logAccountAndSync(context, userId, password, testParams.withInitialSync, testParams.withCryptoEnabled, testParams.withLazyLoading);
+        final MXSession session = logAccountAndSync(context, userId, password, testParams);
         Assert.assertNotNull(session);
         return session;
     }
@@ -298,19 +298,15 @@ public class CommonTestHelper {
     /**
      * Start an account login
      *
-     * @param context         the context
-     * @param userName        the account username
-     * @param password        the password
-     * @param withInitialSync true to perform an initial sync
-     * @param enableCrypto    true to set enableCryptoWhenStarting
-     * @param withLazyLoading true to enable lazyLoading
+     * @param context           the context
+     * @param userName          the account username
+     * @param password          the password
+     * @param sessionTestParams session test params
      */
     private MXSession logAccountAndSync(final Context context,
                                         final String userName,
                                         final String password,
-                                        final boolean withInitialSync,
-                                        final boolean enableCrypto,
-                                        final boolean withLazyLoading) throws InterruptedException {
+                                        final SessionTestParams sessionTestParams) throws InterruptedException {
         final HomeServerConnectionConfig hs = createHomeServerConfig(null);
         LoginRestClient loginRestClient = new LoginRestClient(hs);
         final Map<String, Object> params = new HashMap<>();
@@ -336,16 +332,16 @@ public class CommonTestHelper {
         final IMXStore store = new MXFileStore(hs, false, context);
 
         MXDataHandler mxDataHandler = new MXDataHandler(store, credentials);
-        mxDataHandler.setLazyLoadingEnabled(withLazyLoading);
+        mxDataHandler.setLazyLoadingEnabled(sessionTestParams.withLazyLoading);
 
         final MXSession mxSession = new MXSession.Builder(hs, mxDataHandler, context)
                 .build();
 
-        if (enableCrypto) {
+        if (sessionTestParams.withCryptoEnabled) {
             mxSession.enableCryptoWhenStarting();
         }
-        if (withInitialSync) {
-            syncSession(mxSession, enableCrypto);
+        if (sessionTestParams.withInitialSync) {
+            syncSession(mxSession, sessionTestParams.withCryptoEnabled);
         }
         return mxSession;
     }
