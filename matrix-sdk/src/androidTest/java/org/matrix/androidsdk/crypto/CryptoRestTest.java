@@ -30,6 +30,7 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.common.CommonTestHelper;
 import org.matrix.androidsdk.common.SessionTestParams;
 import org.matrix.androidsdk.common.TestApiCallback;
+import org.matrix.androidsdk.common.TestConstants;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXKey;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
