@@ -1082,7 +1082,7 @@ public class CryptoTest {
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
 
-        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
+        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(true);
         MXSession aliceSession = pair.first.first;
         final String aliceRoomId = pair.first.second;
         MXSession bobSession = pair.second;
@@ -1173,7 +1173,7 @@ public class CryptoTest {
         Context context = InstrumentationRegistry.getContext();
         final Map<String, Object> results = new HashMap<>();
 
-        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoom(true);
+        Pair<SessionAndRoomId, MXSession> pair = doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(true);
         MXSession aliceSession = pair.first.first;
         final String aliceRoomId = pair.first.second;
         MXSession bobSession = pair.second;
