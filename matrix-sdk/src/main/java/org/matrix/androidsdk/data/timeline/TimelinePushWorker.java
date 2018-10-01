@@ -28,6 +28,9 @@ import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.util.BingRulesManager;
 import org.matrix.androidsdk.util.Log;
 
+/**
+ * This class is responsible for handling push rules for an event
+ */
 class TimelinePushWorker {
 
     private static final String LOG_TAG = TimelinePushWorker.class.getSimpleName();

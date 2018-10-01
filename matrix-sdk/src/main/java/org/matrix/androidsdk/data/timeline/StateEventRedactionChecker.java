@@ -34,7 +34,9 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
-
+/**
+ * This class is responsible of checking state events redaction.
+ */
 class StateEventRedactionChecker {
 
     private static final String LOG_TAG = StateEventRedactionChecker.class.getSimpleName();

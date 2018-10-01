@@ -14,8 +14,6 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.robolectric.RobolectricTestRunner;
 
-import static org.matrix.androidsdk.rest.model.Event.EVENT_TYPE_STATE_ROOM_NAME;
-
 @RunWith(RobolectricTestRunner.class)
 public class TimelineStateHolderTest {
 
@@ -38,8 +36,8 @@ public class TimelineStateHolderTest {
     public void processStateEvent_WhenDirectionIsForward__ShouldStoreLiveState() {
         final Event event = new Event();
         event.roomId = ROOM_ID;
-        event.stateKey = EVENT_TYPE_STATE_ROOM_NAME;
-        event.type = EVENT_TYPE_STATE_ROOM_NAME;
+        event.stateKey = Event.EVENT_TYPE_STATE_ROOM_NAME;
+        event.type = Event.EVENT_TYPE_STATE_ROOM_NAME;
         mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS);
         Mockito.verify(mIMXStore, Mockito.times(1)).storeLiveStateForRoom(Mockito.anyString());
     }
@@ -48,7 +46,7 @@ public class TimelineStateHolderTest {
     public void processStateEvent_WhenNoStateKeyIsGiven__ShouldNotBeProcessed() {
         final Event event = new Event();
         event.roomId = ROOM_ID;
-        event.type = EVENT_TYPE_STATE_ROOM_NAME;
+        event.type = Event.EVENT_TYPE_STATE_ROOM_NAME;
         Assert.assertFalse(mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS));
     }
 
@@ -56,8 +54,8 @@ public class TimelineStateHolderTest {
     public void processStateEvent_WithConformingEvent__ShouldBeProcessed() {
         final Event event = new Event();
         event.roomId = ROOM_ID;
-        event.type = EVENT_TYPE_STATE_ROOM_NAME;
-        event.stateKey = EVENT_TYPE_STATE_ROOM_NAME;
+        event.type = Event.EVENT_TYPE_STATE_ROOM_NAME;
+        event.stateKey = Event.EVENT_TYPE_STATE_ROOM_NAME;
         Assert.assertTrue(mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS));
     }
 
@@ -65,8 +63,8 @@ public class TimelineStateHolderTest {
     public void processStateEvent_WhenDirectionIsForward__ShouldUseState() {
         final Event event = new Event();
         event.roomId = ROOM_ID;
-        event.stateKey = EVENT_TYPE_STATE_ROOM_NAME;
-        event.type = EVENT_TYPE_STATE_ROOM_NAME;
+        event.stateKey = Event.EVENT_TYPE_STATE_ROOM_NAME;
+        event.type = Event.EVENT_TYPE_STATE_ROOM_NAME;
         final RoomState state = Mockito.spy(mTimelineStateHolder.getState());
         mTimelineStateHolder.setState(state);
         mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS);
@@ -77,8 +75,8 @@ public class TimelineStateHolderTest {
     public void processStateEvent_WhenDirectionIsBackward__ShouldUseBackState() {
         final Event event = new Event();
         event.roomId = ROOM_ID;
-        event.stateKey = EVENT_TYPE_STATE_ROOM_NAME;
-        event.type = EVENT_TYPE_STATE_ROOM_NAME;
+        event.stateKey = Event.EVENT_TYPE_STATE_ROOM_NAME;
+        event.type = Event.EVENT_TYPE_STATE_ROOM_NAME;
         final RoomState backState = Mockito.spy(mTimelineStateHolder.getBackState());
         mTimelineStateHolder.setBackState(backState);
         mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.BACKWARDS);

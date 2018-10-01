@@ -136,6 +136,14 @@ public class Room {
     // true when the current room is a left one
     private boolean mIsLeft;
 
+    /**
+     * Constructor
+     * FIXME All this @NonNull annotation must be also added to the class members and getters
+     *
+     * @param dataHandler the data handler
+     * @param store       the store
+     * @param roomId      the room id
+     */
     public Room(@NonNull final MXDataHandler dataHandler, @NonNull final IMXStore store, @NonNull final String roomId) {
         mDataHandler = dataHandler;
         mStore = store;
@@ -406,7 +414,7 @@ public class Room {
     //================================================================================
 
     public String getRoomId() {
-        return mTimeline.getState().roomId;
+        return getState().roomId;
     }
 
     public void setAccountData(RoomAccountData accountData) {

@@ -37,6 +37,9 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+/**
+ * This class is responsible for handling live event
+ */
 class TimelineLiveEventHandler {
 
     private static final String LOG_TAG = TimelineLiveEventHandler.class.getSimpleName();
@@ -199,8 +202,6 @@ class TimelineLiveEventHandler {
                                     @NonNull final IMXStore store,
                                     @NonNull Event event,
                                     final boolean checkRedactedStateEvent) {
-
-
         boolean shouldBeSaved = false;
         String myUserId = dataHandler.getCredentials().userId;
 

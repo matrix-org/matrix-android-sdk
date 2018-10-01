@@ -160,7 +160,7 @@ public interface EventTimeline {
     boolean backPaginate(int eventCount, boolean useCachedOnly, ApiCallback<Integer> callback);
 
     /**
-     * Request older messages.
+     * Request newer messages.
      *
      * @param callback callback to implement to be informed that the pagination request has been completed. Can be null.
      * @return true if request starts
@@ -179,7 +179,7 @@ public interface EventTimeline {
     /**
      * Cancel any pending pagination requests
      */
-    void cancelPaginationRequest();
+    void cancelPaginationRequests();
 
     /**
      * Reset the pagination timelime and start loading the context around its `initialEventId`.
