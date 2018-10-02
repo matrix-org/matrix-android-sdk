@@ -19,19 +19,16 @@ package org.matrix.androidsdk.crypto;
 import android.text.TextUtils;
 import android.util.Base64;
 
-import org.matrix.androidsdk.util.Log;
-
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileKey;
+import org.matrix.androidsdk.util.Log;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-
 import java.io.Serializable;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
-
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -120,7 +117,7 @@ public class MXEncryptedAttachments implements Serializable {
             result.mEncryptedFileInfo.iv = Base64.encodeToString(initVectorBytes, Base64.DEFAULT).replace("\n", "").replace("=", "");
             result.mEncryptedFileInfo.v = "v2";
 
-            result.mEncryptedFileInfo.hashes = new HashMap();
+            result.mEncryptedFileInfo.hashes = new HashMap<>();
             result.mEncryptedFileInfo.hashes.put("sha256", base64ToUnpaddedBase64(Base64.encodeToString(messageDigest.digest(), Base64.DEFAULT)));
 
             result.mEncryptedStream = new ByteArrayInputStream(outStream.toByteArray());
@@ -157,18 +154,17 @@ public class MXEncryptedAttachments implements Serializable {
             return null;
         }
 
-        if (TextUtils.isEmpty(encryptedFileInfo.iv) ||
-                (null == encryptedFileInfo.key) ||
-                (null == encryptedFileInfo.hashes) ||
-                !encryptedFileInfo.hashes.containsKey("sha256")
-                ) {
+        if (TextUtils.isEmpty(encryptedFileInfo.iv)
+                || (null == encryptedFileInfo.key)
+                || (null == encryptedFileInfo.hashes)
+                || !encryptedFileInfo.hashes.containsKey("sha256")) {
             Log.e(LOG_TAG, "## decryptAttachment() : some fields are not defined");
             return null;
         }
 
-        if (!TextUtils.equals(encryptedFileInfo.key.alg, "A256CTR") ||
-                !TextUtils.equals(encryptedFileInfo.key.kty, "oct") ||
-                TextUtils.isEmpty(encryptedFileInfo.key.k)) {
+        if (!TextUtils.equals(encryptedFileInfo.key.alg, "A256CTR")
+                || !TextUtils.equals(encryptedFileInfo.key.kty, "oct")
+                || TextUtils.isEmpty(encryptedFileInfo.key.k)) {
             Log.e(LOG_TAG, "## decryptAttachment() : invalid key fields");
             return null;
         }

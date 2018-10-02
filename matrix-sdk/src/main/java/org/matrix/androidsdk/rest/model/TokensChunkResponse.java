@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +16,10 @@
  */
 package org.matrix.androidsdk.rest.model;
 
-import java.util.List;
-
 /**
  * Class representing an API response with start and end tokens and a generically-typed chunk.
  */
-public class TokensChunkResponse<T> {
+public class TokensChunkResponse<T> extends ChunkResponse<T> {
     public String start;
     public String end;
-    public List<T> chunk;
 }

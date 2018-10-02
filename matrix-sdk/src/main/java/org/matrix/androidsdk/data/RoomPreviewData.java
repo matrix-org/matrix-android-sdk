@@ -18,13 +18,15 @@ package org.matrix.androidsdk.data;
 
 import android.os.AsyncTask;
 import android.os.Looper;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXSession;
-
+import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.publicroom.PublicRoom;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 import org.matrix.androidsdk.util.Log;
 
@@ -58,6 +60,9 @@ public class RoomPreviewData {
     // the room state
     private RoomState mRoomState;
 
+    // If the RoomState cannot be retrieved, this may contains some data
+    private PublicRoom mPublicRoom;
+
     // the initial sync data
     private RoomResponse mRoomResponse;
 
@@ -89,8 +94,17 @@ public class RoomPreviewData {
     /**
      * @return the room state
      */
+    @Nullable
     public RoomState getRoomState() {
         return mRoomState;
+    }
+
+    /**
+     * @return the public room data
+     */
+    @Nullable
+    public PublicRoom getPublicRoom() {
+        return mPublicRoom;
     }
 
     /**
@@ -199,7 +213,8 @@ public class RoomPreviewData {
                             mRoomState.applyState(null, event, EventTimeline.Direction.FORWARDS);
                         }
 
-                        mRoomName = mRoomState.getDisplayName(mSession.getMyUserId());
+                        // TODO LazyLoading handle case where room has no name
+                        mRoomName = mRoomState.name;
                         mRoomAvatarUrl = mRoomState.getAvatarUrl();
                         return null;
                     }
@@ -247,5 +262,14 @@ public class RoomPreviewData {
                 apiCallback.onUnexpectedError(e);
             }
         });
+    }
+
+    /**
+     * Set Public RoomData, In case RoomState cannot be retrieved
+     *
+     * @param publicRoom
+     */
+    public void setPublicRoom(PublicRoom publicRoom) {
+        mPublicRoom = publicRoom;
     }
 }

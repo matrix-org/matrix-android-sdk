@@ -1,6 +1,7 @@
 /*
  * Copyright 2015 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +22,6 @@ import android.content.Context;
 import android.os.Bundle;
 import android.os.Looper;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -29,17 +29,16 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.data.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomPreviewData;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 import org.matrix.androidsdk.rest.model.sync.RoomSync;
 import org.matrix.androidsdk.rest.model.sync.RoomSyncState;
@@ -59,29 +58,18 @@ public class MatrixMessagesFragment extends Fragment {
      * The room ID to get messages for.
      * Fragment argument: String.
      */
-    public static final String ARG_ROOM_ID = "org.matrix.androidsdk.fragments.MatrixMessageFragment.ARG_ROOM_ID";
+    private static final String ARG_ROOM_ID = "org.matrix.androidsdk.fragments.MatrixMessageFragment.ARG_ROOM_ID";
 
-    public static MatrixMessagesFragment newInstance(MXSession session, String roomId, MatrixMessagesListener listener) {
+    public static MatrixMessagesFragment newInstance(String roomId) {
         MatrixMessagesFragment fragment = new MatrixMessagesFragment();
-        Bundle args = new Bundle();
-
-
-        if (null == listener) {
-            throw new RuntimeException("Must define a listener.");
-        }
-
-        if (null == session) {
-            throw new RuntimeException("Must define a session.");
-        }
-
-        if (null != roomId) {
-            args.putString(ARG_ROOM_ID, roomId);
-        }
-
-        fragment.setArguments(args);
-        fragment.setMatrixMessagesListener(listener);
-        fragment.setMXSession(session);
+        fragment.setArguments(getArgument(roomId));
         return fragment;
+    }
+
+    public static Bundle getArgument(String roomId) {
+        Bundle args = new Bundle();
+        args.putString(ARG_ROOM_ID, roomId);
+        return args;
     }
 
     public interface MatrixMessagesListener {
@@ -115,6 +103,7 @@ public class MatrixMessagesFragment extends Fragment {
 
     // The listener to send messages back
     private MatrixMessagesListener mMatrixMessagesListener;
+
     // The adapted listener to register to the SDK
     private final IMXEventListener mEventListener = new MXEventListener() {
         @Override
@@ -155,7 +144,7 @@ public class MatrixMessagesFragment extends Fragment {
         }
     };
 
-    private final EventTimeline.EventTimelineListener mEventTimelineListener = new EventTimeline.EventTimelineListener() {
+    private final EventTimeline.Listener mEventTimelineListener = new EventTimeline.Listener() {
         @Override
         public void onEvent(Event event, EventTimeline.Direction direction, RoomState roomState) {
             if (null != mMatrixMessagesListener) {
@@ -202,31 +191,10 @@ public class MatrixMessagesFragment extends Fragment {
 
         String roomId = getArguments().getString(ARG_ROOM_ID);
 
-        // this code should never be called
-        // but we've got some crashes when the session was null
-        // so try to find it from the fragments call stack.
-        if (null == mSession) {
-            List<Fragment> fragments = null;
-            FragmentManager fm = getActivity().getSupportFragmentManager();
-
-            if (null != fm) {
-                fragments = fm.getFragments();
-            }
-
-            if (null != fragments) {
-                for (Fragment fragment : fragments) {
-                    if (fragment instanceof MatrixMessageListFragment) {
-                        mMatrixMessagesListener = (MatrixMessageListFragment) fragment;
-                        mSession = ((MatrixMessageListFragment) fragment).getSession();
-                    }
-                }
-            }
-        }
-
         if (mSession == null) {
             throw new RuntimeException("Must have valid default MXSession.");
         }
-        // get the timelime
+        // get the timeline
         if (null == mEventTimeline) {
             mEventTimeline = mMatrixMessagesListener.getEventTimeLine();
         } else {
@@ -246,11 +214,6 @@ public class MatrixMessagesFragment extends Fragment {
             // check if this room has been joined, if not, join it then get messages.
             mRoom = mSession.getDataHandler().getRoom(roomId);
         }
-
-        // GA reported some weird room content
-        // so ensure that the room fields are properly initialized
-        mSession.getDataHandler().checkRoom(mRoom);
-
         // display the message history around a dedicated message
         if ((null != mEventTimeline) && !mEventTimeline.isLiveTimeline() && (null != mEventTimeline.getInitialEventId())) {
             initializeTimeline();
@@ -264,13 +227,18 @@ public class MatrixMessagesFragment extends Fragment {
                 // check if some required fields are initialized
                 // else, the joining could have been half broken (network error)
                 if (null != mRoom.getState().getRoomCreateContent()) {
+                    joinedRoom = mRoom.isJoined();
+
+                    // TODO LazyLoading: handle KICK and BAN membership?
+                    /*
                     RoomMember self = mRoom.getMember(mSession.getCredentials().userId);
-                    if (self != null &&
-                            (RoomMember.MEMBERSHIP_JOIN.equals(self.membership) ||
-                                    RoomMember.MEMBERSHIP_KICK.equals(self.membership) ||
-                                    RoomMember.MEMBERSHIP_BAN.equals(self.membership))) {
+                    if (self != null
+                         && (RoomMember.MEMBERSHIP_JOIN.equals(self.membership)
+                                    || RoomMember.MEMBERSHIP_KICK.equals(self.membership)
+                                    || RoomMember.MEMBERSHIP_BAN.equals(self.membership))) {
                         joinedRoom = true;
                     }
+                    */
                 }
 
                 mRoom.addEventListener(mEventListener);
@@ -326,7 +294,7 @@ public class MatrixMessagesFragment extends Fragment {
     private void sendInitialMessagesLoaded() {
         final android.os.Handler handler = new android.os.Handler(Looper.getMainLooper());
 
-        // add a delay to avoid calling MatrixListFragment before it is fully initialized
+        // add a delay to avoid calling MatrixMessageListFragment before it is fully initialized
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {

@@ -21,14 +21,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.matrix.androidsdk.data.Room;
-import org.matrix.androidsdk.rest.model.RoomMember;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.robolectric.RobolectricTestRunner;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @RunWith(RobolectricTestRunner.class)
 public class RoomMemberCountConditionTest {
@@ -45,26 +41,7 @@ public class RoomMemberCountConditionTest {
     }
 
     private void setUpThreeRoomMembers() {
-        List<RoomMember> members = new ArrayList<>();
-
-        RoomMember rm1 = new RoomMember();
-        rm1.membership = RoomMember.MEMBERSHIP_JOIN;
-        members.add(rm1);
-
-        RoomMember rm2 = new RoomMember();
-        rm2.membership = RoomMember.MEMBERSHIP_JOIN;
-        members.add(rm2);
-
-        RoomMember rm3 = new RoomMember();
-        rm3.membership = RoomMember.MEMBERSHIP_JOIN;
-        members.add(rm3);
-
-        // This one shouldn't count because they're not joined
-        RoomMember rm4 = new RoomMember();
-        rm4.membership = RoomMember.MEMBERSHIP_LEAVE;
-        members.add(rm4);
-
-        Mockito.when(mockRoom.getMembers()).thenReturn(members);
+        Mockito.when(mockRoom.getNumberOfJoinedMembers()).thenReturn(3);
     }
 
     @Test

@@ -17,7 +17,6 @@ package org.matrix.androidsdk.lazyloading;
 
 import org.matrix.androidsdk.MXSession;
 
-
 /**
  * Data holder for lazy loading tests
  * The sessions are not synced by default as you want to perform some custom tests

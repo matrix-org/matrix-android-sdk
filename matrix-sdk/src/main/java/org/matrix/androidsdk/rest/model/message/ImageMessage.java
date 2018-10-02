@@ -35,7 +35,7 @@ public class ImageMessage extends MediaMessage {
 
     /**
      * Make a deep copy of this ImageMessage.
-     *
+     * FIXME Remove this?
      * @return the copy
      */
     public ImageMessage deepCopy() {

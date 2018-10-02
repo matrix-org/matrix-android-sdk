@@ -15,22 +15,39 @@
  */
 package org.matrix.androidsdk.rest.model.publicroom;
 
-import org.matrix.androidsdk.data.RoomState;
+import com.google.gson.annotations.SerializedName;
+
+import java.util.List;
 
 /**
  * Class representing the objects returned by /publicRooms call.
  */
-public class PublicRoom extends RoomState implements java.io.Serializable {
+public class PublicRoom {
+
+    public List<String> aliases;
+
+    @SerializedName("canonical_alias")
+    public String canonicalAlias;
+
+    public String name;
 
     // number of members which have joined the room (the members list is not provided)
+    @SerializedName("num_joined_members")
     public int numJoinedMembers;
 
-    // the server name
-    public String serverName;
+    @SerializedName("room_id")
+    public String roomId;
+
+    public String topic;
 
     // true when the room history is visible (room preview)
-    public Boolean worldReadable;
+    @SerializedName("world_readable")
+    public boolean worldReadable;
 
     // a guest can join the room
-    public Boolean guestCanJoin;
+    @SerializedName("guest_can_join")
+    public boolean guestCanJoin;
+
+    @SerializedName("avatar_url")
+    public String avatarUrl;
 }

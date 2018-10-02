@@ -28,6 +28,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.common.CommonTestHelper;
+import org.matrix.androidsdk.common.SessionTestParams;
 import org.matrix.androidsdk.common.TestApiCallback;
 import org.matrix.androidsdk.common.TestConstants;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
@@ -42,19 +43,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 @RunWith(AndroidJUnit4.class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class CryptoRestTest  {
+public class CryptoRestTest {
 
     private CommonTestHelper mTestHelper = new CommonTestHelper();
 
 
     @Test
     public void test01_testDeviceKeys() throws Exception {
-        Context context = InstrumentationRegistry.getContext();
-        final MXSession bobSession = mTestHelper.createBobAccount(true, false);
+        final Context context = InstrumentationRegistry.getContext();
+        final SessionTestParams testParams = SessionTestParams.newBuilder()
+                .withInitialSync(true)
+                .build();
+        final MXSession bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, testParams);
         final Map<String, Object> results = new HashMap<>();
 
         String ed25519key = "wV5E3EUSHpHuoZLljNzojlabjGdXT3Mz7rugG9zgbkI";
@@ -63,7 +66,7 @@ public class CryptoRestTest  {
         bobDevice.userId = bobSession.getMyUserId();
         bobDevice.algorithms = Arrays.asList(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM);
 
-        Map<String, String> keysMap = new HashMap();
+        Map<String, String> keysMap = new HashMap<>();
         keysMap.put("ed25519:" + bobDevice.deviceId, ed25519key);
         bobDevice.keys = keysMap;
 
@@ -75,7 +78,7 @@ public class CryptoRestTest  {
                 super.onSuccess(keysUploadResponse);
             }
         });
-        lock0.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        mTestHelper.await(lock0);
 
         KeysUploadResponse keysUploadResponse = (KeysUploadResponse) results.get("keysUploadResponse");
 
@@ -94,7 +97,7 @@ public class CryptoRestTest  {
             }
         });
 
-        lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        mTestHelper.await(lock1);
         KeysQueryResponse keysQueryResponse = (KeysQueryResponse) results.get("keysQueryResponse");
 
         Assert.assertNotNull(keysQueryResponse);
@@ -119,8 +122,10 @@ public class CryptoRestTest  {
     @Test
     public void test02_testOneTimeKeys() throws Exception {
         Context context = InstrumentationRegistry.getContext();
-
-        final MXSession bobSession = mTestHelper.createBobAccount(true, false);
+        final SessionTestParams testParams = SessionTestParams.newBuilder()
+                .withInitialSync(true)
+                .build();
+        final MXSession bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, testParams);
 
         final Map<String, Object> results = new HashMap<>();
         final Map<String, Object> otks = new HashMap<>();
@@ -136,7 +141,7 @@ public class CryptoRestTest  {
                 super.onSuccess(keysUploadResponse);
             }
         });
-        lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        mTestHelper.await(lock1);
 
         KeysUploadResponse keysUploadResponse = (KeysUploadResponse) results.get("keysUploadResponse");
         Assert.assertNotNull(keysUploadResponse);
@@ -152,9 +157,11 @@ public class CryptoRestTest  {
     @Test
     public void test03_testClaimOneTimeKeysForUsersDevices() throws Exception {
         Context context = InstrumentationRegistry.getContext();
-
-        final MXSession bobSession = mTestHelper.createBobAccount(true, false);
-        final MXSession aliceSession = mTestHelper.createAliceAccount(true, false);
+        final SessionTestParams testParams = SessionTestParams.newBuilder()
+                .withInitialSync(true)
+                .build();
+        final MXSession bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, testParams);
+        final MXSession aliceSession = mTestHelper.createAccount(TestConstants.USER_ALICE, testParams);
 
         final Map<String, Object> results = new HashMap<>();
         final Map<String, Object> otks = new HashMap<>();
@@ -194,7 +201,7 @@ public class CryptoRestTest  {
             }
         });
 
-        lock1.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        mTestHelper.await(lock1);
 
         KeysUploadResponse bobKeysUploadResponse = (KeysUploadResponse) results.get("keysUploadResponse");
         Assert.assertNotNull(bobKeysUploadResponse);
@@ -211,7 +218,7 @@ public class CryptoRestTest  {
             }
         });
 
-        lock2.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS);
+        mTestHelper.await(lock2);
 
         MXUsersDevicesMap<MXKey> oneTimeKeys = (MXUsersDevicesMap<MXKey>) results.get("usersDevicesMap");
         Assert.assertNotNull(oneTimeKeys);

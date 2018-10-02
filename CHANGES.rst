@@ -3,9 +3,12 @@ Changes to Matrix Android SDK in 0.9.10 (2018-XX-XX)
 
 Features:
  - Handle m.room.pinned_events state event and ServerNoticeUsageLimitContent
+ - Manage server_notices tag and server quota notices (vector-im/riot-android#2440)
+ - Add handling of filters (#345)
 
 Improvements:
  - Encrypt local data (PR #305)
+ - Add GET /versions request to the LoginRestClient
 
 Bugfix:
  - Fix excessive whitespace on quoted messages (#348)
@@ -15,12 +18,16 @@ API Change:
  - A Builder has been added to create HomeServerConnectionConfig instances.
  - SentState.UNDELIVERABLE has been renamed to SentState.UNDELIVERED
  - Extract patterns and corresponding methods from MXSession to a dedicated MXPatterns class.
+ - MatrixMessageListFragment is now abstract and take an Adapter type as class parameter
+ - Parameter guestAccess removed from MxSession.createRoom(). It had no effect.
+ - EventTimeline is now exposed as an interface. Use EventTimelineFactory to instantiate it. 
 
 Translations:
  -
 
 Others:
  - Boolean deserialization is more permissive: "1" or 1 will be handle as a true value (#358)
+ - MXSession.setUseDataSaveMode(boolean) is now deprecated. Handle filter-id lookup in your app and use MXSession.setSyncFilterOrFilterId(String)
 
 Build:
  - 

@@ -17,11 +17,13 @@
  */
 package org.matrix.androidsdk.rest.api;
 
+import android.support.annotation.Nullable;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.BannedUser;
+import org.matrix.androidsdk.rest.model.ChunkEvents;
 import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.CreatedEvent;
@@ -30,8 +32,9 @@ import org.matrix.androidsdk.rest.model.EventContext;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReportContentParams;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
+import org.matrix.androidsdk.rest.model.RoomDirectoryVisibility;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.TokensChunkResponse;
+import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.message.Message;
@@ -75,60 +78,6 @@ public interface RoomsApi {
     Call<CreatedEvent> sendMessage(@Path("txId") String txId, @Path("roomId") String roomId, @Body Message message);
 
     /**
-     * Set the room topic.
-     *
-     * @param roomId the room id
-     * @param state  state object containing the new topic in the topic field
-     */
-    @PUT("rooms/{roomId}/state/m.room.topic")
-    Call<Void> setRoomTopic(@Path("roomId") String roomId, @Body RoomState state);
-
-    /**
-     * Set the room name.
-     *
-     * @param roomId the room id
-     * @param state  state object containing the new room name in the name field
-     */
-    @PUT("rooms/{roomId}/state/m.room.name")
-    Call<Void> setRoomName(@Path("roomId") String roomId, @Body RoomState state);
-
-    /**
-     * Set the canonical alias name.
-     *
-     * @param roomId the room id
-     * @param state  state object containing the new canonical alias in the name field
-     */
-    @PUT("rooms/{roomId}/state/m.room.canonical_alias")
-    Call<Void> setCanonicalAlias(@Path("roomId") String roomId, @Body RoomState state);
-
-    /**
-     * Set the history visibility.
-     *
-     * @param roomId the room id
-     * @param state  state object containing the new history visibility in the name field
-     */
-    @PUT("rooms/{roomId}/state/m.room.history_visibility")
-    Call<Void> setHistoryVisibility(@Path("roomId") String roomId, @Body RoomState state);
-
-    /**
-     * Set the join rule for the given room.
-     *
-     * @param roomId the room id where to apply the request
-     * @param state  state object containing the new join rule in its {@link RoomState#join_rule} field
-     */
-    @PUT("rooms/{roomId}/state/m.room.join_rules")
-    Call<Void> setJoinRules(@Path("roomId") String roomId, @Body RoomState state);
-
-    /**
-     * Set the guest access rule for the given room.
-     *
-     * @param roomId the room id where to apply the request
-     * @param state  state object containing the new guest access rule in its {@link RoomState#guest_access} field
-     */
-    @PUT("rooms/{roomId}/state/m.room.guest_access")
-    Call<Void> setGuestAccess(@Path("roomId") String roomId, @Body RoomState state);
-
-    /**
      * Update the power levels
      *
      * @param roomId      the room id
@@ -150,10 +99,10 @@ public interface RoomsApi {
     /**
      * Send a generic state events
      *
-     * @param roomId     the room id.
+     * @param roomId         the room id.
      * @param stateEventType the state event type
      * @param stateKey       the state keys
-     * @param params     the request parameters
+     * @param params         the request parameters
      */
     @PUT("rooms/{roomId}/state/{state_event_type}/{stateKey}")
     Call<Void> sendStateEvent(@Path("roomId") String roomId,
@@ -281,16 +230,20 @@ public interface RoomsApi {
     Call<CreateRoomResponse> createRoom(@Body CreateRoomParams createRoomRequest);
 
     /**
-     * Get a list of messages starting from a reference..
+     * Get a list of messages starting from a reference.
      *
      * @param roomId the room id
-     * @param dir    The direction to return messages from.
-     * @param from   the token identifying where to start
-     * @param limit  the maximum number of messages to retrieve
+     * @param from   the token identifying where to start. Required.
+     * @param dir    The direction to return messages from. Required.
+     * @param limit  the maximum number of messages to retrieve. Optional.
+     * @param filter A JSON RoomEventFilter to filter returned events with. Optional.
      */
     @GET("rooms/{roomId}/messages")
-    Call<TokensChunkResponse<Event>> getRoomMessagesFrom(@Path("roomId") String roomId, @Query("dir") String dir,
-                                                         @Query("from") String from, @Query("limit") int limit);
+    Call<TokensChunkEvents> getRoomMessagesFrom(@Path("roomId") String roomId,
+                                                @Query("from") String from,
+                                                @Query("dir") String dir,
+                                                @Query("limit") int limit,
+                                                @Nullable @Query("filter") String filter);
 
     /**
      * Get the initial information concerning a specific room.
@@ -307,9 +260,13 @@ public interface RoomsApi {
      * @param roomId  the room id
      * @param eventId the event Id
      * @param limit   the maximum number of messages to retrieve
+     * @param filter  A JSON RoomEventFilter to filter returned events with. Optional.
      */
     @GET("rooms/{roomId}/context/{eventId}")
-    Call<EventContext> getContextOfEvent(@Path("roomId") String roomId, @Path("eventId") String eventId, @Query("limit") int limit);
+    Call<EventContext> getContextOfEvent(@Path("roomId") String roomId,
+                                         @Path("eventId") String eventId,
+                                         @Query("limit") int limit,
+                                         @Nullable @Query("filter") String filter);
 
     /**
      * Retrieve an event from its room id / events id
@@ -319,14 +276,6 @@ public interface RoomsApi {
      */
     @GET("rooms/{roomId}/event/{eventId}")
     Call<Event> getEvent(@Path("roomId") String roomId, @Path("eventId") String eventId);
-
-    /**
-     * Retrieve an event from its event id
-     *
-     * @param eventId the event Id
-     */
-    @GET("events/{eventId}")
-    Call<Event> getEvent(@Path("eventId") String eventId);
 
     /**
      * Redact an event from the room>.
@@ -349,15 +298,6 @@ public interface RoomsApi {
     Call<Void> reportEvent(@Path("roomId") String roomId, @Path("eventId") String eventId, @Body ReportContentParams param);
 
     /**
-     * Set the room avatar url.
-     *
-     * @param roomId the room id
-     * @param params the put params.
-     */
-    @PUT("rooms/{roomId}/state/m.room.avatar")
-    Call<Void> setRoomAvatarUrl(@Path("roomId") String roomId, @Body Map<String, String> params);
-
-    /**
      * Send a read receipt.
      *
      * @param roomId  the room id
@@ -370,8 +310,8 @@ public interface RoomsApi {
     /**
      * Send read markers.
      *
-     * @param roomId   the room id
-     * @param markers  the read markers
+     * @param roomId  the room id
+     * @param markers the read markers
      */
     @POST("rooms/{roomId}/read_markers")
     Call<Void> sendReadMarker(@Path("roomId") String roomId, @Body Map<String, String> markers);
@@ -440,11 +380,11 @@ public interface RoomsApi {
      * Set the visibility of the given room in the list directory. If the visibility is set to public, the room
      * name is listed among the directory list.
      *
-     * @param roomId the room id where to apply the request
-     * @param state  state object containing the new guest access rule in its {@link RoomState#visibility} field
+     * @param roomId                  the room id where to apply the request
+     * @param roomDirectoryVisibility the put params containing the new "visibility" field
      */
     @PUT("directory/list/room/{roomId}")
-    Call<Void> setRoomDirectoryVisibility(@Path("roomId") String roomId, @Body RoomState state);
+    Call<Void> setRoomDirectoryVisibility(@Path("roomId") String roomId, RoomDirectoryVisibility roomDirectoryVisibility);
 
     /**
      * Get the visibility of the given room in the list directory.
@@ -452,5 +392,19 @@ public interface RoomsApi {
      * @param roomId the room id where to apply the request
      */
     @GET("directory/list/room/{roomId}")
-    Call<RoomState> getRoomDirectoryVisibility(@Path("roomId") String roomId);
+    Call<RoomDirectoryVisibility> getRoomDirectoryVisibility(@Path("roomId") String roomId);
+
+    /**
+     * Get all members of a room
+     *
+     * @param roomId        the room id where to get the members
+     * @param syncToken     the sync token (optional)
+     * @param membership    to include only one type of membership (optional)
+     * @param notMembership to exclude one type of membership (optional)
+     */
+    @GET("rooms/{roomId}/members")
+    Call<ChunkEvents> getMembers(@Path("roomId") String roomId,
+                                 @Nullable @Query("at") String syncToken,
+                                 @Nullable @Query("membership") String membership,
+                                 @Nullable @Query("not_membership") String notMembership);
 }

@@ -20,6 +20,6 @@ package org.matrix.androidsdk.rest.model;
  */
 public class RedactedContent implements java.io.Serializable {
 
-    //  the redaction reason
+    // the redaction reason
     public String reason;
 }

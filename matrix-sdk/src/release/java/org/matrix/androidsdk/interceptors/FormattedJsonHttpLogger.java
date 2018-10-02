@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,25 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest.model;
+
+package org.matrix.androidsdk.interceptors;
+
+import android.support.annotation.NonNull;
+
+import okhttp3.logging.HttpLoggingInterceptor;
 
 /**
- * subclass representing a subset of the state of the room at the time of the invite, if membership is invite
+ * No op logger
  */
-public class StrippedState implements java.io.Serializable {
+public class FormattedJsonHttpLogger implements HttpLoggingInterceptor.Logger {
 
-    /**
-     * The content for the event.
-     */
-    EventContent content;
-
-    /**
-     * The type for the event. One of: ["m.room.join_rules", "m.room.canonical_alias", "m.room.avatar", "m.room.name"]
-     */
-    String type;
-
-    /**
-     * The state_key for the event
-     */
-    String state_key;
+    @Override
+    public synchronized void log(@NonNull String message) {
+    }
 }

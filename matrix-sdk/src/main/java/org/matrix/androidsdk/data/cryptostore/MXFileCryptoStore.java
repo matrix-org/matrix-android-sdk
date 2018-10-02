@@ -242,8 +242,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             loadMetaData();
 
             if (null != mMetaData) {
-                result = TextUtils.isEmpty(mMetaData.mDeviceId) ||
-                        TextUtils.equals(mCredentials.deviceId, mMetaData.mDeviceId);
+                result = TextUtils.isEmpty(mMetaData.mDeviceId)
+                        || TextUtils.equals(mCredentials.deviceId, mMetaData.mDeviceId);
             }
         }
 
@@ -287,9 +287,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
             // Check credentials
             // The device id may not have been provided in credentials.
             // Check it only if provided, else trust the stored one.
-            else if (!TextUtils.equals(mMetaData.mUserId, mCredentials.userId) ||
-                    ((null != mCredentials.deviceId) && !TextUtils.equals(mCredentials.deviceId, mMetaData.mDeviceId))
-                    ) {
+            else if (!TextUtils.equals(mMetaData.mUserId, mCredentials.userId)
+                    || ((null != mCredentials.deviceId) && !TextUtils.equals(mCredentials.deviceId, mMetaData.mDeviceId))) {
                 Log.e(LOG_TAG, "## open() : Credentials do not match");
                 resetData();
             }
@@ -1573,10 +1572,10 @@ public class MXFileCryptoStore implements IMXCryptoStore {
      * @return true if it is valid
      */
     private boolean isValidIncomingRoomKeyRequest(IncomingRoomKeyRequest incomingRoomKeyRequest) {
-        return (null != incomingRoomKeyRequest) &&
-                !TextUtils.isEmpty(incomingRoomKeyRequest.mUserId) &&
-                !TextUtils.isEmpty(incomingRoomKeyRequest.mDeviceId) &&
-                !TextUtils.isEmpty(incomingRoomKeyRequest.mRequestId);
+        return (null != incomingRoomKeyRequest)
+                && !TextUtils.isEmpty(incomingRoomKeyRequest.mUserId)
+                && !TextUtils.isEmpty(incomingRoomKeyRequest.mDeviceId)
+                && !TextUtils.isEmpty(incomingRoomKeyRequest.mRequestId);
     }
 
     @Override
@@ -1649,8 +1648,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         loadIncomingRoomKeyRequests();
 
         // invalid or already stored
-        if (!isValidIncomingRoomKeyRequest(incomingRoomKeyRequest) ||
-                (null != getIncomingRoomKeyRequest(incomingRoomKeyRequest.mUserId, incomingRoomKeyRequest.mDeviceId, incomingRoomKeyRequest.mRequestId))) {
+        if (!isValidIncomingRoomKeyRequest(incomingRoomKeyRequest)
+                || (null != getIncomingRoomKeyRequest(incomingRoomKeyRequest.mUserId, incomingRoomKeyRequest.mDeviceId, incomingRoomKeyRequest.mRequestId))) {
             return;
         }
 

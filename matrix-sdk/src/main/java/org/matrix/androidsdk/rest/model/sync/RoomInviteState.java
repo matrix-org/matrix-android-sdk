@@ -1,6 +1,7 @@
 /* 
  * Copyright 2016 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -20,7 +21,7 @@ import org.matrix.androidsdk.rest.model.Event;
 import java.util.List;
 
 // RoomInviteState represents the state of a room that the user has been invited to.
-public class RoomInviteState implements java.io.Serializable {
+public class RoomInviteState {
 
     /**
      * List of state events (array of MXEvent).

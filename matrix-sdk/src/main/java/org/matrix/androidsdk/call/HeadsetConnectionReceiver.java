@@ -147,11 +147,11 @@ public class HeadsetConnectionReceiver extends BroadcastReceiver {
         Log.d(LOG_TAG, "## onReceive() : " + aIntent.getExtras());
         String action = aIntent.getAction();
 
-        if (TextUtils.equals(action, Intent.ACTION_HEADSET_PLUG) ||
-                TextUtils.equals(action, BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED) ||
-                TextUtils.equals(action, BluetoothAdapter.ACTION_STATE_CHANGED) ||
-                TextUtils.equals(action, BluetoothDevice.ACTION_ACL_CONNECTED) ||
-                TextUtils.equals(action, BluetoothDevice.ACTION_ACL_DISCONNECTED)) {
+        if (TextUtils.equals(action, Intent.ACTION_HEADSET_PLUG)
+                || TextUtils.equals(action, BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED)
+                || TextUtils.equals(action, BluetoothAdapter.ACTION_STATE_CHANGED)
+                || TextUtils.equals(action, BluetoothDevice.ACTION_ACL_CONNECTED)
+                || TextUtils.equals(action, BluetoothDevice.ACTION_ACL_DISCONNECTED)) {
 
             Boolean newState = null;
             final boolean isBTHeadsetUpdate;
