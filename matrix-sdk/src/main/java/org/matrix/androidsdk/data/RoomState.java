@@ -325,7 +325,7 @@ public class RoomState implements Externalizable {
     /**
      * Tell if all members has been loaded
      *
-     * @return true is LazyLoading is Off, or if all members has been loaded
+     * @return true if LazyLoading is Off, or if all members has been loaded
      */
     private boolean areAllMembersLoaded() {
         return mDataHandler != null
@@ -336,7 +336,7 @@ public class RoomState implements Externalizable {
      * Force a fetch of the loaded members the next time they will be requested
      */
     public void forceMembersRequest() {
-        mAllMembersAreLoaded = true;
+        mAllMembersAreLoaded = false;
     }
 
     /**
