@@ -1,6 +1,7 @@
 /* 
  * Copyright 2016 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,8 +16,10 @@
  */
 package org.matrix.androidsdk.rest.model.sync;
 
+import com.google.gson.annotations.SerializedName;
+
 // RoomSync represents the response for a room during server sync v2.
-public class RoomSync implements java.io.Serializable {
+public class RoomSync {
     /**
      * The state updates for the room.
      */
@@ -41,5 +44,11 @@ public class RoomSync implements java.io.Serializable {
      The notification counts for the room.
      */
     public RoomSyncUnreadNotifications unreadNotifications;
+
+    /**
+     * The room summary
+     */
+    @SerializedName("summary")
+    public RoomSyncSummary roomSyncSummary;
 
 }

@@ -1,13 +1,14 @@
-/* 
+/*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,14 +17,16 @@
  */
 package org.matrix.androidsdk.rest.model.sync;
 
+import org.matrix.androidsdk.data.comparator.Comparators;
+import org.matrix.androidsdk.interfaces.DatedObject;
+
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 /**
  * This class describes the device information
  */
-public class DeviceInfo {
+public class DeviceInfo implements DatedObject {
     /**
      * The owner user id
      */
@@ -49,24 +52,19 @@ public class DeviceInfo {
      */
     public String last_seen_ip;
 
+    @Override
+    public long getDate() {
+        return last_seen_ts;
+    }
+
     /**
      * Sort a devices list by their presences from the most recent to the oldest one.
      *
      * @param deviceInfos the deviceinfo list
      */
     public static void sortByLastSeen(List<DeviceInfo> deviceInfos) {
-        if (null != deviceInfos)
-            Collections.sort(deviceInfos, new Comparator<DeviceInfo>() {
-                @Override
-                public int compare(DeviceInfo lhs, DeviceInfo rhs) {
-                    if (lhs.last_seen_ts == rhs.last_seen_ts) {
-                        return 0;
-                    } else if (lhs.last_seen_ts > rhs.last_seen_ts) {
-                        return -1;
-                    } else {
-                        return +1;
-                    }
-                }
-            });
+        if (null != deviceInfos) {
+            Collections.sort(deviceInfos, Comparators.descComparator);
+        }
     }
 }

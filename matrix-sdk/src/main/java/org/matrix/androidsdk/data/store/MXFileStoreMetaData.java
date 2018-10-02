@@ -50,6 +50,10 @@ public class MXFileStoreMetaData implements java.io.Serializable {
     public Map<String, Object> mUserWidgets = new HashMap<>();
     public Set<String> mRoomsListWithoutURLPrevew = new HashSet<>();
 
+    // To store known filters by the server. Keys are the filter as a Json String, Values are the filterId returned by the server
+    // Mainly used to store a filterId related to a corresponding Json string.
+    public Map<String, String> mKnownFilters = new HashMap<>();
+
     // crypto
     public boolean mEndToEndDeviceAnnounced = false;
 
@@ -79,6 +83,8 @@ public class MXFileStoreMetaData implements java.io.Serializable {
         copy.mIsUrlPreviewEnabled = mIsUrlPreviewEnabled;
         copy.mUserWidgets = mUserWidgets;
         copy.mRoomsListWithoutURLPrevew = mRoomsListWithoutURLPrevew;
+
+        copy.mKnownFilters = new HashMap<>(mKnownFilters);
 
         return copy;
     }

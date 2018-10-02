@@ -20,7 +20,7 @@ package org.matrix.androidsdk.rest.model;
  */
 public class RedactedBecause implements java.io.Serializable {
 
-    //  should be m.room.redaction"
+    // should be m.room.redaction"
     public String type;
 
     //

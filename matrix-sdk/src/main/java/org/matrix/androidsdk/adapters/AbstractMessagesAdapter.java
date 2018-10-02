@@ -1,5 +1,6 @@
 /*
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +21,9 @@ import android.content.Context;
 import android.widget.ArrayAdapter;
 
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.RoomMember;
+
+import java.util.List;
 
 /**
  * Abstract implementation of messages list
@@ -41,7 +45,7 @@ public abstract class AbstractMessagesAdapter extends ArrayAdapter<MessageRow> {
      * Add a row and refresh the adapter if it is required.
      *
      * @param row     the row to append
-     * @param refresh tru to refresh the display.
+     * @param refresh true to refresh the display.
      */
     public abstract void add(MessageRow row, boolean refresh);
 
@@ -182,4 +186,11 @@ public abstract class AbstractMessagesAdapter extends ArrayAdapter<MessageRow> {
      * Notify that some bing rules could have been updated.
      */
     public abstract void onBingRulesUpdate();
+
+    /**
+     * Give the list of retrieved room members.
+     *
+     * @param roomMembers the full list of room members. The state of the room may not contain all user when lazy loading is enabled.
+     */
+    public abstract void setLiveRoomMembers(List<RoomMember> roomMembers);
 }

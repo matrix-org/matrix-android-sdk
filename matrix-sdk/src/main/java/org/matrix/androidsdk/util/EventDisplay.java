@@ -376,10 +376,10 @@ public class EventDisplay {
             if ((null != eventContent) && TextUtils.equals(RoomMember.MEMBERSHIP_JOIN, eventContent.membership)) {
                 // detect if it is displayname update
                 // a display name update is detected when the previous state was join and there was a displayname
-                if (!TextUtils.isEmpty(eventContent.displayname) ||
-                        ((null != prevEventContent)
-                                && TextUtils.equals(RoomMember.MEMBERSHIP_JOIN, prevEventContent.membership)
-                                && !TextUtils.isEmpty(prevEventContent.displayname))) {
+                if (!TextUtils.isEmpty(eventContent.displayname)
+                        || ((null != prevEventContent)
+                        && TextUtils.equals(RoomMember.MEMBERSHIP_JOIN, prevEventContent.membership)
+                        && !TextUtils.isEmpty(prevEventContent.displayname))) {
                     senderDisplayName = eventContent.displayname;
                 }
             }
@@ -606,6 +606,11 @@ public class EventDisplay {
                             imageGetter, tagHandler);
                 } else {
                     text = Html.fromHtml(htmlBody, imageGetter, tagHandler);
+                }
+                // fromHtml formats quotes (> character) with two newlines at the end
+                // remove any newlines at the end of the CharSequence
+                while (text.charAt(text.length() - 1) == '\n') {
+                    text = text.subSequence(0, text.length() - 2);
                 }
             }
         }

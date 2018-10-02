@@ -155,8 +155,8 @@ public class MXOutgoingRoomKeyRequestManager {
         if (req.mState == OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING
                 || req.mState == OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING_AND_WILL_RESEND) {
             // nothing to do here
-        } else if ((req.mState == OutgoingRoomKeyRequest.RequestState.UNSENT) ||
-                (req.mState == OutgoingRoomKeyRequest.RequestState.FAILED)) {
+        } else if ((req.mState == OutgoingRoomKeyRequest.RequestState.UNSENT)
+                || (req.mState == OutgoingRoomKeyRequest.RequestState.FAILED)) {
             Log.d(LOG_TAG, "## cancelRoomKeyRequest() : deleting unnecessary room key request for " + requestBody);
             mCryptoStore.deleteOutgoingRoomKeyRequest(req.mRequestId);
         } else if (req.mState == OutgoingRoomKeyRequest.RequestState.SENT) {

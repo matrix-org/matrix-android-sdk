@@ -1,13 +1,13 @@
-/* 
+/*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,10 +17,13 @@
 
 package org.matrix.androidsdk.rest.model;
 
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
+import com.google.gson.annotations.SerializedName;
+
 import org.matrix.androidsdk.HomeServerConnectionConfig;
-import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.MXPatterns;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.pid.Invite3Pid;
 import org.matrix.androidsdk.rest.model.pid.ThreePid;
@@ -51,6 +54,7 @@ public class CreateRoomParams {
      * The alias will belong on the same homeserver which created the room.
      * For example, if this was set to "foo" and sent to the homeserver "example.com" the complete room alias would be #foo:example.com.
      */
+    @SerializedName("room_alias_name")
     public String roomAliasName;
 
     /**
@@ -66,20 +70,17 @@ public class CreateRoomParams {
     public String topic;
 
     /**
-     * Whether guests can join the room. One of: ["can_join", "forbidden"]
-     */
-    public String guest_access;
-
-    /**
      * A list of user IDs to invite to the room.
      * This will tell the server to invite everyone in the list to the newly created room.
      */
-    public List<String> invite;
+    @SerializedName("invite")
+    public List<String> invitedUserIds;
 
     /**
      * A list of objects representing third party IDs to invite into the room.
      */
-    public List<Invite3Pid> invite_3pid;
+    @SerializedName("invite_3pid")
+    public List<Invite3Pid> invite3pids;
 
     /**
      * Extra keys to be added to the content of the m.room.create.
@@ -94,7 +95,8 @@ public class CreateRoomParams {
      * The expected format of the state events are an object with type, state_key and content keys set.
      * Takes precedence over events set by presets, but gets overriden by name and topic keys.
      */
-    public List<Event> initial_state;
+    @SerializedName("initial_state")
+    public List<Event> initialStates;
 
     /**
      * Convenience parameter for setting various default state events based on a preset. Must be either:
@@ -109,7 +111,8 @@ public class CreateRoomParams {
      * This flag makes the server set the is_direct flag on the m.room.member events sent to the users in invite and invite_3pid.
      * See Direct Messaging for more information.
      */
-    public Boolean is_direct;
+    @SerializedName("is_direct")
+    public Boolean isDirect;
 
     /**
      * Add the crypto algorithm to the room creation parameters.
@@ -125,10 +128,10 @@ public class CreateRoomParams {
             contentMap.put("algorithm", algorithm);
             algoEvent.content = JsonUtils.getGson(false).toJsonTree(contentMap);
 
-            if (null == initial_state) {
-                initial_state = Arrays.asList(algoEvent);
+            if (null == initialStates) {
+                initialStates = Arrays.asList(algoEvent);
             } else {
-                initial_state.add(algoEvent);
+                initialStates.add(algoEvent);
             }
         }
     }
@@ -137,13 +140,12 @@ public class CreateRoomParams {
      * Force the history visibility in the room creation parameters.
      *
      * @param historyVisibility the expected history visibility, set null to remove any existing value.
-     * see {@link RoomState#HISTORY_VISIBILITY_INVITED},
-     *     {@link RoomState#HISTORY_VISIBILITY_JOINED},
-     *     {@link RoomState#HISTORY_VISIBILITY_SHARED},
-     *     {@link RoomState#HISTORY_VISIBILITY_WORLD_READABLE}
-     *
+     *                          see {@link RoomState#HISTORY_VISIBILITY_INVITED},
+     *                          {@link RoomState#HISTORY_VISIBILITY_JOINED},
+     *                          {@link RoomState#HISTORY_VISIBILITY_SHARED},
+     *                          {@link RoomState#HISTORY_VISIBILITY_WORLD_READABLE}
      */
-    public void setHistoryVisibility(String historyVisibility) {
+    public void setHistoryVisibility(@Nullable String historyVisibility) {
         if (!TextUtils.isEmpty(historyVisibility)) {
             Event historyVisibilityEvent = new Event();
             historyVisibilityEvent.type = Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY;
@@ -152,19 +154,19 @@ public class CreateRoomParams {
             contentMap.put("history_visibility", historyVisibility);
             historyVisibilityEvent.content = JsonUtils.getGson(false).toJsonTree(contentMap);
 
-            if (null == initial_state) {
-                initial_state = Arrays.asList(historyVisibilityEvent);
+            if (null == initialStates) {
+                initialStates = Arrays.asList(historyVisibilityEvent);
             } else {
-                initial_state.add(historyVisibilityEvent);
+                initialStates.add(historyVisibilityEvent);
             }
-        } else if (!initial_state.isEmpty()) {
-            final List<Event> initialState = new ArrayList<>();
-            for (Event event : initial_state) {
+        } else if (!initialStates.isEmpty()) {
+            final List<Event> newInitialStates = new ArrayList<>();
+            for (Event event : initialStates) {
                 if (!event.type.equals(Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY)) {
-                    initialState.add(event);
+                    newInitialStates.add(event);
                 }
             }
-            initial_state = initialState;
+            initialStates = newInitialStates;
         }
     }
 
@@ -173,31 +175,33 @@ public class CreateRoomParams {
      */
     public void setDirectMessage() {
         preset = CreateRoomParams.PRESET_TRUSTED_PRIVATE_CHAT;
-        is_direct = true;
+        isDirect = true;
     }
 
     /**
      * @return the invite count
      */
     private int getInviteCount() {
-        return (null == invite) ? 0 : invite.size();
+        return (null == invitedUserIds) ? 0 : invitedUserIds.size();
     }
 
     /**
      * @return the pid invite count
      */
     private int getInvite3PidCount() {
-        return (null == invite_3pid) ? 0 : invite_3pid.size();
+        return (null == invite3pids) ? 0 : invite3pids.size();
     }
 
     /**
      * Tells if the created room can be a direct chat one.
      *
-     * @return if it is a direct chat
+     * @return true if it is a direct chat
      */
     public boolean isDirect() {
-        return TextUtils.equals(preset, CreateRoomParams.PRESET_TRUSTED_PRIVATE_CHAT) && (null != is_direct) && is_direct &&
-                (1 == getInviteCount() || (1 == getInvite3PidCount()));
+        return TextUtils.equals(preset, CreateRoomParams.PRESET_TRUSTED_PRIVATE_CHAT)
+                && (null != isDirect)
+                && isDirect
+                && (1 == getInviteCount() || (1 == getInvite3PidCount()));
     }
 
     /**
@@ -205,11 +209,11 @@ public class CreateRoomParams {
      */
     public String getFirstInvitedUserId() {
         if (0 != getInviteCount()) {
-            return invite.get(0);
+            return invitedUserIds.get(0);
         }
 
         if (0 != getInvite3PidCount()) {
-            return invite_3pid.get(0).address;
+            return invite3pids.get(0).address;
         }
 
         return null;
@@ -224,8 +228,8 @@ public class CreateRoomParams {
     public void addParticipantIds(HomeServerConnectionConfig hsConfig, List<String> ids) {
         for (String id : ids) {
             if (android.util.Patterns.EMAIL_ADDRESS.matcher(id).matches()) {
-                if (null == invite_3pid) {
-                    invite_3pid = new ArrayList<>();
+                if (null == invite3pids) {
+                    invite3pids = new ArrayList<>();
                 }
 
                 Invite3Pid pid = new Invite3Pid();
@@ -233,15 +237,15 @@ public class CreateRoomParams {
                 pid.medium = ThreePid.MEDIUM_EMAIL;
                 pid.address = id;
 
-                invite_3pid.add(pid);
-            } else if (MXSession.isUserId(id)) {
+                invite3pids.add(pid);
+            } else if (MXPatterns.isUserId(id)) {
                 // do not invite oneself
                 if (!TextUtils.equals(hsConfig.getCredentials().userId, id)) {
-                    if (null == invite) {
-                        invite = new ArrayList<>();
+                    if (null == invitedUserIds) {
+                        invitedUserIds = new ArrayList<>();
                     }
 
-                    invite.add(id);
+                    invitedUserIds.add(id);
                 }
 
             } // TODO add phonenumbers when it will be available

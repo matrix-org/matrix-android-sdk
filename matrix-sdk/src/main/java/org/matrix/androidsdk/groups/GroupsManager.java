@@ -22,7 +22,7 @@ import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXDataHandler;
-import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.MXPatterns;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -566,7 +566,7 @@ public class GroupsManager {
         Log.d(LOG_TAG, "## getUserPublicisedGroups() : " + userId);
 
         // sanity check
-        if (!MXSession.isUserId(userId)) {
+        if (!MXPatterns.isUserId(userId)) {
             mUIHandler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -716,7 +716,7 @@ public class GroupsManager {
         }
 
         // valid group id
-        if (TextUtils.isEmpty(groupId) || !MXSession.isGroupId(groupId)) {
+        if (TextUtils.isEmpty(groupId) || !MXPatterns.isGroupId(groupId)) {
             mUIHandler.post(new Runnable() {
                 @Override
                 public void run() {

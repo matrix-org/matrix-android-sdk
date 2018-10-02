@@ -18,19 +18,26 @@
 
 package org.matrix.androidsdk.data;
 
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.message.Message;
+import org.matrix.androidsdk.rest.model.sync.RoomSyncSummary;
 import org.matrix.androidsdk.util.Log;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -41,8 +48,31 @@ public class RoomSummary implements java.io.Serializable {
 
     private static final long serialVersionUID = -3683013938626566489L;
 
+    // list of supported types
+    private static final List<String> sSupportedType = Arrays.asList(
+            Event.EVENT_TYPE_STATE_ROOM_TOPIC,
+            Event.EVENT_TYPE_MESSAGE_ENCRYPTED,
+            Event.EVENT_TYPE_MESSAGE_ENCRYPTION,
+            Event.EVENT_TYPE_STATE_ROOM_NAME,
+            Event.EVENT_TYPE_STATE_ROOM_MEMBER,
+            Event.EVENT_TYPE_STATE_ROOM_CREATE,
+            Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY,
+            Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE,
+            Event.EVENT_TYPE_STICKER);
+
+    // List of known unsupported types
+    private static final List<String> sKnownUnsupportedType = Arrays.asList(
+            Event.EVENT_TYPE_TYPING,
+            Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS,
+            Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES,
+            Event.EVENT_TYPE_STATE_CANONICAL_ALIAS,
+            Event.EVENT_TYPE_STATE_ROOM_ALIASES,
+            Event.EVENT_TYPE_URL_PREVIEW,
+            Event.EVENT_TYPE_STATE_RELATED_GROUPS,
+            Event.EVENT_TYPE_STATE_ROOM_GUEST_ACCESS,
+            Event.EVENT_TYPE_REDACTION);
+
     private String mRoomId = null;
-    private String mName = null;
     private String mTopic = null;
     private Event mLatestReceivedEvent = null;
 
@@ -70,11 +100,26 @@ public class RoomSummary implements java.io.Serializable {
     private String mInviterUserId = null;
 
     // retrieved from the roomState
-    private boolean mIsInvited = false;
     private String mInviterName = null;
 
-    private String mMatrixId = null;
+    private String mUserId = null;
 
+    // Info from sync, depending on the room position in the sync
+    private String mUserMembership;
+
+    /**
+     * Tell if the room is a user conference user one
+     */
+    private Boolean mIsConferenceUserRoom = null;
+
+    /**
+     * Data from RoomSyncSummary
+     */
+    private List<String> mHeroes = new ArrayList<>();
+
+    private int mJoinedMembersCountFromSyncRoomSummary;
+
+    private int mInvitedMembersCountFromSyncRoomSummary;
 
     public RoomSummary() {
     }
@@ -91,7 +136,7 @@ public class RoomSummary implements java.io.Serializable {
                        Event event,
                        RoomState roomState,
                        String userId) {
-        setMatrixId(userId);
+        mUserId = userId;
 
         if (null != roomState) {
             setRoomId(roomState.roomId);
@@ -122,6 +167,12 @@ public class RoomSummary implements java.io.Serializable {
             setUnreadEventsCount(fromSummary.getUnreadEventsCount());
             setHighlightCount(fromSummary.getHighlightCount());
             setNotificationCount(fromSummary.getNotificationCount());
+
+            mHeroes.addAll(fromSummary.mHeroes);
+            mJoinedMembersCountFromSyncRoomSummary = fromSummary.mJoinedMembersCountFromSyncRoomSummary;
+            mInvitedMembersCountFromSyncRoomSummary = fromSummary.mInvitedMembersCountFromSyncRoomSummary;
+
+            mUserMembership = fromSummary.mUserMembership;
         }
     }
 
@@ -148,13 +199,13 @@ public class RoomSummary implements java.io.Serializable {
                     msgType = element.getAsString();
                 }
 
-                isSupported = TextUtils.equals(msgType, Message.MSGTYPE_TEXT) ||
-                        TextUtils.equals(msgType, Message.MSGTYPE_EMOTE) ||
-                        TextUtils.equals(msgType, Message.MSGTYPE_NOTICE) ||
-                        TextUtils.equals(msgType, Message.MSGTYPE_IMAGE) ||
-                        TextUtils.equals(msgType, Message.MSGTYPE_AUDIO) ||
-                        TextUtils.equals(msgType, Message.MSGTYPE_VIDEO) ||
-                        TextUtils.equals(msgType, Message.MSGTYPE_FILE);
+                isSupported = TextUtils.equals(msgType, Message.MSGTYPE_TEXT)
+                        || TextUtils.equals(msgType, Message.MSGTYPE_EMOTE)
+                        || TextUtils.equals(msgType, Message.MSGTYPE_NOTICE)
+                        || TextUtils.equals(msgType, Message.MSGTYPE_IMAGE)
+                        || TextUtils.equals(msgType, Message.MSGTYPE_AUDIO)
+                        || TextUtils.equals(msgType, Message.MSGTYPE_VIDEO)
+                        || TextUtils.equals(msgType, Message.MSGTYPE_FILE);
 
                 if (!isSupported && !TextUtils.isEmpty(msgType)) {
                     Log.e(LOG_TAG, "isSupportedEvent : Unsupported msg type " + msgType);
@@ -164,59 +215,45 @@ public class RoomSummary implements java.io.Serializable {
             }
         } else if (TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, type)) {
             isSupported = event.hasContentFields();
-        } else if (!TextUtils.isEmpty(type)) {
-            isSupported = TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_TOPIC, type) ||
-                    TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, type) ||
-                    TextUtils.equals(Event.EVENT_TYPE_MESSAGE_ENCRYPTION, type) ||
-                    TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_NAME, type) ||
-                    TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type) ||
-                    TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_CREATE, type) ||
-                    TextUtils.equals(Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY, type) ||
-                    TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_THIRD_PARTY_INVITE, type) ||
-                    TextUtils.equals(Event.EVENT_TYPE_STICKER, type) ||
-                    (event.isCallEvent() && !Event.EVENT_TYPE_CALL_CANDIDATES.equals(type));
+        } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type)) {
+            JsonObject eventContentAsJsonObject = event.getContentAsJsonObject();
 
-            if (!isSupported) {
-                // some events are known to be never traced
-                // avoid warning when it is not required.
-                if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type) &&
-                        !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_POWER_LEVELS, type) &&
-                        !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES, type) &&
-                        !TextUtils.equals(Event.EVENT_TYPE_STATE_CANONICAL_ALIAS, type) &&
-                        !TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_ALIASES, type)
-                        ) {
-                    Log.e(LOG_TAG, "isSupportedEvent :  Unsupported event type " + type);
-                }
-            } else if (TextUtils.equals(Event.EVENT_TYPE_STATE_ROOM_MEMBER, type)) {
-                JsonObject eventContentAsJsonObject = event.getContentAsJsonObject();
+            if (null != eventContentAsJsonObject) {
+                if (eventContentAsJsonObject.entrySet().isEmpty()) {
+                    Log.d(LOG_TAG, "isSupportedEvent : room member with no content is not supported");
+                } else {
+                    // do not display the avatar / display name update
+                    EventContent prevEventContent = event.getPrevContent();
+                    EventContent eventContent = event.getEventContent();
 
-                if (null != eventContentAsJsonObject) {
-                    if (0 == eventContentAsJsonObject.entrySet().size()) {
-                        isSupported = false;
-                        Log.d(LOG_TAG, "isSupportedEvent : room member with no content is not supported");
-                    } else {
-                        // do not display the avatar / display name update
-                        EventContent prevEventContent = event.getPrevContent();
-                        EventContent eventContent = event.getEventContent();
+                    String membership = null;
+                    String preMembership = null;
 
-                        String membership = null;
-                        String preMembership = null;
+                    if (eventContent != null) {
+                        membership = eventContent.membership;
+                    }
 
-                        if (null != prevEventContent) {
-                            membership = eventContent.membership;
-                        }
+                    if (prevEventContent != null) {
+                        preMembership = prevEventContent.membership;
+                    }
 
-                        if (null != prevEventContent) {
-                            preMembership = prevEventContent.membership;
-                        }
+                    isSupported = !TextUtils.equals(membership, preMembership);
 
-                        isSupported = (null == membership) || !TextUtils.equals(membership, preMembership);
-
-                        if (!isSupported) {
-                            Log.d(LOG_TAG, "isSupportedEvent : do not support avatar display name update");
-                        }
+                    if (!isSupported) {
+                        Log.d(LOG_TAG, "isSupportedEvent : do not support avatar display name update");
                     }
                 }
+            }
+        } else {
+            isSupported = sSupportedType.contains(type)
+                    || (event.isCallEvent() && !TextUtils.isEmpty(type) && !Event.EVENT_TYPE_CALL_CANDIDATES.equals(type));
+        }
+
+        if (!isSupported) {
+            // some events are known to be never traced
+            // avoid warning when it is not required.
+            if (!sKnownUnsupportedType.contains(type)) {
+                Log.e(LOG_TAG, "isSupportedEvent :  Unsupported event type " + type);
             }
         }
 
@@ -224,10 +261,10 @@ public class RoomSummary implements java.io.Serializable {
     }
 
     /**
-     * @return the matrix id
+     * @return the user id
      */
-    public String getMatrixId() {
-        return mMatrixId;
+    public String getUserId() {
+        return mUserId;
     }
 
     /**
@@ -235,36 +272,6 @@ public class RoomSummary implements java.io.Serializable {
      */
     public String getRoomId() {
         return mRoomId;
-    }
-
-    /**
-     * Compute the room summary display name.
-     *
-     * @return the room summary display name.
-     */
-    public String getRoomName() {
-        String name = mName;
-
-        // when invited, the only received message should be the invitation one
-        if (isInvited()) {
-            if (null != mLatestReceivedEvent) {
-                String inviterName;
-
-                // try to retrieve a display name
-                if (null != mLatestRoomState) {
-                    inviterName = mLatestRoomState.getMemberName(mLatestReceivedEvent.getSender());
-                } else {
-                    // use the stored one
-                    inviterName = mInviterName;
-                }
-
-                if (null != inviterName) {
-                    name = inviterName;
-                }
-            }
-        }
-
-        return name;
     }
 
     /**
@@ -292,7 +299,28 @@ public class RoomSummary implements java.io.Serializable {
      * @return true if the current user is invited
      */
     public boolean isInvited() {
-        return mIsInvited || (mInviterUserId != null);
+        return RoomMember.MEMBERSHIP_INVITE.equals(mUserMembership);
+    }
+
+    /**
+     * To call when the room is in the invited section of the sync response
+     */
+    public void setIsInvited() {
+        mUserMembership = RoomMember.MEMBERSHIP_INVITE;
+    }
+
+    /**
+     * To call when the room is in the joined section of the sync response
+     */
+    public void setIsJoined() {
+        mUserMembership = RoomMember.MEMBERSHIP_JOIN;
+    }
+
+    /**
+     * @return true if the current user is invited
+     */
+    public boolean isJoined() {
+        return RoomMember.MEMBERSHIP_JOIN.equals(mUserMembership);
     }
 
     /**
@@ -303,15 +331,6 @@ public class RoomSummary implements java.io.Serializable {
     }
 
     /**
-     * Update the linked matrix id.
-     *
-     * @param matrixId the new matrix id.
-     */
-    public void setMatrixId(String matrixId) {
-        mMatrixId = matrixId;
-    }
-
-    /**
      * Set the room's {@link org.matrix.androidsdk.rest.model.Event#EVENT_TYPE_STATE_ROOM_TOPIC}.
      *
      * @param topic The topic
@@ -319,17 +338,6 @@ public class RoomSummary implements java.io.Serializable {
      */
     public RoomSummary setTopic(String topic) {
         mTopic = topic;
-        return this;
-    }
-
-    /**
-     * Set the room's {@link org.matrix.androidsdk.rest.model.Event#EVENT_TYPE_STATE_ROOM_NAME}.
-     *
-     * @param name The name
-     * @return This summary for chaining calls.
-     */
-    public RoomSummary setName(String name) {
-        mName = name;
         return this;
     }
 
@@ -356,7 +364,6 @@ public class RoomSummary implements java.io.Serializable {
         setLatestRoomState(roomState);
 
         if (null != roomState) {
-            setName(roomState.getDisplayName(getMatrixId()));
             setTopic(roomState.topic);
         }
         return this;
@@ -374,7 +381,7 @@ public class RoomSummary implements java.io.Serializable {
     }
 
     /**
-     * Set the latest tracked event (e.g. the latest m.room.message)
+     * Set the latest RoomState
      *
      * @param roomState The room state of the latest event.
      * @return This summary for chaining calls.
@@ -382,13 +389,16 @@ public class RoomSummary implements java.io.Serializable {
     public RoomSummary setLatestRoomState(RoomState roomState) {
         mLatestRoomState = roomState;
 
+        // Keep this code for compatibility?
+        boolean isInvited = false;
+
         // check for the invitation status
         if (null != mLatestRoomState) {
-            RoomMember member = mLatestRoomState.getMember(mMatrixId);
-            mIsInvited = (null != member) && RoomMember.MEMBERSHIP_INVITE.equals(member.membership);
+            RoomMember member = mLatestRoomState.getMember(mUserId);
+            isInvited = (null != member) && RoomMember.MEMBERSHIP_INVITE.equals(member.membership);
         }
         // when invited, the only received message should be the invitation one
-        if (mIsInvited) {
+        if (isInvited) {
             mInviterName = null;
 
             if (null != mLatestReceivedEvent) {
@@ -520,5 +530,64 @@ public class RoomSummary implements java.io.Serializable {
         } else {
             mRoomTags = new HashSet<>();
         }
+    }
+
+    public boolean isConferenceUserRoom() {
+        // test if it is not yet initialized
+        if (null == mIsConferenceUserRoom) {
+
+            mIsConferenceUserRoom = false;
+
+            // FIXME LazyLoading Heroes does not contains me
+            // FIXME I'ms not sure this code will work anymore
+
+            Collection<String> membersId = getHeroes();
+
+            // works only with 1:1 room
+            if (2 == membersId.size()) {
+                for (String userId : membersId) {
+                    if (MXCallsManager.isConferenceUserId(userId)) {
+                        mIsConferenceUserRoom = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return mIsConferenceUserRoom;
+    }
+
+    public void setIsConferenceUserRoom(boolean isConferenceUserRoom) {
+        mIsConferenceUserRoom = isConferenceUserRoom;
+    }
+
+    public void setRoomSyncSummary(@NonNull RoomSyncSummary roomSyncSummary) {
+        if (roomSyncSummary.heroes != null) {
+            mHeroes.clear();
+            mHeroes.addAll(roomSyncSummary.heroes);
+        }
+
+        if (roomSyncSummary.joinedMembersCount != null) {
+            // Update the value
+            mJoinedMembersCountFromSyncRoomSummary = roomSyncSummary.joinedMembersCount;
+        }
+
+        if (roomSyncSummary.invitedMembersCount != null) {
+            // Update the value
+            mInvitedMembersCountFromSyncRoomSummary = roomSyncSummary.invitedMembersCount;
+        }
+    }
+
+    @NonNull
+    public List<String> getHeroes() {
+        return mHeroes;
+    }
+
+    public int getNumberOfJoinedMembers() {
+        return mJoinedMembersCountFromSyncRoomSummary;
+    }
+
+    public int getNumberOfInvitedMembers() {
+        return mInvitedMembersCountFromSyncRoomSummary;
     }
 }

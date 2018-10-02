@@ -40,6 +40,7 @@ import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXMemoryStore;
+import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.groups.GroupsManager;
 import org.matrix.androidsdk.listeners.IMXEventListener;
@@ -53,6 +54,7 @@ import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.json.ConditionDeserializer;
+import org.matrix.androidsdk.rest.model.ChunkEvents;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ReceiptData;
@@ -90,7 +92,7 @@ import java.util.Set;
  * <li>Provides the means for an app to get callbacks for data changes</li>
  * </ul>
  */
-public class MXDataHandler implements IMXEventListener {
+public class MXDataHandler {
     private static final String LOG_TAG = MXDataHandler.class.getSimpleName();
 
     private static final String LEFT_ROOMS_FILTER = "{\"room\":{\"timeline\":{\"limit\":1},\"include_leave\":true}}";
@@ -111,8 +113,7 @@ public class MXDataHandler implements IMXEventListener {
         void onSSLCertificateError(UnrecognizedCertificateException exception);
     }
 
-    private IMXEventListener mCryptoEventsListener = null;
-    private final Set<IMXEventListener> mEventListeners = new HashSet<>();
+    private MxEventDispatcher mMxEventDispatcher;
 
     private final IMXStore mStore;
     private final Credentials mCredentials;
@@ -137,7 +138,6 @@ public class MXDataHandler implements IMXEventListener {
 
     private HandlerThread mSyncHandlerThread;
     private final MXOsHandler mSyncHandler;
-    private final MXOsHandler mUiHandler;
 
     // list of ignored users
     // null -> not initialized
@@ -175,6 +175,9 @@ public class MXDataHandler implements IMXEventListener {
     @Nullable
     private MatrixError mResourceLimitExceededError;
 
+    // tell if the lazy loading is enabled
+    private boolean mIsLazyLoadingEnabled;
+
     /**
      * Default constructor.
      *
@@ -185,13 +188,20 @@ public class MXDataHandler implements IMXEventListener {
         mStore = store;
         mCredentials = credentials;
 
-        mUiHandler = new MXOsHandler(Looper.getMainLooper());
+        mMxEventDispatcher = new MxEventDispatcher();
 
         mSyncHandlerThread = new HandlerThread("MXDataHandler" + mCredentials.userId, Thread.MIN_PRIORITY);
         mSyncHandlerThread.start();
         mSyncHandler = new MXOsHandler(mSyncHandlerThread.getLooper());
-
         mLeftRoomsStore = new MXMemoryStore(credentials, store.getContext());
+    }
+
+    public void setLazyLoadingEnabled(boolean enabled) {
+        mIsLazyLoadingEnabled = enabled;
+    }
+
+    public boolean isLazyLoadingEnabled() {
+        return mIsLazyLoadingEnabled;
     }
 
     /**
@@ -580,12 +590,12 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
-     * Set the crypto events listener
+     * Set the crypto events listener, or remove it
      *
-     * @param listener the listener
+     * @param listener the listener or null to remove the listener
      */
-    public void setCryptoEventsListener(IMXEventListener listener) {
-        mCryptoEventsListener = listener;
+    public void setCryptoEventsListener(@Nullable IMXEventListener listener) {
+        mMxEventDispatcher.setCryptoEventsListener(listener);
     }
 
     /**
@@ -595,8 +605,8 @@ public class MXDataHandler implements IMXEventListener {
      */
     public void addListener(IMXEventListener listener) {
         if (isAlive() && (null != listener)) {
-            synchronized (this) {
-                mEventListeners.add(listener);
+            synchronized (mMxEventDispatcher) {
+                mMxEventDispatcher.addListener(listener);
             }
 
             if (null != mInitialSyncToToken) {
@@ -612,8 +622,8 @@ public class MXDataHandler implements IMXEventListener {
      */
     public void removeListener(IMXEventListener listener) {
         if (isAlive() && (null != listener)) {
-            synchronized (this) {
-                mEventListeners.remove(listener);
+            synchronized (mMxEventDispatcher) {
+                mMxEventDispatcher.removeListener(listener);
             }
         }
     }
@@ -622,10 +632,10 @@ public class MXDataHandler implements IMXEventListener {
      * Clear the instance data.
      */
     public void clear() {
-        synchronized (this) {
+        synchronized (mMxEventDispatcher) {
             mIsAlive = false;
             // remove any listener
-            mEventListeners.clear();
+            mMxEventDispatcher.clearListeners();
         }
 
         // clear the store
@@ -662,13 +672,6 @@ public class MXDataHandler implements IMXEventListener {
         // some fields are not retrieved :
         // They are used to retrieve some data
         // so add the missing links.
-
-        Collection<Room> rooms = mStore.getRooms();
-
-        for (Room room : rooms) {
-            room.init(mStore, room.getRoomId(), this);
-        }
-
         Collection<RoomSummary> summaries = mStore.getSummaries();
         for (RoomSummary summary : summaries) {
             if (null != summary.getLatestRoomState()) {
@@ -824,39 +827,17 @@ public class MXDataHandler implements IMXEventListener {
             room = store.getRoom(roomId);
             if ((room == null) && create) {
                 Log.d(LOG_TAG, "## getRoom() : create the room " + roomId);
-                room = new Room();
-                room.init(store, roomId, this);
+                room = new Room(this, store, roomId);
                 store.storeRoom(room);
             } else if ((null != room) && (null == room.getDataHandler())) {
                 // GA reports that some rooms have no data handler
                 // so ensure that it is not properly set
                 Log.e(LOG_TAG, "getRoom " + roomId + " was not initialized");
-                room.init(store, roomId, this);
                 store.storeRoom(room);
             }
         }
 
         return room;
-    }
-
-    /**
-     * Checks if the room is properly initialized.
-     * GA reported us that some room fields are not initialized.
-     * But, i really don't know how it is possible.
-     *
-     * @param room the room check
-     */
-    public void checkRoom(Room room) {
-        // sanity check
-        if (null != room) {
-            if (null == room.getDataHandler()) {
-                Log.e(LOG_TAG, "checkRoom : the room was not initialized");
-                room.init(mStore, room.getRoomId(), this);
-            } else if ((null != room.getLiveTimeLine()) && (null == room.getLiveTimeLine().mDataHandler)) {
-                Log.e(LOG_TAG, "checkRoom : the timeline was not initialized");
-                room.init(mStore, room.getRoomId(), this);
-            }
-        }
     }
 
     /**
@@ -889,7 +870,7 @@ public class MXDataHandler implements IMXEventListener {
         Collection<Room> rooms = getStore().getRooms();
 
         for (Room room : rooms) {
-            if (TextUtils.equals(room.getState().alias, roomAlias)) {
+            if (TextUtils.equals(room.getState().getCanonicalAlias(), roomAlias)) {
                 roomId = room.getRoomId();
                 break;
             } else {
@@ -930,6 +911,30 @@ public class MXDataHandler implements IMXEventListener {
             });
         }
 
+    }
+
+    /**
+     * Get the members of a Room with a request to the server. it will exclude the members who has left the room
+     *
+     * @param roomId   the id of the room
+     * @param callback the callback
+     */
+    public void getMembersAsync(final String roomId, final ApiCallback<List<RoomMember>> callback) {
+        mRoomsRestClient.getRoomMembers(roomId, getStore().getEventStreamToken(), null, RoomMember.MEMBERSHIP_LEAVE,
+                new SimpleApiCallback<ChunkEvents>(callback) {
+                    @Override
+                    public void onSuccess(ChunkEvents info) {
+                        Room room = getRoom(roomId);
+
+                        if (info.chunk != null) {
+                            for (Event event : info.chunk) {
+                                room.getState().applyState(getStore(), event, EventTimeline.Direction.FORWARDS);
+                            }
+                        }
+
+                        callback.onSuccess(room.getState().getLoadedMembers());
+                    }
+                });
     }
 
     /**
@@ -1033,11 +1038,7 @@ public class MXDataHandler implements IMXEventListener {
 
             if (TextUtils.equals(type, "m.push_rules")) {
                 if (event.containsKey("content")) {
-                    Gson gson = new GsonBuilder()
-                            .setFieldNamingStrategy(new JsonUtils.MatrixFieldNamingStrategy())
-                            .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
-                            .registerTypeAdapter(Condition.class, new ConditionDeserializer())
-                            .create();
+                    Gson gson = JsonUtils.getGson(false);
 
                     // convert the data to PushRulesResponse
                     // because BingRulesManager supports only PushRulesResponse
@@ -1301,7 +1302,7 @@ public class MXDataHandler implements IMXEventListener {
                 }
 
                 // copy the state
-                leftRoom.getLiveTimeLine().setState(r.getLiveTimeLine().getState());
+                leftRoom.getTimeline().setState(r.getTimeline().getState());
             }
 
             // remove the previous definition
@@ -1310,7 +1311,7 @@ public class MXDataHandler implements IMXEventListener {
     }
 
     /**
-     * Manage the sync response in the UI thread.
+     * Manage the sync response in a background thread.
      *
      * @param syncResponse the syncResponse to manage.
      * @param fromToken    the start sync token
@@ -1331,9 +1332,9 @@ public class MXDataHandler implements IMXEventListener {
 
             // Handle the to device events before the room ones
             // to ensure to decrypt them properly
-            if ((null != syncResponse.toDevice) &&
-                    (null != syncResponse.toDevice.events) &&
-                    (syncResponse.toDevice.events.size() > 0)) {
+            if ((null != syncResponse.toDevice)
+                    && (null != syncResponse.toDevice.events)
+                    && (syncResponse.toDevice.events.size() > 0)) {
                 Log.d(LOG_TAG, "manageResponse : receives " + syncResponse.toDevice.events.size() + " toDevice events");
 
                 for (Event toDeviceEvent : syncResponse.toDevice.events) {
@@ -1351,7 +1352,6 @@ public class MXDataHandler implements IMXEventListener {
             // sanity check
             if (null != syncResponse.rooms) {
                 // joined rooms events
-
                 if ((null != syncResponse.rooms.join) && (syncResponse.rooms.join.size() > 0)) {
                     Log.d(LOG_TAG, "Received " + syncResponse.rooms.join.size() + " joined rooms");
                     if (mMetricsListener != null) {
@@ -1494,7 +1494,7 @@ public class MXDataHandler implements IMXEventListener {
                         // check if the room still exists.
                         if (null != room) {
                             // use 'handleJoinedRoomSync' to pass the last events to the room before leaving it.
-                            // The room will then able to notify its listeners.
+                            // The room will then be able to notify its listeners.
                             room.handleJoinedRoomSync(syncResponse.rooms.leave.get(roomId), isInitialSync);
 
                             RoomMember member = room.getMember(getUserId());
@@ -1822,84 +1822,18 @@ public class MXDataHandler implements IMXEventListener {
     //================================================================================
 
     /**
-     * @return the current MXEvents listeners.
-     */
-    private List<IMXEventListener> getListenersSnapshot() {
-        List<IMXEventListener> eventListeners;
-
-        synchronized (this) {
-            eventListeners = new ArrayList<>(mEventListeners);
-        }
-
-        return eventListeners;
-    }
-
-    /**
      * Dispatch that the store is ready.
      */
     public void onStoreReady() {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onStoreReady();
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onStoreReady();
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onStoreReady " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnStoreReady();
     }
 
-    @Override
     public void onAccountInfoUpdate(final MyUser myUser) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onAccountInfoUpdate(myUser);
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onAccountInfoUpdate(myUser);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onAccountInfoUpdate " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnAccountInfoUpdate(myUser);
     }
 
-    @Override
     public void onPresenceUpdate(final Event event, final User user) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onPresenceUpdate(event, user);
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onPresenceUpdate(event, user);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onPresenceUpdate " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnPresenceUpdate(event, user);
     }
 
     /**
@@ -1922,7 +1856,6 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
-    @Override
     public void onLiveEvent(final Event event, final RoomState roomState) {
         if (ignoreEvent(event.roomId)) {
             return;
@@ -1938,77 +1871,20 @@ public class MXDataHandler implements IMXEventListener {
             }
         }
 
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onLiveEvent(event, roomState);
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onLiveEvent(event, roomState);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onLiveEvent " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnLiveEvent(event, roomState);
     }
 
-    @Override
     public void onLiveEventsChunkProcessed(final String startToken, final String toToken) {
         // reset the resource limit exceeded error
         mResourceLimitExceededError = null;
 
         refreshUnreadCounters();
 
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onLiveEventsChunkProcessed(startToken, toToken);
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onLiveEventsChunkProcessed(startToken, toToken);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onLiveEventsChunkProcessed " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnLiveEventsChunkProcessed(startToken, toToken);
     }
 
-    @Override
     public void onBingEvent(final Event event, final RoomState roomState, final BingRule bingRule) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onBingEvent(event, roomState, bingRule);
-        }
-
-        if (ignoreEvent(event.roomId)) {
-            return;
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onBingEvent(event, roomState, bingRule);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onBingEvent " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnBingEvent(event, roomState, bingRule, ignoreEvent(event.roomId));
     }
 
     /**
@@ -2025,122 +1901,16 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
-    @Override
     public void onEventSentStateUpdated(final Event event) {
-        if (ignoreEvent(event.roomId)) {
-            return;
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onEventSentStateUpdated(event);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onEventSentStateUpdated " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnEventSentStateUpdated(event, ignoreEvent(event.roomId));
     }
 
-    @Override
     public void onEventSent(final Event event, final String prevEventId) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onEventSent(event, prevEventId);
-        }
-
-        if (ignoreEvent(event.roomId)) {
-            return;
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onEventSent(event, prevEventId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onEventSent " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnEventSent(event, prevEventId, ignoreEvent(event.roomId));
     }
 
-    @Override
     public void onBingRulesUpdate() {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onBingRulesUpdate();
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onBingRulesUpdate();
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onBingRulesUpdate " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
-    }
-
-    /**
-     * Dispatch the onInitialSyncComplete event.
-     */
-    private void dispatchOnInitialSyncComplete(final String toToken) {
-        mInitialSyncToToken = toToken;
-
-        refreshUnreadCounters();
-
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onInitialSyncComplete(toToken);
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onInitialSyncComplete(mInitialSyncToToken);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onInitialSyncComplete " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
-    }
-
-    /**
-     * Dispatch the OnCryptoSyncComplete event.
-     */
-    private void dispatchOnCryptoSyncComplete() {
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onCryptoSyncComplete();
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "OnCryptoSyncComplete " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnBingRulesUpdate();
     }
 
     /**
@@ -2152,7 +1922,7 @@ public class MXDataHandler implements IMXEventListener {
             getCrypto().start(isInitialSync, new ApiCallback<Void>() {
                 @Override
                 public void onSuccess(Void info) {
-                    dispatchOnCryptoSyncComplete();
+                    onCryptoSyncComplete();
                 }
 
                 private void onError(String errorMessage) {
@@ -2177,539 +1947,114 @@ public class MXDataHandler implements IMXEventListener {
         }
     }
 
-
-    @Override
     public void onInitialSyncComplete(String toToken) {
-        dispatchOnInitialSyncComplete(toToken);
+        mInitialSyncToToken = toToken;
+
+        refreshUnreadCounters();
+
+        mMxEventDispatcher.dispatchOnInitialSyncComplete(toToken);
     }
 
-    @Override
     public void onSyncError(final MatrixError matrixError) {
         // Store the resource limit exceeded error
         if (MatrixError.RESOURCE_LIMIT_EXCEEDED.equals(matrixError.errcode)) {
             mResourceLimitExceededError = matrixError;
         }
 
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onSyncError(matrixError);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onSyncError " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnSyncError(matrixError);
     }
 
-    @Override
     public void onCryptoSyncComplete() {
+        mMxEventDispatcher.dispatchOnCryptoSyncComplete();
     }
 
-    @Override
     public void onNewRoom(final String roomId) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onNewRoom(roomId);
-        }
-
-        if (ignoreEvent(roomId)) {
-            return;
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onNewRoom(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onNewRoom " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnNewRoom(roomId, ignoreEvent(roomId));
     }
 
-    @Override
     public void onJoinRoom(final String roomId) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onJoinRoom(roomId);
-        }
-
-        if (ignoreEvent(roomId)) {
-            return;
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onJoinRoom(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onJoinRoom " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnJoinRoom(roomId, ignoreEvent(roomId));
     }
 
-    @Override
-    public void onRoomInitialSyncComplete(final String roomId) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onRoomInitialSyncComplete(roomId);
-        }
-
-        if (ignoreEvent(roomId)) {
-            return;
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onRoomInitialSyncComplete(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomInitialSyncComplete " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
-    }
-
-    @Override
     public void onRoomInternalUpdate(final String roomId) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onRoomInternalUpdate(roomId);
-        }
-
-        if (ignoreEvent(roomId)) {
-            return;
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onRoomInternalUpdate(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomInternalUpdate " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnRoomInternalUpdate(roomId, ignoreEvent(roomId));
     }
 
-    @Override
     public void onNotificationCountUpdate(final String roomId) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onNotificationCountUpdate(roomId);
-        }
-
-        if (ignoreEvent(roomId)) {
-            return;
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onNotificationCountUpdate(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onNotificationCountUpdate " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnNotificationCountUpdate(roomId, ignoreEvent(roomId));
     }
 
-    @Override
     public void onLeaveRoom(final String roomId) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onLeaveRoom(roomId);
-        }
-
-        if (ignoreEvent(roomId)) {
-            return;
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onLeaveRoom(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onLeaveRoom " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnLeaveRoom(roomId, ignoreEvent(roomId));
     }
 
-    @Override
     public void onRoomKick(final String roomId) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onRoomKick(roomId);
-        }
-
-        if (ignoreEvent(roomId)) {
-            return;
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onRoomKick(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomKick " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnRoomKick(roomId, ignoreEvent(roomId));
     }
 
-    @Override
     public void onReceiptEvent(final String roomId, final List<String> senderIds) {
         synchronized (mUpdatedRoomIdList) {
-            // refresh the unread countries at the end of the process chunk
+            // refresh the unread counter at the end of the process chunk
             mUpdatedRoomIdList.add(roomId);
         }
 
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onReceiptEvent(roomId, senderIds);
-        }
-
-        if (ignoreEvent(roomId)) {
-            return;
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onReceiptEvent(roomId, senderIds);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onReceiptEvent " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnReceiptEvent(roomId, senderIds, ignoreEvent(roomId));
     }
 
-    @Override
     public void onRoomTagEvent(final String roomId) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onRoomTagEvent(roomId);
-        }
-
-        if (ignoreEvent(roomId)) {
-            return;
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onRoomTagEvent(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomTagEvent " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnRoomTagEvent(roomId, ignoreEvent(roomId));
     }
 
-    @Override
     public void onReadMarkerEvent(final String roomId) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onReadMarkerEvent(roomId);
-        }
-
-        if (ignoreEvent(roomId)) {
-            return;
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onReadMarkerEvent(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onReadMarkerEvent " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnReadMarkerEvent(roomId, ignoreEvent(roomId));
     }
 
-    @Override
     public void onRoomFlush(final String roomId) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onRoomFlush(roomId);
-        }
-
-        if (ignoreEvent(roomId)) {
-            return;
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onRoomFlush(roomId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onRoomFlush " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnRoomFlush(roomId, ignoreEvent(roomId));
     }
 
-    @Override
     public void onIgnoredUsersListUpdate() {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onIgnoredUsersListUpdate();
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onIgnoredUsersListUpdate();
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onIgnoredUsersListUpdate " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnIgnoredUsersListUpdate();
     }
 
-    @Override
     public void onToDeviceEvent(final Event event) {
-        if (null != mCryptoEventsListener) {
-            mCryptoEventsListener.onToDeviceEvent(event);
-        }
-
-        if (ignoreEvent(event.roomId)) {
-            return;
-        }
-
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onToDeviceEvent(event);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "OnToDeviceEvent " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnToDeviceEvent(event, ignoreEvent(event.roomId));
     }
 
-    @Override
     public void onDirectMessageChatRoomsListUpdate() {
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onDirectMessageChatRoomsListUpdate();
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onDirectMessageChatRoomsListUpdate " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnDirectMessageChatRoomsListUpdate();
     }
 
-    @Override
     public void onEventDecrypted(final Event event) {
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onEventDecrypted(event);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onDecryptedEvent " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnEventDecrypted(event);
     }
 
-
-    @Override
     public void onNewGroupInvitation(final String groupId) {
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onNewGroupInvitation(groupId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onNewGroupInvitation " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnNewGroupInvitation(groupId);
     }
 
-    @Override
     public void onJoinGroup(final String groupId) {
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onJoinGroup(groupId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onJoinGroup " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnJoinGroup(groupId);
     }
 
-    @Override
     public void onLeaveGroup(final String groupId) {
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onLeaveGroup(groupId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onLeaveGroup " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnLeaveGroup(groupId);
     }
 
-    @Override
     public void onGroupProfileUpdate(final String groupId) {
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onGroupProfileUpdate(groupId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onGroupProfileUpdate " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnGroupProfileUpdate(groupId);
     }
 
-    @Override
     public void onGroupRoomsListUpdate(final String groupId) {
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onGroupRoomsListUpdate(groupId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onGroupRoomsListUpdate " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnGroupRoomsListUpdate(groupId);
     }
 
-    @Override
     public void onGroupUsersListUpdate(final String groupId) {
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onGroupUsersListUpdate(groupId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onGroupUsersListUpdate " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnGroupUsersListUpdate(groupId);
     }
 
-    @Override
     public void onGroupInvitedUsersListUpdate(final String groupId) {
-        final List<IMXEventListener> eventListeners = getListenersSnapshot();
-
-        mUiHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                for (IMXEventListener listener : eventListeners) {
-                    try {
-                        listener.onGroupInvitedUsersListUpdate(groupId);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onGroupInvitedUsersListUpdate " + e.getMessage(), e);
-                    }
-                }
-            }
-        });
+        mMxEventDispatcher.dispatchOnGroupInvitedUsersListUpdate(groupId);
     }
 
     /**

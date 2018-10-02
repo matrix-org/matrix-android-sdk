@@ -1,3 +1,5 @@
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=matrix.android.sdk&metric=alert_status)](https://sonarcloud.io/dashboard?id=matrix.android.sdk) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=matrix.android.sdk&metric=vulnerabilities)](https://sonarcloud.io/dashboard?id=matrix.android.sdk) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=matrix.android.sdk&metric=bugs)](https://sonarcloud.io/dashboard?id=matrix.android.sdk) 
+
 matrix-android-sdk
 ==================
 The [Matrix] SDK for Android wraps the Matrix REST API calls in asynchronous Java methods and provides basic structures for storing and handling data.
