@@ -67,4 +67,9 @@
 
     <string name="medium_phone_number">Número de teléfono</string>
 
+<string name="reply_to_an_image">Responder a</string>
+    <string name="reply_to_a_video">enviar un vídeo.</string>
+    <string name="reply_to_an_audio_file">enviar un ficheiro de son.</string>
+    <string name="reply_to_a_file">enviar un ficheiro.</string>
+
 </resources>
