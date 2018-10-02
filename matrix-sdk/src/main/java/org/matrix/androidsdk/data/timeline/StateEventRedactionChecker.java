@@ -60,7 +60,7 @@ class StateEventRedactionChecker {
         final Room room = mEventTimeline.getRoom();
         final MXDataHandler dataHandler = room.getDataHandler();
         final String roomId = room.getRoomId();
-        final String eventId = redactionEvent.getRedacts();
+        final String eventId = redactionEvent.getRedactedEventId();
         final RoomState state = mTimelineStateHolder.getState();
         Log.d(LOG_TAG, "checkStateEventRedaction of event " + eventId);
         // check if the state events is locally known

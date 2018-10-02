@@ -206,8 +206,8 @@ class TimelineLiveEventHandler {
         String myUserId = dataHandler.getCredentials().userId;
 
         if (Event.EVENT_TYPE_REDACTION.equals(event.getType())) {
-            if (event.getRedacts() != null) {
-                Event eventToPrune = store.getEvent(event.getRedacts(), event.roomId);
+            if (event.getRedactedEventId() != null) {
+                Event eventToPrune = store.getEvent(event.getRedactedEventId(), event.roomId);
 
                 // when an event is redacted, some fields must be kept.
                 if (eventToPrune != null) {
