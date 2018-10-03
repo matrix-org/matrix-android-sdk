@@ -56,7 +56,7 @@ public class LazyLoadingTestHelper {
      * - Alice sends 50 messages
      * - Alice makes an initial /sync with lazy-loading enabled or not
      *
-     * @param withLazyLoading true to enable lazy loading for alice account
+     * @param withLazyLoading true to enable lazy loading for Alice, Bob and Sam accounts
      * @return initialized data
      */
     public LazyLoadingScenarioData createScenario(boolean withLazyLoading) throws Exception {
