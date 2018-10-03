@@ -28,11 +28,16 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.common.CommonTestHelper;
 
+import java.util.Arrays;
+import java.util.List;
+
 @FixMethodOrder(MethodSorters.JVM)
 public class RoomNameTest {
 
     private CommonTestHelper mTestHelper = new CommonTestHelper();
     private RoomNameTestHelper mRoomNameTestHelper = new RoomNameTestHelper(mTestHelper);
+
+    private List<Integer> userQuantities = Arrays.asList(1, 2, 3, 10);
 
     @BeforeClass
     public static void init() {
@@ -50,10 +55,9 @@ public class RoomNameTest {
     }
 
     private void RoomState_noName(final boolean withLazyLoading) throws Exception {
-        checkAllName( mRoomNameTestHelper.createScenario(1, null, withLazyLoading), null);
-        checkAllName( mRoomNameTestHelper.createScenario(2, null, withLazyLoading), null);
-        checkAllName( mRoomNameTestHelper.createScenario(3, null, withLazyLoading), null);
-        checkAllName( mRoomNameTestHelper.createScenario(10, null, withLazyLoading), null);
+        for (int qty : userQuantities) {
+            checkAllName(mRoomNameTestHelper.createScenario(qty, null, withLazyLoading), null);
+        }
     }
 
     @Test
@@ -67,10 +71,9 @@ public class RoomNameTest {
     }
 
     private void RoomState_name(final boolean withLazyLoading) throws Exception {
-        checkAllName( mRoomNameTestHelper.createScenario(1, "Room name", withLazyLoading), "Room name");
-        checkAllName( mRoomNameTestHelper.createScenario(2, "Room name", withLazyLoading), "Room name");
-        checkAllName( mRoomNameTestHelper.createScenario(3, "Room name", withLazyLoading), "Room name");
-        checkAllName( mRoomNameTestHelper.createScenario(10, "Room name", withLazyLoading), "Room name");
+        for (int qty : userQuantities) {
+            checkAllName(mRoomNameTestHelper.createScenario(qty, "Room name " + qty, withLazyLoading), "Room name " + qty);
+        }
     }
 
     /* ==========================================================================================
