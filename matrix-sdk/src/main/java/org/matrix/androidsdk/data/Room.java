@@ -737,6 +737,7 @@ public class Room {
                         Log.e(LOG_TAG, "join onMatrixError " + e.getMessage());
 
                         if (MatrixError.UNKNOWN.equals(e.errcode) && TextUtils.equals("No known servers", e.error)) {
+                            // It can happen when user wants to join a room he was invited to, but the inviter has left
                             // minging kludge until https://matrix.org/jira/browse/SYN-678 is fixed
                             // 'Error when trying to join an empty room should be more explicit
                             e.error = getStore().getContext().getString(org.matrix.androidsdk.R.string.room_error_join_failed_empty_room);
