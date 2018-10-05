@@ -98,7 +98,7 @@ public class RoomState implements Externalizable {
     // merged from mAliasesByHomeServerUrl
     private List<String> mMergedAliasesList;
 
-    //
+    // Map of list of state event, the key are the event type
     private Map<String, List<Event>> mStateEvents = new HashMap<>();
 
     // The canonical alias of the room.

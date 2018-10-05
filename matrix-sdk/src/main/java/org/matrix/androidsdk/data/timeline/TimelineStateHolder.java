@@ -93,7 +93,7 @@ class TimelineStateHolder {
     }
 
     /**
-     * Make a deep copy or the dedicated state.
+     * Make a deep copy of the dedicated state.
      *
      * @param direction the room state direction to deep copy.
      */

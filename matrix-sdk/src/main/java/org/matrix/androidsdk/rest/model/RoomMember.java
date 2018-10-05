@@ -44,7 +44,9 @@ public class RoomMember implements Externalizable {
     // not supported by the server sync response by computed from the room state events
     public static final String MEMBERSHIP_KICK = "kick";
 
+    @SerializedName("displayname")
     public String displayname;
+    @SerializedName("avatar_url")
     public String avatarUrl;
     public String membership;
     public Invite thirdPartyInvite;
