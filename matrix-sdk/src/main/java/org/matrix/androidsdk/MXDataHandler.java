@@ -24,7 +24,6 @@ import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 
 import org.matrix.androidsdk.call.MXCallsManager;
@@ -53,7 +52,6 @@ import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
-import org.matrix.androidsdk.rest.json.ConditionDeserializer;
 import org.matrix.androidsdk.rest.model.ChunkEvents;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
@@ -62,7 +60,6 @@ import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
-import org.matrix.androidsdk.rest.model.bingrules.Condition;
 import org.matrix.androidsdk.rest.model.bingrules.PushRuleSet;
 import org.matrix.androidsdk.rest.model.bingrules.PushRulesResponse;
 import org.matrix.androidsdk.rest.model.group.InvitedGroupSync;
@@ -75,7 +72,6 @@ import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.MXOsHandler;
 
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;

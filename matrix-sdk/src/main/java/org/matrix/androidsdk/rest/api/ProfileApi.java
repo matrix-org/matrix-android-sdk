@@ -110,7 +110,7 @@ public interface ProfileApi {
      * @param refreshParams the refresh token parameters
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "tokenrefresh")
-    Call<TokenRefreshResponse> tokenrefresh(@Body TokenRefreshParams refreshParams);
+    Call<TokenRefreshResponse> tokenRefresh(@Body TokenRefreshParams refreshParams);
 
     /**
      * List all 3PIDs linked to the Matrix user account.

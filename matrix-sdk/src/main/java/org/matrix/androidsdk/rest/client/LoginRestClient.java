@@ -136,8 +136,8 @@ public class LoginRestClient extends RestClient<LoginApi> {
                     @Override
                     public void success(JsonObject jsonObject, Response response) {
                         onEventSent();
-                        mCredentials = gson.fromJson(jsonObject, Credentials.class);
-                        callback.onSuccess(mCredentials);
+                        setCredentials(gson.fromJson(jsonObject, Credentials.class));
+                        callback.onSuccess(getCredentials());
                     }
                 });
     }
@@ -281,8 +281,8 @@ public class LoginRestClient extends RestClient<LoginApi> {
                     @Override
                     public void success(JsonObject jsonObject, Response<JsonObject> response) {
                         onEventSent();
-                        mCredentials = gson.fromJson(jsonObject, Credentials.class);
-                        callback.onSuccess(mCredentials);
+                        setCredentials(gson.fromJson(jsonObject, Credentials.class));
+                        callback.onSuccess(getCredentials());
                     }
                 });
     }
@@ -334,8 +334,8 @@ public class LoginRestClient extends RestClient<LoginApi> {
                     @Override
                     public void success(JsonObject jsonObject, Response response) {
                         onEventSent();
-                        mCredentials = gson.fromJson(jsonObject, Credentials.class);
-                        callback.onSuccess(mCredentials);
+                        setCredentials(gson.fromJson(jsonObject, Credentials.class));
+                        callback.onSuccess(getCredentials());
                     }
                 });
     }
