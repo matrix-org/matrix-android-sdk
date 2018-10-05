@@ -113,25 +113,22 @@ public class RoomNameTestHelper {
         room.invite("@dave:localhost:8480", new TestApiCallback<Void>(latch));
         mTestHelper.await(latch);
 
-        // Send messages
-        final List<Event> messages = mTestHelper.sendTextMessage(room, "User message", 50);
-
-        Assert.assertEquals(50, messages.size());
-
-        // Clear sessions and open new ones
-        mTestHelper.clearAllSessions(createdSessions);
-
         final SessionTestParams logSessionParams = SessionTestParams.newBuilder()
                 .withLazyLoading(withLazyLoading)
+                .withInitialSync(true)
                 .build();
 
         List<MXSession> loggedSessions = new ArrayList<>(nbOfUsers);
 
+        // open new sessions, using the same user ids
         for (MXSession session : createdSessions) {
             MXSession loggedSession = mTestHelper.logIntoAccount(session.getMyUserId(), logSessionParams);
 
             loggedSessions.add(loggedSession);
         }
+
+        // Clear created sessions (must be done after getting the user ids)
+        mTestHelper.clearAllSessions(createdSessions);
 
         return new RoomNameScenarioData(loggedSessions, roomId);
     }
