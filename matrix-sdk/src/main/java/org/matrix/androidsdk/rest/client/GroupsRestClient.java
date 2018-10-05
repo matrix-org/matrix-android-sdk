@@ -60,10 +60,6 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
         super(hsConfig, GroupsApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
     }
 
-    protected GroupsRestClient(GroupsApi api) {
-        mApi = api;
-    }
-
     /**
      * Create a group.
      *

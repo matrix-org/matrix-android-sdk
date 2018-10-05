@@ -404,20 +404,4 @@ public class RestClient<T> {
     public void setCredentials(Credentials credentials) {
         mCredentials = credentials;
     }
-
-    /**
-     * Default protected constructor for unit tests.
-     */
-    protected RestClient() {
-    }
-
-    /**
-     * Protected setter for injection by unit tests.
-     *
-     * @param api the api object
-     */
-    @VisibleForTesting()
-    protected void setApi(T api) {
-        mApi = api;
-    }
 }
