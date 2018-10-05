@@ -22,9 +22,9 @@ import org.matrix.androidsdk.MXSession;
  * The sessions are not synced by default as you want to perform some custom tests
  */
 public class LazyLoadingScenarioData {
-    final MXSession aliceSession;
-    final MXSession bobSession;
-    final MXSession samSession;
+    final public MXSession aliceSession;
+    final public MXSession bobSession;
+    final public MXSession samSession;
     final String roomId;
     final String bobMessageId;
 

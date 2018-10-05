@@ -15,9 +15,6 @@
  */
 package org.matrix.androidsdk.lazyloading;
 
-import android.content.Context;
-import android.support.test.InstrumentationRegistry;
-
 import junit.framework.Assert;
 
 import org.matrix.androidsdk.MXSession;
@@ -26,7 +23,6 @@ import org.matrix.androidsdk.common.SessionTestParams;
 import org.matrix.androidsdk.common.TestApiCallback;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
-import org.matrix.androidsdk.rest.model.Event;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -123,11 +119,7 @@ public class RoomNameTestHelper {
         Assert.assertEquals(50, messages.size());
 
         // Clear sessions and open new ones
-        final Context context = InstrumentationRegistry.getContext();
-
-        for (MXSession session : createdSessions) {
-            session.clear(context);
-        }
+        mTestHelper.clearAllSessions(createdSessions);
 
         final SessionTestParams logSessionParams = SessionTestParams.newBuilder()
                 .withLazyLoading(withLazyLoading)

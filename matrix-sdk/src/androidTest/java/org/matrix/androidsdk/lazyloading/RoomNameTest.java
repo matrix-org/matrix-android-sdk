@@ -56,7 +56,9 @@ public class RoomNameTest {
 
     private void RoomState_noName(final boolean withLazyLoading) throws Exception {
         for (int qty : userQuantities) {
-            checkAllName(mRoomNameTestHelper.createScenario(qty, null, withLazyLoading), null);
+            RoomNameScenarioData data = mRoomNameTestHelper.createScenario(qty, null, withLazyLoading);
+            checkAllName(data, null);
+            mTestHelper.clearAllSessions(data);
         }
     }
 
@@ -72,7 +74,9 @@ public class RoomNameTest {
 
     private void RoomState_name(final boolean withLazyLoading) throws Exception {
         for (int qty : userQuantities) {
-            checkAllName(mRoomNameTestHelper.createScenario(qty, "Room name " + qty, withLazyLoading), "Room name " + qty);
+            RoomNameScenarioData data = mRoomNameTestHelper.createScenario(qty, "Room name " + qty, withLazyLoading);
+            checkAllName(data, "Room name " + qty);
+            mTestHelper.clearAllSessions(data);
         }
     }
 

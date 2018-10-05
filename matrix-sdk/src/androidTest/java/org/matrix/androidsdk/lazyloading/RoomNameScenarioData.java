@@ -24,7 +24,7 @@ import java.util.List;
  * The sessions are not synced by default as you want to perform some custom tests
  */
 public class RoomNameScenarioData {
-    final List<MXSession> userSessions;
+    final public List<MXSession> userSessions;
 
     final String roomId;
 
