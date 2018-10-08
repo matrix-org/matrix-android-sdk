@@ -236,9 +236,9 @@ class TimelineLiveEventHandler {
                                 }
                             }
                             final RoomState state = mTimelineStateHolder.getState();
-                            final EventDisplay eventDisplay = new EventDisplay(store.getContext(), indexedEvent, state);
+                            final EventDisplay eventDisplay = new EventDisplay(store.getContext());
                             // ensure that message can be displayed
-                            if (!TextUtils.isEmpty(eventDisplay.getTextualDisplay())) {
+                            if (!TextUtils.isEmpty(eventDisplay.getTextualDisplay(indexedEvent, state))) {
                                 event = indexedEvent;
                                 break;
                             }

@@ -962,7 +962,7 @@ public class RoomState implements Externalizable {
                         // duplicated message ?
                         if (member.equals(currentMember)) {
                             Log.e(LOG_TAG, "## applyState() : seems being a duplicated event for " + userId + " in room " + roomId);
-                            return false;
+                            // return false;
                         }
 
                         // when a member leaves a room, his avatar / display name is not anymore provided
