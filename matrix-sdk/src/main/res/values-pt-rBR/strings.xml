@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='UTF-8'?>
 <resources>
     <string name="matrix_sdk_app_name">Matrix Android SDK</string>
 
@@ -76,4 +76,13 @@
     <string name="medium_phone_number">Número de telefone</string>
     
     
+<string name="summary_user_sent_sticker">%1$s enviou um sticker.</string>
+
+    <string name="message_reply_to_prefix">Em resposta a</string>
+
+    <string name="reply_to_an_image">enviou uma imagem.</string>
+    <string name="reply_to_a_video">enviou um vídeo.</string>
+    <string name="reply_to_an_audio_file">enviou um arquivo de áudio.</string>
+    <string name="reply_to_a_file">enviou um arquivo.</string>
+
 </resources>

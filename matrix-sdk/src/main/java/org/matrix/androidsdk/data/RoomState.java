@@ -18,6 +18,7 @@
 
 package org.matrix.androidsdk.data;
 
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
@@ -25,12 +26,15 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.store.IMXStore;
+import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomCreateContent;
+import org.matrix.androidsdk.rest.model.RoomDirectoryVisibility;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.RoomPinnedEventsContent;
 import org.matrix.androidsdk.rest.model.RoomTombstoneContent;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
@@ -56,19 +60,16 @@ public class RoomState implements Externalizable {
     private static final String LOG_TAG = RoomState.class.getSimpleName();
     private static final long serialVersionUID = -6019932024524988201L;
 
-    public static final String DIRECTORY_VISIBILITY_PRIVATE = "private";
-    public static final String DIRECTORY_VISIBILITY_PUBLIC = "public";
-
     public static final String JOIN_RULE_PUBLIC = "public";
     public static final String JOIN_RULE_INVITE = "invite";
 
     /**
      * room access is granted to guests
-     **/
+     */
     public static final String GUEST_ACCESS_CAN_JOIN = "can_join";
     /**
      * room access is denied to guests
-     **/
+     */
     public static final String GUEST_ACCESS_FORBIDDEN = "forbidden";
 
     public static final String HISTORY_VISIBILITY_SHARED = "shared";
@@ -92,7 +93,7 @@ public class RoomState implements Externalizable {
     private Map<String, Event> mRoomAliases = new HashMap<>();
 
     // the aliases are defined for each home server url
-    private Map<String, List<String>> mAliasesByDomain = new HashMap();
+    private Map<String, List<String>> mAliasesByDomain = new HashMap<>();
 
     // merged from mAliasesByHomeServerUrl
     private List<String> mMergedAliasesList;
@@ -100,11 +101,8 @@ public class RoomState implements Externalizable {
     //
     private Map<String, List<Event>> mStateEvents = new HashMap<>();
 
-    // Informs which alias is the canonical one.
-    public String alias;
-
-    // The canonical alias of the room, if any.
-    public String canonical_alias;
+    // The canonical alias of the room.
+    private String canonicalAlias;
 
     // The name of the room as provided by the home server.
     public String name;
@@ -122,6 +120,10 @@ public class RoomState implements Externalizable {
     // the room create content
     private RoomCreateContent mRoomCreateContent;
 
+    // the room pinned events content
+    @Nullable
+    private RoomPinnedEventsContent mRoomPinnedEventsContent;
+
     // the join rule
     public String join_rule;
 
@@ -132,9 +134,6 @@ public class RoomState implements Externalizable {
 
     // SPEC-134
     public String history_visibility;
-
-    // the public room alias / name
-    public String roomAliasName;
 
     /**
      * the room visibility in the directory list (i.e. public, private...)
@@ -162,8 +161,13 @@ public class RoomState implements Externalizable {
     // the associated token
     private String token;
 
-    // the room members
+    // the room members. May be a partial list if all members are not loaded yet, due to lazy loading
     private final Map<String, RoomMember> mMembers = new HashMap<>();
+
+    // true if all members are loaded
+    private boolean mAllMembersAreLoaded;
+
+    private final List<ApiCallback<List<RoomMember>>> mGetAllMembersCallbacks = new ArrayList<>();
 
     // the third party invite members
     private final Map<String, RoomThirdPartyInvite> mThirdPartyInvites = new HashMap<>();
@@ -175,21 +179,12 @@ public class RoomState implements Externalizable {
     private final Map<String, RoomMember> mMembersWithThirdPartyInviteTokenCache = new HashMap<>();
 
     /**
-     * Additional and optional metadata got from initialSync
-     */
-    private String mMembership;
-
-    /**
      * Tell if the roomstate if a live one.
      */
     private boolean mIsLive;
 
-    /**
-     * Tell if the room is a user conference user one
-     */
-    private Boolean mIsConferenceUserRoom = null;
-
     // the unitary tests crash when MXDataHandler type is set.
+    // TODO Try to avoid this ^^
     private transient Object mDataHandler = null;
 
     // member display cache
@@ -250,9 +245,9 @@ public class RoomState implements Externalizable {
     }
 
     /**
-     * @return a copy of the room members list.
+     * @return a copy of the room members list. May be incomplete if the full list is not loaded yet
      */
-    public Collection<RoomMember> getMembers() {
+    public List<RoomMember> getLoadedMembers() {
         List<RoomMember> res;
 
         synchronized (this) {
@@ -261,6 +256,87 @@ public class RoomState implements Externalizable {
         }
 
         return res;
+    }
+
+    /**
+     * Get the list of all the room members. Fetch from server if the full list is not loaded yet.
+     *
+     * @param callback The callback to get a copy of the room members list.
+     */
+    public void getMembersAsync(ApiCallback<List<RoomMember>> callback) {
+        if (areAllMembersLoaded()) {
+            List<RoomMember> res;
+
+            synchronized (this) {
+                // make a copy to avoid concurrency modifications
+                res = new ArrayList<>(mMembers.values());
+            }
+
+            callback.onSuccess(res);
+        } else {
+            boolean doTheRequest;
+
+            synchronized (mGetAllMembersCallbacks) {
+                mGetAllMembersCallbacks.add(callback);
+
+                doTheRequest = mGetAllMembersCallbacks.size() == 1;
+            }
+
+            if (doTheRequest) {
+                // Load members from server
+                getDataHandler().getMembersAsync(roomId, new SimpleApiCallback<List<RoomMember>>(callback) {
+                    @Override
+                    public void onSuccess(List<RoomMember> info) {
+                        Log.d(LOG_TAG, "getMembers has returned " + info.size() + " users.");
+
+                        IMXStore store = ((MXDataHandler) mDataHandler).getStore();
+                        List<RoomMember> res;
+
+                        for (RoomMember member : info) {
+                            // Do not erase already known members form the sync
+                            if (getMember(member.getUserId()) == null) {
+                                setMember(member.getUserId(), member);
+
+                                // Also create a User
+                                if (store != null) {
+                                    store.updateUserWithRoomMemberEvent(member);
+                                }
+                            }
+                        }
+
+                        synchronized (mGetAllMembersCallbacks) {
+                            for (ApiCallback<List<RoomMember>> apiCallback : mGetAllMembersCallbacks) {
+                                // make a copy to avoid concurrency modifications
+                                res = new ArrayList<>(mMembers.values());
+
+                                apiCallback.onSuccess(res);
+                            }
+
+                            mGetAllMembersCallbacks.clear();
+                        }
+
+                        mAllMembersAreLoaded = true;
+                    }
+                });
+            }
+        }
+    }
+
+    /**
+     * Tell if all members has been loaded
+     *
+     * @return true if LazyLoading is Off, or if all members has been loaded
+     */
+    private boolean areAllMembersLoaded() {
+        return mDataHandler != null
+                && (!((MXDataHandler) mDataHandler).isLazyLoadingEnabled() || mAllMembersAreLoaded);
+    }
+
+    /**
+     * Force a fetch of the loaded members the next time they will be requested
+     */
+    public void forceMembersRequest() {
+        mAllMembersAreLoaded = false;
     }
 
     /**
@@ -337,23 +413,41 @@ public class RoomState implements Externalizable {
     }
 
     /**
-     * Provides a list of displayable members.
-     * Some dummy members are created to internal stuff.
-     *
-     * @return a copy of the displayable room members list.
+     * @return a copy of the displayable members list. May be incomplete if the full list is not loaded yet
      */
-    public Collection<RoomMember> getDisplayableMembers() {
-        Collection<RoomMember> members = getMembers();
+    public List<RoomMember> getDisplayableLoadedMembers() {
+        List<RoomMember> res = getLoadedMembers();
 
         RoomMember conferenceUserId = getMember(MXCallsManager.getConferenceUserId(roomId));
 
         if (null != conferenceUserId) {
-            List<RoomMember> membersList = new ArrayList<>(members);
-            membersList.remove(conferenceUserId);
-            members = membersList;
+            res.remove(conferenceUserId);
         }
 
-        return members;
+        return res;
+    }
+
+    /**
+     * Provides a list of displayable members.
+     * Some dummy members are created to internal stuff.
+     *
+     * @param callback The callback to get a copy of the displayable room members list.
+     */
+    public void getDisplayableMembersAsync(final ApiCallback<List<RoomMember>> callback) {
+        getMembersAsync(new SimpleApiCallback<List<RoomMember>>(callback) {
+            @Override
+            public void onSuccess(List<RoomMember> members) {
+                RoomMember conferenceUserId = getMember(MXCallsManager.getConferenceUserId(roomId));
+
+                if (null != conferenceUserId) {
+                    List<RoomMember> membersList = new ArrayList<>(members);
+                    membersList.remove(conferenceUserId);
+                    callback.onSuccess(membersList);
+                } else {
+                    callback.onSuccess(members);
+                }
+            }
+        });
     }
 
     /**
@@ -363,25 +457,7 @@ public class RoomState implements Externalizable {
      * @return true if it is a call conference room.
      */
     public boolean isConferenceUserRoom() {
-        // test if it is not yet initialized
-        if (null == mIsConferenceUserRoom) {
-
-            mIsConferenceUserRoom = false;
-
-            Collection<RoomMember> members = getMembers();
-
-            // works only with 1:1 room
-            if (2 == members.size()) {
-                for (RoomMember member : members) {
-                    if (MXCallsManager.isConferenceUserId(member.getUserId())) {
-                        mIsConferenceUserRoom = true;
-                        break;
-                    }
-                }
-            }
-        }
-
-        return mIsConferenceUserRoom;
+        return getDataHandler().getStore().getSummary(roomId).isConferenceUserRoom();
     }
 
     /**
@@ -390,7 +466,7 @@ public class RoomState implements Externalizable {
      * @param isConferenceUserRoom true when it is an user conference room.
      */
     public void setIsConferenceUserRoom(boolean isConferenceUserRoom) {
-        mIsConferenceUserRoom = isConferenceUserRoom;
+        getDataHandler().getStore().getSummary(roomId).setIsConferenceUserRoom(isConferenceUserRoom);
     }
 
     /**
@@ -399,7 +475,7 @@ public class RoomState implements Externalizable {
      * @param userId the user id.
      * @param member the new member value.
      */
-    public void setMember(String userId, RoomMember member) {
+    private void setMember(String userId, RoomMember member) {
         // Populate a basic user object if there is none
         if (member.getUserId() == null) {
             member.setUserId(userId);
@@ -418,6 +494,8 @@ public class RoomState implements Externalizable {
      * @param userId the user id.
      * @return the linked member it exists.
      */
+    // TODO Change this? Can return null if all members are not loaded yet
+    @Nullable
     public RoomMember getMember(String userId) {
         RoomMember member;
 
@@ -425,15 +503,27 @@ public class RoomState implements Externalizable {
             member = mMembers.get(userId);
         }
 
+        if (member == null) {
+            // TODO LazyLoading
+            Log.e(LOG_TAG, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Null member '" + userId + "' !!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+
+            if (TextUtils.equals(getDataHandler().getUserId(), userId)) {
+                // This should never happen
+                Log.e(LOG_TAG, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Null current user '" + userId + "' !!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            }
+        }
+
         return member;
     }
 
     /**
      * Retrieve a room member from its original event id.
+     * It can return null if the lazy loading is enabled and if the member is not loaded yet.
      *
      * @param eventId the event id.
-     * @return the linked member it exists.
+     * @return the linked member if it exists and if it is loaded.
      */
+    @Nullable
     public RoomMember getMemberByEventId(String eventId) {
         RoomMember member = null;
 
@@ -564,19 +654,17 @@ public class RoomState implements Externalizable {
     /**
      * Check if the user userId can back paginate.
      *
-     * @param userId the user Id.
-     * @return true if the user can backpaginate.
+     * @param isJoined  true is user is in the room
+     * @param isInvited true is user is invited to the room
+     * @return true if the user can back paginate.
      */
-    public boolean canBackPaginated(String userId) {
-        RoomMember member = getMember(userId);
-        String membership = (null != member) ? member.membership : "";
+    public boolean canBackPaginate(boolean isJoined, boolean isInvited) {
         String visibility = TextUtils.isEmpty(history_visibility) ? HISTORY_VISIBILITY_SHARED : history_visibility;
 
-        return visibility.equals(HISTORY_VISIBILITY_WORLD_READABLE) ||
-                visibility.equals(HISTORY_VISIBILITY_SHARED) ||
-                (RoomMember.MEMBERSHIP_JOIN.equals(membership)) /*&&visibility == invited or joined */ ||
-                (RoomMember.MEMBERSHIP_INVITE.equals(membership) && visibility.equals(HISTORY_VISIBILITY_INVITED))
-                ;
+        return isJoined
+                || visibility.equals(HISTORY_VISIBILITY_WORLD_READABLE)
+                || visibility.equals(HISTORY_VISIBILITY_SHARED)
+                || (visibility.equals(HISTORY_VISIBILITY_INVITED) && isInvited);
     }
 
     /**
@@ -590,22 +678,21 @@ public class RoomState implements Externalizable {
         copy.setPowerLevels((powerLevels == null) ? null : powerLevels.deepCopy());
         copy.aliases = (aliases == null) ? null : new ArrayList<>(aliases);
         copy.mAliasesByDomain = new HashMap<>(mAliasesByDomain);
-        copy.alias = alias;
+        copy.canonicalAlias = canonicalAlias;
         copy.name = name;
         copy.topic = topic;
         copy.url = url;
         copy.mRoomCreateContent = mRoomCreateContent != null ? mRoomCreateContent.deepCopy() : null;
+        copy.mRoomPinnedEventsContent = mRoomPinnedEventsContent != null ? mRoomPinnedEventsContent.deepCopy() : null;
         copy.join_rule = join_rule;
         copy.guest_access = guest_access;
         copy.history_visibility = history_visibility;
         copy.visibility = visibility;
-        copy.roomAliasName = roomAliasName;
         copy.token = token;
         copy.groups = groups;
         copy.mDataHandler = mDataHandler;
-        copy.mMembership = mMembership;
         copy.mIsLive = mIsLive;
-        copy.mIsConferenceUserRoom = mIsConferenceUserRoom;
+        copy.mAllMembersAreLoaded = mAllMembersAreLoaded;
         copy.algorithm = algorithm;
         copy.mRoomAliases = new HashMap<>(mRoomAliases);
         copy.mStateEvents = new HashMap<>(mStateEvents);
@@ -631,36 +718,20 @@ public class RoomState implements Externalizable {
         return copy;
     }
 
-
     /**
-     * @return the room alias
+     * @return the room canonical alias
      */
-    public String getAlias() {
-        // SPEC-125
-        if (!TextUtils.isEmpty(alias)) {
-            return alias;
-        } else if (!TextUtils.isEmpty(getFirstAlias())) {
-            return getFirstAlias();
-        } else if (!TextUtils.isEmpty(canonical_alias)) {
-            return canonical_alias;
-        }
-
-        return null;
+    public String getCanonicalAlias() {
+        return canonicalAlias;
     }
 
     /**
-     * Returns the first room alias.
+     * Update the canonical alias of a room
      *
-     * @return the first room alias
+     * @param newCanonicalAlias the new canonical alias
      */
-    private String getFirstAlias() {
-        List<String> mergedAliases = getAliases();
-
-        if (mergedAliases.size() != 0) {
-            return mergedAliases.get(0);
-        }
-
-        return null;
+    public void setCanonicalAlias(String newCanonicalAlias) {
+        canonicalAlias = newCanonicalAlias;
     }
 
     /**
@@ -731,94 +802,6 @@ public class RoomState implements Externalizable {
     }
 
     /**
-     * Build and return the room's display name.
-     *
-     * @param selfUserId this user's user id (to exclude from members)
-     * @return the display name
-     */
-    public String getDisplayName(String selfUserId) {
-        String displayName = null;
-        String alias = getAlias();
-
-        synchronized (this) {
-            if (name != null) {
-                displayName = name;
-            } else if (!TextUtils.isEmpty(alias)) {
-                displayName = getAlias();
-            }
-            // compute a name
-            else if (mMembers.size() > 0) {
-                Iterator it = mMembers.entrySet().iterator();
-                Map.Entry<String, RoomMember> otherUserPair = null;
-
-                if ((mMembers.size() >= 3) && (selfUserId != null)) {
-                    // this is a group chat and should have the names of participants
-                    // according to "(<num> <name1>, <name2>, <name3> ..."
-                    int count = 0;
-
-                    displayName = "";
-
-                    while (it.hasNext()) {
-                        Map.Entry<String, RoomMember> pair = (Map.Entry<String, RoomMember>) it.next();
-
-                        if (!selfUserId.equals(pair.getKey())) {
-                            otherUserPair = pair;
-
-                            if (count > 0) {
-                                displayName += ", ";
-                            }
-
-                            if (otherUserPair.getValue().getName() != null) {
-                                displayName += getMemberName(otherUserPair.getValue().getUserId()); // The member name
-                            } else {
-                                displayName += getMemberName(otherUserPair.getKey()); // The user id
-                            }
-                            count++;
-                        }
-                    }
-                    displayName = "(" + count + ") " + displayName;
-                } else {
-                    // by default, it is oneself name
-                    displayName = getMemberName(selfUserId);
-
-                    // A One2One private room can default to being called like the other guy
-                    if (selfUserId != null) {
-                        while (it.hasNext()) {
-                            Map.Entry<String, RoomMember> pair = (Map.Entry<String, RoomMember>) it.next();
-                            if (!selfUserId.equals(pair.getKey())) {
-                                otherUserPair = pair;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (otherUserPair != null) {
-                        if (otherUserPair.getValue().getName() != null) {
-                            displayName = getMemberName(otherUserPair.getValue().getUserId()); // The member name
-                        } else {
-                            displayName = getMemberName(otherUserPair.getKey()); // The user id
-                        }
-                    }
-                }
-            }
-        }
-
-        if ((displayName != null) && (alias != null) && !displayName.equals(alias)) {
-            if (TextUtils.isEmpty(displayName)) {
-                displayName = alias;
-            } else {
-                displayName += " (" + alias + ")";
-            }
-        }
-
-        if (displayName == null) {
-            displayName = roomId;
-        }
-
-        return displayName;
-    }
-
-    /**
      * @return true if the room is encrypted
      */
     public boolean isEncrypted() {
@@ -830,7 +813,7 @@ public class RoomState implements Externalizable {
 
     /**
      * @return true if the room is versioned, it means that the room is obsolete.
-     * You can't interact with it anymore, but you can still browse the past messages.
+     *         You can't interact with it anymore, but you can still browse the past messages.
      */
     public boolean isVersioned() {
         return mRoomTombstoneContent != null;
@@ -858,6 +841,14 @@ public class RoomState implements Externalizable {
     }
 
     /**
+     * @return the room pinned events content
+     */
+    @Nullable
+    public RoomPinnedEventsContent getRoomPinnedEventsContent() {
+        return mRoomPinnedEventsContent;
+    }
+
+    /**
      * @return the encryption algorithm
      */
     public String encryptionAlgorithm() {
@@ -882,19 +873,19 @@ public class RoomState implements Externalizable {
 
         try {
             if (Event.EVENT_TYPE_STATE_ROOM_NAME.equals(eventType)) {
-                name = JsonUtils.toRoomState(contentToConsider).name;
+                name = JsonUtils.toStateEvent(contentToConsider).name;
             } else if (Event.EVENT_TYPE_STATE_ROOM_TOPIC.equals(eventType)) {
-                topic = JsonUtils.toRoomState(contentToConsider).topic;
+                topic = JsonUtils.toStateEvent(contentToConsider).topic;
             } else if (Event.EVENT_TYPE_STATE_ROOM_CREATE.equals(eventType)) {
                 mRoomCreateContent = JsonUtils.toRoomCreateContent(contentToConsider);
             } else if (Event.EVENT_TYPE_STATE_ROOM_JOIN_RULES.equals(eventType)) {
-                join_rule = JsonUtils.toRoomState(contentToConsider).join_rule;
+                join_rule = JsonUtils.toStateEvent(contentToConsider).joinRule;
             } else if (Event.EVENT_TYPE_STATE_ROOM_GUEST_ACCESS.equals(eventType)) {
-                guest_access = JsonUtils.toRoomState(contentToConsider).guest_access;
+                guest_access = JsonUtils.toStateEvent(contentToConsider).guestAccess;
             } else if (Event.EVENT_TYPE_STATE_ROOM_ALIASES.equals(eventType)) {
                 if (!TextUtils.isEmpty(event.stateKey)) {
                     // backward compatibility
-                    aliases = JsonUtils.toRoomState(contentToConsider).aliases;
+                    aliases = JsonUtils.toStateEvent(contentToConsider).aliases;
 
                     // sanity check
                     if (null != aliases) {
@@ -905,7 +896,7 @@ public class RoomState implements Externalizable {
                     }
                 }
             } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTION.equals(eventType)) {
-                algorithm = JsonUtils.toRoomState(contentToConsider).algorithm;
+                algorithm = JsonUtils.toStateEvent(contentToConsider).algorithm;
 
                 // When a client receives an m.room.encryption event as above, it should set a flag to indicate that messages sent
                 // in the room should be encrypted.
@@ -917,14 +908,14 @@ public class RoomState implements Externalizable {
                 }
             } else if (Event.EVENT_TYPE_STATE_CANONICAL_ALIAS.equals(eventType)) {
                 // SPEC-125
-                alias = JsonUtils.toRoomState(contentToConsider).alias;
+                canonicalAlias = JsonUtils.toStateEvent(contentToConsider).canonicalAlias;
             } else if (Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY.equals(eventType)) {
                 // SPEC-134
-                history_visibility = JsonUtils.toRoomState(contentToConsider).history_visibility;
+                history_visibility = JsonUtils.toStateEvent(contentToConsider).historyVisibility;
             } else if (Event.EVENT_TYPE_STATE_ROOM_AVATAR.equals(eventType)) {
-                url = JsonUtils.toRoomState(contentToConsider).url;
+                url = JsonUtils.toStateEvent(contentToConsider).url;
             } else if (Event.EVENT_TYPE_STATE_RELATED_GROUPS.equals(eventType)) {
-                groups = JsonUtils.toRoomState(contentToConsider).groups;
+                groups = JsonUtils.toStateEvent(contentToConsider).groups;
             } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
                 RoomMember member = JsonUtils.toRoomMember(contentToConsider);
                 String userId = event.stateKey;
@@ -976,9 +967,9 @@ public class RoomState implements Externalizable {
                                 }
 
                                 // test if the user has been kicked
-                                if (!TextUtils.equals(event.getSender(), event.stateKey) &&
-                                        TextUtils.equals(currentMember.membership, RoomMember.MEMBERSHIP_JOIN) &&
-                                        TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_LEAVE)) {
+                                if (!TextUtils.equals(event.getSender(), event.stateKey)
+                                        && TextUtils.equals(currentMember.membership, RoomMember.MEMBERSHIP_JOIN)
+                                        && TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_LEAVE)) {
                                     member.membership = RoomMember.MEMBERSHIP_KICK;
                                 }
                             }
@@ -1016,6 +1007,8 @@ public class RoomState implements Externalizable {
                 }
             } else if (Event.EVENT_TYPE_STATE_ROOM_TOMBSTONE.equals(eventType)) {
                 mRoomTombstoneContent = JsonUtils.toRoomTombstoneContent(contentToConsider);
+            } else if (Event.EVENT_TYPE_STATE_PINNED_EVENT.equals(eventType)) {
+                mRoomPinnedEventsContent = JsonUtils.toRoomPinnedEventsContent(contentToConsider);
             }
             // same the latest room state events
             // excepts the membership ones
@@ -1042,7 +1035,7 @@ public class RoomState implements Externalizable {
      * @return true if the room is a public one
      */
     public boolean isPublic() {
-        return TextUtils.equals((null != visibility) ? visibility : join_rule, DIRECTORY_VISIBILITY_PUBLIC);
+        return TextUtils.equals((null != visibility) ? visibility : join_rule, RoomDirectoryVisibility.DIRECTORY_VISIBILITY_PUBLIC);
     }
 
     /**
@@ -1142,7 +1135,7 @@ public class RoomState implements Externalizable {
         }
 
         if (input.readBoolean()) {
-            alias = input.readUTF();
+            canonicalAlias = input.readUTF();
         }
 
         if (input.readBoolean()) {
@@ -1166,6 +1159,10 @@ public class RoomState implements Externalizable {
         }
 
         if (input.readBoolean()) {
+            mRoomPinnedEventsContent = (RoomPinnedEventsContent) input.readObject();
+        }
+
+        if (input.readBoolean()) {
             join_rule = input.readUTF();
         }
 
@@ -1175,10 +1172,6 @@ public class RoomState implements Externalizable {
 
         if (input.readBoolean()) {
             history_visibility = input.readUTF();
-        }
-
-        if (input.readBoolean()) {
-            roomAliasName = input.readUTF();
         }
 
         if (input.readBoolean()) {
@@ -1211,15 +1204,9 @@ public class RoomState implements Externalizable {
             mMembersWithThirdPartyInviteTokenCache.put(r.getThirdPartyInviteToken(), r);
         }
 
-        if (input.readBoolean()) {
-            mMembership = input.readUTF();
-        }
-
         mIsLive = input.readBoolean();
 
-        if (input.readBoolean()) {
-            mIsConferenceUserRoom = input.readBoolean();
-        }
+        mAllMembersAreLoaded = input.readBoolean();
 
         if (input.readBoolean()) {
             groups = (List<String>) input.readObject();
@@ -1228,7 +1215,6 @@ public class RoomState implements Externalizable {
         if (input.readBoolean()) {
             mRoomTombstoneContent = (RoomTombstoneContent) input.readObject();
         }
-
     }
 
     @Override
@@ -1259,9 +1245,9 @@ public class RoomState implements Externalizable {
 
         output.writeObject(mStateEvents);
 
-        output.writeBoolean(null != alias);
-        if (null != alias) {
-            output.writeUTF(alias);
+        output.writeBoolean(null != canonicalAlias);
+        if (null != canonicalAlias) {
+            output.writeUTF(canonicalAlias);
         }
 
         output.writeBoolean(null != name);
@@ -1289,6 +1275,11 @@ public class RoomState implements Externalizable {
             output.writeObject(mRoomCreateContent);
         }
 
+        output.writeBoolean(null != mRoomPinnedEventsContent);
+        if (null != mRoomPinnedEventsContent) {
+            output.writeObject(mRoomPinnedEventsContent);
+        }
+
         output.writeBoolean(null != join_rule);
         if (null != join_rule) {
             output.writeUTF(join_rule);
@@ -1302,11 +1293,6 @@ public class RoomState implements Externalizable {
         output.writeBoolean(null != history_visibility);
         if (null != history_visibility) {
             output.writeUTF(history_visibility);
-        }
-
-        output.writeBoolean(null != roomAliasName);
-        if (null != roomAliasName) {
-            output.writeUTF(roomAliasName);
         }
 
         output.writeBoolean(null != visibility);
@@ -1331,17 +1317,9 @@ public class RoomState implements Externalizable {
         output.writeObject(new ArrayList<>(mThirdPartyInvites.values()));
         output.writeObject(new ArrayList<>(mMembersWithThirdPartyInviteTokenCache.values()));
 
-        output.writeBoolean(null != mMembership);
-        if (null != mMembership) {
-            output.writeUTF(mMembership);
-        }
-
         output.writeBoolean(mIsLive);
 
-        output.writeBoolean(null != mIsConferenceUserRoom);
-        if (null != mIsConferenceUserRoom) {
-            output.writeBoolean(mIsConferenceUserRoom);
-        }
+        output.writeBoolean(mAllMembersAreLoaded);
 
         output.writeBoolean(null != groups);
         if (null != groups) {

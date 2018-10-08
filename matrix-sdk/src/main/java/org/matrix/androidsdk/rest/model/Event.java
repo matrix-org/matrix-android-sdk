@@ -23,6 +23,7 @@ import android.text.TextUtils;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.annotations.SerializedName;
 
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
@@ -62,18 +63,25 @@ public class Event implements Externalizable {
     private static final long serialVersionUID = -1431845331022808337L;
 
     public enum SentState {
-        UNSENT,  // the event has not been sent
-        ENCRYPTING, // the event is encrypting
-        SENDING, // the event is currently sending
-        WAITING_RETRY, // the event is going to be resent asap
-        SENT,    // the event has been sent
-        UNDELIVERABLE,   // The event failed to be sent
-        FAILED_UNKNOWN_DEVICES // the event failed to be sent because some unknown devices have been found while encrypting it
+        // the event has not been sent
+        UNSENT,
+        // the event is encrypting
+        ENCRYPTING,
+        // the event is currently sending
+        SENDING,
+        // the event is going to be resent asap
+        WAITING_RETRY,
+        // the event has been sent
+        SENT,
+        // The event failed to be sent
+        UNDELIVERED,
+        // the event failed to be sent because some unknown devices have been found while encrypting it
+        FAILED_UNKNOWN_DEVICES
     }
 
     // when there is no more message to be paginated in a room
     // the server returns a null token.
-    // defines by a non null one to ben able tp store it.
+    // defines by a non null one to be able to store it.
     public static final String PAGINATE_BACK_TOKEN_END = "PAGINATE_BACK_TOKEN_END";
 
     public static final String EVENT_TYPE_PRESENCE = "m.presence";
@@ -109,6 +117,7 @@ public class Event implements Externalizable {
     public static final String EVENT_TYPE_STATE_CANONICAL_ALIAS = "m.room.canonical_alias";
     public static final String EVENT_TYPE_STATE_HISTORY_VISIBILITY = "m.room.history_visibility";
     public static final String EVENT_TYPE_STATE_RELATED_GROUPS = "m.room.related_groups";
+    public static final String EVENT_TYPE_STATE_PINNED_EVENT = "m.room.pinned_events";
 
     // call events
     public static final String EVENT_TYPE_CALL_INVITE = "m.call.invite";
@@ -140,6 +149,7 @@ public class Event implements Externalizable {
     public Long age;
 
     // Specific to state events
+    @SerializedName("state_key")
     public String stateKey;
 
     // Contains optional extra information about the event.
@@ -156,7 +166,7 @@ public class Event implements Externalizable {
     public MatrixError unsentMatrixError = null;
 
     // sent state
-    public SentState mSentState = SentState.SENT;
+    public SentState mSentState;
 
     // save the token to back paginate
     // the room history could have been reduced to save memory.
@@ -450,7 +460,8 @@ public class Event implements Externalizable {
     /**
      * @return the redacted event id.
      */
-    public String getRedacts() {
+    @Nullable
+    public String getRedactedEventId() {
         if (null != redacts) {
             return redacts;
         } else if (isRedacted()) {
@@ -474,7 +485,7 @@ public class Event implements Externalizable {
         originServerTs = System.currentTimeMillis();
         sender = userId = anUserId;
         roomId = aRoomId;
-        mSentState = Event.SentState.SENDING;
+        mSentState = Event.SentState.UNSENT;
         createDummyEventId();
     }
 
@@ -492,7 +503,7 @@ public class Event implements Externalizable {
         originServerTs = System.currentTimeMillis();
         sender = userId = anUserId;
         roomId = aRoomId;
-        mSentState = Event.SentState.SENDING;
+        mSentState = Event.SentState.UNSENT;
         createDummyEventId();
     }
 
@@ -540,10 +551,10 @@ public class Event implements Externalizable {
      * @return true if the event if a call event.
      */
     public boolean isCallEvent() {
-        return EVENT_TYPE_CALL_INVITE.equals(getType()) ||
-                EVENT_TYPE_CALL_CANDIDATES.equals(getType()) ||
-                EVENT_TYPE_CALL_ANSWER.equals(getType()) ||
-                EVENT_TYPE_CALL_HANGUP.equals(getType());
+        return EVENT_TYPE_CALL_INVITE.equals(getType())
+                || EVENT_TYPE_CALL_CANDIDATES.equals(getType())
+                || EVENT_TYPE_CALL_ANSWER.equals(getType())
+                || EVENT_TYPE_CALL_HANGUP.equals(getType());
     }
 
     /**
@@ -593,7 +604,7 @@ public class Event implements Externalizable {
      * @return true if it can be resent.
      */
     public boolean canBeResent() {
-        return (mSentState == SentState.WAITING_RETRY) || (mSentState == SentState.UNDELIVERABLE) || (mSentState == SentState.FAILED_UNKNOWN_DEVICES);
+        return (mSentState == SentState.WAITING_RETRY) || (mSentState == SentState.UNDELIVERED) || (mSentState == SentState.FAILED_UNKNOWN_DEVICES);
     }
 
     /**
@@ -624,12 +635,12 @@ public class Event implements Externalizable {
     }
 
     /**
-     * Tell if the message is undeliverable
+     * Tell if the message sending failed
      *
-     * @return true if the event is undeliverable
+     * @return true if the event has not been sent because of a failure
      */
-    public boolean isUndeliverable() {
-        return (mSentState == SentState.UNDELIVERABLE);
+    public boolean isUndelivered() {
+        return (mSentState == SentState.UNDELIVERED);
     }
 
     /**
@@ -639,14 +650,6 @@ public class Event implements Externalizable {
      */
     public boolean isUnknownDevice() {
         return (mSentState == SentState.FAILED_UNKNOWN_DEVICES);
-    }
-
-    /**
-     * @deprecated call isUnknownDevice()
-     */
-    @Deprecated
-    public boolean isUnkownDevice() {
-        return isUnknownDevice();
     }
 
     /**
@@ -846,8 +849,8 @@ public class Event implements Externalizable {
             text += "WAITING_RETRY";
         } else if (mSentState == SentState.SENT) {
             text += "SENT";
-        } else if (mSentState == SentState.UNDELIVERABLE) {
-            text += "UNDELIVERABLE";
+        } else if (mSentState == SentState.UNDELIVERED) {
+            text += "UNDELIVERED";
         } else if (mSentState == SentState.FAILED_UNKNOWN_DEVICES) {
             text += "FAILED UNKNOWN DEVICES";
         }

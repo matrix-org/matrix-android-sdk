@@ -1,6 +1,7 @@
 /* 
  * Copyright 2016 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -22,19 +23,19 @@ import java.util.List;
 /**
  `MXRoomSyncUnreadNotifications` represents the unread counts for a room.
  */
-public class RoomSyncUnreadNotifications implements java.io.Serializable {
+public class RoomSyncUnreadNotifications {
     /**
      * List of account data events (array of Event).
      */
     public List<Event> events;
 
     /**
-     The number of unread messages that match the push notification rules.
+     * The number of unread messages that match the push notification rules.
      */
     public Integer notificationCount;
 
     /**
-     The number of highlighted unread messages (subset of notifications).
+     * The number of highlighted unread messages (subset of notifications).
      */
     public Integer highlightCount;
 }

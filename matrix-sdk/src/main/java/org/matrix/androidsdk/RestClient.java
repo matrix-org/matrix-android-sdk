@@ -23,18 +23,20 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 import android.text.TextUtils;
 import android.util.Pair;
 
 import com.facebook.stetho.okhttp3.StethoInterceptor;
 import com.google.gson.Gson;
 
+import org.matrix.androidsdk.interceptors.CurlLoggingInterceptor;
+import org.matrix.androidsdk.interceptors.FormattedJsonHttpLogger;
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.client.MXRestExecutorService;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.ssl.CertUtil;
-import org.matrix.androidsdk.util.FormattedJsonHttpLogger;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.PolymorphicRequestBodyConverter;
@@ -63,6 +65,7 @@ public class RestClient<T> {
 
     public static final String URI_API_PREFIX_PATH_MEDIA_R0 = "_matrix/media/r0/";
     public static final String URI_API_PREFIX_PATH_MEDIA_PROXY_UNSTABLE = "_matrix/media_proxy/unstable/";
+    public static final String URI_API_PREFIX_PATH = "_matrix/client/";
     public static final String URI_API_PREFIX_PATH_R0 = "_matrix/client/r0/";
     public static final String URI_API_PREFIX_PATH_UNSTABLE = "_matrix/client/unstable/";
 
@@ -158,6 +161,7 @@ public class RestClient<T> {
             }
         };
 
+        // TODO Remove this, seems so useless
         Interceptor connectivityInterceptor = new Interceptor() {
             @Override
             public Response intercept(Chain chain) throws IOException {
@@ -170,17 +174,22 @@ public class RestClient<T> {
             }
         };
 
-        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(new FormattedJsonHttpLogger());
-        loggingInterceptor.setLevel(BuildConfig.OKHTTP_LOGGING_LEVEL);
-
         OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient().newBuilder()
                 .connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .readTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .writeTimeout(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .addInterceptor(authentInterceptor)
-                .addInterceptor(connectivityInterceptor)
-                .addInterceptor(loggingInterceptor)
-                .addNetworkInterceptor(new StethoInterceptor());
+                .addInterceptor(connectivityInterceptor);
+
+        if (BuildConfig.DEBUG) {
+            HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(new FormattedJsonHttpLogger());
+            loggingInterceptor.setLevel(BuildConfig.OKHTTP_LOGGING_LEVEL);
+
+            okHttpClientBuilder
+                    .addInterceptor(loggingInterceptor)
+                    .addNetworkInterceptor(new StethoInterceptor())
+                    .addInterceptor(new CurlLoggingInterceptor());
+        }
 
 
         if (mUseMXExecutor) {
@@ -328,6 +337,7 @@ public class RestClient<T> {
             Log.d(LOG_TAG, "## refreshConnectionTimeout()  : update the requests timeout to 1 ms");
         }
 
+        // FIXME It has no effect to the rest client
         mOkHttpClient = builder.build();
     }
 
@@ -352,6 +362,7 @@ public class RestClient<T> {
         }
 
         if (timeoutMs != mOkHttpClient.connectTimeoutMillis()) {
+            // FIXME It has no effect to the rest client
             mOkHttpClient = mOkHttpClient.newBuilder().connectTimeout(timeoutMs, TimeUnit.MILLISECONDS).build();
         }
     }
@@ -405,6 +416,7 @@ public class RestClient<T> {
      *
      * @param api the api object
      */
+    @VisibleForTesting()
     protected void setApi(T api) {
         mApi = api;
     }

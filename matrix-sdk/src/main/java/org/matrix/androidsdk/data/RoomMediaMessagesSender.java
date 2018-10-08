@@ -832,7 +832,7 @@ class RoomMediaMessagesSender {
                             mUiHandler.post(new Runnable() {
                                 @Override
                                 public void run() {
-                                    mDataHandler.updateEventState(roomMediaMessage.getEvent(), Event.SentState.UNDELIVERABLE);
+                                    mDataHandler.updateEventState(roomMediaMessage.getEvent(), Event.SentState.UNDELIVERED);
                                     mRoom.storeOutgoingEvent(roomMediaMessage.getEvent());
                                     mDataHandler.getStore().commit();
 
@@ -874,7 +874,7 @@ class RoomMediaMessagesSender {
                                 mUiHandler.post(new Runnable() {
                                     @Override
                                     public void run() {
-                                        mDataHandler.updateEventState(roomMediaMessage.getEvent(), Event.SentState.UNDELIVERABLE);
+                                        mDataHandler.updateEventState(roomMediaMessage.getEvent(), Event.SentState.UNDELIVERED);
 
                                         if (null != roomMediaMessage.getMediaUploadListener()) {
                                             roomMediaMessage.getMediaUploadListener().onUploadCancel(uploadId);
@@ -892,7 +892,7 @@ class RoomMediaMessagesSender {
                                 mUiHandler.post(new Runnable() {
                                     @Override
                                     public void run() {
-                                        mDataHandler.updateEventState(roomMediaMessage.getEvent(), Event.SentState.UNDELIVERABLE);
+                                        mDataHandler.updateEventState(roomMediaMessage.getEvent(), Event.SentState.UNDELIVERED);
 
                                         if (null != roomMediaMessage.getMediaUploadListener()) {
                                             roomMediaMessage.getMediaUploadListener().onUploadError(uploadId, serverResponseCode, serverErrorMessage);

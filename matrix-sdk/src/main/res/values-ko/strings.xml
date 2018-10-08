@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<resources><string name="matrix_sdk_app_name">Matrix 안드로이드 SDK</string>
+
+    <string name="summary_message">%1$s: %2$s</string>
+    <string name="notice_room_invite_no_invitee">%s\'의 초대</string>
+    </resources>

@@ -56,8 +56,6 @@ public class EventsThread extends Thread {
     private static final int DEFAULT_SERVER_TIMEOUT_MS = 30000;
     private static final int DEFAULT_CLIENT_TIMEOUT_MS = 120000;
 
-    private static final String DATA_SAVE_MODE_FILTER = "{\"room\": {\"ephemeral\": {\"types\": [\"m.receipt\"]}}, \"presence\":{\"not_types\": [\"*\"]}}";
-
     private EventsRestClient mEventsRestClient;
     private EventsThreadListener mListener;
     private String mCurrentToken;
@@ -94,7 +92,7 @@ public class EventsThread extends Thread {
     private boolean mbIsConnected = true;
 
     // use dedicated filter when enable
-    private boolean mIsInDataSaveMode = false;
+    private String mFilterOrFilterId;
 
     private final IMXNetworkEventListener mNetworkListener = new IMXNetworkEventListener() {
         @Override
@@ -150,12 +148,12 @@ public class EventsThread extends Thread {
     }
 
     /**
-     * Update the data save mode
+     * Set filterOrFilterId used for /sync requests
      *
-     * @param enabled true to enable the data save mode
+     * @param filterOrFilterId
      */
-    public void setUseDataSaveMode(boolean enabled) {
-        mIsInDataSaveMode = enabled;
+    public void setFilterOrFilterId(String filterOrFilterId) {
+        mFilterOrFilterId = filterOrFilterId;
     }
 
     /**
@@ -367,9 +365,9 @@ public class EventsThread extends Thread {
      * @return true if the response contains some changed devices.
      */
     private static boolean hasDevicesChanged(SyncResponse syncResponse) {
-        return (null != syncResponse.deviceLists) &&
-                (null != syncResponse.deviceLists.changed) &&
-                (syncResponse.deviceLists.changed.size() > 0);
+        return (null != syncResponse.deviceLists)
+                && (null != syncResponse.deviceLists.changed)
+                && (syncResponse.deviceLists.changed.size() > 0);
     }
 
 
@@ -411,7 +409,7 @@ public class EventsThread extends Thread {
         long initialSyncStartTime = System.currentTimeMillis();
         while (!isInitialSyncDone()) {
             final CountDownLatch latch = new CountDownLatch(1);
-            mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", DATA_SAVE_MODE_FILTER,
+            mEventsRestClient.syncFromToken(null, 0, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", mFilterOrFilterId,
                     new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                         @Override
                         public void onSuccess(SyncResponse syncResponse) {
@@ -569,20 +567,14 @@ public class EventsThread extends Thread {
 
                 long incrementalSyncStartTime = System.currentTimeMillis();
 
-                String inlineFilter = mIsInDataSaveMode ? DATA_SAVE_MODE_FILTER : null; //"{\"room\":{\"timeline\":{\"limit\":250}}}";
-
                 final CountDownLatch latch = new CountDownLatch(1);
 
-                if (mIsInDataSaveMode) {
-                    Log.d(LOG_TAG, "[Data save mode] Get events from token " + mCurrentToken);
-                } else {
-                    Log.d(LOG_TAG, "Get events from token " + mCurrentToken);
-                }
+                Log.d(LOG_TAG, "Get events from token " + mCurrentToken + " with filterOrFilterId " + mFilterOrFilterId);
 
                 final int fServerTimeout = serverTimeout;
                 mNextServerTimeoutms = mDefaultServerTimeoutms;
 
-                mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", inlineFilter,
+                mEventsRestClient.syncFromToken(mCurrentToken, serverTimeout, DEFAULT_CLIENT_TIMEOUT_MS, mIsOnline ? null : "offline", mFilterOrFilterId,
                         new SimpleApiCallback<SyncResponse>(mFailureCallback) {
                             @Override
                             public void onSuccess(SyncResponse syncResponse) {

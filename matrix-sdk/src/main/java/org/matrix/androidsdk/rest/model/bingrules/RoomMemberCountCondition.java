@@ -1,6 +1,7 @@
 /* 
  * Copyright 2014 OpenMarket Ltd
- * 
+ * Copyright 2018 New Vector Ltd
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -17,9 +18,6 @@ package org.matrix.androidsdk.rest.model.bingrules;
 
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.data.Room;
-import org.matrix.androidsdk.rest.model.RoomMember;
-
-import java.util.Collection;
 
 public class RoomMemberCountCondition extends Condition {
 
@@ -42,6 +40,7 @@ public class RoomMemberCountCondition extends Condition {
         return "RoomMemberCountCondition{" + "is='" + is + "'}'";
     }
 
+    @SuppressWarnings("SimplifiableIfStatement")
     public boolean isSatisfied(Room room) {
         // sanity check
         if (room == null) return false;
@@ -54,7 +53,8 @@ public class RoomMemberCountCondition extends Condition {
             if (parseError) return false;
         }
 
-        int numMembers = getNumberOfMembers(room);
+        int numMembers = room.getNumberOfJoinedMembers();
+
         if ("==".equals(comparisonPrefix) || "".equals(comparisonPrefix)) {
             return numMembers == limit;
         }
@@ -70,25 +70,8 @@ public class RoomMemberCountCondition extends Condition {
         if (">=".equals(comparisonPrefix)) {
             return numMembers >= limit;
         }
+
         return false;
-    }
-
-    /**
-     * Count joined room members in the room.
-     *
-     * @param room the room
-     * @return the number of joined members
-     */
-    private int getNumberOfMembers(Room room) {
-        Collection<RoomMember> members = room.getMembers();
-        int n = 0;
-
-        for (RoomMember member : members) {
-            if (RoomMember.MEMBERSHIP_JOIN.equals(member.membership)) {
-                n++;
-            }
-        }
-        return n;
     }
 
     /**

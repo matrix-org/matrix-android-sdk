@@ -129,7 +129,7 @@ public class MXOlmDevice {
             Log.e(LOG_TAG, "## MXOlmDevice : cannot find " + OlmAccount.JSON_KEY_FINGER_PRINT_KEY + " with error " + e.getMessage(), e);
         }
 
-        mInboundGroupSessionMessageIndexes = new HashMap();
+        mInboundGroupSessionMessageIndexes = new HashMap<>();
     }
 
     /**
