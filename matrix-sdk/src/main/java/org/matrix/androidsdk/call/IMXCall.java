@@ -24,6 +24,8 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.model.Event;
 
+import javax.annotation.Nullable;
+
 /**
  * Audio/video call interface.
  * See {@link MXWebRtcCall} and {@link MXChromeCall}.
@@ -170,9 +172,9 @@ public interface IMXCall {
     /**
      * The call is hung up.
      *
-     * @param reason the reason
+     * @param reason the reason, or null for no reason. Reasons are used to indicate errors in the current VoIP implementation.
      */
-    void hangup(String reason);
+    void hangup(@Nullable String reason);
 
     /**
      * Add a listener to the call manager.
