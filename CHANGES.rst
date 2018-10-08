@@ -1,4 +1,4 @@
-Changes to Matrix Android SDK in 0.9.10 (2018-XX-XX)
+Changes to Matrix Android SDK in 0.9.10 (2018-10-08)
 =======================================================
 
 Features:
@@ -22,18 +22,9 @@ API Change:
  - Parameter guestAccess removed from MxSession.createRoom(). It had no effect.
  - EventTimeline is now exposed as an interface. Use EventTimelineFactory to instantiate it. 
 
-Translations:
- -
-
 Others:
  - Boolean deserialization is more permissive: "1" or 1 will be handle as a true value (#358)
  - MXSession.setUseDataSaveMode(boolean) is now deprecated. Handle filter-id lookup in your app and use MXSession.setSyncFilterOrFilterId(String)
-
-Build:
- - 
-
-Test:
- - 
 
 Changes to Matrix Android SDK in 0.9.9 (2018-08-30)
 =======================================================
