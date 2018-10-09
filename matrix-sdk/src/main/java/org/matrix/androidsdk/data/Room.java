@@ -268,7 +268,7 @@ public class Room {
                             List<String> typingUsers = null;
 
                             try {
-                                typingUsers = (new Gson()).fromJson(eventContent.get("user_ids"), new TypeToken<List<String>>() {
+                                typingUsers = JsonUtils.getBasicGson().fromJson(eventContent.get("user_ids"), new TypeToken<List<String>>() {
                                 }.getType());
                             } catch (Exception e) {
                                 Log.e(LOG_TAG, "## handleEphemeralEvents() : exception " + e.getMessage(), e);
@@ -630,7 +630,7 @@ public class Room {
                     Map<String, Object> map = null;
 
                     try {
-                        map = new Gson().fromJson(object, new TypeToken<Map<String, Object>>() {
+                        map = JsonUtils.getBasicGson().fromJson(object, new TypeToken<Map<String, Object>>() {
                         }.getType());
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "joinWithThirdPartySigned :  Gson().fromJson failed" + e.getMessage(), e);
