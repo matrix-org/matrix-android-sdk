@@ -31,8 +31,6 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomMediaMessage;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXFileStore;
-import org.matrix.androidsdk.lazyloading.LazyLoadingScenarioData;
-import org.matrix.androidsdk.lazyloading.RoomNameScenarioData;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.client.LoginRestClient;
 import org.matrix.androidsdk.rest.model.Event;
@@ -356,35 +354,6 @@ public class CommonTestHelper {
      */
     public void await(CountDownLatch latch) throws InterruptedException {
         Assert.assertTrue(latch.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS));
-    }
-
-    /**
-     * Clear all non null sessions in lazy loading scenario data
-     *
-     * @param data
-     */
-    public void clearAllSessions(LazyLoadingScenarioData data) {
-        List<MXSession> sessionsToClear = new ArrayList<>();
-        if (data.aliceSession != null) {
-            sessionsToClear.add(data.aliceSession);
-        }
-        if (data.bobSession != null) {
-            sessionsToClear.add(data.bobSession);
-        }
-        if (data.samSession != null) {
-            sessionsToClear.add(data.samSession);
-        }
-
-        clearAllSessions(sessionsToClear);
-    }
-
-    /**
-     * Clear all sessions in room name scenario data
-     *
-     * @param data
-     */
-    public void clearAllSessions(RoomNameScenarioData data) {
-        clearAllSessions(data.userSessions);
     }
 
     /**

@@ -65,7 +65,7 @@ public class RoomMembersTest {
             }
         });
         mTestHelper.await(lock);
-        mTestHelper.clearAllSessions(data);
+        mLazyLoadingTestHelper.clearAllSessions(data);
     }
 
     @Test
@@ -91,7 +91,7 @@ public class RoomMembersTest {
             }
         });
         mTestHelper.await(lock);
-        mTestHelper.clearAllSessions(data);
+        mLazyLoadingTestHelper.clearAllSessions(data);
     }
 
     @Test
@@ -117,7 +117,7 @@ public class RoomMembersTest {
             }
         });
         mTestHelper.await(lock);
-        mTestHelper.clearAllSessions(data);
+        mLazyLoadingTestHelper.clearAllSessions(data);
     }
 
     @Test
@@ -140,7 +140,7 @@ public class RoomMembersTest {
         } else {
             Assert.assertEquals(4, members.size());
         }
-        mTestHelper.clearAllSessions(data);
+        mLazyLoadingTestHelper.clearAllSessions(data);
     }
 
 }

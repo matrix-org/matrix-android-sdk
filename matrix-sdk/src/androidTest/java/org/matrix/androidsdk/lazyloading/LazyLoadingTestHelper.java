@@ -29,6 +29,7 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -137,5 +138,25 @@ public class LazyLoadingTestHelper {
         bobSession = mTestHelper.logIntoAccount(bobId, logSessionParams);
         samSession = mTestHelper.logIntoAccount(samId, logSessionParams);
         return new LazyLoadingScenarioData(aliceSession, bobSession, samSession, roomId, bobMessageId);
+    }
+
+    /**
+     * Clear all non null sessions in lazy loading scenario data
+     *
+     * @param data
+     */
+    public void clearAllSessions(LazyLoadingScenarioData data) {
+        List<MXSession> sessionsToClear = new ArrayList<>();
+        if (data.aliceSession != null) {
+            sessionsToClear.add(data.aliceSession);
+        }
+        if (data.bobSession != null) {
+            sessionsToClear.add(data.bobSession);
+        }
+        if (data.samSession != null) {
+            sessionsToClear.add(data.samSession);
+        }
+
+        mTestHelper.clearAllSessions(sessionsToClear);
     }
 }

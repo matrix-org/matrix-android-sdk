@@ -66,7 +66,7 @@ public class RoomSummaryTest {
         final RoomSummary samRoomSummary = samRoom.getRoomSummary();
         Assert.assertNotNull(samRoomSummary);
         Assert.assertTrue(samRoomSummary.isJoined());
-        mTestHelper.clearAllSessions(data);
+        mLazyLoadingTestHelper.clearAllSessions(data);
     }
 
     @Test
@@ -93,7 +93,7 @@ public class RoomSummaryTest {
             Assert.assertEquals(0, roomSummary.getNumberOfJoinedMembers());
             Assert.assertEquals(0, roomSummary.getNumberOfInvitedMembers());
         }
-        mTestHelper.clearAllSessions(data);
+        mLazyLoadingTestHelper.clearAllSessions(data);
     }
 
     @Test
@@ -117,7 +117,7 @@ public class RoomSummaryTest {
         mTestHelper.syncSession(data.aliceSession, false);
         final RoomSummary roomSummary = data.aliceSession.getDataHandler().getStore().getSummary(data.roomId);
         Assert.assertNull(roomSummary);
-        mTestHelper.clearAllSessions(data);
+        mLazyLoadingTestHelper.clearAllSessions(data);
     }
 
 }

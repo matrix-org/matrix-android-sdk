@@ -132,4 +132,13 @@ public class RoomNameTestHelper {
 
         return new RoomNameScenarioData(loggedSessions, roomId);
     }
+
+    /**
+     * Clear all sessions in room name scenario data
+     *
+     * @param data
+     */
+    public void clearAllSessions(RoomNameScenarioData data) {
+        mTestHelper.clearAllSessions(data.userSessions);
+    }
 }

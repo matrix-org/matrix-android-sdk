@@ -58,7 +58,7 @@ public class RoomNameTest {
         for (int qty : userQuantities) {
             RoomNameScenarioData data = mRoomNameTestHelper.createScenario(qty, null, withLazyLoading);
             checkAllName(data, null);
-            mTestHelper.clearAllSessions(data);
+            mRoomNameTestHelper.clearAllSessions(data);
         }
     }
 
@@ -76,7 +76,7 @@ public class RoomNameTest {
         for (int qty : userQuantities) {
             RoomNameScenarioData data = mRoomNameTestHelper.createScenario(qty, "Room name " + qty, withLazyLoading);
             checkAllName(data, "Room name " + qty);
-            mTestHelper.clearAllSessions(data);
+            mRoomNameTestHelper.clearAllSessions(data);
         }
     }
 
