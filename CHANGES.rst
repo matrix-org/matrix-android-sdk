@@ -5,7 +5,7 @@ Features:
  -
 
 Improvements:
- -
+ - Improve certificate pinning management for HomeServerConnectionConfig.
 
 Bugfix:
  -
