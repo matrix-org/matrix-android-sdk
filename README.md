@@ -1,4 +1,7 @@
-[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=matrix.android.sdk&metric=alert_status)](https://sonarcloud.io/dashboard?id=matrix.android.sdk) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=matrix.android.sdk&metric=vulnerabilities)](https://sonarcloud.io/dashboard?id=matrix.android.sdk) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=matrix.android.sdk&metric=bugs)](https://sonarcloud.io/dashboard?id=matrix.android.sdk) 
+[![Jenkins](https://img.shields.io/jenkins/s/https/matrix.org/jenkins/view/MatrixView/job/MatrixAndroidSDKDevelop.svg)](https://matrix.org/jenkins/view/MatrixView/job/MatrixAndroidSDKDevelop/)
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=matrix.android.sdk&metric=alert_status)](https://sonarcloud.io/dashboard?id=matrix.android.sdk)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=matrix.android.sdk&metric=vulnerabilities)](https://sonarcloud.io/project/issues?id=matrix.android.sdk&resolved=false&types=VULNERABILITY)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=matrix.android.sdk&metric=bugs)](https://sonarcloud.io/project/issues?id=matrix.android.sdk&resolved=false&types=BUG) 
 
 matrix-android-sdk
 ==================
@@ -19,20 +22,14 @@ Basic usage is:
 
 Bugs / Feature Requests
 -----------------------
-Think you've found a bug? Want a new feature on the client? Please open an issue
-on JIRA:
-
-- Create an account and login to https://matrix.org/jira
-- Navigate to the ``SYAND`` project.
-- Click **Create Issue** - Please be as descriptive as possible, with reproduction
-  steps if possible.
-
-All issues in JIRA are **public**.
+Think you've found a bug? Please check if an issue
+does not exist yet, then, if not, open an issue on this Github repo. If an issue already
+exists, feel free to upvote for it.
 
 Contributing
 ------------
-Want to fix a bug or add a new feature? Check JIRA first to see if someone else is
-handling this issue. If no one is actively working on the issue, then please fork
+Want to fix a bug or add a new feature? Check if there is an corresponding opened issue.
+If no one is actively working on the issue, then please fork
 the ``develop`` branch when writing your fix, and open a pull request when you're
 ready. Do not base your pull requests off ``master``.
 
@@ -41,7 +38,9 @@ Logging in
 To log in, use an instance of the login API client.
 
 ```java
-HomeServerConnectionConfig hsConfig = new HomeServerConnectionConfig(Uri.parse("https://matrix.org"));
+HomeServerConnectionConfig hsConfig = new HomeServerConnectionConfig.Builder()
+    .withHomeServerUri(Uri.parse("https://matrix.org"))
+    .build();
 new LoginRestClient(hsConfig).loginWithUser(username, password, new SimpleApiCallback<Credentials>());
 ```
 
@@ -52,7 +51,8 @@ Starting the matrix session
 The session represents one user's session with a particular home server. There can potentially be multiple sessions for handling multiple accounts.
 
 ```java
-MXSession session = new MXSession(hsConfig, new MXDataHandler(store, credentials), getApplicationContext());
+MXSession session = new MXSession.Builder(hsConfig, new MXDataHandler(store, credentials), getApplicationContext())
+    .build();
 ```
 
 sets up a session for interacting with the home server.
@@ -108,18 +108,6 @@ MXDataHandler dataHandler = new MXDataHandler(new MXMemoryStore());
 ```
 
 creates a data handler with the default in-memory storage implementation.
-
-### Setting up the session
-
-```java
-MXSession session = new MXSession(credentials, dataHandler);
-```
-
-### Starting the event stream
-
-```java
-session.startEventStream();
-```
 
 ### Registering a listener
 To be informed of events, the app needs to implement an event listener.
@@ -217,9 +205,13 @@ content can now be found.
 
 **See the sample app and Javadoc for more details.**
 
+References
+----------
+- [Matrix home page](https://matrix.org)
+- [Matrix api documentation](https://matrix.org/docs/spec/client_server/latest.html)
+- [Matrix api](https://matrix.org/docs/api/client-server/)
+
 License
 -------
 Apache 2.0
 
-[Matrix]:http://matrix.org
-[matrix api]:http://matrix.org/docs/api/client-server/

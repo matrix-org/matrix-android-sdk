@@ -1,3 +1,9 @@
+Changes to Matrix Android SDK in 0.9.11 (2018-10-10)
+=======================================================
+
+Bugfix:
+ - Add a setter to set MXDataHandler to MXFileStore
+
 Changes to Matrix Android SDK in 0.9.10 (2018-10-08)
 =======================================================
 
