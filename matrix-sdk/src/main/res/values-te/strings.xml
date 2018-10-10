@@ -57,7 +57,6 @@
     <string name="medium_email">ఇమెయిల్ చిరునామా</string>
     <string name="medium_phone_number">ఫోను నంబరు</string>
 
-<string name="matrix_sdk_app_name">మ్యాట్రిక్స్ అండ్రొఇడ్ ఏస్ డి కె</string>
 
     <string name="summary_message">%1$s: %2$s</string>
     <string name="summary_user_sent_image">%1$s ఒక చిత్రం పంపారు.</string>

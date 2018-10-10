@@ -87,7 +87,7 @@ public class RestClient<T> {
     private static final int READ_TIMEOUT_MS = 60000;
     private static final int WRITE_TIMEOUT_MS = 60000;
 
-    protected Credentials mCredentials;
+    private Credentials mCredentials;
 
     protected T mApi;
 
@@ -403,21 +403,5 @@ public class RestClient<T> {
      */
     public void setCredentials(Credentials credentials) {
         mCredentials = credentials;
-    }
-
-    /**
-     * Default protected constructor for unit tests.
-     */
-    protected RestClient() {
-    }
-
-    /**
-     * Protected setter for injection by unit tests.
-     *
-     * @param api the api object
-     */
-    @VisibleForTesting()
-    protected void setApi(T api) {
-        mApi = api;
     }
 }

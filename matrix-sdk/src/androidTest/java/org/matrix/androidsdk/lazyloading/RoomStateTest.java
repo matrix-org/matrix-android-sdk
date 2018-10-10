@@ -70,6 +70,7 @@ public class RoomStateTest {
 
         Assert.assertEquals(1, aliceRoom.getNumberOfInvitedMembers());
         Assert.assertEquals(3, aliceRoom.getNumberOfJoinedMembers());
+        mLazyLoadingTestHelper.clearAllSessions(data);
     }
 
     @Test
@@ -107,6 +108,7 @@ public class RoomStateTest {
 
         Assert.assertEquals(1, aliceRoom.getNumberOfInvitedMembers());
         Assert.assertEquals(3, aliceRoom.getNumberOfJoinedMembers());
+        mLazyLoadingTestHelper.clearAllSessions(data);
     }
 
     @Test
@@ -165,6 +167,7 @@ public class RoomStateTest {
         });
         recursiveBackPaginate(liveTimeline, 0, 30, 120);
         mTestHelper.await(lock);
+        mLazyLoadingTestHelper.clearAllSessions(data);
     }
 
     @Test
@@ -201,6 +204,7 @@ public class RoomStateTest {
 
         Assert.assertEquals(1, aliceRoom.getNumberOfInvitedMembers());
         Assert.assertEquals(3, aliceRoom.getNumberOfJoinedMembers());
+        mLazyLoadingTestHelper.clearAllSessions(data);
     }
 
     @Test
@@ -266,6 +270,7 @@ public class RoomStateTest {
             }
         });
         mTestHelper.await(lock);
+        mLazyLoadingTestHelper.clearAllSessions(data);
     }
 
     @Test
@@ -338,6 +343,7 @@ public class RoomStateTest {
             }
         });
         mTestHelper.await(lock);
+        mLazyLoadingTestHelper.clearAllSessions(data);
     }
 
     /**

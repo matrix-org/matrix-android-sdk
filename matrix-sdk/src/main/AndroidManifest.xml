@@ -1,13 +1,16 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"  xmlns:tools="http://schemas.android.com/tools"
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="org.matrix.androidsdk">
 
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_LOGS" tools:ignore="ProtectedPermissions"/>
+    <uses-permission
+        android:name="android.permission.READ_LOGS"
+        tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.REORDER_TASKS" />
 
     <!-- bluetooth headset -->
@@ -17,10 +20,7 @@
     <!-- libjingle is designed for API >= 15 but the app should work from API >= 11 -->
     <!--uses-sdk tools:overrideLibrary="io.pristine.libjingle"/-->
 
-    <application
-        tools:replace="label"
-        android:label="@string/matrix_sdk_app_name">
-
+    <application>
         <receiver android:name="org.matrix.androidsdk.sync.EventsThread$SyncDelayReceiver" />
     </application>
 </manifest>

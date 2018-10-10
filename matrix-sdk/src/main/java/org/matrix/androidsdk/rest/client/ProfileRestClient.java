@@ -102,7 +102,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
 
         // don't retry if the network comes back
         // let the user chooses what he want to do
-        mApi.displayname(mCredentials.userId, user)
+        mApi.displayname(getCredentials().userId, user)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -150,7 +150,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         User user = new User();
         user.setAvatarUrl(newUrl);
 
-        mApi.avatarUrl(mCredentials.userId, user)
+        mApi.avatarUrl(getCredentials().userId, user)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -297,17 +297,17 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         final String description = "refreshTokens";
 
         TokenRefreshParams params = new TokenRefreshParams();
-        params.refresh_token = mCredentials.refreshToken;
+        params.refresh_token = getCredentials().refreshToken;
 
-        mApi.tokenrefresh(params)
+        mApi.tokenRefresh(params)
                 .enqueue(new RestAdapterCallback<TokenRefreshResponse>(description, mUnsentEventsManager, callback, null) {
                     @Override
-                    public void success(TokenRefreshResponse tokenreponse, Response response) {
+                    public void success(TokenRefreshResponse tokenResponse, Response response) {
                         onEventSent();
-                        mCredentials.refreshToken = tokenreponse.refresh_token;
-                        mCredentials.accessToken = tokenreponse.access_token;
+                        getCredentials().refreshToken = tokenResponse.refreshToken;
+                        getCredentials().accessToken = tokenResponse.accessToken;
                         if (null != callback) {
-                            callback.onSuccess(mCredentials);
+                            callback.onSuccess(getCredentials());
                         }
                     }
                 });

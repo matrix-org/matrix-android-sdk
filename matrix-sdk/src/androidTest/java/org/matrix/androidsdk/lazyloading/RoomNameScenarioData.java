@@ -17,22 +17,19 @@ package org.matrix.androidsdk.lazyloading;
 
 import org.matrix.androidsdk.MXSession;
 
+import java.util.List;
+
 /**
  * Data holder for lazy loading tests
  * The sessions are not synced by default as you want to perform some custom tests
  */
-public class LazyLoadingScenarioData {
-    final public MXSession aliceSession;
-    final public MXSession bobSession;
-    final public MXSession samSession;
-    final String roomId;
-    final String bobMessageId;
+public class RoomNameScenarioData {
+    final public List<MXSession> userSessions;
 
-    public LazyLoadingScenarioData(MXSession aliceSession, MXSession bobSession, MXSession samSession, String roomId, String bobMessageId) {
-        this.aliceSession = aliceSession;
-        this.bobSession = bobSession;
-        this.samSession = samSession;
+    final String roomId;
+
+    public RoomNameScenarioData(List<MXSession> userSessions, String roomId) {
+        this.userSessions = userSessions;
         this.roomId = roomId;
-        this.bobMessageId = bobMessageId;
     }
 }

@@ -355,4 +355,17 @@ public class CommonTestHelper {
     public void await(CountDownLatch latch) throws InterruptedException {
         Assert.assertTrue(latch.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS));
     }
+
+    /**
+     * Clear all provided sessions
+     *
+     * @param sessions the sessions to clear
+     */
+    public void clearAllSessions(List<MXSession> sessions) {
+        final Context context = InstrumentationRegistry.getContext();
+
+        for (MXSession session : sessions) {
+            session.clear(context);
+        }
+    }
 }

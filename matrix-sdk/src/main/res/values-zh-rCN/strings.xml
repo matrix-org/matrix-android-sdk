@@ -61,7 +61,6 @@
     <string name="notice_room_third_party_registered_invite">%1$s 接受了 %2$s 的邀请</string>
 
     <string name="could_not_redact">无法撤回</string>
-    <string name="matrix_sdk_app_name">Matrix Android SDK</string>
 
     <string name="summary_message">%1$s：%2$s</string>
     <string name="summary_user_sent_sticker">%1$s 发送了一张贴纸。</string>
