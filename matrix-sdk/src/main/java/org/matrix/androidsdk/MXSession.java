@@ -113,6 +113,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Class that represents one user's session with a particular home server.
@@ -2551,13 +2552,25 @@ public class MXSession {
          * @return this builder, to chain calls
          */
         public Builder withPushServerUrl(@Nullable String pushServerUrl) {
-            // If not empty, alter the Uri of the PushersRestClient
+            // If not empty, create a special PushersRestClient
+            PushersRestClient pushersRestClient = null;
+
             if (!TextUtils.isEmpty(pushServerUrl)) {
+                // pusher uses a custom server
                 try {
-                    mxSession.mPushersRestClient.mHsConfig.setHomeserverUri(Uri.parse(pushServerUrl));
+                    HomeServerConnectionConfig alteredHsConfig = new HomeServerConnectionConfig.Builder()
+                            .withHomeServerUri(Uri.parse(pushServerUrl))
+                            .withCredentials(mxSession.mHsConfig.getCredentials())
+                            .build();
+                    pushersRestClient = new PushersRestClient(alteredHsConfig);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "## withPushServerUrl() failed " + e.getMessage(), e);
                 }
+            }
+
+            if (null != pushersRestClient) {
+                // Replace the existing client
+                mxSession.mPushersRestClient = pushersRestClient;
             }
 
             return this;
