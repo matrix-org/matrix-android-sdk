@@ -177,10 +177,12 @@ public class CertUtil {
                         break;
                     }
                 }
+            } else {
+                defaultTrustManager = new PinnedTrustManager(hsConfig.getAllowedFingerprints(), null);
             }
 
             TrustManager[] trustPinned = new TrustManager[]{
-                    new PinnedTrustManager(hsConfig.getAllowedFingerprints(), defaultTrustManager)
+                    defaultTrustManager
             };
 
             SSLSocketFactory sslSocketFactory;
