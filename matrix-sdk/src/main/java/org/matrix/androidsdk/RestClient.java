@@ -202,7 +202,7 @@ public class RestClient<T> {
             okHttpClientBuilder.hostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
             okHttpClientBuilder.connectionSpecs(CertUtil.newConnectionSpecs(hsConfig));
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage(), e);
+            Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed: " + e.getMessage(), e);
         }
 
         mOkHttpClient = okHttpClientBuilder.build();
