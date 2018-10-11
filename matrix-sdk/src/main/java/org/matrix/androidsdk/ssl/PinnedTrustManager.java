@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +21,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.List;
 
+import javax.annotation.Nullable;
 import javax.net.ssl.X509TrustManager;
 
 /**
@@ -28,6 +30,7 @@ import javax.net.ssl.X509TrustManager;
  */
 public class PinnedTrustManager implements X509TrustManager {
     private final List<Fingerprint> mFingerprints;
+    @Nullable
     private final X509TrustManager mDefaultTrustManager;
 
     /**
@@ -35,7 +38,7 @@ public class PinnedTrustManager implements X509TrustManager {
      * @param defaultTrustManager Optional trust manager to fall back on if cert does not match
      *                            any of the fingerprints. Can be null.
      */
-    public PinnedTrustManager(List<Fingerprint> fingerprints, X509TrustManager defaultTrustManager) {
+    public PinnedTrustManager(List<Fingerprint> fingerprints, @Nullable X509TrustManager defaultTrustManager) {
         mFingerprints = fingerprints;
         mDefaultTrustManager = defaultTrustManager;
     }
@@ -69,7 +72,7 @@ public class PinnedTrustManager implements X509TrustManager {
             }
         } catch (CertificateException e) {
             // If there is an exception we fall back to checking fingerprints
-            if (mFingerprints == null || mFingerprints.size() == 0) {
+            if (mFingerprints == null || mFingerprints.isEmpty()) {
                 throw new UnrecognizedCertificateException(chain[0], Fingerprint.newSha256Fingerprint(chain[0]), e.getCause());
             }
         }
