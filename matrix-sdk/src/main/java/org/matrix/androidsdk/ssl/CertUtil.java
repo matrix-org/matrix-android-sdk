@@ -22,7 +22,9 @@ import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.util.Log;
 
 import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -144,32 +146,32 @@ public class CertUtil {
      * @return SSLSocket factory
      */
     public static Pair<SSLSocketFactory, X509TrustManager> newPinnedSSLSocketFactory(HomeServerConnectionConfig hsConfig) {
-        try {
-            X509TrustManager defaultTrustManager = null;
+        X509TrustManager defaultTrustManager = null;
 
-            // If we haven't specified that we wanted to pin the certs, fallback to standard
-            // X509 checks if fingerprints don't match.
-            if (!hsConfig.shouldPin()) {
-                TrustManagerFactory trustManagerFactory = null;
+        // If we haven't specified that we wanted to pin the certs, fallback to standard
+        // X509 checks if fingerprints don't match.
+        if (!hsConfig.shouldPin()) {
+            TrustManagerFactory trustManagerFactory = null;
 
-                // get the PKIX instance
+            // get the PKIX instance
+            try {
+                trustManagerFactory = TrustManagerFactory.getInstance("PKIX");
+            } catch (NoSuchAlgorithmException e) {
+                Log.e(LOG_TAG, "## newPinnedSSLSocketFactory() : TrustManagerFactory.getInstance failed " + e.getMessage(), e);
+            }
+
+            // it doesn't exist, use the default one.
+            if (trustManagerFactory == null) {
                 try {
-                    trustManagerFactory = TrustManagerFactory.getInstance("PKIX");
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## newPinnedSSLSocketFactory() : TrustManagerFactory.getInstance failed " + e.getMessage(), e);
+                    trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                } catch (NoSuchAlgorithmException e) {
+                    Log.e(LOG_TAG, "## newPinnedSSLSocketFactory() : TrustManagerFactory.getInstance with default algorithm failed "
+                            + e.getMessage(), e);
                 }
+            }
 
-                // it doesn't exist, use the default one.
-                if (trustManagerFactory == null) {
-                    try {
-                        trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "## newPinnedSSLSocketFactory() : TrustManagerFactory.getInstance with default algorithm failed "
-                                + e.getMessage(), e);
-                    }
-                }
-
-                if (trustManagerFactory != null) {
+            if (trustManagerFactory != null) {
+                try {
                     trustManagerFactory.init((KeyStore) null);
                     TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
 
@@ -179,17 +181,21 @@ public class CertUtil {
                             break;
                         }
                     }
+                } catch (KeyStoreException e) {
+                    Log.e(LOG_TAG, "## newPinnedSSLSocketFactory() : " + e.getMessage(), e);
                 }
-            } else {
-                defaultTrustManager = new PinnedTrustManager(hsConfig.getAllowedFingerprints(), null);
             }
+        } else {
+            defaultTrustManager = new PinnedTrustManager(hsConfig.getAllowedFingerprints(), null);
+        }
 
-            TrustManager[] trustManagers = new TrustManager[]{
-                    defaultTrustManager
-            };
+        TrustManager[] trustManagers = new TrustManager[]{
+                defaultTrustManager
+        };
 
-            SSLSocketFactory sslSocketFactory;
+        SSLSocketFactory sslSocketFactory;
 
+        try {
             if (hsConfig.forceUsageOfTlsVersions() && hsConfig.getAcceptedTlsVersions() != null) {
                 // Force usage of accepted Tls Versions for Android < 20
                 sslSocketFactory = new TLSSocketFactory(trustManagers, hsConfig.getAcceptedTlsVersions());
@@ -199,10 +205,12 @@ public class CertUtil {
                 sslSocketFactory = sslContext.getSocketFactory();
             }
 
-            return new Pair<>(sslSocketFactory, defaultTrustManager);
         } catch (Exception e) {
+            // This is too fatal
             throw new RuntimeException(e);
         }
+
+        return new Pair<>(sslSocketFactory, defaultTrustManager);
     }
 
     /**
