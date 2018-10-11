@@ -160,7 +160,7 @@ public class CertUtil {
                 }
 
                 // it doesn't exist, use the default one.
-                if (null == trustManagerFactory) {
+                if (trustManagerFactory == null) {
                     try {
                         trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                     } catch (Exception e) {
@@ -169,13 +169,15 @@ public class CertUtil {
                     }
                 }
 
-                trustManagerFactory.init((KeyStore) null);
-                TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
+                if (trustManagerFactory != null) {
+                    trustManagerFactory.init((KeyStore) null);
+                    TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
 
-                for (int i = 0; i < trustManagers.length; i++) {
-                    if (trustManagers[i] instanceof X509TrustManager) {
-                        defaultTrustManager = (X509TrustManager) trustManagers[i];
-                        break;
+                    for (int i = 0; i < trustManagers.length; i++) {
+                        if (trustManagers[i] instanceof X509TrustManager) {
+                            defaultTrustManager = (X509TrustManager) trustManagers[i];
+                            break;
+                        }
                     }
                 }
             } else {
