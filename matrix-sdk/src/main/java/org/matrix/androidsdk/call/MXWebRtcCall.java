@@ -58,6 +58,8 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import javax.annotation.Nullable;
+
 public class MXWebRtcCall extends MXCall {
     private static final String LOG_TAG = MXWebRtcCall.class.getSimpleName();
 
@@ -1638,9 +1640,11 @@ public class MXWebRtcCall extends MXCall {
 
     /**
      * The call is hung up.
+     *
+     * @param reason the reason, or null for no reason. Reasons are used to indicate errors in the current VoIP implementation.
      */
     @Override
-    public void hangup(String reason) {
+    public void hangup(@Nullable String reason) {
         super.hangup(reason);
 
         Log.d(LOG_TAG, "## hangup(): reason=" + reason);

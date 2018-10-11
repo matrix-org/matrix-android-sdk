@@ -40,6 +40,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.Timer;
 
+import javax.annotation.Nullable;
+
 /**
  * This class is the default implementation
  */
@@ -217,8 +219,10 @@ public class MXCall implements IMXCall {
 
     /**
      * The call is hung up.
+     *
+     * @param reason the reason, or null for no reason. Reasons are used to indicate errors in the current VoIP implementation.
      */
-    public void hangup(String reason) {
+    public void hangup(@Nullable String reason) {
     }
 
     // getters / setters

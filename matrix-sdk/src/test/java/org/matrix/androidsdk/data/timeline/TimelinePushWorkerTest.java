@@ -26,6 +26,7 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.util.BingRulesManager;
+import org.matrix.androidsdk.util.JsonUtils;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -75,7 +76,7 @@ public class TimelinePushWorkerTest {
 
     @Test
     public void triggerPush_WhenMaxLifetimeIsReached_ShouldNotTriggerPush() {
-        final Gson gson = new Gson();
+        final Gson gson = JsonUtils.getBasicGson();
         final BingRule bingRule = Mockito.mock(BingRule.class);
         Mockito.when(bingRule.shouldNotify()).thenReturn(true);
         Mockito.when(mBingRulesManager.fulfilledBingRule(Mockito.any(Event.class))).thenReturn(bingRule);

@@ -44,6 +44,8 @@ import org.matrix.androidsdk.util.Log;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import javax.annotation.Nullable;
+
 public class MXChromeCall extends MXCall {
     private static final String LOG_TAG = MXChromeCall.class.getSimpleName();
 
@@ -379,9 +381,11 @@ public class MXChromeCall extends MXCall {
 
     /**
      * The call is hung up.
+     *
+     * @param reason the reason, or null for no reason. Reasons are used to indicate errors in the current VoIP implementation.
      */
     @Override
-    public void hangup(String reason) {
+    public void hangup(@Nullable String reason) {
         super.hangup(reason);
 
         if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mWebView)) {
