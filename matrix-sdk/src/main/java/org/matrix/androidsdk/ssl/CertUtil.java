@@ -164,7 +164,8 @@ public class CertUtil {
                     try {
                         trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## addRule : onBingRuleUpdateFailure failed " + e.getMessage(), e);
+                        Log.e(LOG_TAG, "## newPinnedSSLSocketFactory() : TrustManagerFactory.getInstance with default algorithm failed "
+                                + e.getMessage(), e);
                     }
                 }
 
