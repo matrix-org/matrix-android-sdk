@@ -315,6 +315,18 @@ public class HomeServerConnectionConfig {
         }
 
         /**
+         * create a Builder from an existing HomeServerConnectionConfig
+         */
+        public Builder(HomeServerConnectionConfig from) {
+            try {
+                mHomeServerConnectionConfig = HomeServerConnectionConfig.fromJson(from.toJson());
+            } catch (JSONException e) {
+                // Should not happen
+                throw new RuntimeException("Unable to create a HomeServerConnectionConfig", e);
+            }
+        }
+
+        /**
          * @param hsUri The URI to use to connect to the homeserver. Cannot be null
          * @return this builder
          */
