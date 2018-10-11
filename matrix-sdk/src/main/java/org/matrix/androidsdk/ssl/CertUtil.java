@@ -150,26 +150,26 @@ public class CertUtil {
             // If we haven't specified that we wanted to pin the certs, fallback to standard
             // X509 checks if fingerprints don't match.
             if (!hsConfig.shouldPin()) {
-                TrustManagerFactory tf = null;
+                TrustManagerFactory trustManagerFactory = null;
 
                 // get the PKIX instance
                 try {
-                    tf = TrustManagerFactory.getInstance("PKIX");
+                    trustManagerFactory = TrustManagerFactory.getInstance("PKIX");
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "## newPinnedSSLSocketFactory() : TrustManagerFactory.getInstance failed " + e.getMessage(), e);
                 }
 
                 // it doesn't exist, use the default one.
-                if (null == tf) {
+                if (null == trustManagerFactory) {
                     try {
-                        tf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                        trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "## addRule : onBingRuleUpdateFailure failed " + e.getMessage(), e);
                     }
                 }
 
-                tf.init((KeyStore) null);
-                TrustManager[] trustManagers = tf.getTrustManagers();
+                trustManagerFactory.init((KeyStore) null);
+                TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
 
                 for (int i = 0; i < trustManagers.length; i++) {
                     if (trustManagers[i] instanceof X509TrustManager) {
@@ -181,7 +181,7 @@ public class CertUtil {
                 defaultTrustManager = new PinnedTrustManager(hsConfig.getAllowedFingerprints(), null);
             }
 
-            TrustManager[] trustPinned = new TrustManager[]{
+            TrustManager[] trustManagers = new TrustManager[]{
                     defaultTrustManager
             };
 
@@ -189,10 +189,10 @@ public class CertUtil {
 
             if (hsConfig.forceUsageOfTlsVersions() && hsConfig.getAcceptedTlsVersions() != null) {
                 // Force usage of accepted Tls Versions for Android < 20
-                sslSocketFactory = new TLSSocketFactory(trustPinned, hsConfig.getAcceptedTlsVersions());
+                sslSocketFactory = new TLSSocketFactory(trustManagers, hsConfig.getAcceptedTlsVersions());
             } else {
                 SSLContext sslContext = SSLContext.getInstance("TLS");
-                sslContext.init(null, trustPinned, new java.security.SecureRandom());
+                sslContext.init(null, trustManagers, new java.security.SecureRandom());
                 sslSocketFactory = sslContext.getSocketFactory();
             }
 
