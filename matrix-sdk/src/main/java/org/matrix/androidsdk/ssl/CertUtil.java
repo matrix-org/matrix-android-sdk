@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -185,12 +186,12 @@ public class CertUtil {
                     Log.e(LOG_TAG, "## newPinnedSSLSocketFactory() : " + e.getMessage(), e);
                 }
             }
-        } else {
-            defaultTrustManager = new PinnedTrustManager(hsConfig.getAllowedFingerprints(), null);
         }
 
+        X509TrustManager trustManager = new PinnedTrustManager(hsConfig.getAllowedFingerprints(), defaultTrustManager);
+
         TrustManager[] trustManagers = new TrustManager[]{
-                defaultTrustManager
+                trustManager
         };
 
         SSLSocketFactory sslSocketFactory;
@@ -204,13 +205,12 @@ public class CertUtil {
                 sslContext.init(null, trustManagers, new java.security.SecureRandom());
                 sslSocketFactory = sslContext.getSocketFactory();
             }
-
         } catch (Exception e) {
             // This is too fatal
             throw new RuntimeException(e);
         }
 
-        return new Pair<>(sslSocketFactory, defaultTrustManager);
+        return new Pair<>(sslSocketFactory, trustManager);
     }
 
     /**
