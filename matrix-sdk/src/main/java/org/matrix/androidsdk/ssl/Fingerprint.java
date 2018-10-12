@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,30 +30,27 @@ import java.util.Arrays;
  * Represents a X509 Certificate fingerprint.
  */
 public class Fingerprint {
-    public enum HashType {SHA1, SHA256}
+    public enum HashType {
+        SHA1,
+        SHA256
+    }
 
-    private final byte[] mBytes;
     private final HashType mHashType;
+    private final byte[] mBytes;
     private String mDisplayableHexRepr;
 
-    public Fingerprint(byte[] bytes, HashType hashType) {
-        mBytes = bytes;
+    public Fingerprint(HashType hashType, byte[] bytes) {
         mHashType = hashType;
+        mBytes = bytes;
         mDisplayableHexRepr = null;
     }
 
     public static Fingerprint newSha256Fingerprint(X509Certificate cert) throws CertificateException {
-        return new Fingerprint(
-                CertUtil.generateSha256Fingerprint(cert),
-                HashType.SHA256
-        );
+        return new Fingerprint(HashType.SHA256, CertUtil.generateSha256Fingerprint(cert));
     }
 
     public static Fingerprint newSha1Fingerprint(X509Certificate cert) throws CertificateException {
-        return new Fingerprint(
-                CertUtil.generateSha1Fingerprint(cert),
-                HashType.SHA1
-        );
+        return new Fingerprint(HashType.SHA1, CertUtil.generateSha1Fingerprint(cert));
     }
 
     public HashType getType() {
@@ -91,7 +89,7 @@ public class Fingerprint {
             throw new JSONException("Unrecognized hash type: " + hashTypeStr);
         }
 
-        return new Fingerprint(fingerprintBytes, hashType);
+        return new Fingerprint(hashType, fingerprintBytes);
     }
 
     public boolean matchesCert(X509Certificate cert) throws CertificateException {

@@ -253,14 +253,6 @@ public class HomeServerConnectionConfig {
      * @throws JSONException the conversion failure reason
      */
     public static HomeServerConnectionConfig fromJson(JSONObject jsonObject) throws JSONException {
-        JSONArray fingerprintArray = jsonObject.optJSONArray("fingerprints");
-        List<Fingerprint> fingerprints = new ArrayList<>();
-        if (fingerprintArray != null) {
-            for (int i = 0; i < fingerprintArray.length(); i++) {
-                fingerprints.add(Fingerprint.fromJson(fingerprintArray.getJSONObject(i)));
-            }
-        }
-
         JSONObject credentialsObj = jsonObject.optJSONObject("credentials");
         Credentials creds = credentialsObj != null ? Credentials.fromJson(credentialsObj) : null;
 
@@ -268,8 +260,14 @@ public class HomeServerConnectionConfig {
                 .withHomeServerUri(Uri.parse(jsonObject.getString("home_server_url")))
                 .withIdentityServerUri(jsonObject.has("identity_server_url") ? Uri.parse(jsonObject.getString("identity_server_url")) : null)
                 .withCredentials(creds)
-                .withAllowedFingerPrints(fingerprints)
                 .withPin(jsonObject.optBoolean("pin", false));
+
+        JSONArray fingerprintArray = jsonObject.optJSONArray("fingerprints");
+        if (fingerprintArray != null) {
+            for (int i = 0; i < fingerprintArray.length(); i++) {
+                builder.addAllowedFingerPrint(Fingerprint.fromJson(fingerprintArray.getJSONObject(i)));
+            }
+        }
 
         // Set the anti-virus server uri if any
         if (jsonObject.has("antivirus_server_url")) {
@@ -314,6 +312,18 @@ public class HomeServerConnectionConfig {
          */
         public Builder() {
             mHomeServerConnectionConfig = new HomeServerConnectionConfig();
+        }
+
+        /**
+         * create a Builder from an existing HomeServerConnectionConfig
+         */
+        public Builder(HomeServerConnectionConfig from) {
+            try {
+                mHomeServerConnectionConfig = HomeServerConnectionConfig.fromJson(from.toJson());
+            } catch (JSONException e) {
+                // Should not happen
+                throw new RuntimeException("Unable to create a HomeServerConnectionConfig", e);
+            }
         }
 
         /**
@@ -374,12 +384,12 @@ public class HomeServerConnectionConfig {
         }
 
         /**
-         * @param allowedFingerprints If using SSL, allow server certs that match these fingerprints.
+         * @param allowedFingerprint If using SSL, allow server certs that match this fingerprint.
          * @return this builder
          */
-        public Builder withAllowedFingerPrints(@Nullable List<Fingerprint> allowedFingerprints) {
-            if (allowedFingerprints != null) {
-                mHomeServerConnectionConfig.mAllowedFingerprints.addAll(allowedFingerprints);
+        public Builder addAllowedFingerPrint(@Nullable Fingerprint allowedFingerprint) {
+            if (allowedFingerprint != null) {
+                mHomeServerConnectionConfig.mAllowedFingerprints.add(allowedFingerprint);
             }
 
             return this;
@@ -481,7 +491,7 @@ public class HomeServerConnectionConfig {
          * - https://www.ssi.gouv.fr/uploads/2017/02/security-recommendations-for-tls_v1.1.pdf
          * - https://developer.android.com/reference/javax/net/ssl/SSLEngine
          *
-         * @param tlsLimitations         true to use Tls limitations
+         * @param tlsLimitations          true to use Tls limitations
          * @param enableCompatibilityMode set to true for Android < 20
          * @return this builder
          */
