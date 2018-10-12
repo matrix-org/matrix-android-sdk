@@ -39,7 +39,7 @@ import okhttp3.TlsVersion;
 public class HomeServerConnectionConfig {
 
     // the home server URI
-    private Uri mHsUri;
+    private Uri mHomeServerUri;
     // the identity server URI
     private Uri mIdentityServerUri;
     // the anti-virus server URI
@@ -72,14 +72,14 @@ public class HomeServerConnectionConfig {
      * @param uri the new HS uri
      */
     public void setHomeserverUri(Uri uri) {
-        mHsUri = uri;
+        mHomeServerUri = uri;
     }
 
     /**
      * @return the home server uri
      */
     public Uri getHomeserverUri() {
-        return mHsUri;
+        return mHomeServerUri;
     }
 
     /**
@@ -90,7 +90,7 @@ public class HomeServerConnectionConfig {
             return mIdentityServerUri;
         }
         // Else consider the HS uri by default.
-        return mHsUri;
+        return mHomeServerUri;
     }
 
     /**
@@ -101,7 +101,7 @@ public class HomeServerConnectionConfig {
             return mAntiVirusServerUri;
         }
         // Else consider the HS uri by default.
-        return mHsUri;
+        return mHomeServerUri;
     }
 
     /**
@@ -168,7 +168,7 @@ public class HomeServerConnectionConfig {
     @Override
     public String toString() {
         return "HomeserverConnectionConfig{" +
-                "mHsUri=" + mHsUri +
+                "mHomeServerUri=" + mHomeServerUri +
                 ", mIdentityServerUri=" + mIdentityServerUri +
                 ", mAntiVirusServerUri=" + mAntiVirusServerUri +
                 ", mAllowedFingerprints size=" + mAllowedFingerprints.size() +
@@ -189,7 +189,7 @@ public class HomeServerConnectionConfig {
     public JSONObject toJson() throws JSONException {
         JSONObject json = new JSONObject();
 
-        json.put("home_server_url", mHsUri.toString());
+        json.put("home_server_url", mHomeServerUri.toString());
         json.put("identity_server_url", getIdentityServerUri().toString());
         if (mAntiVirusServerUri != null) {
             json.put("antivirus_server_url", mAntiVirusServerUri.toString());
@@ -317,24 +317,24 @@ public class HomeServerConnectionConfig {
         }
 
         /**
-         * @param hsUri The URI to use to connect to the homeserver. Cannot be null
+         * @param homeServerUri The URI to use to connect to the homeserver. Cannot be null
          * @return this builder
          */
-        public Builder withHomeServerUri(final Uri hsUri) {
-            if (hsUri == null || (!"http".equals(hsUri.getScheme()) && !"https".equals(hsUri.getScheme()))) {
-                throw new RuntimeException("Invalid home server URI: " + hsUri);
+        public Builder withHomeServerUri(final Uri homeServerUri) {
+            if (homeServerUri == null || (!"http".equals(homeServerUri.getScheme()) && !"https".equals(homeServerUri.getScheme()))) {
+                throw new RuntimeException("Invalid home server URI: " + homeServerUri);
             }
 
             // remove trailing /
-            if (hsUri.toString().endsWith("/")) {
+            if (homeServerUri.toString().endsWith("/")) {
                 try {
-                    String url = hsUri.toString();
-                    mHomeServerConnectionConfig.mHsUri = Uri.parse(url.substring(0, url.length() - 1));
+                    String url = homeServerUri.toString();
+                    mHomeServerConnectionConfig.mHomeServerUri = Uri.parse(url.substring(0, url.length() - 1));
                 } catch (Exception e) {
-                    throw new RuntimeException("Invalid home server URI: " + hsUri);
+                    throw new RuntimeException("Invalid home server URI: " + homeServerUri);
                 }
             } else {
-                mHomeServerConnectionConfig.mHsUri = hsUri;
+                mHomeServerConnectionConfig.mHomeServerUri = homeServerUri;
             }
 
             return this;
@@ -512,7 +512,7 @@ public class HomeServerConnectionConfig {
          */
         public HomeServerConnectionConfig build() {
             // Check mandatory parameters
-            if (mHomeServerConnectionConfig.mHsUri == null) {
+            if (mHomeServerConnectionConfig.mHomeServerUri == null) {
                 throw new RuntimeException("Home server URI not set");
             }
 
