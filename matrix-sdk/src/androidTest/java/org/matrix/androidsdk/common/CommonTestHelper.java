@@ -76,7 +76,6 @@ public class CommonTestHelper {
         final HomeServerConnectionConfig hs = new HomeServerConnectionConfig.Builder()
                 .withHomeServerUri(Uri.parse(TestConstants.TESTS_HOME_SERVER_URL))
                 .withCredentials(credentials)
-                .withAllowHttpConnection()
                 .build();
         return hs;
     }

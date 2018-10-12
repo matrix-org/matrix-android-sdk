@@ -17,6 +17,7 @@
 
 package org.matrix.androidsdk.ssl;
 
+import android.support.annotation.NonNull;
 import android.util.Pair;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
@@ -253,9 +254,10 @@ public class CertUtil {
      * Create a list of accepted TLS specifications for a hs config.
      *
      * @param hsConfig the hs config.
+     * @param url      the url of the end point, used to check if we have to enable CLEARTEXT communication.
      * @return a list of accepted TLS specifications.
      */
-    public static List<ConnectionSpec> newConnectionSpecs(HomeServerConnectionConfig hsConfig) {
+    public static List<ConnectionSpec> newConnectionSpecs(@NonNull HomeServerConnectionConfig hsConfig, @NonNull String url) {
         final ConnectionSpec.Builder builder = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS);
 
         final List<TlsVersion> tlsVersions = hsConfig.getAcceptedTlsVersions();
@@ -274,7 +276,7 @@ public class CertUtil {
 
         list.add(builder.build());
 
-        if (hsConfig.isHttpConnectionAllowed()) {
+        if (url.startsWith("http://")) {
             list.add(ConnectionSpec.CLEARTEXT);
         }
 
