@@ -7,6 +7,6 @@
     <string name="room_displayname_no_title">Ruang kosong</string>
 
     <plurals name="room_displayname_three_and_more_members">
-        <item quantity="other">%1$s dan %d yang lain</item>
+        <item quantity="other">%1$s dan %2$d yang lain</item>
     </plurals>
 </resources>

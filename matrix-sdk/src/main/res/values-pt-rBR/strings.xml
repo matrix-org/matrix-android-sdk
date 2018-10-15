@@ -92,7 +92,7 @@
 
     <plurals name="room_displayname_three_and_more_members">
         <item quantity="one">%1$s e 1 outra/o</item>
-        <item quantity="other">%1$s e %d outras/os</item>
+        <item quantity="other">%1$s e %2$d outras/os</item>
     </plurals>
 
 

@@ -44,7 +44,7 @@ public class RoomName {
         mRoom = room;
     }
 
-    public String getRoomName(Context context) {
+    public String getRoomDisplayName(Context context) {
         try {
             // this algorithm is the one defined in
             // https://github.com/matrix-org/matrix-js-sdk/blob/develop/lib/models/room.js#L617

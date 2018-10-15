@@ -91,8 +91,8 @@
 
     <plurals name="room_displayname_three_and_more_members">
         <item quantity="one">%1$s и 1 другой</item>
-        <item quantity="few">%1$s и %d другие</item>
-        <item quantity="many">%1$s и %d других</item>
+        <item quantity="few">%1$s и %2$d другие</item>
+        <item quantity="many">%1$s и %2$d других</item>
         <item quantity="other"/>
     </plurals>
 

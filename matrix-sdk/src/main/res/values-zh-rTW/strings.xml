@@ -78,7 +78,7 @@
 
     <string name="room_displayname_no_title">空聊天室</string>
     <plurals name="room_displayname_three_and_more_members">
-        <item quantity="other">%1$s 和 和其他 %d 個人</item>
+        <item quantity="other">%1$s 和 和其他 %2$d 個人</item>
     </plurals>
 
 

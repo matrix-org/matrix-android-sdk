@@ -80,7 +80,7 @@
 
     <plurals name="room_displayname_three_and_more_members">
         <item quantity="one">%1$s et 1 autre</item>
-        <item quantity="other">%1$s et %d autres</item>
+        <item quantity="other">%1$s et %2$d autres</item>
     </plurals>
 
 

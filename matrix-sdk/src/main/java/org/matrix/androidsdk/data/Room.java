@@ -551,7 +551,7 @@ public class Room {
      * @return the computed room display name
      */
     public String getRoomDisplayName(Context context) {
-        return mRoomName.getRoomName(context);
+        return mRoomName.getRoomDisplayName(context);
     }
 
     public String getTopic() {

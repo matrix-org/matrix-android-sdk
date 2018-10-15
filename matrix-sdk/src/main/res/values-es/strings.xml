@@ -91,7 +91,7 @@
 
     <plurals name="room_displayname_three_and_more_members">
         <item quantity="one">%1$s y 1 otro</item>
-        <item quantity="other">%1$s y %d otros</item>
+        <item quantity="other">%1$s y %2$d otros</item>
     </plurals>
 
 

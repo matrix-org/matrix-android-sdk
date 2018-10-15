@@ -70,7 +70,7 @@
 
     <plurals name="room_displayname_three_and_more_members">
         <item quantity="one">%1$s og 1 anden</item>
-        <item quantity="other">%1$s og %d andre</item>
+        <item quantity="other">%1$s og %2$d andre</item>
     </plurals>
 
     <string name="room_displayname_no_title">Tomt rum</string>
