@@ -63,4 +63,16 @@
     <string name="medium_email">Epasta adrese</string>
     <string name="medium_phone_number">Telefona numurs</string>
 
+    <string name="room_displayname_invite_from">Uzaicinājums no %s</string>
+    <string name="room_displayname_room_invite">Uzaicinājums uz istabu</string>
+    <string name="room_displayname_two_members">%1$s un %2$s</string>
+    <string name="room_displayname_no_title">Tukša istaba</string>
+
+    <plurals name="room_displayname_three_and_more_members">
+        <item quantity="zero">%1$s un 1 cits</item>
+        <item quantity="one">%1$s un %d citi</item>
+        <item quantity="other">%1$s un %d citu</item>
+    </plurals>
+
+
 </resources>

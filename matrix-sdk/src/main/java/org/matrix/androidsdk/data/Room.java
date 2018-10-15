@@ -33,7 +33,6 @@ import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Pair;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
@@ -43,6 +42,7 @@ import org.matrix.androidsdk.MXPatterns;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
+import org.matrix.androidsdk.data.room.RoomName;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.timeline.EventTimelineFactory;
@@ -136,6 +136,9 @@ public class Room {
     // true when the current room is a left one
     private boolean mIsLeft;
 
+    // Class to compute room name
+    private final RoomName mRoomName;
+
     /**
      * Constructor
      * FIXME All this @NonNull annotation must be also added to the class members and getters
@@ -149,6 +152,7 @@ public class Room {
         mStore = store;
         mMyUserId = mDataHandler.getUserId();
         mTimeline = EventTimelineFactory.liveTimeline(mDataHandler, this, roomId);
+        mRoomName = new RoomName(this);
     }
 
     /**
@@ -540,6 +544,14 @@ public class Room {
                 callback.onSuccess(event);
             }
         });
+    }
+
+    /**
+     * @param context the application context.
+     * @return the computed room display name
+     */
+    public String getRoomDisplayName(Context context) {
+        return mRoomName.getRoomName(context);
     }
 
     public String getTopic() {

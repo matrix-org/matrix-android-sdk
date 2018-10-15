@@ -40,4 +40,16 @@
 
     <string name="notice_end_to_end">%1$s włączył szyfrowanie end-to-end (%2$s)</string>
 
-    </resources>
+    <string name="room_displayname_invite_from">Zaproszenie od %s</string>
+    <string name="room_displayname_room_invite">Zaproszenie do pokoju</string>
+    <string name="room_displayname_two_members">%1$s i %2$s</string>
+    <string name="room_displayname_no_title">Pusty pokój</string>
+
+    <plurals name="room_displayname_three_and_more_members">
+        <item quantity="one">%1$s i jeden inny</item>
+        <item quantity="few">%1$s i kilku innych</item>
+        <item quantity="many">%d innych</item>
+        <item quantity="other"/>
+    </plurals>
+
+</resources>

@@ -63,4 +63,12 @@
     <string name="could_not_redact">Takaisinveto epäonnistui</string>
     <string name="summary_message">%1$s: %2$s</string>
     <string name="notice_event_redacted">"veti takaisin %1$s "</string>
-    </resources>
+
+    <!-- Room display name -->
+    <string name="room_displayname_invite_from">Kutsu käyttäjältä %s</string> <!-- Grammar problem -->
+    <string name="room_displayname_room_invite">Huonekutsu</string>
+    <string name="room_displayname_two_members">%1$s ja %2$s</string>
+    <string name="room_displayname_no_title">Tyhjä huone</string>
+
+
+</resources>

@@ -66,4 +66,15 @@
     <string name="could_not_redact">Gat ekki ritstýrt</string>
     <string name="room_error_join_failed_empty_room">Ekki er í augnablikinu hægt að taka aftur þátt í spjallrás sem er tóm.</string>
 
-    </resources>
+    <string name="room_displayname_room_invite">Boð á spjallrás</string>
+    <string name="room_displayname_two_members">%1$s og %2$s</string>
+
+    <plurals name="room_displayname_three_and_more_members">
+        <item quantity="one">%1$s og 1 annar</item>
+        <item quantity="other">%1$s og %d aðrir</item>
+    </plurals>
+
+    <string name="room_displayname_no_title">Tóm spjallrás</string>
+    <string name="room_displayname_invite_from">Boð frá %s</string>
+
+</resources>
