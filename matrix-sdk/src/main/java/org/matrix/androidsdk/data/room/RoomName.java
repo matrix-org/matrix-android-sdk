@@ -63,6 +63,11 @@ public class RoomName {
                 return roomState.getCanonicalAlias();
             }
 
+            // Temporary patch: use the first alias if available
+            if (roomState.aliases != null && !roomState.aliases.isEmpty()) {
+                return roomState.aliases.get(0);
+            }
+
             List<RoomMember> othersActiveMembers = new ArrayList<>();
             List<RoomMember> activeMembers = new ArrayList<>();
 
