@@ -81,7 +81,7 @@ class StateEventRedactionChecker {
                         stateEvent.prune(redactionEvent);
                         stateEvents.set(index, stateEvent);
                         // digest the updated state
-                        mTimelineStateHolder.processStateEvent(stateEvent, EventTimeline.Direction.FORWARDS);
+                        mTimelineStateHolder.processStateEvent(stateEvent, EventTimeline.Direction.FORWARDS, true);
                         isFound = true;
                         break;
                     }

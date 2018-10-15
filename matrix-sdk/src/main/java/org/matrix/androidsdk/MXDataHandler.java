@@ -924,7 +924,7 @@ public class MXDataHandler {
 
                         if (info.chunk != null) {
                             for (Event event : info.chunk) {
-                                room.getState().applyState(getStore(), event, EventTimeline.Direction.FORWARDS);
+                                room.getState().applyState(getStore(), event, true);
                             }
                         }
 

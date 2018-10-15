@@ -27,7 +27,6 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.data.store.IMXStore;
-import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
@@ -874,17 +873,23 @@ public class RoomState implements Externalizable {
     /**
      * Apply the given event (relevant for state changes) to our state.
      *
-     * @param store     the store to use
-     * @param event     the event
-     * @param direction how the event should affect the state: Forwards for applying, backwards for un-applying (applying the previous state)
+     * @param store              the store to use
+     * @param event              the event
+     * @param considerNewContent how the event should affect the state: true for applying, false for un-applying (applying the previous state)
      * @return true if the event is managed
      */
-    public boolean applyState(IMXStore store, Event event, EventTimeline.Direction direction) {
+    public boolean applyState(IMXStore store, Event event, boolean considerNewContent) {
         if (event.stateKey == null) {
             return false;
         }
 
-        JsonObject contentToConsider = (direction == EventTimeline.Direction.FORWARDS) ? event.getContentAsJsonObject() : event.getPrevContentAsJsonObject();
+        JsonObject contentToConsider;
+        if (considerNewContent) {
+            contentToConsider = event.getContentAsJsonObject();
+        } else {
+            contentToConsider = event.getPrevContentAsJsonObject();
+        }
+
         String eventType = event.getType();
 
         try {
@@ -952,7 +957,7 @@ public class RoomState implements Externalizable {
                         member.setOriginalEventId(event.eventId);
                         member.mSender = event.getSender();
 
-                        if ((null != store) && (direction == EventTimeline.Direction.FORWARDS)) {
+                        if ((null != store) && considerNewContent) {
                             store.storeRoomStateEvent(roomId, event);
                         }
 
@@ -991,7 +996,7 @@ public class RoomState implements Externalizable {
                             }
                         }
 
-                        if ((direction == EventTimeline.Direction.FORWARDS) && (null != store)) {
+                        if (considerNewContent && (null != store)) {
                             store.updateUserWithRoomMemberEvent(member);
                         }
 
@@ -1013,7 +1018,7 @@ public class RoomState implements Externalizable {
 
                     thirdPartyInvite.token = event.stateKey;
 
-                    if ((direction == EventTimeline.Direction.FORWARDS) && (null != store)) {
+                    if (considerNewContent && (null != store)) {
                         store.storeRoomStateEvent(roomId, event);
                     }
 

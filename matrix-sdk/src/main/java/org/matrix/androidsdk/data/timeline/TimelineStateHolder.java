@@ -108,17 +108,27 @@ class TimelineStateHolder {
     /**
      * Process a state event to keep the internal live and back states up to date.
      *
-     * @param event     the state event
-     * @param direction the direction; ie. forwards for live state, backwards for back state
+     * @param event              the state event
+     * @param direction          the direction; ie. forwards for live state, backwards for back state
+     * @param considerNewContent how the event should affect the state: true for applying, false for un-applying (applying the previous state)
      * @return true if the event has been processed.
      */
     public boolean processStateEvent(@NonNull final Event event,
-                                     @NonNull final EventTimeline.Direction direction) {
-        final RoomState affectedState = direction == EventTimeline.Direction.FORWARDS ? mState : mBackState;
-        final boolean isProcessed = affectedState.applyState(mStore, event, direction);
+                                     @NonNull final EventTimeline.Direction direction,
+                                     final boolean considerNewContent) {
+        final RoomState affectedState;
+        if (direction == EventTimeline.Direction.FORWARDS) {
+            affectedState = mState;
+        } else {
+            affectedState = mBackState;
+        }
+
+        final boolean isProcessed = affectedState.applyState(mStore, event, considerNewContent);
+
         if (isProcessed && direction == EventTimeline.Direction.FORWARDS) {
             mStore.storeLiveStateForRoom(mRoomId);
         }
+
         return isProcessed;
     }
 
@@ -144,6 +154,4 @@ class TimelineStateHolder {
         mState.setDataHandler(mDataHandler);
         mState.roomId = mRoomId;
     }
-
-
 }

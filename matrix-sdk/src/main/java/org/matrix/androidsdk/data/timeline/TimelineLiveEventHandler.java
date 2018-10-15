@@ -167,7 +167,7 @@ class TimelineLiveEventHandler {
                     // copy the live state before applying any update
                     mTimelineStateHolder.deepCopyState(EventTimeline.Direction.FORWARDS);
                     // check if the event has been processed
-                    if (!mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS)) {
+                    if (!mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS, true)) {
                         // not processed -> do not warn the application
                         // assume that the event is a duplicated one.
                         return;

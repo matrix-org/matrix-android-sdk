@@ -210,7 +210,7 @@ public class RoomPreviewData {
                         mRoomState.roomId = mRoomId;
 
                         for (Event event : roomResponse.state) {
-                            mRoomState.applyState(null, event, EventTimeline.Direction.FORWARDS);
+                            mRoomState.applyState(null, event, true);
                         }
 
                         // TODO LazyLoading handle case where room has no name
