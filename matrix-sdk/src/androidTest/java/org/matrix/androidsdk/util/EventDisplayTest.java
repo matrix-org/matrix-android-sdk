@@ -24,6 +24,7 @@ import com.google.gson.JsonObject;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.matrix.androidsdk.interfaces.HtmlToolbox;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.message.Message;
 
@@ -78,7 +79,8 @@ public class EventDisplayTest {
     }
 
     /**
-     * This test check a strange behavior we have: current result is "lis"
+     * This test check list item. It also check the trimming which has been added at the end of
+     * {@link EventDisplay#getFormattedMessage(Context, JsonObject, HtmlToolbox)}
      */
     @Test
     public void EventDisplay_formattedMessage_li_text() {
