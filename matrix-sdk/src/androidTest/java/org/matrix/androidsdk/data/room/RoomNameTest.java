@@ -51,7 +51,7 @@ public class RoomNameTest {
 
     private void RoomName_getRoomDisplayName_emptyRoom(boolean withLazyLoading) {
         Context context = InstrumentationRegistry.getContext();
-        Room room = createRoom(context, withLazyLoading, 0);
+        Room room = createRoom(context, withLazyLoading, 0, false);
 
         Assert.assertEquals("Empty room", room.getRoomDisplayName(context));
     }
@@ -71,7 +71,7 @@ public class RoomNameTest {
 
         // It does not depend on the number of users
         for (int i = 0; i < 10; i++) {
-            Room room = createRoom(context, withLazyLoading, i);
+            Room room = createRoom(context, withLazyLoading, i, false);
 
             room.getState().aliases = new ArrayList<>();
             room.getState().aliases.add("Alias");
@@ -102,34 +102,82 @@ public class RoomNameTest {
 
         Room room;
 
-        room = createRoom(context, withLazyLoading, 1);
-        Assert.assertEquals(getUserName(1), room.getRoomDisplayName(context));
+        // Only me in the room
+        room = createRoom(context, withLazyLoading, 1, false);
+        Assert.assertEquals("Empty room", room.getRoomDisplayName(context));
 
-        room = createRoom(context, withLazyLoading, 2);
-        Assert.assertEquals(getUserName(1) + " and " + getUserName(2), room.getRoomDisplayName(context));
+        // One other user in the room
+        room = createRoom(context, withLazyLoading, 2, false);
+        Assert.assertEquals(getUserName(2), room.getRoomDisplayName(context));
 
-        room = createRoom(context, withLazyLoading, 3);
-        Assert.assertEquals(getUserName(1) + " and 2 others", room.getRoomDisplayName(context));
+        // 2 other users in the room
+        room = createRoom(context, withLazyLoading, 3, false);
+        Assert.assertEquals(getUserName(2) + " and " + getUserName(3), room.getRoomDisplayName(context));
 
-        room = createRoom(context, withLazyLoading, 4);
-        Assert.assertEquals(getUserName(1) + " and 3 others", room.getRoomDisplayName(context));
+        room = createRoom(context, withLazyLoading, 4, false);
+        Assert.assertEquals(getUserName(2) + " and 3 others", room.getRoomDisplayName(context));
 
-        room = createRoom(context, withLazyLoading, 5);
-        Assert.assertEquals(getUserName(1) + " and 4 others", room.getRoomDisplayName(context));
+        room = createRoom(context, withLazyLoading, 5, false);
+        Assert.assertEquals(getUserName(2) + " and 4 others", room.getRoomDisplayName(context));
 
-        room = createRoom(context, withLazyLoading, 10);
-        Assert.assertEquals(getUserName(1) + " and 9 others", room.getRoomDisplayName(context));
+        room = createRoom(context, withLazyLoading, 10, false);
+        Assert.assertEquals(getUserName(2) + " and 9 others", room.getRoomDisplayName(context));
     }
 
-    // TODO Test with me as a member
-    // TODO Test with invitation
+    @Test
+    public void RoomName_getRoomDisplayName_noLL_invitation() {
+        RoomName_getRoomDisplayName_invitation(false);
+    }
+
+    @Test
+    public void RoomName_getRoomDisplayName_LL_invitation() {
+        RoomName_getRoomDisplayName_invitation(true);
+    }
+
+    private void RoomName_getRoomDisplayName_invitation(boolean withLazyLoading) {
+        Context context = InstrumentationRegistry.getContext();
+
+        Room room;
+
+        // Only me in the room
+        room = createRoom(context, withLazyLoading, 1, true);
+        Assert.assertEquals("Room Invite", room.getRoomDisplayName(context));
+
+        // One other user in the room
+        room = createRoom(context, withLazyLoading, 2, true);
+        Assert.assertEquals(getUserName(2), room.getRoomDisplayName(context));
+
+        // 2 other users in the room
+        room = createRoom(context, withLazyLoading, 3, true);
+        Assert.assertEquals(getUserName(2) + " and " + getUserName(3), room.getRoomDisplayName(context));
+
+        room = createRoom(context, withLazyLoading, 4, true);
+        Assert.assertEquals(getUserName(2) + " and 2 others", room.getRoomDisplayName(context));
+
+        room = createRoom(context, withLazyLoading, 5, true);
+        Assert.assertEquals(getUserName(2) + " and 3 others", room.getRoomDisplayName(context));
+
+        room = createRoom(context, withLazyLoading, 10, true);
+        Assert.assertEquals(getUserName(2) + " and 8 others", room.getRoomDisplayName(context));
+    }
 
     /* ==========================================================================================
      * Private
      * ========================================================================================== */
 
-    private Room createRoom(Context context, boolean withLazyLoading, int nbOfMembers) {
+    /**
+     * Create a room, with or without lazy loading and with x number of room members
+     * First room member will always be the current user
+     *
+     * @param context
+     * @param withLazyLoading
+     * @param nbOfMembers
+     * @param amIInvited
+     * @return
+     */
+    private Room createRoom(Context context, boolean withLazyLoading, int nbOfMembers, boolean amIInvited) {
         Credentials credentials = new Credentials();
+        credentials.userId = getMyUserId();
         IMXStore store = new MXMemoryStore(credentials, context);
 
         MXDataHandler mxDataHandler = new MXDataHandler(store, credentials);
@@ -146,13 +194,19 @@ public class RoomNameTest {
 
             RoomSyncSummary roomSyncSummary = new RoomSyncSummary();
 
-            roomSyncSummary.joinedMembersCount = nbOfMembers;
-            roomSyncSummary.invitedMembersCount = 0;
+            if (amIInvited) {
+                roomSyncSummary.joinedMembersCount = nbOfMembers - 1;
+                roomSyncSummary.invitedMembersCount = 1;
+            } else {
+                roomSyncSummary.joinedMembersCount = nbOfMembers;
+                roomSyncSummary.invitedMembersCount = 0;
+            }
 
             // heroes
-            if (nbOfMembers > 0) {
+            // Heroes does not include current user
+            if (nbOfMembers >= 2) {
                 roomSyncSummary.heroes = new ArrayList<>();
-                for (int i = 1; i <= Math.min(5, nbOfMembers); i++) {
+                for (int i = 2; i <= Math.min(6, nbOfMembers); i++) {
                     roomSyncSummary.heroes.add(getUserId(i));
                 }
             }
@@ -162,27 +216,35 @@ public class RoomNameTest {
             store.storeSummary(roomSummary);
         }
 
-        initMembers(room.getState(), nbOfMembers);
+        initMembers(room.getState(), nbOfMembers, amIInvited);
 
         return room;
     }
 
-    private void initMembers(RoomState roomState, int nbOfMembers) {
+    private void initMembers(RoomState roomState, int nbOfMembers, boolean amIInvited) {
         for (int i = 1; i <= nbOfMembers; i++) {
-            roomState.setMember(getUserId(i), createRoomMember(i));
+            roomState.setMember(getUserId(i), createRoomMember(i, amIInvited));
         }
     }
 
-    private RoomMember createRoomMember(int i) {
+    private RoomMember createRoomMember(int i, boolean amIInvited) {
         RoomMember roomMember = new RoomMember();
 
         roomMember.setUserId(getUserId(i));
         roomMember.displayname = getUserName(i);
-        roomMember.membership = RoomMember.MEMBERSHIP_JOIN;
+        if (i == 1 && amIInvited) {
+            roomMember.membership = RoomMember.MEMBERSHIP_INVITE;
+        } else {
+            roomMember.membership = RoomMember.MEMBERSHIP_JOIN;
+        }
         // Add a TS because they will be ordered
         roomMember.setOriginServerTs(i);
 
         return roomMember;
+    }
+
+    private String getMyUserId() {
+        return "@MyUserId";
     }
 
     private String getRoomId() {
@@ -190,6 +252,10 @@ public class RoomNameTest {
     }
 
     private String getUserId(int i) {
+        if (i == 1) {
+            return getMyUserId();
+        }
+
         return "UserId_" + i;
     }
 
