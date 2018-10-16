@@ -93,6 +93,37 @@ public class EventDisplayTest {
         Assert.assertEquals("list", textualDisplay.toString());
     }
 
+    /**
+     * Test blockquote. It also check the trimming which has been added at the end of
+     * {@link EventDisplay#getFormattedMessage(Context, JsonObject, HtmlToolbox)}
+     */
+    @Test
+    public void EventDisplay_formattedMessage_blockquote_text() {
+        EventDisplay eventDisplay = createEventDisplayWithFormattedBody("<blockquote>blockquote</blockquote>");
+
+        CharSequence textualDisplay = eventDisplay.getTextualDisplay();
+
+        Assert.assertTrue(textualDisplay instanceof SpannableStringBuilder);
+
+        Assert.assertEquals("blockquote", textualDisplay.toString());
+    }
+
+    /**
+     * Test blockquote with text
+     */
+    @Test
+    public void EventDisplay_formattedMessage_blockquoteWithText_text() {
+        EventDisplay eventDisplay = createEventDisplayWithFormattedBody("<blockquote>blockquote</blockquote>message");
+
+        CharSequence textualDisplay = eventDisplay.getTextualDisplay();
+
+        Assert.assertTrue(textualDisplay instanceof SpannableStringBuilder);
+
+        Assert.assertEquals("blockquote\n\nmessage", textualDisplay.toString());
+    }
+
+    // TODO Test other message type
+
     /* ==========================================================================================
      * Private
      * ========================================================================================== */
@@ -107,9 +138,7 @@ public class EventDisplayTest {
         ((JsonObject) event.content).addProperty("format", Message.FORMAT_MATRIX_HTML);
         ((JsonObject) event.content).addProperty("formatted_body", formattedBody);
 
-        EventDisplay eventDisplay = new EventDisplay(context, event, null);
-
-        return eventDisplay;
+        return new EventDisplay(context, event, null);
     }
 
 }
