@@ -36,7 +36,6 @@ import com.google.gson.JsonPrimitive;
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCryptoError;
-import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.interfaces.HtmlToolbox;
 import org.matrix.androidsdk.rest.model.Event;
@@ -212,7 +211,7 @@ public class EventDisplay {
             } else if (Event.EVENT_TYPE_MESSAGE_ENCRYPTED.equals(eventType)) {
                 // don't display
                 if (event.isRedacted()) {
-                    String redactedInfo = EventDisplay.getRedactionMessage(mContext, event, roomState);
+                    String redactedInfo = getRedactionMessage(mContext, event, roomState);
 
                     if (TextUtils.isEmpty(redactedInfo)) {
                         return null;
@@ -249,7 +248,7 @@ public class EventDisplay {
                 String topic = jsonEventContent.getAsJsonPrimitive("topic").getAsString();
 
                 if (event.isRedacted()) {
-                    String redactedInfo = EventDisplay.getRedactionMessage(mContext, event, roomState);
+                    String redactedInfo = getRedactionMessage(mContext, event, roomState);
 
                     if (TextUtils.isEmpty(redactedInfo)) {
                         return null;
@@ -268,7 +267,7 @@ public class EventDisplay {
                 String roomName = (null == nameAsJson) ? null : nameAsJson.getAsString();
 
                 if (event.isRedacted()) {
-                    String redactedInfo = EventDisplay.getRedactionMessage(mContext, event, roomState);
+                    String redactedInfo = getRedactionMessage(mContext, event, roomState);
 
                     if (TextUtils.isEmpty(redactedInfo)) {
                         return null;
@@ -287,7 +286,7 @@ public class EventDisplay {
                 String displayName = invite.display_name;
 
                 if (event.isRedacted()) {
-                    String redactedInfo = EventDisplay.getRedactionMessage(mContext, event, roomState);
+                    String redactedInfo = getRedactionMessage(mContext, event, roomState);
 
                     if (TextUtils.isEmpty(redactedInfo)) {
                         return null;
@@ -431,7 +430,7 @@ public class EventDisplay {
 
         // Check whether the sender has updated his profile (the membership is then unchanged)
         if (TextUtils.equals(prevMembership, eventContent.membership)) {
-            String redactedInfo = EventDisplay.getRedactionMessage(context, event, roomState);
+            String redactedInfo = getRedactionMessage(context, event, roomState);
 
             // Is redacted event?
             if (event.isRedacted()) {

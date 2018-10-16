@@ -16,6 +16,8 @@
  */
 package org.matrix.androidsdk.adapters;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.ParagraphStyle;
@@ -27,13 +29,19 @@ import org.matrix.androidsdk.rest.model.RoomCreateContent;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.EventDisplay;
 
-// this class defines a MessagesAdapter Item.
+/**
+ * this class defines a MessagesAdapter Item.
+ */
 public class MessageRow {
 
     private final boolean mHasPredecessor;
+
     // the linked event
+    @NonNull
     private Event mEvent;
+
     // the room state
+    @Nullable
     private final RoomState mRoomState;
 
     // Cache of the user display name
@@ -41,8 +49,11 @@ public class MessageRow {
 
     // Cache of the computed text
     private SpannableString mText;
+
+    @Nullable
     private RoomCreateContent mRoomCreateContent;
 
+    @Nullable
     private final RoomMember mSender;
 
     /**
@@ -51,19 +62,27 @@ public class MessageRow {
      * @param event     the event.
      * @param roomState the room state
      */
-    public MessageRow(Event event, RoomState roomState) {
+    public MessageRow(@NonNull Event event, @Nullable RoomState roomState) {
         mEvent = event;
         mRoomState = roomState;
 
-        mUserDisplayName = (null == roomState) ? event.getSender() : roomState.getMemberName(event.getSender());
-        mRoomCreateContent = (null == roomState) ? null : roomState.getRoomCreateContent();
-        mSender = roomState.getMember(event.getSender());
-        mHasPredecessor = roomState.hasPredecessor();
+        if (roomState == null) {
+            mUserDisplayName = event.getSender();
+            mRoomCreateContent = null;
+            mSender = null;
+            mHasPredecessor = false;
+        } else {
+            mUserDisplayName = roomState.getMemberName(event.getSender());
+            mRoomCreateContent = roomState.getRoomCreateContent();
+            mSender = roomState.getMember(event.getSender());
+            mHasPredecessor = roomState.hasPredecessor();
+        }
     }
 
     /**
      * @return the event.
      */
+    @NonNull
     public Event getEvent() {
         return mEvent;
     }
@@ -73,10 +92,17 @@ public class MessageRow {
      *
      * @param event the event.
      */
-    public void updateEvent(Event event) {
+    public void updateEvent(@NonNull Event event) {
         mEvent = event;
     }
 
+    /**
+     * Get the text of the event
+     *
+     * @param style
+     * @param display
+     * @return
+     */
     public Spannable getText(ParagraphStyle style, EventDisplay display) {
         if (mText == null) {
             CharSequence textualDisplay = display.getTextualDisplay(mEvent, mRoomState);
@@ -111,10 +137,12 @@ public class MessageRow {
         return mUserDisplayName;
     }
 
+    @Nullable
     public RoomCreateContent getRoomCreateContent() {
         return mRoomCreateContent;
     }
 
+    @Nullable
     public RoomMember getSender() {
         return mSender;
     }

@@ -474,7 +474,7 @@ class MXEventTimeline implements EventTimeline {
                     processStateEvent(stateEvent, Direction.FORWARDS, true);
                 }
 
-                processStateEvent(stateEvent, Direction.BACKWARDS, true);
+                processStateEvent(stateEvent, direction, true);
             }
         }
 
