@@ -8,7 +8,7 @@ Improvements:
  - Improve certificate pinning management for HomeServerConnectionConfig.
 
 Bugfix:
- -
+ - Enable CLEARTEXT communication for http endpoints (vector-im/riot-android#2495)
 
 API Change:
  -

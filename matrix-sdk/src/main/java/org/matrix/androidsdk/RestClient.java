@@ -196,17 +196,18 @@ public class RestClient<T> {
             okHttpClientBuilder.dispatcher(new Dispatcher(new MXRestExecutorService()));
         }
 
+        final String endPoint = makeEndpoint(hsConfig, uriPrefix, endPointServer);
+
         try {
             Pair<SSLSocketFactory, X509TrustManager> pair = CertUtil.newPinnedSSLSocketFactory(hsConfig);
             okHttpClientBuilder.sslSocketFactory(pair.first, pair.second);
             okHttpClientBuilder.hostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
-            okHttpClientBuilder.connectionSpecs(CertUtil.newConnectionSpecs(hsConfig));
+            okHttpClientBuilder.connectionSpecs(CertUtil.newConnectionSpecs(hsConfig, endPoint));
         } catch (Exception e) {
             Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed: " + e.getMessage(), e);
         }
 
         mOkHttpClient = okHttpClientBuilder.build();
-        final String endPoint = makeEndpoint(hsConfig, uriPrefix, endPointServer);
 
         // Rest adapter for turning API interfaces into actual REST-calling objects
         Retrofit.Builder builder = new Retrofit.Builder()
