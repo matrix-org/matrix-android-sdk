@@ -108,20 +108,20 @@ public class RoomNameTest {
 
         // One other user in the room
         room = createRoom(context, withLazyLoading, 2, false);
-        Assert.assertEquals(getUserName(2), room.getRoomDisplayName(context));
+        Assert.assertEquals("UserName_2", room.getRoomDisplayName(context));
 
         // 2 other users in the room
         room = createRoom(context, withLazyLoading, 3, false);
-        Assert.assertEquals(getUserName(2) + " and " + getUserName(3), room.getRoomDisplayName(context));
+        Assert.assertEquals("UserName_2 and UserName_3", room.getRoomDisplayName(context));
 
         room = createRoom(context, withLazyLoading, 4, false);
-        Assert.assertEquals(getUserName(2) + " and 3 others", room.getRoomDisplayName(context));
+        Assert.assertEquals("UserName_2 and 3 others", room.getRoomDisplayName(context));
 
         room = createRoom(context, withLazyLoading, 5, false);
-        Assert.assertEquals(getUserName(2) + " and 4 others", room.getRoomDisplayName(context));
+        Assert.assertEquals("UserName_2 and 4 others", room.getRoomDisplayName(context));
 
         room = createRoom(context, withLazyLoading, 10, false);
-        Assert.assertEquals(getUserName(2) + " and 9 others", room.getRoomDisplayName(context));
+        Assert.assertEquals("UserName_2 and 9 others", room.getRoomDisplayName(context));
     }
 
     @Test
@@ -145,20 +145,20 @@ public class RoomNameTest {
 
         // One other user in the room
         room = createRoom(context, withLazyLoading, 2, true);
-        Assert.assertEquals(getUserName(2), room.getRoomDisplayName(context));
+        Assert.assertEquals("UserName_2", room.getRoomDisplayName(context));
 
         // 2 other users in the room
         room = createRoom(context, withLazyLoading, 3, true);
-        Assert.assertEquals(getUserName(2) + " and " + getUserName(3), room.getRoomDisplayName(context));
+        Assert.assertEquals("UserName_2 and UserName_3", room.getRoomDisplayName(context));
 
         room = createRoom(context, withLazyLoading, 4, true);
-        Assert.assertEquals(getUserName(2) + " and 2 others", room.getRoomDisplayName(context));
+        Assert.assertEquals("UserName_2 and 2 others", room.getRoomDisplayName(context));
 
         room = createRoom(context, withLazyLoading, 5, true);
-        Assert.assertEquals(getUserName(2) + " and 3 others", room.getRoomDisplayName(context));
+        Assert.assertEquals("UserName_2 and 3 others", room.getRoomDisplayName(context));
 
         room = createRoom(context, withLazyLoading, 10, true);
-        Assert.assertEquals(getUserName(2) + " and 8 others", room.getRoomDisplayName(context));
+        Assert.assertEquals("UserName_2 and 8 others", room.getRoomDisplayName(context));
     }
 
     /* ==========================================================================================
@@ -247,6 +247,10 @@ public class RoomNameTest {
         return "@MyUserId";
     }
 
+    private String getMyUserName() {
+        return "MyUserName";
+    }
+
     private String getRoomId() {
         return "!RoomId";
     }
@@ -260,6 +264,10 @@ public class RoomNameTest {
     }
 
     private String getUserName(int i) {
+        if (i == 1) {
+            return getMyUserName();
+        }
+
         return "UserName_" + i;
     }
 }
