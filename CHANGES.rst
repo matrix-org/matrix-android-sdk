@@ -9,6 +9,7 @@ Improvements:
 
 Bugfix:
  - Fix strip previous reply when they contain new line (vector-im/riot-android#2612)
+ - Enable CLEARTEXT communication for http endpoints (vector-im/riot-android#2495)
 
 API Change:
  -

@@ -457,7 +457,15 @@ public class RoomState implements Externalizable {
      * @return true if it is a call conference room.
      */
     public boolean isConferenceUserRoom() {
-        return getDataHandler().getStore().getSummary(roomId).isConferenceUserRoom();
+        if (getDataHandler() != null
+                && getDataHandler().getStore() != null
+                && getDataHandler().getStore().getSummary(roomId) != null) {
+            return getDataHandler().getStore().getSummary(roomId).isConferenceUserRoom();
+        } else {
+            Log.w(LOG_TAG, "## isConferenceUserRoom(): something is null");
+        }
+
+        return false;
     }
 
     /**
@@ -466,7 +474,13 @@ public class RoomState implements Externalizable {
      * @param isConferenceUserRoom true when it is an user conference room.
      */
     public void setIsConferenceUserRoom(boolean isConferenceUserRoom) {
-        getDataHandler().getStore().getSummary(roomId).setIsConferenceUserRoom(isConferenceUserRoom);
+        if (getDataHandler() != null
+                && getDataHandler().getStore() != null
+                && getDataHandler().getStore().getSummary(roomId) != null) {
+            getDataHandler().getStore().getSummary(roomId).setIsConferenceUserRoom(isConferenceUserRoom);
+        } else {
+            Log.w(LOG_TAG, "## setIsConferenceUserRoom(): something is null");
+        }
     }
 
     /**
