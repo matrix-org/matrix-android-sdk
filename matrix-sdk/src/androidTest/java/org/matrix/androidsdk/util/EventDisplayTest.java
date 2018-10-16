@@ -94,6 +94,20 @@ public class EventDisplayTest {
     }
 
     /**
+     * This test check list with several items
+     */
+    @Test
+    public void EventDisplay_formattedMessage_lili_text() {
+        EventDisplay eventDisplay = createEventDisplayWithFormattedBody("<ol><li>list</li><li>item</li></ol>");
+
+        CharSequence textualDisplay = eventDisplay.getTextualDisplay();
+
+        Assert.assertTrue(textualDisplay instanceof SpannableStringBuilder);
+
+        Assert.assertEquals("list\nitem", textualDisplay.toString());
+    }
+
+    /**
      * Test blockquote. It also check the trimming which has been added at the end of
      * {@link EventDisplay#getFormattedMessage(Context, JsonObject, HtmlToolbox)}
      */
