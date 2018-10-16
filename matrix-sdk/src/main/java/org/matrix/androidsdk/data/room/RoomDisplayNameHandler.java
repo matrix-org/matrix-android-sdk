@@ -113,13 +113,20 @@ public class RoomDisplayNameHandler {
 
             if (mRoom.isInvited()) {
                 if (othersActiveMembers.size() == 1) {
-                    // this is current user
-                    RoomMember member = activeMembers.get(0);
+                    // Search the current user
+                    RoomMember currentUser = activeMembers.get(0);
 
-                    if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_INVITE)) {
-                        if (!TextUtils.isEmpty(member.mSender)) {
+                    for (RoomMember roomMember : activeMembers) {
+                        if (roomMember.getUserId().equals(mRoom.getDataHandler().getUserId())) {
+                            currentUser = roomMember;
+                            break;
+                        }
+                    }
+
+                    if (TextUtils.equals(currentUser.membership, RoomMember.MEMBERSHIP_INVITE)) {
+                        if (!TextUtils.isEmpty(currentUser.mSender)) {
                             // extract who invited us to the room
-                            displayName = context.getString(R.string.room_displayname_invite_from, roomState.getMemberName(member.mSender));
+                            displayName = context.getString(R.string.room_displayname_invite_from, roomState.getMemberName(currentUser.mSender));
                         } else {
                             displayName = context.getString(R.string.room_displayname_room_invite);
                         }
