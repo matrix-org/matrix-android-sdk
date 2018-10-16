@@ -74,6 +74,7 @@ public class RoomName {
             int nbOfOtherMembers;
 
             if (mRoom.getDataHandler().isLazyLoadingEnabled()
+                    && mRoom.isJoined()
                     && mRoom.getRoomSummary() != null) {
                 List<String> heroes = mRoom.getRoomSummary().getHeroes();
 
@@ -110,12 +111,12 @@ public class RoomName {
 
             String displayName;
 
-            if (nbOfOtherMembers == 0) {
-                if (activeMembers.size() == 1) {
+            if (mRoom.isInvited()) {
+                if (othersActiveMembers.size() == 1) {
+                    // this is current user
                     RoomMember member = activeMembers.get(0);
 
                     if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_INVITE)) {
-
                         if (!TextUtils.isEmpty(member.mSender)) {
                             // extract who invited us to the room
                             displayName = context.getString(R.string.room_displayname_invite_from, roomState.getMemberName(member.mSender));
@@ -123,26 +124,30 @@ public class RoomName {
                             displayName = context.getString(R.string.room_displayname_room_invite);
                         }
                     } else {
-                        displayName = context.getString(R.string.room_displayname_no_title);
+                        displayName = context.getString(R.string.room_displayname_room_invite);
                     }
                 } else {
-                    displayName = context.getString(R.string.room_displayname_no_title);
+                    displayName = context.getString(R.string.room_displayname_room_invite);
                 }
-            } else if (nbOfOtherMembers == 1) {
-                RoomMember member = othersActiveMembers.get(0);
-                displayName = roomState.getMemberName(member.getUserId());
-            } else if (nbOfOtherMembers == 2) {
-                RoomMember member1 = othersActiveMembers.get(0);
-                RoomMember member2 = othersActiveMembers.get(1);
-
-                displayName = context.getString(R.string.room_displayname_two_members,
-                        roomState.getMemberName(member1.getUserId()), roomState.getMemberName(member2.getUserId()));
             } else {
-                RoomMember member = othersActiveMembers.get(0);
-                displayName = context.getResources().getQuantityString(R.plurals.room_displayname_three_and_more_members,
-                        mRoom.getNumberOfJoinedMembers() - 1,
-                        roomState.getMemberName(member.getUserId()),
-                        mRoom.getNumberOfJoinedMembers() - 1);
+                if (nbOfOtherMembers == 0) {
+                    displayName = context.getString(R.string.room_displayname_empty_room);
+                } else if (nbOfOtherMembers == 1) {
+                    RoomMember member = othersActiveMembers.get(0);
+                    displayName = roomState.getMemberName(member.getUserId());
+                } else if (nbOfOtherMembers == 2) {
+                    RoomMember member1 = othersActiveMembers.get(0);
+                    RoomMember member2 = othersActiveMembers.get(1);
+
+                    displayName = context.getString(R.string.room_displayname_two_members,
+                            roomState.getMemberName(member1.getUserId()), roomState.getMemberName(member2.getUserId()));
+                } else {
+                    RoomMember member = othersActiveMembers.get(0);
+                    displayName = context.getResources().getQuantityString(R.plurals.room_displayname_three_and_more_members,
+                            mRoom.getNumberOfJoinedMembers() - 1,
+                            roomState.getMemberName(member.getUserId()),
+                            mRoom.getNumberOfJoinedMembers() - 1);
+                }
             }
 
             return displayName;

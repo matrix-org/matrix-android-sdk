@@ -74,7 +74,7 @@
         <item quantity="other">%1$s og %2$d aðrir</item>
     </plurals>
 
-    <string name="room_displayname_no_title">Tóm spjallrás</string>
+    <string name="room_displayname_empty_room">Tóm spjallrás</string>
     <string name="room_displayname_invite_from">Boð frá %s</string>
 
 </resources>

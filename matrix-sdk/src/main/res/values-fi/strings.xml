@@ -68,7 +68,7 @@
     <string name="room_displayname_invite_from">Kutsu käyttäjältä %s</string> <!-- Grammar problem -->
     <string name="room_displayname_room_invite">Huonekutsu</string>
     <string name="room_displayname_two_members">%1$s ja %2$s</string>
-    <string name="room_displayname_no_title">Tyhjä huone</string>
+    <string name="room_displayname_empty_room">Tyhjä huone</string>
 
 
 </resources>

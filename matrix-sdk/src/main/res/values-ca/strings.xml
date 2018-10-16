@@ -69,7 +69,7 @@
     <string name="room_displayname_invite_from">Convideu des de %s</string>
     <string name="room_displayname_room_invite">Convideu a la sala</string>
     <string name="room_displayname_two_members">%1$s i %2$s</string>
-    <string name="room_displayname_no_title">Sala buida</string>
+    <string name="room_displayname_empty_room">Sala buida</string>
     <plurals name="room_displayname_three_and_more_members">
         <item quantity="one">%1$s i 1 altre</item>
         <item quantity="other">%1$s i %2$d altres</item>

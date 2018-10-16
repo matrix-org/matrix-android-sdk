@@ -94,6 +94,6 @@
         <item quantity="other">%1$s and %2$d others</item>
     </plurals>
 
-    <string name="room_displayname_no_title">Empty room</string>
+    <string name="room_displayname_empty_room">Empty room</string>
 
 </resources>

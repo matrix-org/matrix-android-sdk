@@ -72,7 +72,7 @@
 
 <string name="message_reply_to_prefix">回复</string>
 
-    <string name="room_displayname_no_title">空聊天室</string>
+    <string name="room_displayname_empty_room">空聊天室</string>
     <string name="room_displayname_invite_from">来自 %s 的邀请</string>
     <string name="room_displayname_room_invite">聊天室邀请</string>
     <string name="room_displayname_two_members">%1$s 和 %2$s</string>

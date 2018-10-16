@@ -145,20 +145,20 @@ public class RoomNameTest {
 
         // One other user in the room
         room = createRoom(context, withLazyLoading, 2, true);
-        Assert.assertEquals("UserName_2", room.getRoomDisplayName(context));
+        Assert.assertEquals("Invite from UserName_2", room.getRoomDisplayName(context));
 
         // 2 other users in the room
         room = createRoom(context, withLazyLoading, 3, true);
-        Assert.assertEquals("UserName_2 and UserName_3", room.getRoomDisplayName(context));
+        Assert.assertEquals("Invite from UserName_2", room.getRoomDisplayName(context));
 
         room = createRoom(context, withLazyLoading, 4, true);
-        Assert.assertEquals("UserName_2 and 2 others", room.getRoomDisplayName(context));
+        Assert.assertEquals("Invite from UserName_2", room.getRoomDisplayName(context));
 
         room = createRoom(context, withLazyLoading, 5, true);
-        Assert.assertEquals("UserName_2 and 3 others", room.getRoomDisplayName(context));
+        Assert.assertEquals("Invite from UserName_2", room.getRoomDisplayName(context));
 
         room = createRoom(context, withLazyLoading, 10, true);
-        Assert.assertEquals("UserName_2 and 8 others", room.getRoomDisplayName(context));
+        Assert.assertEquals("Invite from UserName_2", room.getRoomDisplayName(context));
     }
 
     /* ==========================================================================================
@@ -187,20 +187,22 @@ public class RoomNameTest {
 
         store.storeRoom(room);
 
-        if (withLazyLoading) {
-            // We need a room summary
-            RoomSummary roomSummary = new RoomSummary();
-            roomSummary.setRoomId(getRoomId());
+        RoomSummary roomSummary = new RoomSummary();
+        roomSummary.setRoomId(getRoomId());
+        store.storeSummary(roomSummary);
 
+        if (amIInvited) {
+            roomSummary.setIsInvited();
+        } else {
+            roomSummary.setIsJoined();
+        }
+
+        if (withLazyLoading && !amIInvited) {
+            // Populate room summary
             RoomSyncSummary roomSyncSummary = new RoomSyncSummary();
 
-            if (amIInvited) {
-                roomSyncSummary.joinedMembersCount = nbOfMembers - 1;
-                roomSyncSummary.invitedMembersCount = 1;
-            } else {
-                roomSyncSummary.joinedMembersCount = nbOfMembers;
-                roomSyncSummary.invitedMembersCount = 0;
-            }
+            roomSyncSummary.joinedMembersCount = nbOfMembers;
+            roomSyncSummary.invitedMembersCount = 0;
 
             // heroes
             // Heroes does not include current user
@@ -212,11 +214,19 @@ public class RoomNameTest {
             }
 
             roomSummary.setRoomSyncSummary(roomSyncSummary);
-
-            store.storeSummary(roomSummary);
         }
 
-        initMembers(room.getState(), nbOfMembers, amIInvited);
+        if (amIInvited) {
+            // Maximum 2 members will be sent by the sync
+            initMembers(room.getState(), Math.min(2, nbOfMembers), true);
+
+            // Pass the sender name (the inviter id)
+            if (nbOfMembers >= 2) {
+                room.getMember(getMyUserId()).mSender = getUserId(2);
+            }
+        } else {
+            initMembers(room.getState(), nbOfMembers, false);
+        }
 
         return room;
     }

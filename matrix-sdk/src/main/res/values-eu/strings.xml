@@ -76,7 +76,7 @@
     <string name="room_displayname_invite_from">%s gelarako gonbidapena</string>
     <string name="room_displayname_room_invite">Gela gonbidapena</string>
     <string name="room_displayname_two_members">%1$s eta %2$s</string>
-    <string name="room_displayname_no_title">Gela hutsa</string>
+    <string name="room_displayname_empty_room">Gela hutsa</string>
 
     <plurals name="room_displayname_three_and_more_members">
         <item quantity="one">%1$s eta beste bat</item>

@@ -73,6 +73,6 @@
         <item quantity="other">%1$s og %2$d andre</item>
     </plurals>
 
-    <string name="room_displayname_no_title">Tomt rum</string>
+    <string name="room_displayname_empty_room">Tomt rum</string>
 
 </resources>

@@ -87,7 +87,7 @@
     <string name="room_displayname_invite_from">Einladung von %s</string>
     <string name="room_displayname_room_invite">Raumeinladung</string>
     <string name="room_displayname_two_members">%1$s und %2$s</string>
-    <string name="room_displayname_no_title">Leerer Raum</string>
+    <string name="room_displayname_empty_room">Leerer Raum</string>
 
     <plurals name="room_displayname_three_and_more_members">
         <item quantity="one">%1$s und 1 andere(r)</item>

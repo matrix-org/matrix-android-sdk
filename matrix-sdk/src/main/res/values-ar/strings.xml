@@ -74,7 +74,7 @@
     <string name="reply_to_a_file">أرسل ملفًا.</string>
 
     <string name="room_displayname_invite_from">دعوة من ⁨%s⁩</string>
-    <string name="room_displayname_no_title">غرفة فارغة</string>
+    <string name="room_displayname_empty_room">غرفة فارغة</string>
 
     <string name="room_displayname_two_members">‏⁨%1$s⁩ و ⁨%2$s⁩</string>
     <string name="room_displayname_room_invite">دعوة إلى غرفة</string>

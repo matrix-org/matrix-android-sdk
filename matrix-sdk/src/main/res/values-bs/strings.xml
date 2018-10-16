@@ -3,5 +3,5 @@
     <string name="room_displayname_invite_from">Pozovite iz %s</string>
     <string name="room_displayname_room_invite">Poziv u Sobu</string>
     <string name="room_displayname_two_members">%1$s i %2$s</string>
-    <string name="room_displayname_no_title">Prazna soba</string>
+    <string name="room_displayname_empty_room">Prazna soba</string>
 </resources>

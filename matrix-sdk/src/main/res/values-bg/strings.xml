@@ -82,6 +82,6 @@
         <item quantity="other">%1$s и %2$d други</item>
     </plurals>
 
-    <string name="room_displayname_no_title">Празна стая</string>
+    <string name="room_displayname_empty_room">Празна стая</string>
 
 </resources>

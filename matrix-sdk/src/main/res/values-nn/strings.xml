@@ -80,6 +80,6 @@
         <item quantity="other">%1$s og %2$d til</item>
     </plurals>
 
-    <string name="room_displayname_no_title">Tomt rom</string>
+    <string name="room_displayname_empty_room">Tomt rom</string>
 
 </resources>

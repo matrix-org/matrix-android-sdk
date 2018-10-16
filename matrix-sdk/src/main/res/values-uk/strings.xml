@@ -11,7 +11,7 @@
     <string name="room_displayname_invite_from">Запрошення від %s</string>
     <string name="room_displayname_room_invite">Запрошення до кімнати</string>
     <string name="room_displayname_two_members">%1$s і %2$s</string>
-    <string name="room_displayname_no_title">Порожня кімната</string>
+    <string name="room_displayname_empty_room">Порожня кімната</string>
 
 
 </resources>

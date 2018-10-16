@@ -75,7 +75,7 @@
     <string name="room_displayname_invite_from">%s meghívott</string>
     <string name="room_displayname_room_invite">Meghívó egy szobába</string>
     <string name="room_displayname_two_members">%1$s és %2$s</string>
-    <string name="room_displayname_no_title">Üres szoba</string>
+    <string name="room_displayname_empty_room">Üres szoba</string>
 
     <plurals name="room_displayname_three_and_more_members">
         <item quantity="one">%1$s és 1 másik</item>

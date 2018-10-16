@@ -75,7 +75,7 @@
 
     <string name="room_displayname_invite_from">Invitation de %s</string>
     <string name="room_displayname_room_invite">Invitation au salon</string>
-    <string name="room_displayname_no_title">Salon vide</string>
+    <string name="room_displayname_empty_room">Salon vide</string>
     <string name="room_displayname_two_members">%1$s et %2$s</string>
 
     <plurals name="room_displayname_three_and_more_members">
