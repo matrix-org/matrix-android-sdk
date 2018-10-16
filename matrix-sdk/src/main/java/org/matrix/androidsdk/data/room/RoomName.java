@@ -140,9 +140,9 @@ public class RoomName {
             } else {
                 RoomMember member = othersActiveMembers.get(0);
                 displayName = context.getResources().getQuantityString(R.plurals.room_displayname_three_and_more_members,
-                        mRoom.getRoomSummary().getNumberOfJoinedMembers() - 1,
+                        mRoom.getNumberOfJoinedMembers() - 1,
                         roomState.getMemberName(member.getUserId()),
-                        mRoom.getRoomSummary().getNumberOfJoinedMembers() - 1);
+                        mRoom.getNumberOfJoinedMembers() - 1);
             }
 
             return displayName;

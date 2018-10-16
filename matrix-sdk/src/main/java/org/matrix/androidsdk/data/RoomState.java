@@ -19,6 +19,7 @@
 package org.matrix.androidsdk.data;
 
 import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
@@ -475,7 +476,8 @@ public class RoomState implements Externalizable {
      * @param userId the user id.
      * @param member the new member value.
      */
-    private void setMember(String userId, RoomMember member) {
+    @VisibleForTesting
+    public void setMember(String userId, RoomMember member) {
         // Populate a basic user object if there is none
         if (member.getUserId() == null) {
             member.setUserId(userId);
