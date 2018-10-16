@@ -32,19 +32,19 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * This class helps to compute a room name
+ * This class helps to compute a room display name
  */
-public class RoomName {
+public class RoomDisplayNameHandler {
 
-    private static final String LOG_TAG = RoomName.class.getSimpleName();
+    private static final String LOG_TAG = RoomDisplayNameHandler.class.getSimpleName();
 
     private final Room mRoom;
 
-    public RoomName(Room room) {
+    public RoomDisplayNameHandler(Room room) {
         mRoom = room;
     }
 
-    public String getRoomDisplayName(Context context) {
+    public String handle(Context context) {
         try {
             // this algorithm is the one defined in
             // https://github.com/matrix-org/matrix-js-sdk/blob/develop/lib/models/room.js#L617
@@ -152,7 +152,7 @@ public class RoomName {
 
             return displayName;
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## getRoomDisplayName() failed " + e.getMessage(), e);
+            Log.e(LOG_TAG, "## Computing room display name failed " + e.getMessage(), e);
         }
 
         return mRoom.getRoomId();

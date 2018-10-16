@@ -37,7 +37,7 @@ import org.matrix.androidsdk.rest.model.sync.RoomSyncSummary;
 import java.util.ArrayList;
 
 @FixMethodOrder(MethodSorters.JVM)
-public class RoomNameTest {
+public class RoomDisplayNameHandlerTest {
 
     @Test
     public void RoomName_getRoomDisplayName_LL_emptyRoom() {
