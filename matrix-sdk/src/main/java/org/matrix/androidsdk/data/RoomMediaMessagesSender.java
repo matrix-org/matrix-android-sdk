@@ -56,6 +56,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Room helper to send media messages in the right order.
@@ -86,6 +87,9 @@ class RoomMediaMessagesSender {
 
     // encoding creation threads
     private static android.os.Handler mEncodingHandler = null;
+
+    // Pattern to strip previous reply when replying to a message. It also matches multi lines previous reply, when for instance containing blockquote.
+    private static Pattern sPreviousReplyPattern = Pattern.compile("^<mx-reply>.*</mx-reply>", Pattern.DOTALL);
 
     /**
      * Constructor
@@ -514,7 +518,7 @@ class RoomMediaMessagesSender {
                                                  boolean isEmote) {
         if (stripPreviousReplyTo) {
             // Strip replyToFormattedBody from previous reply to
-            replyToFormattedBody = replyToFormattedBody.replaceAll("^<mx-reply>.*</mx-reply>", "");
+            replyToFormattedBody = sPreviousReplyPattern.matcher(replyToFormattedBody).replaceAll("");
         }
 
         StringBuilder ret = new StringBuilder("<mx-reply><blockquote><a href=\"")
