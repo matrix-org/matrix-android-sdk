@@ -24,20 +24,12 @@ import junit.framework.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
-import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.data.Room;
-import org.matrix.androidsdk.data.RoomState;
-import org.matrix.androidsdk.data.RoomSummary;
-import org.matrix.androidsdk.data.store.IMXStore;
-import org.matrix.androidsdk.data.store.MXMemoryStore;
-import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.rest.model.login.Credentials;
-import org.matrix.androidsdk.rest.model.sync.RoomSyncSummary;
-
-import java.util.ArrayList;
 
 @FixMethodOrder(MethodSorters.JVM)
 public class RoomAvatarResolverTest {
+
+    private RoomTestHelper mRoomTestHelper = new RoomTestHelper();
 
     @Test
     public void RoomName_getRoomAvatar_LL_avatar() {
@@ -54,7 +46,7 @@ public class RoomAvatarResolverTest {
 
         // It does not depend on the number of users
         for (int i = 0; i < 10; i++) {
-            Room room = createRoom(context, withLazyLoading, i, false);
+            Room room = mRoomTestHelper.createRoom(context, withLazyLoading, i, false);
 
             room.getState().avatar_url = "mxc://avatar_url";
             Assert.assertEquals("mxc://avatar_url", room.getAvatarUrl());
@@ -136,124 +128,4 @@ public class RoomAvatarResolverTest {
         Assert.assertEquals("Invite from UserName_2", room.getRoomDisplayName(context));
     }
 */
-
-    /* ==========================================================================================
-     * Private
-     * ========================================================================================== */
-
-    /**
-     * Create a room, with or without lazy loading and with x number of room members
-     * First room member will always be the current user
-     *
-     * @param context
-     * @param withLazyLoading
-     * @param nbOfMembers
-     * @param amIInvited
-     * @return
-     */
-    private Room createRoom(Context context, boolean withLazyLoading, int nbOfMembers, boolean amIInvited) {
-        Credentials credentials = new Credentials();
-        credentials.userId = getMyUserId();
-        IMXStore store = new MXMemoryStore(credentials, context);
-
-        MXDataHandler mxDataHandler = new MXDataHandler(store, credentials);
-        mxDataHandler.setLazyLoadingEnabled(withLazyLoading);
-
-        Room room = new Room(mxDataHandler, store, getRoomId());
-
-        store.storeRoom(room);
-
-        RoomSummary roomSummary = new RoomSummary();
-        roomSummary.setRoomId(getRoomId());
-        store.storeSummary(roomSummary);
-
-        if (amIInvited) {
-            roomSummary.setIsInvited();
-        } else {
-            roomSummary.setIsJoined();
-        }
-
-        if (withLazyLoading && !amIInvited) {
-            // Populate room summary
-            RoomSyncSummary roomSyncSummary = new RoomSyncSummary();
-
-            roomSyncSummary.joinedMembersCount = nbOfMembers;
-            roomSyncSummary.invitedMembersCount = 0;
-
-            // heroes
-            // Heroes does not include current user
-            if (nbOfMembers >= 2) {
-                roomSyncSummary.heroes = new ArrayList<>();
-                for (int i = 2; i <= Math.min(6, nbOfMembers); i++) {
-                    roomSyncSummary.heroes.add(getUserId(i));
-                }
-            }
-
-            roomSummary.setRoomSyncSummary(roomSyncSummary);
-        }
-
-        if (amIInvited) {
-            // Maximum 2 members will be sent by the sync
-            initMembers(room.getState(), Math.min(2, nbOfMembers), true);
-
-            // Pass the sender name (the inviter id)
-            if (nbOfMembers >= 2) {
-                room.getMember(getMyUserId()).mSender = getUserId(2);
-            }
-        } else {
-            initMembers(room.getState(), nbOfMembers, false);
-        }
-
-        return room;
-    }
-
-    private void initMembers(RoomState roomState, int nbOfMembers, boolean amIInvited) {
-        for (int i = 1; i <= nbOfMembers; i++) {
-            roomState.setMember(getUserId(i), createRoomMember(i, amIInvited));
-        }
-    }
-
-    private RoomMember createRoomMember(int i, boolean amIInvited) {
-        RoomMember roomMember = new RoomMember();
-
-        roomMember.setUserId(getUserId(i));
-        roomMember.displayname = getUserName(i);
-        if (i == 1 && amIInvited) {
-            roomMember.membership = RoomMember.MEMBERSHIP_INVITE;
-        } else {
-            roomMember.membership = RoomMember.MEMBERSHIP_JOIN;
-        }
-        // Add a TS because they will be ordered
-        roomMember.setOriginServerTs(i);
-
-        return roomMember;
-    }
-
-    private String getMyUserId() {
-        return "@MyUserId";
-    }
-
-    private String getMyUserName() {
-        return "MyUserName";
-    }
-
-    private String getRoomId() {
-        return "!RoomId";
-    }
-
-    private String getUserId(int i) {
-        if (i == 1) {
-            return getMyUserId();
-        }
-
-        return "UserId_" + i;
-    }
-
-    private String getUserName(int i) {
-        if (i == 1) {
-            return getMyUserName();
-        }
-
-        return "UserName_" + i;
-    }
 }
