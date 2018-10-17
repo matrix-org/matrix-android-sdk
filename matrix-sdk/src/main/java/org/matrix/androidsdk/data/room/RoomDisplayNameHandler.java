@@ -22,13 +22,13 @@ import android.text.TextUtils;
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
+import org.matrix.androidsdk.data.comparator.Comparators;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -99,14 +99,7 @@ public class RoomDisplayNameHandler {
                     }
                 }
 
-                Collections.sort(othersActiveMembers, new Comparator<RoomMember>() {
-                    @Override
-                    public int compare(RoomMember m1, RoomMember m2) {
-                        long diff = m1.getOriginServerTs() - m2.getOriginServerTs();
-
-                        return (diff == 0) ? 0 : ((diff < 0) ? -1 : +1);
-                    }
-                });
+                Collections.sort(othersActiveMembers, Comparators.ascComparator);
             }
 
             nbOfOtherMembers = othersActiveMembers.size();
