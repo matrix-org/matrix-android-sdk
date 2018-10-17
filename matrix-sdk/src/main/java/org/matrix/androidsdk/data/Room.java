@@ -42,7 +42,7 @@ import org.matrix.androidsdk.MXPatterns;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
-import org.matrix.androidsdk.data.room.RoomDisplayNameHandler;
+import org.matrix.androidsdk.data.room.RoomDisplayNameResolver;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.timeline.EventTimelineFactory;
@@ -136,8 +136,8 @@ public class Room {
     // true when the current room is a left one
     private boolean mIsLeft;
 
-    // Class to compute room name
-    private final RoomDisplayNameHandler mRoomDisplayNameHandler;
+    // Class to compute room display name
+    private final RoomDisplayNameResolver mRoomDisplayNameResolver;
 
     /**
      * Constructor
@@ -152,7 +152,7 @@ public class Room {
         mStore = store;
         mMyUserId = mDataHandler.getUserId();
         mTimeline = EventTimelineFactory.liveTimeline(mDataHandler, this, roomId);
-        mRoomDisplayNameHandler = new RoomDisplayNameHandler(this);
+        mRoomDisplayNameResolver = new RoomDisplayNameResolver(this);
     }
 
     /**
@@ -551,7 +551,7 @@ public class Room {
      * @return the computed room display name
      */
     public String getRoomDisplayName(Context context) {
-        return mRoomDisplayNameHandler.handle(context);
+        return mRoomDisplayNameResolver.resolve(context);
     }
 
     public String getTopic() {

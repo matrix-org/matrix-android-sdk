@@ -34,17 +34,23 @@ import java.util.List;
 /**
  * This class computes room display name
  */
-public class RoomDisplayNameHandler {
+public class RoomDisplayNameResolver {
 
-    private static final String LOG_TAG = RoomDisplayNameHandler.class.getSimpleName();
+    private static final String LOG_TAG = RoomDisplayNameResolver.class.getSimpleName();
 
     private final Room mRoom;
 
-    public RoomDisplayNameHandler(Room room) {
+    public RoomDisplayNameResolver(Room room) {
         mRoom = room;
     }
 
-    public String handle(Context context) {
+    /**
+     * Compute the room display name
+     *
+     * @param context
+     * @return the room display name
+     */
+    public String resolve(Context context) {
         try {
             // this algorithm is the one defined in
             // https://github.com/matrix-org/matrix-js-sdk/blob/develop/lib/models/room.js#L617
