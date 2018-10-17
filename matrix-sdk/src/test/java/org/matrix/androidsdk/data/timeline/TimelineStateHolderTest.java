@@ -80,7 +80,7 @@ public class TimelineStateHolderTest {
         final RoomState backState = Mockito.spy(mTimelineStateHolder.getBackState());
         mTimelineStateHolder.setBackState(backState);
         mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.BACKWARDS, false);
-        Mockito.verify(backState).applyState(event, false, mIMXStore);
+        Mockito.verify(backState).applyState(event, false, null);
     }
 
     @Test
