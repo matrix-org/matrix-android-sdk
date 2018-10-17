@@ -167,7 +167,7 @@ class TimelineLiveEventHandler {
                     // copy the live state before applying any update
                     mTimelineStateHolder.deepCopyState(EventTimeline.Direction.FORWARDS);
                     // check if the event has been processed
-                    if (!mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS)) {
+                    if (!mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS, true)) {
                         // not processed -> do not warn the application
                         // assume that the event is a duplicated one.
                         return;
@@ -236,9 +236,9 @@ class TimelineLiveEventHandler {
                                 }
                             }
                             final RoomState state = mTimelineStateHolder.getState();
-                            final EventDisplay eventDisplay = new EventDisplay(store.getContext(), indexedEvent, state);
+                            final EventDisplay eventDisplay = new EventDisplay(store.getContext());
                             // ensure that message can be displayed
-                            if (!TextUtils.isEmpty(eventDisplay.getTextualDisplay())) {
+                            if (!TextUtils.isEmpty(eventDisplay.getTextualDisplay(indexedEvent, state))) {
                                 event = indexedEvent;
                                 break;
                             }

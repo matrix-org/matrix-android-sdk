@@ -98,7 +98,7 @@ class TimelineJoinRoomSyncHandler {
         if (room.getDataHandler().isAlive()) {
             for (Event event : mRoomSync.state.events) {
                 try {
-                    mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS);
+                    mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS, true);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "processStateEvent failed " + e.getMessage(), e);
                 }

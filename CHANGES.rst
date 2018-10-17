@@ -11,6 +11,7 @@ Improvements:
 Bugfix:
  - Fix strip previous reply when they contain new line (vector-im/riot-android#2612)
  - Enable CLEARTEXT communication for http endpoints (vector-im/riot-android#2495)
+ - Back paginating in a room with LL makes some avatars to vanish (vector-im/riot-android#2639)
 
 API Change:
  -

@@ -39,7 +39,6 @@ import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXMemoryStore;
-import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.groups.GroupsManager;
 import org.matrix.androidsdk.listeners.IMXEventListener;
@@ -924,7 +923,7 @@ public class MXDataHandler {
 
                         if (info.chunk != null) {
                             for (Event event : info.chunk) {
-                                room.getState().applyState(getStore(), event, EventTimeline.Direction.FORWARDS);
+                                room.getState().applyState(event, true, getStore());
                             }
                         }
 

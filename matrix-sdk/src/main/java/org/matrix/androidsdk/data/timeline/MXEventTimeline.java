@@ -319,12 +319,13 @@ class MXEventTimeline implements EventTimeline {
     /**
      * Process a state event to keep the internal live and back states up to date.
      *
-     * @param event     the state event
-     * @param direction the direction; ie. forwards for live state, backwards for back state
+     * @param event              the state event
+     * @param direction          the direction; ie. forwards for live state, backwards for back state
+     * @param considerNewContent how the event should affect the state: true for applying, false for un-applying (applying the previous state)
      * @return true if the event has been processed.
      */
-    private boolean processStateEvent(Event event, Direction direction) {
-        return mStateHolder.processStateEvent(event, direction);
+    private boolean processStateEvent(Event event, Direction direction, boolean considerNewContent) {
+        return mStateHolder.processStateEvent(event, direction, considerNewContent);
     }
 
     /**
@@ -470,10 +471,10 @@ class MXEventTimeline implements EventTimeline {
             for (Event stateEvent : stateEvents) {
                 if (direction == Direction.BACKWARDS) {
                     // Enrich the timeline root state with the additional state events observed during back pagination
-                    processStateEvent(stateEvent, Direction.FORWARDS);
+                    processStateEvent(stateEvent, Direction.FORWARDS, true);
                 }
 
-                processStateEvent(stateEvent, direction);
+                processStateEvent(stateEvent, direction, true);
             }
         }
 
@@ -482,8 +483,10 @@ class MXEventTimeline implements EventTimeline {
             boolean processedEvent = true;
 
             if (event.stateKey != null) {
+                boolean considerNewContent = direction == Direction.FORWARDS;
+
                 deepCopyState(direction);
-                processedEvent = processStateEvent(event, direction);
+                processedEvent = processStateEvent(event, direction, considerNewContent);
             }
 
             // Decrypt event if necessary
@@ -877,7 +880,7 @@ class MXEventTimeline implements EventTimeline {
                                     protected Void doInBackground(Void... params) {
                                         // the state is the one after the latest event of the chunk i.e. the last message of eventContext.eventsAfter
                                         for (Event event : eventContext.state) {
-                                            processStateEvent(event, Direction.FORWARDS);
+                                            processStateEvent(event, Direction.FORWARDS, true);
                                         }
 
                                         // init the room states
