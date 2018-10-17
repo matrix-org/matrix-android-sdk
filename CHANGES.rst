@@ -6,6 +6,7 @@ Features:
 
 Improvements:
  - Improve certificate pinning management for HomeServerConnectionConfig.
+ - Room display name is now computed by the Matrix SDK
 
 Bugfix:
  - Fix strip previous reply when they contain new line (vector-im/riot-android#2612)

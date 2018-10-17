@@ -71,4 +71,7 @@
     <string name="reply_to_an_audio_file">enviar un ficheiro de son.</string>
     <string name="reply_to_a_file">enviar un ficheiro.</string>
 
+    <string name="room_displayname_two_members">%1$s e %2$s</string>
+
+
 </resources>

@@ -7,4 +7,11 @@
     <string name="notice_room_invite">%1$s запросив(ла) %2$s</string>
     <string name="encrypted_message">Закодоване повідомлення</string>
 
-    </resources>
+    <!-- Room display name -->
+    <string name="room_displayname_invite_from">Запрошення від %s</string>
+    <string name="room_displayname_room_invite">Запрошення до кімнати</string>
+    <string name="room_displayname_two_members">%1$s і %2$s</string>
+    <string name="room_displayname_empty_room">Порожня кімната</string>
+
+
+</resources>

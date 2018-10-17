@@ -22,7 +22,9 @@ import java.util.Comparator;
 
 public class Comparators {
 
-    // comparator to sort from the oldest to the latest.
+    /**
+     * Comparator to sort DatedObjects from the oldest to the latest.
+     */
     public static final Comparator<DatedObject> ascComparator = new Comparator<DatedObject>() {
         @Override
         public int compare(DatedObject datedObject1, DatedObject datedObject2) {
@@ -30,7 +32,9 @@ public class Comparators {
         }
     };
 
-    // comparator to sort from the latest to the oldest.
+    /**
+     * Comparator to sort DatedObjects from the latest to the oldest.
+     */
     public static final Comparator<DatedObject> descComparator = new Comparator<DatedObject>() {
         @Override
         public int compare(DatedObject datedObject1, DatedObject datedObject2) {

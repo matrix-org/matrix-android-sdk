@@ -21,6 +21,7 @@ import android.text.TextUtils;
 
 import com.google.gson.annotations.SerializedName;
 
+import org.matrix.androidsdk.interfaces.DatedObject;
 import org.matrix.androidsdk.util.ContentManager;
 import org.matrix.androidsdk.util.Log;
 
@@ -33,7 +34,7 @@ import java.util.Comparator;
 /**
  * Class representing a room member: a user with membership information.
  */
-public class RoomMember implements Externalizable {
+public class RoomMember implements Externalizable, DatedObject {
     private static final String LOG_TAG = RoomMember.class.getSimpleName();
 
     public static final String MEMBERSHIP_JOIN = "join";
@@ -66,6 +67,11 @@ public class RoomMember implements Externalizable {
     public String reason;
     // user which banned or kicked this member
     public String mSender;
+
+    @Override
+    public long getDate() {
+        return mOriginServerTs;
+    }
 
     @Override
     public void readExternal(ObjectInput input) throws IOException, ClassNotFoundException {
