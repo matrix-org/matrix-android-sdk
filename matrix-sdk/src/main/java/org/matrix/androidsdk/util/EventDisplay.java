@@ -609,7 +609,7 @@ public class EventDisplay {
                 }
                 // fromHtml formats quotes (> character) with two newlines at the end
                 // remove any newlines at the end of the CharSequence
-                while (text.charAt(text.length() - 1) == '\n') {
+                while (text.length() > 0 && text.charAt(text.length() - 1) == '\n') {
                     text = text.subSequence(0, text.length() - 1);
                 }
             }
