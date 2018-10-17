@@ -16,6 +16,7 @@
 
 package org.matrix.androidsdk.data.room;
 
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.data.Room;
@@ -37,8 +38,9 @@ public class RoomAvatarResolver {
     /**
      * Compute the room avatar url
      *
-     * @return the room avatar url
+     * @return the room avatar url, can be a fallback to a room member avatar or null
      */
+    @Nullable
     public String resolve() {
         String res = mRoom.getState().getAvatarUrl();
 
