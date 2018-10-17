@@ -32,16 +32,16 @@ public class RoomAvatarResolverTest {
     private RoomTestHelper mRoomTestHelper = new RoomTestHelper();
 
     @Test
-    public void RoomName_getRoomAvatar_LL_avatar() {
-        RoomName_getRoomAvatar_avatar(true);
+    public void RoomAvatar_getAvatar_noLL_avatar() {
+        RoomAvatar_getAvatar_avatar(false);
     }
 
     @Test
-    public void RoomName_getRoomAvatar_noLL_avatar() {
-        RoomName_getRoomAvatar_avatar(false);
+    public void RoomAvatar_getAvatar_LL_avatar() {
+        RoomAvatar_getAvatar_avatar(true);
     }
 
-    private void RoomName_getRoomAvatar_avatar(boolean withLazyLoading) {
+    private void RoomAvatar_getAvatar_avatar(boolean withLazyLoading) {
         Context context = InstrumentationRegistry.getContext();
 
         // It does not depend on the number of users
@@ -53,79 +53,97 @@ public class RoomAvatarResolverTest {
         }
     }
 
-    /*
     @Test
-    public void RoomName_getRoomDisplayName_noLL_user() {
-        RoomName_getRoomDisplayName_user(false);
+    public void RoomAvatar_getAvatar_noLL_noAvatar() {
+        RoomAvatar_getAvatar_noAvatar(false);
     }
 
     @Test
-    public void RoomName_getRoomDisplayName_LL_user() {
-        RoomName_getRoomDisplayName_user(true);
+    public void RoomAvatar_getAvatar_LL_noAvatar() {
+        RoomAvatar_getAvatar_noAvatar(true);
     }
 
-    private void RoomName_getRoomDisplayName_user(boolean withLazyLoading) {
+    private void RoomAvatar_getAvatar_noAvatar(boolean withLazyLoading) {
         Context context = InstrumentationRegistry.getContext();
 
         Room room;
 
         // Only me in the room
-        room = createRoom(context, withLazyLoading, 1, false);
-        Assert.assertEquals("Empty room", room.getRoomDisplayName(context));
+        room = mRoomTestHelper.createRoom(context, withLazyLoading, 1, false);
+        Assert.assertNull(room.getAvatarUrl());
+
+        // I have an avatar
+        room.getMember(mRoomTestHelper.getMyUserId()).avatarUrl = "mxc://my_avatar_url";
+
+        Assert.assertEquals("mxc://my_avatar_url", room.getAvatarUrl());
 
         // One other user in the room
-        room = createRoom(context, withLazyLoading, 2, false);
-        Assert.assertEquals("UserName_2", room.getRoomDisplayName(context));
+        room = mRoomTestHelper.createRoom(context, withLazyLoading, 2, false);
+        Assert.assertNull(room.getAvatarUrl());
+
+        // I have an avatar
+        room.getMember(mRoomTestHelper.getMyUserId()).avatarUrl = "mxc://my_avatar_url";
+        Assert.assertNull(room.getAvatarUrl());
+
+        // Other user has an avatar
+        room.getMember(mRoomTestHelper.getUserId(2)).avatarUrl = "mxc://other_user_avatar_url";
+        Assert.assertEquals("mxc://other_user_avatar_url", room.getAvatarUrl());
 
         // 2 other users in the room
-        room = createRoom(context, withLazyLoading, 3, false);
-        Assert.assertEquals("UserName_2 and UserName_3", room.getRoomDisplayName(context));
+        room = mRoomTestHelper.createRoom(context, withLazyLoading, 3, false);
 
-        room = createRoom(context, withLazyLoading, 4, false);
-        Assert.assertEquals("UserName_2 and 3 others", room.getRoomDisplayName(context));
+        // I have an avatar
+        room.getMember(mRoomTestHelper.getMyUserId()).avatarUrl = "mxc://my_avatar_url";
+        // Other user has an avatar
+        room.getMember(mRoomTestHelper.getUserId(2)).avatarUrl = "mxc://other_user_avatar_url";
 
-        room = createRoom(context, withLazyLoading, 5, false);
-        Assert.assertEquals("UserName_2 and 4 others", room.getRoomDisplayName(context));
-
-        room = createRoom(context, withLazyLoading, 10, false);
-        Assert.assertEquals("UserName_2 and 9 others", room.getRoomDisplayName(context));
+        Assert.assertNull(room.getAvatarUrl());
     }
 
     @Test
-    public void RoomName_getRoomDisplayName_noLL_invitation() {
-        RoomName_getRoomDisplayName_invitation(false);
+    public void RoomAvatar_getAvatar_noLL_invitation() {
+        RoomAvatar_getAvatar_invitation(false);
     }
 
     @Test
-    public void RoomName_getRoomDisplayName_LL_invitation() {
-        RoomName_getRoomDisplayName_invitation(true);
+    public void RoomAvatar_getAvatar_LL_invitation() {
+        RoomAvatar_getAvatar_invitation(true);
     }
 
-    private void RoomName_getRoomDisplayName_invitation(boolean withLazyLoading) {
+    private void RoomAvatar_getAvatar_invitation(boolean withLazyLoading) {
         Context context = InstrumentationRegistry.getContext();
 
         Room room;
 
         // Only me in the room
-        room = createRoom(context, withLazyLoading, 1, true);
-        Assert.assertEquals("Room Invite", room.getRoomDisplayName(context));
+        room = mRoomTestHelper.createRoom(context, withLazyLoading, 1, true);
+        Assert.assertNull(room.getAvatarUrl());
+
+        // I have an avatar
+        room.getMember(mRoomTestHelper.getMyUserId()).avatarUrl = "mxc://my_avatar_url";
+
+        Assert.assertEquals("mxc://my_avatar_url", room.getAvatarUrl());
 
         // One other user in the room
-        room = createRoom(context, withLazyLoading, 2, true);
-        Assert.assertEquals("Invite from UserName_2", room.getRoomDisplayName(context));
+        room = mRoomTestHelper.createRoom(context, withLazyLoading, 2, true);
+        Assert.assertNull(room.getAvatarUrl());
+
+        // I have an avatar
+        room.getMember(mRoomTestHelper.getMyUserId()).avatarUrl = "mxc://my_avatar_url";
+        Assert.assertNull(room.getAvatarUrl());
+
+        // Other user has an avatar
+        room.getMember(mRoomTestHelper.getUserId(2)).avatarUrl = "mxc://other_user_avatar_url";
+        Assert.assertEquals("mxc://other_user_avatar_url", room.getAvatarUrl());
 
         // 2 other users in the room
-        room = createRoom(context, withLazyLoading, 3, true);
-        Assert.assertEquals("Invite from UserName_2", room.getRoomDisplayName(context));
+        room = mRoomTestHelper.createRoom(context, withLazyLoading, 3, true);
 
-        room = createRoom(context, withLazyLoading, 4, true);
-        Assert.assertEquals("Invite from UserName_2", room.getRoomDisplayName(context));
+        // I have an avatar
+        room.getMember(mRoomTestHelper.getMyUserId()).avatarUrl = "mxc://my_avatar_url";
+        // Other user has an avatar
+        room.getMember(mRoomTestHelper.getUserId(2)).avatarUrl = "mxc://other_user_avatar_url";
 
-        room = createRoom(context, withLazyLoading, 5, true);
-        Assert.assertEquals("Invite from UserName_2", room.getRoomDisplayName(context));
-
-        room = createRoom(context, withLazyLoading, 10, true);
-        Assert.assertEquals("Invite from UserName_2", room.getRoomDisplayName(context));
+        Assert.assertNull(room.getAvatarUrl());
     }
-*/
 }

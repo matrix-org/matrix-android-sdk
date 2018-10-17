@@ -119,7 +119,7 @@ public class RoomTestHelper {
         return roomMember;
     }
 
-    private String getMyUserId() {
+    public String getMyUserId() {
         return "@MyUserId";
     }
 
@@ -131,7 +131,7 @@ public class RoomTestHelper {
         return "!RoomId";
     }
 
-    private String getUserId(int i) {
+    public String getUserId(int i) {
         if (i == 1) {
             return getMyUserId();
         }

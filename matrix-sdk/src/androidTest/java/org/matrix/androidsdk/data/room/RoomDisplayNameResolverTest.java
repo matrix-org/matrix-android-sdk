@@ -34,13 +34,13 @@ public class RoomDisplayNameResolverTest {
     private RoomTestHelper mRoomTestHelper = new RoomTestHelper();
 
     @Test
-    public void RoomName_getRoomDisplayName_LL_emptyRoom() {
-        RoomName_getRoomDisplayName_emptyRoom(true);
+    public void RoomName_getRoomDisplayName_noLL_emptyRoom() {
+        RoomName_getRoomDisplayName_emptyRoom(false);
     }
 
     @Test
-    public void RoomName_getRoomDisplayName_noLL_emptyRoom() {
-        RoomName_getRoomDisplayName_emptyRoom(false);
+    public void RoomName_getRoomDisplayName_LL_emptyRoom() {
+        RoomName_getRoomDisplayName_emptyRoom(true);
     }
 
     private void RoomName_getRoomDisplayName_emptyRoom(boolean withLazyLoading) {
