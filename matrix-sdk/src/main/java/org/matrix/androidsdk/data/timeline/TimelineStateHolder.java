@@ -117,13 +117,17 @@ class TimelineStateHolder {
                                      @NonNull final EventTimeline.Direction direction,
                                      final boolean considerNewContent) {
         final RoomState affectedState;
+        final IMXStore store;
         if (direction == EventTimeline.Direction.FORWARDS) {
             affectedState = mState;
+            store = mStore;
         } else {
             affectedState = mBackState;
+            // In the case of backward pagination, we do not want to persist the state event
+            store = null;
         }
 
-        final boolean isProcessed = affectedState.applyState(mStore, event, considerNewContent);
+        final boolean isProcessed = affectedState.applyState(event, considerNewContent, store);
 
         if (isProcessed && direction == EventTimeline.Direction.FORWARDS) {
             mStore.storeLiveStateForRoom(mRoomId);

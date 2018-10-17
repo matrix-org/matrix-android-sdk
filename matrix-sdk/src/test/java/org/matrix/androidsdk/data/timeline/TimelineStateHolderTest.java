@@ -68,7 +68,7 @@ public class TimelineStateHolderTest {
         final RoomState state = Mockito.spy(mTimelineStateHolder.getState());
         mTimelineStateHolder.setState(state);
         mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS, true);
-        Mockito.verify(state).applyState(mIMXStore, event, true);
+        Mockito.verify(state).applyState(event, true, mIMXStore);
     }
 
     @Test
@@ -80,7 +80,7 @@ public class TimelineStateHolderTest {
         final RoomState backState = Mockito.spy(mTimelineStateHolder.getBackState());
         mTimelineStateHolder.setBackState(backState);
         mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.BACKWARDS, false);
-        Mockito.verify(backState).applyState(mIMXStore, event, false);
+        Mockito.verify(backState).applyState(event, false, mIMXStore);
     }
 
     @Test

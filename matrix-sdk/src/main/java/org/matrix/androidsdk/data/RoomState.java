@@ -18,6 +18,7 @@
 
 package org.matrix.androidsdk.data;
 
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 import android.text.TextUtils;
@@ -866,13 +867,15 @@ public class RoomState implements Externalizable {
     /**
      * Apply the given event (relevant for state changes) to our state.
      *
-     * @param store              the store to use
-     * @param event              the event
+     * @param event              the state event
      * @param considerNewContent how the event should affect the state: true for applying (consider the content of the event),
      *                           false for un-applying (consider the previous content of the event)
+     * @param store              the store to use to store the event and the User. Can be null
      * @return true if the event is managed
      */
-    public boolean applyState(IMXStore store, Event event, boolean considerNewContent) {
+    public boolean applyState(@NonNull Event event,
+                              boolean considerNewContent,
+                              @Nullable IMXStore store) {
         if (event.stateKey == null) {
             return false;
         }
@@ -951,7 +954,7 @@ public class RoomState implements Externalizable {
                         member.setOriginalEventId(event.eventId);
                         member.mSender = event.getSender();
 
-                        if ((null != store) && considerNewContent) {
+                        if (store != null) {
                             store.storeRoomStateEvent(roomId, event);
                         }
 
@@ -990,7 +993,7 @@ public class RoomState implements Externalizable {
                             }
                         }
 
-                        if (considerNewContent && (null != store)) {
+                        if (store != null) {
                             store.updateUserWithRoomMemberEvent(member);
                         }
 
@@ -1012,7 +1015,7 @@ public class RoomState implements Externalizable {
 
                     thirdPartyInvite.token = event.stateKey;
 
-                    if (considerNewContent && (null != store)) {
+                    if (store != null) {
                         store.storeRoomStateEvent(roomId, event);
                     }
 
