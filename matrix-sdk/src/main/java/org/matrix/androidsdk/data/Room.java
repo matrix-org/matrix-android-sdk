@@ -42,6 +42,7 @@ import org.matrix.androidsdk.MXPatterns;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
+import org.matrix.androidsdk.data.room.RoomAvatarResolver;
 import org.matrix.androidsdk.data.room.RoomDisplayNameResolver;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.timeline.EventTimeline;
@@ -139,6 +140,9 @@ public class Room {
     // Class to compute room display name
     private final RoomDisplayNameResolver mRoomDisplayNameResolver;
 
+    // Class to compute room avatar
+    private final RoomAvatarResolver mRoomAvatarResolver;
+
     /**
      * Constructor
      * FIXME All this @NonNull annotation must be also added to the class members and getters
@@ -153,6 +157,7 @@ public class Room {
         mMyUserId = mDataHandler.getUserId();
         mTimeline = EventTimelineFactory.liveTimeline(mDataHandler, this, roomId);
         mRoomDisplayNameResolver = new RoomDisplayNameResolver(this);
+        mRoomAvatarResolver = new RoomAvatarResolver(this);
     }
 
     /**
@@ -987,26 +992,12 @@ public class Room {
      */
     @Nullable
     public String getAvatarUrl() {
-        String res = getState().getAvatarUrl();
-
-        // detect if it is a room with no more than 2 members (i.e. an alone or a 1:1 chat)
-        if (null == res) {
-            if (getNumberOfMembers() == 1 && !getState().getLoadedMembers().isEmpty()) {
-                res = getState().getLoadedMembers().get(0).getAvatarUrl();
-            } else if (getNumberOfMembers() == 2 && getState().getLoadedMembers().size() > 1) {
-                RoomMember m1 = getState().getLoadedMembers().get(0);
-                RoomMember m2 = getState().getLoadedMembers().get(1);
-
-                res = TextUtils.equals(m1.getUserId(), mMyUserId) ? m2.getAvatarUrl() : m1.getAvatarUrl();
-            }
-        }
-
-        return res;
+        return mRoomAvatarResolver.resolve();
     }
 
     /**
-     * The call avatar is the same as the room avatar except there are only 2 JOINED members.
-     * In this case, it returns the avtar of the other joined member.
+     * The call avatar is the same as the room avatar except when there are only 2 JOINED members.
+     * In this case, it returns the avatar of the other joined member.
      *
      * @return the call avatar URL.
      */
