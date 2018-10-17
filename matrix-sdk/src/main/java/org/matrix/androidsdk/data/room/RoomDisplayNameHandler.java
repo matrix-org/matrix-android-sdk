@@ -32,7 +32,7 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * This class helps to compute a room display name
+ * This class computes room display name
  */
 public class RoomDisplayNameHandler {
 
@@ -68,8 +68,9 @@ public class RoomDisplayNameHandler {
                 return roomState.aliases.get(0);
             }
 
+            // List of active members, current user excluded
             List<RoomMember> othersActiveMembers = new ArrayList<>();
-            List<RoomMember> activeMembers = new ArrayList<>();
+            RoomMember currentUser = null;
 
             int nbOfOtherMembers;
 
@@ -90,10 +91,11 @@ public class RoomDisplayNameHandler {
 
                 for (RoomMember member : members) {
                     if (!TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_LEAVE)) {
-                        if (!TextUtils.equals(member.getUserId(), mRoom.getDataHandler().getUserId())) {
+                        if (TextUtils.equals(member.getUserId(), mRoom.getDataHandler().getUserId())) {
+                            currentUser = member;
+                        } else {
                             othersActiveMembers.add(member);
                         }
-                        activeMembers.add(member);
                     }
                 }
 
@@ -112,27 +114,11 @@ public class RoomDisplayNameHandler {
             String displayName;
 
             if (mRoom.isInvited()) {
-                if (othersActiveMembers.size() == 1) {
-                    // Search the current user
-                    RoomMember currentUser = activeMembers.get(0);
-
-                    for (RoomMember roomMember : activeMembers) {
-                        if (roomMember.getUserId().equals(mRoom.getDataHandler().getUserId())) {
-                            currentUser = roomMember;
-                            break;
-                        }
-                    }
-
-                    if (TextUtils.equals(currentUser.membership, RoomMember.MEMBERSHIP_INVITE)) {
-                        if (!TextUtils.isEmpty(currentUser.mSender)) {
-                            // extract who invited us to the room
-                            displayName = context.getString(R.string.room_displayname_invite_from, roomState.getMemberName(currentUser.mSender));
-                        } else {
-                            displayName = context.getString(R.string.room_displayname_room_invite);
-                        }
-                    } else {
-                        displayName = context.getString(R.string.room_displayname_room_invite);
-                    }
+                if (currentUser != null
+                        && !othersActiveMembers.isEmpty()
+                        && !TextUtils.isEmpty(currentUser.mSender)) {
+                    // extract who invited us to the room
+                    displayName = context.getString(R.string.room_displayname_invite_from, roomState.getMemberName(currentUser.mSender));
                 } else {
                     displayName = context.getString(R.string.room_displayname_room_invite);
                 }
