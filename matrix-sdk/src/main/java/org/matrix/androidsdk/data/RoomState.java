@@ -842,13 +842,6 @@ public class RoomState implements Externalizable {
     }
 
     /**
-     * @return true if the room has a predecessor
-     */
-    public boolean hasPredecessor() {
-        return mRoomCreateContent != null && mRoomCreateContent.hasPredecessor();
-    }
-
-    /**
      * @return the room create content
      */
     public RoomCreateContent getRoomCreateContent() {

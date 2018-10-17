@@ -34,8 +34,6 @@ import org.matrix.androidsdk.util.EventDisplay;
  */
 public class MessageRow {
 
-    private final boolean mHasPredecessor;
-
     // the linked event
     @NonNull
     private Event mEvent;
@@ -51,7 +49,7 @@ public class MessageRow {
     private SpannableString mText;
 
     @Nullable
-    private RoomCreateContent mRoomCreateContent;
+    private RoomCreateContent.Predecessor mRoomCreateContentPredecessor;
 
     @Nullable
     private final RoomMember mSender;
@@ -69,14 +67,14 @@ public class MessageRow {
         if (roomState == null) {
             // Use the id of the sender as display name
             mSenderDisplayName = event.getSender();
-            mRoomCreateContent = null;
+            mRoomCreateContentPredecessor = null;
             mSender = null;
-            mHasPredecessor = false;
         } else {
             mSenderDisplayName = roomState.getMemberName(event.getSender());
-            mRoomCreateContent = roomState.getRoomCreateContent();
+            if (roomState.getRoomCreateContent() != null) {
+                mRoomCreateContentPredecessor = roomState.getRoomCreateContent().predecessor;
+            }
             mSender = roomState.getMember(event.getSender());
-            mHasPredecessor = roomState.hasPredecessor();
         }
     }
 
@@ -139,16 +137,12 @@ public class MessageRow {
     }
 
     @Nullable
-    public RoomCreateContent getRoomCreateContent() {
-        return mRoomCreateContent;
+    public RoomCreateContent.Predecessor getRoomCreateContentPredecessor() {
+        return mRoomCreateContentPredecessor;
     }
 
     @Nullable
     public RoomMember getSender() {
         return mSender;
-    }
-
-    public boolean hasPredecessor() {
-        return mHasPredecessor;
     }
 }
