@@ -118,6 +118,24 @@ public class MessageRow {
         return mText;
     }
 
+    public String getSenderDisplayName() {
+        return mSenderDisplayName;
+    }
+
+    @Nullable
+    public RoomCreateContent.Predecessor getRoomCreateContentPredecessor() {
+        return mRoomCreateContentPredecessor;
+    }
+
+    @Nullable
+    public RoomMember getSender() {
+        return mSender;
+    }
+
+    /* ==========================================================================================
+     * Private
+     * ========================================================================================== */
+
     /**
      * Replace all QuoteSpan instances by instances of VectorQuoteSpan
      *
@@ -132,19 +150,5 @@ public class MessageRow {
             spannable.removeSpan(quoteSpan);
             spannable.setSpan(style, start, end, flags);
         }
-    }
-
-    public String getSenderDisplayName() {
-        return mSenderDisplayName;
-    }
-
-    @Nullable
-    public RoomCreateContent.Predecessor getRoomCreateContentPredecessor() {
-        return mRoomCreateContentPredecessor;
-    }
-
-    @Nullable
-    public RoomMember getSender() {
-        return mSender;
     }
 }
