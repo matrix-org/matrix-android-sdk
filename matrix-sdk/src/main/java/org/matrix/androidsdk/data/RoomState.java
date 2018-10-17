@@ -875,7 +875,8 @@ public class RoomState implements Externalizable {
      *
      * @param store              the store to use
      * @param event              the event
-     * @param considerNewContent how the event should affect the state: true for applying, false for un-applying (applying the previous state)
+     * @param considerNewContent how the event should affect the state: true for applying (consider the content of the event),
+     *                           false for un-applying (consider the previous content of the event)
      * @return true if the event is managed
      */
     public boolean applyState(IMXStore store, Event event, boolean considerNewContent) {

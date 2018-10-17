@@ -44,8 +44,8 @@ public class MessageRow {
     @Nullable
     private final RoomState mRoomState;
 
-    // Cache of the user display name
-    private final String mUserDisplayName;
+    // Cache of the sender display name
+    private final String mSenderDisplayName;
 
     // Cache of the computed text
     private SpannableString mText;
@@ -67,12 +67,13 @@ public class MessageRow {
         mRoomState = roomState;
 
         if (roomState == null) {
-            mUserDisplayName = event.getSender();
+            // Use the id of the sender as display name
+            mSenderDisplayName = event.getSender();
             mRoomCreateContent = null;
             mSender = null;
             mHasPredecessor = false;
         } else {
-            mUserDisplayName = roomState.getMemberName(event.getSender());
+            mSenderDisplayName = roomState.getMemberName(event.getSender());
             mRoomCreateContent = roomState.getRoomCreateContent();
             mSender = roomState.getMember(event.getSender());
             mHasPredecessor = roomState.hasPredecessor();
@@ -133,8 +134,8 @@ public class MessageRow {
         }
     }
 
-    public String getUserDisplayName() {
-        return mUserDisplayName;
+    public String getSenderDisplayName() {
+        return mSenderDisplayName;
     }
 
     @Nullable
