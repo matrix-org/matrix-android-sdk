@@ -93,6 +93,9 @@ public class MessageRow {
      */
     public void updateEvent(@NonNull Event event) {
         mEvent = event;
+
+        // invalidate our cache
+        mText = null;
     }
 
     /**
@@ -110,7 +113,6 @@ public class MessageRow {
 
             // Change to BlockQuote Spannable to customize it
             replaceQuoteSpans(mText, style);
-
         }
 
         return mText;
