@@ -42,15 +42,27 @@ public class RoomAvatarResolver {
     public String resolve() {
         String res = mRoom.getState().getAvatarUrl();
 
-        // detect if it is a room with no more than 2 members (i.e. an alone or a 1:1 chat)
         if (res == null) {
-            if (mRoom.getNumberOfMembers() == 1 && !mRoom.getState().getLoadedMembers().isEmpty()) {
-                res = mRoom.getState().getLoadedMembers().get(0).getAvatarUrl();
-            } else if (mRoom.getNumberOfMembers() == 2 && mRoom.getState().getLoadedMembers().size() > 1) {
-                RoomMember m1 = mRoom.getState().getLoadedMembers().get(0);
-                RoomMember m2 = mRoom.getState().getLoadedMembers().get(1);
+            if (mRoom.isInvited()) {
+                // In this case, if LazyLoading is ON, we cannot rely of mRoom.getNumberOfMembers() (it will return 0)
+                if (mRoom.getState().getLoadedMembers().size() == 1) {
+                    res = mRoom.getState().getLoadedMembers().get(0).getAvatarUrl();
+                } else if (mRoom.getState().getLoadedMembers().size() > 1) {
+                    RoomMember m1 = mRoom.getState().getLoadedMembers().get(0);
+                    RoomMember m2 = mRoom.getState().getLoadedMembers().get(1);
 
-                res = TextUtils.equals(m1.getUserId(), mRoom.getDataHandler().getUserId()) ? m2.getAvatarUrl() : m1.getAvatarUrl();
+                    res = TextUtils.equals(m1.getUserId(), mRoom.getDataHandler().getUserId()) ? m2.getAvatarUrl() : m1.getAvatarUrl();
+                }
+            } else {
+                // detect if it is a room with no more than 2 members (i.e. an alone or a 1:1 chat)
+                if (mRoom.getNumberOfMembers() == 1 && !mRoom.getState().getLoadedMembers().isEmpty()) {
+                    res = mRoom.getState().getLoadedMembers().get(0).getAvatarUrl();
+                } else if (mRoom.getNumberOfMembers() == 2 && mRoom.getState().getLoadedMembers().size() > 1) {
+                    RoomMember m1 = mRoom.getState().getLoadedMembers().get(0);
+                    RoomMember m2 = mRoom.getState().getLoadedMembers().get(1);
+
+                    res = TextUtils.equals(m1.getUserId(), mRoom.getDataHandler().getUserId()) ? m2.getAvatarUrl() : m1.getAvatarUrl();
+                }
             }
         }
 

@@ -74,7 +74,6 @@ public class RoomAvatarResolverTest {
 
         // I have an avatar
         room.getMember(mRoomTestHelper.getMyUserId()).avatarUrl = "mxc://my_avatar_url";
-
         Assert.assertEquals("mxc://my_avatar_url", room.getAvatarUrl());
 
         // One other user in the room
@@ -121,7 +120,6 @@ public class RoomAvatarResolverTest {
 
         // I have an avatar
         room.getMember(mRoomTestHelper.getMyUserId()).avatarUrl = "mxc://my_avatar_url";
-
         Assert.assertEquals("mxc://my_avatar_url", room.getAvatarUrl());
 
         // One other user in the room
@@ -132,7 +130,7 @@ public class RoomAvatarResolverTest {
         room.getMember(mRoomTestHelper.getMyUserId()).avatarUrl = "mxc://my_avatar_url";
         Assert.assertNull(room.getAvatarUrl());
 
-        // Other user has an avatar
+        // Inviter has an avatar
         room.getMember(mRoomTestHelper.getUserId(2)).avatarUrl = "mxc://other_user_avatar_url";
         Assert.assertEquals("mxc://other_user_avatar_url", room.getAvatarUrl());
 
@@ -144,6 +142,6 @@ public class RoomAvatarResolverTest {
         // Other user has an avatar
         room.getMember(mRoomTestHelper.getUserId(2)).avatarUrl = "mxc://other_user_avatar_url";
 
-        Assert.assertNull(room.getAvatarUrl());
+        Assert.assertEquals("mxc://other_user_avatar_url", room.getAvatarUrl());
     }
 }
