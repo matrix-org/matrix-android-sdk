@@ -26,6 +26,11 @@ import java.io.Serializable;
 public class RoomCreateContent implements Serializable {
 
     public String creator;
+
+    // Not used for the moment
+    // @SerializedName("room_version")
+    // public String roomVersion;
+
     public Predecessor predecessor;
 
     public RoomCreateContent deepCopy() {
