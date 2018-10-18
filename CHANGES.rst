@@ -1,3 +1,15 @@
+Changes to Matrix Android SDK in 0.9.12 (2018-10-18)
+=======================================================
+
+Improvements:
+ - Improve certificate pinning management for HomeServerConnectionConfig.
+ - Room display name is now computed by the Matrix SDK
+
+Bugfix:
+ - Fix strip previous reply when they contain new line (vector-im/riot-android#2612)
+ - Enable CLEARTEXT communication for http endpoints (vector-im/riot-android#2495)
+ - Back paginating in a room with LL makes some avatars to vanish (vector-im/riot-android#2639)
+
 Changes to Matrix Android SDK in 0.9.11 (2018-10-10)
 =======================================================
 

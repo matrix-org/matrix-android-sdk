@@ -87,7 +87,7 @@ public class RestClient<T> {
     private static final int READ_TIMEOUT_MS = 60000;
     private static final int WRITE_TIMEOUT_MS = 60000;
 
-    protected Credentials mCredentials;
+    private Credentials mCredentials;
 
     protected T mApi;
 
@@ -196,17 +196,18 @@ public class RestClient<T> {
             okHttpClientBuilder.dispatcher(new Dispatcher(new MXRestExecutorService()));
         }
 
+        final String endPoint = makeEndpoint(hsConfig, uriPrefix, endPointServer);
+
         try {
             Pair<SSLSocketFactory, X509TrustManager> pair = CertUtil.newPinnedSSLSocketFactory(hsConfig);
             okHttpClientBuilder.sslSocketFactory(pair.first, pair.second);
             okHttpClientBuilder.hostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
-            okHttpClientBuilder.connectionSpecs(CertUtil.newConnectionSpecs(hsConfig));
+            okHttpClientBuilder.connectionSpecs(CertUtil.newConnectionSpecs(hsConfig, endPoint));
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed" + e.getMessage(), e);
+            Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed: " + e.getMessage(), e);
         }
 
         mOkHttpClient = okHttpClientBuilder.build();
-        final String endPoint = makeEndpoint(hsConfig, uriPrefix, endPointServer);
 
         // Rest adapter for turning API interfaces into actual REST-calling objects
         Retrofit.Builder builder = new Retrofit.Builder()
@@ -403,21 +404,5 @@ public class RestClient<T> {
      */
     public void setCredentials(Credentials credentials) {
         mCredentials = credentials;
-    }
-
-    /**
-     * Default protected constructor for unit tests.
-     */
-    protected RestClient() {
-    }
-
-    /**
-     * Protected setter for injection by unit tests.
-     *
-     * @param api the api object
-     */
-    @VisibleForTesting()
-    protected void setApi(T api) {
-        mApi = api;
     }
 }

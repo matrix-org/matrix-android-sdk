@@ -1,6 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <resources>
-    <string name="matrix_sdk_app_name">Matrix Android SDK</string>
 
     <string name="summary_message">%1$s: %2$s</string>
     <string name="summary_user_sent_image">%1$s отправил(а) изображение.</string>
@@ -83,5 +82,19 @@
     <string name="reply_to_a_video">отправил видео.</string>
     <string name="reply_to_an_audio_file">отправил аудиофайл.</string>
     <string name="reply_to_a_file">отправил файл.</string>
+
+    <!-- Room display name -->
+    <string name="room_displayname_invite_from">Приглашение от %s</string>
+    <string name="room_displayname_room_invite">Приглашение в комнату</string>
+    <string name="room_displayname_two_members">%1$s и %2$s</string>
+    <string name="room_displayname_empty_room">Пустая комната</string>
+
+    <plurals name="room_displayname_three_and_more_members">
+        <item quantity="one">%1$s и 1 другой</item>
+        <item quantity="few">%1$s и %2$d другие</item>
+        <item quantity="many">%1$s и %2$d других</item>
+        <item quantity="other"/>
+    </plurals>
+
 
 </resources>

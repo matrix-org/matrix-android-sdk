@@ -66,10 +66,6 @@ public class EventsRestClient extends RestClient<EventsApi> {
         super(hsConfig, EventsApi.class, "", false);
     }
 
-    protected EventsRestClient(EventsApi api) {
-        mApi = api;
-    }
-
     /**
      * Retrieves the third party server protocols
      *

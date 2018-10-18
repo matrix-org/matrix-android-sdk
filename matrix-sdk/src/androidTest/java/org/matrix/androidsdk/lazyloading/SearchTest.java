@@ -51,6 +51,7 @@ public class SearchTest {
             }
         });
         mTestHelper.await(lock);
+        mLazyLoadingTestHelper.clearAllSessions(data);
     }
 
 }

@@ -93,7 +93,7 @@ class TimelineStateHolder {
     }
 
     /**
-     * Make a deep copy or the dedicated state.
+     * Make a deep copy of the dedicated state.
      *
      * @param direction the room state direction to deep copy.
      */
@@ -108,17 +108,31 @@ class TimelineStateHolder {
     /**
      * Process a state event to keep the internal live and back states up to date.
      *
-     * @param event     the state event
-     * @param direction the direction; ie. forwards for live state, backwards for back state
+     * @param event              the state event
+     * @param direction          the direction; ie. forwards for live state, backwards for back state
+     * @param considerNewContent how the event should affect the state: true for applying, false for un-applying (applying the previous state)
      * @return true if the event has been processed.
      */
     public boolean processStateEvent(@NonNull final Event event,
-                                     @NonNull final EventTimeline.Direction direction) {
-        final RoomState affectedState = direction == EventTimeline.Direction.FORWARDS ? mState : mBackState;
-        final boolean isProcessed = affectedState.applyState(mStore, event, direction);
+                                     @NonNull final EventTimeline.Direction direction,
+                                     final boolean considerNewContent) {
+        final RoomState affectedState;
+        final IMXStore store;
+        if (direction == EventTimeline.Direction.FORWARDS) {
+            affectedState = mState;
+            store = mStore;
+        } else {
+            affectedState = mBackState;
+            // In the case of backward pagination, we do not want to persist the state event
+            store = null;
+        }
+
+        final boolean isProcessed = affectedState.applyState(event, considerNewContent, store);
+
         if (isProcessed && direction == EventTimeline.Direction.FORWARDS) {
             mStore.storeLiveStateForRoom(mRoomId);
         }
+
         return isProcessed;
     }
 
@@ -144,6 +158,4 @@ class TimelineStateHolder {
         mState.setDataHandler(mDataHandler);
         mState.roomId = mRoomId;
     }
-
-
 }

@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +17,16 @@
 
 package org.matrix.androidsdk.ssl;
 
+import android.support.annotation.NonNull;
 import android.util.Pair;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.util.Log;
 
 import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -144,60 +148,70 @@ public class CertUtil {
      * @return SSLSocket factory
      */
     public static Pair<SSLSocketFactory, X509TrustManager> newPinnedSSLSocketFactory(HomeServerConnectionConfig hsConfig) {
-        try {
-            X509TrustManager defaultTrustManager = null;
+        X509TrustManager defaultTrustManager = null;
 
-            // If we haven't specified that we wanted to pin the certs, fallback to standard
-            // X509 checks if fingerprints don't match.
-            if (!hsConfig.shouldPin()) {
-                TrustManagerFactory tf = null;
+        // If we haven't specified that we wanted to pin the certs, fallback to standard
+        // X509 checks if fingerprints don't match.
+        if (!hsConfig.shouldPin()) {
+            TrustManagerFactory trustManagerFactory = null;
 
-                // get the PKIX instance
+            // get the PKIX instance
+            try {
+                trustManagerFactory = TrustManagerFactory.getInstance("PKIX");
+            } catch (NoSuchAlgorithmException e) {
+                Log.e(LOG_TAG, "## newPinnedSSLSocketFactory() : TrustManagerFactory.getInstance failed " + e.getMessage(), e);
+            }
+
+            // it doesn't exist, use the default one.
+            if (trustManagerFactory == null) {
                 try {
-                    tf = TrustManagerFactory.getInstance("PKIX");
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## newPinnedSSLSocketFactory() : TrustManagerFactory.getInstance failed " + e.getMessage(), e);
-                }
-
-                // it doesn't exist, use the default one.
-                if (null == tf) {
-                    try {
-                        tf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "## addRule : onBingRuleUpdateFailure failed " + e.getMessage(), e);
-                    }
-                }
-
-                tf.init((KeyStore) null);
-                TrustManager[] trustManagers = tf.getTrustManagers();
-
-                for (int i = 0; i < trustManagers.length; i++) {
-                    if (trustManagers[i] instanceof X509TrustManager) {
-                        defaultTrustManager = (X509TrustManager) trustManagers[i];
-                        break;
-                    }
+                    trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                } catch (NoSuchAlgorithmException e) {
+                    Log.e(LOG_TAG, "## newPinnedSSLSocketFactory() : TrustManagerFactory.getInstance with default algorithm failed "
+                            + e.getMessage(), e);
                 }
             }
 
-            TrustManager[] trustPinned = new TrustManager[]{
-                    new PinnedTrustManager(hsConfig.getAllowedFingerprints(), defaultTrustManager)
-            };
+            if (trustManagerFactory != null) {
+                try {
+                    trustManagerFactory.init((KeyStore) null);
+                    TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
 
-            SSLSocketFactory sslSocketFactory;
+                    for (int i = 0; i < trustManagers.length; i++) {
+                        if (trustManagers[i] instanceof X509TrustManager) {
+                            defaultTrustManager = (X509TrustManager) trustManagers[i];
+                            break;
+                        }
+                    }
+                } catch (KeyStoreException e) {
+                    Log.e(LOG_TAG, "## newPinnedSSLSocketFactory() : " + e.getMessage(), e);
+                }
+            }
+        }
 
+        X509TrustManager trustManager = new PinnedTrustManager(hsConfig.getAllowedFingerprints(), defaultTrustManager);
+
+        TrustManager[] trustManagers = new TrustManager[]{
+                trustManager
+        };
+
+        SSLSocketFactory sslSocketFactory;
+
+        try {
             if (hsConfig.forceUsageOfTlsVersions() && hsConfig.getAcceptedTlsVersions() != null) {
                 // Force usage of accepted Tls Versions for Android < 20
-                sslSocketFactory = new TLSSocketFactory(trustPinned, hsConfig.getAcceptedTlsVersions());
+                sslSocketFactory = new TLSSocketFactory(trustManagers, hsConfig.getAcceptedTlsVersions());
             } else {
                 SSLContext sslContext = SSLContext.getInstance("TLS");
-                sslContext.init(null, trustPinned, new java.security.SecureRandom());
+                sslContext.init(null, trustManagers, new java.security.SecureRandom());
                 sslSocketFactory = sslContext.getSocketFactory();
             }
-
-            return new Pair<>(sslSocketFactory, defaultTrustManager);
         } catch (Exception e) {
+            // This is too fatal
             throw new RuntimeException(e);
         }
+
+        return new Pair<>(sslSocketFactory, trustManager);
     }
 
     /**
@@ -240,9 +254,10 @@ public class CertUtil {
      * Create a list of accepted TLS specifications for a hs config.
      *
      * @param hsConfig the hs config.
+     * @param url      the url of the end point, used to check if we have to enable CLEARTEXT communication.
      * @return a list of accepted TLS specifications.
      */
-    public static List<ConnectionSpec> newConnectionSpecs(HomeServerConnectionConfig hsConfig) {
+    public static List<ConnectionSpec> newConnectionSpecs(@NonNull HomeServerConnectionConfig hsConfig, @NonNull String url) {
         final ConnectionSpec.Builder builder = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS);
 
         final List<TlsVersion> tlsVersions = hsConfig.getAcceptedTlsVersions();
@@ -261,7 +276,7 @@ public class CertUtil {
 
         list.add(builder.build());
 
-        if (hsConfig.isHttpConnectionAllowed()) {
+        if (url.startsWith("http://")) {
             list.add(ConnectionSpec.CLEARTEXT);
         }
 

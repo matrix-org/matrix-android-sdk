@@ -857,7 +857,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         Map<String, Object> hashMap = new HashMap<>();
         hashMap.put("order", order);
 
-        mApi.addTag(mCredentials.userId, roomId, tag, hashMap)
+        mApi.addTag(getCredentials().userId, roomId, tag, hashMap)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -876,7 +876,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     public void removeTag(final String roomId, final String tag, final ApiCallback<Void> callback) {
         final String description = "removeTag : roomId " + roomId + " - tag " + tag;
 
-        mApi.removeTag(mCredentials.userId, roomId, tag)
+        mApi.removeTag(getCredentials().userId, roomId, tag)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
@@ -898,7 +898,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         Map<String, Object> params = new HashMap<>();
         params.put(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE, !status);
 
-        mApi.updateAccountData(mCredentials.userId, roomId, Event.EVENT_TYPE_URL_PREVIEW, params)
+        mApi.updateAccountData(getCredentials().userId, roomId, Event.EVENT_TYPE_URL_PREVIEW, params)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {

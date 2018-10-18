@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<resources><string name="matrix_sdk_app_name">Matrix Android SDK</string>
+<resources>
 
     <string name="summary_message">%1$s: %2$s</string>
     <string name="summary_user_sent_image">%1$s erabiltzaileak irudi bat bidali du.</string>
@@ -72,5 +72,16 @@
     <string name="reply_to_a_video">bideo bat bidali du.</string>
     <string name="reply_to_an_audio_file">audio fitxategi bat bidali du.</string>
     <string name="reply_to_a_file">fitxategi bat bidali du.</string>
+
+    <string name="room_displayname_invite_from">%s gelarako gonbidapena</string>
+    <string name="room_displayname_room_invite">Gela gonbidapena</string>
+    <string name="room_displayname_two_members">%1$s eta %2$s</string>
+    <string name="room_displayname_empty_room">Gela hutsa</string>
+
+    <plurals name="room_displayname_three_and_more_members">
+        <item quantity="one">%1$s eta beste bat</item>
+        <item quantity="other">%1$s eta beste %2$d</item>
+    </plurals>
+
 
 </resources>

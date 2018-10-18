@@ -43,3 +43,5 @@ script:
   - ./gradlew clean lintRelease test assembleRelease assembleAndroidTest --stacktrace
   - ./tools/check/check_code_quality.sh
   - ./tools/travis/check_pr.sh
+  # Check that indonesian files are identical. Due to Android issue, the resource folder must be value-in/, and Weblate export data into value-id/.
+  - diff ./matrix-sdk/src/main/res/values-id/strings.xml ./matrix-sdk/src/main/res/values-in/strings.xml

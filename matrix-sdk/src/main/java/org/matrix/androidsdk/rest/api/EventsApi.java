@@ -39,6 +39,7 @@ import retrofit2.http.QueryMap;
 
 /**
  * The events API.
+ * This interface contains also a lot of miscellaneous requests
  */
 public interface EventsApi {
 

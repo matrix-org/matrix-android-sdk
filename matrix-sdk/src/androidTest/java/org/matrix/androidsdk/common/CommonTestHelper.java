@@ -76,7 +76,6 @@ public class CommonTestHelper {
         final HomeServerConnectionConfig hs = new HomeServerConnectionConfig.Builder()
                 .withHomeServerUri(Uri.parse(TestConstants.TESTS_HOME_SERVER_URL))
                 .withCredentials(credentials)
-                .withAllowHttpConnection()
                 .build();
         return hs;
     }
@@ -354,5 +353,18 @@ public class CommonTestHelper {
      */
     public void await(CountDownLatch latch) throws InterruptedException {
         Assert.assertTrue(latch.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS));
+    }
+
+    /**
+     * Clear all provided sessions
+     *
+     * @param sessions the sessions to clear
+     */
+    public void clearAllSessions(List<MXSession> sessions) {
+        final Context context = InstrumentationRegistry.getContext();
+
+        for (MXSession session : sessions) {
+            session.clear(context);
+        }
     }
 }

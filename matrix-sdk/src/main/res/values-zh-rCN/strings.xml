@@ -61,7 +61,6 @@
     <string name="notice_room_third_party_registered_invite">%1$s 接受了 %2$s 的邀请</string>
 
     <string name="could_not_redact">无法撤回</string>
-    <string name="matrix_sdk_app_name">Matrix Android SDK</string>
 
     <string name="summary_message">%1$s：%2$s</string>
     <string name="summary_user_sent_sticker">%1$s 发送了一张贴纸。</string>
@@ -73,4 +72,12 @@
 
 <string name="message_reply_to_prefix">回复</string>
 
-    </resources>
+    <string name="room_displayname_empty_room">空聊天室</string>
+    <string name="room_displayname_invite_from">来自 %s 的邀请</string>
+    <string name="room_displayname_room_invite">聊天室邀请</string>
+    <string name="room_displayname_two_members">%1$s 和 %2$s</string>
+    <plurals name="room_displayname_three_and_more_members">
+        <item quantity="other">%1$s 和 与其他 %2$d 个人</item>
+    </plurals>
+
+</resources>
