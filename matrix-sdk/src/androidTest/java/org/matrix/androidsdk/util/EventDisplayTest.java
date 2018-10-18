@@ -40,19 +40,20 @@ public class EventDisplayTest {
         event.content = new JsonObject();
         ((JsonObject) event.content).addProperty("body", "message");
 
-        EventDisplay eventDisplay = new EventDisplay(context, event, null);
+        EventDisplay eventDisplay = new EventDisplay(context);
 
-        CharSequence textualDisplay = eventDisplay.getTextualDisplay();
+        CharSequence textualDisplay = eventDisplay.getTextualDisplay(event, null);
 
         Assert.assertTrue(textualDisplay instanceof String);
-        Assert.assertEquals("message", eventDisplay.getTextualDisplay());
+        Assert.assertEquals("message", textualDisplay);
     }
 
     @Test
     public void EventDisplay_formattedMessage_Simple_text() {
-        EventDisplay eventDisplay = createEventDisplayWithFormattedBody("message");
+        EventDisplay eventDisplay = new EventDisplay(InstrumentationRegistry.getContext());
+        Event event = createEventWithFormattedBody("message");
 
-        CharSequence textualDisplay = eventDisplay.getTextualDisplay();
+        CharSequence textualDisplay = eventDisplay.getTextualDisplay(event, null);
 
         Assert.assertTrue(textualDisplay instanceof SpannableStringBuilder);
         Assert.assertEquals("message", textualDisplay.toString());
@@ -60,9 +61,10 @@ public class EventDisplayTest {
 
     @Test
     public void EventDisplay_formattedMessage_italic_text() {
-        EventDisplay eventDisplay = createEventDisplayWithFormattedBody("<i>italic</i>");
+        EventDisplay eventDisplay = new EventDisplay(InstrumentationRegistry.getContext());
+        Event event = createEventWithFormattedBody("<i>italic</i>");
 
-        CharSequence textualDisplay = eventDisplay.getTextualDisplay();
+        CharSequence textualDisplay = eventDisplay.getTextualDisplay(event, null);
 
         Assert.assertTrue(textualDisplay instanceof SpannableStringBuilder);
         Assert.assertEquals("italic", textualDisplay.toString());
@@ -70,9 +72,10 @@ public class EventDisplayTest {
 
     @Test
     public void EventDisplay_formattedMessage_bold_text() {
-        EventDisplay eventDisplay = createEventDisplayWithFormattedBody("<strong>bold</strong>");
+        EventDisplay eventDisplay = new EventDisplay(InstrumentationRegistry.getContext());
+        Event event = createEventWithFormattedBody("<strong>bold</strong>");
 
-        CharSequence textualDisplay = eventDisplay.getTextualDisplay();
+        CharSequence textualDisplay = eventDisplay.getTextualDisplay(event, null);
 
         Assert.assertTrue(textualDisplay instanceof SpannableStringBuilder);
         Assert.assertEquals("bold", textualDisplay.toString());
@@ -84,12 +87,12 @@ public class EventDisplayTest {
      */
     @Test
     public void EventDisplay_formattedMessage_li_text() {
-        EventDisplay eventDisplay = createEventDisplayWithFormattedBody("<ol><li>list</li></ol>");
+        EventDisplay eventDisplay = new EventDisplay(InstrumentationRegistry.getContext());
+        Event event = createEventWithFormattedBody("<ol><li>list</li></ol>");
 
-        CharSequence textualDisplay = eventDisplay.getTextualDisplay();
+        CharSequence textualDisplay = eventDisplay.getTextualDisplay(event, null);
 
         Assert.assertTrue(textualDisplay instanceof SpannableStringBuilder);
-
         Assert.assertEquals("list", textualDisplay.toString());
     }
 
@@ -98,12 +101,12 @@ public class EventDisplayTest {
      */
     @Test
     public void EventDisplay_formattedMessage_lili_text() {
-        EventDisplay eventDisplay = createEventDisplayWithFormattedBody("<ol><li>list</li><li>item</li></ol>");
+        EventDisplay eventDisplay = new EventDisplay(InstrumentationRegistry.getContext());
+        Event event = createEventWithFormattedBody("<ol><li>list</li><li>item</li></ol>");
 
-        CharSequence textualDisplay = eventDisplay.getTextualDisplay();
+        CharSequence textualDisplay = eventDisplay.getTextualDisplay(event, null);
 
         Assert.assertTrue(textualDisplay instanceof SpannableStringBuilder);
-
         Assert.assertEquals("list\nitem", textualDisplay.toString());
     }
 
@@ -113,12 +116,12 @@ public class EventDisplayTest {
      */
     @Test
     public void EventDisplay_formattedMessage_blockquote_text() {
-        EventDisplay eventDisplay = createEventDisplayWithFormattedBody("<blockquote>blockquote</blockquote>");
+        EventDisplay eventDisplay = new EventDisplay(InstrumentationRegistry.getContext());
+        Event event = createEventWithFormattedBody("<blockquote>blockquote</blockquote>");
 
-        CharSequence textualDisplay = eventDisplay.getTextualDisplay();
+        CharSequence textualDisplay = eventDisplay.getTextualDisplay(event, null);
 
         Assert.assertTrue(textualDisplay instanceof SpannableStringBuilder);
-
         Assert.assertEquals("blockquote", textualDisplay.toString());
     }
 
@@ -127,12 +130,12 @@ public class EventDisplayTest {
      */
     @Test
     public void EventDisplay_formattedMessage_blockquoteWithText_text() {
-        EventDisplay eventDisplay = createEventDisplayWithFormattedBody("<blockquote>blockquote</blockquote>message");
+        EventDisplay eventDisplay = new EventDisplay(InstrumentationRegistry.getContext());
+        Event event = createEventWithFormattedBody("<blockquote>blockquote</blockquote>message");
 
-        CharSequence textualDisplay = eventDisplay.getTextualDisplay();
+        CharSequence textualDisplay = eventDisplay.getTextualDisplay(event, null);
 
         Assert.assertTrue(textualDisplay instanceof SpannableStringBuilder);
-
         Assert.assertEquals("blockquote\n\nmessage", textualDisplay.toString());
     }
 
@@ -142,9 +145,7 @@ public class EventDisplayTest {
      * Private
      * ========================================================================================== */
 
-    private EventDisplay createEventDisplayWithFormattedBody(String formattedBody) {
-        Context context = InstrumentationRegistry.getContext();
-
+    private Event createEventWithFormattedBody(String formattedBody) {
         Event event = new Event();
         event.type = Event.EVENT_TYPE_MESSAGE;
 
@@ -152,7 +153,6 @@ public class EventDisplayTest {
         ((JsonObject) event.content).addProperty("format", Message.FORMAT_MATRIX_HTML);
         ((JsonObject) event.content).addProperty("formatted_body", formattedBody);
 
-        return new EventDisplay(context, event, null);
+        return event;
     }
-
 }
