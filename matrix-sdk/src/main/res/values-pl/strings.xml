@@ -57,4 +57,5 @@
         <item quantity="other"/>
     </plurals>
 
-</resources>
+<string name="notice_crypto_unable_to_decrypt">** Nie można odszyfrować: %s **</string>
+    </resources>
