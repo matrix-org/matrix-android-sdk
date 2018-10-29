@@ -8,7 +8,7 @@ Improvements:
  -
 
 Bugfix:
- -
+ - Fix crash when change visibility room (vector-im/riot-android#2679)
 
 API Change:
  -
