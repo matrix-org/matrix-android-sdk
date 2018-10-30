@@ -84,6 +84,15 @@ android {
         disable 'InvalidPackage'
         disable 'MissingTranslation'
         disable 'RestrictedApi'
+
+        // Treat some warnings as errors
+        error 'StringFormatCount'
+        error 'HardcodedText'
+        error 'SpUsage'
+
+        // RTL
+        error 'RtlEnabled'
+        error 'RtlHardcoded'
     }
 
     repositories {

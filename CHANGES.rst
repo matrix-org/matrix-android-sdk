@@ -5,6 +5,7 @@ Features:
  -
 
 Improvements:
+ - Add RTL support
  - PermalinkUtils is now able to parse a permalink
 
 Bugfix:
@@ -20,7 +21,7 @@ Others:
  -
 
 Build:
- -
+ - Treat some Lint warnings as errors
 
 Test:
  -
