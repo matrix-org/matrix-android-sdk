@@ -121,9 +121,9 @@ public class PermalinkUtils {
      * Tries to parse an universal link.
      *
      * @param uri the uri to parse
-     * @param supportedHosts
-     * @param supportedPaths
-     * @return the universal link items, null if the universal link is invalid
+     * @param supportedHosts list of supported hosts, not including "matrix.to"
+     * @param supportedPaths list of supported paths, when the host is in supportedHosts
+     * @return the universal link items, or null if the universal link is invalid
      */
     @Nullable
     public static Map<String, String> parseUniversalLink(@Nullable Uri uri,
@@ -143,9 +143,9 @@ public class PermalinkUtils {
                 return null;
             }
 
-            boolean isSupportedHost = TextUtils.equals(uri.getHost(), "vector.im") || TextUtils.equals(uri.getHost(), "riot.im");
+            boolean isSupportedHost = supportedHosts.contains(uri.getHost());
 
-            // when the uri host is vector.im, it is followed by a dedicated path
+            // when the uri host is in supportedHosts (and is not "matrix.to"), it is followed by a dedicated path
             if (isSupportedHost && !supportedPaths.contains(uri.getPath())) {
                 Log.e(LOG_TAG, "## parseUniversalLink : not supported");
                 return null;

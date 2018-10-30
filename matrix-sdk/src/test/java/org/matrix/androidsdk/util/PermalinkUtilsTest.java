@@ -42,7 +42,7 @@ public class PermalinkUtilsTest {
 
     @Test
     public void parseUniversalLink_standardCase() {
-        Map<String, String> result = testUri("https://matrix.to/#/!GnEEPYXUhoaHbkFBNX:matrix.org/$154089010924835FMJsT:sorunome.de?via=jki.re&via=matrix.org&via=disroot.org&via=tchncs.de");
+        Map<String, String> result = testUri("https://matrix.to/#/!GnEEPYXUhoaHbkFBNX:matrix.org/$154089010924835FMJsT:sorunome.de");
 
         Assert.assertEquals("!GnEEPYXUhoaHbkFBNX:matrix.org", result.get(PermalinkUtils.ULINK_ROOM_ID_OR_ALIAS_KEY));
         Assert.assertEquals("$154089010924835FMJsT:sorunome.de", result.get(PermalinkUtils.ULINK_EVENT_ID_KEY));
