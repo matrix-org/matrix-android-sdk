@@ -5,7 +5,7 @@ Features:
  -
 
 Improvements:
- -
+ - PermalinkUtils is now able to parse a permalink
 
 Bugfix:
  - Fix crash when change visibility room (vector-im/riot-android#2679)
