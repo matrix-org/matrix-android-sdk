@@ -5,7 +5,7 @@ Features:
  -
 
 Improvements:
- -
+ - Add RTL support
 
 Bugfix:
  - Fix crash when change visibility room (vector-im/riot-android#2679)
@@ -20,7 +20,7 @@ Others:
  -
 
 Build:
- -
+ - Treat some Lint warnings as errors
 
 Test:
  -
