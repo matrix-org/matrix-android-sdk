@@ -23,7 +23,6 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
 import android.text.TextUtils;
 import android.util.Pair;
 
@@ -262,9 +261,11 @@ public class RestClient<T> {
      * Create an user agent with the application version.
      * Ex: Riot/0.8.12 (Linux; U; Android 6.0.1; SM-A510F Build/MMB29; Flavour FDroid; MatrixAndroidSDK 0.9.6)
      *
-     * @param appContext the application context
+     * @param appContext        the application context
+     * @param flavorDescription the flavor description
      */
-    public static void initUserAgent(Context appContext) {
+    public static void initUserAgent(@Nullable Context appContext,
+                                     @NonNull String flavorDescription) {
         String appName = "";
         String appVersion = "";
 
@@ -292,14 +293,14 @@ public class RestClient<T> {
         }
 
         // if there is no user agent or cannot parse it
-        if ((null == sUserAgent) || (sUserAgent.lastIndexOf(")") == -1) || (sUserAgent.indexOf("(") == -1)) {
-            sUserAgent = appName + "/" + appVersion + " ( Flavour " + appContext.getString(R.string.flavor_description)
+        if ((null == sUserAgent) || (sUserAgent.lastIndexOf(")") == -1) || !sUserAgent.contains("(")) {
+            sUserAgent = appName + "/" + appVersion + " ( Flavour " + flavorDescription
                     + "; MatrixAndroidSDK " + BuildConfig.VERSION_NAME + ")";
         } else {
             // update
             sUserAgent = appName + "/" + appVersion + " " +
                     sUserAgent.substring(sUserAgent.indexOf("("), sUserAgent.lastIndexOf(")") - 1) +
-                    "; Flavour " + appContext.getString(R.string.flavor_description) +
+                    "; Flavour " + flavorDescription +
                     "; MatrixAndroidSDK " + BuildConfig.VERSION_NAME + ")";
         }
     }

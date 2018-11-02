@@ -41,7 +41,7 @@ public class RoomNameTest {
 
     @BeforeClass
     public static void init() {
-        RestClient.initUserAgent(InstrumentationRegistry.getContext());
+        MXSession.initUserAgent(InstrumentationRegistry.getContext(), null);
     }
 
     @Test

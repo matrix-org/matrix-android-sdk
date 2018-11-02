@@ -16,7 +16,6 @@ android {
         targetSdkVersion 26
         versionCode 913
         versionName "0.9.13-dev"
-        resValue "string", "flavor_description", "SDKApp"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
