@@ -57,4 +57,31 @@
         <item quantity="other"/>
     </plurals>
 
-</resources>
+<string name="notice_crypto_unable_to_decrypt">** Nie można odszyfrować: %s **</string>
+    <string name="notice_placed_video_call">%s umieścił wideo rozmowe.</string>
+    <string name="notice_placed_voice_call">%s umieścił połączenie głosowe.</string>
+    <string name="notice_made_future_room_visibility">%1$s uczynił historię pokoju widoczną do %2$s</string>
+    <string name="notice_room_visibility_invited">wszyscy członkowie pokoju, od momentu w którym zostali zaproszeni.</string>
+    <string name="notice_room_visibility_joined">wszyscy członkowie pokoju, od momentu w którym dołączyli.</string>
+    <string name="notice_room_visibility_unknown">nieznane (%s).</string>
+    <string name="notice_requested_voip_conference">%1$s zażądał grupowego połączenia VoIP</string>
+    <string name="notice_voip_started">Rozpoczęto grupowe połączenie głosowe VoIP</string>
+    <string name="notice_voip_finished">Zakończono grupowe połączenie głosowe VoIP</string>
+
+    <string name="notice_event_redacted">"zredagowane %1$s… "</string>
+    <string name="notice_event_redacted_by">" przez %1$s"</string>
+    <string name="notice_profile_change_redacted">%1$s zaktualizował swój profil %2$s</string>
+    <string name="notice_room_third_party_invite">%1$s wysłał(a) zaproszenie do %2$s aby dołączył(a) do tego pokoju</string>
+    <string name="notice_room_third_party_registered_invite">%1$s zaakceptował(a) zaproszenie dla %2$s</string>
+
+    <string name="notice_crypto_error_unkwown_inbound_session_id">Urządzenie nadawcy nie wysłało nam kluczy do tej wiadomości.</string>
+
+    <string name="could_not_redact">Nie można zredagować</string>
+    <string name="room_error_join_failed_empty_room">Obecnie nie jest możliwe ponowne dołączenie do pustego pokoju.</string>
+
+    <string name="reply_to_an_image">wyślij zdjęcie.</string>
+    <string name="reply_to_a_video">wyślij wideo.</string>
+    <string name="reply_to_an_audio_file">wyślij plik audio.</string>
+    <string name="reply_to_a_file">wyślij plik.</string>
+
+    </resources>
