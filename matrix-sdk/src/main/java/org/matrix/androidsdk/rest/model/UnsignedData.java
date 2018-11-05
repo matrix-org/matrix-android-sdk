@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +17,9 @@
 package org.matrix.androidsdk.rest.model;
 
 import com.google.gson.JsonElement;
+import com.google.gson.annotations.SerializedName;
+
+import java.util.List;
 
 /**
  * Contains optional extra information about the event.
@@ -36,6 +40,10 @@ public class UnsignedData implements java.io.Serializable {
      * The client-supplied transaction ID, if the client being given the event is the same one which sent it.
      */
     public String transaction_id;
+
+    // A subset of the state of the room at the time of the invite, if membership is invite
+    @SerializedName("invite_room_state")
+    public List<Event> inviteRoomState;
 
     /**
      * The previous event content (room member information only)

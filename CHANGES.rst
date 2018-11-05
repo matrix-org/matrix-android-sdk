@@ -1,8 +1,34 @@
-Changes to Matrix Android SDK in 0.9.12 (2018-XX-XX)
+Changes to Matrix Android SDK in 0.9.13 (2018-XX-XX)
 =======================================================
 
 Features:
  -
+
+Improvements:
+ - Add RTL support
+ - PermalinkUtils is now able to parse a permalink
+
+Bugfix:
+ - Fix crash when change visibility room (vector-im/riot-android#2679)
+ - Move `invite_room_state` to the UnsignedData object (vector-im/riot-android#2555)
+
+API Change:
+ - MXSession.initUserAgent() takes a second parameter for flavor description.
+
+Translations:
+ -
+
+Others:
+ -
+
+Build:
+ - Treat some Lint warnings as errors
+
+Test:
+ -
+
+Changes to Matrix Android SDK in 0.9.12 (2018-10-18)
+=======================================================
 
 Improvements:
  - Improve certificate pinning management for HomeServerConnectionConfig.
@@ -12,21 +38,6 @@ Bugfix:
  - Fix strip previous reply when they contain new line (vector-im/riot-android#2612)
  - Enable CLEARTEXT communication for http endpoints (vector-im/riot-android#2495)
  - Back paginating in a room with LL makes some avatars to vanish (vector-im/riot-android#2639)
-
-API Change:
- -
-
-Translations:
- -
-
-Others:
- -
-
-Build:
- -
-
-Test:
- -
 
 Changes to Matrix Android SDK in 0.9.11 (2018-10-10)
 =======================================================

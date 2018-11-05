@@ -113,7 +113,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 /**
  * Class that represents one user's session with a particular home server.
@@ -344,10 +343,12 @@ public class MXSession {
     /**
      * Init the user-agent used by the REST requests.
      *
-     * @param context the application context
+     * @param appContext        the application context
+     * @param flavorDescription the flavor description, or null if not defined
      */
-    public static void initUserAgent(Context context) {
-        RestClient.initUserAgent(context);
+    public static void initUserAgent(@Nullable Context appContext,
+                                     @Nullable String flavorDescription) {
+        RestClient.initUserAgent(appContext, flavorDescription == null ? "SDKApp" : flavorDescription);
     }
 
     /**
