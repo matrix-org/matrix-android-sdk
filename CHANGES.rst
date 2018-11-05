@@ -12,7 +12,7 @@ Bugfix:
  - Fix crash when change visibility room (vector-im/riot-android#2679)
 
 API Change:
- -
+ - MXSession.initUserAgent() takes a second parameter for flavor description.
 
 Translations:
  -

@@ -23,6 +23,7 @@ import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
+import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.common.CommonTestHelper;
 import org.matrix.androidsdk.common.TestApiCallback;
@@ -40,7 +41,7 @@ public class RoomSummaryTest {
 
     @BeforeClass
     public static void init() {
-        RestClient.initUserAgent(InstrumentationRegistry.getContext());
+        MXSession.initUserAgent(InstrumentationRegistry.getContext(), null);
     }
 
     @Test
