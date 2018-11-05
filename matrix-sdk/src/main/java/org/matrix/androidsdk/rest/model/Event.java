@@ -158,9 +158,6 @@ public class Event implements Externalizable {
     // Specific to redaction
     public String redacts;
 
-    // A subset of the state of the room at the time of the invite, if membership is invite
-    public List<Event> invite_room_state;
-
     // store the exception triggered when unsent
     public Exception unsentException = null;
     public MatrixError unsentMatrixError = null;
@@ -583,7 +580,6 @@ public class Event implements Externalizable {
         copy.prev_content_as_string = prev_content_as_string;
 
         copy.unsigned = unsigned;
-        copy.invite_room_state = invite_room_state;
         copy.redacts = redacts;
 
         copy.mSentState = mSentState;
@@ -915,10 +911,6 @@ public class Event implements Externalizable {
         }
 
         if (input.readBoolean()) {
-            invite_room_state = (List<Event>) input.readObject();
-        }
-
-        if (input.readBoolean()) {
             unsentException = (Exception) input.readObject();
         }
 
@@ -1000,11 +992,6 @@ public class Event implements Externalizable {
         output.writeBoolean(null != redacts);
         if (null != redacts) {
             output.writeUTF(redacts);
-        }
-
-        output.writeBoolean(null != invite_room_state);
-        if (null != invite_room_state) {
-            output.writeObject(invite_room_state);
         }
 
         output.writeBoolean(null != unsentException);

@@ -10,6 +10,7 @@ Improvements:
 
 Bugfix:
  - Fix crash when change visibility room (vector-im/riot-android#2679)
+ - Move `invite_room_state` to the UnsignedData object (vector-im/riot-android#2555)
 
 API Change:
  - MXSession.initUserAgent() takes a second parameter for flavor description.
