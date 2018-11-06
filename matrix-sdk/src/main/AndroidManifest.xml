@@ -20,7 +20,7 @@
     <!-- libjingle is designed for API >= 15 but the app should work from API >= 11 -->
     <!--uses-sdk tools:overrideLibrary="io.pristine.libjingle"/-->
 
-    <application>
-        <receiver android:name="org.matrix.androidsdk.sync.EventsThread$SyncDelayReceiver" />
+    <application android:supportsRtl="true">
+        <receiver android:name=".sync.EventsThread$SyncDelayReceiver" />
     </application>
 </manifest>

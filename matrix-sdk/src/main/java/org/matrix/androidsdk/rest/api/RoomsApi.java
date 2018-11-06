@@ -384,7 +384,7 @@ public interface RoomsApi {
      * @param roomDirectoryVisibility the put params containing the new "visibility" field
      */
     @PUT("directory/list/room/{roomId}")
-    Call<Void> setRoomDirectoryVisibility(@Path("roomId") String roomId, RoomDirectoryVisibility roomDirectoryVisibility);
+    Call<Void> setRoomDirectoryVisibility(@Path("roomId") String roomId, @Body RoomDirectoryVisibility roomDirectoryVisibility);
 
     /**
      * Get the visibility of the given room in the list directory.

@@ -14,9 +14,8 @@ android {
     defaultConfig {
         minSdkVersion 16
         targetSdkVersion 26
-        versionCode 912
-        versionName "0.9.12"
-        resValue "string", "flavor_description", "SDKApp"
+        versionCode 913
+        versionName "0.9.13"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
@@ -84,6 +83,15 @@ android {
         disable 'InvalidPackage'
         disable 'MissingTranslation'
         disable 'RestrictedApi'
+
+        // Treat some warnings as errors
+        error 'StringFormatCount'
+        error 'HardcodedText'
+        error 'SpUsage'
+
+        // RTL
+        error 'RtlEnabled'
+        error 'RtlHardcoded'
     }
 
     repositories {
