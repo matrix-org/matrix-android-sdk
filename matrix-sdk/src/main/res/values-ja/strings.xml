@@ -11,8 +11,8 @@
     <string name="notice_room_join">%1$sが参加しました</string>
     <string name="notice_room_leave">%1$sが退出しました</string>
     <string name="notice_room_reject">%1$sが招待を断りました</string>
-    <string name="notice_room_kick">%1$sが%2$sとの接続を切断しました</string>
-    <string name="notice_room_unban">%1$sが%2$sのブロックを解除しました</string>
+    <string name="notice_room_kick">%1$sが%2$sを追放しました</string>
+    <string name="notice_room_unban">%1$sが%2$sをブロック解除しました</string>
     <string name="notice_room_ban">%14sが%2$sをブロックしました</string>
     <string name="notice_room_withdraw">%14sが%2$sの招待を撤回しました</string>
     <string name="notice_avatar_url_changed">%1$sがアバターを変更しました</string>
@@ -35,9 +35,9 @@
     </plurals>
 
 <string name="notice_made_future_room_visibility">％1$sは、今後の部屋履歴を%2$sに表示させました</string>
-    <string name="notice_room_visibility_invited">ルームメンバー全員、招待された時点から。</string>
-    <string name="notice_room_visibility_joined">ルームメンバー全員、参加した時点から。</string>
-    <string name="notice_room_visibility_shared">ルームメンバー全員。</string>
+    <string name="notice_room_visibility_invited">部屋のメンバー全員、招待された時点から。</string>
+    <string name="notice_room_visibility_joined">部屋のメンバー全員、参加した時点から。</string>
+    <string name="notice_room_visibility_shared">部屋のメンバー全員。</string>
     <string name="notice_room_visibility_world_readable">誰でも。</string>
     <string name="notice_room_visibility_unknown">不明 (％s)。</string>
     <string name="notice_end_to_end">%1$sはエンドツーエンドの暗号化を有効にしました (%2$s)</string>
