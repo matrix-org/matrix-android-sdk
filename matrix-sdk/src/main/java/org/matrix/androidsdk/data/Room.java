@@ -56,7 +56,6 @@ import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.AccountDataRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.UrlPostTask;
-import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.CreatedEvent;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
@@ -65,6 +64,7 @@ import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomDirectoryVisibility;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkEvents;
+import org.matrix.androidsdk.rest.model.UserIdAndReason;
 import org.matrix.androidsdk.rest.model.message.FileInfo;
 import org.matrix.androidsdk.rest.model.message.FileMessage;
 import org.matrix.androidsdk.rest.model.message.ImageInfo;
@@ -2517,10 +2517,18 @@ public class Room {
      * Kick a user from the room.
      *
      * @param userId   the user id
+     * @param reason   the reason
      * @param callback the async callback
      */
-    public void kick(String userId, ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().kickFromRoom(getRoomId(), userId, callback);
+    public void kick(String userId,
+                     @Nullable String reason,
+                     ApiCallback<Void> callback) {
+        UserIdAndReason userIdAndReason = new UserIdAndReason();
+        userIdAndReason.userId = userId;
+        if (!TextUtils.isEmpty(reason)) {
+            userIdAndReason.reason = reason;
+        }
+        mDataHandler.getDataRetriever().getRoomsRestClient().kickFromRoom(getRoomId(), userIdAndReason, callback);
     }
 
     /**
@@ -2531,12 +2539,12 @@ public class Room {
      * @param callback the async callback
      */
     public void ban(String userId, String reason, ApiCallback<Void> callback) {
-        BannedUser user = new BannedUser();
-        user.userId = userId;
+        UserIdAndReason userIdAndReason = new UserIdAndReason();
+        userIdAndReason.userId = userId;
         if (!TextUtils.isEmpty(reason)) {
-            user.reason = reason;
+            userIdAndReason.reason = reason;
         }
-        mDataHandler.getDataRetriever().getRoomsRestClient().banFromRoom(getRoomId(), user, callback);
+        mDataHandler.getDataRetriever().getRoomsRestClient().banFromRoom(getRoomId(), userIdAndReason, callback);
     }
 
     /**
@@ -2546,10 +2554,11 @@ public class Room {
      * @param callback the async callback
      */
     public void unban(String userId, ApiCallback<Void> callback) {
-        BannedUser user = new BannedUser();
-        user.userId = userId;
+        UserIdAndReason userIdAndReason = new UserIdAndReason();
+        userIdAndReason.userId = userId;
+        // No reason for unbanning user
 
-        mDataHandler.getDataRetriever().getRoomsRestClient().unbanFromRoom(getRoomId(), user, callback);
+        mDataHandler.getDataRetriever().getRoomsRestClient().unbanFromRoom(getRoomId(), userIdAndReason, callback);
     }
 
     //================================================================================

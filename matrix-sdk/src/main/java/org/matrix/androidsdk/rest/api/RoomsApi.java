@@ -22,7 +22,6 @@ import android.support.annotation.Nullable;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.ChunkEvents;
 import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
@@ -33,10 +32,10 @@ import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReportContentParams;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomDirectoryVisibility;
-import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.UserIdAndReason;
 import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 
@@ -186,30 +185,29 @@ public interface RoomsApi {
     /**
      * Ban a user from the given room.
      *
-     * @param roomId the room id
-     * @param user   the banned user object (userId and reason for ban)
+     * @param roomId          the room id
+     * @param userIdAndReason the banned user object (userId and reason for ban)
      */
     @POST("rooms/{roomId}/ban")
-    Call<Void> ban(@Path("roomId") String roomId, @Body BannedUser user);
+    Call<Void> ban(@Path("roomId") String roomId, @Body UserIdAndReason userIdAndReason);
 
     /**
      * unban a user from the given room.
      *
-     * @param roomId the room id
-     * @param user   the banned user object (userId and reason for unban)
+     * @param roomId          the room id
+     * @param userIdAndReason the unbanned user object (userId and reason for unban)
      */
     @POST("rooms/{roomId}/unban")
-    Call<Void> unban(@Path("roomId") String roomId, @Body BannedUser user);
+    Call<Void> unban(@Path("roomId") String roomId, @Body UserIdAndReason userIdAndReason);
 
     /**
-     * Change the membership state for a user in a room.
+     * Kick a user from the given room.
      *
-     * @param roomId the room id
-     * @param userId the user id
-     * @param member object containing the membership field to set
+     * @param roomId          the room id
+     * @param userIdAndReason the kicked user object (userId and reason for kicking)
      */
-    @PUT("rooms/{roomId}/state/m.room.member/{userId}")
-    Call<Void> updateRoomMember(@Path("roomId") String roomId, @Path("userId") String userId, @Body RoomMember member);
+    @POST("rooms/{roomId}/kick")
+    Call<Void> kick(@Path("roomId") String roomId, @Body UserIdAndReason userIdAndReason);
 
     /**
      * Update the typing notification
