@@ -105,6 +105,10 @@ public class RestClient<T> {
     // http client
     private OkHttpClient mOkHttpClient = new OkHttpClient();
 
+    public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix) {
+        this(hsConfig, type, uriPrefix, JsonUtils.getKotlinGson(), EndPointServer.HOME_SERVER);
+    }
+
     public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization) {
         this(hsConfig, type, uriPrefix, withNullSerialization, EndPointServer.HOME_SERVER);
     }
@@ -132,8 +136,13 @@ public class RestClient<T> {
      * @param endPointServer        tell which server is used to define the base url
      */
     public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization, EndPointServer endPointServer) {
+        this(hsConfig, type, uriPrefix, JsonUtils.getGson(withNullSerialization), endPointServer);
+    }
+
+    // Private constructor with Gson instance as a parameter
+    private RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, Gson _gson, EndPointServer endPointServer) {
         // The JSON -> object mapper
-        gson = JsonUtils.getGson(withNullSerialization);
+        gson = _gson;
 
         mHsConfig = hsConfig;
         mCredentials = hsConfig.getCredentials();

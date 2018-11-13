@@ -7,6 +7,8 @@ Features:
 Improvements:
  - Any Account data element, even if the type is not known is persisted.
  - The crypto store is now implemented using a Realm database. The existing file store will be migrated at first usage (#398)
+ - Upgrade olm-sdk.aar from version 2.3.0 to version 3.0.0
+ - Implement the backup of the room keys in the KeysBackup class (vector-im/riot-android#2642)
 
 Bugfix:
  - Room members who left are listed with the actual members (vector-im/riot-android#2744)
@@ -16,6 +18,7 @@ Bugfix:
 API Change:
  - new API in CallSoundsManager to allow client to play the specified Ringtone (vector-im/riot-android#827)
  - IMXStore.storeAccountData() has been renamed to IMXStore.storeRoomAccountData()
+ - MXCrypto: importRoomKeys methods now return number of imported keys and number of total keys in the Callback.
 
 Translations:
  -

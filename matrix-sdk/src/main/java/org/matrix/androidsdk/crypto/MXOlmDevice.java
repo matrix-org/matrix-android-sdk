@@ -162,7 +162,7 @@ public class MXOlmDevice {
      * @param message the message to be signed.
      * @return the base64-encoded signature.
      */
-    private String signMessage(String message) {
+    public String signMessage(String message) {
         try {
             return mOlmAccount.signMessage(message);
         } catch (Exception e) {
@@ -583,13 +583,14 @@ public class MXOlmDevice {
     /**
      * Import an inbound group session to the session store.
      *
-     * @param exportedSessionMap the exported session map
+     * @param megolmSessionData the megolm session data
      * @return the imported session if the operation succeeds.
      */
-    public MXOlmInboundGroupSession2 importInboundGroupSession(Map<String, Object> exportedSessionMap) {
-        String sessionId = (String) exportedSessionMap.get("session_id");
-        String senderKey = (String) exportedSessionMap.get("sender_key");
-        String roomId = (String) exportedSessionMap.get("room_id");
+    @Nullable
+    public MXOlmInboundGroupSession2 importInboundGroupSession(MegolmSessionData megolmSessionData) {
+        String sessionId = megolmSessionData.session_id;
+        String senderKey = megolmSessionData.sender_key;
+        String roomId = megolmSessionData.room_id;
 
         if (null != getInboundGroupSession(sessionId, senderKey, roomId)) {
             // If we already have this session, consider updating it
@@ -602,7 +603,7 @@ public class MXOlmDevice {
         MXOlmInboundGroupSession2 session = null;
 
         try {
-            session = new MXOlmInboundGroupSession2(exportedSessionMap);
+            session = new MXOlmInboundGroupSession2(megolmSessionData);
         } catch (Exception e) {
             Log.e(LOG_TAG, "## importInboundGroupSession() : Update for megolm session " + senderKey + "/" + sessionId, e);
         }
@@ -740,14 +741,14 @@ public class MXOlmDevice {
     /**
      * Verify an ed25519 signature on a JSON object.
      *
-     * @param key           the ed25519 key.
-     * @param JSONDictinary the JSON object which was signed.
-     * @param signature     the base64-encoded signature to be checked.
+     * @param key            the ed25519 key.
+     * @param JSONDictionary the JSON object which was signed.
+     * @param signature      the base64-encoded signature to be checked.
      * @throws Exception the exception
      */
-    public void verifySignature(String key, Map<String, Object> JSONDictinary, String signature) throws Exception {
+    public void verifySignature(String key, Map<String, Object> JSONDictionary, String signature) throws Exception {
         // Check signature on the canonical version of the JSON
-        mOlmUtility.verifyEd25519Signature(signature, key, JsonUtils.getCanonicalizedJsonString(JSONDictinary));
+        mOlmUtility.verifyEd25519Signature(signature, key, JsonUtils.getCanonicalizedJsonString(JSONDictionary));
     }
 
     /**

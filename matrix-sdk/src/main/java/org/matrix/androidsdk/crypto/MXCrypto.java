@@ -32,12 +32,14 @@ import com.google.gson.reflect.TypeToken;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.crypto.algorithms.IMXDecrypting;
 import org.matrix.androidsdk.crypto.algorithms.IMXEncrypting;
+import org.matrix.androidsdk.crypto.data.ImportRoomKeysResult;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
 import org.matrix.androidsdk.crypto.data.MXKey;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
+import org.matrix.androidsdk.crypto.keysbackup.KeysBackup;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
@@ -106,7 +108,8 @@ public class MXCrypto {
     // Our device keys
     private MXDeviceInfo mMyDevice;
 
-    // The libolm wrapper.
+    // The libolm wrapper. Null if the Crypto has been closed
+    @Nullable
     private MXOlmDevice mOlmDevice;
 
     private Map<String, Map<String, String>> mLastPublishedOneTimeKeys;
@@ -185,6 +188,9 @@ public class MXCrypto {
     // Set of parameters used to configure/customize the end-to-end crypto.
     private MXCryptoConfig mCryptoConfig;
 
+    // The key backup manager.
+    private final KeysBackup mKeysBackup;
+
     /**
      * Constructor
      *
@@ -192,7 +198,9 @@ public class MXCrypto {
      * @param cryptoStore   the crypto store
      * @param cryptoConfig  the optional set of parameters used to configure the e2e encryption.
      */
-    public MXCrypto(MXSession matrixSession, IMXCryptoStore cryptoStore, @Nullable MXCryptoConfig cryptoConfig) {
+    public MXCrypto(@NonNull MXSession matrixSession,
+                    @NonNull IMXCryptoStore cryptoStore,
+                    @Nullable MXCryptoConfig cryptoConfig) {
         mSession = matrixSession;
         mCryptoStore = cryptoStore;
 
@@ -275,6 +283,8 @@ public class MXCrypto {
         mOutgoingRoomKeyRequestManager = new MXOutgoingRoomKeyRequestManager(mSession, this);
 
         mReceivedRoomKeyRequests.addAll(mCryptoStore.getPendingIncomingRoomKeyRequests());
+
+        mKeysBackup = new KeysBackup(this, mSession);
     }
 
     /**
@@ -298,7 +308,7 @@ public class MXCrypto {
     /**
      * @return the decrypting thread handler
      */
-    private Handler getDecryptingThreadHandler() {
+    public Handler getDecryptingThreadHandler() {
         // mDecryptingHandlerThread was not yet ready
         if (null == mDecryptingHandler) {
             mDecryptingHandler = new Handler(mDecryptingHandlerThread.getLooper());
@@ -465,6 +475,8 @@ public class MXCrypto {
 
                                                             mOutgoingRoomKeyRequestManager.start();
 
+                                                            mKeysBackup.checkAndStartKeyBackup();
+
                                                             synchronized (mInitializationCallbacks) {
                                                                 for (ApiCallback<Void> callback : mInitializationCallbacks) {
                                                                     final ApiCallback<Void> fCallback = callback;
@@ -560,10 +572,12 @@ public class MXCrypto {
                         mOlmDevice = null;
                     }
 
-                    mMyDevice = null;
+                    // Do not reset My Device
+                    // mMyDevice = null;
 
                     mCryptoStore.close();
-                    mCryptoStore = null;
+                    // Do not reset Crypto store
+                    // mCryptoStore = null;
 
                     if (null != mEncryptingHandlerThread) {
                         mEncryptingHandlerThread.quit();
@@ -587,10 +601,18 @@ public class MXCrypto {
     }
 
     /**
-     * @return the olmdevice instance
+     * @return the olmdevice instance, or null if the Crypto is closed.
      */
+    @Nullable
     public MXOlmDevice getOlmDevice() {
         return mOlmDevice;
+    }
+
+    /**
+     * @return the KeysBackup instance
+     */
+    public KeysBackup getKeysBackup() {
+        return mKeysBackup;
     }
 
     /**
@@ -665,12 +687,12 @@ public class MXCrypto {
     /**
      * Find a device by curve25519 identity key
      *
-     * @param userId    the owner of the device.
      * @param algorithm the encryption algorithm.
      * @param senderKey the curve25519 key to match.
-     * @return the device info.
+     * @return the device info, or null if not found / unsupported algorithm / crypto released
      */
-    public MXDeviceInfo deviceWithIdentityKey(final String senderKey, final String userId, final String algorithm) {
+    @Nullable
+    public MXDeviceInfo deviceWithIdentityKey(final String senderKey, final String algorithm) {
         if (!hasBeenReleased()) {
             if (!TextUtils.equals(algorithm, CryptoConstantsKt.MXCRYPTO_ALGORITHM_MEGOLM)
                     && !TextUtils.equals(algorithm, CryptoConstantsKt.MXCRYPTO_ALGORITHM_OLM)) {
@@ -678,44 +700,11 @@ public class MXCrypto {
                 return null;
             }
 
-            if (!TextUtils.isEmpty(userId)) {
-                final List<MXDeviceInfo> result = new ArrayList<>();
-                final CountDownLatch lock = new CountDownLatch(1);
-
-                getDecryptingThreadHandler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        List<MXDeviceInfo> devices = getUserDevices(userId);
-
-                        if (null != devices) {
-                            for (MXDeviceInfo device : devices) {
-                                Set<String> keys = device.keys.keySet();
-
-                                for (String keyId : keys) {
-                                    if (keyId.startsWith("curve25519:")) {
-                                        if (TextUtils.equals(senderKey, device.keys.get(keyId))) {
-                                            result.add(device);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        lock.countDown();
-                    }
-                });
-
-                try {
-                    lock.await();
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## deviceWithIdentityKey() : failed " + e.getMessage(), e);
-                }
-
-                return (result.size() > 0) ? result.get(0) : null;
-            }
+            // Find in the crypto store
+            return getCryptoStore().deviceWithIdentityKey(senderKey);
         }
 
-        // Doesn't match a known device
+        // The store is released
         return null;
     }
 
@@ -851,6 +840,13 @@ public class MXCrypto {
                 if (device.mVerified != verificationStatus) {
                     device.mVerified = verificationStatus;
                     mCryptoStore.storeUserDevice(userId, device);
+
+                    if (userId.equals(mSession.getMyUserId())) {
+                        // If one of the user's own devices is being marked as verified / unverified,
+                        // check the key backup status, since whether or not we use this depends on
+                        // whether it has a signature from a verified device
+                        mKeysBackup.checkAndStartKeyBackup();
+                    }
                 }
 
                 if (null != callback) {
@@ -1516,6 +1512,25 @@ public class MXCrypto {
     }
 
     /**
+     * Sign Object
+     * // TODO Also use this method internally
+     *
+     * @param str
+     * @return
+     */
+    public Map<String, Object> signObject(String str) {
+        Map<String, Object> result = new HashMap<>();
+
+        Map<String, Object> content = new HashMap<>();
+
+        content.put("ed25519:" + mMyDevice.deviceId, mOlmDevice.signMessage(str));
+
+        result.put(mMyDevice.userId, content);
+
+        return result;
+    }
+
+    /**
      * Handle the 'toDevice' event
      *
      * @param event the event
@@ -1683,7 +1698,7 @@ public class MXCrypto {
                     }
                 };
 
-                // if the device is is verified already, share the keys
+                // if the device is verified already, share the keys
                 MXDeviceInfo device = mCryptoStore.getUserDevice(deviceId, userId);
 
                 if (null != device) {
@@ -2275,15 +2290,15 @@ public class MXCrypto {
                     return;
                 }
 
-                List<Map<String, Object>> exportedSessions = new ArrayList<>();
+                List<MegolmSessionData> exportedSessions = new ArrayList<>();
 
                 List<MXOlmInboundGroupSession2> inboundGroupSessions = mCryptoStore.getInboundGroupSessions();
 
                 for (MXOlmInboundGroupSession2 session : inboundGroupSessions) {
-                    Map<String, Object> map = session.exportKeys();
+                    MegolmSessionData megolmSessionData = session.exportKeys();
 
-                    if (null != map) {
-                        exportedSessions.add(map);
+                    if (null != megolmSessionData) {
+                        exportedSessions.add(megolmSessionData);
                     }
                 }
 
@@ -2314,10 +2329,14 @@ public class MXCrypto {
      * @param password        the password
      * @param callback        the asynchronous callback.
      */
-    public void importRoomKeys(final byte[] roomKeysAsArray, final String password, final ApiCallback<Void> callback) {
+    public void importRoomKeys(final byte[] roomKeysAsArray,
+                               final String password,
+                               final ApiCallback<ImportRoomKeysResult> callback) {
         getDecryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
+                Log.d(LOG_TAG, "## importRoomKeys starts");
+
                 long t0 = System.currentTimeMillis();
                 String roomKeys;
 
@@ -2333,14 +2352,14 @@ public class MXCrypto {
                     return;
                 }
 
-                List<Map<String, Object>> importedSessions;
+                List<MegolmSessionData> importedSessions;
 
                 long t1 = System.currentTimeMillis();
 
-                Log.d(LOG_TAG, "## importRoomKeys starts");
+                Log.d(LOG_TAG, "## importRoomKeys : decryptMegolmKeyFile done in " + (t1 - t0) + " ms");
 
                 try {
-                    importedSessions = JsonUtils.getGson(false).fromJson(roomKeys, new TypeToken<List<Map<String, Object>>>() {
+                    importedSessions = JsonUtils.getGson(false).fromJson(roomKeys, new TypeToken<List<MegolmSessionData>>() {
                     }.getType());
                 } catch (final Exception e) {
                     Log.e(LOG_TAG, "## importRoomKeys failed " + e.getMessage(), e);
@@ -2355,21 +2374,55 @@ public class MXCrypto {
 
                 long t2 = System.currentTimeMillis();
 
-                Log.d(LOG_TAG, "## importRoomKeys retrieve " + importedSessions.size() + "sessions in " + (t1 - t0) + " ms");
+                Log.d(LOG_TAG, "## importRoomKeys : JSON parsing " + (t2 - t1) + " ms");
 
-                for (int index = 0; index < importedSessions.size(); index++) {
-                    Map<String, Object> map = importedSessions.get(index);
+                importMegolmSessionsData(importedSessions, true, callback);
+            }
+        });
+    }
 
-                    MXOlmInboundGroupSession2 session = mOlmDevice.importInboundGroupSession(map);
+    /**
+     * Import a list of megolm session keys.
+     *
+     * @param megolmSessionsData megolm sessions.
+     * @param backUpKeys         true to back up them to the homeserver.
+     * @param callback
+     */
+    public void importMegolmSessionsData(final List<MegolmSessionData> megolmSessionsData,
+                                         final boolean backUpKeys,
+                                         final ApiCallback<ImportRoomKeysResult> callback) {
+        getDecryptingThreadHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                long t0 = System.currentTimeMillis();
+
+                final int totalNumbersOfKeys = megolmSessionsData.size();
+                int totalNumbersOfImportedKeys = 0;
+
+
+                for (int index = 0; index < megolmSessionsData.size(); index++) {
+                    MegolmSessionData megolmSessionData = megolmSessionsData.get(index);
+
+                    MXOlmInboundGroupSession2 session = mOlmDevice.importInboundGroupSession(megolmSessionData);
 
                     if ((null != session) && mRoomDecryptors.containsKey(session.mRoomId)) {
-                        IMXDecrypting decrypting = mRoomDecryptors.get(session.mRoomId).get(map.get("algorithm"));
+                        IMXDecrypting decrypting = mRoomDecryptors.get(session.mRoomId).get(megolmSessionData.algorithm);
 
                         if (null != decrypting) {
                             try {
                                 String sessionId = session.mSession.sessionIdentifier();
                                 Log.d(LOG_TAG, "## importRoomKeys retrieve mSenderKey " + session.mSenderKey + " sessionId " + sessionId);
 
+                                totalNumbersOfImportedKeys++;
+
+                                // Do not back up the key if it comes from a backup recovery
+                                if (backUpKeys) {
+                                    mKeysBackup.maybeSendKeyBackup();
+                                } else {
+                                    mCryptoStore.markBackupDoneForInboundGroupSessionWithId(sessionId, session.mSenderKey);
+                                }
+
+                                // Have another go at decrypting events sent with this session
                                 decrypting.onNewSession(session.mSenderKey, sessionId);
                             } catch (Exception e) {
                                 Log.e(LOG_TAG, "## importRoomKeys() : onNewSession failed " + e.getMessage(), e);
@@ -2378,17 +2431,16 @@ public class MXCrypto {
                     }
                 }
 
-                long t3 = System.currentTimeMillis();
+                long t1 = System.currentTimeMillis();
 
-                Log.d(LOG_TAG, "## importRoomKeys : done in " + (t3 - t0) + " ms (" + importedSessions.size() + " sessions)");
-                Log.d(LOG_TAG, "## importRoomKeys : decryptMegolmKeyFile done in " + (t1 - t0) + " ms");
-                Log.d(LOG_TAG, "## importRoomKeys : JSON parsing " + (t2 - t1) + " ms");
-                Log.d(LOG_TAG, "## importRoomKeys : sessions import " + (t3 - t2) + " ms");
+                Log.d(LOG_TAG, "## importMegolmSessionsData : sessions import " + (t1 - t0) + " ms (" + megolmSessionsData.size() + " sessions)");
+
+                final int finalTotalNumbersOfImportedKeys = totalNumbersOfImportedKeys;
 
                 getUIHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        callback.onSuccess(null);
+                        callback.onSuccess(new ImportRoomKeysResult(totalNumbersOfKeys, finalTotalNumbersOfImportedKeys));
                     }
                 });
             }
@@ -2773,5 +2825,18 @@ public class MXCrypto {
                 }
             }
         }
+    }
+
+    /* ==========================================================================================
+     * DEBUG INFO
+     * ========================================================================================== */
+
+    @Override
+    public String toString() {
+        if (mMyDevice != null) {
+            return mMyDevice.userId + " (" + mMyDevice.deviceId + ")";
+        }
+
+        return super.toString();
     }
 }

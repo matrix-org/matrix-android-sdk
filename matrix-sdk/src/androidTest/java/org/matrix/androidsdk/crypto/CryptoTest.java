@@ -41,6 +41,7 @@ import org.matrix.androidsdk.common.CryptoTestData;
 import org.matrix.androidsdk.common.CryptoTestHelper;
 import org.matrix.androidsdk.common.TestApiCallback;
 import org.matrix.androidsdk.common.TestConstants;
+import org.matrix.androidsdk.crypto.data.ImportRoomKeysResult;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
@@ -141,15 +142,7 @@ public class CryptoTest {
         Assert.assertNotNull(myUserDevices);
         Assert.assertEquals(1, myUserDevices.size());
 
-        final Credentials bobCredentials = bobSession.getCredentials();
-
-        HomeServerConnectionConfig hs = mTestHelper.createHomeServerConfig(bobCredentials);
-
-        IMXStore store = new MXFileStore(hs, false, context);
-
-        MXSession bobSession2 = new MXSession.Builder(hs, new MXDataHandler(store, bobCredentials), context)
-                .withLegacyCryptoStore(mCryptoTestHelper.USE_LEGACY_CRYPTO_STORE)
-                .build();
+        MXSession bobSession2 = mTestHelper.createNewSession(bobSession, mCryptoTestHelper.getDefaultSessionParams());
 
         final CountDownLatch lock1 = new CountDownLatch(1);
         MXStoreListener listener = new MXStoreListener() {
@@ -276,7 +269,7 @@ public class CryptoTest {
 
         // Continue testing other methods
         Assert.assertNotNull(bobSession.getCrypto().deviceWithIdentityKey(aliceSession.getCrypto().getOlmDevice().getDeviceCurve25519Key(),
-                aliceSession.getMyUserId(), CryptoConstantsKt.MXCRYPTO_ALGORITHM_OLM));
+                CryptoConstantsKt.MXCRYPTO_ALGORITHM_OLM));
         Assert.assertTrue(aliceDeviceFromBobPOV.isUnknown());
 
         CountDownLatch lock3a = new CountDownLatch(1);
@@ -318,15 +311,7 @@ public class CryptoTest {
 
         Assert.assertTrue(aliceDeviceFromBobPOV.isBlocked());
 
-        Credentials bobCredentials = bobSession.getCredentials();
-
-        HomeServerConnectionConfig hs = mTestHelper.createHomeServerConfig(bobCredentials);
-
-        IMXStore store = new MXFileStore(hs, false, context);
-
-        MXSession bobSession2 = new MXSession.Builder(hs, new MXDataHandler(store, bobCredentials), context)
-                .withLegacyCryptoStore(mCryptoTestHelper.USE_LEGACY_CRYPTO_STORE)
-                .build();
+        MXSession bobSession2 = mTestHelper.createNewSession(bobSession, mCryptoTestHelper.getDefaultSessionParams());
 
         final CountDownLatch lock4 = new CountDownLatch(1);
 
@@ -382,7 +367,7 @@ public class CryptoTest {
 
         MXDeviceInfo aliceDeviceFromBobPOV2 = bobSession2.getCrypto()
                 .deviceWithIdentityKey(aliceSession.getCrypto().getOlmDevice().getDeviceCurve25519Key(),
-                        aliceSession.getMyUserId(), CryptoConstantsKt.MXCRYPTO_ALGORITHM_OLM);
+                        CryptoConstantsKt.MXCRYPTO_ALGORITHM_OLM);
 
         Assert.assertNotNull(aliceDeviceFromBobPOV2);
         Assert.assertEquals(aliceDeviceFromBobPOV2.fingerprint(), aliceSession.getCrypto().getOlmDevice().getDeviceEd25519Key());
@@ -403,7 +388,7 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("downloadKeys2"));
 
         MXDeviceInfo aliceDeviceFromBobPOV3 = bobSession2.getCrypto().deviceWithIdentityKey(aliceSession.getCrypto().getOlmDevice().getDeviceCurve25519Key(),
-                aliceSession.getMyUserId(), CryptoConstantsKt.MXCRYPTO_ALGORITHM_OLM);
+                CryptoConstantsKt.MXCRYPTO_ALGORITHM_OLM);
 
         Assert.assertNotNull(aliceDeviceFromBobPOV3);
         Assert.assertEquals(aliceDeviceFromBobPOV3.fingerprint(), aliceSession.getCrypto().getOlmDevice().getDeviceEd25519Key());
@@ -488,15 +473,7 @@ public class CryptoTest {
         Assert.assertNotNull(sessionWithAliceDevice.mSessionId);
         Assert.assertEquals("AliceDevice", sessionWithAliceDevice.mDevice.deviceId);
 
-        Credentials bobCredentials = bobSession.getCredentials();
-
-        HomeServerConnectionConfig hs = mTestHelper.createHomeServerConfig(bobCredentials);
-
-        IMXStore store = new MXFileStore(hs, false, context);
-
-        MXSession bobSession2 = new MXSession.Builder(hs, new MXDataHandler(store, bobCredentials), context)
-                .withLegacyCryptoStore(mCryptoTestHelper.USE_LEGACY_CRYPTO_STORE)
-                .build();
+        MXSession bobSession2 = mTestHelper.createNewSession(bobSession, mCryptoTestHelper.getDefaultSessionParams());
 
         final CountDownLatch lock5 = new CountDownLatch(1);
 
@@ -799,7 +776,8 @@ public class CryptoTest {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), bobSession.getMyUserId())) {
-                    mCryptoTestHelper.checkEncryptedEvent(event, aliceRoomId, mCryptoTestHelper.getMessagesFromAlice().get(nbReceivedMessagesFromAlice[0]), aliceSession);
+                    mCryptoTestHelper.checkEncryptedEvent(event, aliceRoomId,
+                            mCryptoTestHelper.getMessagesFromAlice().get(nbReceivedMessagesFromAlice[0]), aliceSession);
 
                     nbReceivedMessagesFromAlice[0]++;
                     list.get(list.size() - 1).countDown();
@@ -811,7 +789,8 @@ public class CryptoTest {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), aliceSession.getMyUserId())) {
-                    mCryptoTestHelper.checkEncryptedEvent(event, aliceRoomId, mCryptoTestHelper.getMessagesFromBob().get(nbReceivedMessagesFromBob[0]), bobSession);
+                    mCryptoTestHelper.checkEncryptedEvent(event, aliceRoomId,
+                            mCryptoTestHelper.getMessagesFromBob().get(nbReceivedMessagesFromBob[0]), bobSession);
                     nbReceivedMessagesFromBob[0]++;
 
                     list.get(list.size() - 1).countDown();
@@ -840,28 +819,33 @@ public class CryptoTest {
             }
         });
 
-        roomFromAlicePOV.sendEvent(mCryptoTestHelper.buildTextEvent(mCryptoTestHelper.getMessagesFromAlice().get(nbReceivedMessagesFromAlice[0]), aliceSession, aliceRoomId), callback);
+        roomFromAlicePOV.sendEvent(mCryptoTestHelper.buildTextEvent(
+                mCryptoTestHelper.getMessagesFromAlice().get(nbReceivedMessagesFromAlice[0]), aliceSession, aliceRoomId), callback);
         mTestHelper.await(list.get(list.size() - 1));
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
         Assert.assertEquals(1, nbReceivedMessagesFromAlice[0]);
 
         list.add(new CountDownLatch(1));
-        roomFromBobPOV.sendEvent(mCryptoTestHelper.buildTextEvent(mCryptoTestHelper.getMessagesFromBob().get(nbReceivedMessagesFromBob[0]), bobSession, aliceRoomId), callback);
+        roomFromBobPOV.sendEvent(mCryptoTestHelper.buildTextEvent(
+                mCryptoTestHelper.getMessagesFromBob().get(nbReceivedMessagesFromBob[0]), bobSession, aliceRoomId), callback);
         mTestHelper.await(list.get(list.size() - 1));
         Assert.assertEquals(1, nbReceivedMessagesFromBob[0]);
 
         list.add(new CountDownLatch(1));
-        roomFromBobPOV.sendEvent(mCryptoTestHelper.buildTextEvent(mCryptoTestHelper.getMessagesFromBob().get(nbReceivedMessagesFromBob[0]), bobSession, aliceRoomId), callback);
+        roomFromBobPOV.sendEvent(mCryptoTestHelper.buildTextEvent(
+                mCryptoTestHelper.getMessagesFromBob().get(nbReceivedMessagesFromBob[0]), bobSession, aliceRoomId), callback);
         mTestHelper.await(list.get(list.size() - 1));
         Assert.assertEquals(2, nbReceivedMessagesFromBob[0]);
 
         list.add(new CountDownLatch(1));
-        roomFromBobPOV.sendEvent(mCryptoTestHelper.buildTextEvent(mCryptoTestHelper.getMessagesFromBob().get(nbReceivedMessagesFromBob[0]), bobSession, aliceRoomId), callback);
+        roomFromBobPOV.sendEvent(mCryptoTestHelper.buildTextEvent(
+                mCryptoTestHelper.getMessagesFromBob().get(nbReceivedMessagesFromBob[0]), bobSession, aliceRoomId), callback);
         mTestHelper.await(list.get(list.size() - 1));
         Assert.assertEquals(3, nbReceivedMessagesFromBob[0]);
 
         list.add(new CountDownLatch(1));
-        roomFromAlicePOV.sendEvent(mCryptoTestHelper.buildTextEvent(mCryptoTestHelper.getMessagesFromAlice().get(nbReceivedMessagesFromAlice[0]), aliceSession, aliceRoomId), callback);
+        roomFromAlicePOV.sendEvent(mCryptoTestHelper.buildTextEvent(
+                mCryptoTestHelper.getMessagesFromAlice().get(nbReceivedMessagesFromAlice[0]), aliceSession, aliceRoomId), callback);
         mTestHelper.await(list.get(list.size() - 1));
         Assert.assertEquals(2, nbReceivedMessagesFromAlice[0]);
 
@@ -894,7 +878,7 @@ public class CryptoTest {
         final CountDownLatch lock1 = new CountDownLatch(1);
 
         final MXSession aliceSession2 = new MXSession.Builder(hs, new MXDataHandler(store, aliceCredentials), context)
-                .withLegacyCryptoStore(mCryptoTestHelper.USE_LEGACY_CRYPTO_STORE)
+                .withLegacyCryptoStore(mCryptoTestHelper.getUSE_LEGACY_CRYPTO_STORE())
                 .build();
 
         MXStoreListener listener = new MXStoreListener() {
@@ -1029,7 +1013,7 @@ public class CryptoTest {
         IMXStore store = new MXFileStore(hs, false, context);
 
         MXSession aliceSession2 = new MXSession.Builder(hs, new MXDataHandler(store, aliceCredentials2), context)
-                .withLegacyCryptoStore(mCryptoTestHelper.USE_LEGACY_CRYPTO_STORE)
+                .withLegacyCryptoStore(mCryptoTestHelper.getUSE_LEGACY_CRYPTO_STORE())
                 .build();
 
         aliceSession2.enableCryptoWhenStarting();
@@ -1123,7 +1107,7 @@ public class CryptoTest {
         final CountDownLatch lock1 = new CountDownLatch(2);
 
         MXSession bobSession2 = new MXSession.Builder(hs, new MXDataHandler(store, bobCredentials), context)
-                .withLegacyCryptoStore(mCryptoTestHelper.USE_LEGACY_CRYPTO_STORE)
+                .withLegacyCryptoStore(mCryptoTestHelper.getUSE_LEGACY_CRYPTO_STORE())
                 .build();
 
         MXEventListener eventListener = new MXEventListener() {
@@ -2442,7 +2426,7 @@ public class CryptoTest {
         IMXStore store = new MXFileStore(hs, false, context);
 
         MXSession aliceSession2 = new MXSession.Builder(hs, new MXDataHandler(store, aliceCredentials2), context)
-                .withLegacyCryptoStore(mCryptoTestHelper.USE_LEGACY_CRYPTO_STORE)
+                .withLegacyCryptoStore(mCryptoTestHelper.getUSE_LEGACY_CRYPTO_STORE())
                 .build();
 
         aliceSession2.enableCryptoWhenStarting();
@@ -3297,7 +3281,8 @@ public class CryptoTest {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE) && !TextUtils.equals(event.getSender(), bobSession.getMyUserId())) {
                     bobReceivedEvents.add(event);
 
-                    mCryptoTestHelper.checkEncryptedEvent(event, aliceRoomId, mCryptoTestHelper.getMessagesFromAlice().get(nbReceivedMessagesFromAlice[0]), aliceSession);
+                    mCryptoTestHelper.checkEncryptedEvent(event, aliceRoomId,
+                            mCryptoTestHelper.getMessagesFromAlice().get(nbReceivedMessagesFromAlice[0]), aliceSession);
 
                     nbReceivedMessagesFromAlice[0]++;
                     list.get(list.size() - 1).countDown();
@@ -3353,7 +3338,8 @@ public class CryptoTest {
         });
 
         // Alice sends a first event
-        roomFromAlicePOV.sendEvent(mCryptoTestHelper.buildTextEvent(mCryptoTestHelper.getMessagesFromAlice().get(nbReceivedMessagesFromAlice[0]), aliceSession, aliceRoomId), callback);
+        roomFromAlicePOV.sendEvent(mCryptoTestHelper.buildTextEvent(mCryptoTestHelper.getMessagesFromAlice().get(nbReceivedMessagesFromAlice[0]),
+                aliceSession, aliceRoomId), callback);
         mTestHelper.await(list.get(list.size() - 1));
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
         Assert.assertEquals(1, nbReceivedMessagesFromAlice[0]);
@@ -3362,7 +3348,8 @@ public class CryptoTest {
         Assert.assertTrue(roomFromBobPOV.canReplyTo(bobReceivedEvents.get(0)));
 
         list.add(new CountDownLatch(1));
-        roomFromBobPOV.sendTextMessage(mCryptoTestHelper.getMessagesFromBob().get(nbReceivedMessagesFromBob[0]), null, Message.MSGTYPE_TEXT, bobReceivedEvents.get(0), null);
+        roomFromBobPOV.sendTextMessage(mCryptoTestHelper.getMessagesFromBob().get(nbReceivedMessagesFromBob[0]),
+                null, Message.MSGTYPE_TEXT, bobReceivedEvents.get(0), null);
         mTestHelper.await(list.get(list.size() - 1));
         Assert.assertEquals(1, nbReceivedMessagesFromBob[0]);
 

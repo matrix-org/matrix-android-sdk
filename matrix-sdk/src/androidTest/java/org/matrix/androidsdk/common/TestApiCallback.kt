@@ -17,12 +17,10 @@
 package org.matrix.androidsdk.common
 
 import android.support.annotation.CallSuper
-import junit.framework.Assert
-
+import org.junit.Assert.fail
 import org.matrix.androidsdk.rest.callback.ApiCallback
 import org.matrix.androidsdk.rest.model.MatrixError
 import org.matrix.androidsdk.util.Log
-
 import java.util.concurrent.CountDownLatch
 
 /**
@@ -43,7 +41,7 @@ open class TestApiCallback<T> @JvmOverloads constructor(private val countDownLat
         Log.e("TestApiCallback", e.message, e)
 
         if (onlySuccessful) {
-            Assert.fail("onNetworkError " + e.localizedMessage)
+            fail("onNetworkError " + e.localizedMessage)
         }
 
         countDownLatch.countDown()
@@ -54,7 +52,7 @@ open class TestApiCallback<T> @JvmOverloads constructor(private val countDownLat
         Log.e("TestApiCallback", e.message + " " + e.errcode)
 
         if (onlySuccessful) {
-            Assert.fail("onMatrixError " + e.localizedMessage)
+            fail("onMatrixError " + e.localizedMessage)
         }
 
         countDownLatch.countDown()
@@ -65,7 +63,7 @@ open class TestApiCallback<T> @JvmOverloads constructor(private val countDownLat
         Log.e("TestApiCallback", e.message, e)
 
         if (onlySuccessful) {
-            Assert.fail("onUnexpectedError " + e.localizedMessage)
+            fail("onUnexpectedError " + e.localizedMessage)
         }
 
         countDownLatch.countDown()

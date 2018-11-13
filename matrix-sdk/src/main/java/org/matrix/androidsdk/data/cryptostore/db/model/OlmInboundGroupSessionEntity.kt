@@ -31,7 +31,7 @@ open class OlmInboundGroupSessionEntity(
         var senderKey: String? = null,
         // olmInboundGroupSessionData contains Json
         var olmInboundGroupSessionData: String? = null,
-        // Indicate if the key has been backed up to the homeserver (for future use)
+        // Indicate if the key has been backed up to the homeserver
         var backedUp: Boolean = false)
     : RealmObject() {
 

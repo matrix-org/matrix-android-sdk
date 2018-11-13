@@ -18,12 +18,12 @@ package org.matrix.androidsdk.common
 
 import android.os.SystemClock
 import android.text.TextUtils
-import org.junit.Assert
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.matrix.androidsdk.MXSession
 import org.matrix.androidsdk.crypto.MXCRYPTO_ALGORITHM_MEGOLM
-import org.matrix.androidsdk.crypto.MXCryptoAlgorithms
+import org.matrix.androidsdk.crypto.MXCRYPTO_ALGORITHM_MEGOLM_BACKUP
+import org.matrix.androidsdk.crypto.keysbackup.MegolmBackupAuthData
+import org.matrix.androidsdk.crypto.keysbackup.MegolmBackupCreationInfo
 import org.matrix.androidsdk.data.RoomState
 import org.matrix.androidsdk.listeners.MXEventListener
 import org.matrix.androidsdk.rest.model.Event
@@ -36,10 +36,10 @@ import java.util.concurrent.CountDownLatch
 /**
  * Synchronously enable crypto for the session and fail if it does not work
  */
-fun MXSession.enableCrypto() {
-    val cryptoLatch = CountDownLatch(1)
-    enableCrypto(true, TestApiCallback(cryptoLatch))
-    cryptoLatch.await()
+fun MXSession.enableCrypto(testHelper: CommonTestHelper) {
+    val latch = CountDownLatch(1)
+    enableCrypto(true, TestApiCallback(latch))
+    testHelper.await(latch)
 }
 
 
@@ -80,7 +80,7 @@ class CryptoTestHelper(val mTestHelper: CommonTestHelper) {
             }
         })
         mTestHelper.await(lock0)
-        Assert.assertTrue(results.containsKey("enableCrypto"))
+        assertTrue(results.containsKey("enableCrypto"))
 
         var roomId: String? = null
         val lock1 = CountDownLatch(1)
@@ -93,7 +93,7 @@ class CryptoTestHelper(val mTestHelper: CommonTestHelper) {
         })
 
         mTestHelper.await(lock1)
-        Assert.assertNotNull(roomId)
+        assertNotNull(roomId)
 
         val room = aliceSession.dataHandler.getRoom(roomId)
 
@@ -105,7 +105,7 @@ class CryptoTestHelper(val mTestHelper: CommonTestHelper) {
             }
         })
         mTestHelper.await(lock2)
-        Assert.assertTrue(results.containsKey("enableEncryptionWithAlgorithm"))
+        assertTrue(results.containsKey("enableEncryptionWithAlgorithm"))
 
         return CryptoTestData(aliceSession, roomId!!)
     }
@@ -158,7 +158,7 @@ class CryptoTestHelper(val mTestHelper: CommonTestHelper) {
 
         mTestHelper.await(lock1)
 
-        Assert.assertTrue(statuses.containsKey("invite") && statuses.containsKey("onNewRoom"))
+        assertTrue(statuses.containsKey("invite") && statuses.containsKey("onNewRoom"))
 
         bobSession.dataHandler.removeListener(bobEventListener)
 
@@ -183,11 +183,11 @@ class CryptoTestHelper(val mTestHelper: CommonTestHelper) {
         mTestHelper.await(lock2)
 
         // Ensure bob can send messages to the room
-        val roomFromBobPOV = bobSession.getDataHandler().getRoom(aliceRoomId)
-        assertNotNull(roomFromBobPOV.getState().getPowerLevels())
-        assertTrue(roomFromBobPOV.getState().getPowerLevels().maySendMessage(bobSession.getMyUserId()))
+        val roomFromBobPOV = bobSession.dataHandler.getRoom(aliceRoomId)
+        assertNotNull(roomFromBobPOV.state.powerLevels)
+        assertTrue(roomFromBobPOV.state.powerLevels.maySendMessage(bobSession.myUserId))
 
-        Assert.assertTrue(statuses.toString() + "", statuses.containsKey("AliceJoin"))
+        assertTrue(statuses.toString() + "", statuses.containsKey("AliceJoin"))
 
         bobSession.dataHandler.removeListener(bobEventListener)
 
@@ -241,7 +241,7 @@ class CryptoTestHelper(val mTestHelper: CommonTestHelper) {
 
         mTestHelper.await(lock1)
 
-        Assert.assertTrue(statuses.containsKey("invite") && statuses.containsKey("onNewRoom"))
+        assertTrue(statuses.containsKey("invite") && statuses.containsKey("onNewRoom"))
 
         samSession.dataHandler.removeListener(samEventListener)
 
@@ -255,7 +255,7 @@ class CryptoTestHelper(val mTestHelper: CommonTestHelper) {
         })
 
         mTestHelper.await(lock2)
-        Assert.assertTrue(statuses.containsKey("joinRoom"))
+        assertTrue(statuses.containsKey("joinRoom"))
 
         // wait the initial sync
         SystemClock.sleep(1000)
@@ -308,8 +308,8 @@ class CryptoTestHelper(val mTestHelper: CommonTestHelper) {
         // Alice sends a message
         roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice[0], aliceSession, aliceRoomId), TestApiCallback<Void>(lock, true))
         mTestHelper.await(lock)
-        Assert.assertTrue(results.containsKey("onToDeviceEvent"))
-        Assert.assertEquals(1, messagesReceivedByBobCount)
+        assertTrue(results.containsKey("onToDeviceEvent"))
+        assertEquals(1, messagesReceivedByBobCount)
 
         // Bob send a message
         lock = CountDownLatch(1)
@@ -317,7 +317,7 @@ class CryptoTestHelper(val mTestHelper: CommonTestHelper) {
         // android does not echo the messages sent from itself
         messagesReceivedByBobCount++
         mTestHelper.await(lock)
-        Assert.assertEquals(2, messagesReceivedByBobCount)
+        assertEquals(2, messagesReceivedByBobCount)
 
         // Bob send a message
         lock = CountDownLatch(1)
@@ -325,7 +325,7 @@ class CryptoTestHelper(val mTestHelper: CommonTestHelper) {
         // android does not echo the messages sent from itself
         messagesReceivedByBobCount++
         mTestHelper.await(lock)
-        Assert.assertEquals(3, messagesReceivedByBobCount)
+        assertEquals(3, messagesReceivedByBobCount)
 
         // Bob send a message
         lock = CountDownLatch(1)
@@ -333,41 +333,59 @@ class CryptoTestHelper(val mTestHelper: CommonTestHelper) {
         // android does not echo the messages sent from itself
         messagesReceivedByBobCount++
         mTestHelper.await(lock)
-        Assert.assertEquals(4, messagesReceivedByBobCount)
+        assertEquals(4, messagesReceivedByBobCount)
 
         // Alice sends a message
         lock = CountDownLatch(2)
         roomFromAlicePOV.sendEvent(buildTextEvent(messagesFromAlice[1], aliceSession, aliceRoomId), TestApiCallback<Void>(lock, true))
         mTestHelper.await(lock)
-        Assert.assertEquals(5, messagesReceivedByBobCount)
+        assertEquals(5, messagesReceivedByBobCount)
 
         return cryptoTestData
     }
 
     fun checkEncryptedEvent(event: Event, roomId: String, clearMessage: String, senderSession: MXSession) {
-        Assert.assertEquals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, event.wireType)
-        Assert.assertNotNull(event.wireContent)
+        assertEquals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, event.wireType)
+        assertNotNull(event.wireContent)
 
         val eventWireContent = event.wireContent.asJsonObject
-        Assert.assertNotNull(eventWireContent)
+        assertNotNull(eventWireContent)
 
-        Assert.assertNull(eventWireContent.get("body"))
-        Assert.assertEquals(MXCRYPTO_ALGORITHM_MEGOLM, eventWireContent.get("algorithm").asString)
+        assertNull(eventWireContent.get("body"))
+        assertEquals(MXCRYPTO_ALGORITHM_MEGOLM, eventWireContent.get("algorithm").asString)
 
-        Assert.assertNotNull(eventWireContent.get("ciphertext"))
-        Assert.assertNotNull(eventWireContent.get("session_id"))
-        Assert.assertNotNull(eventWireContent.get("sender_key"))
+        assertNotNull(eventWireContent.get("ciphertext"))
+        assertNotNull(eventWireContent.get("session_id"))
+        assertNotNull(eventWireContent.get("sender_key"))
 
-        Assert.assertEquals(senderSession.credentials.deviceId, eventWireContent.get("device_id").asString)
+        assertEquals(senderSession.credentials.deviceId, eventWireContent.get("device_id").asString)
 
-        Assert.assertNotNull(event.eventId)
-        Assert.assertEquals(roomId, event.roomId)
-        Assert.assertEquals(Event.EVENT_TYPE_MESSAGE, event.getType())
-        Assert.assertTrue(event.getAge() < 10000)
+        assertNotNull(event.eventId)
+        assertEquals(roomId, event.roomId)
+        assertEquals(Event.EVENT_TYPE_MESSAGE, event.getType())
+        assertTrue(event.getAge() < 10000)
 
         val eventContent = event.contentAsJsonObject
-        Assert.assertNotNull(eventContent)
-        Assert.assertEquals(clearMessage, eventContent!!.get("body").asString)
-        Assert.assertEquals(senderSession.myUserId, event.sender)
+        assertNotNull(eventContent)
+        assertEquals(clearMessage, eventContent!!.get("body").asString)
+        assertEquals(senderSession.myUserId, event.sender)
+    }
+
+    fun createFakeMegolmBackupAuthData(): MegolmBackupAuthData {
+        return MegolmBackupAuthData(
+                publicKey = "abcdefg",
+                signatures = HashMap<String, Any>().apply {
+                    this["something"] = HashMap<String, String>().apply {
+                        this["ed25519:something"] = "hijklmnop"
+                    }
+                }
+        )
+    }
+
+    fun createFakeMegolmBackupCreationInfo(): MegolmBackupCreationInfo {
+        return MegolmBackupCreationInfo().apply {
+            algorithm = MXCRYPTO_ALGORITHM_MEGOLM_BACKUP
+            authData = createFakeMegolmBackupAuthData()
+        }
     }
 }

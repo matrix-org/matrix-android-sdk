@@ -36,6 +36,7 @@ import org.matrix.olm.OlmAccount
 import org.matrix.olm.OlmException
 import org.matrix.olm.OlmSession
 import java.io.File
+import kotlin.collections.set
 
 // enableFileEncryption is used to migrate the previous store
 class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXCryptoStore {
@@ -198,6 +199,19 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
         return doRealmQueryAndCopy(realmConfiguration) {
             it.where<DeviceInfoEntity>()
                     .equalTo(DeviceInfoEntityFields.PRIMARY_KEY, DeviceInfoEntity.createPrimaryKey(userId, deviceId))
+                    .findFirst()
+        }
+                ?.getDeviceInfo()
+    }
+
+    override fun deviceWithIdentityKey(identityKey: String?): MXDeviceInfo? {
+        if (identityKey == null) {
+            return null
+        }
+
+        return doRealmQueryAndCopy(realmConfiguration) {
+            it.where<DeviceInfoEntity>()
+                    .equalTo(DeviceInfoEntityFields.IDENTITY_KEY, identityKey)
                     .findFirst()
         }
                 ?.getDeviceInfo()
@@ -408,6 +422,67 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
                     .equalTo(OlmInboundGroupSessionEntityFields.PRIMARY_KEY, key)
                     .findAll()
                     .deleteAllFromRealm()
+        }
+    }
+
+    /* ==========================================================================================
+     * Keys backup
+     * ========================================================================================== */
+
+    override fun getKeyBackupVersion(): String? {
+        return doRealmQueryAndCopy(realmConfiguration) {
+            it.where<CryptoMetadataEntity>().findFirst()
+        }?.backupVersion
+    }
+
+    override fun setKeyBackupVersion(keyBackupVersion: String?) {
+        doRealmTransaction(realmConfiguration) {
+            it.where<CryptoMetadataEntity>().findFirst()?.backupVersion = keyBackupVersion
+        }
+    }
+
+    override fun resetBackupMarkers() {
+        doRealmTransaction(realmConfiguration) {
+            it.where<OlmInboundGroupSessionEntity>()
+                    .findAll()
+                    .map { inboundGroupSession ->
+                        inboundGroupSession.backedUp = false
+                    }
+        }
+    }
+
+    override fun markBackupDoneForInboundGroupSessionWithId(sessionId: String, senderKey: String) {
+        val key = OlmInboundGroupSessionEntity.createPrimaryKey(sessionId, senderKey)
+
+        doRealmTransaction(realmConfiguration) {
+            it.where<OlmInboundGroupSessionEntity>()
+                    .equalTo(OlmInboundGroupSessionEntityFields.PRIMARY_KEY, key)
+                    .findFirst()
+                    ?.backedUp = true
+        }
+    }
+
+    override fun inboundGroupSessionsToBackup(limit: Int): List<MXOlmInboundGroupSession2> {
+        return doRealmQueryAndCopyList(realmConfiguration) {
+            it.where<OlmInboundGroupSessionEntity>()
+                    .equalTo(OlmInboundGroupSessionEntityFields.BACKED_UP, false)
+                    .limit(limit.toLong())
+                    .findAll()
+        }.mapNotNull { inboundGroupSession ->
+            inboundGroupSession.getInboundGroupSession()
+        }
+    }
+
+    override fun inboundGroupSessionsCount(onlyBackedUp: Boolean): Int {
+        return doWithRealm(realmConfiguration) {
+            it.where<OlmInboundGroupSessionEntity>()
+                    .apply {
+                        if (onlyBackedUp) {
+                            equalTo(OlmInboundGroupSessionEntityFields.BACKED_UP, true)
+                        }
+                    }
+                    .count()
+                    .toInt()
         }
     }
 

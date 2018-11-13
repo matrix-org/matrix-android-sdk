@@ -54,7 +54,10 @@ import java.util.zip.GZIPOutputStream;
 
 /**
  * the crypto data store
+ *
+ * @deprecated use RealmCryptoStore now. The MXFileCryptoStore does not support Keys Backup.
  */
+@Deprecated
 public class MXFileCryptoStore implements IMXCryptoStore {
     private static final String LOG_TAG = MXFileCryptoStore.class.getSimpleName();
 
@@ -573,6 +576,13 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
+    @Nullable
+    public MXDeviceInfo deviceWithIdentityKey(String identityKey) {
+        // No op
+        return null;
+    }
+
+    @Override
     public void storeUserDevices(String userId, Map<String, MXDeviceInfo> devices) {
         if (!mIsReady) {
             Log.e(LOG_TAG, "## storeUserDevices() : the store is not ready");
@@ -932,6 +942,27 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
+    public void resetBackupMarkers() {
+        // No op
+    }
+
+    @Override
+    public void markBackupDoneForInboundGroupSessionWithId(String sessionId, String senderKey) {
+        // No op
+    }
+
+    @Override
+    public List<MXOlmInboundGroupSession2> inboundGroupSessionsToBackup(int limit) {
+        // No op
+        return new ArrayList<>();
+    }
+
+    @Override
+    public int inboundGroupSessionsCount(boolean onlyBackedUp) {
+        return 0;
+    }
+
+    @Override
     public void close() {
         // release JNI objects
         List<OlmSession> olmSessions = new ArrayList<>();
@@ -1005,6 +1036,18 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         } else {
             return new ArrayList<>(mMetaData.mBlacklistUnverifiedDevicesRoomIdsList);
         }
+    }
+
+    @Override
+    public void setKeyBackupVersion(@Nullable String keyBackupVersion) {
+        // No op
+    }
+
+    @Nullable
+    @Override
+    public String getKeyBackupVersion() {
+        // No op
+        return null;
     }
 
     /**

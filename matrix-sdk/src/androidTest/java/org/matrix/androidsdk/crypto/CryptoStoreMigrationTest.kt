@@ -18,13 +18,10 @@ package org.matrix.androidsdk.crypto
 
 import android.support.test.InstrumentationRegistry
 import android.text.TextUtils
-import android.util.Pair
-import org.junit.Assert
 import org.junit.Assert.*
 import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runners.MethodSorters
-import org.matrix.androidsdk.MXSession
 import org.matrix.androidsdk.common.*
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 import org.matrix.androidsdk.data.RoomState
@@ -34,11 +31,7 @@ import org.matrix.androidsdk.data.cryptostore.db.RealmCryptoStore
 import org.matrix.androidsdk.data.timeline.EventTimeline
 import org.matrix.androidsdk.listeners.MXEventListener
 import org.matrix.androidsdk.rest.model.Event
-import org.matrix.androidsdk.rest.model.MatrixError
-import org.matrix.androidsdk.rest.model.RoomMember
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody
-import org.matrix.androidsdk.rest.model.message.Message
-import org.matrix.androidsdk.util.JsonUtils
 import org.matrix.androidsdk.util.Log
 import org.matrix.olm.OlmAccount
 import org.matrix.olm.OlmSession
@@ -271,8 +264,8 @@ class CryptoStoreMigrationTest {
         val roomFromBobPOV = bobSession!!.dataHandler.getRoom(aliceRoomId)
         val roomFromAlicePOV = aliceSession.dataHandler.getRoom(aliceRoomId)
 
-        Assert.assertTrue(roomFromBobPOV.isEncrypted)
-        Assert.assertTrue(roomFromAlicePOV.isEncrypted)
+        assertTrue(roomFromBobPOV.isEncrypted)
+        assertTrue(roomFromAlicePOV.isEncrypted)
 
         aliceSession.crypto!!.setWarnOnUnknownDevices(false)
 
@@ -294,7 +287,7 @@ class CryptoStoreMigrationTest {
         roomFromAlicePOV.sendEvent(mCryptoTestHelper.buildTextEvent(messageFromAlice, aliceSession, aliceRoomId), TestApiCallback<Void>(lock))
         mTestHelper.await(lock)
 
-        Assert.assertTrue(results.containsKey("onLiveEvent"))
+        assertTrue(results.containsKey("onLiveEvent"))
 
         // Close alice and bob session
         aliceSession.crypto!!.close()
@@ -321,7 +314,7 @@ class CryptoStoreMigrationTest {
         assertFalse(bobSession2.crypto!!.cryptoStore!!.inboundGroupSessions!!.isEmpty())
 
         val roomFromBobPOV2 = bobSession2.dataHandler.getRoom(aliceRoomId)
-        Assert.assertTrue(roomFromBobPOV2.isEncrypted)
+        assertTrue(roomFromBobPOV2.isEncrypted)
 
         val lock2 = CountDownLatch(1)
 
@@ -341,7 +334,7 @@ class CryptoStoreMigrationTest {
         roomFromBobPOV2.timeline.backPaginate(1, null)
 
         mTestHelper.await(lock2)
-        Assert.assertTrue(results.containsKey("onLiveEvent2"))
+        assertTrue(results.containsKey("onLiveEvent2"))
 
         cryptoTestData.clear(context)
         aliceSession2.clear(context)

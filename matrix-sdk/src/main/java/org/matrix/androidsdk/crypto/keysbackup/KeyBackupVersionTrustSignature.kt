@@ -14,18 +14,23 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.data.cryptostore.db
+package org.matrix.androidsdk.crypto.keysbackup
 
-import io.realm.DynamicRealm
-import io.realm.RealmMigration
-import org.matrix.androidsdk.util.Log
+import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 
-internal object RealmCryptoStoreMigration : RealmMigration {
+/**
+ * A signature in a the `KeyBackupVersionTrust` object.
+ */
+class KeyBackupVersionTrustSignature {
 
-    const val LOG_TAG = "RealmCryptoStoreMigration"
-    const val CRYPTO_STORE_SCHEMA_VERSION = 0L
+    /**
+     * The device that signed the backup version.
+     */
+    var device: MXDeviceInfo? = null
 
-    override fun migrate(realm: DynamicRealm, oldVersion: Long, newVersion: Long) {
-        Log.d(LOG_TAG, "Migrating Realm Crypto from $oldVersion to $newVersion")
-    }
+    /**
+     *Flag to indicate the signature from this device is valid.
+     */
+    var valid = false
+
 }

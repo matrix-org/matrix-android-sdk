@@ -14,18 +14,26 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.data.cryptostore.db
+package org.matrix.androidsdk.crypto.keysbackup
 
-import io.realm.DynamicRealm
-import io.realm.RealmMigration
-import org.matrix.androidsdk.util.Log
+/**
+ * Data retrieved from Olm library. algorithm and authData will be send to the homeserver, and recoveryKey will be displayed to the user
+ */
+class MegolmBackupCreationInfo {
 
-internal object RealmCryptoStoreMigration : RealmMigration {
+    /**
+     * The algorithm used for storing backups [org.matrix.androidsdk.crypto.MXCRYPTO_ALGORITHM_MEGOLM_BACKUP].
+     */
+    var algorithm: String = ""
 
-    const val LOG_TAG = "RealmCryptoStoreMigration"
-    const val CRYPTO_STORE_SCHEMA_VERSION = 0L
+    /**
+     * Authentication data.
+     */
+    var authData: MegolmBackupAuthData? = null
 
-    override fun migrate(realm: DynamicRealm, oldVersion: Long, newVersion: Long) {
-        Log.d(LOG_TAG, "Migrating Realm Crypto from $oldVersion to $newVersion")
-    }
+    /**
+     * The Base58 recovery key.
+     */
+    var recoveryKey: String = ""
+
 }

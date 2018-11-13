@@ -18,14 +18,12 @@ package org.matrix.androidsdk.lazyloading;
 
 import android.support.test.InstrumentationRegistry;
 
-import junit.framework.Assert;
-
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.common.CommonTestHelper;
 
 import java.util.Arrays;
