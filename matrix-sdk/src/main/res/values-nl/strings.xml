@@ -72,7 +72,7 @@
     <string name="medium_email">E-mailadres</string>
     <string name="medium_phone_number">Telefoonnummer</string>
 
-<string name="summary_user_sent_sticker">%1$s heeft een sticker gestuurd.</string>
+    <string name="summary_user_sent_sticker">%1$s heeft een sticker gestuurd.</string>
 
     <string name="message_reply_to_prefix">Als antwoord op</string>
 

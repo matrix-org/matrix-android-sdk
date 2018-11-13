@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<resources><string name="notice_room_invite_no_invitee">%s\'s ఆహ్వానం</string>
+<resources>
+    <string name="notice_room_invite_no_invitee">%s\'s ఆహ్వానం</string>
     <string name="notice_room_invite">%1$s ఆహ్వానించారు %2$s</string>
     <string name="notice_room_leave">%1$s వదిలి వెళారు</string>
     <string name="notice_room_reject">%1$s ఆహ్వానాన్ని తిరస్కరించారు</string>

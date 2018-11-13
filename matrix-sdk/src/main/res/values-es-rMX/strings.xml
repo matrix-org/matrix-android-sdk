@@ -74,7 +74,7 @@
     <string name="medium_email">Correo electrónico</string>
     <string name="medium_phone_number">Número telefónico</string>
 
-<string name="summary_user_sent_sticker">%1$s envió una pegatina.</string>
+    <string name="summary_user_sent_sticker">%1$s envió una pegatina.</string>
 
     <string name="message_reply_to_prefix">En respuesta a</string>
 

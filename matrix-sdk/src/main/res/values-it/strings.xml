@@ -62,7 +62,7 @@
     <string name="medium_email">Indirizzo email</string>
     <string name="medium_phone_number">Numero di telefono</string>
 
-<string name="notice_event_redacted">"revisionato %1$s "</string>
+    <string name="notice_event_redacted">"revisionato %1$s "</string>
     <string name="summary_user_sent_sticker">%1$s ha inviato un adesivo.</string>
 
     <string name="message_reply_to_prefix">In risposta a</string>

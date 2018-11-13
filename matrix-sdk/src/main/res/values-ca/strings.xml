@@ -1,12 +1,13 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<resources><string name="summary_message">%1$s: %2$s</string>
+<resources>
+    <string name="summary_message">%1$s: %2$s</string>
     <string name="summary_user_sent_image">%1$s ha enviat una imatge.</string>
 
     <string name="notice_room_leave">%1s ha sortit</string>
     <string name="notice_room_join">%1s ha entrat</string>
     <string name="medium_phone_number">Número de telèfon</string>
 
-<string name="medium_email">Correu electrònic</string>
+    <string name="medium_email">Correu electrònic</string>
     <string name="encrypted_message">Missatge encriptat</string>
 
     <string name="notice_room_invite_no_invitee">la invitació de %s</string>
@@ -76,7 +77,7 @@
     </plurals>
 
 
-<string name="summary_user_sent_sticker">%1$s ha enviat una enganxina.</string>
+    <string name="summary_user_sent_sticker">%1$s ha enviat una enganxina.</string>
 
     <string name="message_reply_to_prefix">En resposta a</string>
 
@@ -85,4 +86,4 @@
     <string name="reply_to_an_audio_file">ha enviat un fitxer d\'àudio.</string>
     <string name="reply_to_a_file">ha enviat un fitxer.</string>
 
-    </resources>
+</resources>

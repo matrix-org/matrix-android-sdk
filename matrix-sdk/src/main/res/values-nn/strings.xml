@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<resources><string name="encrypted_message">Kryptert melding</string>
+<resources>
+    <string name="encrypted_message">Kryptert melding</string>
 
 
     <string name="summary_message">%1$s: %2$s</string>

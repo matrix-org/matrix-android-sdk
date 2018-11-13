@@ -34,7 +34,7 @@
         <item quantity="other">%1$sと他%2$d名</item>
     </plurals>
 
-<string name="notice_made_future_room_visibility">%1$sは、今後の部屋履歴を%2$sに表示させました</string>
+    <string name="notice_made_future_room_visibility">%1$sは、今後の部屋履歴を%2$sに表示させました</string>
     <string name="notice_room_visibility_invited">部屋のメンバー全員、招待された時点から。</string>
     <string name="notice_room_visibility_joined">部屋のメンバー全員、参加した時点から。</string>
     <string name="notice_room_visibility_shared">部屋のメンバー全員。</string>
@@ -81,4 +81,4 @@
     <string name="reply_to_an_audio_file">音声ファイルを送信しました。</string>
     <string name="reply_to_a_file">ファイルを送信しました。</string>
 
-    </resources>
+</resources>

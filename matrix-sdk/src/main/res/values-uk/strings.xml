@@ -14,7 +14,7 @@
     <string name="room_displayname_empty_room">Порожня кімната</string>
 
 
-<string name="summary_user_sent_sticker">%1$s надіслав(ла) наліпку.</string>
+    <string name="summary_user_sent_sticker">%1$s надіслав(ла) наліпку.</string>
 
     <string name="notice_room_invite_you">%1$s запросив(ла) Вас</string>
     <string name="notice_room_join">%1$s приєднався(лась)</string>
@@ -80,10 +80,10 @@
     <string name="reply_to_a_file">надіслав файл.</string>
 
     <plurals name="room_displayname_three_and_more_members">
-	<item quantity="one">%1$s та 1 інший</item>
-	<item quantity="few">%1$s та %2$d інші</item>
-	<item quantity="many">%1$s та %2$d інших</item>
-	<item quantity="other"></item>
-</plurals>
+        <item quantity="one">%1$s та 1 інший</item>
+        <item quantity="few">%1$s та %2$d інші</item>
+        <item quantity="many">%1$s та %2$d інших</item>
+        <item quantity="other"></item>
+    </plurals>
 
-    </resources>
+</resources>

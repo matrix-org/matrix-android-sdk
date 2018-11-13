@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<resources><string name="summary_user_sent_image">%1$s 发送了一张图片。</string>
+<resources>
+    <string name="summary_user_sent_image">%1$s 发送了一张图片。</string>
 
     <string name="notice_room_invite_no_invitee">%s 的邀请</string>
     <string name="notice_room_invite">%1$s 邀请了 %2$s</string>
@@ -52,7 +53,7 @@
     <string name="medium_email">邮箱地址</string>
     <string name="medium_phone_number">电话号码</string>
 
-<string name="notice_room_withdraw">%1$s 撤销了对 %2$s 的邀请</string>
+    <string name="notice_room_withdraw">%1$s 撤销了对 %2$s 的邀请</string>
     <string name="notice_made_future_room_visibility">%1$s 让之后的聊天室历史记录对 %2$s 可见</string>
     <string name="notice_event_redacted">"删改了 %1$s "</string>
     <string name="notice_event_redacted_by">" 被 %1$s"</string>
@@ -70,7 +71,7 @@
     <string name="reply_to_an_audio_file">发送了一段音频。</string>
     <string name="reply_to_a_file">发送了一个文件。</string>
 
-<string name="message_reply_to_prefix">回复</string>
+    <string name="message_reply_to_prefix">回复</string>
 
     <string name="room_displayname_empty_room">空聊天室</string>
     <string name="room_displayname_invite_from">来自 %s 的邀请</string>
