@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<resources><string name="medium_email">Ηλεκτρονική διεύθυνση</string>
+<resources>
+    <string name="medium_email">Ηλεκτρονική διεύθυνση</string>
     <string name="summary_message">%1$s: %2$s</string>
     <string name="summary_user_sent_image">Ο/Η %1$s έστειλε μια εικόνα.</string>
     <string name="summary_user_sent_sticker">Ο/Η %1$s έστειλε ένα αυτοκόλλητο.</string>
@@ -12,7 +13,7 @@
     <string name="notice_room_invite_no_invitee">Η πρόσκληση του/της %s</string>
     <string name="medium_phone_number">Αριθμός τηλεφώνου</string>
 
-<string name="notice_room_ban">Ο/Η %1$s απέκλεισε τον/την %2$s</string>
+    <string name="notice_room_ban">Ο/Η %1$s απέκλεισε τον/την %2$s</string>
     <string name="notice_room_withdraw">Ο/Η %1$s απέσυρε την πρόσκληση του/της %2$s</string>
     <string name="notice_avatar_url_changed">Ο/Η %1$s άλλαξε εικονίδιο χρήστη</string>
     <string name="notice_display_name_set">Ο/Η %1$s άλλαξε το εμφανιζόμενό του/της όνομα σε %2$s</string>
@@ -56,4 +57,4 @@
     <string name="notice_voip_started">Η VoIP διάσκεψη ξεκίνησε</string>
     <string name="notice_voip_finished">Η VoIP διάσκεψη έληξε</string>
 
-    </resources>
+</resources>

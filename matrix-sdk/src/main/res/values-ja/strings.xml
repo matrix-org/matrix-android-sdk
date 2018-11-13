@@ -34,15 +34,15 @@
         <item quantity="other">%1$sと他%2$d名</item>
     </plurals>
 
-<string name="notice_made_future_room_visibility">％1$sは、今後の部屋履歴を%2$sに表示させました</string>
+    <string name="notice_made_future_room_visibility">%1$sは、今後の部屋履歴を%2$sに表示させました</string>
     <string name="notice_room_visibility_invited">部屋のメンバー全員、招待された時点から。</string>
     <string name="notice_room_visibility_joined">部屋のメンバー全員、参加した時点から。</string>
     <string name="notice_room_visibility_shared">部屋のメンバー全員。</string>
     <string name="notice_room_visibility_world_readable">誰でも。</string>
-    <string name="notice_room_visibility_unknown">不明 (％s)。</string>
+    <string name="notice_room_visibility_unknown">不明 (%s)。</string>
     <string name="notice_end_to_end">%1$sはエンドツーエンドの暗号化を有効にしました (%2$s)</string>
 
-    <string name="notice_requested_voip_conference">％1$s がVoIP会議をリクエストしました</string>
+    <string name="notice_requested_voip_conference">%1$s がVoIP会議をリクエストしました</string>
     <string name="notice_voip_started">VoIP会議が開始されました</string>
     <string name="notice_voip_finished">VoIP会議が終了しました</string>
 
@@ -52,11 +52,11 @@
     <string name="notice_event_redacted">"編集した %1$s "</string>
     <string name="notice_event_redacted_by">" %1$s により"</string>
     <string name="notice_event_redacted_reason">" [理由: %1$s]"</string>
-    <string name="notice_profile_change_redacted">％1$s がプロフィール %2$s を更新しました</string>
-    <string name="notice_room_third_party_invite">％1$s は %2$s に部屋に参加するよう招待状を送りました</string>
-    <string name="notice_room_third_party_registered_invite">％1$sは%2$sの招待を受け入れました</string>
+    <string name="notice_profile_change_redacted">%1$s がプロフィール %2$s を更新しました</string>
+    <string name="notice_room_third_party_invite">%1$s は %2$s に部屋に参加するよう招待状を送りました</string>
+    <string name="notice_room_third_party_registered_invite">%1$sは%2$sの招待を受け入れました</string>
 
-    <string name="notice_crypto_unable_to_decrypt">** 解読できません: ％s **</string>
+    <string name="notice_crypto_unable_to_decrypt">** 解読できません: %s **</string>
     <string name="notice_crypto_error_unkwown_inbound_session_id">送信者の端末からこのメッセージのキーが送信されていません。</string>
 
     <string name="message_reply_to_prefix">に返信</string>
@@ -81,4 +81,4 @@
     <string name="reply_to_an_audio_file">音声ファイルを送信しました。</string>
     <string name="reply_to_a_file">ファイルを送信しました。</string>
 
-    </resources>
+</resources>

@@ -40,7 +40,7 @@
     <string name="medium_email">Tölvupóstfang</string>
     <string name="medium_phone_number">Símanúmer</string>
 
-<string name="notice_room_withdraw">%1$s tók til baka boð frá %2$s</string>
+    <string name="notice_room_withdraw">%1$s tók til baka boð frá %2$s</string>
     <string name="notice_display_name_set">%1$s setti birtingarnafn sitt sem %2$s</string>
     <string name="notice_display_name_changed_from">%1$s breytti birtingarnafni sínu úr %2$s í %3$s</string>
     <string name="notice_display_name_removed">%1$s fjarlægði birtingarnafn sitt (%2$s)</string>

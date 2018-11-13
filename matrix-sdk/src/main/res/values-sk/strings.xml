@@ -63,7 +63,7 @@
     <string name="medium_email">Emailová adresa</string>
     <string name="medium_phone_number">Telefónne číslo</string>
 
-<string name="summary_user_sent_sticker">%1$s poslal nálepku.</string>
+    <string name="summary_user_sent_sticker">%1$s poslal nálepku.</string>
 
     <string name="message_reply_to_prefix">Odpoveď na</string>
 
@@ -81,7 +81,7 @@
         <item quantity="one">%1$s a 1 ďalší</item>
         <item quantity="few">%1$s a %2$d ďalší</item>
         <item quantity="many">%1$s a %2$d ďalších</item>
-        <item quantity="other"/>
+        <item quantity="other" />
     </plurals>
 
 

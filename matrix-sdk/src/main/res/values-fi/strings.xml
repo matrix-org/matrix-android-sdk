@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<resources><string name="summary_user_sent_image">%1$s lähetti kuvan.</string>
+<resources>
+    <string name="summary_user_sent_image">%1$s lähetti kuvan.</string>
 
     <string name="notice_room_invite_no_invitee">%s:n kutsu</string>
     <string name="notice_room_invite">%1$s kutsui %2$s</string>
@@ -56,7 +57,6 @@
 
     <string name="medium_email">Sähköpostiosoite</string>
     <string name="medium_phone_number">Puhelinnumero</string>
-
 
 
     <string name="notice_event_redacted_by">" käyttäjän %1$s toimesta"</string>
