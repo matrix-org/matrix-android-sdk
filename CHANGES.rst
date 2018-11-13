@@ -22,7 +22,7 @@ Others:
  -
 
 Build:
- -
+ - Introduce Kotlin to the SDK
 
 Test:
  -
