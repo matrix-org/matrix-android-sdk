@@ -1,8 +1,32 @@
-Changes to Matrix Android SDK in 0.9.13 (2018-XX-XX)
+Changes to Matrix Android SDK in 0.9.14 (2018-XX-XX)
 =======================================================
 
 Features:
  -
+
+Improvements:
+ -
+
+Bugfix:
+ -
+
+API Change:
+ -
+
+Translations:
+ -
+
+Others:
+ -
+
+Build:
+ -
+
+Test:
+ -
+
+Changes to Matrix Android SDK in 0.9.13 (2018-11-06)
+=======================================================
 
 Improvements:
  - Add RTL support
@@ -15,17 +39,8 @@ Bugfix:
 API Change:
  - MXSession.initUserAgent() takes a second parameter for flavor description.
 
-Translations:
- -
-
-Others:
- -
-
 Build:
  - Treat some Lint warnings as errors
-
-Test:
- -
 
 Changes to Matrix Android SDK in 0.9.12 (2018-10-18)
 =======================================================
