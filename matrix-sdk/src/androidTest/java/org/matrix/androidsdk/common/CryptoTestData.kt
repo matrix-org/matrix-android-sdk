@@ -1,5 +1,4 @@
 /*
- * Copyright 2014 OpenMarket Ltd
  * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,27 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest.callback;
 
-import org.matrix.androidsdk.rest.model.MatrixError;
+package org.matrix.androidsdk.common
 
-/**
- * Callback interface for asynchronously returning API call failures.
- */
-public interface ApiFailureCallback extends ErrorCallback {
+import android.content.Context
+import org.matrix.androidsdk.MXSession
 
-    /**
-     * Called if there is a network error.
-     *
-     * @param e the exception
-     */
-    void onNetworkError(Exception e);
+data class CryptoTestData(val firstSession: MXSession,
+                          val roomId: String,
+                          val secondSession: MXSession? = null,
+                          val thirdSession: MXSession? = null) {
 
-    /**
-     * Called in case of a Matrix error.
-     *
-     * @param e the Matrix error
-     */
-    void onMatrixError(MatrixError e);
-
+    fun clear(context: Context) {
+        firstSession.clear(context)
+        secondSession?.clear(context)
+        secondSession?.clear(context)
+    }
 }

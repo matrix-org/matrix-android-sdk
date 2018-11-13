@@ -272,7 +272,7 @@ public class MXOlmDevice {
      * @param theirDeviceIdentityKey the remote user's Curve25519 identity key.
      * @param messageType            the message_type field from the received message (must be 0).
      * @param ciphertext             base64-encoded body from the received message.
-     * @return {{payload: string, session_id: string}} decrypted payload, andsession id of new session.
+     * @return {{payload: string, session_id: string}} decrypted payload, and session id of new session.
      */
     public Map<String, String> createInboundSession(String theirDeviceIdentityKey, int messageType, String ciphertext) {
 
@@ -644,7 +644,7 @@ public class MXOlmDevice {
      * Decrypt a received message with an inbound group session.
      *
      * @param body      the base64-encoded body of the encrypted message.
-     * @param roomId    theroom in which the message was received.
+     * @param roomId    the room in which the message was received.
      * @param timeline  the id of the timeline where the event is decrypted. It is used to prevent replay attack.
      * @param sessionId the session identifier.
      * @param senderKey the base64-encoded curve25519 key of the sender.

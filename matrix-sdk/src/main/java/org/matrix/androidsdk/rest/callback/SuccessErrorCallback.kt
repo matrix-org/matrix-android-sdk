@@ -1,5 +1,4 @@
 /*
- * Copyright 2014 OpenMarket Ltd
  * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,27 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest.callback;
 
-import org.matrix.androidsdk.rest.model.MatrixError;
+package org.matrix.androidsdk.rest.callback
 
-/**
- * Callback interface for asynchronously returning API call failures.
- */
-public interface ApiFailureCallback extends ErrorCallback {
-
-    /**
-     * Called if there is a network error.
-     *
-     * @param e the exception
-     */
-    void onNetworkError(Exception e);
-
-    /**
-     * Called in case of a Matrix error.
-     *
-     * @param e the Matrix error
-     */
-    void onMatrixError(MatrixError e);
-
-}
+interface SuccessErrorCallback<T> : SuccessCallback<T>, ErrorCallback

@@ -19,7 +19,7 @@ package org.matrix.androidsdk.crypto.data;
 
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.crypto.MXCryptoAlgorithms;
+import org.matrix.androidsdk.crypto.CryptoConstantsKt;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.olm.OlmInboundGroupSession;
 
@@ -36,7 +36,7 @@ import java.util.Map;
  */
 public class MXOlmInboundGroupSession2 implements Serializable {
     //
-    private static final String LOG_TAG = "OlmInboundGroupSession";
+    private static final String LOG_TAG = MXOlmInboundGroupSession2.class.getSimpleName();
 
     // define a serialVersionUID to avoid having to redefine the class after updates
     private static final long serialVersionUID = 201702011617L;
@@ -128,7 +128,7 @@ public class MXOlmInboundGroupSession2 implements Serializable {
             map.put("room_id", mRoomId);
             map.put("session_id", mSession.sessionIdentifier());
             map.put("session_key", mSession.export(mSession.getFirstKnownIndex()));
-            map.put("algorithm", MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM);
+            map.put("algorithm", CryptoConstantsKt.MXCRYPTO_ALGORITHM_MEGOLM);
         } catch (Exception e) {
             map = null;
             Log.e(LOG_TAG, "## export() : senderKey " + mSenderKey + " failed " + e.getMessage(), e);

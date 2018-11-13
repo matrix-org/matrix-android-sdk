@@ -32,16 +32,6 @@ public class MXCryptoAlgorithms {
 
     private static final String LOG_TAG = MXCryptoAlgorithms.class.getSimpleName();
 
-    /**
-     * Matrix algorithm tag for olm.
-     */
-    public static final String MXCRYPTO_ALGORITHM_OLM = "m.olm.v1.curve25519-aes-sha2";
-
-    /**
-     * Matrix algorithm tag for megolm.
-     */
-    public static final String MXCRYPTO_ALGORITHM_MEGOLM = "m.megolm.v1.aes-sha2";
-
     // encryptors map
     private final Map<String, Class<IMXEncrypting>> mEncryptors;
 
@@ -69,14 +59,14 @@ public class MXCryptoAlgorithms {
         // encryptos
         mEncryptors = new HashMap<>();
         try {
-            mEncryptors.put(MXCRYPTO_ALGORITHM_MEGOLM,
+            mEncryptors.put(CryptoConstantsKt.MXCRYPTO_ALGORITHM_MEGOLM,
                     (Class<IMXEncrypting>) Class.forName("org.matrix.androidsdk.crypto.algorithms.megolm.MXMegolmEncryption"));
         } catch (Exception e) {
             Log.e(LOG_TAG, "## MXCryptoAlgorithms() : fails to add MXCRYPTO_ALGORITHM_MEGOLM " + e.getMessage(), e);
         }
 
         try {
-            mEncryptors.put(MXCRYPTO_ALGORITHM_OLM,
+            mEncryptors.put(CryptoConstantsKt.MXCRYPTO_ALGORITHM_OLM,
                     (Class<IMXEncrypting>) Class.forName("org.matrix.androidsdk.crypto.algorithms.olm.MXOlmEncryption"));
         } catch (Exception e) {
             Log.e(LOG_TAG, "## MXCryptoAlgorithms() : fails to add MXCRYPTO_ALGORITHM_OLM " + e.getMessage(), e);
@@ -84,14 +74,14 @@ public class MXCryptoAlgorithms {
 
         mDecryptors = new HashMap<>();
         try {
-            mDecryptors.put(MXCRYPTO_ALGORITHM_MEGOLM,
+            mDecryptors.put(CryptoConstantsKt.MXCRYPTO_ALGORITHM_MEGOLM,
                     (Class<IMXDecrypting>) Class.forName("org.matrix.androidsdk.crypto.algorithms.megolm.MXMegolmDecryption"));
         } catch (Exception e) {
             Log.e(LOG_TAG, "## MXCryptoAlgorithms() : fails to add MXCRYPTO_ALGORITHM_MEGOLM " + e.getMessage(), e);
         }
 
         try {
-            mDecryptors.put(MXCRYPTO_ALGORITHM_OLM,
+            mDecryptors.put(CryptoConstantsKt.MXCRYPTO_ALGORITHM_OLM,
                     (Class<IMXDecrypting>) Class.forName("org.matrix.androidsdk.crypto.algorithms.olm.MXOlmDecryption"));
         } catch (Exception e) {
             Log.e(LOG_TAG, "## MXCryptoAlgorithms() : fails to add MXCRYPTO_ALGORITHM_OLM " + e.getMessage(), e);

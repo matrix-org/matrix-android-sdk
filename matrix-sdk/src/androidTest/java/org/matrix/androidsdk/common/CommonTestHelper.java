@@ -224,7 +224,7 @@ public class CommonTestHelper {
         CountDownLatch lock = new CountDownLatch(1);
 
         // get the registration session id
-        loginRestClient.register(registrationParams, new TestApiCallback<Credentials>(lock) {
+        loginRestClient.register(registrationParams, new TestApiCallback<Credentials>(lock, false) {
             @Override
             public void onMatrixError(MatrixError e) {
                 // detect if a parameter is expected
@@ -356,7 +356,7 @@ public class CommonTestHelper {
      * @throws InterruptedException
      */
     public void await(CountDownLatch latch) throws InterruptedException {
-        Assert.assertTrue(latch.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS));
+        Assert.assertTrue(latch.await(TestConstants.getTimeOutMillis(), TimeUnit.MILLISECONDS));
     }
 
     /**

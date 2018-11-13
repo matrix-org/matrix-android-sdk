@@ -48,6 +48,7 @@ import java.util.concurrent.CountDownLatch
 class CryptoStoreMigrationTest {
 
     private val mTestHelper = CommonTestHelper()
+    private val mCryptoTestHelper = CryptoTestHelper(mTestHelper)
     private val cryptoStoreHelper = CryptoStoreHelper()
 
     private val sessionTestParamLegacy = SessionTestParams(withInitialSync = true, withCryptoEnabled = true, withLegacyCryptoStore = true)
@@ -260,14 +261,14 @@ class CryptoStoreMigrationTest {
         val context = InstrumentationRegistry.getContext()
         val results = java.util.HashMap<String, Any>()
 
-        val pair = doE2ETestWithAliceAndBobInARoom(true)
-        val aliceSession = pair.first.first
-        val aliceRoomId = pair.first.second
-        val bobSession = pair.second
+        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoom(true)
+        val aliceSession = cryptoTestData.firstSession
+        val aliceRoomId = cryptoTestData.roomId
+        val bobSession = cryptoTestData.secondSession
 
         val messageFromAlice = "Hello I'm Alice!"
 
-        val roomFromBobPOV = bobSession.dataHandler.getRoom(aliceRoomId)
+        val roomFromBobPOV = bobSession!!.dataHandler.getRoom(aliceRoomId)
         val roomFromAlicePOV = aliceSession.dataHandler.getRoom(aliceRoomId)
 
         Assert.assertTrue(roomFromBobPOV.isEncrypted)
@@ -280,7 +281,7 @@ class CryptoStoreMigrationTest {
         val eventListener = object : MXEventListener() {
             override fun onLiveEvent(event: Event, roomState: RoomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                    checkEncryptedEvent(event, aliceRoomId, messageFromAlice, aliceSession)
+                    mCryptoTestHelper.checkEncryptedEvent(event, aliceRoomId, messageFromAlice, aliceSession)
 
                     results["onLiveEvent"] = "onLiveEvent"
                     lock.countDown()
@@ -290,7 +291,7 @@ class CryptoStoreMigrationTest {
 
         roomFromBobPOV.addEventListener(eventListener)
 
-        roomFromAlicePOV.sendEvent(buildTextEvent(messageFromAlice, aliceSession, aliceRoomId), TestApiCallback<Void>(lock))
+        roomFromAlicePOV.sendEvent(mCryptoTestHelper.buildTextEvent(messageFromAlice, aliceSession, aliceRoomId), TestApiCallback<Void>(lock))
         mTestHelper.await(lock)
 
         Assert.assertTrue(results.containsKey("onLiveEvent"))
@@ -327,7 +328,7 @@ class CryptoStoreMigrationTest {
         val eventListener2 = object : EventTimeline.Listener {
             override fun onEvent(event: Event, direction: EventTimeline.Direction, roomState: RoomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE)) {
-                    checkEncryptedEvent(event, aliceRoomId, messageFromAlice, aliceSession)
+                    mCryptoTestHelper.checkEncryptedEvent(event, aliceRoomId, messageFromAlice, aliceSession)
 
                     results["onLiveEvent2"] = "onLiveEvent2"
                     lock2.countDown()
@@ -342,8 +343,7 @@ class CryptoStoreMigrationTest {
         mTestHelper.await(lock2)
         Assert.assertTrue(results.containsKey("onLiveEvent2"))
 
-        aliceSession.clear(context)
-        bobSession.clear(context)
+        cryptoTestData.clear(context)
         aliceSession2.clear(context)
         bobSession2.clear(context)
     }
@@ -382,192 +382,5 @@ class CryptoStoreMigrationTest {
 
     companion object {
         private const val LOG_TAG = "CryptoStoreMigrationTest"
-    }
-
-    /* ==========================================================================================
-     * TODO REMOVE and replace by call form mCryptoTestHelper (from the branch keys backup)
-     * ========================================================================================== */
-
-    /**
-     * @param cryptedBob
-     * @return alice and bob sessions
-     * @throws Exception
-     */
-    @Throws(Exception::class)
-    private fun doE2ETestWithAliceAndBobInARoom(cryptedBob: Boolean): Pair<SessionAndRoomId, MXSession> {
-        val statuses = java.util.HashMap<String, String>()
-
-        val sessionAndRoomId = doE2ETestWithAliceInARoom()
-        val aliceSession = sessionAndRoomId.first
-        val aliceRoomId = sessionAndRoomId.second
-
-        val room = aliceSession.dataHandler.getRoom(aliceRoomId)
-
-        val bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, sessionTestParamLegacy)
-        val lock0 = CountDownLatch(1)
-
-        bobSession.enableCrypto(cryptedBob, object : TestApiCallback<Void>(lock0) {
-            override fun onSuccess(info: Void?) {
-                statuses["enableCrypto"] = "enableCrypto"
-                super.onSuccess(info)
-            }
-        })
-        mTestHelper.await(lock0)
-
-        val lock1 = CountDownLatch(2)
-
-        val bobEventListener = object : MXEventListener() {
-            override fun onNewRoom(roomId: String) {
-                if (TextUtils.equals(roomId, aliceRoomId)) {
-                    if (!statuses.containsKey("onNewRoom")) {
-                        statuses["onNewRoom"] = "onNewRoom"
-                        lock1.countDown()
-                    }
-                }
-            }
-        }
-
-        bobSession.dataHandler.addListener(bobEventListener)
-
-        room.invite(bobSession.myUserId, object : TestApiCallback<Void>(lock1) {
-            override fun onSuccess(info: Void?) {
-                statuses["invite"] = "invite"
-                super.onSuccess(info)
-            }
-        })
-
-        mTestHelper.await(lock1)
-
-        Assert.assertTrue(statuses.containsKey("invite") && statuses.containsKey("onNewRoom"))
-
-        bobSession.dataHandler.removeListener(bobEventListener)
-
-        val lock2 = CountDownLatch(2)
-
-        bobSession.joinRoom(aliceRoomId, object : TestApiCallback<String>(lock2) {
-            override fun onSuccess(info: String) {
-                statuses["joinRoom"] = "joinRoom"
-                super.onSuccess(info)
-            }
-
-            override fun onNetworkError(e: Exception) {
-                statuses["onNetworkError"] = e.message!!
-                super.onNetworkError(e)
-            }
-
-            override fun onMatrixError(e: MatrixError) {
-                statuses["onMatrixError"] = e.message
-                super.onMatrixError(e)
-            }
-
-            override fun onUnexpectedError(e: Exception) {
-                statuses["onUnexpectedError"] = e.message!!
-                super.onUnexpectedError(e)
-            }
-        })
-
-        room.addEventListener(object : MXEventListener() {
-            override fun onLiveEvent(event: Event, roomState: RoomState) {
-                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
-                    val contentToConsider = event.contentAsJsonObject
-                    val member = JsonUtils.toRoomMember(contentToConsider)
-
-                    if (TextUtils.equals(member.membership, RoomMember.MEMBERSHIP_JOIN)) {
-                        statuses["AliceJoin"] = "AliceJoin"
-                        lock2.countDown()
-                    }
-                }
-            }
-        })
-
-        mTestHelper.await(lock2)
-        Assert.assertTrue(statuses.toString() + "", statuses.containsKey("joinRoom"))
-        Assert.assertTrue(statuses.toString() + "", statuses.containsKey("AliceJoin"))
-
-        bobSession.dataHandler.removeListener(bobEventListener)
-
-        return Pair(sessionAndRoomId, bobSession)
-    }
-
-    /**
-     * @return alice session
-     * @throws Exception
-     */
-    @Throws(Exception::class)
-    private fun doE2ETestWithAliceInARoom(): SessionAndRoomId {
-        val results = java.util.HashMap<String, Any>()
-        val aliceSession = mTestHelper.createAccount(TestConstants.USER_ALICE, sessionTestParamLegacy)
-        val lock0 = CountDownLatch(1)
-
-        aliceSession.enableCrypto(true, object : TestApiCallback<Void>(lock0) {
-            override fun onSuccess(info: Void?) {
-                results["enableCrypto"] = "enableCrypto"
-                super.onSuccess(info)
-            }
-        })
-        mTestHelper.await(lock0)
-        Assert.assertTrue(results.containsKey("enableCrypto"))
-
-        var roomId: String? = null
-        val lock1 = CountDownLatch(1)
-
-        aliceSession.createRoom(object : TestApiCallback<String>(lock1) {
-            override fun onSuccess(createdRoomId: String) {
-                roomId = createdRoomId
-                super.onSuccess(createdRoomId)
-            }
-        })
-
-        mTestHelper.await(lock1)
-        Assert.assertNotNull(roomId)
-
-        val room = aliceSession.dataHandler.getRoom(roomId)
-
-        val lock2 = CountDownLatch(1)
-        room.enableEncryptionWithAlgorithm(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, object : TestApiCallback<Void>(lock2) {
-            override fun onSuccess(info: Void?) {
-                results["enableEncryptionWithAlgorithm"] = "enableEncryptionWithAlgorithm"
-                super.onSuccess(info)
-            }
-        })
-        mTestHelper.await(lock2)
-        Assert.assertTrue(results.containsKey("enableEncryptionWithAlgorithm"))
-
-        return SessionAndRoomId(aliceSession, roomId)
-    }
-
-    private fun buildTextEvent(text: String, session: MXSession, roomId: String): Event {
-        val message = Message()
-        message.msgtype = Message.MSGTYPE_TEXT
-        message.body = text
-
-        return Event(message, session.credentials.userId, roomId)
-    }
-
-    private fun checkEncryptedEvent(event: Event, roomId: String, clearMessage: String, senderSession: MXSession) {
-        Assert.assertEquals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, event.wireType)
-        Assert.assertNotNull(event.wireContent)
-
-        val eventWireContent = event.wireContent.asJsonObject
-        Assert.assertNotNull(eventWireContent)
-
-        Assert.assertNull(eventWireContent.get("body"))
-        Assert.assertEquals(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, eventWireContent.get("algorithm").asString)
-
-        Assert.assertNotNull(eventWireContent.get("ciphertext"))
-        Assert.assertNotNull(eventWireContent.get("session_id"))
-        Assert.assertNotNull(eventWireContent.get("sender_key"))
-
-        Assert.assertEquals(senderSession.credentials.deviceId, eventWireContent.get("device_id").asString)
-
-        Assert.assertNotNull(event.eventId)
-        Assert.assertEquals(roomId, event.roomId)
-        Assert.assertEquals(Event.EVENT_TYPE_MESSAGE, event.getType())
-        Assert.assertTrue(event.getAge() < 10000)
-
-        val eventContent = event.contentAsJsonObject
-        Assert.assertNotNull(eventContent)
-        Assert.assertEquals(clearMessage, eventContent!!.get("body").asString)
-        Assert.assertEquals(senderSession.myUserId, event.sender)
     }
 }

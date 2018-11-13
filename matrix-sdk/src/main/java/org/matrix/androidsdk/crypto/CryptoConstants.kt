@@ -1,5 +1,4 @@
 /*
- * Copyright 2014 OpenMarket Ltd
  * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,27 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest.callback;
 
-import org.matrix.androidsdk.rest.model.MatrixError;
+package org.matrix.androidsdk.crypto
 
 /**
- * Callback interface for asynchronously returning API call failures.
+ * Matrix algorithm value for olm.
  */
-public interface ApiFailureCallback extends ErrorCallback {
+const val MXCRYPTO_ALGORITHM_OLM = "m.olm.v1.curve25519-aes-sha2"
 
-    /**
-     * Called if there is a network error.
-     *
-     * @param e the exception
-     */
-    void onNetworkError(Exception e);
+/**
+ * Matrix algorithm value for megolm.
+ */
+const val MXCRYPTO_ALGORITHM_MEGOLM = "m.megolm.v1.aes-sha2"
 
-    /**
-     * Called in case of a Matrix error.
-     *
-     * @param e the Matrix error
-     */
-    void onMatrixError(MatrixError e);
-
-}
+/**
+ * Matrix algorithm value for megolm keys backup.
+ */
+const val MXCRYPTO_ALGORITHM_MEGOLM_BACKUP = "m.megolm_backup.v1.curve25519-aes-sha2"

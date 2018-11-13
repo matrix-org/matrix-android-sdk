@@ -2278,6 +2278,7 @@ public class MXSession {
      * The module that manages E2E encryption.
      * Null if the feature is not enabled
      */
+    @Nullable
     private MXCrypto mCrypto;
 
     /**
@@ -2369,7 +2370,7 @@ public class MXSession {
                 return;
             }
 
-            mCrypto = new MXCrypto(MXSession.this, mCryptoStore, sCryptoConfig);
+            mCrypto = new MXCrypto(this, mCryptoStore, sCryptoConfig);
             mDataHandler.setCrypto(mCrypto);
             // the room summaries are not stored with decrypted content
             decryptRoomSummaries();

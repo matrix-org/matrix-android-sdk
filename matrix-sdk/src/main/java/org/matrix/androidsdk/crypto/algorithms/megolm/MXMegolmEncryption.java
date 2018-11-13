@@ -23,8 +23,8 @@ import android.text.TextUtils;
 import com.google.gson.JsonElement;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.crypto.CryptoConstantsKt;
 import org.matrix.androidsdk.crypto.MXCrypto;
-import org.matrix.androidsdk.crypto.MXCryptoAlgorithms;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXOlmDevice;
 import org.matrix.androidsdk.crypto.algorithms.IMXEncrypting;
@@ -427,7 +427,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
         final int chainIndex = mCrypto.getOlmDevice().getMessageIndex(session.mSessionId);
 
         Map<String, Object> submap = new HashMap<>();
-        submap.put("algorithm", MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM);
+        submap.put("algorithm", CryptoConstantsKt.MXCRYPTO_ALGORITHM_MEGOLM);
         submap.put("room_id", mRoomId);
         submap.put("session_id", session.mSessionId);
         submap.put("session_key", sessionKey);
@@ -611,7 +611,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                 String ciphertext = mCrypto.getOlmDevice().encryptGroupMessage(session.mSessionId, payloadString);
 
                 final Map<String, Object> map = new HashMap<>();
-                map.put("algorithm", MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM);
+                map.put("algorithm", CryptoConstantsKt.MXCRYPTO_ALGORITHM_MEGOLM);
                 map.put("sender_key", mCrypto.getOlmDevice().getDeviceCurve25519Key());
                 map.put("ciphertext", ciphertext);
                 map.put("session_id", session.mSessionId);

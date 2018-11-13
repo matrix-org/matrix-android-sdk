@@ -672,8 +672,8 @@ public class MXCrypto {
      */
     public MXDeviceInfo deviceWithIdentityKey(final String senderKey, final String userId, final String algorithm) {
         if (!hasBeenReleased()) {
-            if (!TextUtils.equals(algorithm, MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM)
-                    && !TextUtils.equals(algorithm, MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM)) {
+            if (!TextUtils.equals(algorithm, CryptoConstantsKt.MXCRYPTO_ALGORITHM_MEGOLM)
+                    && !TextUtils.equals(algorithm, CryptoConstantsKt.MXCRYPTO_ALGORITHM_OLM)) {
                 // We only deal in olm keys
                 return null;
             }
@@ -1508,7 +1508,7 @@ public class MXCrypto {
 
         Map<String, Object> res = new HashMap<>();
 
-        res.put("algorithm", MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM);
+        res.put("algorithm", CryptoConstantsKt.MXCRYPTO_ALGORITHM_OLM);
         res.put("sender_key", mOlmDevice.getDeviceCurve25519Key());
         res.put("ciphertext", ciphertext);
 
