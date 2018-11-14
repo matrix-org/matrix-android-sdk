@@ -11,7 +11,7 @@ Bugfix:
  -
 
 API Change:
- -
+ - new API in CallSoundsManager to allow client to play the specified Ringtone (vector-im/riot-android#827)
 
 Translations:
  -

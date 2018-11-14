@@ -28,6 +28,7 @@ import android.net.Uri;
 import android.os.Environment;
 import android.os.Vibrator;
 import android.provider.MediaStore;
+import android.support.annotation.Nullable;
 
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.util.Log;
@@ -394,7 +395,36 @@ public class CallSoundsManager {
         stopSounds();
         mIsRinging = true;
         // use the ringTone to manage sound volume properly
-        mRingTone = getRingTone(mContext, resId, filename, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE));
+        Ringtone ringTone = getRingTone(mContext, resId, filename, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE));
+
+        playRingtone(ringTone);
+    }
+
+    /**
+     * Start the specified ringing sound.
+     *
+     * @param ringtone the ringtone to play
+     */
+    public void startRinging(Ringtone ringtone) {
+        Log.v(LOG_TAG, "startRinging");
+        if (mRingTone != null) {
+            Log.v(LOG_TAG, "ring tone already ringing");
+        }
+        // stop any playing ringtone
+        stopSounds();
+        mIsRinging = true;
+
+        playRingtone(ringtone);
+    }
+
+    /**
+     * Play the provided ringtone
+     *
+     * @param ringtone
+     */
+    private void playRingtone(@Nullable Ringtone ringtone) {
+        // use the ringTone to manage sound volume properly
+        mRingTone = ringtone;
         if (mRingTone != null) {
             setSpeakerphoneOn(false, true);
             mRingTone.play();
@@ -487,7 +517,7 @@ public class CallSoundsManager {
     }
 
     //==============================================================================================================
-    // resid / filenime to ringtone
+    // resid / filename to ringtone
     //==============================================================================================================
 
     private static final Map<String, Uri> mRingtoneUrlByFileName = new HashMap<>();
