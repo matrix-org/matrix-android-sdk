@@ -1,6 +1,17 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-kapt'
+apply plugin: 'realm-android'
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath "io.realm:realm-gradle-plugin:5.7.0"
+    }
+}
 
 android {
     compileSdkVersion 27
@@ -137,6 +148,9 @@ dependencies {
     implementation 'com.facebook.stetho:stetho-okhttp3:1.5.0'
 
     implementation(name: 'olm-sdk', ext: 'aar')
+
+    // Database
+    kapt 'dk.ilios:realmfieldnameshelper:1.1.1'
 
     // replace the compile 'io.pristine:libjingle:9690@aar'
     implementation(name: 'react-native-webrtc', ext: 'aar')
