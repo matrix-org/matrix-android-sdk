@@ -64,4 +64,22 @@
 
     <string name="room_displayname_empty_room">Dhomë e zbrazët</string>
 
-</resources>
+<string name="summary_user_sent_sticker">%1$s dërgoi një ngjitës.</string>
+
+    <string name="notice_room_invite_no_invitee">Ftesë e %s</string>
+    <string name="notice_room_unban">%1$s hoqi dëbimin për %2$s</string>
+    <string name="notice_room_withdraw">%1$s tërhoqi mbrapsht ftesën për %2$s</string>
+    <string name="notice_display_name_set">%1$s caktoi për veten emër ekrani %2$s</string>
+    <string name="notice_display_name_changed_from">%1$s ndryshoi emrin e tyre në ekran nga %2$s në %3$s</string>
+    <string name="notice_display_name_removed">%1$s hoqi emrin e tij në ekran (%2$s)</string>
+    <string name="notice_end_to_end">%1$s aktivizoi fshehtëzim skaj-më-skaj (%2$s)</string>
+
+    <string name="notice_room_topic_removed">%1$s hoqi temën e dhomës</string>
+    <string name="notice_event_redacted">"redaktoi %1$s "</string>
+    <string name="notice_room_third_party_invite">%1$s dërgoi një ftesë për %2$s që të marrë pjesë në dhomë</string>
+    <plurals name="room_displayname_three_and_more_members">
+	<item quantity="one">%1$s dhe 1 tjetër</item>
+	<item quantity="other">%1$s dhe %2$d të tjerë</item>
+</plurals>
+
+    </resources>
