@@ -8,7 +8,7 @@ Improvements:
  -
 
 Bugfix:
- -
+ - Generate thumbnails for gifs rather than throw an error (#395)
 
 API Change:
  - new API in CallSoundsManager to allow client to play the specified Ringtone (vector-im/riot-android#827)

@@ -171,12 +171,6 @@ public class ResourceUtils {
                         Log.e(LOG_TAG, "createThumbnailBitmap " + ex.getMessage(), ex);
                     }
                 }
-
-                // reduce the memory consumption
-                if (null != fullSizeBitmap) {
-                    fullSizeBitmap.recycle();
-                    System.gc();
-                }
             }
 
             if (null != resource) {
