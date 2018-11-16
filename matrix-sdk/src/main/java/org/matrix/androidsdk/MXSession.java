@@ -526,6 +526,11 @@ public class MXSession {
         return mMediaScanRestClient;
     }
 
+    public AccountDataRestClient getAccountDataRestClient() {
+        checkIfAlive();
+        return mAccountDataRestClient;
+    }
+
     protected void setEventsApiClient(EventsRestClient eventsRestClient) {
         checkIfAlive();
         mEventsRestClient = eventsRestClient;
