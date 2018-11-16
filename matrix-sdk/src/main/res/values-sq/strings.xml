@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<resources><string name="summary_message">%1$s: %2$s</string>
+<resources>
+    <string name="summary_message">%1$s: %2$s</string>
     <string name="summary_user_sent_image">%1$s dërgoi një figurë.</string>
     <string name="notice_room_invite">%1$s ftoi %2$s</string>
     <string name="notice_room_invite_you">%1$s ju ftoi</string>
@@ -32,7 +33,7 @@
     <string name="notice_profile_change_redacted">%1$s përditësoi profilin e tij %2$s</string>
     <string name="notice_room_third_party_registered_invite">%1$s pranoi ftesën tuaj për %2$s</string>
 
-    <string name="notice_crypto_unable_to_decrypt">** S’arrihet të shfshehtëzohet: %@ **</string>
+    <string name="notice_crypto_unable_to_decrypt">** S’arrihet të shfshehtëzohet: %s **</string>
     <string name="notice_crypto_error_unkwown_inbound_session_id">Pajisja e dërguesit nuk na ka dërguar kyçet për këtë mesazh.</string>
 
     <string name="message_reply_to_prefix">Në përgjigje të</string>
@@ -64,7 +65,7 @@
 
     <string name="room_displayname_empty_room">Dhomë e zbrazët</string>
 
-<string name="summary_user_sent_sticker">%1$s dërgoi një ngjitës.</string>
+    <string name="summary_user_sent_sticker">%1$s dërgoi një ngjitës.</string>
 
     <string name="notice_room_invite_no_invitee">Ftesë e %s</string>
     <string name="notice_room_unban">%1$s hoqi dëbimin për %2$s</string>
@@ -78,8 +79,8 @@
     <string name="notice_event_redacted">"redaktoi %1$s "</string>
     <string name="notice_room_third_party_invite">%1$s dërgoi një ftesë për %2$s që të marrë pjesë në dhomë</string>
     <plurals name="room_displayname_three_and_more_members">
-	<item quantity="one">%1$s dhe 1 tjetër</item>
-	<item quantity="other">%1$s dhe %2$d të tjerë</item>
-</plurals>
+        <item quantity="one">%1$s dhe 1 tjetër</item>
+        <item quantity="other">%1$s dhe %2$d të tjerë</item>
+    </plurals>
 
-    </resources>
+</resources>
