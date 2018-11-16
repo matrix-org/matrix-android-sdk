@@ -1031,7 +1031,7 @@ public class MXDataHandler {
         for (Map<String, Object> event : events) {
             String type = (String) event.get("type");
 
-            if (TextUtils.equals(type, "m.push_rules")) {
+            if (TextUtils.equals(type, AccountDataRestClient.ACCOUNT_DATA_TYPE_PUSH_RULES)) {
                 if (event.containsKey("content")) {
                     Gson gson = JsonUtils.getGson(false);
 
