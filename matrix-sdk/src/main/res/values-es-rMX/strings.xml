@@ -90,9 +90,9 @@
     <string name="room_displayname_empty_room">Sala vacía</string>
 
 
-<plurals name="room_displayname_three_and_more_members">
-	<item quantity="one">%1$s y otro</item>
-	<item quantity="other">%1$s y %2$d otros</item>
-</plurals>
+    <plurals name="room_displayname_three_and_more_members">
+        <item quantity="one">%1$s y otro</item>
+        <item quantity="other">%1$s y %2$d otros</item>
+    </plurals>
 
-    </resources>
+</resources>
