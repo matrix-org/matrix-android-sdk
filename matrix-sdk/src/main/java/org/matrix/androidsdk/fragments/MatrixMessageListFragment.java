@@ -51,7 +51,7 @@ import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.timeline.EventTimelineFactory;
-import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.db.MXMediaCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.listeners.MXMediaUploadListener;
@@ -260,7 +260,7 @@ public abstract class MatrixMessageListFragment<MessagesAdapter extends Abstract
      *
      * @return
      */
-    public abstract MXMediasCache getMXMediasCache();
+    public abstract MXMediaCache getMXMediasCache();
 
     /**
      * Get MxSession

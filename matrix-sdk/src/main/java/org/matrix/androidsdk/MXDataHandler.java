@@ -39,7 +39,7 @@ import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXMemoryStore;
-import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.db.MXMediaCache;
 import org.matrix.androidsdk.groups.GroupsManager;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
@@ -116,7 +116,7 @@ public class MXDataHandler {
     private DataRetriever mDataRetriever;
     private BingRulesManager mBingRulesManager;
     private MXCallsManager mCallsManager;
-    private MXMediasCache mMediasCache;
+    private MXMediaCache mMediasCache;
 
     private MetricsListener mMetricsListener;
 
@@ -536,7 +536,7 @@ public class MXDataHandler {
      *
      * @param mediasCache the new medias cache.
      */
-    public void setMediasCache(MXMediasCache mediasCache) {
+    public void setMediasCache(MXMediaCache mediasCache) {
         checkIfAlive();
         mMediasCache = mediasCache;
     }
@@ -546,7 +546,7 @@ public class MXDataHandler {
      *
      * @return the used mediasCache
      */
-    public MXMediasCache getMediasCache() {
+    public MXMediaCache getMediasCache() {
         checkIfAlive();
         return mMediasCache;
     }

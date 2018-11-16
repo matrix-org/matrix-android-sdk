@@ -57,9 +57,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.RejectedExecutionException;
 
-public class MXMediasCache {
+public class MXMediaCache {
 
-    private static final String LOG_TAG = MXMediasCache.class.getSimpleName();
+    private static final String LOG_TAG = MXMediaCache.class.getSimpleName();
 
     /**
      * The medias folders.
@@ -115,7 +115,7 @@ public class MXMediasCache {
      * @param userID                      the account user Id.
      * @param context                     the context
      */
-    public MXMediasCache(ContentManager contentManager, NetworkConnectivityReceiver networkConnectivityReceiver, String userID, Context context) {
+    public MXMediaCache(ContentManager contentManager, NetworkConnectivityReceiver networkConnectivityReceiver, String userID, Context context) {
         mContentManager = contentManager;
         mNetworkConnectivityReceiver = networkConnectivityReceiver;
 
@@ -322,7 +322,7 @@ public class MXMediasCache {
      * @param applicationContext the application context
      */
     public static void clearThumbnailsCache(Context applicationContext) {
-        ContentUtils.deleteDirectory(new File(new File(applicationContext.getApplicationContext().getFilesDir(), MXMediasCache.MXMEDIA_STORE_FOLDER),
+        ContentUtils.deleteDirectory(new File(new File(applicationContext.getApplicationContext().getFilesDir(), MXMediaCache.MXMEDIA_STORE_FOLDER),
                 MXMEDIA_STORE_MEMBER_THUMBNAILS_FOLDER));
     }
 

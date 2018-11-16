@@ -25,7 +25,7 @@ import android.net.Uri;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.db.MXMediaCache;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -227,7 +227,7 @@ public class ImageUtils {
      * @param mediasCache   the used media cache
      * @return the rotated bitmap
      */
-    public static Bitmap rotateImage(Context context, String imageURL, int rotationAngle, MXMediasCache mediasCache) {
+    public static Bitmap rotateImage(Context context, String imageURL, int rotationAngle, MXMediaCache mediasCache) {
         Bitmap rotatedBitmap = null;
 
         try {
@@ -287,7 +287,7 @@ public class ImageUtils {
      * @param mediasCache the used media cache
      * @return the rotated bitmap if the operation succeeds.
      */
-    public static Bitmap applyExifRotation(Context context, String imageURL, MXMediasCache mediasCache) {
+    public static Bitmap applyExifRotation(Context context, String imageURL, MXMediaCache mediasCache) {
         Bitmap rotatedBitmap = null;
 
         try {
@@ -317,7 +317,7 @@ public class ImageUtils {
      * @param mediasCache   the media cache.
      * @return the media url
      */
-    public static String scaleAndRotateImage(Context context, InputStream stream, String mimeType, int maxSide, int rotationAngle, MXMediasCache mediasCache) {
+    public static String scaleAndRotateImage(Context context, InputStream stream, String mimeType, int maxSide, int rotationAngle, MXMediaCache mediasCache) {
         String url = null;
 
         // sanity checks
