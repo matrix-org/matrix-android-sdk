@@ -40,7 +40,7 @@
     <string name="could_not_redact">S’u redaktua dot</string>
     <string name="unable_to_send_message">S’arrihet të dërgohet mesazh</string>
 
-    <string name="message_failed_to_upload">Ngarkimi i figurës dështoi</string>
+    <string name="message_failed_to_upload">S’u arrit të ngarkohej figurë</string>
 
     <string name="network_error">Gabim rrjeti</string>
     <string name="matrix_error">Gabim Matrix</string>
