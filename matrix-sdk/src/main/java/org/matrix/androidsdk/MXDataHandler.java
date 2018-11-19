@@ -1025,7 +1025,7 @@ public class MXDataHandler {
      */
     private void managePushRulesUpdate(List<AccountDataElement> accountDataElements) {
         for (AccountDataElement accountDataElement : accountDataElements) {
-            if (TextUtils.equals(accountDataElement.type, AccountDataRestClient.ACCOUNT_DATA_TYPE_PUSH_RULES)) {
+            if (TextUtils.equals(accountDataElement.type, AccountDataElement.ACCOUNT_DATA_TYPE_PUSH_RULES)) {
                 Gson gson = JsonUtils.getGson(false);
 
                 // convert the data to PushRulesResponse
@@ -1079,9 +1079,9 @@ public class MXDataHandler {
         List<String> ignoredUsers = null;
 
         for (AccountDataElement accountDataElement : accountDataElements) {
-            if (TextUtils.equals(accountDataElement.type, AccountDataRestClient.ACCOUNT_DATA_TYPE_IGNORED_USER_LIST)) {
-                if (accountDataElement.content.containsKey(AccountDataRestClient.ACCOUNT_DATA_KEY_IGNORED_USERS)) {
-                    Map<String, Object> ignored_users = (Map<String, Object>) accountDataElement.content.get(AccountDataRestClient.ACCOUNT_DATA_KEY_IGNORED_USERS);
+            if (TextUtils.equals(accountDataElement.type, AccountDataElement.ACCOUNT_DATA_TYPE_IGNORED_USER_LIST)) {
+                if (accountDataElement.content.containsKey(AccountDataElement.ACCOUNT_DATA_KEY_IGNORED_USERS)) {
+                    Map<String, Object> ignored_users = (Map<String, Object>) accountDataElement.content.get(AccountDataElement.ACCOUNT_DATA_KEY_IGNORED_USERS);
 
                     if (null != ignored_users) {
                         ignoredUsers = new ArrayList<>(ignored_users.keySet());
@@ -1101,7 +1101,7 @@ public class MXDataHandler {
      */
     private void manageDirectChatRooms(List<AccountDataElement> accountDataElements, boolean isInitialSync) {
         for (AccountDataElement accountDataElement : accountDataElements) {
-            if (TextUtils.equals(accountDataElement.type, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES)) {
+            if (TextUtils.equals(accountDataElement.type, AccountDataElement.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES)) {
                 Log.d(LOG_TAG, "## manageDirectChatRooms() : update direct chats map" + accountDataElement.content);
 
                 Gson gson = JsonUtils.getGson(false);
@@ -1131,13 +1131,13 @@ public class MXDataHandler {
      */
     private void manageUrlPreview(List<AccountDataElement> accountDataElements) {
         for (AccountDataElement accountDataElement : accountDataElements) {
-            if (TextUtils.equals(accountDataElement.type, AccountDataRestClient.ACCOUNT_DATA_TYPE_PREVIEW_URLS)) {
+            if (TextUtils.equals(accountDataElement.type, AccountDataElement.ACCOUNT_DATA_TYPE_PREVIEW_URLS)) {
                 Map<String, Object> contentDict = accountDataElement.content;
 
                 Log.d(LOG_TAG, "## manageUrlPreview() : " + contentDict);
                 boolean enable = true;
-                if (contentDict.containsKey(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE)) {
-                    enable = !((boolean) contentDict.get(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE));
+                if (contentDict.containsKey(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE)) {
+                    enable = !((boolean) contentDict.get(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE));
                 }
 
                 mStore.setURLPreviewEnabled(enable);
@@ -1152,7 +1152,7 @@ public class MXDataHandler {
      */
     private void manageUserWidgets(List<AccountDataElement> accountDataElements) {
         for (AccountDataElement accountDataElement : accountDataElements) {
-            if (TextUtils.equals(accountDataElement.type, AccountDataRestClient.ACCOUNT_DATA_TYPE_WIDGETS)) {
+            if (TextUtils.equals(accountDataElement.type, AccountDataElement.ACCOUNT_DATA_TYPE_WIDGETS)) {
                 Map<String, Object> contentDict = accountDataElement.content;
 
                 Log.d(LOG_TAG, "## manageUserWidgets() : " + contentDict);
@@ -1417,7 +1417,7 @@ public class MXDataHandler {
 
                     if (hasChanged) {
                         // Update account data to add new direct chat room(s)
-                        mAccountDataRestClient.setAccountData(mCredentials.userId, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES,
+                        mAccountDataRestClient.setAccountData(mCredentials.userId, AccountDataElement.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES,
                                 updatedDirectChatRoomsDict, new ApiCallback<Void>() {
                                     @Override
                                     public void onSuccess(Void info) {
@@ -2081,7 +2081,7 @@ public class MXDataHandler {
         }
         mLocalDirectChatRoomIdsList = null;
         // Upload the new map
-        mAccountDataRestClient.setAccountData(getMyUser().user_id, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, directChatRoomsMap, callback);
+        mAccountDataRestClient.setAccountData(getMyUser().user_id, AccountDataElement.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, directChatRoomsMap, callback);
     }
 
     /**

@@ -49,6 +49,7 @@ import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.UserIdAndReason;
 import org.matrix.androidsdk.rest.model.filter.RoomEventFilter;
 import org.matrix.androidsdk.rest.model.message.Message;
+import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 
 import java.util.HashMap;
@@ -892,7 +893,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         final String description = "updateURLPreviewStatus : roomId " + roomId + " - status " + status;
 
         Map<String, Object> params = new HashMap<>();
-        params.put(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE, !status);
+        params.put(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE, !status);
 
         mApi.updateAccountData(getCredentials().userId, roomId, Event.EVENT_TYPE_URL_PREVIEW, params)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {

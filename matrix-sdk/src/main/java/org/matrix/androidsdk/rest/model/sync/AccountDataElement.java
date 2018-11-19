@@ -21,8 +21,24 @@ import java.util.Map;
 
 // It's a LightEvent
 public class AccountDataElement implements Serializable {
+    /**
+     * Account data known possible values for {@link #type}
+     */
+    public static final String ACCOUNT_DATA_TYPE_IGNORED_USER_LIST = "m.ignored_user_list";
+    public static final String ACCOUNT_DATA_TYPE_DIRECT_MESSAGES = "m.direct";
+    public static final String ACCOUNT_DATA_TYPE_PREVIEW_URLS = "org.matrix.preview_urls";
+    public static final String ACCOUNT_DATA_TYPE_WIDGETS = "m.widgets";
+    public static final String ACCOUNT_DATA_TYPE_PUSH_RULES = "m.push_rules";
 
+    /**
+     * Account data known possible values for key in {@link #content}
+     */
+    public static final String ACCOUNT_DATA_KEY_IGNORED_USERS = "ignored_users";
+    public static final String ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE = "disable";
+
+    // Type of account data element
     public String type;
 
+    // Content of account data element
     public Map<String, Object> content;
 }
