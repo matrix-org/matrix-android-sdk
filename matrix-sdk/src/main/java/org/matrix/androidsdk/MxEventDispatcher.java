@@ -719,6 +719,23 @@ import java.util.Set;
         });
     }
 
+    public void dispatchOnAccountDataUpdate() {
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onAccountDataUpdated();
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onAccountDataUpdated " + e.getMessage(), e);
+                    }
+                }
+            }
+        });
+    }
+
     /* ==========================================================================================
      * Private
      * ========================================================================================== */

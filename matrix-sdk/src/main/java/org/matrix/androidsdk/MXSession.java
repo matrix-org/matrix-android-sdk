@@ -86,6 +86,7 @@ import org.matrix.androidsdk.rest.model.pid.DeleteDeviceAuth;
 import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.search.SearchResponse;
 import org.matrix.androidsdk.rest.model.search.SearchUsersResponse;
+import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
 import org.matrix.androidsdk.rest.model.sync.DevicesListResponse;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 import org.matrix.androidsdk.sync.DefaultEventsThreadListener;
@@ -524,6 +525,11 @@ public class MXSession {
     public MediaScanRestClient getMediaScanRestClient() {
         checkIfAlive();
         return mMediaScanRestClient;
+    }
+
+    public AccountDataRestClient getAccountDataRestClient() {
+        checkIfAlive();
+        return mAccountDataRestClient;
     }
 
     protected void setEventsApiClient(EventsRestClient eventsRestClient) {
@@ -1935,9 +1941,9 @@ public class MXSession {
         }
 
         Map<String, Object> params = new HashMap<>();
-        params.put(AccountDataRestClient.ACCOUNT_DATA_KEY_IGNORED_USERS, ignoredUsersDict);
+        params.put(AccountDataElement.ACCOUNT_DATA_KEY_IGNORED_USERS, ignoredUsersDict);
 
-        mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_IGNORED_USER_LIST, params, callback);
+        mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataElement.ACCOUNT_DATA_TYPE_IGNORED_USER_LIST, params, callback);
     }
 
     /**
@@ -2138,10 +2144,10 @@ public class MXSession {
      */
     public void setURLPreviewStatus(final boolean status, final ApiCallback<Void> callback) {
         Map<String, Object> params = new HashMap<>();
-        params.put(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE, !status);
+        params.put(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE, !status);
 
         Log.d(LOG_TAG, "## setURLPreviewStatus() : status " + status);
-        mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_PREVIEW_URLS, params, new ApiCallback<Void>() {
+        mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataElement.ACCOUNT_DATA_TYPE_PREVIEW_URLS, params, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 Log.d(LOG_TAG, "## setURLPreviewStatus() : succeeds");
@@ -2181,7 +2187,7 @@ public class MXSession {
     public void addUserWidget(final Map<String, Object> params, final ApiCallback<Void> callback) {
         Log.d(LOG_TAG, "## addUserWidget()");
 
-        mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_WIDGETS, params, new ApiCallback<Void>() {
+        mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataElement.ACCOUNT_DATA_TYPE_WIDGETS, params, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 Log.d(LOG_TAG, "## addUserWidget() : succeeds");

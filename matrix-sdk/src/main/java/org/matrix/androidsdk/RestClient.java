@@ -160,25 +160,11 @@ public class RestClient<T> {
             }
         };
 
-        // TODO Remove this, seems so useless
-        Interceptor connectivityInterceptor = new Interceptor() {
-            @Override
-            public Response intercept(Chain chain) throws IOException {
-                if (mUnsentEventsManager != null
-                        && mUnsentEventsManager.getNetworkConnectivityReceiver() != null
-                        && !mUnsentEventsManager.getNetworkConnectivityReceiver().isConnected()) {
-                    throw new IOException("Not connected");
-                }
-                return chain.proceed(chain.request());
-            }
-        };
-
         OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient().newBuilder()
                 .connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .readTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .writeTimeout(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-                .addInterceptor(authentInterceptor)
-                .addInterceptor(connectivityInterceptor);
+                .addInterceptor(authentInterceptor);
 
         if (BuildConfig.DEBUG) {
             HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(new FormattedJsonHttpLogger());

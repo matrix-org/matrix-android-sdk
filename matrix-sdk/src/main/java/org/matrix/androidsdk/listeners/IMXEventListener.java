@@ -261,5 +261,10 @@ public interface IMXEventListener {
      * @param groupId the group id
      */
     void onGroupInvitedUsersListUpdate(String groupId);
+
+    /**
+     * Account data has been updated from the sync
+     */
+    void onAccountDataUpdated();
 }
 

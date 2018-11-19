@@ -93,13 +93,15 @@ public class Event implements Externalizable {
     public static final String EVENT_TYPE_TYPING = "m.typing";
     public static final String EVENT_TYPE_REDACTION = "m.room.redaction";
     public static final String EVENT_TYPE_RECEIPT = "m.receipt";
-    public static final String EVENT_TYPE_TAGS = "m.tag";
     public static final String EVENT_TYPE_ROOM_KEY = "m.room_key";
-    public static final String EVENT_TYPE_READ_MARKER = "m.fully_read";
     public static final String EVENT_TYPE_ROOM_PLUMBING = "m.room.plumbing";
     public static final String EVENT_TYPE_ROOM_BOT_OPTIONS = "m.room.bot.options";
     public static final String EVENT_TYPE_ROOM_KEY_REQUEST = "m.room_key_request";
     public static final String EVENT_TYPE_FORWARDED_ROOM_KEY = "m.forwarded_room_key";
+
+    // Possible value for room account data type
+    public static final String EVENT_TYPE_TAGS = "m.tag";
+    public static final String EVENT_TYPE_READ_MARKER = "m.fully_read";
     public static final String EVENT_TYPE_URL_PREVIEW = "org.matrix.room.preview_urls";
 
     // State events

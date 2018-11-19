@@ -53,7 +53,6 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.listeners.MXRoomEventListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.rest.client.AccountDataRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.UrlPostTask;
 import org.matrix.androidsdk.rest.model.CreatedEvent;
@@ -74,6 +73,7 @@ import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.message.ThumbnailInfo;
 import org.matrix.androidsdk.rest.model.message.VideoInfo;
 import org.matrix.androidsdk.rest.model.message.VideoMessage;
+import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
 import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 import org.matrix.androidsdk.rest.model.sync.RoomSync;
@@ -329,7 +329,7 @@ public class Room {
                     Log.d(LOG_TAG, "## handleJoinedRoomSync : received " + roomSync.accountData.events.size() + " account data events");
                 }
 
-                handleAccountDataEvents(roomSync.accountData.events);
+                handleRoomAccountDataEvents(roomSync.accountData.events);
             }
         }
 
@@ -1896,7 +1896,7 @@ public class Room {
      *
      * @param accountDataEvents the account events.
      */
-    private void handleAccountDataEvents(List<Event> accountDataEvents) {
+    private void handleRoomAccountDataEvents(List<Event> accountDataEvents) {
         if ((null != accountDataEvents) && (accountDataEvents.size() > 0)) {
             // manage the account events
             for (Event accountDataEvent : accountDataEvents) {
@@ -1907,9 +1907,9 @@ public class Room {
                     if (summary != null) {
                         final Event event = JsonUtils.toEvent(accountDataEvent.getContent());
                         if (null != event && !TextUtils.equals(event.eventId, summary.getReadMarkerEventId())) {
-                            Log.d(LOG_TAG, "## handleAccountDataEvents() : update the read marker to " + event.eventId + " in room " + getRoomId());
+                            Log.d(LOG_TAG, "## handleRoomAccountDataEvents() : update the read marker to " + event.eventId + " in room " + getRoomId());
                             if (TextUtils.isEmpty(event.eventId)) {
-                                Log.e(LOG_TAG, "## handleAccountDataEvents() : null event id " + accountDataEvent.getContent());
+                                Log.e(LOG_TAG, "## handleRoomAccountDataEvents() : null event id " + accountDataEvent.getContent());
                             }
                             summary.setReadMarkerEventId(event.eventId);
                             getStore().flushSummary(summary);
@@ -1924,8 +1924,8 @@ public class Room {
                         mDataHandler.onRoomTagEvent(getRoomId());
                     } else if (Event.EVENT_TYPE_URL_PREVIEW.equals(accountDataEvent.getType())) {
                         final JsonObject jsonObject = accountDataEvent.getContentAsJsonObject();
-                        if (jsonObject.has(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE)) {
-                            final boolean disabled = jsonObject.get(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE).getAsBoolean();
+                        if (jsonObject.has(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE)) {
+                            final boolean disabled = jsonObject.get(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE).getAsBoolean();
                             Set<String> roomIdsWithoutURLPreview = mDataHandler.getStore().getRoomsWithoutURLPreviews();
                             if (disabled) {
                                 roomIdsWithoutURLPreview.add(getRoomId());
@@ -1940,7 +1940,7 @@ public class Room {
             }
 
             if (null != getStore()) {
-                getStore().storeAccountData(getRoomId(), mAccountData);
+                getStore().storeRoomAccountData(getRoomId(), mAccountData);
             }
         }
     }

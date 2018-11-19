@@ -25,6 +25,7 @@ import android.text.TextUtils;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCrypto;
@@ -63,6 +64,7 @@ import org.matrix.androidsdk.rest.model.bingrules.PushRuleSet;
 import org.matrix.androidsdk.rest.model.bingrules.PushRulesResponse;
 import org.matrix.androidsdk.rest.model.group.InvitedGroupSync;
 import org.matrix.androidsdk.rest.model.login.Credentials;
+import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
 import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 import org.matrix.androidsdk.ssl.UnrecognizedCertificateException;
@@ -996,25 +998,27 @@ public class MXDataHandler {
     /**
      * Manage the sync accountData field
      *
-     * @param accountData   the account data
-     * @param isInitialSync true if it is an initial sync response
+     * @param accountDataElements the account data not empty events list
+     * @param isInitialSync       true if it is an initial sync response
      */
-    private void manageAccountData(Map<String, Object> accountData, boolean isInitialSync) {
+    private void manageAccountData(List<AccountDataElement> accountDataElements, boolean isInitialSync) {
         try {
-            if (accountData.containsKey("events")) {
-                List<Map<String, Object>> events = (List<Map<String, Object>>) accountData.get("events");
-
-                if (!events.isEmpty()) {
+            for (AccountDataElement accountDataElement : accountDataElements) {
+                if (AccountDataElement.ACCOUNT_DATA_TYPE_IGNORED_USER_LIST.equals(accountDataElement.type)) {
                     // ignored users list
-                    manageIgnoredUsers(events, isInitialSync);
+                    manageIgnoredUsers(accountDataElement, isInitialSync);
+                } else if (AccountDataElement.ACCOUNT_DATA_TYPE_PUSH_RULES.equals(accountDataElement.type)) {
                     // push rules
-                    managePushRulesUpdate(events);
+                    managePushRulesUpdate(accountDataElement);
+                } else if (AccountDataElement.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES.equals(accountDataElement.type)) {
                     // direct messages rooms
-                    manageDirectChatRooms(events, isInitialSync);
+                    manageDirectChatRooms(accountDataElement, isInitialSync);
+                } else if (AccountDataElement.ACCOUNT_DATA_TYPE_PREVIEW_URLS.equals(accountDataElement.type)) {
                     // URL preview
-                    manageUrlPreview(events);
+                    manageUrlPreview(accountDataElement);
+                } else if (AccountDataElement.ACCOUNT_DATA_TYPE_WIDGETS.equals(accountDataElement.type)) {
                     // User widgets
-                    manageUserWidgets(events);
+                    manageUserWidgets(accountDataElement);
                 }
             }
         } catch (Exception e) {
@@ -1025,37 +1029,36 @@ public class MXDataHandler {
     /**
      * Refresh the push rules from the account data events list
      *
-     * @param events the account data events.
+     * @param accountDataElement the account data element
      */
-    private void managePushRulesUpdate(List<Map<String, Object>> events) {
-        for (Map<String, Object> event : events) {
-            String type = (String) event.get("type");
+    private void managePushRulesUpdate(AccountDataElement accountDataElement) {
+        Gson gson = JsonUtils.getGson(false);
 
-            if (TextUtils.equals(type, "m.push_rules")) {
-                if (event.containsKey("content")) {
-                    Gson gson = JsonUtils.getGson(false);
+        // convert the data to PushRulesResponse
+        // because BingRulesManager supports only PushRulesResponse
+        JsonElement element = gson.toJsonTree(accountDataElement.content);
+        getBingRulesManager().buildRules(gson.fromJson(element, PushRulesResponse.class));
 
-                    // convert the data to PushRulesResponse
-                    // because BingRulesManager supports only PushRulesResponse
-                    JsonElement element = gson.toJsonTree(event.get("content"));
-                    getBingRulesManager().buildRules(gson.fromJson(element, PushRulesResponse.class));
-
-                    // warn the client that the push rules have been updated
-                    onBingRulesUpdate();
-                }
-
-                return;
-            }
-        }
+        // warn the client that the push rules have been updated
+        onBingRulesUpdate();
     }
 
     /**
      * Check if the ignored users list is updated
      *
-     * @param events the account data events list
+     * @param accountDataElement the account data element of correct type
      */
-    private void manageIgnoredUsers(List<Map<String, Object>> events, boolean isInitialSync) {
-        List<String> newIgnoredUsers = ignoredUsers(events);
+    private void manageIgnoredUsers(AccountDataElement accountDataElement, boolean isInitialSync) {
+        List<String> newIgnoredUsers = null;
+
+        // Extract the ignored users list from the account data events list.
+        if (accountDataElement.content.containsKey(AccountDataElement.ACCOUNT_DATA_KEY_IGNORED_USERS)) {
+            Map<String, Object> ignored_users = (Map<String, Object>) accountDataElement.content.get(AccountDataElement.ACCOUNT_DATA_KEY_IGNORED_USERS);
+
+            if (null != ignored_users) {
+                newIgnoredUsers = new ArrayList<>(ignored_users.keySet());
+            }
+        }
 
         if (null != newIgnoredUsers) {
             List<String> curIgnoredUsers = getIgnoredUserIds();
@@ -1078,119 +1081,59 @@ public class MXDataHandler {
     }
 
     /**
-     * Extract the ignored users list from the account data events list..
-     *
-     * @param events the account data events list.
-     * @return the ignored users list. null means that there is no defined user ids list.
-     */
-    private List<String> ignoredUsers(List<Map<String, Object>> events) {
-        List<String> ignoredUsers = null;
-
-        if (0 != events.size()) {
-            for (Map<String, Object> event : events) {
-                String type = (String) event.get("type");
-
-                if (TextUtils.equals(type, AccountDataRestClient.ACCOUNT_DATA_TYPE_IGNORED_USER_LIST)) {
-                    if (event.containsKey("content")) {
-                        Map<String, Object> contentDict = (Map<String, Object>) event.get("content");
-
-                        if (contentDict.containsKey(AccountDataRestClient.ACCOUNT_DATA_KEY_IGNORED_USERS)) {
-                            Map<String, Object> ignored_users = (Map<String, Object>) contentDict.get(AccountDataRestClient.ACCOUNT_DATA_KEY_IGNORED_USERS);
-
-                            if (null != ignored_users) {
-                                ignoredUsers = new ArrayList<>(ignored_users.keySet());
-                            }
-                        }
-                    }
-                }
-            }
-
-        }
-
-        return ignoredUsers;
-    }
-
-
-    /**
      * Extract the direct chat rooms list from the dedicated events.
      *
-     * @param events the account data events list.
+     * @param accountDataElement the account data element of correct type
      */
-    private void manageDirectChatRooms(List<Map<String, Object>> events, boolean isInitialSync) {
-        if (0 != events.size()) {
-            for (Map<String, Object> event : events) {
-                String type = (String) event.get("type");
+    private void manageDirectChatRooms(AccountDataElement accountDataElement, boolean isInitialSync) {
+        Log.d(LOG_TAG, "## manageDirectChatRooms() : update direct chats map" + accountDataElement.content);
 
-                if (TextUtils.equals(type, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES)) {
-                    if (event.containsKey("content")) {
-                        Map<String, List<String>> contentDict = (Map<String, List<String>>) event.get("content");
+        Gson gson = JsonUtils.getGson(false);
+        JsonElement element = gson.toJsonTree(accountDataElement.content);
 
-                        Log.d(LOG_TAG, "## manageDirectChatRooms() : update direct chats map" + contentDict);
+        Map<String, List<String>> parsedList = gson.fromJson(element, new TypeToken<Map<String, List<String>>>() {
+        }.getType());
 
-                        mStore.setDirectChatRoomsDict(contentDict);
+        mStore.setDirectChatRoomsDict(parsedList);
 
-                        // reset the current list of the direct chat roomIDs
-                        // to update it
-                        mLocalDirectChatRoomIdsList = null;
+        // reset the current list of the direct chat roomIDs
+        // to update it
+        mLocalDirectChatRoomIdsList = null;
 
-                        if (!isInitialSync) {
-                            // warn there is an update
-                            onDirectMessageChatRoomsListUpdate();
-                        }
-                    }
-                }
-            }
+        if (!isInitialSync) {
+            // warn there is an update
+            onDirectMessageChatRoomsListUpdate();
         }
     }
 
     /**
      * Manage the URL preview flag
      *
-     * @param events the events list
+     * @param accountDataElement the account data element of correct type
      */
-    private void manageUrlPreview(List<Map<String, Object>> events) {
-        if (0 != events.size()) {
-            for (Map<String, Object> event : events) {
-                String type = (String) event.get("type");
+    private void manageUrlPreview(AccountDataElement accountDataElement) {
+        Map<String, Object> contentDict = accountDataElement.content;
 
-                if (TextUtils.equals(type, AccountDataRestClient.ACCOUNT_DATA_TYPE_PREVIEW_URLS)) {
-                    if (event.containsKey("content")) {
-                        Map<String, Object> contentDict = (Map<String, Object>) event.get("content");
-
-                        Log.d(LOG_TAG, "## manageUrlPreview() : " + contentDict);
-                        boolean enable = true;
-                        if (contentDict.containsKey(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE)) {
-                            enable = !((boolean) contentDict.get(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE));
-                        }
-
-                        mStore.setURLPreviewEnabled(enable);
-                    }
-                }
-            }
+        Log.d(LOG_TAG, "## manageUrlPreview() : " + contentDict);
+        boolean enable = true;
+        if (contentDict.containsKey(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE)) {
+            enable = !((boolean) contentDict.get(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE));
         }
+
+        mStore.setURLPreviewEnabled(enable);
     }
 
     /**
      * Manage the user widgets
      *
-     * @param events the events list
+     * @param accountDataElement the account data element of correct type
      */
-    private void manageUserWidgets(List<Map<String, Object>> events) {
-        if (0 != events.size()) {
-            for (Map<String, Object> event : events) {
-                String type = (String) event.get("type");
+    private void manageUserWidgets(AccountDataElement accountDataElement) {
+        Map<String, Object> contentDict = accountDataElement.content;
 
-                if (TextUtils.equals(type, AccountDataRestClient.ACCOUNT_DATA_TYPE_WIDGETS)) {
-                    if (event.containsKey("content")) {
-                        Map<String, Object> contentDict = (Map<String, Object>) event.get("content");
+        Log.d(LOG_TAG, "## manageUserWidgets() : " + contentDict);
 
-                        Log.d(LOG_TAG, "## manageUserWidgets() : " + contentDict);
-
-                        mStore.setUserWidgets(contentDict);
-                    }
-                }
-            }
-        }
+        mStore.setUserWidgets(contentDict);
     }
 
     //================================================================================
@@ -1339,9 +1282,16 @@ public class MXDataHandler {
 
             // Handle account data before the room events
             // to be able to update direct chats dictionary during invites handling.
-            if (null != syncResponse.accountData) {
-                Log.d(LOG_TAG, "Received " + syncResponse.accountData.size() + " accountData events");
-                manageAccountData(syncResponse.accountData, isInitialSync);
+            if (syncResponse.accountData != null
+                    && syncResponse.accountData.accountDataElements != null
+                    && !syncResponse.accountData.accountDataElements.isEmpty()) {
+                Log.d(LOG_TAG, "Received " + syncResponse.accountData.accountDataElements.size() + " accountData events");
+                manageAccountData(syncResponse.accountData.accountDataElements, isInitialSync);
+
+                // Global management, to be sure to handle any account data
+                getStore().storeAccountData(syncResponse.accountData);
+
+                mMxEventDispatcher.dispatchOnAccountDataUpdate();
             }
 
             // sanity check
@@ -1441,7 +1391,7 @@ public class MXDataHandler {
 
                     if (hasChanged) {
                         // Update account data to add new direct chat room(s)
-                        mAccountDataRestClient.setAccountData(mCredentials.userId, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES,
+                        mAccountDataRestClient.setAccountData(mCredentials.userId, AccountDataElement.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES,
                                 updatedDirectChatRoomsDict, new ApiCallback<Void>() {
                                     @Override
                                     public void onSuccess(Void info) {
@@ -2105,7 +2055,7 @@ public class MXDataHandler {
         }
         mLocalDirectChatRoomIdsList = null;
         // Upload the new map
-        mAccountDataRestClient.setAccountData(getMyUser().user_id, AccountDataRestClient.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, directChatRoomsMap, callback);
+        mAccountDataRestClient.setAccountData(getMyUser().user_id, AccountDataElement.ACCOUNT_DATA_TYPE_DIRECT_MESSAGES, directChatRoomsMap, callback);
     }
 
     /**
