@@ -1313,6 +1313,11 @@ public class MXDataHandler {
                     && !syncResponse.accountData.accountDataElements.isEmpty()) {
                 Log.d(LOG_TAG, "Received " + syncResponse.accountData.accountDataElements.size() + " accountData events");
                 manageAccountData(syncResponse.accountData.accountDataElements, isInitialSync);
+
+                // Global management, to be sure to handle any account data
+                getStore().storeAccountData(syncResponse.accountData);
+
+                mMxEventDispatcher.dispatchOnAccountDataUpdate();
             }
 
             // sanity check

@@ -1940,7 +1940,7 @@ public class Room {
             }
 
             if (null != getStore()) {
-                getStore().storeAccountData(getRoomId(), mAccountData);
+                getStore().storeRoomAccountData(getRoomId(), mAccountData);
             }
         }
     }

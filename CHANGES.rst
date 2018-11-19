@@ -5,13 +5,14 @@ Features:
  -
 
 Improvements:
- -
+ - Any Account data element, even if the type is not known is persisted.
 
 Bugfix:
  -
 
 API Change:
  - new API in CallSoundsManager to allow client to play the specified Ringtone (vector-im/riot-android#827)
+ - IMXStore.storeAccountData() has been renamed to IMXStore.storeRoomAccountData()
 
 Translations:
  -

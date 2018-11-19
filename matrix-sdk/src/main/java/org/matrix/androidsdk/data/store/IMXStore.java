@@ -21,11 +21,11 @@ package org.matrix.androidsdk.data.store;
 import android.content.Context;
 import android.support.annotation.Nullable;
 
-import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.metrics.MetricsListener;
+import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
@@ -34,6 +34,8 @@ import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.group.Group;
 import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
+import org.matrix.androidsdk.rest.model.sync.AccountData;
+import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
 
 import java.util.Collection;
 import java.util.List;
@@ -517,12 +519,25 @@ public interface IMXStore {
     boolean isEventRead(String roomId, String userId, String eventId);
 
     /**
+     * Store the user account data.
+     *
+     * @param accountData the account data, or a partial account data in case of account data update
+     */
+    void storeAccountData(AccountData accountData);
+
+    /**
+     * Get Account Data value for the corresponding type, or null if not found
+     */
+    @Nullable
+    AccountDataElement getAccountDataElement(String type);
+
+    /**
      * Store the user data for a room.
      *
      * @param roomId      The room Id.
      * @param accountData the account data.
      */
-    void storeAccountData(String roomId, RoomAccountData accountData);
+    void storeRoomAccountData(String roomId, RoomAccountData accountData);
 
     /**
      * Provides the store preload time in milliseconds.
