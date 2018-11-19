@@ -1049,7 +1049,16 @@ public class MXDataHandler {
      * @param accountDataElement the account data element of correct type
      */
     private void manageIgnoredUsers(AccountDataElement accountDataElement, boolean isInitialSync) {
-        List<String> newIgnoredUsers = ignoredUsers(accountDataElement);
+        List<String> newIgnoredUsers = null;
+
+        // Extract the ignored users list from the account data events list.
+        if (accountDataElement.content.containsKey(AccountDataElement.ACCOUNT_DATA_KEY_IGNORED_USERS)) {
+            Map<String, Object> ignored_users = (Map<String, Object>) accountDataElement.content.get(AccountDataElement.ACCOUNT_DATA_KEY_IGNORED_USERS);
+
+            if (null != ignored_users) {
+                newIgnoredUsers = new ArrayList<>(ignored_users.keySet());
+            }
+        }
 
         if (null != newIgnoredUsers) {
             List<String> curIgnoredUsers = getIgnoredUserIds();
@@ -1070,27 +1079,6 @@ public class MXDataHandler {
             }
         }
     }
-
-    /**
-     * Extract the ignored users list from the account data events list..
-     *
-     * @param accountDataElement the account data element of correct type
-     * @return the ignored users list. null means that there is no defined user ids list.
-     */
-    private List<String> ignoredUsers(AccountDataElement accountDataElement) {
-        List<String> ignoredUsers = null;
-
-        if (accountDataElement.content.containsKey(AccountDataElement.ACCOUNT_DATA_KEY_IGNORED_USERS)) {
-            Map<String, Object> ignored_users = (Map<String, Object>) accountDataElement.content.get(AccountDataElement.ACCOUNT_DATA_KEY_IGNORED_USERS);
-
-            if (null != ignored_users) {
-                ignoredUsers = new ArrayList<>(ignored_users.keySet());
-            }
-        }
-
-        return ignoredUsers;
-    }
-
 
     /**
      * Extract the direct chat rooms list from the dedicated events.
