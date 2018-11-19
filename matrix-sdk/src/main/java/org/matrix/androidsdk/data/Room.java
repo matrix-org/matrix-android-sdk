@@ -329,7 +329,7 @@ public class Room {
                     Log.d(LOG_TAG, "## handleJoinedRoomSync : received " + roomSync.accountData.events.size() + " account data events");
                 }
 
-                handleAccountDataEvents(roomSync.accountData.events);
+                handleRoomAccountDataEvents(roomSync.accountData.events);
             }
         }
 
@@ -1896,7 +1896,7 @@ public class Room {
      *
      * @param accountDataEvents the account events.
      */
-    private void handleAccountDataEvents(List<Event> accountDataEvents) {
+    private void handleRoomAccountDataEvents(List<Event> accountDataEvents) {
         if ((null != accountDataEvents) && (accountDataEvents.size() > 0)) {
             // manage the account events
             for (Event accountDataEvent : accountDataEvents) {
@@ -1907,9 +1907,9 @@ public class Room {
                     if (summary != null) {
                         final Event event = JsonUtils.toEvent(accountDataEvent.getContent());
                         if (null != event && !TextUtils.equals(event.eventId, summary.getReadMarkerEventId())) {
-                            Log.d(LOG_TAG, "## handleAccountDataEvents() : update the read marker to " + event.eventId + " in room " + getRoomId());
+                            Log.d(LOG_TAG, "## handleRoomAccountDataEvents() : update the read marker to " + event.eventId + " in room " + getRoomId());
                             if (TextUtils.isEmpty(event.eventId)) {
-                                Log.e(LOG_TAG, "## handleAccountDataEvents() : null event id " + accountDataEvent.getContent());
+                                Log.e(LOG_TAG, "## handleRoomAccountDataEvents() : null event id " + accountDataEvent.getContent());
                             }
                             summary.setReadMarkerEventId(event.eventId);
                             getStore().flushSummary(summary);
