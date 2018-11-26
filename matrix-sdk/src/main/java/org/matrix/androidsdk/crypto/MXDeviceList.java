@@ -41,23 +41,26 @@ public class MXDeviceList {
 
     /**
      * State transition diagram for DeviceList.deviceTrackingStatus
-     * <p>
-     * |
-     * stopTrackingDeviceList     V
-     * +---------------------> NOT_TRACKED
-     * |                            |
-     * +<--------------------+      | startTrackingDeviceList
-     * |                     |      V
-     * |   +-------------> PENDING_DOWNLOAD <--------------------+-+
-     * |   |                      ^ |                            | |
-     * |   | restart     download | |  start download            | | invalidateUserDeviceList
-     * |   | client        failed | |                            | |
-     * |   |                      | V                            | |
-     * |   +------------ DOWNLOAD_IN_PROGRESS -------------------+ |
-     * |                    |       |                              |
-     * +<-------------------+       |  download successful         |
-     * ^                            V                              |
-     * +----------------------- UP_TO_DATE ------------------------+
+     * <pre>
+     *
+     *                                   |
+     *        stopTrackingDeviceList     V
+     *      +---------------------> NOT_TRACKED
+     *      |                            |
+     *      +<--------------------+      | startTrackingDeviceList
+     *      |                     |      V
+     *      |   +-------------> PENDING_DOWNLOAD <--------------------+-+
+     *      |   |                      ^ |                            | |
+     *      |   | restart     download | |  start download            | | invalidateUserDeviceList
+     *      |   | client        failed | |                            | |
+     *      |   |                      | V                            | |
+     *      |   +------------ DOWNLOAD_IN_PROGRESS -------------------+ |
+     *      |                    |       |                              |
+     *      +<-------------------+       |  download successful         |
+     *      ^                            V                              |
+     *      +----------------------- UP_TO_DATE ------------------------+
+     *
+     * </pre>
      **/
 
     public static final int TRACKING_STATUS_NOT_TRACKED = -1;
@@ -535,6 +538,7 @@ public class MXDeviceList {
             mPendingDownloadKeysRequestToken.put(userId, downloadToken);
         }
 
+        // TODO Token management seems wrong
         mxSession.getCryptoRestClient()
                 .downloadKeysForUsers(filteredUsers, mxSession.getDataHandler().getStore().getEventStreamToken(), new ApiCallback<KeysQueryResponse>() {
                     @Override

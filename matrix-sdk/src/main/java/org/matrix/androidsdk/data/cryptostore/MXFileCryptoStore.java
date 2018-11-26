@@ -20,6 +20,7 @@ package org.matrix.androidsdk.data.cryptostore;
 
 import android.content.Context;
 import android.os.Looper;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
@@ -760,8 +761,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         }
     }
 
+    @Nullable
     @Override
-    public Map<String, OlmSession> getDeviceSessions(String deviceKey) {
+    public Set<String> getDeviceSessionIds(String deviceKey) {
         if (!mIsReady) {
             Log.e(LOG_TAG, "## storeSession() : the store is not ready");
             return null;
@@ -774,7 +776,32 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 map = mOlmSessions.get(deviceKey);
             }
 
-            return map;
+            if (map != null) {
+                return map.keySet();
+            }
+        }
+
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public OlmSession getDeviceSession(String sessionId, String deviceKey) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## storeSession() : the store is not ready");
+            return null;
+        }
+
+        if (null != deviceKey) {
+            Map<String, OlmSession> map;
+
+            synchronized (mOlmSessionsLock) {
+                map = mOlmSessions.get(deviceKey);
+            }
+
+            if (map != null) {
+                return map.get(sessionId);
+            }
         }
 
         return null;
@@ -1744,5 +1771,35 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 addIncomingRoomKeyRequest(request);
             }
         }
+    }
+
+    /* ==========================================================================================
+     * Accessors for the Realm migration
+     * ========================================================================================== */
+
+    public Map<String, String> getRoomsAlgorithms() {
+        return mRoomsAlgorithms;
+    }
+
+    public MXUsersDevicesMap<MXDeviceInfo> getAllUsersDevices() {
+        // Ensure all users are loaded in the map
+        String[] devices = mDevicesFolder.list();
+
+        if (null != devices) {
+            // Load all
+            for (String device : devices) {
+                loadUserDevices(device);
+            }
+        }
+
+        return mUsersDevicesInfoMap;
+    }
+
+    public Map<Map<String, String>, OutgoingRoomKeyRequest> getOutgoingRoomKeyRequests() {
+        return mOutgoingRoomKeyRequests;
+    }
+
+    public Map<String, Map<String, OlmSession>> getOlmSessions() {
+        return mOlmSessions;
     }
 }
