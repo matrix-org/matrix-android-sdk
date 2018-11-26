@@ -2602,5 +2602,13 @@ public class MXSession {
         public MXSession build() {
             return mxSession;
         }
+
+    /* ==========================================================================================
+     * Debug info
+     * ========================================================================================== */
+
+    @Override
+    public String toString() {
+        return getMyUserId() + " " + super.toString();
     }
 }
