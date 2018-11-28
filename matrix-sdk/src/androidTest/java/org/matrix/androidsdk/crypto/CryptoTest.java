@@ -79,12 +79,17 @@ public class CryptoTest {
 
     private CommonTestHelper mTestHelper = new CommonTestHelper();
 
+    // Lazy loading is on by default now
+    private static final boolean LAZY_LOADING_ENABLED = true;
+
     private final SessionTestParams defaultSessionParams = SessionTestParams.newBuilder()
             .withInitialSync(true)
+            .withLazyLoading(LAZY_LOADING_ENABLED)
             .build();
     private final SessionTestParams encryptedSessionParams = SessionTestParams.newBuilder()
             .withInitialSync(true)
             .withCryptoEnabled(true)
+            .withLazyLoading(LAZY_LOADING_ENABLED)
             .build();
 
     private static final String LOG_TAG = "CryptoTest";
@@ -1003,7 +1008,7 @@ public class CryptoTest {
 
         HomeServerConnectionConfig hs = mTestHelper.createHomeServerConfig(aliceCredentials2);
 
-        IMXStore store = new MXFileStore(hs,false, context);
+        IMXStore store = new MXFileStore(hs, false, context);
 
         MXSession aliceSession2 = new MXSession.Builder(hs, new MXDataHandler(store, aliceCredentials2), context)
                 .build();
@@ -3338,6 +3343,14 @@ public class CryptoTest {
         Assert.assertEquals(bobReceivedEvents.get(0).eventId, relatesTo.dict.get("event_id"));
     }
 
+    @Test
+    public void test30_aliceBobStressTest() throws Exception {
+        for (int i = 0; i < 10; i++) {
+            Log.e(LOG_TAG, "test30_aliceBobFailure: attempt " + i);
+            doE2ETestWithAliceAndBobInARoom(true);
+        }
+    }
+
     //==============================================================================================================
     // private test routines
     //==============================================================================================================
@@ -3404,7 +3417,7 @@ public class CryptoTest {
         MXSession aliceSession = sessionAndRoomId.first;
         final String aliceRoomId = sessionAndRoomId.second;
 
-        Room room = aliceSession.getDataHandler().getRoom(aliceRoomId);
+        Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         MXSession bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, defaultSessionParams);
         CountDownLatch lock0 = new CountDownLatch(1);
@@ -3434,7 +3447,7 @@ public class CryptoTest {
 
         bobSession.getDataHandler().addListener(bobEventListener);
 
-        room.invite(bobSession.getMyUserId(), new TestApiCallback<Void>(lock1) {
+        roomFromAlicePOV.invite(bobSession.getMyUserId(), new TestApiCallback<Void>(lock1) {
             @Override
             public void onSuccess(Void info) {
                 statuses.put("invite", "invite");
@@ -3476,7 +3489,7 @@ public class CryptoTest {
             }
         });
 
-        room.addEventListener(new MXEventListener() {
+        roomFromAlicePOV.addEventListener(new MXEventListener() {
             @Override
             public void onLiveEvent(Event event, RoomState roomState) {
                 if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_STATE_ROOM_MEMBER)) {
@@ -3492,6 +3505,12 @@ public class CryptoTest {
         });
 
         mTestHelper.await(lock2);
+
+        // Ensure bob can send messages to the room
+        Room roomFromBobPOV = bobSession.getDataHandler().getRoom(aliceRoomId);
+        Assert.assertNotNull(roomFromBobPOV.getState().getPowerLevels());
+        Assert.assertTrue(roomFromBobPOV.getState().getPowerLevels().maySendMessage(bobSession.getMyUserId()));
+
         Assert.assertTrue(statuses + "", statuses.containsKey("joinRoom"));
         Assert.assertTrue(statuses + "", statuses.containsKey("AliceJoin"));
 
