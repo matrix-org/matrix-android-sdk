@@ -28,9 +28,6 @@ import org.matrix.androidsdk.util.Log
 
 /**
  * This class migrate the legacy FileCryptoStore to the Realm DB
- * TODO Try this several times? depending on crash, etc...
- * -> initial Data will not be called...
- *
  */
 internal class CryptoFileStoreImporter(private val enableFileEncryption: Boolean,
                                        private val context: Context,

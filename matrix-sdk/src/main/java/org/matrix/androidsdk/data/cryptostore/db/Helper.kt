@@ -46,6 +46,9 @@ fun String.hash() = try {
     hashCode().toString()
 }
 
+/**
+ * Get realm, invoke the action, close realm, and return the result of the action
+ */
 fun <T> doWithRealm(realmConfiguration: RealmConfiguration, action: (Realm) -> T): T {
     val realm = Realm.getInstance(realmConfiguration)
     val result = action.invoke(realm)
@@ -54,7 +57,7 @@ fun <T> doWithRealm(realmConfiguration: RealmConfiguration, action: (Realm) -> T
 }
 
 /**
- * Open realm, to the query, copy from realm and close realm
+ * Get realm, do the query, copy from realm, close realm, and return the copied result
  */
 fun <T : RealmObject> doRealmQueryAndCopy(realmConfiguration: RealmConfiguration, action: (Realm) -> T?): T? {
     val realm = Realm.getInstance(realmConfiguration)
@@ -64,6 +67,9 @@ fun <T : RealmObject> doRealmQueryAndCopy(realmConfiguration: RealmConfiguration
     return copiedResult
 }
 
+/**
+ * Get realm, do the list query, copy from realm, close realm, and return the copied result
+ */
 fun <T : RealmObject> doRealmQueryAndCopyList(realmConfiguration: RealmConfiguration, action: (Realm) -> Iterable<T>): Iterable<T> {
     val realm = Realm.getInstance(realmConfiguration)
     val result = action.invoke(realm)
@@ -72,12 +78,18 @@ fun <T : RealmObject> doRealmQueryAndCopyList(realmConfiguration: RealmConfigura
     return copiedResult
 }
 
+/**
+ * Get realm instance, invoke the action in a transaction and close realm
+ */
 fun doRealmTransaction(realmConfiguration: RealmConfiguration, action: (Realm) -> Unit) {
     val realm = Realm.getInstance(realmConfiguration)
     realm.executeTransaction { action.invoke(it) }
     realm.close()
 }
 
+/**
+ * Serialize any Serializable object, zip it and convert to Base64 String
+ */
 fun serializeForRealm(o: Any?): String? {
     if (o == null) {
         return null
@@ -93,6 +105,9 @@ fun serializeForRealm(o: Any?): String? {
     return Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT)
 }
 
+/**
+ * Do the opposite of serializeForRealm.
+ */
 fun <T> deserializeFromRealm(string: String?): T? {
     if (string == null) {
         return null

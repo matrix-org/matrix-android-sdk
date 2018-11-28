@@ -74,7 +74,7 @@ public class IncomingRoomKeyRequest implements Serializable {
     }
 
     /**
-     * Constructor for Realm
+     * Constructor for object creation from crypto store
      */
     public IncomingRoomKeyRequest() {
 

@@ -753,10 +753,11 @@ public class MXCrypto {
     /**
      * Set the devices as known
      *
-     * @param devices  the devices
-     * @param callback the as
+     * @param devices  the devices. Note that the mVerified member of the devices in this list will not be updated by this method.
+     * @param callback the asynchronous callback
      */
-    public void setDevicesKnown(final List<MXDeviceInfo> devices, final ApiCallback<Void> callback) {
+    public void setDevicesKnown(@NonNull final List<MXDeviceInfo> devices,
+                                @Nullable final ApiCallback<Void> callback) {
         if (hasBeenReleased()) {
             return;
         }
@@ -793,15 +794,6 @@ public class MXCrypto {
                             // it means that the device is known
                             if ((null != device) && device.isUnknown()) {
                                 device.mVerified = MXDeviceInfo.DEVICE_VERIFICATION_UNVERIFIED;
-
-                                //// Also update the value in devices list passed in parameter ?
-                                //for (MXDeviceInfo deviceInfo : devices) {
-                                //    if (deviceInfo.userId.equals(userId) && deviceInfo.deviceId.equals(deviceId)) {
-                                //        deviceInfo.mVerified = MXDeviceInfo.DEVICE_VERIFICATION_UNVERIFIED;
-                                //        break;
-                                //    }
-                                //}
-
                                 isUpdated = true;
                             }
                         }

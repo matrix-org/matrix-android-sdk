@@ -538,7 +538,6 @@ public class MXDeviceList {
             mPendingDownloadKeysRequestToken.put(userId, downloadToken);
         }
 
-        // TODO Token management seems wrong
         mxSession.getCryptoRestClient()
                 .downloadKeysForUsers(filteredUsers, mxSession.getDataHandler().getStore().getEventStreamToken(), new ApiCallback<KeysQueryResponse>() {
                     @Override
