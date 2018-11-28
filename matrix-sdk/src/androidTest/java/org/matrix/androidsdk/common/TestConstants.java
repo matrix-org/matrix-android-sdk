@@ -21,7 +21,7 @@ public class TestConstants {
     public static final String TESTS_HOME_SERVER_URL = "http://10.0.2.2:8080";
 
     // Time out to use when waiting for server response
-    public static final int AWAIT_TIME_OUT_MILLIS = 30000;
+    public static final int AWAIT_TIME_OUT_MILLIS = 60_000;
 
     public static final String USER_ALICE = "Alice";
     public static final String USER_BOB = "Bob";

@@ -917,7 +917,8 @@ public class MXDataHandler {
      * @param callback the callback
      */
     public void getMembersAsync(final String roomId, final ApiCallback<List<RoomMember>> callback) {
-        mRoomsRestClient.getRoomMembers(roomId, getStore().getEventStreamToken(), null, RoomMember.MEMBERSHIP_LEAVE,
+        // We do not pass the event stream token because of race condition issue. It's ok to pass null as a stream token
+        mRoomsRestClient.getRoomMembers(roomId, null, null, RoomMember.MEMBERSHIP_LEAVE,
                 new SimpleApiCallback<ChunkEvents>(callback) {
                     @Override
                     public void onSuccess(ChunkEvents info) {

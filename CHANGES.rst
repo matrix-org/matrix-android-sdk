@@ -8,7 +8,8 @@ Improvements:
  - Any Account data element, even if the type is not known is persisted.
 
 Bugfix:
- -
+ - Room members who left are listed with the actual members (vector-im/riot-android#2744)
+ - I'm not allow to send message in a new joined room (vector-im/riot-android#2743)
 
 API Change:
  - new API in CallSoundsManager to allow client to play the specified Ringtone (vector-im/riot-android#827)

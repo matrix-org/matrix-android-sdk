@@ -282,7 +282,11 @@ public class CommonTestHelper {
 
         IMXStore store = new MXFileStore(hs, false, context);
 
-        MXSession mxSession = new MXSession.Builder(hs, new MXDataHandler(store, credentials), context)
+        MXDataHandler dataHandler = new MXDataHandler(store, credentials);
+        // TODO Use sessionTestParam parameter when other PR will be merged
+        dataHandler.setLazyLoadingEnabled(true);
+
+        MXSession mxSession = new MXSession.Builder(hs, dataHandler, context)
                 .build();
 
         if (enableCrypto) {
