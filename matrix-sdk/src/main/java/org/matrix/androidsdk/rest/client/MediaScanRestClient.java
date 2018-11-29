@@ -27,7 +27,10 @@ import org.matrix.androidsdk.rest.callback.DefaultRetrofit2CallbackWrapper;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.EncryptedMediaScanBody;
 import org.matrix.androidsdk.rest.model.EncryptedMediaScanEncryptedBody;
+import org.matrix.androidsdk.rest.model.HttpError;
+import org.matrix.androidsdk.rest.model.HttpException;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.MediaScanError;
 import org.matrix.androidsdk.rest.model.MediaScanPublicKeyResult;
 import org.matrix.androidsdk.rest.model.MediaScanResult;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedBodyFileInfo;
@@ -167,7 +170,35 @@ public class MediaScanRestClient extends RestClient<MediaScanApi> {
                 }
 
                 if (request != null) {
-                    request.enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
+                    request.enqueue(new DefaultRetrofit2CallbackWrapper<>(new SimpleApiCallback<MediaScanResult>(callback) {
+                        @Override
+                        public void onSuccess(MediaScanResult scanResult) {
+                            callback.onSuccess(scanResult);
+                        }
+
+                        @Override
+                        public void onNetworkError(Exception exception) {
+                            // Check whether the provided encrypted_body could not be decrypted.
+                            if (exception != null && exception instanceof HttpException) {
+                                HttpError error = ((HttpException) exception).getHttpError();
+                                if (error.getHttpCode() == 403) {
+                                    MediaScanError mcsError;
+                                    try {
+                                        String bodyAsString = error.getErrorBody();
+                                        mcsError = JsonUtils.getGson(false).fromJson(bodyAsString, MediaScanError.class);
+                                    } catch (Exception e) {
+                                        mcsError = null;
+                                    }
+                                    if (mcsError != null && mcsError.reason == MediaScanError.MCS_BAD_DECRYPTION) {
+                                        // The client should request again the public key of the server.
+                                        resetServerPublicKey();
+                                    }
+                                }
+                            }
+
+                            super.onNetworkError(exception);
+                        }
+                    }));
                 }
             }
         });
