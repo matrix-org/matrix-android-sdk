@@ -753,10 +753,11 @@ public class MXCrypto {
     /**
      * Set the devices as known
      *
-     * @param devices  the devices
-     * @param callback the as
+     * @param devices  the devices. Note that the mVerified member of the devices in this list will not be updated by this method.
+     * @param callback the asynchronous callback
      */
-    public void setDevicesKnown(final List<MXDeviceInfo> devices, final ApiCallback<Void> callback) {
+    public void setDevicesKnown(@NonNull final List<MXDeviceInfo> devices,
+                                @Nullable final ApiCallback<Void> callback) {
         if (hasBeenReleased()) {
             return;
         }
@@ -1262,10 +1263,10 @@ public class MXCrypto {
             @Override
             public void onSuccess(final List<RoomMember> members) {
                 // just as you are sending a secret message?
-                final List<String> userdIds = new ArrayList<>();
+                final List<String> userIds = new ArrayList<>();
 
                 for (RoomMember m : members) {
-                    userdIds.add(m.getUserId());
+                    userIds.add(m.getUserId());
                 }
 
                 getEncryptingThreadHandler().post(new Runnable() {
@@ -1293,7 +1294,7 @@ public class MXCrypto {
                             final long t0 = System.currentTimeMillis();
                             Log.d(LOG_TAG, "## encryptEventContent() starts");
 
-                            alg.encryptEventContent(eventContent, eventType, userdIds, new ApiCallback<JsonElement>() {
+                            alg.encryptEventContent(eventContent, eventType, userIds, new ApiCallback<JsonElement>() {
                                 @Override
                                 public void onSuccess(final JsonElement encryptedContent) {
                                     Log.d(LOG_TAG, "## encryptEventContent() : succeeds after " + (System.currentTimeMillis() - t0) + " ms");

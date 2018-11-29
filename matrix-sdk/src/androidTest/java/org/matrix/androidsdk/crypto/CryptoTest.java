@@ -77,20 +77,16 @@ import java.util.concurrent.CountDownLatch;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class CryptoTest {
 
+    // Set this value to false to test the new Realm store and to true to test legacy Filestore
+    private static final boolean USE_LEGACY_CRYPTO_STORE = false;
+
     private CommonTestHelper mTestHelper = new CommonTestHelper();
 
     // Lazy loading is on by default now
     private static final boolean LAZY_LOADING_ENABLED = true;
 
-    private final SessionTestParams defaultSessionParams = SessionTestParams.newBuilder()
-            .withInitialSync(true)
-            .withLazyLoading(LAZY_LOADING_ENABLED)
-            .build();
-    private final SessionTestParams encryptedSessionParams = SessionTestParams.newBuilder()
-            .withInitialSync(true)
-            .withCryptoEnabled(true)
-            .withLazyLoading(LAZY_LOADING_ENABLED)
-            .build();
+    private final SessionTestParams defaultSessionParams = new SessionTestParams(true, false, LAZY_LOADING_ENABLED, USE_LEGACY_CRYPTO_STORE);
+    private final SessionTestParams encryptedSessionParams = new SessionTestParams(true, true, LAZY_LOADING_ENABLED, USE_LEGACY_CRYPTO_STORE);
 
     private static final String LOG_TAG = "CryptoTest";
 
@@ -166,6 +162,7 @@ public class CryptoTest {
         IMXStore store = new MXFileStore(hs, false, context);
 
         MXSession bobSession2 = new MXSession.Builder(hs, new MXDataHandler(store, bobCredentials), context)
+                .withLegacyCryptoStore(USE_LEGACY_CRYPTO_STORE)
                 .build();
 
         final CountDownLatch lock1 = new CountDownLatch(1);
@@ -308,6 +305,10 @@ public class CryptoTest {
         );
         mTestHelper.await(lock3a);
         Assert.assertTrue(results.containsKey("setDevicesKnown"));
+
+        // Read again from the store
+        aliceDeviceFromBobPOV = bobSession.getCrypto().mCryptoStore.getUserDevice(aliceDeviceFromBobPOV.deviceId, aliceDeviceFromBobPOV.userId);
+
         Assert.assertTrue(aliceDeviceFromBobPOV.isUnverified());
 
         CountDownLatch lock3b = new CountDownLatch(1);
@@ -325,6 +326,10 @@ public class CryptoTest {
         );
         mTestHelper.await(lock3b);
         Assert.assertTrue(results.containsKey("setDeviceVerification1"));
+
+        // Read again from the store
+        aliceDeviceFromBobPOV = bobSession.getCrypto().mCryptoStore.getUserDevice(aliceDeviceFromBobPOV.deviceId, aliceDeviceFromBobPOV.userId);
+
         Assert.assertTrue(aliceDeviceFromBobPOV.isBlocked());
 
         Credentials bobCredentials = bobSession.getCredentials();
@@ -334,6 +339,7 @@ public class CryptoTest {
         IMXStore store = new MXFileStore(hs, false, context);
 
         MXSession bobSession2 = new MXSession.Builder(hs, new MXDataHandler(store, bobCredentials), context)
+                .withLegacyCryptoStore(USE_LEGACY_CRYPTO_STORE)
                 .build();
 
         final CountDownLatch lock4 = new CountDownLatch(1);
@@ -503,6 +509,7 @@ public class CryptoTest {
         IMXStore store = new MXFileStore(hs, false, context);
 
         MXSession bobSession2 = new MXSession.Builder(hs, new MXDataHandler(store, bobCredentials), context)
+                .withLegacyCryptoStore(USE_LEGACY_CRYPTO_STORE)
                 .build();
 
         final CountDownLatch lock5 = new CountDownLatch(1);
@@ -623,6 +630,19 @@ public class CryptoTest {
         Room room = bobSession.getDataHandler().getRoom(roomId[0]);
 
         Assert.assertFalse(room.isEncrypted());
+        // Check algo in store
+        Assert.assertNull(bobSession.getCrypto().getCryptoStore().getRoomAlgorithm(room.getRoomId()));
+
+        // Wait for the room encryption event
+        final CountDownLatch lock3 = new CountDownLatch(1);
+        bobSession.getDataHandler().addListener(new MXEventListener() {
+            @Override
+            public void onLiveEvent(Event event, RoomState roomState) {
+                if (TextUtils.equals(event.getType(), Event.EVENT_TYPE_MESSAGE_ENCRYPTION)) {
+                    lock3.countDown();
+                }
+            }
+        });
 
         CountDownLatch lock2 = new CountDownLatch(1);
         room.enableEncryptionWithAlgorithm(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, new TestApiCallback<Void>(lock2) {
@@ -636,6 +656,13 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("enableEncryptionWithAlgorithm"));
 
         Assert.assertTrue(room.isEncrypted());
+
+        mTestHelper.await(lock3);
+        // Wait again for other onLiveEvent callback to have effect in the store
+        Thread.sleep(1000);
+
+        // Check algo in store
+        Assert.assertEquals(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM, bobSession.getCrypto().getCryptoStore().getRoomAlgorithm(room.getRoomId()));
 
         bobSession.clear(context);
     }
@@ -878,6 +905,7 @@ public class CryptoTest {
         final CountDownLatch lock1 = new CountDownLatch(1);
 
         final MXSession aliceSession2 = new MXSession.Builder(hs, new MXDataHandler(store, aliceCredentials), context)
+                .withLegacyCryptoStore(USE_LEGACY_CRYPTO_STORE)
                 .build();
 
         MXStoreListener listener = new MXStoreListener() {
@@ -997,7 +1025,7 @@ public class CryptoTest {
         Credentials aliceCredentials = aliceSession.getCredentials();
         Credentials aliceCredentials2 = new Credentials();
 
-        // close the session and clear the data
+        // close the session and clear the data (not the crypto store)
         aliceSession.clear(context);
 
         aliceCredentials2.userId = aliceCredentials.userId;
@@ -1011,6 +1039,7 @@ public class CryptoTest {
         IMXStore store = new MXFileStore(hs, false, context);
 
         MXSession aliceSession2 = new MXSession.Builder(hs, new MXDataHandler(store, aliceCredentials2), context)
+                .withLegacyCryptoStore(USE_LEGACY_CRYPTO_STORE)
                 .build();
 
         aliceSession2.enableCryptoWhenStarting();
@@ -1102,6 +1131,7 @@ public class CryptoTest {
         final CountDownLatch lock1 = new CountDownLatch(2);
 
         MXSession bobSession2 = new MXSession.Builder(hs, new MXDataHandler(store, bobCredentials), context)
+                .withLegacyCryptoStore(USE_LEGACY_CRYPTO_STORE)
                 .build();
 
         MXEventListener eventListener = new MXEventListener() {
@@ -2210,8 +2240,11 @@ public class CryptoTest {
 
         MXUsersDevicesMap<MXDeviceInfo> usersDevicesInfoMap = (MXUsersDevicesMap<MXDeviceInfo>) results.get("downloadKeys");
 
-        // We can get info only get for Bob
+        // We can get info only for Bob, and not for @pppppppppppp:matrix.org
         Assert.assertEquals(1, usersDevicesInfoMap.getMap().size());
+
+        // Get one key for bob
+        Assert.assertEquals(1, usersDevicesInfoMap.getMap().get(bobSession.getMyUserId()).size());
 
         List<String> bobDevices = usersDevicesInfoMap.getUserDeviceIds(bobSession.getMyUserId());
 
@@ -2395,6 +2428,7 @@ public class CryptoTest {
         IMXStore store = new MXFileStore(hs, false, context);
 
         MXSession aliceSession2 = new MXSession.Builder(hs, new MXDataHandler(store, aliceCredentials2), context)
+                .withLegacyCryptoStore(USE_LEGACY_CRYPTO_STORE)
                 .build();
 
         aliceSession2.enableCryptoWhenStarting();
@@ -2677,7 +2711,7 @@ public class CryptoTest {
     }
 
     @Test
-    // Bob, Alice and Sam are in an enctypted room
+    // Bob, Alice and Sam are in an encrypted room
     // Alice sends a message
     // The message sending fails because of unknown devices (Bob and Sam ones)
     // Alice marks the Bob and Sam devices as known (UNVERIFIED)
@@ -2854,16 +2888,20 @@ public class CryptoTest {
         roomFromBobPOV.addEventListener(eventListenerBob2);
         roomFromSamPOV.addEventListener(eventListenerSam2);
 
+        Assert.assertFalse(aliceSession.getCrypto().mCryptoStore.getGlobalBlacklistUnverifiedDevices());
+
         CountDownLatch lock4 = new CountDownLatch(1);
         aliceSession.getCrypto().setGlobalBlacklistUnverifiedDevices(true, new TestApiCallback<Void>(lock4) {
             @Override
             public void onSuccess(Void info) {
-                results.put("setGlobalBlacklistUnverifiedDevicesTrue", "setGlobalBlacklistUnverifiedDevices");
+                results.put("setGlobalBlacklistUnverifiedDevices True", "setGlobalBlacklistUnverifiedDevices");
                 super.onSuccess(info);
             }
         });
         mTestHelper.await(lock4);
-        Assert.assertTrue(results.containsKey("setGlobalBlacklistUnverifiedDevicesTrue"));
+        Assert.assertTrue(results.containsKey("setGlobalBlacklistUnverifiedDevices True"));
+
+        Assert.assertTrue(aliceSession.getCrypto().mCryptoStore.getGlobalBlacklistUnverifiedDevices());
 
         // ensure that there is no received message
         results.clear();
@@ -2886,12 +2924,14 @@ public class CryptoTest {
         aliceSession.getCrypto().setGlobalBlacklistUnverifiedDevices(false, new TestApiCallback<Void>(lock6) {
             @Override
             public void onSuccess(Void info) {
-                results.put("setGlobalBlacklistUnverifiedDevicesfalse", "setGlobalBlacklistUnverifiedDevices");
+                results.put("setGlobalBlacklistUnverifiedDevices false", "setGlobalBlacklistUnverifiedDevices");
                 super.onSuccess(info);
             }
         });
         mTestHelper.await(lock6);
-        Assert.assertTrue(results.containsKey("setGlobalBlacklistUnverifiedDevicesfalse"));
+        Assert.assertTrue(results.containsKey("setGlobalBlacklistUnverifiedDevices false"));
+
+        Assert.assertFalse(aliceSession.getCrypto().mCryptoStore.getGlobalBlacklistUnverifiedDevices());
 
         // ensure that the messages are received
         results.clear();

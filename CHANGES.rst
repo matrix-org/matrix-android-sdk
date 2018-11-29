@@ -6,6 +6,7 @@ Features:
 
 Improvements:
  - Any Account data element, even if the type is not known is persisted.
+ - The crypto store is now implemented using a Realm database. The existing file store will be migrated at first usage (#398)
 
 Bugfix:
  - Room members who left are listed with the actual members (vector-im/riot-android#2744)
@@ -23,7 +24,7 @@ Others:
  -
 
 Build:
- -
+ - Introduce Kotlin to the SDK
 
 Test:
  -

@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.data.cryptostore;
 
 import android.content.Context;
+import android.support.annotation.Nullable;
 
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.OutgoingRoomKeyRequest;
@@ -43,7 +44,7 @@ public interface IMXCryptoStore {
     void initWithCredentials(Context context, Credentials credentials);
 
     /**
-     * @return if the corrupted is corrupted.
+     * @return if the store is corrupted.
      */
     boolean isCorrupted();
 
@@ -151,13 +152,25 @@ public interface IMXCryptoStore {
     void storeSession(OlmSession session, String deviceKey);
 
     /**
-     * Retrieve the end-to-end sessions between the logged-in user and another
+     * Retrieve the end-to-end session ids between the logged-in user and another
      * device.
      *
      * @param deviceKey the public key of the other device.
-     * @return A map from sessionId to Base64 end-to-end session.
+     * @return A set of sessionId, or null if device is not known
      */
-    Map<String, OlmSession> getDeviceSessions(String deviceKey);
+    @Nullable
+    Set<String> getDeviceSessionIds(String deviceKey);
+
+    /**
+     * Retrieve the end-to-end sessions between the logged-in user and another
+     * device.
+     *
+     * @param sessionId the session Id.
+     * @param deviceKey the public key of the other device.
+     * @return The Base64 end-to-end session, or null if not found
+     */
+    @Nullable
+    OlmSession getDeviceSession(String sessionId, String deviceKey);
 
     /**
      * Store an inbound group session.
@@ -173,12 +186,13 @@ public interface IMXCryptoStore {
      * @param senderKey the base64-encoded curve25519 key of the sender.
      * @return an inbound group session.
      */
+    @Nullable
     MXOlmInboundGroupSession2 getInboundGroupSession(String sessionId, String senderKey);
 
     /**
      * Retrieve the known inbound group sessions.
      *
-     * @return an inbound group session.
+     * @return the list of all known group sessions, to export them.
      */
     List<MXOlmInboundGroupSession2> getInboundGroupSessions();
 
@@ -220,7 +234,7 @@ public interface IMXCryptoStore {
     List<String> getRoomsListBlacklistUnverifiedDevices();
 
     /**
-     * @return the devices statuses map
+     * @return the devices statuses map (userId -> tracking status)
      */
     Map<String, Integer> getDeviceTrackingStatuses();
 
@@ -241,20 +255,21 @@ public interface IMXCryptoStore {
     int getDeviceTrackingStatus(String userId, int defaultValue);
 
     /**
-     * Look for an existing outgoing room key request, and if none is found,
+     * Look for an existing outgoing room key request, and if none is found, return null
      *
      * @param requestBody the request body
      * @return an OutgoingRoomKeyRequest instance or null
      */
+    @Nullable
     OutgoingRoomKeyRequest getOutgoingRoomKeyRequest(Map<String, String> requestBody);
 
     /**
-     * Look for an existing outgoing room key request, and if none is found,
-     * + add a new one.
+     * Look for an existing outgoing room key request, and if none is found, add a new one.
      *
      * @param request the request
      * @return either the same instance as passed in, or the existing one.
      */
+    @Nullable
     OutgoingRoomKeyRequest getOrAddOutgoingRoomKeyRequest(OutgoingRoomKeyRequest request);
 
     /**
@@ -263,6 +278,7 @@ public interface IMXCryptoStore {
      * @param states the states
      * @return an OutgoingRoomKeyRequest or null
      */
+    @Nullable
     OutgoingRoomKeyRequest getOutgoingRoomKeyRequestByState(Set<OutgoingRoomKeyRequest.RequestState> states);
 
     /**
@@ -296,8 +312,8 @@ public interface IMXCryptoStore {
     /**
      * Search an IncomingRoomKeyRequest
      *
-     * @param userId the user id
-     * @param deviceId the device id
+     * @param userId    the user id
+     * @param deviceId  the device id
      * @param requestId the request id
      * @return an IncomingRoomKeyRequest if it exists, else null
      */

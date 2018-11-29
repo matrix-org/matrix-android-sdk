@@ -2948,4 +2948,13 @@ public class Room {
 
         return count;
     }
+
+    /* ==========================================================================================
+     * Debug info
+     * ========================================================================================== */
+
+    @Override
+    public String toString() {
+        return getRoomId() + getRoomDisplayName(getStore().getContext()) + " " + super.toString();
+    }
 }

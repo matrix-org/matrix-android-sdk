@@ -17,6 +17,7 @@
 
 package org.matrix.androidsdk.crypto;
 
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.JsonParser;
@@ -348,13 +349,7 @@ public class MXOlmDevice {
      * @return a list of known session ids for the device.
      */
     public Set<String> getSessionIds(String theirDeviceIdentityKey) {
-        Map<String, OlmSession> map = mStore.getDeviceSessions(theirDeviceIdentityKey);
-
-        if (null != map) {
-            return map.keySet();
-        }
-
-        return null;
+        return mStore.getDeviceSessionIds(theirDeviceIdentityKey);
     }
 
     /**
@@ -775,11 +770,7 @@ public class MXOlmDevice {
     private OlmSession getSessionForDevice(String theirDeviceIdentityKey, String sessionId) {
         // sanity check
         if (!TextUtils.isEmpty(theirDeviceIdentityKey) && !TextUtils.isEmpty(sessionId)) {
-            Map<String, OlmSession> map = mStore.getDeviceSessions(theirDeviceIdentityKey);
-
-            if (null != map) {
-                return map.get(sessionId);
-            }
+            return mStore.getDeviceSession(sessionId, theirDeviceIdentityKey);
         }
 
         return null;
@@ -789,11 +780,12 @@ public class MXOlmDevice {
      * Extract an InboundGroupSession from the session store and do some check.
      * mInboundGroupSessionWithIdError describes the failure reason.
      *
-     * @param roomId    the room where the sesion is used.
+     * @param roomId    the room where the session is used.
      * @param sessionId the session identifier.
      * @param senderKey the base64-encoded curve25519 key of the sender.
      * @return the inbound group session.
      */
+    @Nullable
     public MXOlmInboundGroupSession2 getInboundGroupSession(String sessionId, String senderKey, String roomId) {
         mInboundGroupSessionWithIdError = null;
 

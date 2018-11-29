@@ -26,6 +26,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
@@ -41,6 +42,7 @@ import org.matrix.androidsdk.data.RoomTag;
 import org.matrix.androidsdk.data.comparator.RoomComparatorWithTag;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.data.cryptostore.MXFileCryptoStore;
+import org.matrix.androidsdk.data.cryptostore.db.RealmCryptoStore;
 import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXStoreListener;
@@ -151,7 +153,7 @@ public class MXSession {
 
     private MetricsListener mMetricsListener;
 
-    private Context mAppContent;
+    private Context mContext;
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
     private UnsentEventsManager mUnsentEventsManager;
 
@@ -169,9 +171,6 @@ public class MXSession {
 
     private final HomeServerConnectionConfig mHsConfig;
 
-    // True if file encryption is enabled
-    private boolean mEnableFileEncryption;
-
     // the application is launched from a notification
     // so, mEventsThread.start might be not ready
     private boolean mIsBgCatchupPending = false;
@@ -187,12 +186,16 @@ public class MXSession {
     // load the crypto libs.
     public static OlmManager mOlmManager = new OlmManager();
 
+    private IMXCryptoStore mCryptoStore;
+
     /**
      * Create a basic session for direct API calls.
      *
-     * @param hsConfig the home server connection config
+     * @param hsConfig      the home server connection config
+     * @param pushServerUrl specific pushServerUrl
      */
-    private MXSession(HomeServerConnectionConfig hsConfig) {
+    private MXSession(HomeServerConnectionConfig hsConfig,
+                      @Nullable String pushServerUrl) {
         mCredentials = hsConfig.getCredentials();
         mHsConfig = hsConfig;
 
@@ -201,7 +204,25 @@ public class MXSession {
         mPresenceRestClient = new PresenceRestClient(hsConfig);
         mRoomsRestClient = new RoomsRestClient(hsConfig);
         mPushRulesRestClient = new PushRulesRestClient(hsConfig);
-        mPushersRestClient = new PushersRestClient(hsConfig);
+
+        // If not empty, create a special PushersRestClient
+        if (!TextUtils.isEmpty(pushServerUrl)) {
+            // pusher uses a custom server
+            try {
+                HomeServerConnectionConfig alteredHsConfig = new HomeServerConnectionConfig.Builder(hsConfig)
+                        .withHomeServerUri(Uri.parse(pushServerUrl))
+                        .build();
+                mPushersRestClient = new PushersRestClient(alteredHsConfig);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## withPushServerUrl() failed " + e.getMessage(), e);
+            }
+        }
+
+        if (null == mPushersRestClient) {
+            // In case of error, or if pushServerUrl is not defined, use default config
+            mPushersRestClient = new PushersRestClient(hsConfig);
+        }
+
         mThirdPidRestClient = new ThirdPidRestClient(hsConfig);
         mCallRestClient = new CallRestClient(hsConfig);
         mAccountDataRestClient = new AccountDataRestClient(hsConfig);
@@ -216,13 +237,32 @@ public class MXSession {
      * Create a user session with a data handler.
      * Private, please use the MxSession.Builder now
      *
-     * @param hsConfig    the home server connection config
-     * @param dataHandler the data handler
-     * @param appContext  the application context
+     * @param hsConfig                  the home server connection config
+     * @param dataHandler               the data handler
+     * @param appContext                the application context
+     * @param pushServerUrl             specific pushServerUrl
+     * @param withFileEncryptionEnabled true to encrypt the crypto store
+     * @param withLegacyCryptoStore     true to use the legacy file crypto store (for test only)
+     * @param metricsListener           the metrics listener
      */
-    private MXSession(HomeServerConnectionConfig hsConfig, MXDataHandler dataHandler, Context appContext) {
-        this(hsConfig);
+    private MXSession(HomeServerConnectionConfig hsConfig,
+                      MXDataHandler dataHandler,
+                      Context appContext,
+                      @Nullable String pushServerUrl,
+                      boolean withFileEncryptionEnabled,
+                      boolean withLegacyCryptoStore,
+                      @Nullable MetricsListener metricsListener) {
+        this(hsConfig, pushServerUrl);
         mDataHandler = dataHandler;
+
+        // application context
+        mContext = appContext;
+
+        mMetricsListener = metricsListener;
+
+        // Init the crypto store
+        mCryptoStore = withLegacyCryptoStore ? new MXFileCryptoStore(withFileEncryptionEnabled) : new RealmCryptoStore(withFileEncryptionEnabled);
+        mCryptoStore.initWithCredentials(mContext, mCredentials);
 
         mDataHandler.getStore().addMXStoreListener(new MXStoreListener() {
             @Override
@@ -247,10 +287,7 @@ public class MXSession {
 
                 // test if the crypto instance has already been created
                 if (null == mCrypto) {
-                    MXFileCryptoStore store = new MXFileCryptoStore(mEnableFileEncryption);
-                    store.initWithCredentials(mAppContent, mCredentials);
-
-                    if (store.hasData() || mEnableCryptoWhenStartingMXSession) {
+                    if (mCryptoStore.hasData() || mEnableCryptoWhenStartingMXSession) {
                         Log.d(LOG_TAG, "## postProcess() : create the crypto instance for session " + this);
                         checkCrypto();
                     } else {
@@ -285,13 +322,10 @@ public class MXSession {
         mDataHandler.setEventsRestClient(mEventsRestClient);
         mDataHandler.setAccountDataRestClient(mAccountDataRestClient);
 
-        // application context
-        mAppContent = appContext;
-
         mNetworkConnectivityReceiver = new NetworkConnectivityReceiver();
         mNetworkConnectivityReceiver.checkNetworkConnection(appContext);
         mDataHandler.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
-        mAppContent.registerReceiver(mNetworkConnectivityReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+        mContext.registerReceiver(mNetworkConnectivityReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
 
         mBingRulesManager = new BingRulesManager(this, mNetworkConnectivityReceiver);
         mDataHandler.setPushRulesManager(mBingRulesManager);
@@ -301,7 +335,7 @@ public class MXSession {
         mContentManager = new ContentManager(hsConfig, mUnsentEventsManager);
 
         //
-        mCallsManager = new MXCallsManager(this, mAppContent);
+        mCallsManager = new MXCallsManager(this, mContext);
         mDataHandler.setCallsManager(mCallsManager);
 
         // the rest client
@@ -364,10 +398,10 @@ public class MXSession {
         String versionName = BuildConfig.VERSION_NAME;
 
         if (!TextUtils.isEmpty(versionName)) {
-            String gitVersion = mAppContent.getResources().getString(R.string.git_sdk_revision);
+            String gitVersion = mContext.getString(R.string.git_sdk_revision);
 
             if (longFormat) {
-                String date = mAppContent.getResources().getString(R.string.git_sdk_revision_date);
+                String date = mContext.getString(R.string.git_sdk_revision_date);
                 versionName += " (" + gitVersion + "-" + date + ")";
             } else {
                 versionName += " (" + gitVersion + ")";
@@ -609,7 +643,7 @@ public class MXSession {
 
         // network event will not be listened anymore
         try {
-            mAppContent.unregisterReceiver(mNetworkConnectivityReceiver);
+            mContext.unregisterReceiver(mNetworkConnectivityReceiver);
         } catch (Exception e) {
             Log.e(LOG_TAG, "## clearApplicationCaches() : unregisterReceiver failed " + e.getMessage(), e);
         }
@@ -859,7 +893,7 @@ public class MXSession {
 
             final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler) : anEventsListener;
 
-            mEventsThread = new EventsThread(mAppContent, mEventsRestClient, fEventsListener, initialToken);
+            mEventsThread = new EventsThread(mContext, mEventsRestClient, fEventsListener, initialToken);
             setSyncFilter(mCurrentFilter);
             mEventsThread.setMetricsListener(mMetricsListener);
             mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
@@ -1050,7 +1084,7 @@ public class MXSession {
         if (null != mNetworkConnectivityReceiver) {
             // mNetworkConnectivityReceiver is a broadcastReceiver
             // but some users reported that the network updates were not dispatched
-            mNetworkConnectivityReceiver.checkNetworkConnection(mAppContent);
+            mNetworkConnectivityReceiver.checkNetworkConnection(mContext);
         }
     }
 
@@ -1125,7 +1159,7 @@ public class MXSession {
         if (null != mNetworkConnectivityReceiver) {
             // mNetworkConnectivityReceiver is a broadcastReceiver
             // but some users reported that the network updates were not dispatched
-            mNetworkConnectivityReceiver.checkNetworkConnection(mAppContent);
+            mNetworkConnectivityReceiver.checkNetworkConnection(mContext);
         }
 
         if (null != mCallsManager) {
@@ -2249,6 +2283,7 @@ public class MXSession {
     /**
      * @return the crypto instance
      */
+    @Nullable
     public MXCrypto getCrypto() {
         return mCrypto;
     }
@@ -2305,14 +2340,11 @@ public class MXSession {
      * Launch it it is was not yet done.
      */
     public void checkCrypto() {
-        MXFileCryptoStore fileCryptoStore = new MXFileCryptoStore(mEnableFileEncryption);
-        fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
-
-        if ((fileCryptoStore.hasData() || mEnableCryptoWhenStartingMXSession) && (null == mCrypto)) {
+        if ((mCryptoStore.hasData() || mEnableCryptoWhenStartingMXSession) && (null == mCrypto)) {
             boolean isStoreLoaded = false;
             try {
                 // open the store
-                fileCryptoStore.open();
+                mCryptoStore.open();
                 isStoreLoaded = true;
             } catch (UnsatisfiedLinkError e) {
                 Log.e(LOG_TAG, "## checkCrypto() failed " + e.getMessage(), e);
@@ -2325,7 +2357,7 @@ public class MXSession {
 
                 try {
                     // open the store
-                    fileCryptoStore.open();
+                    mCryptoStore.open();
                     isStoreLoaded = true;
                 } catch (UnsatisfiedLinkError e) {
                     Log.e(LOG_TAG, "## checkCrypto() failed 2 " + e.getMessage(), e);
@@ -2337,7 +2369,7 @@ public class MXSession {
                 return;
             }
 
-            mCrypto = new MXCrypto(MXSession.this, fileCryptoStore, sCryptoConfig);
+            mCrypto = new MXCrypto(MXSession.this, mCryptoStore, sCryptoConfig);
             mDataHandler.setCrypto(mCrypto);
             // the room summaries are not stored with decrypted content
             decryptRoomSummaries();
@@ -2359,10 +2391,8 @@ public class MXSession {
         if (cryptoEnabled != isCryptoEnabled()) {
             if (cryptoEnabled) {
                 Log.d(LOG_TAG, "Crypto is enabled");
-                MXFileCryptoStore fileCryptoStore = new MXFileCryptoStore(mEnableFileEncryption);
-                fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
-                fileCryptoStore.open();
-                mCrypto = new MXCrypto(this, fileCryptoStore, sCryptoConfig);
+                mCryptoStore.open();
+                mCrypto = new MXCrypto(this, mCryptoStore, sCryptoConfig);
                 mCrypto.start(true, new SimpleApiCallback<Void>(callback) {
                     @Override
                     public void onSuccess(Void info) {
@@ -2374,9 +2404,8 @@ public class MXSession {
                 });
             } else if (null != mCrypto) {
                 Log.d(LOG_TAG, "Crypto is disabled");
-                IMXCryptoStore store = mCrypto.mCryptoStore;
                 mCrypto.close();
-                store.deleteStore();
+                mCryptoStore.deleteStore();
                 mCrypto = null;
                 mDataHandler.setCrypto(null);
 
@@ -2541,14 +2570,34 @@ public class MXSession {
      * ========================================================================================== */
 
     public static class Builder {
-        private MXSession mxSession;
+        private final HomeServerConnectionConfig mHsConfig;
+        private final MXDataHandler mDataHandler;
+        private final Context mContext;
+        @Nullable
+        private String mPushServerUrl;
+        // True if file encryption is enabled
+        private boolean mEnableFileEncryption;
+        // Used by unit tests to test Crypto store migration
+        private boolean mUseLegacyCryptoStore;
+        private MetricsListener mMetricsListener;
 
-        public Builder(HomeServerConnectionConfig hsConfig, MXDataHandler dataHandler, Context context) {
-            mxSession = new MXSession(hsConfig, dataHandler, context);
+
+        public Builder(@NonNull HomeServerConnectionConfig hsConfig,
+                       @NonNull MXDataHandler dataHandler,
+                       @NonNull Context context) {
+            mHsConfig = hsConfig;
+            mDataHandler = dataHandler;
+            mContext = context;
         }
 
         public Builder withFileEncryption(boolean enableFileEncryption) {
-            mxSession.mEnableFileEncryption = enableFileEncryption;
+            mEnableFileEncryption = enableFileEncryption;
+            return this;
+        }
+
+        @VisibleForTesting
+        public Builder withLegacyCryptoStore(boolean useLegacyCryptoStore) {
+            mUseLegacyCryptoStore = useLegacyCryptoStore;
             return this;
         }
 
@@ -2559,26 +2608,7 @@ public class MXSession {
          * @return this builder, to chain calls
          */
         public Builder withPushServerUrl(@Nullable String pushServerUrl) {
-            // If not empty, create a special PushersRestClient
-            PushersRestClient pushersRestClient = null;
-
-            if (!TextUtils.isEmpty(pushServerUrl)) {
-                // pusher uses a custom server
-                try {
-                    HomeServerConnectionConfig alteredHsConfig = new HomeServerConnectionConfig.Builder(mxSession.mPushersRestClient.mHsConfig)
-                            .withHomeServerUri(Uri.parse(pushServerUrl))
-                            .build();
-                    pushersRestClient = new PushersRestClient(alteredHsConfig);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## withPushServerUrl() failed " + e.getMessage(), e);
-                }
-            }
-
-            if (null != pushersRestClient) {
-                // Replace the existing client
-                mxSession.mPushersRestClient = pushersRestClient;
-            }
-
+            mPushServerUrl = pushServerUrl;
             return this;
         }
 
@@ -2589,7 +2619,7 @@ public class MXSession {
          * @return this builder, to chain calls
          */
         public Builder withMetricsListener(@Nullable MetricsListener metricsListener) {
-            mxSession.mMetricsListener = metricsListener;
+            mMetricsListener = metricsListener;
 
             return this;
         }
@@ -2597,10 +2627,25 @@ public class MXSession {
         /**
          * Build the session
          *
-         * @return the build session
+         * @return the built session
          */
         public MXSession build() {
-            return mxSession;
+            return new MXSession(mHsConfig,
+                    mDataHandler,
+                    mContext,
+                    mPushServerUrl,
+                    mEnableFileEncryption,
+                    mUseLegacyCryptoStore,
+                    mMetricsListener);
         }
+    }
+
+    /* ==========================================================================================
+     * Debug info
+     * ========================================================================================== */
+
+    @Override
+    public String toString() {
+        return getMyUserId() + " " + super.toString();
     }
 }
