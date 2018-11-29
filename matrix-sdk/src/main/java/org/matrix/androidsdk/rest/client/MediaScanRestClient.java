@@ -39,6 +39,8 @@ import org.matrix.olm.OlmException;
 import org.matrix.olm.OlmPkEncryption;
 import org.matrix.olm.OlmPkMessage;
 
+import java.net.HttpURLConnection;
+
 import retrofit2.Call;
 
 /**
@@ -99,7 +101,7 @@ public class MediaScanRestClient extends RestClient<MediaScanApi> {
                 @Override
                 public void onMatrixError(MatrixError e) {
                     // Old Antivirus scanner instance will return a 404
-                    if (e.mStatus == 404) {
+                    if (e.mStatus == HttpURLConnection.HTTP_NOT_FOUND) {
                         // On 404 consider the public key is not available, so do not encrypt body
                         mMxStore.setAntivirusServerPublicKey("");
 
@@ -179,9 +181,9 @@ public class MediaScanRestClient extends RestClient<MediaScanApi> {
                         @Override
                         public void onNetworkError(Exception exception) {
                             // Check whether the provided encrypted_body could not be decrypted.
-                            if (exception != null && exception instanceof HttpException) {
+                            if (exception instanceof HttpException) {
                                 HttpError error = ((HttpException) exception).getHttpError();
-                                if (error.getHttpCode() == 403) {
+                                if (error.getHttpCode() == HttpURLConnection.HTTP_FORBIDDEN) {
                                     MediaScanError mcsError;
                                     try {
                                         String bodyAsString = error.getErrorBody();
@@ -189,7 +191,7 @@ public class MediaScanRestClient extends RestClient<MediaScanApi> {
                                     } catch (Exception e) {
                                         mcsError = null;
                                     }
-                                    if (mcsError != null && mcsError.reason == MediaScanError.MCS_BAD_DECRYPTION) {
+                                    if (mcsError != null && MediaScanError.MCS_BAD_DECRYPTION.equals(mcsError.reason)) {
                                         // The client should request again the public key of the server.
                                         resetServerPublicKey();
                                     }
