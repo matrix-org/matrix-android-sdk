@@ -687,8 +687,8 @@ public class MXCrypto {
     /**
      * Find a device by curve25519 identity key
      *
-     * @param algorithm the encryption algorithm.
      * @param senderKey the curve25519 key to match.
+     * @param algorithm the encryption algorithm.
      * @return the device info, or null if not found / unsupported algorithm / crypto released
      */
     @Nullable
