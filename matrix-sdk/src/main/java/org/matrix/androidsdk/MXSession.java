@@ -2102,7 +2102,7 @@ public class MXSession {
         // on the next log in
         enableCrypto(false, null);
 
-        mLoginRestClient.logout(new ApiCallback<JsonObject>() {
+        mLoginRestClient.logout(new ApiCallback<Void>() {
 
             private void clearData() {
                 // required else the clear won't be done
@@ -2119,7 +2119,7 @@ public class MXSession {
             }
 
             @Override
-            public void onSuccess(JsonObject info) {
+            public void onSuccess(Void info) {
                 Log.d(LOG_TAG, "## logout() : succeed -> clearing the application data ");
                 clearData();
             }

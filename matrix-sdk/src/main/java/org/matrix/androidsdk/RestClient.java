@@ -90,8 +90,6 @@ public class RestClient<T> {
 
     protected T mApi;
 
-    protected Gson gson;
-
     protected UnsentEventsManager mUnsentEventsManager;
 
     protected HomeServerConnectionConfig mHsConfig;
@@ -140,10 +138,7 @@ public class RestClient<T> {
     }
 
     // Private constructor with Gson instance as a parameter
-    private RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, Gson _gson, EndPointServer endPointServer) {
-        // The JSON -> object mapper
-        gson = _gson;
-
+    private RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, Gson gson, EndPointServer endPointServer) {
         mHsConfig = hsConfig;
         mCredentials = hsConfig.getCredentials();
 
