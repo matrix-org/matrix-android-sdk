@@ -13,16 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.matrix.androidsdk.rest.model.login
 
-package org.matrix.androidsdk.rest.model;
+import com.google.gson.annotations.SerializedName
+import org.matrix.androidsdk.rest.client.LoginRestClient
 
-import org.matrix.androidsdk.rest.model.login.AuthParamsLoginPassword;
+/**
+ * Class to define the authentication parameters for "m.login.email.identity" type
+ */
+class AuthParamsEmailIdentity : AuthParams(LoginRestClient.LOGIN_FLOW_TYPE_EMAIL_IDENTITY) {
 
-public class DeactivateAccountParams {
-
-    // Auth params
-    public AuthParamsLoginPassword auth;
-
-    // Set to true to erase all data of the account
-    public boolean erase;
+    // forget password parameters
+    @JvmField
+    @SerializedName("threepid_creds")
+    var threePidCredentials: ThreePidCredentials? = null
 }
