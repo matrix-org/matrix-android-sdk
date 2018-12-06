@@ -2,7 +2,7 @@ Changes to Matrix Android SDK in 0.9.14 (2018-XX-XX)
 =======================================================
 
 Features:
- -
+ - Add terms model for the register/login flow (vector-im/riot-android#2442)
 
 Improvements:
  - Any Account data element, even if the type is not known is persisted.

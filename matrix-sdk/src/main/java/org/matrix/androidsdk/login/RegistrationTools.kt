@@ -18,6 +18,7 @@ package org.matrix.androidsdk.login
 
 import com.google.gson.internal.LinkedTreeMap
 import org.matrix.androidsdk.rest.client.LoginRestClient
+import org.matrix.androidsdk.rest.model.login.LocalizedFlowDataLoginTerms
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse
 
 /**
@@ -34,4 +35,116 @@ fun getCaptchaPublicKey(registrationFlowResponse: RegistrationFlowResponse?): St
         }
     }
     return publicKey
+}
+
+private data class UrlAndName(val url: String, val name: String)
+
+/**
+ * This method extract the policies from the login terms parameter, regarding the user language.
+ * For each policy, if user language is not found, the default language is used and if not found, the first url and name are used (not predictable)
+ *
+ * Example of Data:
+ * <pre>
+ * "m.login.terms": {
+ *       "policies": {
+ *         "privacy_policy": {
+ *           "version": "1.0",
+ *           "en": {
+ *             "url": "http:\/\/matrix.org\/_matrix\/consent?v=1.0",
+ *             "name": "Terms and Conditions"
+ *           }
+ *         }
+ *       }
+ *     }
+ *</pre>
+ *
+ * @param registrationFlowResponse the registration flow to extract data from
+ * @param userLanguage the user language
+ * @param defaultLanguage the default language to use if the user language is not found for a policy in registrationFlowResponse
+ */
+fun getLocalizedLoginTerms(registrationFlowResponse: RegistrationFlowResponse?,
+                           userLanguage: String = "en",
+                           defaultLanguage: String = "en"): List<LocalizedFlowDataLoginTerms> {
+    val result = ArrayList<LocalizedFlowDataLoginTerms>()
+
+    try {
+        registrationFlowResponse?.params?.let {
+            val termsAsObject = it[LoginRestClient.LOGIN_FLOW_TYPE_TERMS]
+            if (termsAsObject is LinkedTreeMap<*, *>) {
+                val policies = termsAsObject["policies"]
+
+                if (policies is LinkedTreeMap<*, *>) {
+                    policies.keys.forEach { policyName ->
+                        val localizedFlowDataLoginTerms = LocalizedFlowDataLoginTerms()
+                        localizedFlowDataLoginTerms.policyName = policyName as String
+
+                        val policy = policies[policyName]
+
+                        // Enter this policy
+                        if (policy is LinkedTreeMap<*, *>) {
+                            // Version
+                            localizedFlowDataLoginTerms.version = policy["version"] as String?
+
+                            var userLanguageUrlAndName: UrlAndName? = null
+                            var defaultLanguageUrlAndName: UrlAndName? = null
+                            var firstUrlAndName: UrlAndName? = null
+
+                            // Search for language
+                            policy.keys.forEach { policyKey ->
+                                when (policyKey) {
+                                    "version" -> Unit // Ignore
+                                    userLanguage -> {
+                                        // We found the data for the user language
+                                        userLanguageUrlAndName = extractUrlAndName(policy[policyKey])
+                                    }
+                                    defaultLanguage -> {
+                                        // We found default language
+                                        defaultLanguageUrlAndName = extractUrlAndName(policy[policyKey])
+                                    }
+                                    (firstUrlAndName == null) -> {
+                                        // Get at least some data
+                                        firstUrlAndName = extractUrlAndName(policy[policyKey])
+                                    }
+                                }
+                            }
+
+                            // Copy found language data by priority
+                            when {
+                                userLanguageUrlAndName != null -> {
+                                    localizedFlowDataLoginTerms.localizedUrl = userLanguageUrlAndName!!.url
+                                    localizedFlowDataLoginTerms.localizedName = userLanguageUrlAndName!!.name
+                                }
+                                defaultLanguageUrlAndName != null -> {
+                                    localizedFlowDataLoginTerms.localizedUrl = defaultLanguageUrlAndName!!.url
+                                    localizedFlowDataLoginTerms.localizedName = defaultLanguageUrlAndName!!.name
+                                }
+                                firstUrlAndName != null -> {
+                                    localizedFlowDataLoginTerms.localizedUrl = firstUrlAndName!!.url
+                                    localizedFlowDataLoginTerms.localizedName = firstUrlAndName!!.name
+                                }
+                            }
+                        }
+
+                        result.add(localizedFlowDataLoginTerms)
+                    }
+                }
+            }
+        }
+    } catch (e: Exception) {
+
+    }
+
+    return result
+}
+
+private fun extractUrlAndName(policyData: Any?): UrlAndName? {
+    if (policyData is LinkedTreeMap<*, *>) {
+        val url = policyData["url"] as String?
+        val name = policyData["name"] as String?
+
+        if (url != null && name != null) {
+            return UrlAndName(url, name)
+        }
+    }
+    return null
 }

@@ -13,18 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.matrix.androidsdk.rest.model.login
 
-import org.matrix.androidsdk.rest.client.LoginRestClient
-
 /**
- * Class to define the authentication parameters for "m.login.password" type
+ * This class represent a localized privacy policy for registration Flow.
  */
-class AuthParamsLoginPassword : AuthParams(LoginRestClient.LOGIN_FLOW_TYPE_PASSWORD) {
-
-    @JvmField
-    var user: String? = null
-
-    @JvmField
-    var password: String? = null
+class LocalizedFlowDataLoginTerms {
+    var policyName: String? = null
+    var version: String? = null
+    var localizedUrl: String? = null
+    var localizedName: String? = null
 }
