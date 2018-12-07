@@ -134,7 +134,7 @@ getActivity\(\)\.getString\(
 ### In Kotlin, Void has to be null safe, i.e. use 'Void?' instead of 'Void'
 \: Void\)
 
-### Kotlin conversion tools introduce this, but is can be replace by trim()
+### Kotlin conversion tools introduce this, but it can be replaced by trim()
 trim \{ it \<\= \' \' \}
 
 ### Use AlertDialog form v7 compat lib
