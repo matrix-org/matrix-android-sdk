@@ -16,7 +16,6 @@
 
 package org.matrix.androidsdk.login
 
-import com.google.gson.internal.LinkedTreeMap
 import org.matrix.androidsdk.rest.client.LoginRestClient
 import org.matrix.androidsdk.rest.model.login.LocalizedFlowDataLoginTerms
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse
@@ -30,7 +29,7 @@ fun getCaptchaPublicKey(registrationFlowResponse: RegistrationFlowResponse?): St
     var publicKey: String? = null
     registrationFlowResponse?.params?.let {
         val recaptchaParamsAsObject = it.get(LoginRestClient.LOGIN_FLOW_TYPE_RECAPTCHA)
-        if (recaptchaParamsAsObject is LinkedTreeMap<*, *>) {
+        if (recaptchaParamsAsObject is Map<*, *>) {
             publicKey = recaptchaParamsAsObject["public_key"] as String
         }
     }
@@ -70,10 +69,10 @@ fun getLocalizedLoginTerms(registrationFlowResponse: RegistrationFlowResponse?,
     try {
         registrationFlowResponse?.params?.let {
             val termsAsObject = it[LoginRestClient.LOGIN_FLOW_TYPE_TERMS]
-            if (termsAsObject is LinkedTreeMap<*, *>) {
+            if (termsAsObject is Map<*, *>) {
                 val policies = termsAsObject["policies"]
 
-                if (policies is LinkedTreeMap<*, *>) {
+                if (policies is Map<*, *>) {
                     policies.keys.forEach { policyName ->
                         val localizedFlowDataLoginTerms = LocalizedFlowDataLoginTerms()
                         localizedFlowDataLoginTerms.policyName = policyName as String
@@ -81,7 +80,7 @@ fun getLocalizedLoginTerms(registrationFlowResponse: RegistrationFlowResponse?,
                         val policy = policies[policyName]
 
                         // Enter this policy
-                        if (policy is LinkedTreeMap<*, *>) {
+                        if (policy is Map<*, *>) {
                             // Version
                             localizedFlowDataLoginTerms.version = policy["version"] as String?
 
@@ -101,9 +100,11 @@ fun getLocalizedLoginTerms(registrationFlowResponse: RegistrationFlowResponse?,
                                         // We found default language
                                         defaultLanguageUrlAndName = extractUrlAndName(policy[policyKey])
                                     }
-                                    (firstUrlAndName == null) -> {
-                                        // Get at least some data
-                                        firstUrlAndName = extractUrlAndName(policy[policyKey])
+                                    else -> {
+                                        if (firstUrlAndName == null) {
+                                            // Get at least some data
+                                            firstUrlAndName = extractUrlAndName(policy[policyKey])
+                                        }
                                     }
                                 }
                             }
@@ -138,7 +139,7 @@ fun getLocalizedLoginTerms(registrationFlowResponse: RegistrationFlowResponse?,
 }
 
 private fun extractUrlAndName(policyData: Any?): UrlAndName? {
-    if (policyData is LinkedTreeMap<*, *>) {
+    if (policyData is Map<*, *>) {
         val url = policyData["url"] as String?
         val name = policyData["name"] as String?
 
