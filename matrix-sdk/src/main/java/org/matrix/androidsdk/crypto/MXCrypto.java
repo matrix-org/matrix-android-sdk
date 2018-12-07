@@ -1513,17 +1513,25 @@ public class MXCrypto {
 
     /**
      * Sign Object
-     * // TODO Also use this method internally
+     * <p>
+     * Example:
+     * <pre>
+     *     {
+     *         "[MY_USER_ID]": {
+     *             "ed25519:[MY_DEVICE_ID]": "sign(str)"
+     *         }
+     *     }
+     * </pre>
      *
-     * @param str
-     * @return
+     * @param strToSign the String to sign and to include in the Map
+     * @return a Map (see example)
      */
-    public Map<String, Object> signObject(String str) {
-        Map<String, Object> result = new HashMap<>();
+    public Map<String, Map<String, String>> signObject(String strToSign) {
+        Map<String, Map<String, String>> result = new HashMap<>();
 
-        Map<String, Object> content = new HashMap<>();
+        Map<String, String> content = new HashMap<>();
 
-        content.put("ed25519:" + mMyDevice.deviceId, mOlmDevice.signMessage(str));
+        content.put("ed25519:" + mMyDevice.deviceId, mOlmDevice.signMessage(strToSign));
 
         result.put(mMyDevice.userId, content);
 
@@ -1864,15 +1872,7 @@ public class MXCrypto {
     private void uploadDeviceKeys(ApiCallback<KeysUploadResponse> callback) {
         // Prepare the device keys data to send
         // Sign it
-        String signature = mOlmDevice.signJSON(mMyDevice.signalableJSONDictionary());
-
-        Map<String, String> submap = new HashMap<>();
-        submap.put("ed25519:" + mMyDevice.deviceId, signature);
-
-        Map<String, Map<String, String>> map = new HashMap<>();
-        map.put(mSession.getMyUserId(), submap);
-
-        mMyDevice.signatures = map;
+        mMyDevice.signatures = signObject(JsonUtils.getCanonicalizedJsonString(mMyDevice.signalableJSONDictionary()));
 
         // For now, we set the device id explicitly, as we may not be using the
         // same one as used in login.
@@ -2156,13 +2156,7 @@ public class MXCrypto {
                 k.put("key", curve25519Map.get(key_id));
 
                 // the key is also signed
-                String signature = mOlmDevice.signJSON(k);
-                Map<String, String> submap = new HashMap<>();
-                submap.put("ed25519:" + mMyDevice.deviceId, signature);
-
-                Map<String, Map<String, String>> map = new HashMap<>();
-                map.put(mSession.getMyUserId(), submap);
-                k.put("signatures", map);
+                k.put("signatures", signObject(JsonUtils.getCanonicalizedJsonString(k)));
 
                 oneTimeJson.put("signed_curve25519:" + key_id, k);
             }

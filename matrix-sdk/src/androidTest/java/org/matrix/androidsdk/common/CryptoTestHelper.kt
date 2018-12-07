@@ -374,7 +374,7 @@ class CryptoTestHelper(val mTestHelper: CommonTestHelper) {
     fun createFakeMegolmBackupAuthData(): MegolmBackupAuthData {
         return MegolmBackupAuthData(
                 publicKey = "abcdefg",
-                signatures = HashMap<String, Any>().apply {
+                signatures = HashMap<String, Map<String, String>>().apply {
                     this["something"] = HashMap<String, String>().apply {
                         this["ed25519:something"] = "hijklmnop"
                     }

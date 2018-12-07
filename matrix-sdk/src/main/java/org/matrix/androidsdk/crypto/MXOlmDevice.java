@@ -173,17 +173,6 @@ public class MXOlmDevice {
     }
 
     /**
-     * Signs a JSON dictionary with the ed25519 key for this account.
-     * The signature is done on canonical version of the JSON.
-     *
-     * @param JSONDictionary the JSON to be signed.
-     * @return the base64-encoded signature
-     */
-    public String signJSON(Map<String, Object> JSONDictionary) {
-        return signMessage(JsonUtils.getCanonicalizedJsonString(JSONDictionary));
-    }
-
-    /**
      * @return The current (unused, unpublished) one-time keys for this account.
      */
     public Map<String, Map<String, String>> getOneTimeKeys() {

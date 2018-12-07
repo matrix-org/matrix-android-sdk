@@ -32,7 +32,7 @@ data class MegolmBackupAuthData(
         /**
          * Signatures of the public key.
          */
-        val signatures: MutableMap<String, Any>? = null
+        val signatures: Map<String, Map<String, String>>? = null
 ) {
     /**
      * Same as the parent [MXJSONModel JSONDictionary] but return only
