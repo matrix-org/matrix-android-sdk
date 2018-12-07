@@ -731,14 +731,14 @@ class KeysBackupTest {
         assertNotNull(keys2)
 
         assertEquals(keys1?.algorithm, keys2?.algorithm)
-        assertEquals(keys1?.room_id, keys2?.room_id)
+        assertEquals(keys1?.roomId, keys2?.roomId)
         // No need to compare the shortcut
         // assertEquals(keys1?.sender_claimed_ed25519_key, keys2?.sender_claimed_ed25519_key)
-        assertEquals(keys1?.sender_key, keys2?.sender_key)
-        assertEquals(keys1?.session_id, keys2?.session_id)
-        assertEquals(keys1?.session_key, keys2?.session_key)
+        assertEquals(keys1?.senderKey, keys2?.senderKey)
+        assertEquals(keys1?.sessionId, keys2?.sessionId)
+        assertEquals(keys1?.sessionKey, keys2?.sessionKey)
 
         assertListEquals(keys1?.forwardingCurve25519KeyChain, keys2?.forwardingCurve25519KeyChain)
-        assertDictEquals(keys1?.sender_claimed_keys, keys2?.sender_claimed_keys)
+        assertDictEquals(keys1?.senderClaimedKeys, keys2?.senderClaimedKeys)
     }
 }

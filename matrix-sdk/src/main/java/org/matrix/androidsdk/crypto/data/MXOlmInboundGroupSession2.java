@@ -95,15 +95,15 @@ public class MXOlmInboundGroupSession2 implements Serializable {
      */
     public MXOlmInboundGroupSession2(MegolmSessionData megolmSessionData) throws Exception {
         try {
-            mSession = OlmInboundGroupSession.importSession(megolmSessionData.session_key);
+            mSession = OlmInboundGroupSession.importSession(megolmSessionData.sessionKey);
 
-            if (!TextUtils.equals(mSession.sessionIdentifier(), megolmSessionData.session_id)) {
+            if (!TextUtils.equals(mSession.sessionIdentifier(), megolmSessionData.sessionId)) {
                 throw new Exception("Mismatched group session Id");
             }
 
-            mSenderKey = megolmSessionData.sender_key;
-            mKeysClaimed = megolmSessionData.sender_claimed_keys;
-            mRoomId = megolmSessionData.room_id;
+            mSenderKey = megolmSessionData.senderKey;
+            mKeysClaimed = megolmSessionData.senderClaimedKeys;
+            mRoomId = megolmSessionData.roomId;
         } catch (Exception e) {
             throw new Exception(e.getMessage());
         }
@@ -123,13 +123,13 @@ public class MXOlmInboundGroupSession2 implements Serializable {
                 mForwardingCurve25519KeyChain = new ArrayList<>();
             }
 
-            megolmSessionData.sender_claimed_ed25519_key = mKeysClaimed.get("ed25519");
+            megolmSessionData.senderClaimedEd25519Key = mKeysClaimed.get("ed25519");
             megolmSessionData.forwardingCurve25519KeyChain = new ArrayList<>(mForwardingCurve25519KeyChain);
-            megolmSessionData.sender_key = mSenderKey;
-            megolmSessionData.sender_claimed_keys = mKeysClaimed;
-            megolmSessionData.room_id = mRoomId;
-            megolmSessionData.session_id = mSession.sessionIdentifier();
-            megolmSessionData.session_key = mSession.export(mSession.getFirstKnownIndex());
+            megolmSessionData.senderKey = mSenderKey;
+            megolmSessionData.senderClaimedKeys = mKeysClaimed;
+            megolmSessionData.roomId = mRoomId;
+            megolmSessionData.sessionId = mSession.sessionIdentifier();
+            megolmSessionData.sessionKey = mSession.export(mSession.getFirstKnownIndex());
             megolmSessionData.algorithm = CryptoConstantsKt.MXCRYPTO_ALGORITHM_MEGOLM;
         } catch (Exception e) {
             megolmSessionData = null;

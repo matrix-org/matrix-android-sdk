@@ -760,10 +760,10 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
         val sessionData = session.exportKeys()
         val sessionBackupData = mapOf(
                 "algorithm" to sessionData!!.algorithm,
-                "sender_key" to sessionData.sender_key,
-                "sender_claimed_keys" to sessionData.sender_claimed_keys,
+                "sender_key" to sessionData.senderKey,
+                "sender_claimed_keys" to sessionData.senderClaimedKeys,
                 "forwarding_curve25519_key_chain" to (sessionData.forwardingCurve25519KeyChain ?: ArrayList<Any>()),
-                "session_key" to sessionData.session_key)
+                "session_key" to sessionData.sessionKey)
 
         var encryptedSessionBackupData: OlmPkMessage? = null
         try {
@@ -817,8 +817,8 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
             }
 
             if (sessionBackupData != null) {
-                sessionBackupData.session_id = sessionId
-                sessionBackupData.room_id = roomId
+                sessionBackupData.sessionId = sessionId
+                sessionBackupData.roomId = roomId
             }
         }
 

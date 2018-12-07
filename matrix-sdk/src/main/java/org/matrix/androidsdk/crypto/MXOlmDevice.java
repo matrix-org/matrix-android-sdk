@@ -588,9 +588,9 @@ public class MXOlmDevice {
      */
     @Nullable
     public MXOlmInboundGroupSession2 importInboundGroupSession(MegolmSessionData megolmSessionData) {
-        String sessionId = megolmSessionData.session_id;
-        String senderKey = megolmSessionData.sender_key;
-        String roomId = megolmSessionData.room_id;
+        String sessionId = megolmSessionData.sessionId;
+        String senderKey = megolmSessionData.senderKey;
+        String roomId = megolmSessionData.roomId;
 
         if (null != getInboundGroupSession(sessionId, senderKey, roomId)) {
             // If we already have this session, consider updating it
