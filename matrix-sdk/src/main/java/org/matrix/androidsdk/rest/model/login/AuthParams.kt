@@ -14,15 +14,12 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.rest.model;
+package org.matrix.androidsdk.rest.model.login
 
-import org.matrix.androidsdk.rest.model.login.AuthParamsLoginPassword;
-
-public class DeactivateAccountParams {
-
-    // Auth params
-    public AuthParamsLoginPassword auth;
-
-    // Set to true to erase all data of the account
-    public boolean erase;
+/**
+ * Open class, parent to all possible authentication parameters
+ */
+open class AuthParams(@JvmField val type: String) {
+    @JvmField
+    var session: String? = null
 }

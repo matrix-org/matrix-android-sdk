@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.rest.model;
+package org.matrix.androidsdk.rest.model.login
 
-import org.matrix.androidsdk.rest.model.login.AuthParamsLoginPassword;
-
-public class DeactivateAccountParams {
-
-    // Auth params
-    public AuthParamsLoginPassword auth;
-
-    // Set to true to erase all data of the account
-    public boolean erase;
-}
+/**
+ * This class represent a localized privacy policy for registration Flow.
+ */
+data class LocalizedFlowDataLoginTerms(
+        var policyName: String? = null,
+        var version: String? = null,
+        var localizedUrl: String? = null,
+        var localizedName: String? = null
+)

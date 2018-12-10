@@ -36,6 +36,7 @@ import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.client.LoginRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.login.AuthParams;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 import org.matrix.androidsdk.rest.model.login.RegistrationParams;
@@ -255,9 +256,8 @@ public class CommonTestHelper {
 
         registrationParams.username = userName;
         registrationParams.password = password;
-        Map<String, Object> authParams = new HashMap<>();
-        authParams.put("session", session);
-        authParams.put("type", LoginRestClient.LOGIN_FLOW_TYPE_DUMMY);
+        AuthParams authParams = new AuthParams(LoginRestClient.LOGIN_FLOW_TYPE_DUMMY);
+        authParams.session = session;
 
         registrationParams.auth = authParams;
 

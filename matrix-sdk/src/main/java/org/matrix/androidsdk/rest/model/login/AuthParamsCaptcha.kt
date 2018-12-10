@@ -13,16 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.matrix.androidsdk.rest.model.login
 
-package org.matrix.androidsdk.rest.model;
+import org.matrix.androidsdk.rest.client.LoginRestClient
 
-import org.matrix.androidsdk.rest.model.login.AuthParamsLoginPassword;
+/**
+ * Class to define the authentication parameters for "m.login.recaptcha" type
+ */
+class AuthParamsCaptcha : AuthParams(LoginRestClient.LOGIN_FLOW_TYPE_RECAPTCHA) {
 
-public class DeactivateAccountParams {
+    @JvmField
+    var response: String? = null
 
-    // Auth params
-    public AuthParamsLoginPassword auth;
-
-    // Set to true to erase all data of the account
-    public boolean erase;
 }
