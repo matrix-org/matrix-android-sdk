@@ -131,6 +131,12 @@ ButterKnife\.findById\(
 ### Directly use getString() in a Fragment
 getActivity\(\)\.getString\(
 
+### In Kotlin, Void has to be null safe, i.e. use 'Void?' instead of 'Void'
+\: Void\)
+
+### Kotlin conversion tools introduce this, but it can be replaced by trim()
+trim \{ it \<\= \' \' \}
+
 ### Use AlertDialog form v7 compat lib
 android\.app\.AlertDialog
 

@@ -16,7 +16,7 @@
 
 package org.matrix.androidsdk.common
 
-class SessionTestParams @JvmOverloads constructor(val withInitialSync: Boolean = false,
-                                                  val withCryptoEnabled: Boolean = false,
-                                                  val withLazyLoading: Boolean = false,
-                                                  val withLegacyCryptoStore: Boolean = true)
+data class SessionTestParams @JvmOverloads constructor(val withInitialSync: Boolean = false,
+                                                       val withCryptoEnabled: Boolean = false,
+                                                       val withLazyLoading: Boolean = true,
+                                                       val withLegacyCryptoStore: Boolean = false)

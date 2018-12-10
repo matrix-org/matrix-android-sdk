@@ -18,12 +18,14 @@ package org.matrix.androidsdk.data.cryptostore.db
 
 import io.realm.DynamicRealm
 import io.realm.RealmMigration
+import org.matrix.androidsdk.util.Log
 
 internal object RealmCryptoStoreMigration : RealmMigration {
 
+    const val LOG_TAG = "RealmCryptoStoreMigration"
     const val CRYPTO_STORE_SCHEMA_VERSION = 0L
 
     override fun migrate(realm: DynamicRealm, oldVersion: Long, newVersion: Long) {
+        Log.d(LOG_TAG, "Migrating Realm Crypto from $oldVersion to $newVersion")
     }
-
 }

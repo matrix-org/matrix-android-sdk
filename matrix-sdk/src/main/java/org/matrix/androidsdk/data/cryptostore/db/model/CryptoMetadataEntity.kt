@@ -33,7 +33,7 @@ internal open class CryptoMetadataEntity(
         var deviceSyncToken: String? = null,
         // Settings for blacklisting unverified devices.
         var globalBlacklistUnverifiedDevices: Boolean = false,
-        // The keys backup version currently used.
+        // The keys backup version currently used. Null means no backup.
         var backupVersion: String? = null
 ) : RealmObject() {
 

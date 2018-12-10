@@ -225,7 +225,7 @@ public class CommonTestHelper {
         CountDownLatch lock = new CountDownLatch(1);
 
         // get the registration session id
-        loginRestClient.register(registrationParams, new TestApiCallback<Credentials>(lock) {
+        loginRestClient.register(registrationParams, new TestApiCallback<Credentials>(lock, false) {
             @Override
             public void onMatrixError(MatrixError e) {
                 // detect if a parameter is expected
@@ -281,7 +281,6 @@ public class CommonTestHelper {
         IMXStore store = new MXFileStore(hs, false, context);
 
         MXDataHandler dataHandler = new MXDataHandler(store, credentials);
-        // TODO Use sessionTestParam parameter when other PR will be merged
         dataHandler.setLazyLoadingEnabled(sessionTestParams.getWithLazyLoading());
 
         MXSession mxSession = new MXSession.Builder(hs, dataHandler, context)
@@ -356,7 +355,7 @@ public class CommonTestHelper {
      * @throws InterruptedException
      */
     public void await(CountDownLatch latch) throws InterruptedException {
-        Assert.assertTrue(latch.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS));
+        Assert.assertTrue(latch.await(TestConstants.getTimeOutMillis(), TimeUnit.MILLISECONDS));
     }
 
     /**
@@ -373,8 +372,8 @@ public class CommonTestHelper {
     }
 
     /**
-     * Clone a session
-     * // TODO Use this method where it should be (after merge of keys backup)
+     * Clone a session.
+     * It simulate that the user launches again the application with the same Credentials, contrary to login which will create a new DeviceId
      *
      * @param from the session to clone
      * @return the duplicated session
@@ -383,10 +382,11 @@ public class CommonTestHelper {
     public MXSession createNewSession(@NonNull MXSession from, SessionTestParams sessionTestParams) throws InterruptedException {
         final Context context = InstrumentationRegistry.getContext();
 
-        Credentials aliceCredentials = from.getCredentials();
-        HomeServerConnectionConfig hs = createHomeServerConfig(aliceCredentials);
+        Credentials credentials = from.getCredentials();
+        HomeServerConnectionConfig hs = createHomeServerConfig(credentials);
         MXFileStore store = new MXFileStore(hs, false, context);
-        MXDataHandler dataHandler = new MXDataHandler(store, aliceCredentials);
+        MXDataHandler dataHandler = new MXDataHandler(store, credentials);
+        dataHandler.setLazyLoadingEnabled(sessionTestParams.getWithLazyLoading());
         store.setDataHandler(dataHandler);
         MXSession session2 = new MXSession.Builder(hs, dataHandler, context)
                 .withLegacyCryptoStore(sessionTestParams.getWithLegacyCryptoStore())

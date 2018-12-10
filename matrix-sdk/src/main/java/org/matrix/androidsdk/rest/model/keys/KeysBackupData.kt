@@ -14,20 +14,17 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.common;
+package org.matrix.androidsdk.rest.model.keys
 
-import android.util.Pair;
+import com.google.gson.annotations.SerializedName
 
-import org.matrix.androidsdk.MXSession;
+/**
+ * Backup data for several keys in several rooms.
+ */
+class KeysBackupData {
 
-public class SessionAndRoomId extends Pair<MXSession, String> {
-    /**
-     * Constructor for a Pair.
-     *
-     * @param first  the first object in the Pair
-     * @param second the second object in the pair
-     */
-    public SessionAndRoomId(MXSession first, String second) {
-        super(first, second);
-    }
+    // the keys are the room IDs, and the values are RoomKeysBackupData
+    @SerializedName("rooms")
+    var roomIdToRoomKeysBackupData: MutableMap<String, RoomKeysBackupData> = HashMap()
+
 }

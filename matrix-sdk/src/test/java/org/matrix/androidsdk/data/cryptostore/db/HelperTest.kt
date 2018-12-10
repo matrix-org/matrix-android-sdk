@@ -16,7 +16,7 @@
 
 package org.matrix.androidsdk.data.cryptostore.db
 
-import junit.framework.Assert.assertEquals
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class HelperTest {
