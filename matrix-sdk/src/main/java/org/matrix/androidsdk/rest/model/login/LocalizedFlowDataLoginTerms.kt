@@ -19,9 +19,9 @@ package org.matrix.androidsdk.rest.model.login
 /**
  * This class represent a localized privacy policy for registration Flow.
  */
-class LocalizedFlowDataLoginTerms {
-    var policyName: String? = null
-    var version: String? = null
-    var localizedUrl: String? = null
-    var localizedName: String? = null
-}
+data class LocalizedFlowDataLoginTerms(
+        var policyName: String? = null,
+        var version: String? = null,
+        var localizedUrl: String? = null,
+        var localizedName: String? = null
+)
